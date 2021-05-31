@@ -1,0 +1,8 @@
+{
+    "properties": {
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": ""
+    },
+    "typeName": "LuaScript"
+}

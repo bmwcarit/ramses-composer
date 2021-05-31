@@ -1,0 +1,135 @@
+{
+    "properties": {
+        "instanceCount": {
+            "annotations": [
+                {
+                    "properties": {
+                        "max": 20,
+                        "min": 1
+                    },
+                    "typeName": "RangeAnnotationInt"
+                }
+            ],
+            "value": 1
+        },
+        "mesh": null,
+        "objectID": "mesh_node_id",
+        "objectName": "mesh_node",
+        "rotation": {
+            "x": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 360,
+                            "min": -360
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 0
+            },
+            "y": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 360,
+                            "min": -360
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 0
+            },
+            "z": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 360,
+                            "min": -360
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 0
+            }
+        },
+        "scale": {
+            "x": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 100,
+                            "min": 0.1
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 1
+            },
+            "y": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 100,
+                            "min": 0.1
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 1
+            },
+            "z": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 100,
+                            "min": 0.1
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 1
+            }
+        },
+        "translation": {
+            "x": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 100,
+                            "min": -100
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 0
+            },
+            "y": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 100,
+                            "min": -100
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 0
+            },
+            "z": {
+                "annotations": [
+                    {
+                        "properties": {
+                            "max": 100,
+                            "min": -100
+                        },
+                        "typeName": "RangeAnnotationDouble"
+                    }
+                ],
+                "value": 0
+            }
+        },
+        "visible": true
+    },
+    "typeName": "MeshNode"
+}

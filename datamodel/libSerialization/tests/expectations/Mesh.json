@@ -1,0 +1,18 @@
+{
+    "properties": {
+        "bakeMeshes": true,
+        "materialNames": {
+            "properties": [
+                {
+                    "typeName": "String",
+                    "value": "material"
+                }
+            ]
+        },
+        "meshIndex": 0,
+        "objectID": "mesh_id",
+        "objectName": "mesh",
+        "uri": "SerializationTest/serializeMesh/testData/duck.glb"
+    },
+    "typeName": "Mesh"
+}

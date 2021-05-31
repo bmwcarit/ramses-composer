@@ -1,0 +1,4 @@
+*.ramres filter=lfs diff=lfs merge=lfs -text
+*.ramses filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+* text=auto

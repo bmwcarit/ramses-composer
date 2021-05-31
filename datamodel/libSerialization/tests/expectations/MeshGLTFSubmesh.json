@@ -1,0 +1,10 @@
+{
+    "properties": {
+        "bakeMeshes": false,
+        "meshIndex": 2,
+        "objectID": "mesh_id",
+        "objectName": "mesh",
+        "uri": "SerializationTest/serializeMeshglTFSubmesh/testData/ToyCar.gltf"
+    },
+    "typeName": "Mesh"
+}

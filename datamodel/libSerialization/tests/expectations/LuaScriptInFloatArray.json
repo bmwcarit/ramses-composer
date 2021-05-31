@@ -1,0 +1,113 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "float_array"
+            ],
+            "properties": {
+                "float_array": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "engineType": 14
+                            },
+                            "typeName": "EngineTypeAnnotation"
+                        },
+                        {
+                            "typeName": "LinkEndAnnotation"
+                        }
+                    ],
+                    "order": [
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5"
+                    ],
+                    "properties": {
+                        "1": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "2": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "3": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "4": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "5": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        }
+                    },
+                    "typeName": "Table::EngineTypeAnnotation::LinkEndAnnotation"
+                }
+            }
+        },
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": "SerializationTest/serializeLuaScriptInFloatArray/testData/in-float-array.lua"
+    },
+    "typeName": "LuaScript"
+}

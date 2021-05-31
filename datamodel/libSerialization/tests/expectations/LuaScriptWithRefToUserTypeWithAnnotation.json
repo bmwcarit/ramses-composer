@@ -1,0 +1,27 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "ref"
+            ],
+            "properties": {
+                "ref": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "name": "BLUBB"
+                            },
+                            "typeName": "DisplayNameAnnotation"
+                        }
+                    ],
+                    "typeName": "LuaScript::DisplayNameAnnotation",
+                    "value": null
+                }
+            }
+        },
+        "objectID": "mesh_id",
+        "objectName": "mesh",
+        "uri": ""
+    },
+    "typeName": "LuaScript"
+}

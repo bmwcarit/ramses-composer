@@ -1,0 +1,41 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="doneIcon">_Default/icons/outline_done_white_24dp.png</file>
+        <file alias="trashIcon">_Default/icons/outline_delete_white_24dp.png</file>
+        <file alias="applicationLogo">ramses-composer-logo.png</file>
+        <file alias="collapsedIcon">_Default/icons/outline_chevron_right_white_24dp.png</file>
+        <file alias="expandedIcon">_Default/icons/outline_expand_more_white_24dp.png</file>
+        <file alias="unlinkableIcon">_Default/icons/outline_link_invisible_24dp.png</file>
+        <file alias="linkableIcon">_Default/icons/outline_link_white_24dp.png</file>
+        <file alias="linkedIcon">_Default/icons/outline_link_yellow_24dp.png</file>
+        <file alias="parentLinkedIcon">_Default/icons/outline_call_missed_white_24dp.png</file>
+        <file alias="linkBrokenIcon">_Default/icons/outline_link_broken_red_24dp.png</file>
+        <file alias="lockedIcon">_Default/icons/outline_lock_white_24dp.png</file>
+        <file alias="unlockedIcon">_Default/icons/outline_lock_open_white_24dp.png</file>
+        <file alias="closeIcon">_Default/icons/outline_close_white_24dp.png</file>
+        <file alias="undockIcon">_Default/icons/outline_push_pin_white_24dp.png</file>
+        <file alias="menuIcon">_Default/icons/outline_menu_white_24dp.png</file>
+        <file alias="openInNewIcon">_Default/icons/outline_edit_white_24dp.png</file>
+        <file alias="gotoIcon">_Default/icons/outline_arrow_right_alt_white_24dp.png</file>
+        <file alias="decrementIcon">_Default/icons/outline_chevron_left_white_24dp.png</file>
+        <file alias="incrementIcon">_Default/icons/outline_chevron_right_white_24dp.png</file>
+        <file alias="warningIcon">_Default/icons/baseline_warning_orange_24dp.png</file>
+        <file alias="errorIcon">_Default/icons/baseline_report_red_24dp.png</file>
+		
+        <file alias="RobotoBold">_Default/fonts/Roboto-Bold.ttf</file>
+        <file alias="RobotoMedium">_Default/fonts/Roboto-Medium.ttf</file>
+        <file alias="RobotoRegular">_Default/fonts/Roboto-Regular.ttf</file>
+        <file alias="RobotoLight">_Default/fonts/Roboto-Light.ttf</file>
+		
+        <file alias="typeNodeIcon">_Default/icons/node_white_18dp.png</file>
+        <file alias="typeCameraIcon">_Default/icons/camera_white_18dp.png</file>
+        <file alias="typeMeshIcon">_Default/icons/mesh_white_18dp.png</file>
+        <file alias="typeMaterialIcon">_Default/icons/material_white_18dp.png</file>
+        <file alias="typeTextureIcon">_Default/icons/baseline_texture_white_18dp.png</file>
+        <file alias="typeCubemapIcon">_Default/icons/cubemap_white_18dp.png</file>
+        <file alias="typeScriptIcon">_Default/icons/baseline_miscellaneous_services_white_18dp.png</file>
+        <file alias="typePrefabInternalIcon">_Default/icons/baseline_center_focus_strong_white_18dp.png</file>
+        <file alias="typePrefabExternalIcon">_Default/icons/baseline_center_focus_weak_white_18dp.png</file>
+        <file alias="typePrefabInstanceIcon">_Default/icons/baseline_crop_free_white_18dp.png</file>
+    </qresource>
+</RCC>

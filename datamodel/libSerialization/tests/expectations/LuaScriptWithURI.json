@@ -1,0 +1,27 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "uri"
+            ],
+            "properties": {
+                "uri": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "filter": ""
+                            },
+                            "typeName": "URIAnnotation"
+                        }
+                    ],
+                    "typeName": "String::URIAnnotation",
+                    "value": ""
+                }
+            }
+        },
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": ""
+    },
+    "typeName": "LuaScript"
+}

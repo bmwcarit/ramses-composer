@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="fallbackTextureOpenGL">DefaultTexture_OpenGL.png</file>
+        <file alias="fallbackTextureDirectX">DefaultTexture_DirectX.png</file>
+    </qresource>
+</RCC>

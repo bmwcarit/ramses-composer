@@ -1,0 +1,19 @@
+﻿# List of clang-format options: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# Clang-format file generator + preview: https://zed0.co.uk/clang-format-configurator/
+---
+BasedOnStyle: Google
+IndentWidth: '4'
+TabWidth: '4'
+UseTab: Always
+ColumnLimit: 0
+AlignAfterOpenBracket: DontAlign
+AccessModifierOffset: -4
+IncludeBlocks: Preserve
+IncludeCategories: 
+  - Regex: '^".*'
+    Priority: 1
+  - Regex: '^<.*'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
+...

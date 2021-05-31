@@ -1,0 +1,65 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "struct"
+            ],
+            "properties": {
+                "struct": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "engineType": 13
+                            },
+                            "typeName": "EngineTypeAnnotation"
+                        },
+                        {
+                            "typeName": "LinkEndAnnotation"
+                        }
+                    ],
+                    "order": [
+                        "a",
+                        "b"
+                    ],
+                    "properties": {
+                        "a": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "b": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        }
+                    },
+                    "typeName": "Table::EngineTypeAnnotation::LinkEndAnnotation"
+                }
+            }
+        },
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": "SerializationTest/serializeLuaScriptInStruct/testData/in-struct.lua"
+    },
+    "typeName": "LuaScript"
+}

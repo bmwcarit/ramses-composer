@@ -1,0 +1,34 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "double"
+            ],
+            "properties": {
+                "double": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "name": "Double"
+                            },
+                            "typeName": "DisplayNameAnnotation"
+                        },
+                        {
+                            "properties": {
+                                "max": 10,
+                                "min": -10
+                            },
+                            "typeName": "RangeAnnotationDouble"
+                        }
+                    ],
+                    "typeName": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+                    "value": 0
+                }
+            }
+        },
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": ""
+    },
+    "typeName": "LuaScript"
+}

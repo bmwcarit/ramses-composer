@@ -1,0 +1,62 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "annotations",
+                "properties",
+                "typeName"
+            ],
+            "properties": {
+                "annotations": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "engineType": 5
+                            },
+                            "typeName": "EngineTypeAnnotation"
+                        },
+                        {
+                            "typeName": "LinkEndAnnotation"
+                        }
+                    ],
+                    "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                    "value": 0
+                },
+                "properties": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "engineType": 5
+                            },
+                            "typeName": "EngineTypeAnnotation"
+                        },
+                        {
+                            "typeName": "LinkEndAnnotation"
+                        }
+                    ],
+                    "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                    "value": 0
+                },
+                "typeName": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "engineType": 5
+                            },
+                            "typeName": "EngineTypeAnnotation"
+                        },
+                        {
+                            "typeName": "LinkEndAnnotation"
+                        }
+                    ],
+                    "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                    "value": 0
+                }
+            }
+        },
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": "SerializationTest/serializeLuaScriptInSpecificPropNames/testData/in-specific-prop-names.lua"
+    },
+    "typeName": "LuaScript"
+}

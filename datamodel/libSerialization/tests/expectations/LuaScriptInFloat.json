@@ -1,0 +1,30 @@
+{
+    "properties": {
+        "luaInputs": {
+            "order": [
+                "float"
+            ],
+            "properties": {
+                "float": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "engineType": 5
+                            },
+                            "typeName": "EngineTypeAnnotation"
+                        },
+                        {
+                            "typeName": "LinkEndAnnotation"
+                        }
+                    ],
+                    "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                    "value": 0
+                }
+            }
+        },
+        "objectID": "lua_script_id",
+        "objectName": "lua_script",
+        "uri": "SerializationTest/serializeLuaScriptInFloat/testData/in-float.lua"
+    },
+    "typeName": "LuaScript"
+}

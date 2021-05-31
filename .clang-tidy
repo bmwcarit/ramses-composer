@@ -1,0 +1,88 @@
+# List of clang-tidy checks: https://clang.llvm.org/extra/clang-tidy/checks/list.html
+# Remember that this list is only used to display hints to a coder when to do stuff
+# differently - not something to be used to fix stuff automatically.
+# We generally aim to make new C++ features more visible to coders, 
+# while accepting a few more hints than strictly necessary.
+# Obviously we need to find a good overall balance.
+#
+# This is a continuously evolving draft, if you have improvements, discuss them with the RaCO OSS team.
+#
+# Notes to the removed checks:
+#
+#-bugprone-suspicious-include
+# I have never seen a cpp file included by accident instead of the header file,
+# but there are cases during half-baked refactoring where splitting a cpp file
+# into several files can make sense.
+#
+#-google-explicit-constructor,
+# While I have seen code causing problems by myriads of implicit constructors,
+# it is rare as long as everybody stays sane and implicit conversions can
+# be very useful for syntactic sugar.
+#
+#-google-runtime-operator,
+# I would leave this up to the judgement of the coder.
+# Of course it is bad idea to go crazy on operator overloading,
+# but there might be rare cases where it does make sense.
+#
+#-modernize-return-braced-init-list,             
+# "return { somethingorother, bbalbal };" at the end of a function
+# is not necessarily more readable than "return Foo(somethingorother, bbalbal);"?
+#
+#-modernize-use-nodiscard,
+# Why are people fussed about discarded return values?
+# The only case where I would consider a warning about a discarded return value useful 
+# is a function which returns an error code (and by all means, add the nodiscard 
+# attribute to those).
+#
+#-modernize-use-trailing-return-type,
+# Example: virtual auto myfunction() -> std::vector<int>::iterator
+# Not sure about this one. Certainly people should be aware that it can simplify things in quite a few cases
+# to have the trailing return type, and also make things more readable.
+# On the other hand, in the most common cases with simple return types, this just adds another "auto" to write/read.
+# See also https://stackoverflow.com/questions/11215227/should-the-trailing-return-type-syntax-style-become-the-default-for-new-c11-pr
+#
+#-readability-convert-member-functions-to-static,
+# Don't think every function which can be declared static should be declared static.
+# There are good semantic reasons to keep functions non-static (i. e. allow to make
+# them non-static later without changing all calls to them).
+#
+#-clang-analyzer-security.insecureAPI.*'
+# We want to be able to use strcpy etc without being told off?
+#       
+FormatStyle: file
+Checks: '-*,
+        boost-use-to-string,
+        bugprone-*,
+        -bugprone-suspicious-include,
+        google-*,
+        -google-explicit-constructor,
+        -google-runtime-operator,
+        llvm-include-order,
+        misc-*,
+        modernize-*,
+        -modernize-return-braced-init-list,             
+        -modernize-use-nodiscard,
+        -modernize-use-trailing-return-type,
+        performance-*,      
+        readability-*,
+        -readability-convert-member-functions-to-static,
+        clang-analyzer-*,
+        -clang-analyzer-security.insecureAPI.*'
+HeaderFilterRegex: '[\w+\\]*\w+.h'
+CheckOptions:
+# Classes with only public members can be quite useful.
+- {key : misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: 1 }
+# Don't do this for anything but pretty long names. Types are generally more informative than "auto", 
+# particularly for assignments if the assigned type is not readily available (e. g. auto x = myFunkyFunctionWithSevenOverloads()).
+# Unfortunately modernize-use-auto does not allow to limit it to cases where the type is explicitly part of the assigned value 
+# (e. g. auto x = new MyFunkyClass())
+- {key : modernize-use-auto.MinTypeNameLength, value: 8 }
+- {key : readability-identifier-naming.PrivateMemberSuffix, value: _ }
+- {key : readability-identifier-naming.ProtectedMemberSuffix, value: _ }
+#- {key : readability-identifier-naming.PublicMemberSuffix, value: }
+- {key : readability-identifier-naming.MemberCase, value: camelBack }
+- {key : readability-identifier-naming.ClassCase, value: CamelCase }
+- {key : readability-identifier-naming.GlobalFunctionCase, value: camelCase }
+- {key : readability-identifier-naming.MethodCase, value: camelBack }
+- {key : readability-identifier-naming.VariableCase, value: camelBack }
+- {key : readability-identifier-naming.VariableCase, value: camelBack }
