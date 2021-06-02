@@ -41,6 +41,8 @@ Ramses Composer is built on Windows 10 with Visual Studio 2019 and on Ubuntu 18.
 
 ## Starting Ramses Composer
 
+### Starting on Windows
+
 The executable can be found in:
 ```console
 \raco\build\release\bin\<CONFIG>\RamsesComposer.exe       # <CONFIG> either Release or Debug
@@ -98,18 +100,29 @@ Cannot load library /(...)/Qt/5.15.2/gcc_64/plugins/platforms/libqxcb.so: (libxc
 ```
 and install the package required to install the missing .so file (in this case 'sudo apt install libxkb-icccm4' fixes the issue).
 
-### Locations (Windows)
+### Locations
 
-The Ramses Composer will create an directory within the windows documents folder:
+The various file locations are determined by the [PathManager.h](datamodel/libCore/include/core/PathManager.h). They are all relative to the executable.
+
+#### Log file and Configuration files
+
+The Ramses Composer looks for the the folder 
 ```
-%userprofile%\Documents\RaCo
+../../configfiles
 ```
+relative to its binary path. If the folder does not exist, Ramses Composer will automatically create it on startup.
+The folder is also automatically created by CMake and can be found in the zip for the binary files.
+
 Files in this directory are:
-* settings.ini - Saves the layout and geomtry information of the Qt application.
+* layout.ini - Saves the layout and geometry information of the Qt application.
+* RamsesComposer.log - Main log file.
 * recent_files.ini - Saves the list of recent files opened with Ramses Composer.
-* RaCo.log - Main log file.
 
-These locations can be modified in [PathManager.h](headless/libCommon/include/ramses_composer/PathManager.h). 
+#### Build process
+
+The build process for the Ramses Composer generates a "release" folder in the CMake build directory which matches
+the distributed zip-files - so after building Ramses Composer the developer will run Ramses Composer in the 
+same environment as the user.
 
 ## Windows Subsystem for Linux (Ubuntu 18.04)
 
@@ -202,5 +215,5 @@ Ramses Composer is published under the [Mozilla Public License 2.0](LICENSE.txt)
 
 Some icons originate from the [Google Material Design](https://material.io/resources/icons/?style=baseline) ([Apache 2.0 license](https://github.com/google/material-design-icons/blob/master/LICENSE)).
 
-There are some example files included in ```resources/```. For Meshes taken from the Khronos glTF library, their individual licenses [are listed here](resources\meshes\README.md). All other meshes, Lua scripts, shaders and textures are also under MPL 2.0.
+There are some example files included in ```resources/```. For Meshes taken from the Khronos glTF library, their individual licenses [are listed here](resources/meshes/README.md). All other meshes, Lua scripts, shaders and textures are also under MPL 2.0.
 

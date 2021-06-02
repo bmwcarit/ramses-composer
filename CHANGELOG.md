@@ -154,7 +154,6 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * Lexicographical sorting of Resource objects in Tree View and Property Browser
 
 ### Changes
-* Added LGPL 2.1 license file.
 * Added license headers for all source files and documents.
 
 ### Fixes
