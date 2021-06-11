@@ -109,7 +109,7 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 		ramses::RamsesObject* ramsesParent = getParent(object);
 		int parentIndex = ramsesParent ? parents[ramsesParent] : -1;
 		sceneItems.emplace_back(fmt::format("{}", object->getType()), object->getName(), parentIndex);
-		parents[object] = sceneItems.size() - 1;
+		parents[object] = static_cast<int>(sceneItems.size() - 1);
 	}
 
 	for (const auto object : ramsesObjects) {
