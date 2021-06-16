@@ -172,7 +172,7 @@ std::vector<SEditorObject> CommandInterface::pasteObjects(const std::string& val
 			// Necessary to get consistent state when "paste as external reference" fails only during the external reference update.
 			try {
 				undoStack_->setIndex(undoStack_->getIndex(), true);
-			} catch (core::ExtrefError& error) {
+			} catch (core::ExtrefError& /*error*/) {
 				// Do nothing here: we should now be in the same state as before the paste operation even if the external reference update failed.
 			}
 		}
