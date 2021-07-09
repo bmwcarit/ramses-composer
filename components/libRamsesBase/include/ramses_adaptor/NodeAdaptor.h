@@ -32,7 +32,7 @@ public:
 
 	explicit SpatialAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<EditorType> editorObject, RamsesHandle<RamsesType>&& ramsesObject, NodeAdaptor* parent = nullptr)
 		: TypedObjectAdaptor<EditorType, RamsesType>{sceneAdaptor, editorObject, std::move(ramsesObject)},
-		  nodeBinding_{sceneAdaptor->logicEngine().createRamsesNodeBinding(), [this](rlogic::RamsesNodeBinding* binding) { this->sceneAdaptor_->logicEngine().destroy(*binding); }},
+		  nodeBinding_{sceneAdaptor->logicEngine().createRamsesNodeBinding(this->ramsesObject()), [this](rlogic::RamsesNodeBinding* binding) { this->sceneAdaptor_->logicEngine().destroy(*binding); }},
 		  subscriptions_{
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visible"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("children"), [this]() { this->tagDirty(); }),
@@ -40,7 +40,6 @@ public:
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("scale"), [this](auto) { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("rotation"), [this](auto) { this->tagDirty(); })} {
 
-		nodeBinding_->setRamsesNode(&this->ramsesObject());
 	}
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override {

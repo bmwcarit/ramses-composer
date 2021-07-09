@@ -20,7 +20,7 @@ namespace raco::ramses_adaptor {
 
 PerspectiveCameraAdaptor::PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::PerspectiveCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesPerspectiveCamera(sceneAdaptor->scene())),
-	  cameraBinding_{ sceneAdaptor->logicEngine().createRamsesCameraBinding(), [this](rlogic::RamsesCameraBinding* binding) { this->sceneAdaptor_->logicEngine().destroy(*binding); } },
+	  cameraBinding_{ sceneAdaptor->logicEngine().createRamsesCameraBinding(this->ramsesObject()), [this](rlogic::RamsesCameraBinding* binding) { this->sceneAdaptor_->logicEngine().destroy(*binding); } },
 	  viewportSubscriptions_{ std::move(BaseCameraAdaptorHelpers::viewportSubscriptions(sceneAdaptor, this)) },
       frustrumSubscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("near"), [this]() {
@@ -35,7 +35,6 @@ PerspectiveCameraAdaptor::PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, s
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("aspect"), [this]() {
 			  tagDirty();
 		  })} {
-	cameraBinding_->setRamsesCamera(&ramsesObject());
 }
 
 PerspectiveCameraAdaptor::~PerspectiveCameraAdaptor() {

@@ -200,10 +200,9 @@ void MeshNodeAdaptor::syncMaterial(size_t index) {
 	currentAppearance_->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
 
 	appearanceBinding_.reset();
-	appearanceBinding_ = {sceneAdaptor_->logicEngine().createRamsesAppearanceBinding(this->editorObject()->objectName() + "_AppearanceBinding"), [this](rlogic::RamsesAppearanceBinding* ptr) {
+	appearanceBinding_ = {sceneAdaptor_->logicEngine().createRamsesAppearanceBinding(*currentAppearance_.get(), this->editorObject()->objectName() + "_AppearanceBinding"), [this](rlogic::RamsesAppearanceBinding* ptr) {
 							  sceneAdaptor_->logicEngine().destroy(*ptr);
 						  }};
-	appearanceBinding_->setRamsesAppearance(currentAppearance_.get());
 	ramsesObject().setAppearance(*currentAppearance_.get());
 }
 
