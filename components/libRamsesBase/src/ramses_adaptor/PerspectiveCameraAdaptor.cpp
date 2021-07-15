@@ -48,10 +48,10 @@ bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 	sceneAdaptor_->setCamera(&ramsesObject());
 	// The logic engine will always set the entire struct even if there is a link for only one of the values, and use the default values in the binding
 	// for the non-linked elements in the struct - so we need to also set the default values for the bindings.
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("nearPlane")->set(static_cast<float>(*editorObject()->near_));
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("farPlane")->set(static_cast<float>(*editorObject()->far_));
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("fieldOfView")->set(static_cast<float>(*editorObject()->fov_));
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("aspectRatio")->set(static_cast<float>(*editorObject()->aspect_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("nearPlane")->set(static_cast<float>(*editorObject()->near_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("farPlane")->set(static_cast<float>(*editorObject()->far_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("fieldOfView")->set(static_cast<float>(*editorObject()->fov_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("aspectRatio")->set(static_cast<float>(*editorObject()->aspect_));
 	tagDirty(false);
 	return true;
 }
@@ -67,10 +67,10 @@ const rlogic::Property& PerspectiveCameraAdaptor::getProperty(const std::vector<
 		{ "fov", "fieldOfView" },
 		{ "aspect", "aspectRatio" }
 	};
-	std::string propName = propertyNamesVector[0];
 	assert(propertyNamesVector.size() == 1);
+	std::string propName = propertyNamesVector[0];
 	if(propertyNameToFrustrumPropertyName.find(propName) != propertyNameToFrustrumPropertyName.end()) {
-		auto const ramsesFrustrumProperties = cameraBinding_->getInputs()->getChild("frustumProperties");
+		auto const ramsesFrustrumProperties = cameraBinding_->getInputs()->getChild("frustum");
 		assert(ramsesFrustrumProperties != nullptr);
 		auto const ramsesFrustrumProperty = ramsesFrustrumProperties->getChild(propertyNameToFrustrumPropertyName.at(propName));
 		assert(ramsesFrustrumProperty != nullptr);

@@ -40,24 +40,24 @@ std::array<components::Subscription, 4> BaseCameraAdaptorHelpers::viewportSubscr
 void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, rlogic::RamsesCameraBinding* cameraBinding) {
 	ramsesCamera->setViewport(*editorObject->viewportOffsetX_, *editorObject->viewportOffsetY_, *editorObject->viewportWidth_, *editorObject->viewportHeight_);
 	cameraBinding->setName(std::string(editorObject->objectName() + "_CameraBinding").c_str());
-	cameraBinding->getInputs()->getChild("viewPortProperties")->getChild("viewPortOffsetX")->set(static_cast<int>(*editorObject->viewportOffsetX_));
-	cameraBinding->getInputs()->getChild("viewPortProperties")->getChild("viewPortOffsetY")->set(static_cast<int>(*editorObject->viewportOffsetY_));
+	cameraBinding->getInputs()->getChild("viewport")->getChild("offsetX")->set(static_cast<int>(*editorObject->viewportOffsetX_));
+	cameraBinding->getInputs()->getChild("viewport")->getChild("offsetY")->set(static_cast<int>(*editorObject->viewportOffsetY_));
 	// Ramses asserts if the viewport width/height <=0. Unfortunately we cannot prevent a link from setting the value to <=0?
-	cameraBinding->getInputs()->getChild("viewPortProperties")->getChild("viewPortWidth")->set(std::max(1, static_cast<int>(*editorObject->viewportWidth_)));
-	cameraBinding->getInputs()->getChild("viewPortProperties")->getChild("viewPortHeight")->set(std::max(1, static_cast<int>(*editorObject->viewportHeight_)));
+	cameraBinding->getInputs()->getChild("viewport")->getChild("width")->set(std::max(1, static_cast<int>(*editorObject->viewportWidth_)));
+	cameraBinding->getInputs()->getChild("viewport")->getChild("height")->set(std::max(1, static_cast<int>(*editorObject->viewportHeight_)));
 }
 
 const rlogic::Property* BaseCameraAdaptorHelpers::getProperty(rlogic::RamsesCameraBinding* cameraBinding, const std::vector<std::string>& propertyNamesVector) {
 	static std::map<std::string_view, std::string_view> propertyNameToViewportPropertyName{
-		{ "viewPortOffsetX", "viewPortOffsetX" },
-		{ "viewPortOffsetY", "viewPortOffsetY" },
-		{ "viewPortWidth", "viewPortWidth" },
-		{ "viewPortHeight", "viewPortHeight" }
+		{ "viewPortOffsetX", "offsetX" },
+		{ "viewPortOffsetY", "offsetY" },
+		{ "viewPortWidth", "width" },
+		{ "viewPortHeight", "height" }
 	};
-	std::string const propName = propertyNamesVector[0];
 	assert(propertyNamesVector.size() == 1);
+	std::string const propName = propertyNamesVector[0];
 	if (propertyNameToViewportPropertyName.find(propName) != propertyNameToViewportPropertyName.end()) {
-		auto ramsesViewportProperties = cameraBinding->getInputs()->getChild("viewPortProperties");
+		auto ramsesViewportProperties = cameraBinding->getInputs()->getChild("viewport");
 		assert(ramsesViewportProperties != nullptr);
 		auto ramsesViewportProperty = ramsesViewportProperties->getChild(propertyNameToViewportPropertyName.at(propName));
 		assert(ramsesViewportProperty != nullptr);
