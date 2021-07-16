@@ -77,8 +77,7 @@ function run()
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding("some node binding");
-	binding->setRamsesNode(node);
+	auto* binding = logicEngine.createRamsesNodeBinding(*node, "some node binding");
 
 	const rlogic::Property* nodeTranslation {nullptr};
 	for (size_t i{0}; i < binding->getInputs()->getChildCount(); i++) {
@@ -167,8 +166,7 @@ function run()
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding("some node binding");
-	binding->setRamsesNode(node);
+	auto* binding = logicEngine.createRamsesNodeBinding(*node, "some node binding");
 
 	const rlogic::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
@@ -208,8 +206,7 @@ function run()
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding("some node binding");
-	binding->setRamsesNode(node);
+	auto* binding = logicEngine.createRamsesNodeBinding(*node, "some node binding");
 
 	const rlogic::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
@@ -254,8 +251,7 @@ function run()
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding("some node binding");
-	binding->setRamsesNode(node);
+	auto* binding = logicEngine.createRamsesNodeBinding(*node, "some node binding");
 
 	const rlogic::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
@@ -285,8 +281,7 @@ function run()
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding("some node binding");
-	binding->setRamsesNode(node);
+	auto* binding = logicEngine.createRamsesNodeBinding(*node, "some node binding");
 
 	const rlogic::Property* nodeTranslation {binding->getInputs()->getChild("translation")};
 	const rlogic::Property* nodeVisibility {binding->getInputs()->getChild("visibility")};
