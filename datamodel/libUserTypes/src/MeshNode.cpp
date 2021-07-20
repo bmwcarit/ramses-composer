@@ -37,6 +37,7 @@ std::vector<std::string> MeshNode::getMaterialNames() {
 void MeshNode::createMaterialSlot(std::string const& name) {
 	auto container = materials_->addProperty(name, PrimitiveType::Table);
 	container->asTable().addProperty("material", new Value<SMaterial>());
+	container->asTable().addProperty("private", UserObjectFactory::staticCreateProperty<bool, DisplayNameAnnotation>({false}, {"Private Material"}));
 	Table& options = container->asTable().addProperty("options", PrimitiveType::Table)->asTable();
 	{
 		options.addProperty("blendOperationColor", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_COLOR, {"Blend Operation Color"}, {EngineEnumeration::BlendOperation}));
@@ -49,7 +50,7 @@ void MeshNode::createMaterialSlot(std::string const& name) {
 		options.addProperty("blendColor", UserObjectFactory::staticCreateProperty<Vec4f, DisplayNameAnnotation>({}, {"Blend Color"}));
 		options.addProperty("depthwrite", UserObjectFactory::staticCreateProperty<bool, DisplayNameAnnotation>({true}, {"Depth Write"}));
 
-		options.addProperty("depthfunction", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>({DEFAULT_VALUE_MATERIAL_DEPTH_FUNCTION}, {"Depth Function"}, {EngineEnumeration::DepthFunction}));
+		options.addProperty("depthFunction", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>({DEFAULT_VALUE_MATERIAL_DEPTH_FUNCTION}, {"Depth Function"}, {EngineEnumeration::DepthFunction}));
 
 		options.addProperty("cullmode", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_CULL_MODE, {"Cull Mode"}, {EngineEnumeration::CullMode}));
 	}
@@ -81,11 +82,25 @@ size_t MeshNode::numMaterialSlots() {
 	return materials_->size();
 }
 
+std::string MeshNode::materialName(size_t materialSlot) {
+	if (materialSlot < materials_->size()) {
+		return materials_->name(materialSlot);
+	}
+	return {};
+}
+
 SMaterial MeshNode::getMaterial(size_t materialSlot) {
 	if (materialSlot < materials_->size()) {
 		return std::dynamic_pointer_cast<Material>(materials_->get(materialSlot)->asTable().get("material")->asRef());
 	}
 	return nullptr;
+}
+
+bool MeshNode::materialPrivate(size_t materialSlot) {
+	if (materialSlot < materials_->size()) {
+		return materials_->get(materialSlot)->asTable().get("private")->asBool();
+	}
+	return false;
 }
 
 Table* MeshNode::getUniformContainer(size_t materialSlot) {
@@ -98,6 +113,13 @@ Table* MeshNode::getUniformContainer(size_t materialSlot) {
 ValueHandle MeshNode::getMaterialHandle(size_t materialSlot) {
 	if (materialSlot < materials_->size()) {
 		return ValueHandle(shared_from_this(), {"materials"})[materialSlot].get("material");
+	}
+	return ValueHandle();
+}
+
+ValueHandle MeshNode::getMaterialPrivateHandle(size_t materialSlot) {
+	if (materialSlot < materials_->size()) {
+		return ValueHandle(shared_from_this(), {"materials"})[materialSlot].get("private");
 	}
 	return ValueHandle();
 }
@@ -181,6 +203,15 @@ void MeshNode::updateUniformContainer(BaseContext& context, const std::string& m
 			}
 		}
 	} else {
+		const Table& dest = destUniforms.constValueRef()->asTable();
+		for (size_t i = 0; i < dest.size(); i++) {
+			std::string name = dest.name(i);
+			const ValueBase* v = dest.get(name);
+			auto anno = v->query<EngineTypeAnnotation>();
+			EnginePrimitive engineType = anno->type();
+			cachedUniformValues_[std::make_tuple(materialName, name, engineType)] = v->clone(nullptr);
+		}
+
 		context.removeAllProperties(destUniforms);
 	}
 }
@@ -234,21 +265,21 @@ void MeshNode::onAfterContextActivated(BaseContext& context) {
 	auto matnames = getMaterialNames();
 	updateMaterialSlots(context, matnames);
 
-	ValueHandle materialContHandle = ValueHandle(shared_from_this(), {"materials"})[0];
-	if (materialContHandle) {
-		ValueHandle uniformsHandle = materialContHandle.get("uniforms");
-		if (uniformsHandle) {
-			auto materialHandle = materialContHandle.get("material");
-			auto material = materialHandle.asTypedRef<Material>();
-			Table* materialUniforms = nullptr;
-			if (material) {
-				materialUniforms = &*material->uniforms_;
-			}
-			updateUniformContainer(context, materials_->get(0)->asTable().name(0), materialUniforms, uniformsHandle);
+	bool changed = false;
+	for (size_t matIndex = 0; matIndex < numMaterialSlots(); matIndex++) {
+		ValueHandle uniformsHandle = getUniformContainerHandle(matIndex);
+		auto material = getMaterial(matIndex);
+		Table* materialUniforms = nullptr;
+		if (material && materialPrivate(matIndex)) {
+			materialUniforms = &*material->uniforms_;
 		}
+		updateUniformContainer(context, materialName(matIndex), materialUniforms, uniformsHandle);
+		changed = true;
 	}
-	
-	checkMeshMaterialAttributMatch(context);
+
+	if (changed) {
+		checkMeshMaterialAttributMatch(context);
+	}
 }
 
 void MeshNode::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) {
@@ -261,12 +292,22 @@ void MeshNode::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle 
 
 	SMaterial material = std::dynamic_pointer_cast<Material>(changedObject.rootObject());
 	if (material) {
-		// TODO Multimaterial case: find all material slots using the material and update the uniforms:
-		// Currently: single material: use the uniforms for the first material slot
-		ValueHandle uniformsHandle = ValueHandle(shared_from_this(), {"materials"})[0].get("uniforms");
-		updateUniformContainer(context, materials_->get(0)->asTable().name(0), &*material->uniforms_, uniformsHandle);
-		checkMeshMaterialAttributMatch(context);
-		context.changeMultiplexer().recordValueChanged(uniformsHandle);
+		bool changed = false;
+		for (size_t matIndex = 0; matIndex < numMaterialSlots(); matIndex++) {
+			if (material == getMaterial(matIndex)) {
+				ValueHandle uniformsHandle = getUniformContainerHandle(matIndex);
+				Table* materialUniforms = nullptr;
+				if (materialPrivate(matIndex)) {
+					materialUniforms = &*material->uniforms_;
+				}
+				updateUniformContainer(context, materialName(matIndex), materialUniforms, uniformsHandle);
+				context.changeMultiplexer().recordValueChanged(uniformsHandle);
+				changed = true;
+			}
+		}
+		if (changed) {
+			checkMeshMaterialAttributMatch(context);
+		}
 	}
 }
 
@@ -282,15 +323,34 @@ void MeshNode::onAfterValueChanged(BaseContext& context, ValueHandle const& valu
 		std::string materialName = value.parent().getPropName();
 		ValueHandle uniformsHandle = value.parent().get("uniforms");
 		const Table& uniforms = uniformsHandle.constValueRef()->asTable();
+		bool privateMaterial = value.parent().get("private").asBool();
 
 		SMaterial material = value.asTypedRef<Material>();
 		Table* materialUniforms = nullptr;
-		if (material) {
+		if (material && privateMaterial) {
 			materialUniforms = &*material->uniforms_;
 		}
 		updateUniformContainer(context, materialName, materialUniforms, uniformsHandle);
 		checkMeshMaterialAttributMatch(context);
 		context.changeMultiplexer().recordValueChanged(uniformsHandle);
+	}
+
+	if (materialsHandle.contains(value) && value.depth() == 3 && value.getPropName() == "private") {
+		std::string materialName = value.parent().getPropName();
+		ValueHandle uniformsHandle = value.parent().get("uniforms");
+		const Table& uniforms = uniformsHandle.constValueRef()->asTable();
+
+		SMaterial material = value.parent().get("material").asTypedRef<Material>();
+		Table* materialUniforms = nullptr;
+		if (material && value.asBool()) {
+			materialUniforms = &*material->uniforms_;
+		}
+
+		updateUniformContainer(context, materialName, materialUniforms, uniformsHandle);
+		context.changeMultiplexer().recordValueChanged(uniformsHandle);
+		// Synthetic change record: needed since toggling the 'private' flag will change the hidden status
+		// of the options; see Queries::isHidden
+		context.changeMultiplexer().recordValueChanged(value.parent().get("options"));
 	}
 }
 

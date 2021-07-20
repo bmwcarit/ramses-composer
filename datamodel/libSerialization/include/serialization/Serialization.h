@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <type_traits>
 
 namespace raco::serialization {
@@ -37,8 +38,8 @@ bool operator==(const ExternalProjectInfo& lhs, const ExternalProjectInfo& rhs);
 
 using ResolveReferencedId = std::function<std::optional<std::string>(const raco::data_storage::ValueBase& value)>;
 std::string serializeObject(const SReflectionInterface& object, const std::string &projectPath, const ResolveReferencedId& resolveReferenceId);
-std::string serializeObjects(const std::vector<SReflectionInterface>& objects, const std::vector<SReflectionInterface>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const ResolveReferencedId& resolveReferenceId);
-std::string serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const ResolveReferencedId& resolveReferenceId);
+std::string serializeObjects(const std::vector<SReflectionInterface>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<SReflectionInterface>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, const ResolveReferencedId& resolveReferenceId);
+QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const ResolveReferencedId& resolveReferenceId);
 
 using UserTypeFactory = std::function<std::shared_ptr<data_storage::ReflectionInterface>(const std::string&)>;
 using AnnotationFactory = std::function<std::shared_ptr<data_storage::AnnotationBase>(const std::string&)>;
@@ -56,6 +57,8 @@ struct ObjectDeserialization {
 };
 struct ObjectsDeserialization {
 	std::vector<SReflectionInterface> objects;
+	// object ids of the top-level (no parents) objects
+	std::set<std::string> rootObjectIDs;
 	std::vector<SReflectionInterface> links;
 	References references;
 	std::string originFolder;
@@ -66,6 +69,14 @@ struct ObjectsDeserialization {
 	std::string originPath() const;
 
 	std::map<std::string, ExternalProjectInfo> externalProjectsMap;
+
+	// Contains base directory for relative paths for objects _not_ using the originFolder.
+	// Maps object ID -> absolute folder.
+	// Needed because we can't figure out the correct path for non-extref objects which need to 
+	// use an external project path as origin folder. This concerns LuaScripts inside PrefabInstances
+	// with an external reference Prefab when only the LuaScript but not the external reference
+	// Prefab is included in the copied object set.
+	std::map<std::string, std::string> objectOriginFolders;
 };
 
 struct DeserializedVersion {
@@ -96,7 +107,7 @@ int deserializeFileVersion(const QJsonDocument& document);
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& jsonDocument, const DeserializationFactory& factory);
 ProjectDeserializationInfo deserializeProject(const std::string& json, const DeserializationFactory& factory);
 
-std::optional<QJsonValue> serializePropertyForMigration(const ValueBase& value, const ResolveReferencedId& resolveReferenceId = {});
-void deserializePropertyForMigration(const QJsonValue& property, ValueBase& value, const DeserializationFactory& factory = {});
+std::optional<QJsonValue> serializePropertyForMigration(const ValueBase& value, const ResolveReferencedId& resolveReferenceId);
+References deserializePropertyForMigration(const QJsonValue& property, ValueBase& value, const DeserializationFactory& factory = {});
 
 };	// namespace raco::serialization

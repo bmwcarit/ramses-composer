@@ -31,6 +31,7 @@
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/UserObjectFactory.h"
 #include "utils/FileUtils.h"
+#include "utils/PathUtils.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -42,7 +43,7 @@ namespace raco::application {
 
 using namespace raco::core;
 
-RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engineInterface, const UndoStack::Callback& callback, ExternalProjectsStoreInterface* externalProjectsStore, std::vector<std::string>& pathStack)
+RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engineInterface, const UndoStack::Callback& callback, ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, std::vector<std::string>& pathStack)
 	: recorder_{},
 	  errors_{&recorder_},
 	  project_{p},
@@ -52,11 +53,11 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 		  callback();
 	  }),
 	  commandInterface_(context_.get(), &undoStack_),
-	  fileChangeMonitor_{*context_.get()},
-	  meshCache_{*context_.get()} {
-	context_->setMeshCache(&meshCache_);
-	context_->setExternalProjectsStore(externalProjectsStore),
-		context_->setFileChangeMonitor(&fileChangeMonitor_);
+	  fileChangeMonitor_{app->fileChangeMonitor()},
+	  meshCache_{app->meshCache()} {
+	context_->setMeshCache(meshCache_);
+	context_->setExternalProjectsStore(externalProjectsStore);
+	context_->setFileChangeMonitor(fileChangeMonitor_);
 	context_->performExternalFileReload(project_.instances());
 
 	// Push currently loading project on the project load stack to enable project loop detection to work.
@@ -71,7 +72,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 
 void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath) {
 	for (auto& object : context_->project()->instances()) {
-		if (!object->query<ExternalReferenceAnnotation>()) {
+		if (PathQueries::isPathRelativeToCurrentProject(object)) {
 			for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
 				if (property.query<data_storage::URIAnnotation>()) {
 					auto uriPath = property.asString();
@@ -83,6 +84,20 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 		}
 	}
 	project_.rerootExternalProjectPaths(oldPath, newPath);
+}
+
+void RaCoProject::generateProjectSubfolder(const std::string& subFolderPath) {
+	auto folderPath = project_.currentFolder() + "/" + subFolderPath;
+	if (!raco::utils::path::isExistingDirectory(folderPath)) {
+		std::filesystem::create_directories(folderPath);
+	}
+}
+
+void RaCoProject::generateAllProjectSubfolders() {
+	generateProjectSubfolder(PathManager::IMAGE_SUB_DIRECTORY);
+	generateProjectSubfolder(PathManager::MESH_SUB_DIRECTORY);
+	generateProjectSubfolder(PathManager::SCRIPT_SUB_DIRECTORY);
+	generateProjectSubfolder(PathManager::SHADER_SUB_DIRECTORY);
 }
 
 RaCoProject::~RaCoProject() {
@@ -101,7 +116,10 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 		QString{},
 		p,
 		app->engine(),
-		[app]() { app->dataChangeDispatcher()->setUndoChanged(); }, app->externalProjects(), stack));
+		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
+		app->externalProjects(),
+		app,
+		stack));
 	auto sMeshNode = result->context_->createObject(raco::user_types::MeshNode::typeDescription.typeName, raco::components::Naming::format(raco::user_types::MeshNode::typeDescription.typeName));
 	auto sNode = result->context_->createObject(raco::user_types::Node::typeDescription.typeName, raco::components::Naming::format(raco::user_types::Node::typeDescription.typeName));
 	auto sCamera = result->context_->createObject(raco::user_types::PerspectiveCamera::typeDescription.typeName, raco::components::Naming::format(raco::user_types::PerspectiveCamera::typeDescription.typeName));
@@ -122,7 +140,18 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack) {
 	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
-	auto document{QJsonDocument::fromJson(raco::utils::file::read(filename.toStdString()).c_str())};
+	if (!raco::utils::path::isExistingFile(filename.toStdString())) {
+		LOG_WARNING(raco::log_system::PROJECT, "File not found {}", filename.toLatin1());
+		return {};
+	}
+
+	QFile file{filename};
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		LOG_WARNING(raco::log_system::PROJECT, "Can't read file {}", filename.toLatin1());
+		return {};
+	}
+	auto document{QJsonDocument::fromJson(file.readAll())};
+	file.close();
 
 	auto fileVersion{raco::serialization::deserializeFileVersion(document)};
 	if (fileVersion > raco::components::RAMSES_PROJECT_FILE_VERSION) {
@@ -166,7 +195,9 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		p,
 		app->engine(),
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
-		app->externalProjects(), pathStack});
+		app->externalProjects(), 
+		app,
+		pathStack});
 }
 
 QString RaCoProject::name() const {
@@ -179,7 +210,6 @@ void RaCoProject::save() {
 	QFile file{path.c_str()};
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
 		return;
-	QTextStream out(&file);
 	const auto& instances{context_->project()->instances()};
 	std::vector<std::shared_ptr<ReflectionInterface>> instancesInterface{instances.begin(), instances.end()};
 	const auto& links{context_->project()->links()};
@@ -193,7 +223,7 @@ void RaCoProject::save() {
 		{raco::serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
 		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
 		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
-	out << serialization::serializeProject(
+	file.write(serialization::serializeProject(
 		currentVersions,
 		instancesInterface, linksInterface,
 		project_.externalProjectsMap(),
@@ -203,11 +233,12 @@ void RaCoProject::save() {
 			} else {
 				return {};
 			}
-		}).c_str();
+		}).toJson());
 	file.close();
+	generateAllProjectSubfolders();
+	PathManager::setAllCachedPathRoots(project_.currentFolder());
 
 	dirty_ = false;
-
 	LOG_INFO(raco::log_system::PROJECT, "Finished saving project to {}", path);
 }
 
@@ -258,7 +289,7 @@ CommandInterface* RaCoProject::commandInterface() {
 }
 
 FileChangeMonitor* RaCoProject::fileChangeMonitor() {
-	return &fileChangeMonitor_;
+	return fileChangeMonitor_;
 }
 
 UndoStack* RaCoProject::undoStack() {
@@ -266,7 +297,7 @@ UndoStack* RaCoProject::undoStack() {
 }
 
 MeshCache* RaCoProject::meshCache() {
-	return &meshCache_;
+	return meshCache_;
 }
 
 }  // namespace raco::application

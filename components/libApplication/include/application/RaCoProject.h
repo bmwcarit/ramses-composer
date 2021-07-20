@@ -36,11 +36,6 @@ struct FutureFileVersion : public std::exception {
 };
 
 class RaCoProject {
-private:
-	// @exception ExtrefError
-	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, std::vector<std::string>& pathStack);
-
-	void onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath);
 
 public:
 	Q_DISABLE_COPY(RaCoProject);
@@ -71,6 +66,13 @@ public:
 	raco::core::MeshCache* meshCache();
 
 private:
+	// @exception ExtrefError
+	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, std::vector<std::string>& pathStack);
+
+	void onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath);
+	void generateProjectSubfolder(const std::string& subFolderPath);
+	void generateAllProjectSubfolders();
+
 	raco::core::DataChangeRecorder recorder_;
 	raco::core::Errors errors_;
 	raco::core::Project project_;
@@ -78,8 +80,8 @@ private:
 	std::shared_ptr<raco::core::BaseContext> context_;
 	bool dirty_{false};
 
-	components::FileChangeMonitorImpl fileChangeMonitor_;
-	components::MeshCacheImpl meshCache_;
+	raco::core::FileChangeMonitor* fileChangeMonitor_;
+	raco::core::MeshCache* meshCache_;
 	raco::core::UndoStack undoStack_;
 	raco::core::CommandInterface commandInterface_;
 };

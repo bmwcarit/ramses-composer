@@ -52,7 +52,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	LOG_TRACE(PROPERTY_BROWSER, "PropertyBrowserItem() from: {}", valueHandle_);
 	children_.reserve(static_cast<int>(valueHandle_.size()));
 	for (int i = 0; i < valueHandle_.size(); i++) {
-		if (!valueHandle_[i].query<core::HiddenProperty>()) {
+		if (!raco::core::Queries::isHidden(*project(), valueHandle_[i])) {
 			children_.push_back(new PropertyBrowserItem{valueHandle_[i], dispatcher, commandInterface_, model_, this});
 		}
 	}
@@ -129,12 +129,26 @@ bool PropertyBrowserItem::hasError() const noexcept {
 	return commandInterface_->errors().hasError(valueHandle_);
 }
 
+void PropertyBrowserItem::markForDeletion() {
+	// prevent crashes caused by delayed subscription callbacks
+	subscription_ = raco::components::Subscription{};
+	errorSubscription_ = raco::components::Subscription{};
+	linkValidityChangeSub_ = raco::components::Subscription{};
+	linkLifecycleSub_ = raco::components::Subscription{};
+
+	for (auto& child : children_) {
+		child->markForDeletion();
+	}
+
+	this->deleteLater();
+}
+
 const core::ErrorItem& PropertyBrowserItem::error() const {
 	return commandInterface_->errors().getError(valueHandle_);
 }
 
 size_t PropertyBrowserItem::size() noexcept {
-	return valueHandle_.size();
+	return children_.size();
 }
 
 std::string PropertyBrowserItem::displayName() const noexcept {
@@ -245,7 +259,7 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	// clear children
 	{
 		for (auto& child : children_) {
-			child->deleteLater();
+			child->markForDeletion();
 		}
 		children_.clear();
 	}
@@ -254,7 +268,7 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	{
 		children_.reserve(static_cast<int>(valueHandle_.size()));
 		for (int i{0}; i < valueHandle_.size(); i++) {
-			if (!valueHandle_[i].query<core::HiddenProperty>()) {
+			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i])) {
 				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
 			}
 		}

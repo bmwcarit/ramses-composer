@@ -11,10 +11,10 @@
 #include "core/PrefabOperations.h"
 
 #include "core/EditorObject.h"
+#include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "core/Undo.h"
 #include "core/UserObjectFactoryInterface.h"
-#include "core/ExternalReferenceAnnotation.h"
 
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
@@ -50,13 +50,27 @@ SPrefabInstance PrefabOperations::findContainingPrefabInstance(SEditorObject obj
 	return nullptr;
 }
 
-bool compareLinks(const raco::core::Link& left, const raco::core::Link& right, translateRefFunc translateRef) {
-	return translateRef(*left.startObject_) == *right.startObject_ &&
-		   translateRef(*left.endObject_) == *right.endObject_ &&
-		   *left.startProp_ == *right.startProp_ &&
-		   *left.endProp_ == *right.endProp_;
+namespace {
+
+SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& destLinks, translateRefFunc translateRef) {
+	auto transStartObj = translateRef(*srcLink->startObject_);
+	auto transEndObj = translateRef(*srcLink->endObject_);
+
+	auto it = destLinks.find(transEndObj->objectID());
+	if (it != destLinks.end()) {
+		for (const auto& destLink : it->second) {
+			if (transStartObj == *destLink->startObject_ &&
+				transEndObj == *destLink->endObject_ &&
+				*srcLink->startProp_ == *destLink->startProp_ &&
+				*srcLink->endProp_ == *destLink->endProp_) {
+				return destLink;
+			}
+		}
+	}
+	return nullptr;
 }
 
+}  // namespace
 
 // Update operation
 // - detect create & move into as creations
@@ -68,9 +82,9 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	using namespace raco::core;
 	DataChangeRecorder localChanges;
 
-	 if (instance->query<ExternalReferenceAnnotation>()) {
+	if (instance->query<ExternalReferenceAnnotation>()) {
 		return;
-	 }
+	}
 
 	std::set<SEditorObject> prefabChildren;
 	std::copy(++TreeIteratorAdaptor(prefab).begin(), TreeIteratorAdaptor(prefab).end(), std::inserter(prefabChildren, prefabChildren.end()));
@@ -79,17 +93,28 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	std::copy(++TreeIteratorAdaptor(instance).begin(), TreeIteratorAdaptor(instance).end(), std::inserter(instanceChildren, instanceChildren.end()));
 
 	std::map<SEditorObject, SEditorObject> mapToInstance;
+	std::map<SEditorObject, SEditorObject> mapToPrefab;
 	mapToInstance[prefab] = instance;
+	mapToPrefab[instance] = prefab;
 	for (size_t index = 0; index < instance->mapToInstance_->size(); index++) {
 		const Table& item = instance->mapToInstance_->get(index)->asTable();
 		auto prefabChild = item.get(0)->asRef();
 		auto instChild = item.get(1)->asRef();
 		mapToInstance[prefabChild] = instChild;
+		mapToPrefab[instChild] = prefabChild;
 	}
 
 	auto translateRefFunc = [prefab, instance, &mapToInstance](SEditorObject obj) -> SEditorObject {
 		auto it = mapToInstance.find(obj);
 		if (it != mapToInstance.end()) {
+			return it->second;
+		}
+		return obj;
+	};
+
+	auto translateRefToPrefabFunc = [prefab, instance, &mapToPrefab](SEditorObject obj) -> SEditorObject {
+		auto it = mapToPrefab.find(obj);
+		if (it != mapToPrefab.end()) {
 			return it->second;
 		}
 		return obj;
@@ -107,6 +132,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 				toRemove.emplace_back(instChild);
 				instance->removePrefabInstanceChild(context, prefabChild);
 				mapToInstance.erase(prefabChild);
+				mapToPrefab.erase(instChild);
 				it = instanceChildren.erase(it);
 			} else {
 				++it;
@@ -118,28 +144,27 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	std::set<ValueHandle> allChangedValues;
 
 	// Remove links
-	// TODO: Replace vectors with sets and don't use std::find_if
-	std::vector<SLink> prefabLinks = Queries::getLinksConnectedToObjects(*context.project(), prefabChildren, false, true);
-	std::vector<SLink> instLinks = Queries::getLinksConnectedToObjects(*context.project(), instanceChildren, false, true);
-	for (auto instLink : instLinks) {
-		if (std::find_if(prefabLinks.begin(), prefabLinks.end(), [instLink, translateRefFunc](const SLink& prefabLink) {
-				return compareLinks(*prefabLink, *instLink, translateRefFunc);
-			}) == prefabLinks.end()) {
+	std::map<std::string, std::set<SLink>> prefabLinks = Queries::getLinksConnectedToObjects(*context.project(), prefabChildren, false, true);
+	std::map<std::string, std::set<SLink>> instLinks = Queries::getLinksConnectedToObjects(*context.project(), instanceChildren, false, true);
 
-			// Don't remove links ending on top-level lua scripts:
-			// These are the only changeably properties in the prefab instance children.
-			auto instEndObject = *instLink->endObject_;
-			if (instEndObject->as<user_types::LuaScript>() && instEndObject->getParent() == instance) {
-				continue;
-			}
+	for (const auto& instLinkCont : instLinks) {
+		for (const auto& instLink : instLinkCont.second) {
+			if (!lookupLink(instLink, prefabLinks, translateRefToPrefabFunc)) {
+				// Don't remove links ending on top-level lua scripts:
+				// These are the only changeably properties in the prefab instance children.
+				auto instEndObject = *instLink->endObject_;
+				if (instEndObject->as<user_types::LuaScript>() && instEndObject->getParent() == instance) {
+					continue;
+				}
 
-			context.project()->removeLink(instLink);
-			localChanges.recordRemoveLink(instLink->descriptor());
+				context.project()->removeLink(instLink);
+				localChanges.recordRemoveLink(instLink->descriptor());
 
-			auto prefabEndObject = PrefabInstance::mapFromInstance(instEndObject, instance);
-			ValueHandle prefabEndHandle = ValueHandle::translatedHandle(ValueHandle(instLink->endProp()), prefabEndObject);
-			if (prefabEndHandle) {
-				allChangedValues.insert(prefabEndHandle);
+				auto prefabEndObject = PrefabInstance::mapFromInstance(instEndObject, instance);
+				ValueHandle prefabEndHandle = ValueHandle::translatedHandle(ValueHandle(instLink->endProp()), prefabEndObject);
+				if (prefabEndHandle) {
+					allChangedValues.insert(prefabEndHandle);
+				}
 			}
 		}
 	}
@@ -152,6 +177,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			auto newInstChild = context.objectFactory()->createObject(prefabChild->getTypeDescription().typeName, prefabChild->objectName());
 			instance->addChildMapping(context, prefabChild, newInstChild);
 			mapToInstance[prefabChild] = newInstChild;
+			mapToPrefab[newInstChild] = prefabChild;
 			context.project()->addInstance(newInstChild);
 			localChanges.recordCreateObject(newInstChild);
 			createdObjects.emplace_back(prefabChild, newInstChild);
@@ -159,9 +185,10 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	}
 
 	// Complete update of the the newly created objects
-	for (auto [prefabChild, instChild]: createdObjects) {
+	for (auto [prefabChild, instChild] : createdObjects) {
 		// Object IDs are never updated and the object name for newly created objects is already correct.
-		updateEditorObject(prefabChild.get(), instChild, translateRefFunc, 
+		updateEditorObject(
+			prefabChild.get(), instChild, translateRefFunc,
 			[](const std::string& propName) {
 				return propName == "objectID" || propName == "mapToInstance";
 			},
@@ -170,14 +197,16 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	}
 
 	// Single property updates from model changes
-	auto const & modelChanges = context.modelChanges().getChangedValues();
-	if (instanceDirty || modelChanges.find(ValueHandle(prefab, {"children"})) != modelChanges.end()) {
-		updateSingleValue(&prefab->children_, &instance->children_, ValueHandle(instance, {"children"}), translateRefFunc, & localChanges, true);
+	auto const& modelChanges = context.modelChanges().getChangedValues();
+	if (instanceDirty || context.modelChanges().hasValueChanged(ValueHandle(prefab, {"children"}))) {
+		updateSingleValue(&prefab->children_, &instance->children_, ValueHandle(instance, {"children"}), translateRefFunc, &localChanges, true);
 	}
 
-	std::copy(modelChanges.begin(), modelChanges.end(), std::inserter(allChangedValues, allChangedValues.end()));
+	for (const auto& [id, cont] : modelChanges) {
+		allChangedValues.insert(cont.begin(), cont.end());
+	}
 	for (const auto& prop : allChangedValues) {
-		if (prop.rootObject() != prefab && prefab == findContainingPrefab(prop.rootObject())) {
+		if (prop.rootObject() != prefab && prefabChildren.find(prop.rootObject()) != prefabChildren.end()) {
 			if (std::find_if(createdObjects.begin(), createdObjects.end(), [prop](auto item) {
 					return prop.rootObject() == item.first;
 				}) == createdObjects.end()) {
@@ -195,29 +224,29 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		}
 	}
 
-	for (const auto& prefabLink : prefabLinks) {
-		auto instLinksIt = std::find_if(instLinks.begin(), instLinks.end(), [prefabLink, translateRefFunc](const SLink& instLink) {
-			return compareLinks(*prefabLink, *instLink, translateRefFunc);
-		});
-		if (instLinksIt == instLinks.end()) {
-			// Create links
+	for (const auto& prefabLinkCont : prefabLinks) {
+		for (const auto& prefabLink : prefabLinkCont.second) {
+			auto instLink = lookupLink(prefabLink, instLinks, translateRefFunc);
+			if (!instLink) {
+				// Create links
 
-			// Special case for links ending on top-level lua scripts: only add links if the lua script is among the created objects.
-			auto prefabEndObject = *prefabLink->endObject_;
-			if (prefabEndObject->as<user_types::LuaScript>() && prefabEndObject->getParent() == prefab &&
-				std::find_if(createdObjects.begin(), createdObjects.end(), [prefabEndObject](auto item) {
-					return item.first == prefabEndObject;
-				}) == createdObjects.end()) {
-				continue;
+				// Special case for links ending on top-level lua scripts: only add links if the lua script is among the created objects.
+				auto prefabEndObject = *prefabLink->endObject_;
+				if (prefabEndObject->as<user_types::LuaScript>() && prefabEndObject->getParent() == prefab &&
+					std::find_if(createdObjects.begin(), createdObjects.end(), [prefabEndObject](auto item) {
+						return item.first == prefabEndObject;
+					}) == createdObjects.end()) {
+					continue;
+				}
+
+				auto destLink = Link::cloneLinkWithTranslation(prefabLink, translateRefFunc);
+				context.project()->addLink(destLink);
+				localChanges.recordAddLink(destLink->descriptor());
+			} else if (instLink->isValid() != prefabLink->isValid()) {
+				// update link validity
+				instLink->isValid_ = prefabLink->isValid();
+				localChanges.recordChangeValidityOfLink(instLink->descriptor());
 			}
-
-			auto destLink = Link::cloneLinkWithTranslation(prefabLink, translateRefFunc);
-			context.project()->addLink(destLink);
-			localChanges.recordAddLink(destLink->descriptor());
-		} else if ((*instLinksIt)->isValid() != prefabLink->isValid()) {
-			// update link validity
-			(*instLinksIt)->isValid_ = prefabLink->isValid();
-			localChanges.recordChangeValidityOfLink((*instLinksIt)->descriptor());
 		}
 	}
 
@@ -234,7 +263,6 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		destObj->onAfterContextActivated(context);
 	}
 }
-
 
 void PrefabOperations::prefabUpdateOrderDepthFirstSearch(SPrefab current, std::vector<SPrefab>& order) {
 	if (std::find(order.begin(), order.end(), current) == order.end()) {
@@ -283,10 +311,8 @@ bool prefabInstanceDirty(const DataChangeRecorder& changes, SPrefabInstance inst
 		return true;
 	}
 	ValueHandle templateHandle(instance, {"template"});
-	auto changedValues = changes.getChangedValues();
-	return (changedValues.find(templateHandle) != changedValues.end());
+	return changes.hasValueChanged(templateHandle);
 }
-
 
 void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes) {
 	// Build prefab update order from dependency graph

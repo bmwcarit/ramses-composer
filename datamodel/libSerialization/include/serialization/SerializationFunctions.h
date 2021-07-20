@@ -41,12 +41,13 @@ std::string serialize(const T& object, const std::vector<L>& links, const std::s
 }
 
 template <typename T, typename L>
-std::string serialize(const std::vector<T>& objects, const std::vector<L>& links, const std::string& originFolder, const std::string& originFilename, const std::string& projectID, const std::string& originProjectName, const std::map<std::string, serialization::ExternalProjectInfo>& externalProjectsMap, const ResolveReferencedId& resolveReferenceId = defaultIdResolver<T>) {
+std::string serialize(const std::vector<T>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<L>& links, const std::string& originFolder, const std::string& originFilename, const std::string& projectID, const std::string& originProjectName, const std::map<std::string, serialization::ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, const ResolveReferencedId& resolveReferenceId = defaultIdResolver<T>) {
 	std::vector<SReflectionInterface> typeConversion{objects.begin(), objects.end()};
 	return serializeObjects(
 		std::vector<SReflectionInterface>{objects.begin(), objects.end()},
+		rootObjectIDs,
 		std::vector<SReflectionInterface>{links.begin(), links.end()},
-		originFolder, originFilename, projectID, originProjectName, externalProjectsMap, resolveReferenceId);
+		originFolder, originFilename, projectID, originProjectName, externalProjectsMap, originFolders, resolveReferenceId);
 }
 
 }  // namespace raco::serialization

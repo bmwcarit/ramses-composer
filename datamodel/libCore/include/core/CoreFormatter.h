@@ -96,11 +96,13 @@ template <>
 struct fmt::formatter<raco::core::ValueHandle> : formatter<string_view> {
 	template <typename FormatContext>
 	auto format(const raco::core::ValueHandle& c, FormatContext& ctx) {
+		if (!c) {
+			return formatter<string_view>::format(fmt::format("ValueHandle[Project-Global]"), ctx);
+		}
 		if (c.isObject()) {
 			return formatter<string_view>::format(fmt::format("ValueHandle[Object]( objectName: {} )", c.rootObject()->objectName()), ctx);
-		} else {
-			return formatter<string_view>::format(fmt::format("ValueHandle[{}]( propName: {} )", c.type(), c.getPropName()), ctx);
 		}
+		return formatter<string_view>::format(fmt::format("ValueHandle[{}]( propName: {} )", c.type(), c.getPropName()), ctx);
 	}
 };
 

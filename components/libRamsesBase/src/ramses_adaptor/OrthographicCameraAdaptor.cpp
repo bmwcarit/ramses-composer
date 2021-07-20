@@ -14,12 +14,12 @@
 
 #include "ramses_base/RamsesHandles.h"
 
-#include "ramses-logic/RamsesCameraBinding.h"
+
 
 namespace raco::ramses_adaptor {
 OrthographicCameraAdaptor::OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesOrthographicCamera(sceneAdaptor->scene())),
-	  cameraBinding_{ sceneAdaptor->logicEngine().createRamsesCameraBinding(), [this](rlogic::RamsesCameraBinding* binding) { this->sceneAdaptor_->logicEngine().destroy(*binding); } },
+	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(&sceneAdaptor->logicEngine())},
 	  viewportSubscriptions_{ std::move(BaseCameraAdaptorHelpers::viewportSubscriptions(sceneAdaptor, this)) },
 	  frustrumSubscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("near"), [this]() {
@@ -69,7 +69,7 @@ void OrthographicCameraAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& l
 	logicNodes.push_back(cameraBinding_.get());
 }
 
-const rlogic::Property& OrthographicCameraAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector)
+const rlogic::Property* OrthographicCameraAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector)
 {
 	using raco::user_types::Node;
 	using raco::user_types::property_name;
@@ -89,10 +89,10 @@ const rlogic::Property& OrthographicCameraAdaptor::getProperty(const std::vector
 		assert(ramsesFrustrumProperties != nullptr);
 		auto const ramsesFrustrumProperty = ramsesFrustrumProperties->getChild(propertyNameToFrustrumPropertyName.at(propName));
 		assert(ramsesFrustrumProperty != nullptr);
-		return *ramsesFrustrumProperty;
+		return ramsesFrustrumProperty;
 	}
 	if (auto p = BaseCameraAdaptorHelpers::getProperty(cameraBinding_.get(), propertyNamesVector)) {
-		return *p;
+		return p;
 	}
 	return SpatialAdaptor::getProperty(propertyNamesVector);
 }

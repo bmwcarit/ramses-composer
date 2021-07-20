@@ -61,6 +61,8 @@ public:
 	bool canSaveActiveProject() const;
 
 	raco::core::ExternalProjectsStoreInterface* externalProjects();
+	raco::core::MeshCache* meshCache();
+	raco::core::FileChangeMonitor* fileChangeMonitor();
 
 	const core::SceneBackendInterface* sceneBackend() const;
 
@@ -80,6 +82,9 @@ private:
 	raco::components::SDataChangeDispatcher dataChangeDispatcherEngine_;
 
 	std::unique_ptr<raco::ramses_adaptor::SceneBackend> scenesBackend_;
+
+	components::MeshCacheImpl meshCache_;
+	components::FileChangeMonitorImpl fileChangeMonitor_;
 
 	std::unique_ptr<RaCoProject> activeProject_;
 

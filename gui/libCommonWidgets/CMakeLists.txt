@@ -12,6 +12,7 @@ raco_find_qt_components(Widgets)
 
 add_library(libCommonWidgets
     include/common_widgets/DebugLayout.h
+    include/common_widgets/ErrorView.h src/ErrorView.cpp
     include/common_widgets/ExportDialog.h src/ExportDialog.cpp
     include/common_widgets/LinkStartSearchView.h src/LinkStartSearchView.cpp
     include/common_widgets/LogWidget.h src/LogWidget.cpp
@@ -43,3 +44,7 @@ target_link_libraries(libCommonWidgets
         raco::LogSystem
 )
 add_library(raco::CommonWidgets ALIAS libCommonWidgets)
+
+if(PACKAGE_TESTS)
+	add_subdirectory(tests)
+endif()

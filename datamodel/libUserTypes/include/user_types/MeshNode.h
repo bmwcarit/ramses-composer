@@ -50,10 +50,13 @@ public:
 
 	size_t numMaterialSlots();
 
+	std::string materialName(size_t materialSlot);
 	SMaterial getMaterial(size_t materialSlot);
+	bool materialPrivate(size_t materialSlot);
 	Table* getUniformContainer(size_t materialSlot);
 	
 	ValueHandle getMaterialHandle(size_t materialSlot);
+	ValueHandle getMaterialPrivateHandle(size_t materialSlot);
 	ValueHandle getUniformContainerHandle(size_t materialSlot);
 	ValueHandle getMaterialOptionsHandle(size_t materialSlot);
 

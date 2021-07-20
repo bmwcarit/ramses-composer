@@ -29,8 +29,7 @@ UndoView::UndoView(raco::core::UndoStack* undoStack, raco::components::SDataChan
 			try {
 				undoStack_->setIndex(static_cast<size_t>(index.row()));
 			} catch (core::ExtrefError& error) {
-				// TODO(extref) replace by error item once we have an error view.
-				QMessageBox::warning(this, "Undo Error", fmt::format("External reference update failed.\n\n{}", error.what()).c_str(), QMessageBox::Close);
+				// This ext ref update error message will be shown in the Error View.
 			}
 	});
 	rebuild();

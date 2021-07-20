@@ -7,7 +7,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "FileChangeListenerImpl.h"
+#include "components/FileChangeListenerImpl.h"
 
 #include "utils/PathUtils.h"
 
@@ -23,7 +23,7 @@
 
 namespace raco::components {
 
-FileChangeListenerImpl::FileChangeListenerImpl(std::string& absPath, Callback& callbackHandler)
+FileChangeListenerImpl::FileChangeListenerImpl(std::string& absPath, const Callback& callbackHandler)
 	: path_(absPath), fileChangeCallback_(callbackHandler) {
 	delayedLoadTimer_.setInterval(DELAYED_FILE_LOAD_TIME_MSEC);
 	delayedLoadTimer_.setSingleShot(true);

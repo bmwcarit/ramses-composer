@@ -10,8 +10,7 @@
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "core/CoreFormatter.h"
 #include "lodepng.h"
-#include "ramses-client-api/MipLevelData.h"
-#include "ramses-utils.h"
+#include <ramses-client-api/MipLevelData.h>
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "ramses_base/RamsesHandles.h"

@@ -25,8 +25,8 @@ std::map<int, std::string> enumerationCullMode{
 std::map<int, std::string> enumerationBlendOperation{
 	{ramses::EBlendOperation_Disabled, "Disabled"},
 	{ramses::EBlendOperation_Add, "Add"},
-	{ramses::EBlendOperation_Subtract, "Substract"},
-	{ramses::EBlendOperation_ReverseSubtract, "Reverse Substract"},
+	{ramses::EBlendOperation_Subtract, "Subtract"},
+	{ramses::EBlendOperation_ReverseSubtract, "Reverse Subtract"},
 	{ramses::EBlendOperation_Min, "Min"},
 	{ramses::EBlendOperation_Max, "Max"}};
 std::map<int, std::string> enumerationBlendFactor{

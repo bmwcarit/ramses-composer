@@ -54,7 +54,7 @@ LoggerPtr get(const char* category);
  * The predefined log categories can be found in log.h .
  * For further information see README.md .
  */
-#ifdef DEBUG
+#if !defined(NDEBUG)
 #define LOG_TRACE(category, message, ...) SPDLOG_LOGGER_TRACE(raco::log_system::get(category), message, ##__VA_ARGS__)
 #define LOG_DEBUG(category, message, ...) SPDLOG_LOGGER_DEBUG(raco::log_system::get(category), message, ##__VA_ARGS__)
 #else
@@ -67,7 +67,7 @@ LoggerPtr get(const char* category);
 #define LOG_CRITICAL(category, message, ...) SPDLOG_LOGGER_CRITICAL(raco::log_system::get(category), message, ##__VA_ARGS__)
 #define LOG(SEVERITY, category, message, ...) LOG_##SEVERITY(category, message, ##__VA_ARGS__)
 
-#ifdef DEBUG
+#if !defined(NDEBUG)
 #define LOG_TRACE_IF(category, condition, message, ...) \
 	if (condition) LOG_TRACE(category, message, ##__VA_ARGS__)
 #define LOG_DEBUG_IF(category, condition, message, ...) \

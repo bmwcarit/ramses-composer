@@ -76,6 +76,8 @@ public:
 	const core::ErrorItem& error() const;
 	bool hasError() const noexcept;
 
+	void markForDeletion();
+
 Q_SIGNALS:
 	void linkStateChanged(raco::core::Queries::LinkState state);
 	void linkTextChanged(const QString& text);

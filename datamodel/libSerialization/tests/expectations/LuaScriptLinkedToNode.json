@@ -31,6 +31,8 @@
             "typeName": "Link"
         }
     ],
+    "objectOriginFolders": {
+    },
     "objects": [
         {
             "properties": {
@@ -221,5 +223,9 @@
             },
             "typeName": "Node"
         }
+    ],
+    "rootObjectIDs": [
+        "lua_script_id",
+        "node_id"
     ]
 }

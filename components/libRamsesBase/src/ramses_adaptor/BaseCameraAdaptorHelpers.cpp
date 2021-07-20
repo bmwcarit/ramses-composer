@@ -14,7 +14,7 @@
 
 #include "user_types/BaseCamera.h"
 
-#include "ramses-logic/RamsesCameraBinding.h"
+#include <ramses-logic/RamsesCameraBinding.h>
 
 #include "ramses_base/RamsesHandles.h"
 

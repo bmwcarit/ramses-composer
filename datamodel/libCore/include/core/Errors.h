@@ -27,12 +27,13 @@ class Errors {
 public:
      explicit Errors(DataChangeRecorder* recorder) noexcept;
 	/**
-     * Removes the associated error form the given [ValueHandle] if it exists.
+     * Adds an associated error to the given [ValueHandle] if it exists.
+     * An empty [ValueHandle] is associated with a project-global error.
      * @returns if an error was added.
      */
 	bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
 	/**
-     * Removes the associated error form the given [ValueHandle] if it exists.
+     * Removes the associated error from the given [ValueHandle] if it exists.
      * @returns if an error was removed.
      */
 	bool removeError(const ValueHandle& handle);
@@ -55,9 +56,14 @@ public:
 	 */
 	bool removeIf(const std::function<bool(const ErrorItem&)>& predicate);
 
+	/**
+	 * @returns read-only reference to all saved errors.
+	 */
+	const std::map<ValueHandle, ErrorItem>& getAllErrors() const;
+
 private:
 	std::map<ValueHandle, ErrorItem> errors_;
-     DataChangeRecorder* recorder_;
+	DataChangeRecorder* recorder_;
 };
 
 }  // namespace raco::core

@@ -35,10 +35,10 @@ void CubeMap::onAfterValueChangedURI(BaseContext& context, ValueHandle const& va
 		validateURI(context, handle);
 
 		listener = registerFileChangedHandler(context, handle,
-			{shared_from_this(), [this, handle](BaseContext& context) {
+			[this, &context, handle]() {
 				 validateURI(context, handle);
 				 context.changeMultiplexer().recordPreviewDirty(shared_from_this());
-			 }});
+			 });
 		context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 	}
 }
@@ -56,9 +56,9 @@ void CubeMap::onAfterValueChanged(BaseContext& context, ValueHandle const& value
 void CubeMap::afterContextActivatedURI(BaseContext& context, std::string name, const std::string& uri, FileChangeMonitor::UniqueListener& listener) {
 	validateURI(context, {shared_from_this(), {name}});
 	listener = registerFileChangedHandler(context, {shared_from_this(), {name}},
-		{shared_from_this(), [this](BaseContext& context) {
+		 [this, &context]() {
 			 context.changeMultiplexer().recordPreviewDirty(shared_from_this());
-		 }});
+		 });
 }
 
 void CubeMap::onAfterContextActivated(BaseContext& context) {

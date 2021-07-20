@@ -8,6 +8,7 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#include "core/Errors.h"
 #include "core/ExtrefOperations.h"
 #include "core/Context.h"
 #include "core/ExternalReferenceAnnotation.h"
@@ -74,18 +75,39 @@ ExternalObjectDescriptor lookupExtrefSource(Project* project, const ExternalObje
 }
 
 // @exception ExtrefError
-void collectExternalObjects(Project* project, const ExternalObjectDescriptor& descriptor, ExternalProjectsStoreInterface& externalProjectsStore, std::map<std::string, ExternalObjectDescriptor>& externalObjects, std::vector<std::string>& pathStack) {
+void collectExternalObjects(Project* project, const ExternalObjectDescriptor& descriptor, ExternalProjectsStoreInterface& externalProjectsStore, std::map<std::string, ExternalObjectDescriptor>& externalObjects, std::vector<std::string>& pathStack, bool discardNonRoots) {
 	auto it = externalObjects.find(descriptor.obj->objectID());
 	if (it == externalObjects.end()) {
 		auto sourceDesc = lookupExtrefSource(project, descriptor, externalProjectsStore, pathStack);
 		if (sourceDesc.obj) {
+			if (sourceDesc.obj->getParent() && discardNonRoots) {
+				return;
+			}
+			// Check for pasting already existing local object from external project.
+			// Only fails if the external project id has been renamed by hand in the project file.
+			// Without that the external project would be recognized before as a duplicate of the local project.
+			auto localObj = project->getInstanceByID(descriptor.obj->objectID());
+			if (localObj && !localObj->query<ExternalReferenceAnnotation>()) {
+				throw ExtrefError("Can't add existing local object as external reference.");
+			}
+
 			externalObjects[descriptor.obj->objectID()] = sourceDesc;
 
 			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(sourceDesc.obj))) {
 				if (prop.type() == PrimitiveType::Ref) {
 					auto refValue = prop.asTypedRef<EditorObject>();
 					if (refValue) {
-						collectExternalObjects(project, ExternalObjectDescriptor{refValue, sourceDesc.project}, externalProjectsStore, externalObjects, pathStack);
+						collectExternalObjects(project, ExternalObjectDescriptor{refValue, sourceDesc.project}, externalProjectsStore, externalObjects, pathStack, false);
+					}
+				}
+			}
+
+			if (!sourceDesc.obj->getParent()) {
+				// Follow links from endpoint -> starting point
+				auto it = sourceDesc.project->linkEndPoints().find(sourceDesc.obj->objectID());
+				if (it != sourceDesc.project->linkEndPoints().end()) {
+					for (auto link : it->second) {
+						collectExternalObjects(project, ExternalObjectDescriptor{*link->startObject_, sourceDesc.project}, externalProjectsStore, externalObjects, pathStack, false);
 					}
 				}
 			}
@@ -100,9 +122,25 @@ void collectExternalObjects(Project* project, const ExternalObjectDescriptor& de
 	}
 };
 
+SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& destLinks) {
+	auto it = destLinks.find((*srcLink->endObject_)->objectID());
+	if (it != destLinks.end()) {
+		for (const auto& destLink : it->second) {
+			if (compareLinksByObjectID(*srcLink, *destLink)) {
+				return destLink;
+			}
+		}
+	}
+	return nullptr;
+}
+
+
 }  // namespace
 
 void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, std::vector<std::string>& pathStack) {
+	// remove project-global errors
+	context.errors().removeError(ValueHandle());
+
 	DataChangeRecorder localChanges;
 	auto extProjectMapCopy = project->externalProjectsMap();
 
@@ -119,14 +157,18 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	try {
 		for (auto object : localObjects) {
 			if (object->getParent() == nullptr) {
-				collectExternalObjects(project, ExternalObjectDescriptor{object, project}, externalProjectsStore, externalObjects, pathStack);
+				collectExternalObjects(project, ExternalObjectDescriptor{object, project}, externalProjectsStore, externalObjects, pathStack, true);
 			}
 		}
 	} catch (const ExtrefError& e) {
 		// Cleanup external projects that have been added by collectExternalObjects above but that are not used since we abort here.
 		project->gcExternalProjectMapping();
 		project->setExternalReferenceUpdateFailed(true);
-		LOG_ERROR(log_system::COMMON, "External reference update failed: {}", e.what());
+
+		auto errorMsg = fmt::format("External reference update failed: {}", e.what());
+		context.errors().addError(ErrorCategory::EXTERNAL_REFERENCE_ERROR, ErrorLevel::ERROR, ValueHandle(), errorMsg);
+		LOG_ERROR(log_system::COMMON, errorMsg);
+
 		throw e;
 	}
 
@@ -162,23 +204,25 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	context.deleteObjects(toRemove, false);
 
 	// Remove links
-	// TODO: Replace vectors with sets and don't use std::find_if
-	std::vector<SLink> localLinks = Queries::getLinksConnectedToObjects(*project, localObjects, true, true);
-	std::vector<SLink> externalLinks;
+	std::map<std::string, std::set<SLink>> localLinks = Queries::getLinksConnectedToObjects(*project, localObjects, true, true);
+
+	std::map<std::string, std::set<SLink>> externalLinks;
 	for (const auto& item : externalObjects) {
 		auto extObj = item.second.obj;
 		auto extProject = item.second.project;
 		// try to avoid duplicates:
-		for (auto link : Queries::getLinksConnectedToObject(*extProject, extObj, false, true)) {
-			externalLinks.emplace_back(link);
+		auto it = extProject->linkEndPoints().find(extObj->objectID());
+		if (it != extProject->linkEndPoints().end()) {
+			externalLinks[extObj->objectID()].insert(it->second.begin(), it->second.end());
 		}
 	}
-	for (auto link : localLinks) {
-		if (std::find_if(externalLinks.begin(), externalLinks.end(), [link](const SLink& srcLink) {
-				return compareLinksByObjectID(*srcLink, *link);
-			}) == externalLinks.end()) {
-			project->removeLink(link);
-			localChanges.recordRemoveLink(link->descriptor());
+
+	for (const auto& localLinksCont : localLinks) {
+		for (const auto& localLink : localLinksCont.second) {
+			if (!lookupLink(localLink, externalLinks)) {
+				project->removeLink(localLink);
+				localChanges.recordRemoveLink(localLink->descriptor());
+			}
 		}
 	}
 
@@ -204,19 +248,19 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	}
 
 	// Create links
-	for (auto extLink : externalLinks) {
-		auto it = std::find_if(localLinks.begin(), localLinks.end(), [extLink](const SLink& srcLink) {
-			return compareLinksByObjectID(*srcLink, *extLink);
-		});
-		if (it == localLinks.end()) {
-			// create link
-			auto localLink = Link::cloneLinkWithTranslation(extLink, translateToLocal);
-			project->addLink(localLink);
-			localChanges.recordAddLink(localLink->descriptor());
-		} else if (*(*it)->isValid_ != *extLink->isValid_) {
-			// update link validity
-			(*it)->isValid_ = extLink->isValid_;
-			localChanges.recordChangeValidityOfLink((*it)->descriptor());
+	for (const auto& extLinkCont : externalLinks) {
+		for (const auto& extLink : extLinkCont.second) {
+			auto localLink = lookupLink(extLink, localLinks);
+			if (!localLink) {
+				// create link
+				auto localLink = Link::cloneLinkWithTranslation(extLink, translateToLocal);
+				project->addLink(localLink);
+				localChanges.recordAddLink(localLink->descriptor());
+			} else if (*localLink->isValid_ != *extLink->isValid_) {
+				// update link validity
+				localLink->isValid_ = extLink->isValid_;
+				localChanges.recordChangeValidityOfLink(localLink->descriptor());
+			}
 		}
 	}
 

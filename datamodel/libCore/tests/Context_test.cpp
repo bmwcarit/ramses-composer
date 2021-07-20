@@ -73,8 +73,8 @@ TEST_F(ContextTest, Simple) {
 	context.set(vh_s, std::string("dog"));
 	EXPECT_EQ(vh_s.asString(), "dog");
 
-	std::set<ValueHandle> changedValues = recorder.getChangedValues();
-	std::set<ValueHandle> refChangedValues{vh_x, vh_b, vh_i, vh_s};
+	auto changedValues = recorder.getChangedValues();
+	std::map<std::string, std::set<ValueHandle>> refChangedValues{{foo->objectID(), {vh_x, vh_b, vh_i, vh_s}}};
 	EXPECT_EQ(changedValues, refChangedValues);
 
 	ValueHandle vh_vec = o.get("vec");
@@ -423,6 +423,14 @@ TEST_F(ContextTest, ErrorDeletionOnObjectDeletion) {
 	ASSERT_FALSE(context.errors().hasError(object));
 }
 
+TEST_F(ContextTest, ErrorProjectGlobal) {
+	context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle(), "Some project-global Error");
+	ASSERT_EQ(context.errors().getAllErrors().size(), 1);
+
+	context.errors().removeError(ValueHandle());
+	ASSERT_TRUE(context.errors().getAllErrors().empty());
+}
+
 TEST_F(ContextTest, ValueHandleErrorDeletionOnObjectDeletion) {
 	auto object = context.createObject(Node::typeDescription.typeName);
 	ValueHandle handle { object, { "translation"} };
@@ -492,6 +500,7 @@ TEST_F(ContextTest, copy_paste_loses_uniforms) {
 	context.set({material, {"uriVertex"}}, (cwd_path() / "shaders" / "basic.vert").string());
 	context.set({material, {"uriFragment"}}, (cwd_path() / "shaders" / "basic.frag").string());
 	context.set(ValueHandle{meshnode}.get("materials")[0].get("material"), material);
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
 
 	auto uniformsHandle = ValueHandle(meshnode, {"materials"})[0].get("uniforms");
 	ASSERT_TRUE(uniformsHandle);
@@ -813,3 +822,52 @@ TEST_F(ContextTest, queryLinkConnectedToObjectsReturnsNoDuplicateLinks) {
 
 	ASSERT_EQ(totalLinks.size(), 1);
 }
+
+TEST_F(ContextTest, meshnode_assign_mat_with_private_material) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, nullptr);
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+	context.set(meshnode->getMaterialHandle(0), material);
+
+	ASSERT_FALSE(meshnode->materialPrivate(1));
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 1);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), false);
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 1);
+}
+
+TEST_F(ContextTest, meshnode_assign_mat_with_shared_material) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	// default is shared material, don't need to set flag
+
+	ASSERT_FALSE(meshnode->materialPrivate(0));
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 1);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), false);
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
+}
+
+TEST_F(ContextTest, meshnode_shared_mat_modify_material) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	// default is shared material, don't need to set flag
+
+	ASSERT_FALSE(meshnode->materialPrivate(0));
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
+
+	context.set({material, {"uniforms", "u_color", "x"}}, 0.5);
+	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
+}
+
+
+

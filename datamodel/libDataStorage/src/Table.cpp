@@ -86,9 +86,15 @@ ValueBase *Table::addProperty(std::string const &name, PrimitiveType type)
 	return properties_.back().second.get();
 }
 
-ValueBase* Table::addProperty(std::string const& name, ValueBase* property) {
-	properties_.emplace_back(std::make_pair(name, std::unique_ptr<ValueBase>(property)));
-	return properties_.back().second.get();
+ValueBase* Table::addProperty(std::string const& name, ValueBase* property, int index_before) {
+	assert(index_before >= -1 && index_before <= static_cast<int>(properties_.size()));
+
+	if (index_before == -1) {
+		properties_.emplace_back(std::make_pair(name, std::unique_ptr<ValueBase>(property)));
+		return properties_.back().second.get();
+	}
+
+	return properties_.insert(properties_.begin() + index_before, std::make_pair(name, std::unique_ptr<ValueBase>(property)))->second.get();
 }
 
 ValueBase* Table::addProperty(const std::string& name, std::unique_ptr<ValueBase>&& property) {
@@ -134,6 +140,23 @@ void Table::removeProperty(std::string const &propertyName) {
 		removeProperty(ind);
 	}
 }
+
+void Table::renameProperty(const std::string& oldName, const std::string& newName) {
+	auto it = std::find_if(properties_.begin(), properties_.end(),
+		[&oldName](auto const& item) {
+			return item.first == oldName;
+		});
+	if (it != properties_.end()) {
+		it->first = newName;
+	}
+}
+
+void Table::replaceProperty(size_t index, ValueBase* property) {
+	if (index < properties_.size()) {
+		properties_[index].second = std::unique_ptr<ValueBase>(property);
+	}
+}
+
 
 void Table::clear() {
 	properties_.clear();

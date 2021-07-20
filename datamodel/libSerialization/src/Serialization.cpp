@@ -428,6 +428,20 @@ void deserializeExternalProjectsMap(const QVariant& container, std::map<std::str
 	}
 }
 
+void serializeObjectOriginFolderMap(QJsonObject& outContainer, const std::map<std::string, std::string>& originFolders) {
+	QMap<QString, QVariant> map;
+	for (auto [id, folder] : originFolders) {
+		map[QString::fromStdString(id)] = QVariant(QString::fromStdString(folder));
+	}
+	outContainer.insert(keys::OBJECT_ORIGIN_FOLDERS, QJsonValue::fromVariant(map));
+}
+
+void deserializeObjectOriginFolderMap(const QVariant& container, std::map<std::string, std::string>& outOriginFolders) {
+	for (auto [id, folder] : container.toMap().toStdMap()) {
+		outOriginFolders[id.toStdString()] = folder.toString().toStdString();
+	}
+}
+
 ObjectsDeserialization raco::serialization::deserializeObjects(const std::string& json, const DeserializationFactory& factory) {
 	ObjectsDeserialization result{};
 	auto container{QJsonDocument::fromJson(json.c_str()).object()};
@@ -445,6 +459,12 @@ ObjectsDeserialization raco::serialization::deserializeObjects(const std::string
 	}
 
 	deserializeExternalProjectsMap(container[keys::EXTERNAL_PROJECTS].toVariant(), result.externalProjectsMap);
+	deserializeObjectOriginFolderMap(container[keys::OBJECT_ORIGIN_FOLDERS].toVariant(), result.objectOriginFolders);
+
+	auto rootObjectIDs = container[keys::ROOT_OBJECT_IDS].toVariant().toStringList();
+	for (auto id : rootObjectIDs) {
+		result.rootObjectIDs.insert(id.toStdString());
+	}
 
 	for (const auto& objJson : container.value(keys::OBJECTS).toArray()) {
 		auto deserializeObject{deserializeTypedObject(objJson.toObject(), factory, result.references)};
@@ -458,7 +478,7 @@ ObjectsDeserialization raco::serialization::deserializeObjects(const std::string
 }
 
 
-std::string raco::serialization::serializeObjects(const std::vector<SReflectionInterface>& objects, const std::vector<SReflectionInterface>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const ResolveReferencedId& resolveReferenceId) {
+std::string raco::serialization::serializeObjects(const std::vector<SReflectionInterface>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<SReflectionInterface>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, const ResolveReferencedId& resolveReferenceId) {
 	QJsonObject result{};
 
 	if (!originFolder.empty()) {
@@ -475,6 +495,14 @@ std::string raco::serialization::serializeObjects(const std::vector<SReflectionI
 	}
 
 	serializeExternalProjectsMap(result, externalProjectsMap);
+	
+	serializeObjectOriginFolderMap(result, originFolders);
+
+	QStringList qRootObjectIDs;
+	for (auto id : rootObjectIDs) {
+		qRootObjectIDs.push_back(QString::fromStdString(id));
+	}
+	result.insert(keys::ROOT_OBJECT_IDS, QJsonValue::fromVariant(qRootObjectIDs));
 
 	QJsonArray jsonObjects{};
 	for (const auto& object : objects) {
@@ -491,7 +519,7 @@ std::string raco::serialization::serializeObjects(const std::vector<SReflectionI
 	return QJsonDocument{result}.toJson().toStdString();
 }
 
-std::string raco::serialization::serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, 
+QJsonDocument raco::serialization::serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, 
 	const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, 
 	const ResolveReferencedId& resolveReferenceId) {
 	QJsonObject container{};
@@ -516,7 +544,7 @@ std::string raco::serialization::serializeProject(const std::unordered_map<std::
 		linkArray.push_back(serializeTypedObject(*link.get(), resolveReferenceId));
 	}
 	container.insert(keys::LINKS, linkArray);
-	return QJsonDocument{container}.toJson().toStdString();
+	return QJsonDocument{container};
 }
 
 ProjectDeserializationInfo raco::serialization::deserializeProject(const QJsonDocument& document, const DeserializationFactory& factory) {
@@ -553,8 +581,9 @@ std::optional<QJsonValue> raco::serialization::serializePropertyForMigration(con
 	return serializeValueBase(value, resolveReferenceId);
 }
 
-void raco::serialization::deserializePropertyForMigration(const QJsonValue& property, ValueBase& value, const DeserializationFactory& factory) {
+References raco::serialization::deserializePropertyForMigration(const QJsonValue& property, ValueBase& value, const DeserializationFactory& factory) {
 	References references{};
 	deserializeValueBase(property, value, references, factory);
+	return references;
 }
 

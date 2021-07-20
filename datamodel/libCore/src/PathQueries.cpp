@@ -17,29 +17,58 @@
 
 namespace raco::core::PathQueries {
 
-std::string resolveUriPropertyToAbsolutePath(const Project& project, const ValueHandle& uri) {
-	std::string externalProjectID;
-	if (auto prefabInst = PrefabOperations::findContainingPrefabInstance(uri.rootObject())) {
+std::string effectiveExternalProjectID(const Project &project, SEditorObject object) {
+	if (auto prefabInst = PrefabOperations::findContainingPrefabInstance(object)) {
 		if (auto prefab = *prefabInst->template_) {
 			if (auto anno = prefab->query<raco::core::ExternalReferenceAnnotation>()) {
-				externalProjectID = *anno->projectID_;
+				return *anno->projectID_;
 			}
 		}
 	} else {
-		if (auto anno = uri.rootObject()->query<raco::core::ExternalReferenceAnnotation>()) {
-			externalProjectID = *anno->projectID_;
+		if (auto anno = object->query<raco::core::ExternalReferenceAnnotation>()) {
+			return *anno->projectID_;
 		}
 	}
+	return std::string();
+}  
+
+std::string baseFolderForRelativePath(const Project& project, SEditorObject object) {
+	std::string externalProjectID = effectiveExternalProjectID(project, object);
+	if (!externalProjectID.empty()) {
+		if (project.hasExternalProjectMapping(externalProjectID)) {
+			auto projectPath = project.lookupExternalProjectPath(externalProjectID);
+			return std::filesystem::path(projectPath).parent_path().generic_string();
+		}
+		return std::string();
+	}
+	return project.currentFolder();
+}
+
+std::string resolveUriPropertyToAbsolutePath(const Project& project, const ValueHandle& uri) {
+	std::string uriValue = uri.asString();
+	if (uriValue.empty()) {
+		return std::string();
+	}
+	std::string externalProjectID = effectiveExternalProjectID(project, uri.rootObject());
 	if (!externalProjectID.empty()) {
 		if (project.hasExternalProjectMapping(externalProjectID)) {
 			auto projectPath = project.lookupExternalProjectPath(externalProjectID);
 			auto projectFolder = std::filesystem::path(projectPath).parent_path().generic_string();
-			return PathManager::constructAbsolutePath(projectFolder, uri.asString());
+			return PathManager::constructAbsolutePath(projectFolder, uriValue);
 		}
 		return std::string();
 	}
 
-	return PathManager::constructAbsolutePath(project.currentFolder(), uri.asString());
+	return PathManager::constructAbsolutePath(project.currentFolder(), uriValue);
+}
+
+bool isPathRelativeToCurrentProject(const SEditorObject& object) {
+	if (auto prefabInst = PrefabOperations::findContainingPrefabInstance(object)) {
+		if (auto prefab = *prefabInst->template_) {
+			return prefab->query<raco::core::ExternalReferenceAnnotation>() == nullptr;
+		}
+	}
+	return !object->query<ExternalReferenceAnnotation>();
 }
 
 }  // namespace raco::core::PathQueries

@@ -41,15 +41,15 @@ void configureDebugActions(Ui::MainWindow* ui, QWidget* widget, raco::core::Comm
 		auto mesh = commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName, Naming::format("DuckMesh"));
 		commandInterface->set(raco::core::ValueHandle{mesh, {"bakeMeshes"}}, true);
 		commandInterface->set(raco::core::ValueHandle{mesh, {"uri"}}, 
-			(raco::core::PathManager::defaultResourceDirectory() / "meshes" / "Duck.glb").generic_string());
+			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::MESH_SUB_DIRECTORY / "Duck.glb").generic_string());
 		auto material = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, Naming::format("DuckMaterial"));
 		commandInterface->set(raco::core::ValueHandle{material, {"uriVertex"}},
-			(raco::core::PathManager::defaultResourceDirectory() / "shaders" / "simple_texture.vert").generic_string());
+			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::SHADER_SUB_DIRECTORY / "simple_texture.vert").generic_string());
 		commandInterface->set(raco::core::ValueHandle{material, {"uriFragment"}}, 
-			(raco::core::PathManager::defaultResourceDirectory() / "shaders" / "simple_texture.frag").generic_string());
+			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::SHADER_SUB_DIRECTORY / "simple_texture.frag").generic_string());
 		auto texture = commandInterface->createObject(raco::user_types::Texture::typeDescription.typeName, Naming::format("DuckTexture"));
 		commandInterface->set(raco::core::ValueHandle{texture, {"uri"}},
-			(raco::core::PathManager::defaultResourceDirectory() / "images" / "DuckCM.png").generic_string());
+			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::IMAGE_SUB_DIRECTORY / "DuckCM.png").generic_string());
 
 		auto node = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, Naming::format("DuckNode"));
 		auto meshNode = commandInterface->createObject(raco::user_types::MeshNode::typeDescription.typeName, Naming::format("DuckMeshNode"));

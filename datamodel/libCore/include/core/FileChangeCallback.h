@@ -19,18 +19,19 @@ class BaseContext;
 
 class FileChangeCallback {
 public:
-	using Callback = std::function<void(BaseContext&)>;
+	using Callback = std::function<void()>;
 
-	FileChangeCallback(SEditorObject object, Callback callback) : object_(object), callback_(callback) {}
+	FileChangeCallback(BaseContext* context, SEditorObject object, Callback callback) : context_(context), object_(object), callback_(callback) {}
 
-	void operator()(BaseContext& context) const {
-		callback_(context);
-		if (object_) {
-			context.callReferencedObjectChangedHandlers(object_);
+	void operator()() const {
+		callback_();
+		if (object_ && context_) {
+			context_->callReferencedObjectChangedHandlers(object_);
 		}
 	}
 
 private:
+	BaseContext* context_;
 	SEditorObject object_{nullptr};
 	Callback callback_;
 };

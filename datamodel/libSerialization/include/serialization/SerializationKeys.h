@@ -30,5 +30,7 @@ constexpr const char* ORIGIN_PROJECT_ID{"originProjectID"};
 constexpr const char* ORIGIN_PROJECT_NAME{"originProjectName"};
 constexpr const char* EXTERNAL_PROJECT_PATH{"path"};
 constexpr const char* EXTERNAL_PROJECT_NAME{"name"};
+constexpr const char* ROOT_OBJECT_IDS{"rootObjectIDs"};
+constexpr const char* OBJECT_ORIGIN_FOLDERS{"objectOriginFolders"};
 
 }	// namespace raco::serialization::keys

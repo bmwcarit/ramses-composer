@@ -41,6 +41,8 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const Q
 	logicEngineNeedsUpdate_ = true;
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 
+	raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder());
+
 	startTime_ = std::chrono::high_resolution_clock::now();
 }
 
@@ -84,6 +86,8 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file) {
 	logicEngineNeedsUpdate_ = true;
 
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
+
+        raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder());
 }
 
 bool RaCoApplication::exportProject(const RaCoProject& project, const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError) const {
@@ -167,6 +171,14 @@ raco::core::EngineInterface* RaCoApplication::engine() {
 
 core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {
 	return &externalProjectsStore_;
+}
+
+raco::core::MeshCache* RaCoApplication::meshCache() {
+	return &meshCache_;
+}
+
+raco::core::FileChangeMonitor* RaCoApplication::fileChangeMonitor() {
+	return &fileChangeMonitor_;
 }
 
 }  // namespace raco::application

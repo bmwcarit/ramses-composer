@@ -13,6 +13,7 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/PropertyDescriptor.h"
 
+#include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/LuaScript.h"
 #include "user_types/Prefab.h"
@@ -373,6 +374,16 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 		}
 	}
 
+	auto meshnode = handle.rootObject()->as<user_types::MeshNode>();
+	if (meshnode) {
+		for (size_t matIndex = 0; matIndex < meshnode->numMaterialSlots(); matIndex ++) {
+			if ((meshnode->getMaterialOptionsHandle(matIndex).contains(handle) || meshnode->getUniformContainerHandle(matIndex).contains(handle)) &
+				!meshnode->materialPrivate(matIndex)) {
+				return true;
+			}
+		}
+	}
+
 	// Detect luascript output variables:
 	if (handle.query<LinkStartAnnotation>()) {
 		return true;
@@ -390,6 +401,26 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 	}
 	return false;
 }
+
+
+bool Queries::isHidden(const Project& project, const ValueHandle& handle) {
+	if (handle.query<HiddenProperty>()) {
+		return true;
+	}
+
+	auto meshnode = handle.rootObject()->as<user_types::MeshNode>();
+	if (meshnode) {
+		for (size_t matIndex = 0; matIndex < meshnode->numMaterialSlots(); matIndex++) {
+			if ((meshnode->getMaterialOptionsHandle(matIndex).contains(handle) || meshnode->getUniformContainerHandle(matIndex).contains(handle)) &
+				!meshnode->materialPrivate(matIndex)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 
 SLink Queries::getLink(const Project& project, const PropertyDescriptor& property) {
 	const auto& links = project.linkEndPoints();
@@ -515,9 +546,9 @@ std::vector<SLink> Queries::getLinksConnectedToObject(const Project& project, co
 	return result;
 }
 
-std::vector<SLink> Queries::getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool includeEnding) {
+std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool includeEnding) {
 	// use a set to avoid duplicate link entries
-	std::set<SLink> result;
+	std::map<std::string, std::set<SLink>> result;
 	const auto& linkStartPoints = project.linkStartPoints();
 	const auto& linkEndPoints = project.linkEndPoints();
 
@@ -527,19 +558,21 @@ std::vector<SLink> Queries::getLinksConnectedToObjects(const Project& project, c
 		if (includeStarting) {
 			auto linkIt = linkStartPoints.find(propertyObjID);
 			if (linkIt != linkStartPoints.end()) {
-				result.insert(linkIt->second.begin(), linkIt->second.end());
+				for (const auto& link : linkIt->second) {
+					result[(*link->endObject_)->objectID()].insert(link);
+				}
 			}
 		}
 
 		if (includeEnding) {
 			auto linkIt = linkEndPoints.find(propertyObjID);
 			if (linkIt != linkEndPoints.end()) {
-				result.insert(linkIt->second.begin(), linkIt->second.end());
+				result[propertyObjID].insert(linkIt->second.begin(), linkIt->second.end());
 			}
 		}
 	}
 
-	return {result.begin(), result.end()};
+	return result;
 }
 
 bool sameStructure(const Table* left, const Table* right) {
@@ -586,7 +619,7 @@ bool checkLinkCompatibleTypes(const ValueHandle& start, const ValueHandle& end) 
 	return false;
 }
 
-bool Queries::linkSatisfiesPrefabConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end) {
+bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end) {
 	auto startPrefab = PrefabOperations::findContainingPrefab(start.object());
 	auto endPrefab = PrefabOperations::findContainingPrefab(end.object());
 	auto startPrefabInstance = PrefabOperations::findContainingPrefabInstance(start.object());
@@ -617,6 +650,15 @@ bool Queries::linkSatisfiesPrefabConstraints(const PropertyDescriptor& start, co
 			return false;
 		}
 	}
+
+	// Ensure that links ending on materials or global LuaScripts work with external references:
+	// LuaScripts which are children of Nodes outside of Prefabs are not allowed as external references
+	// so we can't use them as link starting points if the link ends on a top-level LuaScript object or Material
+	// both of which are allowed as external references.
+	if (!end.object()->getParent() && start.object()->getParent()) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -628,7 +670,7 @@ std::set<ValueHandle> Queries::allowedLinkStartProperties(const Project& project
 		if (instance != end.rootObject()) {
 			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
 				PropertyDescriptor propDesc{prop.getDescriptor()};
-				if (prop.query<LinkStartAnnotation>() && checkLinkCompatibleTypes(prop, end) && linkSatisfiesPrefabConstraints(propDesc,endDesc) && !project.createsLoop(propDesc, endDesc)) {
+				if (prop.query<LinkStartAnnotation>() && checkLinkCompatibleTypes(prop, end) && linkSatisfiesConstraints(propDesc,endDesc) && !project.createsLoop(propDesc, endDesc)) {
 					result.insert(prop);
 				}
 			}
@@ -644,7 +686,7 @@ std::set<std::pair<ValueHandle, bool>> Queries::allLinkStartProperties(const Pro
 		if (instance != end.rootObject()) {
 			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
 				PropertyDescriptor propDesc{prop.getDescriptor()};
-				if (prop.query<LinkStartAnnotation>() && checkLinkCompatibleTypes(prop, end) && linkSatisfiesPrefabConstraints(propDesc, endDesc)) {
+				if (prop.query<LinkStartAnnotation>() && checkLinkCompatibleTypes(prop, end) && linkSatisfiesConstraints(propDesc, endDesc)) {
 					result.insert({ prop, project.createsLoop(propDesc, endDesc) });
 				}
 			}
@@ -662,15 +704,16 @@ bool Queries::isValidLinkStart(const ValueHandle& startProperty) {
 }
 
 bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& end) {
+	if (!(start && end && isValidLinkEnd(end) && isValidLinkStart(start) && checkLinkCompatibleTypes(start, end))) {
+		return false;
+	}
 	PropertyDescriptor startDesc{start.getDescriptor()};
 	PropertyDescriptor endDesc{end.getDescriptor()};
-	return start && end && isValidLinkEnd(end) && isValidLinkStart(start) && checkLinkCompatibleTypes(start, end) &&
-		   linkSatisfiesPrefabConstraints(startDesc, endDesc) &&
-		   !project.createsLoop(startDesc, endDesc);
+	return linkSatisfiesConstraints(startDesc, endDesc) && !project.createsLoop(startDesc, endDesc);
 }
 
 bool Queries::linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
-	return linkSatisfiesPrefabConstraints(start, end) && !project.createsLoop(start, end);
+	return linkSatisfiesConstraints(start, end) && !project.createsLoop(start, end);
 }
 
 bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {

@@ -10,7 +10,7 @@
 #include "components/MeshCacheImpl.h"
 
 #include "core/Context.h"
-#include "FileChangeListenerImpl.h"
+#include "components/FileChangeListenerImpl.h"
 #include "log_system/log.h"
 #include "components/FileChangeMonitorImpl.h"
 
@@ -22,56 +22,16 @@
 
 namespace raco::components {
 
-// FileChangeListener-derived class without QtFileSystemWatcher (the callbacks will be triggered from meshFileChangeListeners_)
-class RamsesMeshObjectCallback : public raco::core::FileChangeListener {
-public:
-	RamsesMeshObjectCallback(std::string &absPath, raco::core::FileChangeCallback &callbackHandler, raco::core::BaseContext &context)
-		: path_(absPath), fileChangeCallback_(callbackHandler), currentContext_(context) {
+void MeshCacheImpl::unregister(std::string absPath, typename core::MeshCache::Callback *listener) {
+	GenericFileChangeMonitorImpl<core::MeshCache>::unregister(absPath, listener);
+	if (callbacks_.find(absPath) == callbacks_.end()) {
+		meshCacheEntries_.erase(absPath);
 	}
-
-	std::string getPath() const override {
-		return path_.generic_string();
-	}
-
-	void operator()() {
-		fileChangeCallback_(currentContext_);
-	}
-
-private:
-	std::filesystem::path path_;
-	raco::core::FileChangeCallback fileChangeCallback_;
-	raco::core::BaseContext &currentContext_;
-};
-
-MeshCacheImpl::MeshCacheImpl(raco::core::BaseContext &ctx) : context_(ctx) {}
-
-raco::core::FileChangeMonitor::UniqueListener MeshCacheImpl::registerFileChangedHandler(std::string absPath, raco::core::FileChangeCallback callback) {
-	if (meshFileChangeListeners_.count(absPath) == 0) {
-		meshFileChangeListeners_[absPath] = context_.fileChangeMonitor()->registerFileChangedHandler(absPath,
-			{nullptr, [this, absPath](auto &ctx) {
-				 forceReloadCachedMesh(absPath);
-				 onAfterMeshFileUpdate(absPath);
-			 }});
-	}
-
-	auto *l = new RamsesMeshObjectCallback{absPath, callback, context_};
-
-	meshObjectCallbacks_[absPath].insert(l);
-
-	return UniqueListener(l, [this, absPath, l](auto *fileChangeListener) {
-		this->unregisterListener(absPath, l);
-		delete fileChangeListener;
-	});
 }
-
-void MeshCacheImpl::unregisterListener(const std::string &absPath, RamsesMeshObjectCallback *callback) {
-	if (meshObjectCallbacks_.count(absPath) > 0) {
-		meshObjectCallbacks_[absPath].erase(callback);
-		if (meshObjectCallbacks_[absPath].empty()) {
-			meshObjectCallbacks_.erase(absPath);
-			meshFileChangeListeners_.erase(absPath);
-		}
-	}
+	
+void MeshCacheImpl::notify(const std::string &absPath) {
+	forceReloadCachedMesh(absPath);
+	onAfterMeshFileUpdate(absPath);
 }
 
 raco::core::SharedMeshData MeshCacheImpl::loadMesh(const raco::core::MeshDescriptor &descriptor) {
@@ -100,8 +60,9 @@ void MeshCacheImpl::forceReloadCachedMesh(const std::string &absPath) {
 }
 
 void MeshCacheImpl::onAfterMeshFileUpdate(const std::string &meshFileAbsPath) {
-	if (meshObjectCallbacks_.count(meshFileAbsPath) > 0) {
-		for (const auto &meshObjectCallback : meshObjectCallbacks_[meshFileAbsPath]) {
+	auto it = callbacks_.find(meshFileAbsPath);
+	if (it != callbacks_.end()) {
+		for (const auto &meshObjectCallback : it->second) {
 			(*meshObjectCallback)();
 		}
 	}

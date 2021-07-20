@@ -87,7 +87,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 
 	if (recreateStatus_) {
 		auto scriptContent = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, {"uri"}}));
-		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateObjectName(), scriptContent);
+		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), scriptContent);
 		luaScript_.reset();
 		if (!scriptContent.empty()) {
 			auto ptr = sceneAdaptor_->logicEngine().createLuaScriptFromSource(scriptContent, generateRamsesObjectName());
@@ -124,7 +124,7 @@ void LuaScriptAdaptor::readDataFromEngine(core::DataChangeRecorder &recorder) {
 	}
 }
 
-const rlogic::Property& LuaScriptAdaptor::getProperty(const std::vector<std::string>& names) {
+const rlogic::Property* LuaScriptAdaptor::getProperty(const std::vector<std::string>& names) {
 	const rlogic::Property* prop{names.at(0) == "luaInputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
 	for (size_t i{1}; i < names.size(); i++) {
 		if ( prop->getType()==rlogic::EPropertyType::Array) {
@@ -134,7 +134,7 @@ const rlogic::Property& LuaScriptAdaptor::getProperty(const std::vector<std::str
 			prop = prop->getChild(names.at(i));
 		}
 	}
-	return *prop;
+	return prop;
 }
 
 void LuaScriptAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {

@@ -24,16 +24,14 @@ void LuaScript::onBeforeDeleteObject(Errors& errors) const {
 }
 
 void LuaScript::onAfterContextActivated(BaseContext& context) {
-	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uri"}}, {shared_from_this(),
-			[this](BaseContext& context) { this->syncLuaInterface(context); }});
+	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uri"}}, [this, &context]() { this->syncLuaInterface(context); });
 	syncLuaInterface(context);
 }
 
 void LuaScript::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	ValueHandle uriHandle{shared_from_this(), {"uri"}};
 	if (uriHandle == value) {
-		uriListener_ = registerFileChangedHandler(context, uriHandle, {shared_from_this(),
-			[this](BaseContext& context) { this->syncLuaInterface(context); }});
+		uriListener_ = registerFileChangedHandler(context, uriHandle, [this, &context]() { this->syncLuaInterface(context); });
 		syncLuaInterface(context);
 	}
 }

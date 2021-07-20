@@ -157,9 +157,10 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 		const std::string name(dataModelNameFromInterface(iEntry, index));
 		if (!property.hasProperty(name)) {
 			std::unique_ptr<raco::data_storage::ValueBase> uniqueValue;
-			if (linkStart) {
+			bool isRefType = PropertyInterface::primitiveType(iEntry.type) == PrimitiveType::Ref;
+			if (linkStart && !isRefType) {
 				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkStartAnnotation>(iEntry.type));
-			} else if (linkEnd) {
+			} else if (linkEnd && !isRefType) {
 				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkEndAnnotation>(iEntry.type));
 			} else {
 				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<>(iEntry.type));

@@ -38,7 +38,10 @@ raco_package_add_test_resouces(
     libCore_test "${CMAKE_SOURCE_DIR}/resources"
     shaders/basic.frag
     shaders/basic.vert
+    shaders/simple_texture.frag
+    shaders/simple_texture.vert
     meshes/Duck.glb
+    meshes/defaultQuad.gltf
     scripts/types-scalar.lua
     scripts/struct-simple.lua
     scripts/struct-nested.lua

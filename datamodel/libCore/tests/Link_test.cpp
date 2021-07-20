@@ -88,6 +88,23 @@ public:
 	}
 };
 
+TEST_F(LinkTest, fail_create_invalid_handles) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "INVALID"}}));
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}));
+
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, { "INVALID"}}));
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}));
+
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end}));
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start}, ValueHandle{end, {"luaInputs", "float"}}));
+
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{}));
+	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{}, ValueHandle{end, {"luaInputs", "float"}}));
+}
+
 TEST_F(LinkTest, lua_lua_scalar) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
@@ -490,6 +507,64 @@ end
 
 	context.set({start, {"uri"}}, script_2);
 	checkLinks({{sprop, eprop, false}});
+}
+
+TEST_F(LinkTest, removal_move_start_lua_lua) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto node = create<Node>("node");
+
+	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+
+	commandInterface.moveScenegraphChild(start, node);
+	ASSERT_EQ(project.links().size(), 0);
+}
+
+TEST_F(LinkTest, removal_move_end_lua_lua) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto node = create<Node>("node");
+	auto meshnode = create<MeshNode>("meshnode");
+
+	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+
+	commandInterface.moveScenegraphChild(end, node);
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.moveScenegraphChild(start, node);
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.moveScenegraphChild(start, meshnode);
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.moveScenegraphChild(end, nullptr);
+	ASSERT_EQ(project.links().size(), 0);
+}
+
+TEST_F(LinkTest, removal_move_start_lua_mat) {
+	auto lua = create_lua("base", "scripts/types-scalar.lua");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto node = create<Node>("node");
+
+	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, material, {"uniforms", "u_color"});
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.moveScenegraphChild(lua, node);
+	ASSERT_EQ(project.links().size(), 0);
+}
+
+TEST_F(LinkTest, removal_move_middle_lua_lua_mat) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto node = create<Node>("node");
+
+	auto [sprop, iprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [oprop, eprop] = link(end, {"luaOutputs", "ovector3f"}, material, {"uniforms", "u_color"});
+	checkLinks({{sprop, iprop, true}, {oprop, eprop, true}});
+
+	commandInterface.moveScenegraphChild(end, node);
+	checkLinks({{sprop, iprop, true}});
 }
 
 TEST_F(LinkTest, lua_restore_after_reselecting_output_uri) {
@@ -972,6 +1047,7 @@ TEST_F(LinkTest, material_restore_uniform_links) {
 	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
 	auto meshNode = create_meshnode("meshnode", mesh, material);
 	auto emptyMaterial = create<Material>("emptymat");
+	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
 
 	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
 	checkLinks({{sprop, eprop, true}});
@@ -983,3 +1059,19 @@ TEST_F(LinkTest, material_restore_uniform_links) {
 	checkLinks({{sprop, eprop, true}});
 }
 
+TEST_F(LinkTest, restore_meshnode_uniform_switching_shared) {
+	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshNode = create_meshnode("meshnode", mesh, material);
+	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
+
+	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.set(meshNode->getMaterialPrivateHandle(0), false);
+	checkLinks({{sprop, eprop, false}});
+
+	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
+	checkLinks({{sprop, eprop, true}});
+}

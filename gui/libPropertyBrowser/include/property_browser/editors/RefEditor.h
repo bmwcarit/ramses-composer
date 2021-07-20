@@ -32,6 +32,8 @@ public:
 protected:
 	Q_SLOT void updateItems(const PropertyBrowserRef::ComboBoxItems& items);
 
+	void changeEvent(QEvent* event) override;
+
 	bool emptyReference_ = false;
 
 	PropertyBrowserRef* ref_{nullptr};

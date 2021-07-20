@@ -10,7 +10,7 @@
 #pragma once
 
 #include "core/Handles.h"
-#include "ramses-logic/RamsesNodeBinding.h"
+
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
@@ -28,11 +28,9 @@ class NodeAdaptor;
 template <typename EditorType, typename RamsesType>
 class SpatialAdaptor : public TypedObjectAdaptor<EditorType, RamsesType>, public ILogicPropertyProvider, public ISceneObjectProvider {
 public:
-	using UniqueRamsesNodeBinding = std::unique_ptr<rlogic::RamsesNodeBinding, std::function<void(rlogic::RamsesNodeBinding*)>>;
-
 	explicit SpatialAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<EditorType> editorObject, RamsesHandle<RamsesType>&& ramsesObject, NodeAdaptor* parent = nullptr)
 		: TypedObjectAdaptor<EditorType, RamsesType>{sceneAdaptor, editorObject, std::move(ramsesObject)},
-		  nodeBinding_{sceneAdaptor->logicEngine().createRamsesNodeBinding(), [this](rlogic::RamsesNodeBinding* binding) { this->sceneAdaptor_->logicEngine().destroy(*binding); }},
+		  nodeBinding_{raco::ramses_base::ramsesNodeBinding(&sceneAdaptor->logicEngine())},
 		  subscriptions_{
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visible"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("children"), [this]() { this->tagDirty(); }),
@@ -47,7 +45,7 @@ public:
 		logicNodes.push_back(nodeBinding_.get());
 	}
 	
-	const rlogic::Property& getProperty(const std::vector<std::string>& propertyNamesVector) override {
+	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override {
 		using raco::user_types::Node;
 		using raco::user_types::property_name;
 
@@ -60,7 +58,7 @@ public:
 		std::string propName = propertyNamesVector[0];
 		assert(propertyNamesVector.size() == 1);
 		assert(propertyNameToEngineName.find(propName) != propertyNameToEngineName.end());
-		return *nodeBinding_->getInputs()->getChild(propertyNameToEngineName.at(propName));
+		return nodeBinding_->getInputs()->getChild(propertyNameToEngineName.at(propName));
 	}
 	
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override {
@@ -141,7 +139,7 @@ private:
 		}
 	}
 
-	UniqueRamsesNodeBinding nodeBinding_;
+	raco::ramses_base::UniqueRamsesNodeBinding nodeBinding_;
 	std::array<components::Subscription, 5> subscriptions_;
 };
 

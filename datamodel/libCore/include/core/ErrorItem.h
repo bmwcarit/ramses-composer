@@ -19,7 +19,8 @@ enum class ErrorCategory {
 	GENERAL = 0,
 	PARSE_ERROR,
 	FILESYSTEM_ERROR,
-	RAMSES_LOGIC_RUNTIME_ERROR 
+	RAMSES_LOGIC_RUNTIME_ERROR,
+	EXTERNAL_REFERENCE_ERROR
 };
 
 enum class ErrorLevel {
@@ -31,6 +32,7 @@ enum class ErrorLevel {
 
 /**
  * General error item for all [core::EditorObject]'s and [core::ValueHandle]'s within a project / context.
+ * An ErrorItem can also contain an empty [core::ValueHandle] which means it is project-global instead of chained to an object or property.
  */
 class ErrorItem {
 public:

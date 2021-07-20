@@ -20,19 +20,18 @@ namespace raco::ramses_adaptor {
 
 class OrthographicCameraAdaptor : public SpatialAdaptor<user_types::OrthographicCamera, ramses::OrthographicCamera> {
 public:
-	using UniqueRamsesCameraBinding = std::unique_ptr<rlogic::RamsesCameraBinding, std::function<void(rlogic::RamsesCameraBinding*)>>;
 	explicit OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject);
 	~OrthographicCameraAdaptor() override;
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	bool sync(core::Errors* errors) override;
 
-	const rlogic::Property& getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 
 private:
 	std::array<components::Subscription, 4> viewportSubscriptions_;
 	std::array<components::Subscription, 6> frustrumSubscriptions_;
-	UniqueRamsesCameraBinding cameraBinding_;
+	raco::ramses_base::UniqueRamsesCameraBinding cameraBinding_;
 };
 
 };	// namespace raco::ramses_adaptor

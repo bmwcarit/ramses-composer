@@ -10,8 +10,8 @@
 #pragma once
 
 #include "core/Link.h"
-#include "ramses-logic/LogicEngine.h"
-#include "ramses-logic/Property.h"
+#include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/Property.h>
 #include "components/DataChangeDispatcher.h"
 #include <vector>
 

@@ -15,26 +15,26 @@
 class MaterialAdaptorTest : public RamsesBaseFixture<> {};
 
 TEST_F(MaterialAdaptorTest, context_scene_effect_name_change) {
-	auto isNameInArray = [](const char* name, const std::vector<ramses::Effect*>& arrayOfEffects) {
-		return std::find_if(arrayOfEffects.begin(), arrayOfEffects.end(), [name](ramses::Effect* effect) {
-			return std::strcmp(effect->getName(), name) == 0;
-		}) != arrayOfEffects.end();
-	};
-
 	auto node = context.createObject(raco::user_types::Material::typeDescription.typeName, "Material Name");
 
 	dispatch();
 
 	auto effects{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
-
-	// we need to consider default effects of a new scene
 	EXPECT_EQ(effects.size(), 1);
-	ASSERT_TRUE(isNameInArray("Material Name", effects));
+	ASSERT_TRUE(isRamsesNameInArray("Material Name", effects));
+
+	auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance)};
+	EXPECT_EQ(appearances.size(), 1);
+	ASSERT_TRUE(isRamsesNameInArray("Material Name_Appearance", appearances));
 
 	context.set({node, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
 	effects = select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect);
 	EXPECT_STREQ("Changed", effects[0]->getName());
-	ASSERT_TRUE(isNameInArray("Changed", effects));
+	ASSERT_TRUE(isRamsesNameInArray("Changed", effects));
+
+	appearances = select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance);
+	EXPECT_EQ(appearances.size(), 1);
+	ASSERT_TRUE(isRamsesNameInArray("Changed_Appearance", appearances));
 }

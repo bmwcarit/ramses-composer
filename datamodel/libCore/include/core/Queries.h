@@ -9,7 +9,9 @@
  */
 #pragma once
 
+#include <map>
 #include <vector>
+
 #include "Handles.h"
 #include "EditorObject.h"
 #include "Link.h"
@@ -56,6 +58,9 @@ namespace Queries {
 	// Determines if the property value (for linkState = false) or the link state (for linkState = true)
 	// is changeable in the data model.
 	bool isReadOnly(const Project& project, const ValueHandle& handle, bool linkState = false);
+
+	bool isHidden(const Project& project, const ValueHandle& handle);
+
 
 	// Determines whether an object is read-only content of a prefab instance
 	bool isReadOnly(SEditorObject editorObj);
@@ -110,7 +115,11 @@ namespace Queries {
 	std::vector<SLink> getLinksConnectedToPropertyParents(const Project& project, const ValueHandle& property, bool includeSelf);
 
 	std::vector<SLink> getLinksConnectedToObject(const Project& project, const SEditorObject& object, bool includeStarting, bool includeEnding);
-	std::vector<SLink> getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool inlucdeEnding);
+
+	// Find all links starting or ending on any property of a set of objects.
+	// @return The set is partitioned in subsets according to the endpoint object and returned
+	//	       as a map indexed by the endpoint object ID.
+	std::map<std::string, std::set<SLink>> getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool inlucdeEnding);
 
 	// Get all properties that are allowed as the start of a link ending on the given end property.
 	// Includes type compatibility checks and loop detection.
@@ -121,7 +130,7 @@ namespace Queries {
 	 */
 	std::set<std::pair<ValueHandle, bool>> allLinkStartProperties(const Project& project, const ValueHandle& end);
 
-	bool linkSatisfiesPrefabConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end);
+	bool linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end);
 
 	// Check if a property is allowed as endpoint of a link.
 	bool isValidLinkEnd(const ValueHandle& endProperty);

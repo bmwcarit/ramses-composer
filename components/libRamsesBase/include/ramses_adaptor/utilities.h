@@ -16,7 +16,7 @@
 #include "core/MeshCacheInterface.h"
 #include "data_storage/Value.h"
 #include "log_system/log.h"
-#include "ramses-logic/Property.h"
+#include <ramses-logic/Property.h>
 #include "ramses_adaptor/BuildOptions.h"
 #include "ramses_base/RamsesHandles.h"
 #include "components/DataChangeDispatcher.h"
@@ -74,6 +74,8 @@ void main() {
 
 static constexpr const char* defaultEffectName = "raco::ramses_adaptor::DefaultEffectWithoutNormals";
 static constexpr const char* defaultEffectWithNormalsName = "raco::ramses_adaptor::DefaultEffectWithNormals";
+static constexpr const char* defaultAppearanceName = "raco::ramses_adaptor::DefaultAppearanceWithoutNormals";
+static constexpr const char* defaultAppearanceWithNormalsName = "raco::ramses_adaptor::DefaultAppearanceWithNormals";
 static constexpr const char* defaultIndexDataBufferName = "raco::ramses_adaptor::DefaultIndexDataBuffer";
 static constexpr const char* defaultVertexDataBufferName = "raco::ramses_adaptor::DefaultVertexDataBuffer";
 static constexpr const char* defaultRenderGroupName = "raco::ramses_adaptor::DefaultRenderGroup";

@@ -17,7 +17,7 @@
 #include "user_types/MeshNode.h"
 #include <array>
 #include <ramses-client-api/MeshNode.h>
-#include <ramses-logic/RamsesAppearanceBinding.h>
+
 
 namespace raco::ramses_adaptor {
 
@@ -25,7 +25,6 @@ class SceneAdaptor;
 
 class MeshNodeAdaptor final : public SpatialAdaptor<user_types::MeshNode, ramses::MeshNode>, public IRenderGroupObject {
 public:
-	using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBinding, std::function<void(rlogic::RamsesAppearanceBinding*)>>;
 	using BaseAdaptor = SpatialAdaptor<user_types::MeshNode, ramses::MeshNode>;
 
 	explicit MeshNodeAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMeshNode node);
@@ -46,7 +45,9 @@ public:
 	void addObjectToRenderGroup(ramses::RenderGroup& renderGroup, int orderWithinGroup) override;
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property& getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+
+	const raco::ramses_base::RamsesAppearance& privateAppearance() const;
 
 private:
 	void syncMaterial(size_t index);
@@ -54,18 +55,18 @@ private:
 	void setupMaterialSubscription();
 	void setupUniformChildrenSubscription();
 
+	raco::ramses_base::RamsesAppearance privateAppearance_;
 	raco::ramses_base::RamsesAppearance currentAppearance_;
-	UniqueRamsesAppearanceBinding appearanceBinding_;
-	raco::ramses_base::RamsesEffect currentEffect_;
+	raco::ramses_base::UniqueRamsesAppearanceBinding appearanceBinding_;
 	std::vector<raco::ramses_base::RamsesArrayResource> currentMeshVertexData_;
 	raco::ramses_base::RamsesArrayResource currentMeshIndices_;
 	raco::ramses_base::RamsesGeometryBinding geometryBinding_;
-	std::vector<raco::ramses_base::RamsesTextureSampler> currentSamplers_;
-
+	
 	// Subscriptions
 	components::Subscription meshSubscription_;
 	components::Subscription materialsSubscription_;
 	components::Subscription materialSubscription_;
+	components::Subscription matPrivateSubscription_;
 	components::Subscription optionsChildrenSubscription_;
 	components::Subscription instanceCountSubscription_;
 	components::Subscription uniformSubscription_;

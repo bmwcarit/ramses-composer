@@ -20,8 +20,7 @@
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
-
-
+#include "utils/PathUtils.h"
 
 #include <QContextMenuEvent>
 #include <QFileDialog>
@@ -158,6 +157,14 @@ void ObjectTreeView::selectObject(const QString &objectID) {
 	if (objectIndex.isValid()) {
 		resetSelection();
 		selectionModel()->select(objectIndex, SELECTION_MODE);
+		scrollTo(objectIndex);
+	}
+}
+
+void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
+	auto objectIndex = indexFromObjectID(objectID.toStdString());
+	if (objectIndex.isValid()) {
+		expandAllParentsOfObject(objectIndex);
 	}
 }
 
@@ -220,8 +227,8 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		treeViewMenu->addSeparator();
 
 		treeViewMenu->addAction("Import glTF Assets...", [this, selectedItemIndex]() {
-			auto projectDir = treeModel_->project()->currentFolder();
-			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(core::PathManager::getLastUsedPath()), "glTF files (*.gltf *.glb)");
+			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY, treeModel_->project()->currentFolder());
+			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, selectedItemIndex);
 			}
@@ -299,7 +306,7 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	return treeViewMenu;
 }
 
-void raco::object_tree::view::ObjectTreeView::dragMoveEvent(QDragMoveEvent *event) {
+void ObjectTreeView::dragMoveEvent(QDragMoveEvent *event) {
 	setDropIndicatorShown(true);
 	QTreeView::dragMoveEvent(event);
 
@@ -313,7 +320,7 @@ void raco::object_tree::view::ObjectTreeView::dragMoveEvent(QDragMoveEvent *even
 	}
 }
 
-core::SEditorObject raco::object_tree::view::ObjectTreeView::indexToSEditorObject(const QModelIndex &index) const {
+core::SEditorObject ObjectTreeView::indexToSEditorObject(const QModelIndex &index) const {
 	auto itemIndex = index;
 	if (proxyModel_) {
 		itemIndex = proxyModel_->mapToSource(index);
@@ -321,7 +328,7 @@ core::SEditorObject raco::object_tree::view::ObjectTreeView::indexToSEditorObjec
 	return treeModel_->indexToSEditorObject(itemIndex);
 }
 
-QModelIndex raco::object_tree::view::ObjectTreeView::indexFromObjectID(const std::string &id) const {
+QModelIndex ObjectTreeView::indexFromObjectID(const std::string &id) const {
 	auto index = treeModel_->indexFromObjectID(id);
 	if (proxyModel_) {
 		index = proxyModel_->mapFromSource(index);
@@ -350,15 +357,20 @@ void ObjectTreeView::restoreItemSelectionStates() {
 		if (selectedObjectIndex.isValid()) {
 			selectionModel()->select(selectedObjectIndex, SELECTION_MODE);
 			selectedObjects.emplace_back(selectedObjectIndex);
-
-			for (auto parent = model()->parent(selectedObjectIndex); parent.row() != treeModel_->getInvisibleRootIndex().row(); parent = model()->parent(parent)) {
-				expand(parent);
-			}
+			expandAllParentsOfObject(selectedObjectIndex);
 		}
 	}
 
 	if (!selectedObjects.empty()) {
 		scrollTo(selectedObjects.front());
+	}
+}
+
+void ObjectTreeView::expandAllParentsOfObject(const QModelIndex &index) {
+	for (auto parentIndex = index.parent(); parentIndex.isValid(); parentIndex = parentIndex.parent()) {
+		if (!isExpanded(parentIndex)) {
+			expand(parentIndex);
+		}
 	}
 }
 

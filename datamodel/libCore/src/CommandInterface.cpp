@@ -133,6 +133,7 @@ bool CommandInterface::importAssetScenegraph(const std::string& absPath, SEditor
 	if (importSuccess) {
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
 		undoStack_->push(fmt::format("Imported assets from {}", absPath));
+		PathManager::setCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY, std::filesystem::path(absPath).parent_path().generic_string());
 	}
 
 	return importSuccess;

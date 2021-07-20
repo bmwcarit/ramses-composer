@@ -72,12 +72,14 @@ void LinkAdaptor::connect() {
 	auto destPropertyHandle{raco::core::ValueHandle{editorLink_.end.object(), editorLink_.end.propertyNames()}};
 
 	if (originAdaptor && destAdaptor && originPropertyHandle && destPropertyHandle && editorLink_.isValid) {
-		eachLinkableProperty(
-			dynamic_cast<ILogicPropertyProvider*>(originAdaptor)->getProperty(editorLink_.start.propertyNames()),
-			dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames()),
-			[this](const rlogic::Property& a, const rlogic::Property& b) {
-				engineLink_.push_back(engineLink(&sceneAdaptor_->logicEngine(), a, b));
-			});
+		auto startProp = dynamic_cast<ILogicPropertyProvider*>(originAdaptor)->getProperty(editorLink_.start.propertyNames());
+		auto endProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
+		if (startProp && endProp) {
+			eachLinkableProperty(*startProp, *endProp,
+				[this](const rlogic::Property& a, const rlogic::Property& b) {
+					engineLink_.push_back(engineLink(&sceneAdaptor_->logicEngine(), a, b));
+				});
+		}
 	} else {
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "Ramses logic link {}.{}->{}.{} could not be created", editorLink_.start.object()->objectName(), fmt::join(editorLink_.start.propertyNames(), "."), editorLink_.end.object()->objectName(), fmt::join(editorLink_.end.propertyNames(), "."));
 	}
@@ -87,8 +89,10 @@ void LinkAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	auto destAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.end.object())};
 	raco::core::ValueHandle destHandle{editorLink_.end};
 	if (destAdaptor && destHandle && editorLink_.isValid) {
-		getLuaOutputFromEngine(dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames()), 
-			destHandle, recorder);
+		auto endProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
+		if (endProp) {
+			getLuaOutputFromEngine(*endProp, destHandle, recorder);
+		}
 	}
 }
 

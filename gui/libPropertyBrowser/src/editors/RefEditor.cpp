@@ -67,6 +67,19 @@ void RefEditor::updateItems(const PropertyBrowserRef::ComboBoxItems& items) {
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), ref_, &PropertyBrowserRef::setIndex);
 }
 
+void RefEditor::changeEvent(QEvent* event) {
+	QWidget::changeEvent(event);
+	if (event->type() == QEvent::EnabledChange) {
+		// retroactively set the RefEditor enabled at all times and only disable/enable the Ref combo box
+		// because QWidgets have to be enabled for their child widgets to be enabled and we want to enable the goto button at all times
+		auto enabled = this->isEnabled();
+		this->setEnabled(true);
+
+		comboBox_->setEnabled(enabled);
+		goToRefObjectButton_->setEnabled(!emptyReference_);
+	}
+}
+
 bool RefEditor::emptyReference() const noexcept {
 	return emptyReference_;
 }

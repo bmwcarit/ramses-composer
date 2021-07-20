@@ -23,17 +23,24 @@ bool Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandl
 	}
 	errors_.emplace(handle, ErrorItem(category, level, handle, message));
 	switch (level) {
+
 		case ErrorLevel::ERROR:
-			if (handle.isObject())
+			if (!handle) {
+				LOG_ERROR(log_system::CONTEXT, "Project-global error: {}", message);
+			} else if (handle.isObject()) {
 				LOG_ERROR(log_system::CONTEXT, "{}[{}]: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), message);
-			else
+			} else {
 				LOG_ERROR(log_system::CONTEXT, "{}[{}]#{}: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), handle.getPropName(), message);
+			}
 			break;
 		case ErrorLevel::WARNING:
-			if (handle.isObject())
+			if (!handle) {
+				LOG_WARNING(log_system::CONTEXT, "Project-global warning: {}", message);
+			} else if (handle.isObject()) {
 				LOG_WARNING(log_system::CONTEXT, "{}[{}]: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), message);
-			else
+			} else {
 				LOG_WARNING(log_system::CONTEXT, "{}[{}]#{}: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), handle.getPropName(), message);
+			}
 			break;
 		default:
 			break;
@@ -80,6 +87,10 @@ bool Errors::removeIf(const std::function<bool(ErrorItem const&)>& predicate) {
 		it = std::find_if(it, errors_.end(), wrapper);
 	}
 	return hasChanged;
+}
+
+const std::map<ValueHandle, ErrorItem>& Errors::getAllErrors() const {
+	return errors_;
 }
 
 }  // namespace raco::core

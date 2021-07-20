@@ -25,13 +25,14 @@ class DataChangeDispatcher;
 
 class Subscription {
 	friend class DataChangeDispatcher;
+
 public:
 	Subscription(const Subscription&) = delete;
 	Subscription& operator=(const Subscription&) = delete;
 	explicit Subscription() = default;
 	/** Container only subscription which will destroy all subscriptions when it gets destroyed */
 	explicit Subscription(std::vector<Subscription>&& subSubscriptions);
-	
+
 	using DeregisterCallback = std::function<void()>;
 	explicit Subscription(DataChangeDispatcher* owner, const std::shared_ptr<BaseListener>& listener, DeregisterCallback callback);
 
@@ -51,9 +52,9 @@ public:
 	}
 
 private:
-	DataChangeDispatcher* dataChangeDispatcher_ {nullptr};
-	std::shared_ptr<BaseListener> listener_ {nullptr};
-	std::vector<Subscription> subSubscriptions_ {};
+	DataChangeDispatcher* dataChangeDispatcher_{nullptr};
+	std::shared_ptr<BaseListener> listener_{nullptr};
+	std::vector<Subscription> subSubscriptions_{};
 	DeregisterCallback deregisterFunc_;
 };
 
@@ -82,12 +83,13 @@ public:
 	Subscription registerOn(core::ValueHandle valueHandle, Callback callback) noexcept;
 	Subscription registerOn(core::ValueHandles handles, ValueHandleCallback callback) noexcept;
 	Subscription registerOnChildren(core::ValueHandle valueHandle, ValueHandleCallback callback) noexcept;
-	Subscription registerOnPropertyChange(const std::string &propertyName, ValueHandleCallback callback) noexcept;
+	Subscription registerOnPropertyChange(const std::string& propertyName, ValueHandleCallback callback) noexcept;
 	Subscription registerOnObjectsLifeCycle(EditorObjectCallback onCreation, EditorObjectCallback onDeletion) noexcept;
 	/** Lifecycle changes to any link, creation and deletion. */
 	Subscription registerOnLinksLifeCycle(LinkCallback onCreation, LinkCallback onDeletion) noexcept;
 	Subscription registerOnLinkValidityChange(LinkCallback callback) noexcept;
 	Subscription registerOnErrorChanged(core::ValueHandle valueHandle, Callback callback) noexcept;
+	Subscription registerOnErrorChangedInScene(Callback callback) noexcept;
 	Subscription registerOnPreviewDirty(core::SEditorObject obj, Callback callback) noexcept;
 	Subscription registerOnUndoChanged(Callback callback) noexcept;
 
@@ -100,7 +102,7 @@ public:
 	void registerBulkChangeCallback(BulkChangeCallback callback);
 	void resetBulkChangeCallback();
 
-	void dispatch(const core::DataChangeRecorder &dataChanges);
+	void dispatch(const core::DataChangeRecorder& dataChanges);
 
 	void assertEmpty();
 
@@ -113,8 +115,9 @@ public:
 	}
 
 private:
-	void emitUpdateFor(const core::ValueHandle& valueHandle);
+	void emitUpdateFor(const std::map<std::string, std::set<core::ValueHandle>>& valueHandles);
 	void emitErrorChanged(const core::ValueHandle& valueHandle);
+	void emitErrorChangedInScene();
 	void emitCreated(core::SEditorObject obj);
 	void emitDeleted(core::SEditorObject obj);
 	void emitPreviewDirty(core::SEditorObject obj);
@@ -123,20 +126,19 @@ private:
 	std::set<std::weak_ptr<ObjectLifecycleListener>, std::owner_less<std::weak_ptr<ObjectLifecycleListener>>> objectLifecycleListeners_{};
 	std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>> linkLifecycleListeners_{};
 	std::set<std::weak_ptr<LinkListener>, std::owner_less<std::weak_ptr<LinkListener>>> linkValidityChangeListeners_{};
-	std::set<std::weak_ptr<ValueHandleListener>, std::owner_less<std::weak_ptr<ValueHandleListener>>> listeners_{};
-	std::set<std::weak_ptr<ChildrenListener>, std::owner_less<std::weak_ptr<ChildrenListener>>> childrenListeners_{};
-	std::set<std::weak_ptr<EditorObjectListener>, std::owner_less<std::weak_ptr<EditorObjectListener>>> objectChangeListeners_{};
+	std::map<std::string, std::set<std::weak_ptr<ValueHandleListener>, std::owner_less<std::weak_ptr<ValueHandleListener>>>> listeners_{};
+	std::map<std::string, std::set<std::weak_ptr<ChildrenListener>, std::owner_less<std::weak_ptr<ChildrenListener>>>> childrenListeners_{};
 	std::set<std::weak_ptr<EditorObjectListener>, std::owner_less<std::weak_ptr<EditorObjectListener>>> previewDirtyListeners_{};
 	std::set<std::weak_ptr<ValueHandleListener>, std::owner_less<std::weak_ptr<ValueHandleListener>>> errorChangedListeners_{};
-	std::set<std::weak_ptr<PropertyChangeListener>, std::owner_less<std::weak_ptr<PropertyChangeListener>>> propertyChangeListeners_{};
+	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> errorChangedInSceneListeners_{};
+	std::map<std::string, std::set<std::weak_ptr<PropertyChangeListener>, std::owner_less<std::weak_ptr<PropertyChangeListener>>>> propertyChangeListeners_{};
 
-	bool undoChanged_ { false };
+	bool undoChanged_{false};
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> undoChangeListeners_{};
 
 	bool externalProjectChanged_{false};
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> externalProjectChangedListeners_{};
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> externalProjectMapChangedListeners_{};
-
 
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> onAfterDispatchListeners_{};
 
@@ -145,4 +147,4 @@ private:
 
 using SDataChangeDispatcher = std::shared_ptr<DataChangeDispatcher>;
 
-}  // namespace raco::core
+}  // namespace raco::components

@@ -18,7 +18,7 @@ namespace raco::ramses_adaptor {
 
 class SceneAdaptor;
 
-class MaterialAdaptor final : public TypedObjectAdaptor<user_types::Material, ramses::Effect> {
+class MaterialAdaptor final : public TypedObjectAdaptor<user_types::Material, ramses::Effect>, public ILogicPropertyProvider {
 private:
 	static raco::ramses_base::RamsesEffect createEffect(SceneAdaptor* buildContext);
 
@@ -28,8 +28,23 @@ public:
 
 	bool sync(core::Errors* errors) override;
 
+	raco::ramses_base::RamsesAppearance appearance() {
+		return appearance_;
+	}
+
+	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
+	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
+
 private:
+	raco::ramses_base::RamsesAppearance appearance_;
+	raco::ramses_base::UniqueRamsesAppearanceBinding appearanceBinding_;
+
 	components::Subscription subscription_;
+	std::array<components::Subscription, 10> optionsSubscriptions_;
+	components::Subscription uniformSubscription_;
 };
+
+void updateAppearance(SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle);
 
 };	// namespace raco::ramses_adaptor

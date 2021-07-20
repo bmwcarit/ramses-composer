@@ -39,4 +39,5 @@ target_compile_definitions( RaCoCommand PUBLIC -DRACO_OSS_VERSION="${PROJECT_VER
 
 deploy_headless_shared_dlls(RaCoCommand)
 deploy_ramses_client_only_shared_dlls(RaCoCommand)
+deploy_qt(RaCoCommand)
 deploy_raco_cppruntime_dlls(RaCoCommand)

@@ -11,6 +11,8 @@
 
 #include "utils/stdfilesystem.h"
 
+
+#include <map>
 #include <string>
 
 namespace raco::components {
@@ -28,6 +30,10 @@ struct PathManager {
 	static constexpr const char* DEFAULT_CONFIG_SUB_DIRECTORY = "configfiles";
 	static constexpr const char* DEFAULT_PROJECT_SUB_DIRECTORY = "projects";
 	static constexpr const char* RESOURCE_SUB_DIRECTORY = "resources";
+	static constexpr const char* IMAGE_SUB_DIRECTORY = "images";
+	static constexpr const char* MESH_SUB_DIRECTORY = "meshes";
+	static constexpr const char* SCRIPT_SUB_DIRECTORY = "scripts";
+	static constexpr const char* SHADER_SUB_DIRECTORY = "shaders";
 
 	static std::filesystem::path normal_path(const std::string& path);
 
@@ -62,15 +68,24 @@ struct PathManager {
 
 	static bool pathsShareSameRoot(const std::string& lhd, const std::string& rhd);
 
-	static const std::string& getLastUsedPath();
+	static const std::string& getCachedPath(const std::string& key, const std::string &fallbackPath = "");
 
-	static void setLastUsedPath(const std::string& path);
+	static void setCachedPath(const std::string& key, const std::string& path);
+
+	static void setAllCachedPathRoots(const std::string& folder);
 
 private:
 	friend class raco::components::RaCoPreferences;
 
 	static std::filesystem::path basePath_;
-	static std::string lastUsedPath_;
+
+	static inline std::map<std::string, std::string> cachedPaths_ = {
+		{DEFAULT_PROJECT_SUB_DIRECTORY, ""},
+		{IMAGE_SUB_DIRECTORY, ""},
+		{MESH_SUB_DIRECTORY, ""},
+		{SCRIPT_SUB_DIRECTORY, ""},
+		{SHADER_SUB_DIRECTORY, ""}
+	};
 };
 
 }  // namespace raco::core

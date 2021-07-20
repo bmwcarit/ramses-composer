@@ -27,6 +27,9 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 
 	renderPass_->setCamera(*camera_.get());
 	renderPass_->addRenderGroup(*renderGroup_.get());
+	// Ramses ignores the clear flags/clear color because we are rendering to the default framebuffer.
+	// Still: apply some sensible default here. We expect every pixel to be covered by the blit operation
+	// so disable clearing the buffers.
 	renderPass_->setClearFlags(ramses::EClearFlags_None);
 
 	static const std::string vertexShader =
@@ -61,7 +64,7 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	effectDescription.setFragmentShader(fragmentShader.c_str());
 	effectDescription.setUniformSemantic("mvpMatrix", ramses::EEffectUniformSemantic::ModelViewProjectionMatrix);
 	effect_ = ramsesEffect(scene_.get(), effectDescription);
-	appearance_ = ramsesAppearance(scene_.get(), *effect_.get());
+	appearance_ = ramsesAppearance(scene_.get(), effect_);
 
 	// buffers
 	static std::vector<float> vertex_data = {
@@ -100,7 +103,7 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 
 	meshNode_ =  ramsesMeshNode(scene_.get());
 	meshNode_->setGeometryBinding(*geometryBinding_.get());
-	meshNode_->setAppearance(*appearance_.get());
+	meshNode_->setAppearance(*appearance_->get());
 
 	renderGroup_->addMeshNode(*meshNode_.get());
 
@@ -133,7 +136,7 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 
 	auto& client = backend.client();
 	ramses::UniformInput texUniformInput;
-	appearance_->getEffect().findUniformInput("uTex0", texUniformInput);
+	(*appearance_)->getEffect().findUniformInput("uTex0", texUniformInput);
 
 	std::vector<uint8_t> data(4 * size.width() * size.height(), 0);
 
@@ -142,7 +145,7 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 
 	framebufferTexture_ = ramsesTexture2D(scene_.get(), size.width(), size.height(), ramses::ETextureFormat::RGBA8, 1, &mipData, false, textureSwizzle, ramses::ResourceCacheFlag_DoNotCache, "framebuffer texture");
 	sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode_Clamp, ramses::ETextureAddressMode_Clamp, ramses::ETextureSamplingMethod_Nearest, ramses::ETextureSamplingMethod_Nearest, framebufferTexture_.get(), 1, "framebuffer sampler");
-	appearance_->setInputTexture(texUniformInput, *sampler_.get());
+	(*appearance_)->setInputTexture(texUniformInput, *sampler_.get());
 	scene_->flush();
 
 	static ramses::dataConsumerId_t id{42u};

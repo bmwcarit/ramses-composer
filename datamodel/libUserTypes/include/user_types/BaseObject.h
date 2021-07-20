@@ -45,9 +45,10 @@ public:
 	void fillPropertyDescription() {
 	}
 
-	virtual FileChangeMonitor::UniqueListener registerFileChangedHandler(BaseContext& context, const ValueHandle& value, FileChangeCallback callback) {
+	virtual FileChangeMonitor::UniqueListener registerFileChangedHandler(BaseContext& context, const ValueHandle& value, FileChangeCallback::Callback callback) {
 		auto resourceAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), value);
-		return context.fileChangeMonitor()->registerFileChangedHandler(resourceAbsPath, {shared_from_this(), std::move(callback)});
+		return context.fileChangeMonitor()->registerFileChangedHandler(resourceAbsPath, 
+			{&context, shared_from_this(), std::move(callback)});
 	}
 };
 

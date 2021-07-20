@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 0.8.1)
+project(RaCoOS VERSION 0.8.2)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -72,9 +72,28 @@ macro(deploy_qt tgt)
 			COMMAND "${RACO_QT_WINDEPLOY_PATH}/windeployqt.exe" "$<$<CONFIG:Debug>:--no-plugins>" --no-opengl-sw --no-system-d3d-compiler --no-svg --no-translations --no-compiler-runtime "$<TARGET_FILE:${tgt}>"
 			# Qt deploys the folder imageformats which we do not need - createReadHandlerHelper in C:\Qt\5.15.2\Src\qtbase\src\gui\image\qimagereader.cpp contains hardcoded support for the extensions png, bmp, dib, xpm, xbm, pbm, pbmraw, pgm, pgmraw, ppm and ppmraw (which is more than we need).
 			COMMAND ${CMAKE_COMMAND} -E rm -fr "$<TARGET_FILE_DIR:${tgt}>/imageformats"
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${RACO_QT_BASE}/../Src/LICENSE.LGPLv3" "$<TARGET_FILE_DIR:${tgt}>/QtDllLicense.txt"
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/License.txt" "$<TARGET_FILE_DIR:${tgt}>/License.txt"
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/third_party/qtsharedlibs_license.txt" "$<TARGET_FILE_DIR:${tgt}>/qtsharedlibs_license.txt"
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/LICENSE.txt" "$<TARGET_FILE_DIR:${tgt}>/LICENSE.txt"
 			)
+	ELSE()
+		set(LINUXDEPLOYQTREQUIRED $ENV{LINUXDEPLOYQTREQUIRED})
+		find_program(LINUXDEPLOYQT linuxdeployqt)
+		if(EXISTS "${LINUXDEPLOYQT}")
+			add_custom_command(TARGET ${tgt} POST_BUILD 	
+				COMMAND "${LINUXDEPLOYQT}" "$<TARGET_FILE:${tgt}>" -qmake="${RACO_QT_BASE}/bin/qmake" -no-copy-copyright-files -no-strip -no-translations 
+				COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/AppRun" "$<TARGET_FILE:${tgt}>.sh"
+				COMMAND ${CMAKE_COMMAND} -D TARGET_FILE=$<TARGET_FILE:${tgt}> -D ROOT_DIR=${CMAKE_SOURCE_DIR} -P "${CMAKE_SOURCE_DIR}/ubuntustartscript.cmake"
+				COMMAND chmod +x "$<TARGET_FILE:${tgt}>.sh"
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/third_party/qtsharedlibs_license.txt" "$<TARGET_FILE_DIR:${tgt}>/lib/qtsharedlibs_license.txt"
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/LICENSE.txt" "$<TARGET_FILE_DIR:${tgt}>/LICENSE.txt"
+				WORKING_DIRECTORY "$<TARGET_FILE_DIR:${tgt}>"
+				)
+			
+		elseif(LINUXDEPLOYQTREQUIRED)
+			message(SEND_ERROR "Cannot find linuxdeployqt in the path, will not deploy Qt shared libraries. This is an error because the environment variable 'LINUXDEPLOYQTREQUIRED' is set, indicating that this build is used to create a release (which will need the Qt shared libs deployed to work properly).")
+		else()
+			message(WARNING "Cannot find linuxdeployqt in the path, will not deploy Qt shared libraries. You can ignore this message on a developer machine, but not if you want to build a release. If you have linuxdeployqt, you can either add its path to your system path or to the CMAKE_PROGRAM_PATH environment variable")
+		endif()
 	ENDIF()
 endmacro()
 macro(deploy_raco_cppruntime_dlls tgt)
@@ -111,7 +130,6 @@ macro(deploy_ramses_with_renderer_shared_dlls tgt)
 	)
 endmacro()
 macro(deploy_headless_shared_dlls tgt)
-	deploy_qt(${tgt}) # this automatically figures out if the target is headless or not
 	add_custom_command(TARGET ${tgt} POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:openctm> "$<TARGET_FILE_DIR:${tgt}>"
 	)
@@ -158,14 +176,29 @@ if(PACKAGE_TESTS)
 		target_compile_definitions(${TESTNAME} PRIVATE -DRACO_TEST_RESOURCES_BASE_PATH="${raco_test_resources_base_path}")
 		# TODO: Working directory for tests (should be also config specific), required for tests which modify files
 	endmacro()
-	macro(raco_package_add_headless_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
+	macro(raco_package_add_qt_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
+		IF(WIN32)
+			# In Windows we need the DLLs to be next to the executable to start Qt.
+			# In Linux even if we deploy the DLLs next to the tests, we would have to start the
+			# executable with the correct LD_LIBRARY_PATH environment variable (or the shell script
+			# deploy_qt generates) for the test to start without Qt in the path. We also
+			# would have to deploy the "offscreen" plug-in to allow the GUI tests to run
+			# on a machine without OpenGL. And deploying Qt causes a qt.conf to be created
+			# which messes with Qt setup even if the paths are all there.
+			# So do not deploy Qt in Linux for the tests. If you want to run the tests,
+			# make sure Qt is installed and in the path.
+			deploy_qt(${TESTNAME})
+		ENDIF()
+	endmacro()
+	macro(raco_package_add_headless_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
+		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
 		target_link_libraries(${TESTNAME} raco::ramses-lib-client-only raco::ramses-logic-lib-client-only)
 		deploy_headless_shared_dlls(${TESTNAME})
 		deploy_ramses_client_only_shared_dlls(${TESTNAME})
 	endmacro()
 	macro(raco_package_add_gui_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
-		raco_package_add_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
+		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
 		target_link_libraries(${TESTNAME} raco::ramses-lib-client-only raco::ramses-logic-lib-client-only)
 		deploy_gui_shared_dlls(${TESTNAME})
 		deploy_ramses_client_only_shared_dlls(${TESTNAME})

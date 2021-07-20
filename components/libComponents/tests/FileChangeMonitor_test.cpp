@@ -61,7 +61,7 @@ protected:
 
 			// Wait for the timer to queue its event, and then process the timer event, which eventually
 			// leads to the callbacks registered with FileMonitor::registerFileChangedHandler to be called.
-			std::this_thread::sleep_for(std::chrono::milliseconds(FileChangeListener::DELAYED_FILE_LOAD_TIME_MSEC + 100));
+			std::this_thread::sleep_for(std::chrono::milliseconds(raco::components::FileChangeListenerImpl::DELAYED_FILE_LOAD_TIME_MSEC + 100));
 			QCoreApplication::processEvents();			
 		}
 		while (fileChangeCounter_ < count && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() <= timeOutInMS);
@@ -93,8 +93,8 @@ protected:
 	int fileChangeCounter_{0};
 	std::filesystem::path testFolderPath_{cwd_path().append(TEST_RESOURCES_FOLDER_NAME)};
 	std::filesystem::path testFilePath_{std::filesystem::path(testFolderPath_).append(TEST_FILE_NAME)};
-	FileChangeCallback testCallback_ = {nullptr, [this](auto& context) { ++fileChangeCounter_; }};
-	std::unique_ptr<FileChangeMonitorImpl> testFileChangeMonitor_ = std::make_unique<FileChangeMonitorImpl>(context);
+	FileChangeCallback testCallback_ = {&context, nullptr, [this]() { ++fileChangeCounter_; }};
+	std::unique_ptr<FileChangeMonitorImpl> testFileChangeMonitor_ = std::make_unique<FileChangeMonitorImpl>();
 	std::vector<FileChangeMonitor::UniqueListener> createdFileListeners_;
 	int argc = 0;
 	QCoreApplication eventLoop_{argc, nullptr};

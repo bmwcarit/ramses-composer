@@ -8,12 +8,83 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "core/ChangeRecorder.h"
+#include "core/EditorObject.h"
+
 
 #include <algorithm>
 #include <iterator>
 #include <set>
 
 namespace raco::core {
+
+bool DataChangeRecorder::LinkMap::eraseLink(const LinkDescriptor& link) {
+	const auto& linkEndObjId = link.end.object()->objectID();
+	auto linkEndObjIt = linkMap_.find(linkEndObjId);
+	if (linkEndObjIt != linkMap_.end()) {
+		auto& endObjLinks = linkEndObjIt->second;
+
+		auto linkIt = endObjLinks.find(link);
+		if (linkIt != endObjLinks.end()) {
+			endObjLinks.erase(linkIt);
+			if (endObjLinks.empty()) {
+				linkMap_.erase(linkEndObjIt);
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void DataChangeRecorder::LinkMap::insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, std::set<SEditorObject>& objects) const {
+	for (auto const& [linkEndObjId, links] : linkMap_) {
+		if (includeLinkEnd) {
+			objects.insert(links.begin()->end.object());
+		}
+		if (includeLinkStart) {
+			for (const auto& link : links) {
+				objects.insert(link.start.object());
+			}
+		}
+	}
+}
+
+void DataChangeRecorder::LinkMap::insertOrUpdateLink(const LinkDescriptor& link) {
+	const auto& linkEndObjId = link.end.object()->objectID();
+	auto linkEndObjIt = linkMap_.find(linkEndObjId);
+	if (linkEndObjIt == linkMap_.end()) {
+		linkMap_[linkEndObjId].insert(link);
+	} else {
+		auto& addedLinksForEndObj = linkEndObjIt->second;
+
+		auto addedLinkIt = addedLinksForEndObj.find(link);
+		if (addedLinkIt != addedLinksForEndObj.end()) {
+			auto savedLink = addedLinksForEndObj.extract(addedLinkIt);
+			savedLink.value().isValid = link.isValid;
+			addedLinksForEndObj.insert(std::move(savedLink));
+		} else {
+			linkMap_[linkEndObjId].insert(link);
+		}
+	}
+}
+
+bool DataChangeRecorder::LinkMap::updateLinkIfSaved(const LinkDescriptor& link) {
+	const auto& linkEndObjId = link.end.object()->objectID();
+	auto linkEndObjIt = linkMap_.find(linkEndObjId);
+	if (linkEndObjIt != linkMap_.end()) {
+		auto& addedLinksForEndObj = linkEndObjIt->second;
+
+		auto addedLinkIt = addedLinksForEndObj.find(link);
+		if (addedLinkIt != addedLinksForEndObj.end()) {
+			auto savedLink = addedLinksForEndObj.extract(addedLinkIt);
+			savedLink.value().isValid = link.isValid;
+			addedLinksForEndObj.insert(std::move(savedLink));
+
+			return true;
+		}
+	}
+	return false;
+}
 
 void DataChangeRecorder::reset() {
 	createdObjects_.clear();
@@ -47,81 +118,61 @@ void DataChangeRecorder::recordDeleteObject(SEditorObject const& object) {
 	}
 
 	// Remove all value changed items for object
-	auto value = changedValues_.begin();
-	while (value != changedValues_.end()) {
-		if (value->rootObject() == object) {
-			value = changedValues_.erase(value);
-		} else {
-			++value;
-		}
-	}
+	changedValues_.erase(object->objectID());
 }
 
 void DataChangeRecorder::recordValueChanged(ValueHandle const& value) {
 	// Remove existing changed values nested inside value
-	auto it = changedValues_.begin();
-	while (it != changedValues_.end()) {
-		if (value.contains(*it)) {
-			it = changedValues_.erase(it);
-		} else if (it->contains(value)) {
-			// Discard values nested inside existing change records
-			return;
-		} else {
-			++it;
+	const auto& objectID = value.rootObject()->objectID();
+
+	auto contIt = changedValues_.find(objectID);
+	if (contIt != changedValues_.end()) {
+		auto& cont = contIt->second;
+		auto it = cont.begin();
+		while (it != cont.end()) {
+			if (value.contains(*it)) {
+				it = cont.erase(it);
+			} else if (it->contains(value)) {
+				// Discard values nested inside existing change records
+				return;
+			} else {
+				++it;
+			}
 		}
 	}
 
-	changedValues_.insert(value);
+	changedValues_[objectID].insert(value);
 }
 
 void DataChangeRecorder::recordAddLink(const LinkDescriptor& link) {
-	auto addedLinksIt = std::find(addedLinks_.begin(), addedLinks_.end(), link);
-	if (addedLinksIt == addedLinks_.end()) {
-		addedLinks_.emplace_back(link);
-	} else {
-		addedLinksIt->isValid = link.isValid;
-	}
+	addedLinks_.insertOrUpdateLink(link);
 }
 
 void DataChangeRecorder::recordChangeValidityOfLink(const LinkDescriptor& link) {
 	// edge case: Link is already recorded as added. Don't rerecord link, just modify the added link.
-	auto linkIt = std::find(addedLinks_.begin(), addedLinks_.end(), link);
-	if (linkIt != addedLinks_.end()) {
-		linkIt->isValid = link.isValid;
+	if (addedLinks_.updateLinkIfSaved(link)) {
 		return;
 	}
 
-	linkIt = std::find(changedValidityLinks_.begin(), changedValidityLinks_.end(), link);
-	if (linkIt == changedValidityLinks_.end()) {
-		changedValidityLinks_.emplace_back(link);
-	} else {
-		linkIt->isValid = link.isValid;
-	}
+	changedValidityLinks_.insertOrUpdateLink(link);
 }
 
 void DataChangeRecorder::recordRemoveLink(const LinkDescriptor& link) {
 	// Remove validityChangedLinks entry starting and ending on the same properties
 	// There can be multiple invalid links ending on the same property but starting on different properties,
 	// so we search for identical start and end points.
-	auto it = std::find(changedValidityLinks_.begin(), changedValidityLinks_.end(), link);
-	if (it != changedValidityLinks_.end()) {
-		changedValidityLinks_.erase(it);
-	}
+	changedValidityLinks_.eraseLink(link);
 
 	// Remove addedLinks entry starting and ending on the same property
 	// There can also be multiple added links ending on the same property
 	// (e.g. add link -> make link in addedLinks_ invalid -> add another link on different start but same end property)
 	// so we also search for identical start and end points.
-	it = std::find(addedLinks_.begin(), addedLinks_.end(), link);
-	if (it != addedLinks_.end()) {
-		addedLinks_.erase(it);
+	if (addedLinks_.eraseLink(link)) {
 		// Since add link + remove link = no operation we don't create a remove entry.
 		return;
 	}
 
-	if (std::find(removedLinks_.begin(), removedLinks_.end(), link) == removedLinks_.end()) {
-		removedLinks_.emplace_back(link);
-	}
+	removedLinks_.insertOrUpdateLink(link);
 }
 
 void DataChangeRecorder::recordErrorChanged(const ValueHandle& value) {
@@ -143,8 +194,10 @@ void DataChangeRecorder::mergeChanges(const DataChangeRecorder& other) {
 	for (auto obj : other.deletedObjects_) {
 		recordDeleteObject(obj);
 	}
-	for (auto handle : other.changedValues_) {
-		recordValueChanged(handle);
+	for (const auto& [id, cont] : other.changedValues_) {
+		for (const auto& handle : cont) {
+			recordValueChanged(handle);
+		}
 	}
 	for (auto handle : other.changedErrors_) {
 		recordErrorChanged(handle);
@@ -152,14 +205,20 @@ void DataChangeRecorder::mergeChanges(const DataChangeRecorder& other) {
 	for (auto handle : other.previewDirty_) {
 		recordPreviewDirty(handle);
 	}
-	for (auto remLink : other.removedLinks_) {
-		recordRemoveLink(remLink);
+	for (const auto& [linkEndObjId, remLinks] : other.removedLinks_.savedLinks()) {
+		for (const auto& remLink : remLinks) {
+			recordRemoveLink(remLink);
+		}
 	}
-	for (auto link : other.addedLinks_) {
-		recordAddLink(link);
+	for (const auto& [linkEndObjId, addedLinks] : other.addedLinks_.savedLinks()) {
+		for (const auto& addedLink : addedLinks) {
+			recordAddLink(addedLink);
+		}
 	}
-	for (auto link : other.changedValidityLinks_) {
-		recordChangeValidityOfLink(link);
+	for (const auto& [linkEndObjId, changedValidityLinks] : other.changedValidityLinks_.savedLinks()) {
+		for (const auto& changedValidityLink : changedValidityLinks) {
+			recordChangeValidityOfLink(changedValidityLink);
+		}
 	}
 	if (other.externalProjectMapChanged()) {
 		externalProjectMapChanged_ = true;
@@ -174,20 +233,28 @@ std::set<SEditorObject> const& DataChangeRecorder::getDeletedObjects() const {
 	return deletedObjects_;
 }
 
-std::set<ValueHandle> const& DataChangeRecorder::getChangedValues() const {
+std::map<std::string, std::set<ValueHandle>> const& DataChangeRecorder::getChangedValues() const {
 	return changedValues_;
 }
 
-std::vector<LinkDescriptor> const& DataChangeRecorder::getAddedLinks() const {
-	return addedLinks_;
+bool DataChangeRecorder::hasValueChanged(const ValueHandle& handle) const {
+	auto contIt = changedValues_.find(handle.rootObject()->objectID());
+	if (contIt != changedValues_.end()) {
+		return contIt->second.find(handle) != contIt->second.end();
+	}
+	return false;
 }
 
-std::vector<LinkDescriptor> const& DataChangeRecorder::getValidityChangedLinks() const {
-	return changedValidityLinks_;
+std::map<std::string, std::set<LinkDescriptor>> const& DataChangeRecorder::getAddedLinks() const {
+	return addedLinks_.savedLinks();
 }
 
-std::vector<LinkDescriptor> const& DataChangeRecorder::getRemovedLinks() const {
-	return removedLinks_;
+std::map<std::string, std::set<LinkDescriptor>> const& DataChangeRecorder::getValidityChangedLinks() const {
+	return changedValidityLinks_.savedLinks();
+}
+
+std::map<std::string, std::set<LinkDescriptor>> const& DataChangeRecorder::getRemovedLinks() const {
+	return removedLinks_.savedLinks();
 }
 
 std::set<SEditorObject> DataChangeRecorder::getAllChangedObjects(bool includePreviewDirty, bool includeLinkStart, bool includeLinkEnd) const {
@@ -197,8 +264,8 @@ std::set<SEditorObject> DataChangeRecorder::getAllChangedObjects(bool includePre
 			return handle.rootObject();
 		});
 	std::transform(changedValues_.begin(), changedValues_.end(), std::inserter(objects, objects.end()),
-		[](const ValueHandle& handle) -> SEditorObject {
-			return handle.rootObject();
+		[](const auto& item) -> SEditorObject {
+			return item.second.begin()->rootObject();
 		});
 	if (includePreviewDirty) {
 		std::transform(previewDirty_.begin(), previewDirty_.end(), std::inserter(objects, objects.end()),
@@ -208,30 +275,9 @@ std::set<SEditorObject> DataChangeRecorder::getAllChangedObjects(bool includePre
 	}
 
 	if (includeLinkStart || includeLinkEnd) {
-		for (auto const& link : addedLinks_) {
-			if (includeLinkStart) {
-				objects.insert(link.start.object());
-			}
-			if (includeLinkEnd) {
-				objects.insert(link.end.object());
-			}
-		}
-		for (auto const& link : changedValidityLinks_) {
-			if (includeLinkStart) {
-				objects.insert(link.start.object());
-			}
-			if (includeLinkEnd) {
-				objects.insert(link.end.object());
-			}
-		}
-		for (auto const& link : removedLinks_) {
-			if (includeLinkStart) {
-				objects.insert(link.start.object());
-			}
-			if (includeLinkEnd) {
-				objects.insert(link.end.object());
-			}
-		}
+		addedLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects);
+		changedValidityLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects);
+		removedLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects);
 	}
 
 	return objects;

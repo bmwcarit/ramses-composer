@@ -152,6 +152,11 @@ void RamsesPreviewWindow::commit() {
 
 			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Ready, framebufferScene_, next_.sceneId);
 
+			// Set up the render buffer we use as a default framebuffer.
+			// This is not a normal Ramses render target / render buffer created with Scene::createRenderBuffer / Scene::createRenderTarget
+			// but an offscreen render buffer created with RamsesRenderer::createOffscreenBuffer to avoid creating the
+			// offscreen render buffer in the scene we eventually export (and in fact for Ramses this offscreen render buffer is
+			// the framebuffer - that we use it later on to blit it into our preview makes for the Ramses scene no difference).
 			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize);
 			offscreenBufferId_ = rendererBackend_.renderer().createOffscreenBuffer(displayId_, next_.targetSize.width(), next_.targetSize.height());
 			rendererBackend_.renderer().flush();
@@ -171,6 +176,11 @@ void RamsesPreviewWindow::commit() {
 			current_.sceneId = next_.sceneId;
 			LOG_DEBUG(PREVIEW_WIDGET, "commit() sceneId {}", current_.sceneId);
 		}
+	}
+
+	if (displayId_.isValid() && offscreenBufferId_.isValid() && next_.backgroundColor != current_.backgroundColor) {
+		rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_,next_.backgroundColor.redF(), next_.backgroundColor.greenF(), next_.backgroundColor.blueF(), 1.0f);
+		rendererBackend_.renderer().flush();
 	}
 
 	current_.viewportOffset = next_.viewportOffset;

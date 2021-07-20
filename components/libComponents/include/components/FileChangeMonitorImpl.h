@@ -12,6 +12,8 @@
 #include "core/FileChangeCallback.h"
 #include "core/FileChangeMonitor.h"
 
+#include "components/FileChangeListenerImpl.h"
+
 #include <memory>
 #include <unordered_set>
 
@@ -20,37 +22,59 @@ namespace raco::core {
 }
 
 namespace raco::components {
-class FileChangeListenerImpl;
 
-class FileChangeMonitorImpl :  public core::FileChangeMonitor {
-public:	
-	FileChangeMonitorImpl(core::BaseContext& context) : context_(context) {}
-
-	UniqueListener registerFileChangedHandler(std::string absPath, core::FileChangeCallback callback) override;
-	
-private:
-	void unregister(std::string absPath, core::FileChangeListener* listener);
-
-	std::unordered_map<std::string, std::unordered_set<core::FileChangeListener*>> listeners_;
-	core::BaseContext& context_;
-
-	friend class FileChangeListenerImpl;
-};
-
-class ExternalProjectFileChangeMonitor {
+template<typename Base>
+class GenericFileChangeMonitorImpl : public Base {
 public:
-	using Del = std::function<void(core::FileChangeListener*)>;
-	using UniqueListener = std::unique_ptr<core::FileChangeListener, Del>;
-	using Callback = std::function<void(void)>;
 
-	UniqueListener registerFileChangedHandler(std::string absPath, Callback callback);
+	typename Base::UniqueListener registerFileChangedHandler(std::string absPath, typename Base::Callback callback) override {
+		if (absPath.empty()) {
+			return typename Base::UniqueListener(nullptr);
+		}
 
-private:
-	void unregister(std::string absPath, core::FileChangeListener* listener);
+		if (listeners_.find(absPath) == listeners_.end()) {
+			listeners_[absPath] = std::make_unique<FileChangeListenerImpl>(absPath, [this, absPath]() {
+				notify(absPath);
+			});
+		}
 
-	std::unordered_map<std::string, std::unordered_set<core::FileChangeListener*>> listeners_;
+		auto l = new typename Base::Callback{callback};
+		callbacks_[absPath].emplace(l);
 
-	friend class FileChangeListenerImpl;
+		return typename Base::UniqueListener(l, [this, absPath, l](typename Base::Callback* listener) {
+			this->unregister(absPath, l);
+			delete listener;
+		});
+	}
+
+protected:
+	virtual void unregister(std::string absPath, typename Base::Callback* listener) {
+		auto it = callbacks_.find(absPath);
+		if (it != callbacks_.end()) {
+			it->second.erase(listener);
+			if (it->second.empty()) {
+				callbacks_.erase(absPath);
+				listeners_.erase(absPath);
+			}
+		}
+	}
+
+	virtual void notify(const std::string& absPath) {
+		auto it = callbacks_.find(absPath);
+		if (it != callbacks_.end()) {
+			for (auto callback : it->second) {
+				(*callback)();
+			}
+		}
+	}
+
+	std::unordered_map<std::string, std::unique_ptr<components::FileChangeListenerImpl>> listeners_;
+	std::unordered_map<std::string, std::unordered_set<typename Base::Callback*>> callbacks_;
 };
+
+using FileChangeMonitorImpl = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitor>;
+
+using ExternalProjectFileChangeMonitor = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void(void)>>>;
+
 
 }  // namespace raco::core

@@ -12,6 +12,7 @@
 #include "PreviewFramebufferScene.h"
 #include "RendererBackend.h"
 #include <QSize>
+#include <QColor>
 #include <memory>
 #include <ramses-framework-api/RamsesFrameworkTypes.h>
 
@@ -36,6 +37,7 @@ public:
 		QSize viewportSize{0, 0};
 		QSize targetSize{0, 0};
 		QSize virtualSize{0, 0};
+		QColor backgroundColor{};
 	};
 
 	explicit RamsesPreviewWindow(

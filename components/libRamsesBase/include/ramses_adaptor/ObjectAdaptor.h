@@ -11,10 +11,10 @@
 
 #include "core/Errors.h"
 #include "data_storage/Value.h"
-#include "ramses-client-api/RamsesObject.h"
 #include "ramses_adaptor/utilities.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
+#include <ramses-client-api/RamsesObject.h>
 #include <ramses-framework-api/RamsesVersion.h>
 #include <ramses-logic/Property.h>
 
@@ -25,7 +25,7 @@ using raco::ramses_base::RamsesHandle;
 class ILogicPropertyProvider {
 public:
 	virtual void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const = 0;
-	virtual const rlogic::Property& getProperty(const std::vector<std::string>& propertyNamesVector) = 0;
+	virtual const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) = 0;
 	virtual void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) = 0;
 };
 

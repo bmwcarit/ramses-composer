@@ -49,8 +49,7 @@ inline auto createLinkedScene(TestEnvironmentCore& env) {
 }
 
 inline bool isValueChanged(const raco::core::DataChangeRecorder& recorder, const raco::core::ValueHandle& handle) {
-	auto changeValues{recorder.getChangedValues()};
-	return std::find(changeValues.begin(), changeValues.end(), handle) != changeValues.end();
+	return recorder.hasValueChanged(handle);
 }
 
 inline bool awaitPreviewDirty(const raco::core::DataChangeRecorder& recorder, const raco::core::SEditorObject& obj, long long timeout = 5) {

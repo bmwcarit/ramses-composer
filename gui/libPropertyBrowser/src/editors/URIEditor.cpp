@@ -30,6 +30,11 @@
 #include "core/PathQueries.h"
 #include "core/Project.h"
 #include "property_browser/PropertyBrowserItem.h"
+#include "user_types/CubeMap.h"
+#include "user_types/LuaScript.h"
+#include "user_types/Material.h"
+#include "user_types/Mesh.h"
+#include "user_types/Texture.h"
 
 namespace raco::property_browser {
 
@@ -41,18 +46,20 @@ URIEditor::URIEditor(PropertyBrowserItem* item, QWidget* parent) : StringEditor(
 	auto uriAnno = item->query<core::URIAnnotation>();
 	auto filter = *uriAnno->filter_;
 	QObject::connect(loadFileButton, &QPushButton::clicked, [this, filter]() {
-		QString dirPath{};
+		std::string cachedPath;
 		auto projectAbsPath = currentItem_->project()->currentFolder();
+		auto cachedPathKey = getCachedPathKeyCorrespondingToUserType();
 
 		if (fileExists()) {
 			auto fileInfo = QFileInfo(QString::fromStdString(PathManager::constructAbsolutePath(projectAbsPath, lineEdit_->text().toStdString())));
-            QDir uriDir = fileInfo.absoluteDir();
-			dirPath = uriDir.absolutePath();
+			QDir uriDir = fileInfo.absoluteDir();
+			cachedPath = uriDir.absolutePath().toStdString();
 		} else {
-			dirPath = QString::fromStdString(PathManager::constructAbsolutePath(PathManager::getLastUsedPath().empty() ? projectAbsPath : PathManager::getLastUsedPath(), lineEdit_->text().toStdString()));
-        }
-		QFileDialog* dialog = new QFileDialog(this, tr("Choose URI"), dirPath, tr(filter.c_str()));
-		connect(dialog, &QFileDialog::fileSelected, [this](const QString& file) {
+			cachedPath = raco::core::PathManager::getCachedPath(cachedPathKey);
+		}
+
+		QFileDialog* dialog = new QFileDialog(this, tr("Choose URI"), QString::fromStdString(raco::utils::path::isExistingDirectory(cachedPath) ? cachedPath : projectAbsPath), tr(filter.c_str()));
+		connect(dialog, &QFileDialog::fileSelected, [this, cachedPathKey](const QString& file) {
 			auto oldUriWasAbsolute = pathIsAbsolute();
 			if (oldUriWasAbsolute) {
 				currentItem_->set(file.toStdString());
@@ -61,8 +68,7 @@ URIEditor::URIEditor(PropertyBrowserItem* item, QWidget* parent) : StringEditor(
 			}
 
 			QDir dir = QFileInfo(file).absoluteDir();
-
-			PathManager::setLastUsedPath(dir.absolutePath().toStdString());
+			raco::core::PathManager::setCachedPath(cachedPathKey, dir.absolutePath().toStdString());
 		});
 		dialog->exec();
 	});
@@ -151,6 +157,29 @@ std::string URIEditor::createRelativePath() {
 	auto itemPath = currentItem_->valueHandle().asString();
 	auto projectAbsPath = currentItem_->project()->currentFolder();
 	return PathManager::constructRelativePath(itemPath, projectAbsPath);
+}
+
+std::string URIEditor::getCachedPathKeyCorrespondingToUserType() {
+	auto rootObj = currentItem_->valueHandle().rootObject();
+
+	if (rootObj->as<raco::user_types::CubeMap>() || rootObj->as<raco::user_types::Texture>()) {
+		return raco::core::PathManager::IMAGE_SUB_DIRECTORY;
+	}
+
+	if (rootObj->as<raco::user_types::Mesh>()) {
+		return raco::core::PathManager::MESH_SUB_DIRECTORY;
+	}
+
+	if (rootObj->as<raco::user_types::LuaScript>()) {
+		return raco::core::PathManager::SCRIPT_SUB_DIRECTORY;
+	}
+
+	if (rootObj->as<raco::user_types::Material>()) {
+		return raco::core::PathManager::SHADER_SUB_DIRECTORY;
+	}
+
+	assert(false && "unknown user type found in URIEditor::getCachedPathKeyCorrespondingToUserType()");
+	return "";
 }
 
 }  // namespace raco::property_browser

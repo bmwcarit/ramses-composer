@@ -25,8 +25,8 @@ void Mesh::onBeforeDeleteObject(Errors& errors) const {
 
 void Mesh::onAfterContextActivated(BaseContext& context) {
 	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
-	uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath,{shared_from_this(),
-			[this](BaseContext& context) { updateMesh(context); }});
+	uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
+			[this, &context]() { updateMesh(context); }});
 	updateMesh(context);
 }
 
@@ -92,8 +92,8 @@ void Mesh::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	ValueHandle bakeMeshesHandle(shared_from_this(), {"bakeMeshes"});
 	if (value == uriHandle) {
 		auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
-		uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {shared_from_this(),
-			[this](BaseContext& context) { updateMesh(context); }});
+		uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
+			[this, &context]() { updateMesh(context); }});
 		updateMesh(context);
 	} else if (value == bakeMeshesHandle || !bakeMeshes_.asBool() && value == submeshIndexHandle) {
 		context.changeMultiplexer().recordPreviewDirty(shared_from_this());

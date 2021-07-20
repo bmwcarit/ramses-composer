@@ -27,33 +27,36 @@ class MeshNodeAdaptorFixture : public RamsesBaseFixture<> {
 protected:
 
 	template <int MESH_NODE_AMOUNT>
-	void runMeshNodeConstructionRoutine() {
-		std::array<raco::core::SEditorObject, MESH_NODE_AMOUNT> meshNodes;
-		auto material = context.createObject(Material::typeDescription.typeName, "Material");
-		auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-		context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	void runMeshNodeConstructionRoutine(bool private_material) {
+		auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+		auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
 
+		std::array<SMeshNode, MESH_NODE_AMOUNT> meshNodes;
 		for (int i = 0; i < MESH_NODE_AMOUNT; ++i) {
-			meshNodes[i] = context.createObject(MeshNode::typeDescription.typeName, std::to_string(i));
-			context.set(ValueHandle{meshNodes[i], {"mesh"}}, mesh);
-			context.set(ValueHandle{meshNodes[i]}.get("materials")[0].get("material"), material);
+			meshNodes[i] = create_meshnode(std::to_string(i), mesh, material);
+			context.set(meshNodes[i]->getMaterialPrivateHandle(0), private_material);
 		}
-
-		context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
-		context.set({material, {"uriFragment"}}, cwd_path().append("shaders/basic.frag").string());
 		dispatch();
 
 		auto selectedMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
 		auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
+		auto effects{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
+		auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance)};
 		EXPECT_EQ(selectedMeshNodes.size(), MESH_NODE_AMOUNT);
 		EXPECT_EQ(geometryBindings.size(), MESH_NODE_AMOUNT);
+		EXPECT_EQ(effects.size(), 1);
+		EXPECT_EQ(appearances.size(), private_material ? MESH_NODE_AMOUNT + 1 : 1);
 
 		for (int i = 0; i < MESH_NODE_AMOUNT; ++i) {
 			auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), std::to_string(i).c_str());
 			EXPECT_STREQ(std::to_string(i).c_str(), ramsesMeshNode->getName());
 			EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-			EXPECT_STREQ((std::to_string(i) + "_Appearance").c_str(), ramsesMeshNode->getAppearance()->getName());
-			EXPECT_STRNE(raco::ramses_adaptor::defaultEffectName, ramsesMeshNode->getAppearance()->getEffect().getName());
+			if (private_material) {
+				EXPECT_STREQ((std::to_string(i) + "_Appearance").c_str(), ramsesMeshNode->getAppearance()->getName());
+			} else {
+				EXPECT_STREQ("Material_Appearance", ramsesMeshNode->getAppearance()->getName());
+			}
+			EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
 			EXPECT_TRUE(ramsesMeshNode->getGeometryBinding() != nullptr);
 		}
 	}
@@ -82,12 +85,13 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_name_change) {
 	EXPECT_TRUE(meshNodes[0]->getAppearance() != nullptr);
 	EXPECT_TRUE(meshNodes[0]->getGeometryBinding() != nullptr);
 	EXPECT_STREQ("MeshNode Name", meshNodes[0]->getName());
+	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceName, meshNodes[0]->getAppearance()->getName());
 
 	context.set({meshNode, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
 	EXPECT_STREQ("Changed", meshNodes[0]->getName());
-	EXPECT_STREQ("Changed_Appearance", meshNodes[0]->getAppearance()->getName());
+	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceName, meshNodes[0]->getAppearance()->getName());
 	EXPECT_STREQ("Changed_GeometryBinding", meshNodes[0]->getGeometryBinding()->getName());
 }
 
@@ -123,14 +127,9 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMesh_created
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMaterial_constructs_ramsesMeshNode) {
-	auto material = context.createObject(Material::typeDescription.typeName, "Material");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), material);
-	// env.context.set(ValueHandle{meshNode, { "materials", "material", "material"}}), material);
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create<Material>("Material");
+	auto meshnode = create_meshnode("MeshNode", mesh, material);
 	dispatch();
 
 	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
@@ -140,30 +139,36 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMaterial_con
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
+	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceWithNormalsName, ramsesMeshNode->getAppearance()->getName());
 	EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
 	EXPECT_TRUE(ramsesMeshNode->getGeometryBinding() != nullptr);
 	EXPECT_STREQ("MeshNode", ramsesMeshNode->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withMaterial_constructs_ramsesMeshNode) {
-	runMeshNodeConstructionRoutine<1>();
+	runMeshNodeConstructionRoutine<1>(true);
+}
+
+TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withMaterial_constructs_ramsesMeshNode_shared) {
+	runMeshNodeConstructionRoutine<1>(false);
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial_andSameMesh_construction) {
-	runMeshNodeConstructionRoutine<10>();
+	runMeshNodeConstructionRoutine<10>(true);
+}
+
+TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial_andSameMesh_construction_shared) {
+	runMeshNodeConstructionRoutine<10>(false);
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial_andSameMesh_propertyUnsetting) {
 	constexpr auto MESH_NODE_AMOUNT = 10;
 	std::array<raco::core::SEditorObject, MESH_NODE_AMOUNT> meshNodes;
-	auto material = context.createObject(Material::typeDescription.typeName, "Material");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	auto material = create<Material>("Material");
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
 
 	for (int i = 0; i < MESH_NODE_AMOUNT; ++i) {
-		meshNodes[i] = context.createObject(MeshNode::typeDescription.typeName, std::to_string(i));
-		context.set(ValueHandle{meshNodes[i], {"mesh"}}, mesh);
-		context.set(ValueHandle{meshNodes[i]}.get("materials")[0].get("material"), material);
+		meshNodes[i] = create_meshnode(std::to_string(i), mesh, material);
 	}
 
 	context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
@@ -186,14 +191,10 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicMaterial_constructs_ramsesMeshNode) {
-	auto material = context.createObject(Material::typeDescription.typeName, "Material");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create<Material>("Material");
+	auto meshnode = create_meshnode("MeshNode", mesh, material);
 
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), material);
-	// env.context.set(ValueHandle{meshNode, { "materials", "material", "material"}}), material);
 	dispatch();
 
 	// precondition
@@ -218,68 +219,105 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicMaterial_const
 	EXPECT_STREQ("MeshNode", ramsesMeshNode->getName());
 }
 
-TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_depthWrite_disabled) {
-	auto material = context.createObject(Material::typeDescription.typeName, "Material");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = create<MeshNode>("MeshNode");
+TEST_F(MeshNodeAdaptorFixture, meshnode_switch_mat_shared_to_private) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshnode = create_meshnode("MeshNode", mesh, material);
 
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
-	context.set({material, {"uriFragment"}}, cwd_path().append("shaders/basic.frag").string());
-
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(meshNode->getMaterialHandle(0), material);
-	context.set(meshNode->getMaterialOptionsHandle(0).get("depthwrite"), false);
 	dispatch();
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
-}
+	EXPECT_STREQ("Material_Appearance", ramsesMeshNode->getAppearance()->getName());
+	EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
 
-TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_depthWrite_enabled) {
-	auto material = context.createObject(Material::typeDescription.typeName, "Material");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
-	context.set({material, {"uriFragment"}}, cwd_path().append("shaders/basic.frag").string());
-	context.set({material, {"depthwrite"}}, true);
-
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), material);
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
 	dispatch();
 
-	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_STREQ("MeshNode_Appearance", ramsesMeshNode->getAppearance()->getName());
+	EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
 }
 
-TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_materialReset_and_depthWriteDisable) {
-	auto material = context.createObject(Material::typeDescription.typeName, "Material");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
+TEST_F(MeshNodeAdaptorFixture, meshnode_shared_material_is_unique) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshnode_a = create_meshnode("Duck A", mesh, material);
+	auto meshnode_b = create_meshnode("Duck B", mesh, material);
 
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
-	context.set({material, {"uriFragment"}}, cwd_path().append("shaders/basic.frag").string());
-	context.set({material, {"depthwrite"}}, true);
-
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), material);
 	dispatch();
 
-	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), core::SEditorObject{});
+	auto ramsesMeshNode_a = select<ramses::MeshNode>(*sceneContext.scene(), "Duck A");
+	EXPECT_TRUE(ramsesMeshNode_a->getAppearance() != nullptr);
+
+	auto ramsesMeshNode_b = select<ramses::MeshNode>(*sceneContext.scene(), "Duck B");
+	EXPECT_TRUE(ramsesMeshNode_b->getAppearance() != nullptr);
+
+	EXPECT_EQ(ramsesMeshNode_a->getAppearance(), ramsesMeshNode_b->getAppearance());
+}
+
+
+TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_private) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshNode = create_meshnode("MeshNode", mesh, material);
+
+	context.set(meshNode->getMaterialPrivateHandle(0), true);
 	context.set({material, {"depthwrite"}}, false);
 	dispatch();
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
+	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+
+	context.set(meshNode->getMaterialOptionsHandle(0).get("depthwrite"), false);
+	dispatch();
+
+	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
+	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
+	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+}
+
+TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_shared) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshNode = create_meshnode("MeshNode", mesh, material);
+
+	context.set(meshNode->getMaterialOptionsHandle(0).get("depthwrite"), false);
+	dispatch();
+
+	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
+	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
+	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+
+	context.set({material, {"depthwrite"}}, false);
+	dispatch();
+
+	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
+	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
+	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+}
+
+TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_materialReset_and_depthWriteDisable) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshNode = create_meshnode("MeshNode", mesh, material);
+
+	context.set({material, {"depthwrite"}}, false);
+	dispatch();
+
+	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
+	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
+	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+
+	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), core::SEditorObject{});
+	dispatch();
+
+	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
+	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
 	EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
 	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 }
-
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicCreation_meshBeforeMeshNode) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 	dispatch();

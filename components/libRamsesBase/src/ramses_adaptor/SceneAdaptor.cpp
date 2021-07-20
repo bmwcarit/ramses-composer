@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <unordered_set>
 
 namespace raco::ramses_adaptor {
 
@@ -135,58 +136,92 @@ void SceneAdaptor::createAdaptor(SEditorObject obj) {
 }
 
 void SceneAdaptor::removeAdaptor(SEditorObject obj) {
+	auto adaptorWasLogicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(obj)) != nullptr;
 	adaptors_.erase(obj);
 	deleteUnusedDefaultResources();
+	if (adaptorWasLogicProvider) {
+		updateRuntimeErrorList();
+	}
 }
 
+void SceneAdaptor::iterateAdaptors(std::function<void(ObjectAdaptor*)> func) {
+	for (const auto& [obj, adaptor] : adaptors_) {
+		func(adaptor.get());
+	}
+}
+
+
 void SceneAdaptor::updateRuntimeErrorList() {
-	errors_->removeIf([](const core::ErrorItem& errorItem){
-		return errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR;
-	});
-
 	auto logicEngineErrors = logicEngine().getErrors();
-
-	if (!logicEngineErrors.empty()) {
-		// Avoid having to search the entire list of errors for each instance and O(N*M) complexity
-		std::sort(logicEngineErrors.begin(), logicEngineErrors.end(), [](rlogic::ErrorData const& e1, rlogic::ErrorData const& e2) {
-			return e1.node < e2.node;
+	if (logicEngineErrors.empty()) {
+		errors_->removeIf([](const core::ErrorItem& errorItem) {
+			return errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR;
 		});
-		std::vector<ILogicPropertyProvider*> logicProviderWithoutRuntimeError;
-		logicProviderWithoutRuntimeError.reserve(project().instances().size());
-		std::string runtimeErrorObjectNames;
-		for (const auto& instance : project().instances()) {
-			if (auto logicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(instance))) {
-				std::vector<rlogic::LogicNode*> logicNodes;
-				logicProvider->getLogicNodes(logicNodes);
-				rlogic::ErrorData const* runtimeError = nullptr;
-				for (auto logicNode : logicNodes) {
-					auto const itRuntimeErrorForScript = std::lower_bound(logicEngineErrors.begin(), logicEngineErrors.end(), logicNode, [](rlogic::ErrorData const& e, rlogic::LogicNode* s) {
-						return e.node < s;
-						});
-					if (itRuntimeErrorForScript != logicEngineErrors.end() && itRuntimeErrorForScript->node == logicNode) {
-						runtimeError = &*itRuntimeErrorForScript;
-						break;
-					}
-				}
-				if (runtimeError != nullptr) {
-					runtimeErrorObjectNames.append("\n'" + instance->objectName() + "'");
-					logicProvider->onRuntimeError(*errors_, runtimeError->message, core::ErrorLevel::ERROR);
-				}
-				else {
-					logicProviderWithoutRuntimeError.push_back(logicProvider);
+
+		return;
+	}
+
+	// Avoid having to search the entire list of errors for each instance and O(N*M) complexity
+	std::sort(logicEngineErrors.begin(), logicEngineErrors.end(), [](rlogic::ErrorData const& e1, rlogic::ErrorData const& e2) {
+		return e1.node < e2.node;
+	});
+	std::unordered_set<ILogicPropertyProvider*> logicProvidersWithoutRuntimeError;
+	std::string runtimeErrorObjectNames;
+	for (const auto& instance : project().instances()) {
+		if (auto logicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(instance))) {
+			std::vector<rlogic::LogicNode*> logicNodes;
+			logicProvider->getLogicNodes(logicNodes);
+			rlogic::ErrorData const* runtimeError = nullptr;
+			for (auto logicNode : logicNodes) {
+				auto const itRuntimeErrorForScript = std::lower_bound(logicEngineErrors.begin(), logicEngineErrors.end(), logicNode, [](rlogic::ErrorData const& e, rlogic::LogicNode* s) {
+					return e.node < s;
+				});
+				if (itRuntimeErrorForScript != logicEngineErrors.end() && itRuntimeErrorForScript->node == logicNode) {
+					runtimeError = &*itRuntimeErrorForScript;
+					break;
 				}
 			}
+			if (runtimeError != nullptr) {
+				runtimeErrorObjectNames.append("\n'" + instance->objectName() + "'");
+
+				// keep the old runtime error message if it is identical to the new message to prevent unnecessary error regeneration in the UI
+				if (errors_->hasError(instance)) {
+					auto instError = errors_->getError(instance);
+					if (instError.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR && instError.message() != runtimeError->message) {
+						errors_->removeError(instance);
+					}
+				}
+				logicProvider->onRuntimeError(*errors_, runtimeError->message, core::ErrorLevel::ERROR);
+			} else {
+				logicProvidersWithoutRuntimeError.emplace(logicProvider);
+			}
 		}
-		auto msg = fmt::format("Ramses logic engine detected a runtime error in{}\nBe aware that some Lua script outputs and/or linked properties might not have been updated.", runtimeErrorObjectNames);
-		for (const auto& logicProvider : logicProviderWithoutRuntimeError) {
-			logicProvider->onRuntimeError(*errors_, msg, core::ErrorLevel::WARNING);
+	}
+
+	// keep the old runtime error info message if it is identical to the new message to prevent unnecessary error regeneration in the UI
+	auto ramsesLogicErrorFoundMsg = fmt::format("Ramses logic engine detected a runtime error in{}\nBe aware that some Lua script outputs and/or linked properties might not have been updated.", runtimeErrorObjectNames);
+	errors_->removeIf([this, &ramsesLogicErrorFoundMsg, &logicProvidersWithoutRuntimeError](const core::ErrorItem& errorItem) {
+		if (auto logicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(errorItem.valueHandle().rootObject()))) {
+			return logicProvidersWithoutRuntimeError.count(logicProvider) == 1 && errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR && errorItem.message() != ramsesLogicErrorFoundMsg;
 		}
+		return false;
+	});
+
+
+	for (const auto& logicProvider : logicProvidersWithoutRuntimeError) {
+		logicProvider->onRuntimeError(*errors_, ramsesLogicErrorFoundMsg, core::ErrorLevel::INFORMATION);
 	}
 }
 
 void SceneAdaptor::deleteUnusedDefaultResources() {
 	// Resource use count is 1 => it is stored in the scene but not used by any MeshNodeAdaptor
 	// - delete the resource as to not get unnecessarily exported.
+	if (defaultAppearance_.use_count() == 1) {
+		defaultAppearance_.reset();	
+	}
+	if (defaultAppearanceWithNormals_.use_count() == 1) {
+		defaultAppearanceWithNormals_.reset();
+	}
 	if (defaultEffect_.use_count() == 1) {
 		defaultEffect_.reset();
 	}
@@ -254,25 +289,35 @@ void SceneAdaptor::setCamera(ramses::Camera* camera) {
 		defaultRenderPass_.reset();
 	} else {
 		defaultRenderPass_ = ramsesRenderPass(scene_.get());
-		defaultRenderPass_->setClearFlags(ramses::EClearFlags_None);
 		defaultRenderPass_->addRenderGroup(defaultRenderGroup());
 		defaultRenderPass_->setCamera(*camera);
 		defaultRenderPass_->setName(defaultRenderPassName);
+		// Ramses ignores the clear flags/clear color because we are rendering to the default framebuffer.
+		// The default framebuffer for our scene happens to be an offscreen render buffer (this is set up in
+		// RamsesPreviewWindow::commit). Ramses will give an export warning if we apply any clear flags to a
+		// render pass rendering to the default framebuffer.
+		// The clear color is set with RamsesRenderer::setDisplayBufferClearColor (see RamsesPreviewWindow::commit).
+		defaultRenderPass_->setClearFlags(ramses::EClearFlags_None);
 	}
 }
 
-const RamsesEffect SceneAdaptor::defaultEffect(bool withMeshNormals) {
+const RamsesAppearance SceneAdaptor::defaultAppearance(bool withMeshNormals) {
 	if (withMeshNormals) {
 		if (!defaultEffectWithNormals_) {
 			defaultEffectWithNormals_ = createDefaultEffect(scene_.get(), true);
+			defaultAppearanceWithNormals_ = raco::ramses_base::ramsesAppearance(scene(), defaultEffectWithNormals_);
+			(*defaultAppearanceWithNormals_)->setName(defaultAppearanceWithNormalsName);
 		}
-		return defaultEffectWithNormals_;
+		return defaultAppearanceWithNormals_;
 	}
 
 	if (!defaultEffect_) {
 		defaultEffect_ = createDefaultEffect(scene_.get(), false);
+		defaultAppearance_ = raco::ramses_base::ramsesAppearance(scene(), defaultEffect_);
+		(*defaultAppearance_)->setName(defaultAppearanceName);
+
 	}
-	return defaultEffect_;
+	return defaultAppearance_;
 }
 
 const RamsesArrayResource SceneAdaptor::defaultVertices() {
@@ -290,8 +335,9 @@ const RamsesArrayResource SceneAdaptor::defaultIndices() {
 }
 
 ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObject) const {
-	if (adaptors_.find(editorObject) != adaptors_.end()) {
-		return adaptors_.at(editorObject).get();
+	auto adaptorIt = adaptors_.find(editorObject);
+	if (adaptorIt != adaptors_.end()) {
+		return adaptorIt->second.get();
 	}
 	return nullptr;
 }
@@ -368,10 +414,8 @@ void SceneAdaptor::buildDefaultRenderGroup() {
 
 void SceneAdaptor::buildRenderableOrder(ramses::RenderGroup& renderGroup, std::vector<SEditorObject>& objs, const std::function<void(const SEditorObject&)>& renderableOrderFunc) {
 	for (const auto& obj : objs) {
-		if (obj->children_->size() == 0) {
-			renderableOrderFunc(obj);
-
-		} else {
+		renderableOrderFunc(obj); 
+		if (obj->children_->size() > 0) {
 			auto vec = obj->children_->asVector<SEditorObject>();
 			buildRenderableOrder(renderGroup, vec, renderableOrderFunc);
 		}
@@ -386,7 +430,7 @@ void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& 
 	std::set<LinkAdaptor*> liftedLinks;
 
 	std::set<SEditorObject> updated;
-	for (auto item : dependencyGraph_) {
+	for (const auto& item : dependencyGraph_) {
 		auto object = item.object;
 		if (auto adaptor = lookupAdaptor(object)) {
 			bool needsUpdate = adaptor->isDirty();

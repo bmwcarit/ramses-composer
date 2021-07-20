@@ -59,7 +59,7 @@ void Material::syncUniforms(BaseContext& context) {
 		attributes_.clear();
 	}
 
-	syncTableWithEngineInterface(context, uniforms, ValueHandle(shared_from_this(), {"uniforms"}), cachedUniformValues_, false, false);
+	syncTableWithEngineInterface(context, uniforms, ValueHandle(shared_from_this(), {"uniforms"}), cachedUniformValues_, false, true);
 	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), {"uniforms"}));
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 }
@@ -67,42 +67,35 @@ void Material::syncUniforms(BaseContext& context) {
 void Material::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	ValueHandle vertextUriHandle(shared_from_this(), {"uriVertex"});
 	if (vertextUriHandle == value) {
-		vertexListener_ = registerFileChangedHandler(context, vertextUriHandle, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+		vertexListener_ = registerFileChangedHandler(context, vertextUriHandle, [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
 	ValueHandle fragmentUriHandle(shared_from_this(), {"uriFragment"});
 	if (fragmentUriHandle == value) {
-		fragmentListener_ = registerFileChangedHandler(context, fragmentUriHandle, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+		fragmentListener_ = registerFileChangedHandler(context, fragmentUriHandle, [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
 	ValueHandle geometryUriHandle(shared_from_this(), {"uriGeometry"});
 	if (geometryUriHandle == value) {
-		geometryListener_ = registerFileChangedHandler(context, geometryUriHandle, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+		geometryListener_ = registerFileChangedHandler(context, geometryUriHandle,  [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
 	ValueHandle definesUriHandle(shared_from_this(), {"uriDefines"});
 	if (definesUriHandle == value) {
-		geometryListener_ = registerFileChangedHandler(context, definesUriHandle, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+		definesListener_ = registerFileChangedHandler(context, definesUriHandle, [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
 }
 
 void Material::onAfterContextActivated(BaseContext& context) {
-	vertexListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriVertex"}}, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+	vertexListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriVertex"}},  [this, &context]() { syncUniforms(context); });
 
-	fragmentListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriFragment"}}, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+	fragmentListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriFragment"}},  [this, &context]() { syncUniforms(context); });
 
-	geometryListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriGeometry"}}, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+	geometryListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriGeometry"}}, [this, &context]() { syncUniforms(context); });
 
-	definesListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriDefines"}}, {shared_from_this(),
-			[this](BaseContext& context) { syncUniforms(context); }});
+	definesListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriDefines"}}, 
+			[this, &context]() { syncUniforms(context); });
 
 	syncUniforms(context);
 }

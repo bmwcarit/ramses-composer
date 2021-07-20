@@ -33,6 +33,7 @@ public:
 protected:
 	std::string createAbsolutePath();
 	std::string createRelativePath();
+	std::string getCachedPathKeyCorrespondingToUserType();
 	bool fileExists();
 	void showCustomLineEditContextMenu(const QPoint& p, PropertyBrowserItem* item);
 	void updateFileEditButton();

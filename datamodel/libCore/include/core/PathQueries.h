@@ -16,8 +16,11 @@ namespace raco::core {
 class Project;
 
 namespace PathQueries {
-	std::string resolveUriPropertyToAbsolutePath(const Project& project, const ValueHandle& uri);
+std::string baseFolderForRelativePath(const Project& project, SEditorObject object);
 
-};
+std::string resolveUriPropertyToAbsolutePath(const Project& project, const ValueHandle& uri);
 
-}
+bool isPathRelativeToCurrentProject(const SEditorObject& object);
+};	// namespace PathQueries
+
+}  // namespace raco::core

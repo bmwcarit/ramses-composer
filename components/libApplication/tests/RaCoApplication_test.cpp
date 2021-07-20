@@ -9,6 +9,7 @@
  */
 #include "testing/TestEnvironmentCore.h"
 
+#include "core/PathManager.h"
 #include "core/Queries.h"
 #include "application/RaCoApplication.h"
 #include "user_types/Mesh.h"
@@ -118,6 +119,20 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshWithNegativeScaleWillNotB
 
 	// As long as Assimp flips positive scaling values when encountering negative values, we prevent importing
 	ASSERT_FALSE(commandInterface->importAssetScenegraph(desc.absPath, nullptr));
+}
+
+TEST_F(RaCoApplicationFixture, importglTFScenegraphCachedMeshPathGetsChanged) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
+	raco::core::PathManager::setCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY, "");
+
+	raco::core::MeshDescriptor desc;
+	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.bakeAllSubmeshes = false;
+	commandInterface->importAssetScenegraph(desc.absPath, nullptr);
+	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
+
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY), (cwd_path() / "meshes/CesiumMilkTruck").generic_string());
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTruck) {
@@ -274,7 +289,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	}
 }
 
-TEST_F(RaCoApplicationFixture, LuaScriptRuntimeErrorCausesWarningForAllScripts) {
+TEST_F(RaCoApplicationFixture, LuaScriptRuntimeErrorCausesInformationForAllScripts) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
 	auto const workingScript{ commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName) };
@@ -293,7 +308,7 @@ TEST_F(RaCoApplicationFixture, LuaScriptRuntimeErrorCausesWarningForAllScripts) 
 	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript).level(), raco::core::ErrorLevel::ERROR);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->getError(runtimeErrorScript).message().find("value") != std::string::npos);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(workingScript));
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(workingScript).level(), raco::core::ErrorLevel::WARNING);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(workingScript).level(), raco::core::ErrorLevel::INFORMATION);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->getError(workingScript).message().find("runtime error") != std::string::npos);
 }
 
@@ -328,19 +343,50 @@ TEST_F(RaCoApplicationFixture, LuaScriptFixingRuntimeErrorDoesNotDeleteOtherErro
 
 	application.doOneLoop();
 	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::ERROR);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::WARNING);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::INFORMATION);
 	EXPECT_EQ(application.activeRaCoProject().errors()->getError(compileErrorScript).level(), raco::core::ErrorLevel::ERROR);
 	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"luaInputs"}}.get("choice"), 0);
 	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"luaInputs"} }.get("choice"), 1);
 	application.doOneLoop();
 
 	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::ERROR);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::WARNING);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::INFORMATION);
 	EXPECT_EQ(application.activeRaCoProject().errors()->getError(compileErrorScript).level(), raco::core::ErrorLevel::ERROR);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(raco::core::ValueHandle(emptyURIScript, { "uri" })));
 
 	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"luaInputs"} }.get("choice"), 0);
 	application.doOneLoop();
+}
+
+TEST_F(RaCoApplicationFixture, LuaScriptNewestRuntimeErrorGetsProperlyUpdated) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+
+	auto runtimeErrorScript1{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
+	auto runtimeErrorScript2{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"luaInputs"}}.get("choice"), 1);
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"luaInputs"}}.get("choice"), 0);
+
+	application.doOneLoop();
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::ERROR);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::INFORMATION);
+
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"luaInputs"}}.get("choice"), 0);
+
+	application.doOneLoop();
+	EXPECT_TRUE(application.activeRaCoProject().errors()->getAllErrors().empty());
+
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"luaInputs"}}.get("choice"), 1);
+
+	application.doOneLoop();
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::INFORMATION);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::ERROR);
+
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"luaInputs"}}.get("choice"), 0);
+
+	application.doOneLoop();
+	EXPECT_TRUE(application.activeRaCoProject().errors()->getAllErrors().empty());
 }
 
 TEST_F(RaCoApplicationFixture, LuaScriptCompileErrorDoesNotCauseErrorForAllScripts) {
@@ -354,4 +400,32 @@ TEST_F(RaCoApplicationFixture, LuaScriptCompileErrorDoesNotCauseErrorForAllScrip
 	
 	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(compileErrorScript));
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(emptyScript));
+}
+
+TEST_F(RaCoApplicationFixture, LuaScriptDeletingScriptWithRunTimeErrorUpdatesAllErrors) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+
+	auto emptyScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
+	auto runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
+	auto node{commandInterface->createObject(raco::user_types::Node::typeDescription.typeName)};
+	auto mesh{commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName)};
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"luaInputs"}}.get("choice"), 1);
+
+	application.doOneLoop();
+
+	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(runtimeErrorScript));
+	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(emptyScript));
+	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(node));
+	// resources don't show Ramses Logic errors as of now
+	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(mesh));
+
+	commandInterface->deleteObjects({runtimeErrorScript});
+
+	application.doOneLoop();
+	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(emptyScript));
+	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(node));
+	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(mesh));
+	// "empty URI" error
+	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(raco::core::ValueHandle{mesh, {"uri"}}));
 }

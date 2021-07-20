@@ -15,23 +15,18 @@
 
 namespace raco::core {
 
-class FileChangeListener {
-public:
-	static constexpr int DELAYED_FILE_LOAD_TIME_MSEC = 100;
-	
-	virtual ~FileChangeListener() = default;
-
-	virtual std::string getPath() const = 0;
-};
-
-class FileChangeMonitor {
+template<typename TCallback>
+class FileChangeMonitorInterface {
 public:		
-	virtual ~FileChangeMonitor() = default;
+	virtual ~FileChangeMonitorInterface() = default;
 	
-	using Del = std::function<void(FileChangeListener*)>;
-	using UniqueListener = std::unique_ptr<FileChangeListener, Del>;
+	using Callback = TCallback;
+	using Del = std::function<void(Callback*)>;
+	using UniqueListener = std::unique_ptr<Callback, Del>;
 
-	virtual UniqueListener registerFileChangedHandler(std::string absPath, FileChangeCallback callback) = 0;
+	virtual UniqueListener registerFileChangedHandler(std::string absPath, Callback callback) = 0;
 };
 
-}  // namespace raco::core
+using FileChangeMonitor = FileChangeMonitorInterface<core::FileChangeCallback>;
+
+}  // amespace raco::core

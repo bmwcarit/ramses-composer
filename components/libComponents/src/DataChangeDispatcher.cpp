@@ -11,6 +11,8 @@
 
 #include "components/DebugInstanceCounter.h"
 
+#include "core/EditorObject.h"
+
 #include "log_system/log.h"
 
 #include <algorithm>
@@ -97,7 +99,7 @@ class PropertyChangeListener final : public BaseListener {
 public:
 	using Callback = DataChangeDispatcher::ValueHandleCallback;
 	explicit PropertyChangeListener(const std::string& propertyName, Callback callback) : propertyName_(propertyName), callback_(callback) {}
-	void call(ValueHandle handle) const noexcept {
+	void call(const ValueHandle& handle) const noexcept {
 		callback_(handle);
 	}
 	const std::string& property() const noexcept {
@@ -168,22 +170,26 @@ DataChangeDispatcher::DataChangeDispatcher() {}
 void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 	// Sync with and reset change recorder:
 
-	for (auto& link : dataChanges.getValidityChangedLinks()) {
-		auto copy{linkValidityChangeListeners_};
-		for (const auto& ptr : copy) {
-			if (!ptr.expired()) {
-				auto listener{ptr.lock()};
-				listener->onLinkChange(link);
+	for (auto& [endObjId, links] : dataChanges.getValidityChangedLinks()) {
+		for (auto& link : links) {
+			auto copy{linkValidityChangeListeners_};
+			for (const auto& ptr : copy) {
+				if (!ptr.expired()) {
+					auto listener{ptr.lock()};
+					listener->onLinkChange(link);
+				}
 			}
 		}
 	}
 
-	for (auto& link : dataChanges.getRemovedLinks()) {
-		auto copy{linkLifecycleListeners_};
-		for (const auto& ptr : copy) {
-			if (!ptr.expired()) {
-				auto listener{ptr.lock()};
-				listener->onDeletion_(link);
+	for (auto& [endObjId, links] : dataChanges.getRemovedLinks()) {
+		for (auto& link : links) {
+			auto copy{linkLifecycleListeners_};
+			for (const auto& ptr : copy) {
+				if (!ptr.expired()) {
+					auto listener{ptr.lock()};
+					listener->onDeletion_(link);
+				}
 			}
 		}
 	}
@@ -194,21 +200,25 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 
 
 	for (auto& createdObject : dataChanges.getCreatedObjects()) {
-		LOG_TRACE(log_system::DATA_CHANGE, "emit emitCreated {}", createdObject.rootObject()->objectName());
+		LOG_TRACE(log_system::DATA_CHANGE, "emit emitCreated {}", createdObject->objectName());
 		emitCreated(createdObject);
 	}
 
-	for (auto& changedValueHandle : dataChanges.getChangedValues()) {
-		LOG_TRACE_IF(log_system::DATA_CHANGE, !changedValueHandle.isObject(), "emit changedValueHandle Property {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.getPropName());
-		LOG_TRACE_IF(log_system::DATA_CHANGE, changedValueHandle.isObject(), "emit changedValueHandle Object {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.rootObject()->objectID());
-		emitUpdateFor(changedValueHandle);
-	}
+	emitUpdateFor(dataChanges.getChangedValues());
 
-	for (auto& changedValueHandle : dataChanges.getChangedErrors()) {
-		LOG_TRACE_IF(log_system::DATA_CHANGE, !changedValueHandle.isObject(), "emit errorChanged for Property {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.getPropName());
-		LOG_TRACE_IF(log_system::DATA_CHANGE, changedValueHandle.isObject(), "emit errorChanged for Object {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.rootObject()->objectID());
+	auto changedErrors = dataChanges.getChangedErrors();
+	for (auto& changedValueHandle : changedErrors) {
+		LOG_TRACE_IF(log_system::DATA_CHANGE, changedValueHandle  && !changedValueHandle.isObject(), "emit errorChanged for Property {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.getPropName());
+		LOG_TRACE_IF(log_system::DATA_CHANGE, changedValueHandle && changedValueHandle.isObject(), "emit errorChanged for Object {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.rootObject()->objectID());
+		LOG_TRACE_IF(log_system::DATA_CHANGE, !changedValueHandle, "emit errorChanged for project-global ValueHandle");
 		emitErrorChanged(changedValueHandle);
 	}
+
+	if (!changedErrors.empty()) {
+		LOG_TRACE(log_system::DATA_CHANGE, "emit errorChangedInScene");
+		emitErrorChangedInScene();
+	}
+
 
 	for (auto& object : dataChanges.getPreviewDirtyObjects()) {
 		LOG_TRACE(log_system::DATA_CHANGE, "emit emitPreviewDirty {}", object->objectName());
@@ -218,18 +228,20 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 	// Bulk update notification will be used by the SceneAdaptor to perform the actual engine update.
 	emitBulkChange(dataChanges.getAllChangedObjects(true));
 
-	for (auto& link : dataChanges.getAddedLinks()) {
-		auto copy{linkLifecycleListeners_};
-		for (const auto& ptr : copy) {
-			if (!ptr.expired()) {
-				auto listener{ptr.lock()};
-				listener->onCreation_(link);
+	for (auto& [endObjId, links] : dataChanges.getAddedLinks()) {
+		for (auto& link : links) {
+			auto copy{linkLifecycleListeners_};
+			for (const auto& ptr : copy) {
+				if (!ptr.expired()) {
+					auto listener{ptr.lock()};
+					listener->onCreation_(link);
+				}
 			}
 		}
 	}
 
 	for (auto& deletedObject : dataChanges.getDeletedObjects()) {
-		LOG_TRACE(log_system::DATA_CHANGE, "emit emitDeleted {}", deletedObject.rootObject()->objectName());
+		LOG_TRACE(log_system::DATA_CHANGE, "emit emitDeleted {}", deletedObject->objectName());
 		emitDeleted(deletedObject);
 	}
 
@@ -265,10 +277,16 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 
 Subscription DataChangeDispatcher::registerOn(ValueHandle valueHandle, Callback callback) noexcept {
 	auto listener{std::make_shared<ValueHandleListener>(std::move(valueHandle), std::move(callback))};
-	listeners_.insert(listener);
-	return Subscription{this, listener, [this, listener]() { 
-		listeners_.erase(listener); 
-	}};
+	listeners_[listener->valueHandle().rootObject()->objectID()].insert(listener);
+	return Subscription{
+		this, listener, [this, listener]() {
+			const auto& objectID = listener->valueHandle().rootObject()->objectID();
+			auto it = listeners_.find(objectID);
+			it->second.erase(listener);
+			if (it->second.empty()) {
+				listeners_.erase(objectID);
+			}
+		}};
 }
 
 Subscription DataChangeDispatcher::registerOn(ValueHandles handles, ValueHandleCallback callback) noexcept {
@@ -282,18 +300,29 @@ Subscription DataChangeDispatcher::registerOn(ValueHandles handles, ValueHandleC
 
 Subscription DataChangeDispatcher::registerOnPropertyChange(const std::string& propertyName, ValueHandleCallback callback) noexcept {
 	auto listener{std::make_shared<PropertyChangeListener>(propertyName, callback)};
-	propertyChangeListeners_.insert(listener);
-	return Subscription{this, listener, [this, listener]() {
-		propertyChangeListeners_.erase(listener);
-	}};
+	propertyChangeListeners_[propertyName].insert(listener);
+	return Subscription{
+		this, listener, [this, propertyName, listener]() {
+			auto it = propertyChangeListeners_.find(propertyName);
+			it->second.erase(listener);
+			if (it->second.empty()) {
+				propertyChangeListeners_.erase(propertyName);
+			}
+		}};
 }
 
 Subscription DataChangeDispatcher::registerOnChildren(ValueHandle valueHandle, ValueHandleCallback callback) noexcept {
 	auto listener{std::make_shared<ChildrenListener>(std::move(valueHandle), std::move(callback))};
-	childrenListeners_.insert(listener);
-	return Subscription{this, listener, [this, listener]() {
-		childrenListeners_.erase(listener);
-	}};
+	childrenListeners_[listener->valueHandle().rootObject()->objectID()].insert(listener);
+	return Subscription{
+		this, listener, [this, listener]() {
+			const auto& objectID = listener->valueHandle().rootObject()->objectID();
+			auto it = childrenListeners_.find(objectID);
+			it->second.erase(listener);
+			if (it->second.empty()) {
+				childrenListeners_.erase(objectID);
+			}
+		}};
 }
 
 
@@ -326,6 +355,14 @@ Subscription DataChangeDispatcher::registerOnErrorChanged(ValueHandle valueHandl
 	errorChangedListeners_.insert(listener);
 	return Subscription{this, listener, [this, listener]() { 
 		errorChangedListeners_.erase(listener); 
+	}};
+}
+
+Subscription DataChangeDispatcher::registerOnErrorChangedInScene(Callback callback) noexcept {
+	auto listener{std::make_shared<UndoListener>(std::move(callback))};
+	errorChangedInSceneListeners_.insert(listener);
+	return Subscription{this, listener, [this, listener]() {
+		errorChangedInSceneListeners_.erase(listener);
 	}};
 }
 
@@ -378,44 +415,69 @@ void DataChangeDispatcher::resetBulkChangeCallback() {
 	bulkChangeCallback_ = nullptr;
 }
 
-void DataChangeDispatcher::emitUpdateFor(const ValueHandle& valueHandle) {
-	auto copyListeners{listeners_};
-	for (const auto& ptr : copyListeners) {
-		if (!ptr.expired()) {
-			auto listener{ptr.lock()};
-			if (listener->valueHandle() == valueHandle) {
-				listener->call();
+void DataChangeDispatcher::emitUpdateFor(const std::map<std::string, std::set<core::ValueHandle>>& valueHandles) {
+	decltype(listeners_)::mapped_type dirtyListeners;
+
+	for (const auto& [objectID, cont] : valueHandles) {
+		for (const auto& valueHandle : cont) {
+			LOG_TRACE_IF(log_system::DATA_CHANGE, valueHandle && !valueHandle.isObject(), "emit changedValueHandle Property {}:{}", valueHandle.rootObject()->objectName(), valueHandle.getPropName());
+			LOG_TRACE_IF(log_system::DATA_CHANGE, valueHandle && valueHandle.isObject(), "emit changedValueHandle Object {}:{}", valueHandle.rootObject()->objectName(), valueHandle.rootObject()->objectID());
+			LOG_TRACE_IF(log_system::DATA_CHANGE, !valueHandle, "emit changedValueHandle project-global");
+
+			auto listenerIt = listeners_.find(objectID);
+			if (listenerIt != listeners_.end()) {
+				for (const auto& ptr : listenerIt->second) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						if (listener->valueHandle() == valueHandle) {
+							dirtyListeners.insert(ptr);
+						}
+					}
+				}
+			}
+
+			decltype(childrenListeners_)::mapped_type dirtyChildrenListeners;
+			auto childListenerIt = childrenListeners_.find(objectID);
+			if (childListenerIt != childrenListeners_.end()) {
+				for (const auto& ptr : childListenerIt->second) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						if (listener->valueHandle() == valueHandle || listener->valueHandle().contains(valueHandle)) {
+							dirtyChildrenListeners.insert(ptr);
+						}
+					}
+				}
+			}
+			for (const auto& ptr : dirtyChildrenListeners) {
+				if (!ptr.expired()) {
+					ptr.lock()->call(valueHandle);
+				}
+			}
+
+			if (valueHandle.depth() > 0) {
+				auto propName = valueHandle.getPropName();
+
+				decltype(propertyChangeListeners_)::mapped_type dirtyPropertyListeners;
+				auto it = propertyChangeListeners_.find(propName);
+				if (it != propertyChangeListeners_.end()) {
+					for (const auto& ptr : it->second) {
+						if (!ptr.expired()) {
+							dirtyPropertyListeners.insert(ptr);
+						}
+					}
+				}
+				for (const auto& ptr : dirtyPropertyListeners) {
+					if (!ptr.expired()) {
+						ptr.lock()->call(valueHandle);
+					}
+				}
 			}
 		}
 	}
 
-	auto copyChildListeners{childrenListeners_};
-	for (const auto& ptr : copyChildListeners) {
+	for (const auto& ptr : dirtyListeners) {
 		if (!ptr.expired()) {
-			auto listener{ptr.lock()};
-			if (listener->valueHandle() == valueHandle || listener->valueHandle().contains(valueHandle)) {
-				listener->call(valueHandle);
-			}
-		}
-	}
-
-	auto copyObjectChangeListeners{objectChangeListeners_};
-	for (const auto& ptr : copyObjectChangeListeners) {
-		if (!ptr.expired()) {
-			auto listener{ptr.lock()};
-			if (listener->editorObject() == valueHandle.rootObject()) {
-				listener->call();
-			}
-		}
-	}
-	auto copyPropertyChangeListeners{propertyChangeListeners_};
-	for (const auto& ptr : copyPropertyChangeListeners) {
-		if (!ptr.expired()) {
-			auto listener{ptr.lock()};
-			// only check last element of property names vector to handle dynamic properties in Tables
-			if (valueHandle.depth() > 0 && listener->property() == valueHandle.getPropName()) {
-				listener->call(valueHandle);
-			}
+			ptr.lock()->call();
 		}
 	}
 }
@@ -428,6 +490,16 @@ void DataChangeDispatcher::emitErrorChanged(const ValueHandle& valueHandle) {
 			if (listener->valueHandle() == valueHandle) {
 				listener->call();
 			}
+		}
+	}
+}
+
+void DataChangeDispatcher::emitErrorChangedInScene() {
+	auto copy{errorChangedInSceneListeners_};
+	for (const auto& ptr : copy) {
+		if (!ptr.expired()) {
+			auto listener{ptr.lock()};
+			listener->call();
 		}
 	}
 }
@@ -448,10 +520,10 @@ void DataChangeDispatcher::assertEmpty() {
 	assert(linkValidityChangeListeners_.empty());
 	assert(listeners_.empty());
 	assert(childrenListeners_.empty());
-	assert(objectChangeListeners_.empty());
 	assert(propertyChangeListeners_.empty());
 	assert(previewDirtyListeners_.empty());
 	assert(errorChangedListeners_.empty());
+	assert(errorChangedInSceneListeners_.empty());
 	assert(undoChangeListeners_.empty());
 	assert(externalProjectChangedListeners_.empty());
 	assert(externalProjectMapChangedListeners_.empty());

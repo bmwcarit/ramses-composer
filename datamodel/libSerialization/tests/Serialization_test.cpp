@@ -231,8 +231,12 @@ TEST_F(SerializationTest, serializeNodeAndScript_withLink) {
 TEST_F(SerializationTest, serializeObjects_luaScriptLinkedToNode) {
 	auto objs{raco::createLinkedScene(*this)};
 	std::map<std::string, raco::serialization::ExternalProjectInfo> externalProjectsMap;
+	std::map<std::string, std::string> originFolders;
 
-	auto result = raco::serialization::serialize<raco::core::SEditorObject, raco::core::SLink>({std::get<0>(objs), std::get<1>(objs)}, {std::get<2>(objs)}, "", "", "", "", externalProjectsMap);
+	auto result = raco::serialization::serialize<raco::core::SEditorObject, raco::core::SLink>(
+		{std::get<0>(objs), std::get<1>(objs)}, 
+		{std::get<0>(objs)->objectID(), std::get<1>(objs)->objectID()},
+		{std::get<2>(objs)}, "", "", "", "", externalProjectsMap, originFolders);
 	if (WRITE_RESULT) raco::utils::file::write((std::filesystem::path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptLinkedToNode.json").string(), result);
 
     assertFileContentEqual((cwd_path() / "expectations" / "LuaScriptLinkedToNode.json").string(), result);

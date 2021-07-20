@@ -69,39 +69,10 @@ The ```<PATH_TO_PROJECT_FILE>``` has to be either an absolute path or relative t
 
 ### Starting on Linux (Ubuntu 18.04)
 
-The Linux release is developer-only. To start it, it is necessary to install Qt 5.15.2 on the machine. Once Qt 5.15.2 is 
-installed, Ramses Composer Headless and Ramses Composer can be started using the command-line 
+The Linux release contains all required Qt shared libraries. Ramses Composer Headless and Ramses Composer can be started using the 
+provided shell script `./RaCoHeadless.sh` resp. `./RamsesComposer.sh`.
 
-```
-LD_LIBRARY_PATH="./;/<QtRootDir>/5.15.2/gcc_64/lib" ./RaCoHeadless
-```
-resp.
-```
-LD_LIBRARY_PATH="./;/<QtRootDir>/5.15.2/gcc_64/lib" ./RamsesComposer
-```
-
-It is also necessary to provide a qt.conf next to the RaCoHeadless / RamsesComposer executable with the contents
-
-```
-[Paths]
-Plugins="<QtRootDir>/5.15.2/gcc_64/plugins"
-```
-
-Adjust ```<QtRootDir>``` in both cases to the directory in which Qt 5.15.2 was installed.
-
-If you see the error message 
-```
-Could not load the Qt platform plugin "xcb" in "" even though it was found.
-```
-when running RamsesComposer a few xcb libraries might be missing. You can try running Ramses Composer with
-```
-QT_DEBUG_PLUGINS=1;LD_LIBRARY_PATH="./;/<QtRootDir>/5.15.2/gcc_64/lib" ./RamsesComposer
-```
-and look for a line looking like
-```
-Cannot load library /(...)/Qt/5.15.2/gcc_64/plugins/platforms/libqxcb.so: (libxcb-icccm.so.4: cannot open shared object file: No such file or directory)
-```
-and install the package required to install the missing .so file (in this case 'sudo apt install libxkb-icccm4' fixes the issue).
+The shell scripts together with the `qt.conf` allow the localization of all required Qt shared libraries.
 
 ### Locations
 
@@ -127,7 +98,7 @@ The build process for the Ramses Composer generates a "release" folder in the CM
 the distributed zip-files - so after building Ramses Composer the developer will run Ramses Composer in the 
 same environment as the user.
 
-## Windows Subsystem for Linux (Ubuntu 18.04)
+## Linux (Ubuntu 18.04)
 
 The linux build needs newer versions of CMake and Qt than available from the Ubuntu 18.04 repositories. Install CMake >= 3.19 and Qt 5.15.2.
 
@@ -198,7 +169,7 @@ This example will create the setup for having a working directory with the speci
 
 ## Third Party Components
 
-The UI is based on [Qt](www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/GENIVI/ramses-composer/releases/download/v0.8.1/qt-src-5.12.2.tgz). 
+The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/GENIVI/ramses-composer/releases/download/v0.8.1/qt-src-5.12.2.tgz). 
 
 Ramses Composer uses a number of third party libraries:
 

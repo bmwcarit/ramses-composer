@@ -16,8 +16,8 @@ add_library(libComponents
     include/components/DataChangeDispatcher.h src/DataChangeDispatcher.cpp
     include/components/DebugInstanceCounter.h
     include/components/EditorObjectFormatter.h
-    src/FileChangeListenerImpl.h src/FileChangeListenerImpl.cpp # hide FileChangeListenerImpl definition from other libraries
-    include/components/FileChangeMonitorImpl.h src/FileChangeMonitorImpl.cpp
+    include/components/FileChangeListenerImpl.h src/FileChangeListenerImpl.cpp 
+    include/components/FileChangeMonitorImpl.h 
     include/components/MeshCacheImpl.h src/MeshCacheImpl.cpp
     include/components/RamsesProjectMigration.h src/RamsesProjectMigration.cpp
     include/components/RaCoNameConstants.h

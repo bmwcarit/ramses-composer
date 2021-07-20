@@ -58,4 +58,5 @@ add_compile_definitions(RaCoEditor PRIVATE CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}
 
 deploy_gui_shared_dlls(RaCoEditor)
 deploy_ramses_with_renderer_shared_dlls(RaCoEditor)
+deploy_qt(RaCoEditor)
 deploy_raco_cppruntime_dlls(RaCoEditor)

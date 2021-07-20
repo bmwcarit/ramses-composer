@@ -22,7 +22,7 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, QMenu* m
 			try {
 				racoApplication->activeRaCoProject().undoStack()->undo();
 			} catch (raco::core::ExtrefError& error) {
-				QMessageBox::warning(menu, "Undo Error", fmt::format("External reference update failed.\n\n{}", error.what()).c_str(), QMessageBox::Close);
+				// This ext ref update error message will be shown in the Error View.
 			}
 		});
 
@@ -33,7 +33,7 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, QMenu* m
 			try {
 				racoApplication->activeRaCoProject().undoStack()->redo();
 			} catch (raco::core::ExtrefError& error) {
-				QMessageBox::warning(menu, "Undo Error", fmt::format("External reference update failed.\n\n{}", error.what()).c_str(), QMessageBox::Close);
+				// This ext ref update error message will be shown in the Error View.
 			}  
 		});
 

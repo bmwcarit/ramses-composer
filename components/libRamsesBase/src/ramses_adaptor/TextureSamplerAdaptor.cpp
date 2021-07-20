@@ -9,8 +9,7 @@
  */
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "core/ErrorItem.h"
-#include "ramses-client-api/MipLevelData.h"
-#include "ramses-utils.h"
+#include <ramses-client-api/MipLevelData.h>
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/Texture.h"

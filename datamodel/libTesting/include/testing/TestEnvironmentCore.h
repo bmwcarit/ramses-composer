@@ -24,6 +24,9 @@
 #include "components/MeshCacheImpl.h"
 #include "user_types/UserObjectFactory.h"
 #include "utils/FileUtils.h"
+#include "user_types/Mesh.h"
+#include "user_types/MeshNode.h"
+#include "user_types/Material.h"
 
 #include <QCoreApplication>
 
@@ -69,6 +72,27 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return obj;
 	}
 
+	raco::user_types::SMesh create_mesh(const std::string &name, const std::string &relpath) {
+		auto mesh = create<raco::user_types::Mesh>(name);
+		commandInterface.set({mesh, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
+		return mesh;
+	}
+
+	raco::user_types::SMaterial create_material(const std::string &name, const std::string &relpathVertex, const std::string &relpathFragment) {
+		auto material = create<raco::user_types::Material>(name);
+		commandInterface.set({material, {"uriVertex"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpathVertex).string());
+		commandInterface.set({material, {"uriFragment"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpathFragment).string());
+		return material;
+	}
+
+	raco::user_types::SMeshNode create_meshnode(const std::string &name, raco::user_types::SMesh mesh, raco::user_types::SMaterial material, raco::user_types::SEditorObject parent = nullptr) {
+		auto meshnode = create<raco::user_types::MeshNode>(name, parent);
+		commandInterface.set({meshnode, {"mesh"}}, mesh);
+		commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
+		return meshnode;
+	}
+
+
 	void checkUndoRedo(std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
 		RacoBaseTest<BaseClass>::checkUndoRedo(commandInterface, operation, preCheck, postCheck);
 	}
@@ -78,11 +102,10 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		RacoBaseTest<BaseClass>::checkUndoRedoMultiStep(commandInterface, operations, checks);
 	}
 
-	TestEnvironmentCoreT() {
+	TestEnvironmentCoreT() : fileChangeMonitor(std::make_unique<FileChangeMonitorImpl>()), meshCache() {
 		spdlog::drop_all();
 		raco::log_system::init();
 		clearQEventLoop();
-		fileChangeMonitor = std::make_unique<FileChangeMonitorImpl>(context);
 		context.setFileChangeMonitor(fileChangeMonitor.get());
 		context.setMeshCache(&meshCache);
 	}
@@ -97,7 +120,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	raco::ramses_base::HeadlessEngineBackend backend{};
 	// FileChangeMonitor needs to be destroyed after the project (and with them all FileListeners have been cleaned up)
 	std::unique_ptr<FileChangeMonitorImpl> fileChangeMonitor;
-	raco::components::MeshCacheImpl meshCache{context};
+	raco::components::MeshCacheImpl meshCache;
 	Project project{};
 	raco::core::DataChangeRecorder recorder{};
 	Errors errors{&recorder};

@@ -20,6 +20,7 @@
                 "material": {
                     "order": [
                         "material",
+                        "private",
                         "options",
                         "uniforms"
                     ],
@@ -38,7 +39,7 @@
                                 "blendFactorDestAlpha",
                                 "blendColor",
                                 "depthwrite",
-                                "depthfunction",
+                                "depthFunction",
                                 "cullmode"
                             ],
                             "properties": {
@@ -229,7 +230,7 @@
                                     "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
                                     "value": 2
                                 },
-                                "depthfunction": {
+                                "depthFunction": {
                                     "annotations": [
                                         {
                                             "properties": {
@@ -261,6 +262,18 @@
                                 }
                             },
                             "typeName": "Table"
+                        },
+                        "private": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "name": "Private Material"
+                                    },
+                                    "typeName": "DisplayNameAnnotation"
+                                }
+                            ],
+                            "typeName": "Bool::DisplayNameAnnotation",
+                            "value": false
                         },
                         "uniforms": {
                             "typeName": "Table"

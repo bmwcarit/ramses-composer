@@ -48,23 +48,25 @@ void ObjectTreeDockManager::setFocusedDock(ObjectTreeDock* dock) {
 void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& objectID) {
 	// always favor the first created active tree view of any type (e.g. the first "Scene Graph", the first "Resources")
 	std::set<QString> viewTitles;
+
 	for (const auto* dock : getDocks()) {
 		if (auto activeTreeView = dock->getCurrentlyActiveTreeView()) {
 			auto viewTitle = activeTreeView->getViewTitle();
 
 			if (viewTitles.count(viewTitle) == 0) {
 				activeTreeView->selectObject(objectID);
+				activeTreeView->expandAllParentsOfObject(objectID);
 				viewTitles.insert(viewTitle);
 			}
 		}
 	}
 }
 
-size_t raco::object_tree::view::ObjectTreeDockManager::getTreeDockAmount() const {
+size_t ObjectTreeDockManager::getTreeDockAmount() const {
 	return docks_.size();
 }
 
-std::vector<ObjectTreeDock*> raco::object_tree::view::ObjectTreeDockManager::getDocks() const {
+std::vector<ObjectTreeDock*> ObjectTreeDockManager::getDocks() const {
 	return docks_;
 }
 

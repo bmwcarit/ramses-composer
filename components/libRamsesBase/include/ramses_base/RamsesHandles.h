@@ -10,7 +10,9 @@
 
 #pragma once
 
-#include "ramses-utils.h"
+#include "log_system/log.h"
+#include <ramses-utils.h>
+
 #include <memory>
 #include <ramses-client-api/Appearance.h>
 #include <ramses-client-api/ArrayResource.h>
@@ -32,6 +34,11 @@
 #include <ramses-client-api/TextureSampler.h>
 #include <ramses-client-api/UniformInput.h>
 
+#include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/RamsesAppearanceBinding.h>
+#include <ramses-logic/RamsesCameraBinding.h>
+#include <ramses-logic/RamsesNodeBinding.h>
+
 #include <stdexcept>
 
 namespace raco::ramses_base {
@@ -43,7 +50,6 @@ using RamsesObject = RamsesHandle<ramses::RamsesObject>;
 using RamsesScene = RamsesHandle<ramses::Scene>;
 using RamsesNode = RamsesHandle<ramses::Node>;
 using RamsesMeshNode = RamsesHandle<ramses::MeshNode>;
-using RamsesAppearance = RamsesHandle<ramses::Appearance>;
 using RamsesGeometryBinding = RamsesHandle<ramses::GeometryBinding>;
 using RamsesRenderGroup = RamsesHandle<ramses::RenderGroup>;
 using RamsesPerspectiveCamera = RamsesHandle<ramses::PerspectiveCamera>;
@@ -57,16 +63,67 @@ using RamsesArrayResource = RamsesHandle<ramses::ArrayResource>;
 using RamsesTexture2D = RamsesHandle<ramses::Texture2D>;
 using RamsesTextureCube = RamsesHandle<ramses::TextureCube>;
 
+template<typename OwnerType, typename RamsesType>
+void destroyRamsesObject(OwnerType* owner, RamsesType* obj) {
+	if (obj) {
+		auto status = owner->destroy(*obj);
+		if (ramses::StatusOK != status) {
+			LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting Ramses object failed: {}", owner->getStatusMessage(status));
+			assert(false);
+			exit(1);
+		}
+	}
+}
+
 template <typename RamsesType, typename OwnerType>
 constexpr RamsesObjectDeleter createRamsesObjectDeleter(OwnerType* owner) {
 	return [owner](ramses::RamsesObject* obj) {
-		if (obj) {
-			auto status = owner->destroy(*static_cast<RamsesType*>(obj));
-			if (ramses::StatusOK != status) {
-				throw std::runtime_error(obj->getStatusMessage(status));
-			}
-		}
+		destroyRamsesObject(owner, static_cast<RamsesType*>(obj));
 	};
+}
+
+struct RamsesAppearanceHandle {
+	RamsesAppearanceHandle(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect)
+		: appearance_(scene->createAppearance(*effect)), scene_(scene), trackedEffect_(effect) {}
+
+	~RamsesAppearanceHandle() {
+		destroyRamsesObject(scene_, appearance_);
+	}
+
+	ramses::Appearance& operator*() {
+		return *appearance_;
+	}
+
+	ramses::Appearance* operator->() {
+		return appearance_;
+	}
+
+	ramses::Appearance* get() {
+		return appearance_;
+	}
+
+	void replaceTrackedSamplers(std::vector<raco::ramses_base::RamsesTextureSampler>& newSamplers) {
+		trackedSamplers_ = newSamplers;
+	}
+
+private:
+	// The appearance is owned by this class.
+	ramses::Appearance* appearance_;
+
+	// Kept for reference; needed to destroy the appearance pointer in ramses.
+	ramses::Scene* scene_;
+
+	// Effect currently used by the appearance_. Needed to keep the effect alive in ramses.
+	RamsesEffect trackedEffect_;
+
+	// Samplers currently in use by the appearance_. Needed to keep the samplers alive in ramses.
+	std::vector<raco::ramses_base::RamsesTextureSampler> trackedSamplers_;
+};
+
+using RamsesAppearance = std::shared_ptr<RamsesAppearanceHandle>;
+
+inline RamsesAppearance ramsesAppearance(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect) {
+	return std::make_shared<RamsesAppearanceHandle>(scene, effect);
 }
 
 inline RamsesScene ramsesScene(ramses::sceneId_t id, ramses::RamsesClient* client) {
@@ -79,10 +136,6 @@ inline RamsesNode ramsesNode(ramses::Scene* scene) {
 
 inline RamsesMeshNode ramsesMeshNode(ramses::Scene* scene) {
 	return {scene->createMeshNode(), createRamsesObjectDeleter<ramses::MeshNode>(scene)};
-}
-
-inline RamsesAppearance ramsesAppearance(ramses::Scene* scene, const ramses::Effect& effect) {
-	return {scene->createAppearance(effect), createRamsesObjectDeleter<ramses::Appearance>(scene)};
 }
 
 inline RamsesGeometryBinding ramsesGeometryBinding(ramses::Scene* scene, const ramses::Effect& effect) {
@@ -163,6 +216,28 @@ inline RamsesTextureCube ramsesTextureCube(ramses::Scene* scene,
 	const char* name = nullptr) {
 	return {scene->createTextureCube(format, width, mipMapCount, mipLevelData, generateMipChain, swizzle, cacheFlag, name),
 		createRamsesObjectDeleter<ramses::TextureCube>(scene)};
+}
+
+using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBinding, std::function<void(rlogic::RamsesAppearanceBinding*)>>;
+using UniqueRamsesNodeBinding = std::unique_ptr<rlogic::RamsesNodeBinding, std::function<void(rlogic::RamsesNodeBinding*)>>;
+using UniqueRamsesCameraBinding = std::unique_ptr<rlogic::RamsesCameraBinding, std::function<void(rlogic::RamsesCameraBinding*)>>;
+
+inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(rlogic::LogicEngine* logicEngine, const std::string& name) {
+	return {logicEngine->createRamsesAppearanceBinding(name), [logicEngine](rlogic::RamsesAppearanceBinding* ptr) {
+				logicEngine->destroy(*ptr);
+			}};
+}
+
+inline UniqueRamsesNodeBinding ramsesNodeBinding(rlogic::LogicEngine* logicEngine) {
+	return {logicEngine->createRamsesNodeBinding(), [logicEngine](rlogic::RamsesNodeBinding* binding) { 
+		logicEngine->destroy(*binding); 
+	}};
+}
+
+inline UniqueRamsesCameraBinding ramsesCameraBinding(rlogic::LogicEngine* logicEngine) {
+	return {logicEngine->createRamsesCameraBinding(), [logicEngine](rlogic::RamsesCameraBinding* binding) {
+				logicEngine->destroy(*binding);
+			}};
 }
 
 };	// namespace raco::ramses_base

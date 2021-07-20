@@ -20,6 +20,38 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Bugs
 -->
 
+## [0.8.2]
+
+### Added
+* Error View - a new dock window that lists all editable objects' and external reference update errors in the current scene, with easy go-to functionality (double click or context menu)
+* The viewport background color can now be set from the project settings.
+* The Linux build no longer requires a pre-installed Qt and can be started directly with shell scripts (`RamsesComposer.sh` and `RaCoHeadless.sh`).
+* Added a default project subfolder structure.
+    * Saving a project will now generate the following four subfolders in the project root folder: "images", "meshes", "scripts" and "shaders"
+    * After loading a project, file browsers for new URIs will start at one of the previously mentioned subfolders, depending on what type the URI's root object has
+    * The folder of the recently changed URI will be cached for next time an object of the same type needs an URI changed
+    * When the URI file browser can't find the resource subfolder, it will start at the project root folder instead
+    * The four default resource subfolders in the release folder have been moved from "resources" into "projects"
+    * The file loader for saving/opening projects starts at the User Projects Directory, and will be cached at the folder of the last saved/opened project.
+* Added support for shared materials which are now the default for newly created MeshNodes. The MeshNode now has a "Private Material" flag which can be used 
+  to enable per-meshnode private materials reproducing the old behaviour. Loading of old projects will set the flag to private on import.
+
+### Changes
+* Update from ramses-logic 0.6.1 to ramses-logic 0.6.2
+* Update from ramses 27.0.103 to ramses 27.0.105
+* Improved performance of undo/redo, in particular when deleting large numbers of objects, and of prefab updates.
+* Changed "Viewport" naming in Project Setting to "Display" naming.
+
+### Fixes
+* Changes to a geometry shader are now automatically applied even if the same material uses a "Defines URI".
+* The "go to referenced object" button is now also enabled for read-only objects.
+* Prevent MeshNodes from becoming invisible if they have children in the scenegraph.
+* Resize of the preview no longer crashes in Linux (fix in Ramses 27.0.105)
+* Identical Ramses Logic errors for an object do not get regenerated in the UI all the time anymore.
+* Enabled portrait sizes for project display.
+* Fixed runtime errors in scene not getting updated after deleting an object that contains a runtime error.
+
+
 ## [0.8.1]
 
 ### Added

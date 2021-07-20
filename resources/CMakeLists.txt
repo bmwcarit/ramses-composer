@@ -52,12 +52,12 @@ set(RESOURCE_FILES
 
 foreach(relpath ${RESOURCE_FILES})
 	get_filename_component(reldir "${relpath}" DIRECTORY)
-	ADD_CUSTOM_COMMAND(OUTPUT "${RACO_RELEASE_DIRECTORY}/resources/${relpath}"
+	ADD_CUSTOM_COMMAND(OUTPUT "${RACO_RELEASE_DIRECTORY}/projects/${relpath}"
 					MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}"
-					COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/resources/${reldir}"
-					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}" "${RACO_RELEASE_DIRECTORY}/resources/${relpath}"
+					COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/projects/${reldir}"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}" "${RACO_RELEASE_DIRECTORY}/projects/${relpath}"
 					VERBATIM)
-	LIST(APPEND RESOURCE_FILES_OUTPUT ${RACO_RELEASE_DIRECTORY}/resources/${relpath})
+	LIST(APPEND RESOURCE_FILES_OUTPUT ${RACO_RELEASE_DIRECTORY}/projects/${relpath})
 endforeach(relpath)
 
 ADD_CUSTOM_TARGET(RaCoResources DEPENDS ${RESOURCE_FILES_OUTPUT} SOURCES ${RESOURCE_FILES})

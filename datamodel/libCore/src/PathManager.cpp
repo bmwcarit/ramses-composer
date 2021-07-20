@@ -8,13 +8,13 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "core/PathManager.h"
+#include "utils/PathUtils.h"
 
 #include <algorithm>
 #include <cctype>
 
 namespace raco::core {
 
-std::string PathManager::lastUsedPath_ = {};
 std::filesystem::path PathManager::basePath_;
 
 std::filesystem::path PathManager::normal_path(const std::string& path) {
@@ -34,7 +34,7 @@ std::string PathManager::defaultConfigDirectory() {
 }
 
 std::filesystem::path PathManager::defaultResourceDirectory() {
-	return defaultBaseDirectory() / RESOURCE_SUB_DIRECTORY;
+	return defaultBaseDirectory() / DEFAULT_PROJECT_SUB_DIRECTORY;
 }
 
 std::string PathManager::logFilePath() {
@@ -84,12 +84,32 @@ bool PathManager::pathsShareSameRoot(const std::string& lhd, const std::string& 
 	return leftRoot == rightRoot;
 }
 
-const std::string& PathManager::getLastUsedPath() {
-	return lastUsedPath_;
+const std::string& PathManager::getCachedPath(const std::string& key, const std::string& fallbackPath) {
+	auto pathIt = cachedPaths_.find(key);
+	if (pathIt != cachedPaths_.end()) {
+		auto& cachedPath = pathIt->second;
+		if (!raco::utils::path::isExistingDirectory(cachedPath) && !fallbackPath.empty()) {
+			return fallbackPath;
+		}
+		return cachedPath;
+	}
+
+	return fallbackPath;
 }
 
-void PathManager::setLastUsedPath(const std::string& path) {
-	lastUsedPath_ = path;
+void PathManager::setCachedPath(const std::string& key, const std::string& path) {
+	auto pathIt = cachedPaths_.find(key);
+	if (pathIt != cachedPaths_.end()) {
+		pathIt->second = path;
+	}
+}
+
+void PathManager::setAllCachedPathRoots(const std::string& folder) {
+	setCachedPath(DEFAULT_PROJECT_SUB_DIRECTORY, folder);
+	setCachedPath(IMAGE_SUB_DIRECTORY, folder + "/" + IMAGE_SUB_DIRECTORY);
+	setCachedPath(MESH_SUB_DIRECTORY, folder + "/" + MESH_SUB_DIRECTORY);
+	setCachedPath(SCRIPT_SUB_DIRECTORY, folder + "/" + SCRIPT_SUB_DIRECTORY);
+	setCachedPath(SHADER_SUB_DIRECTORY, folder + "/" + SHADER_SUB_DIRECTORY);
 }
 
 std::string PathManager::sanitizePath(const std::string& path) {

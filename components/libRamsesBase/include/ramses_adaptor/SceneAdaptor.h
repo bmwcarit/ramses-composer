@@ -43,7 +43,7 @@ public:
 	const SRamsesAdaptorDispatcher dispatcher() const;
 	ramses::RenderGroup& defaultRenderGroup();
 	void setCamera(ramses::Camera* camera);
-	const ramses_base::RamsesEffect defaultEffect(bool withMeshNormals);
+	const ramses_base::RamsesAppearance defaultAppearance(bool withMeshNormals);
 	const ramses_base::RamsesArrayResource defaultVertices();
 	const ramses_base::RamsesArrayResource defaultIndices();
 	ObjectAdaptor* lookupAdaptor(const core::SEditorObject& editorObject) const;
@@ -56,6 +56,8 @@ public:
 	/* END: Adaptor API */
 
 	void readDataFromEngine(core::DataChangeRecorder &recorder);
+
+	void iterateAdaptors(std::function<void(ObjectAdaptor*)> func);
 
 private:
 	void createLink(const core::LinkDescriptor& link);
@@ -92,6 +94,10 @@ private:
 	// Fallback resources: used when MeshNode doesn't have valid shader program or mesh data
 	ramses_base::RamsesEffect defaultEffect_{};
 	ramses_base::RamsesEffect defaultEffectWithNormals_{};
+
+	raco::ramses_base::RamsesAppearance defaultAppearance_;
+	raco::ramses_base::RamsesAppearance defaultAppearanceWithNormals_;
+
 	ramses_base::RamsesArrayResource defaultIndices_{};
 	ramses_base::RamsesArrayResource defaultVertices_{};
 

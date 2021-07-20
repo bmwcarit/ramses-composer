@@ -272,26 +272,58 @@ std::vector<SLink> collectLinksForCopyOrCutOperation(const Project& project, con
 	return links;
 }
 
+std::vector<std::string> findRootObjectIDs(const std::vector<SEditorObject>& objects) {
+	std::vector<std::string> rootObjectIDs;
+	for (auto obj : objects) {
+		if (!obj->getParent()) {
+			rootObjectIDs.emplace_back(obj->objectID());
+		}
+	}
+	return rootObjectIDs;
+}
+
 }  // namespace
+
+
+std::map<std::string, std::string> findOriginFolders(const Project& project, const std::vector<SEditorObject>& objects) {
+	std::map<std::string, std::string> folderMap;
+	for (auto object : objects) {
+		if (!PathQueries::isPathRelativeToCurrentProject(object)) {
+			folderMap[object->objectID()] = PathQueries::baseFolderForRelativePath(project, object);
+		}	
+	}
+	return folderMap;
+}
 
 std::string BaseContext::copyObjects(const std::vector<SEditorObject>& objects, bool deepCopy) {
 	auto allObjects{collectObjectsForCopyOrCutOperations(objects, deepCopy)};
-	return raco::serialization::serialize(allObjects, collectLinksForCopyOrCutOperation(*project_, allObjects), project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap()).c_str();
+	auto rootObjectIDs{findRootObjectIDs(allObjects)};
+	auto originFolders{findOriginFolders(*project_, allObjects)};
+	return raco::serialization::serialize(allObjects, rootObjectIDs, collectLinksForCopyOrCutOperation(*project_, allObjects), project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str();
 }
 
 std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, bool deepCut) {
 	auto allObjects{collectObjectsForCopyOrCutOperations(objects, deepCut)};
 	auto allLinks{collectLinksForCopyOrCutOperation(*project_, allObjects)};
-	std::string serialization{raco::serialization::serialize(allObjects, allLinks, project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap()).c_str()};
+	auto rootObjectIDs{findRootObjectIDs(allObjects)};
+	auto originFolders{findOriginFolders(*project_, allObjects)};
+	std::string serialization{raco::serialization::serialize(allObjects, rootObjectIDs, allLinks, project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str()};
 	deleteObjects(allObjects);
 	return serialization;
 }
 
-void BaseContext::rerootRelativePaths(const SEditorObject& editorObject, const std::string& originFolder) {
-	for (auto property : core::ValueTreeIteratorAdaptor(core::ValueHandle{editorObject})) {
-		if (!property.rootObject()->query<core::ExternalReferenceAnnotation>()) {
+void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization) {
+	for (auto object : newObjects) {
+		for (auto property : core::ValueTreeIteratorAdaptor(core::ValueHandle{object})) {
 			if (property.query<data_storage::URIAnnotation>()) {
 				auto uriPath = property.asString();
+				std::string originFolder;
+				auto it = deserialization.objectOriginFolders.find(object->objectID());
+				if (it != deserialization.objectOriginFolders.end()) {
+					originFolder = it->second;
+				} else {
+					originFolder = deserialization.originFolder;
+				}
 				if (!originFolder.empty() && !uriPath.empty() && std::filesystem::path{uriPath}.is_relative()) {
 					if (PathManager::pathsShareSameRoot(originFolder, this->project()->currentPath())) {
 						property.valueRef()->set(PathManager::rerootRelativePath(uriPath, originFolder, this->project()->currentFolder()));
@@ -307,9 +339,12 @@ void BaseContext::rerootRelativePaths(const SEditorObject& editorObject, const s
 
 bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::serialization::ObjectsDeserialization& deserialization) {
 	// filter objects:
-	// - keep only top-level prefabs and resources,
+	// - keep only top-level prefabs, top-level lua script and resources
 	if (!(editorObject->getTypeDescription().isResource || editorObject->as<user_types::Prefab>())) {
-		return true;
+		if (!editorObject->as<user_types::LuaScript>() ||
+			deserialization.rootObjectIDs.find(editorObject->objectID()) == deserialization.rootObjectIDs.end()) {
+			return true;
+		}
 	}
 
 	auto localObj = Queries::findById(*project_, editorObject->objectID());
@@ -429,6 +464,10 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 
 	BaseContext::restoreReferences(*project_, newObjects, deserialization);
 
+	if (!pasteAsExtref) {
+		rerootRelativePaths(newObjects, deserialization);
+	}
+
 	try {
 		adjustExtrefAnnotationsForPaste(newObjects, deserialization, pasteAsExtref);
 	} catch (const ExtrefError& e) {
@@ -443,7 +482,6 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		if (!editorObject->query<ExternalReferenceAnnotation>()) {
 			auto newId{EditorObject::normalizedObjectID(std::string())};
 			editorObject->setObjectID(newId);
-			rerootRelativePaths(editorObject, deserialization.originFolder);
 		}
 
 		project_->addInstance(editorObject);
@@ -677,7 +715,7 @@ void BaseContext::moveScenegraphChild(SEditorObject const& object, SEditorObject
 	std::vector<SLink> linksToRemove;
 	for (auto child : TreeIteratorAdaptor(object)) {
 		for (auto link : Queries::getLinksConnectedToObject(*project_, child, true, true)) {
-			if (!Queries::linkSatisfiesPrefabConstraints(link->startProp(), link->endProp())) {
+			if (!Queries::linkSatisfiesConstraints(link->startProp(), link->endProp())) {
 				removeLink(link->endProp());
 				LOG_WARNING(log_system::CONTEXT, "Removed link violating prefab constraints: {}", link);
 			}

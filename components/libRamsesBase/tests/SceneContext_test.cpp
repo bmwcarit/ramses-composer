@@ -91,6 +91,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMesh) {
 
 	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
 	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
+	auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance)};
 
 	ASSERT_EQ(meshStuff.size(), 4);
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshIndexData", meshStuff));
@@ -100,6 +101,9 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMesh) {
 
 	ASSERT_EQ(materialStuff.size(), 1);
 	ASSERT_TRUE(isRamsesNameInArray("Material", materialStuff));
+
+	ASSERT_EQ(appearances.size(), 1);
+	ASSERT_TRUE(isRamsesNameInArray("Material_Appearance", appearances));
 }
 
 TEST_F(SceneContextTest, construction_createOneMeshNodeWithMeshAndOneMeshNodeWithoutMesh) {
@@ -131,7 +135,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
 	auto node = context.createObject(Node::typeDescription.typeName);
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto material = context.createObject(Material::typeDescription.typeName);
+	auto material = context.createObject(Material::typeDescription.typeName, "Material");
 
 	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
 
@@ -156,6 +160,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
 
 	ASSERT_EQ(materialStuff.size(), 2);
 	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultEffectName, materialStuff));
+	ASSERT_TRUE(isRamsesNameInArray("Material", materialStuff));
 }
 
 TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy) {

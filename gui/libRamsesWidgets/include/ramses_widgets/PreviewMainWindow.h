@@ -38,10 +38,11 @@ class PreviewMainWindow final : public QMainWindow {
 public:
 	PreviewMainWindow(RendererBackend& rendererBackend, const QSize& sceneSize, QWidget* parent = nullptr);
 	~PreviewMainWindow();
-	void displayScene(ramses::sceneId_t sceneId);
+	void displayScene(ramses::sceneId_t sceneId, data_storage::Vec3f const& backgroundColor);
 
 public Q_SLOTS:
 	void setViewport(const QSize& sceneSize);
+	void commit();
 
 private:
 	std::unique_ptr<Ui::PreviewMainWindow> ui_;

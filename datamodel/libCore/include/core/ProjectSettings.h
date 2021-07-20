@@ -21,7 +21,7 @@ public:
 		return typeDescription;
 	}
 
-	ProjectSettings(ProjectSettings const& other) : EditorObject(other), sceneId_(other.sceneId_), viewport_(other.viewport_), runTimer_(other.runTimer_), enableTimerFlag_(other.enableTimerFlag_) {
+	ProjectSettings(ProjectSettings const& other) : EditorObject(other), sceneId_(other.sceneId_), viewport_(other.viewport_), backgroundColor_(other.backgroundColor_), runTimer_(other.runTimer_), enableTimerFlag_(other.enableTimerFlag_) {
 		fillPropertyDescription();
 	}
 
@@ -34,12 +34,14 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("sceneId", &sceneId_);
 		properties_.emplace_back("viewport", &viewport_);
+		properties_.emplace_back("backgroundColor", &backgroundColor_);
 		properties_.emplace_back("enableTimerFlag", &enableTimerFlag_);
 		properties_.emplace_back("runTimer", &runTimer_);
 	}
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> sceneId_{123u, DisplayNameAnnotation("Scene Id"), {1, 1024}};
-	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Viewport"}};
+	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Display Size"}};
+	Property<Vec3f, DisplayNameAnnotation> backgroundColor_{ {}, {"Display Background Color"} };
 
 	// Properties related to timer running hack - remove these properties and all related code when proper animations have been implemented
 	Property<bool, HiddenProperty> enableTimerFlag_{false, HiddenProperty()};

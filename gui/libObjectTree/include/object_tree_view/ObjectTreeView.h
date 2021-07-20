@@ -51,6 +51,7 @@ public Q_SLOTS:
 	void cut();
 	void shortcutDelete();
 	void selectObject(const QString &objectID);
+	void expandAllParentsOfObject(const QString &objectID);
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;
@@ -72,6 +73,7 @@ protected:
 protected Q_SLOTS:
 	void restoreItemExpansionStates();
 	void restoreItemSelectionStates();
+	void expandAllParentsOfObject(const QModelIndex &index);
 };
 
 }

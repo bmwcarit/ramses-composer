@@ -10,12 +10,10 @@
 #include "ramses_adaptor/MeshNodeAdaptor.h"
 
 #include "user_types/CubeMap.h"
+#include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Texture.h"
-#include "user_types/EngineTypeAnnotation.h" 
 
 #include "ramses_adaptor/SceneAdaptor.h"
-#include "ramses_adaptor/TextureSamplerAdaptor.h"
-#include "ramses_adaptor/CubeMapAdaptor.h"
 
 namespace raco::ramses_adaptor {
 
@@ -44,6 +42,10 @@ void MeshNodeAdaptor::setupMaterialSubscription() {
 			tagDirty();
 		});
 
+		matPrivateSubscription_ = sceneAdaptor_->dispatcher()->registerOn(editorObject()->getMaterialPrivateHandle(0), [this]() {
+			tagDirty();
+		});
+
 		uniformSubscription_ = sceneAdaptor_->dispatcher()->registerOn(editorObject()->getUniformContainerHandle(0), [this]() {
 			setupUniformChildrenSubscription();
 			tagDirty();
@@ -55,6 +57,7 @@ void MeshNodeAdaptor::setupMaterialSubscription() {
 
 	} else {
 		materialSubscription_ = components::Subscription{};
+		matPrivateSubscription_ = components::Subscription{};
 		uniformSubscription_ = components::Subscription{};
 		uniformChildrenSubscription_ = components::Subscription{};
 		optionsChildrenSubscription_ = components::Subscription{};
@@ -71,12 +74,10 @@ void MeshNodeAdaptor::setupUniformChildrenSubscription() {
 
 MeshNodeAdaptor::~MeshNodeAdaptor() {
 	resetRamsesObject();
-	currentAppearance_.reset();
-	currentEffect_.reset();
+	privateAppearance_.reset();
 	geometryBinding_.reset();
 	currentMeshIndices_.reset();
 	currentMeshVertexData_.clear();
-	currentSamplers_.clear();
 }
 
 user_types::SMesh MeshNodeAdaptor::mesh() {
@@ -107,6 +108,11 @@ MaterialAdaptor* MeshNodeAdaptor::materialAdaptor(size_t index) {
 	return nullptr;
 }
 
+const raco::ramses_base::RamsesAppearance& MeshNodeAdaptor::privateAppearance() const {
+	return privateAppearance_;
+}
+
+
 bool MeshNodeAdaptor::sync(core::Errors* errors) {
 	BaseAdaptor::sync(errors);
 	if (*editorObject()->instanceCount_ >= 1) {
@@ -136,79 +142,37 @@ void MeshNodeAdaptor::syncMaterial(size_t index) {
 		}
 	}
 
-	if (auto mat = material(index)) {
-		// current Appearance must be replaced before the current Effect to successfully delete last Ramses effect pointer
-		if (auto materialAdapt = materialAdaptor(index)) {
-			LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using materialAdaptor (valid)");
-			currentAppearance_ = raco::ramses_base::ramsesAppearance(sceneAdaptor_->scene(), *materialAdapt->getRamsesObjectPointer());
-			currentEffect_ = materialAdapt->getRamsesObjectPointer();
-		} else {
-			LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using materialAdaptor (invalid)");
-			currentAppearance_ = raco::ramses_base::ramsesAppearance(sceneAdaptor_->scene(), *sceneAdaptor_->defaultEffect(haveMeshNormals));
-			currentEffect_ = sceneAdaptor_->defaultEffect(haveMeshNormals);
-		}
-
-		core::ValueHandle optionsHandle = editorObject()->getMaterialOptionsHandle(index);
-
-		setDepthWrite(currentAppearance_.get(), optionsHandle.get("depthwrite"));
-		setDepthFunction(currentAppearance_.get(), optionsHandle.get("depthfunction"));
-		setBlendMode(currentAppearance_.get(), optionsHandle);
-		setBlendColor(currentAppearance_.get(), optionsHandle.get("blendColor"));
-		setCullMode(currentAppearance_.get(), optionsHandle.get("cullmode"));
-		
-		std::vector<raco::ramses_base::RamsesTextureSampler> newSamplers;
-
-		core::ValueHandle uniformsHandle = editorObject()->getUniformContainerHandle(index);
-		for (size_t i{0}; i < uniformsHandle.size(); i++) {
-			setUniform(currentAppearance_.get(), uniformsHandle[i]);
-
-			if (uniformsHandle[i].type() == core::PrimitiveType::Ref) {
-				auto anno = uniformsHandle[i].query<user_types::EngineTypeAnnotation>();
-				auto engineType = anno->type();
-
-				raco::ramses_base::RamsesTextureSampler sampler = nullptr;
-				if (engineType == raco::core::EnginePrimitive::TextureSampler2D) {
-					if (auto texture = uniformsHandle[i].asTypedRef<user_types::Texture>()) {
-						if (auto adaptor = sceneAdaptor_->lookup<TextureSamplerAdaptor>(texture)) {
-							sampler = adaptor->getRamsesObjectPointer();
-						}
-					}
-				} else if (engineType == raco::core::EnginePrimitive::TextureSamplerCube) {
-					if (auto texture = uniformsHandle[i].asTypedRef<user_types::CubeMap>()) {
-						if (auto adaptor = sceneAdaptor_->lookup<CubeMapAdaptor>(texture)) {
-							sampler = adaptor->getRamsesObjectPointer();
-						}
-					}
-				}
-
-				if (sampler) {
-					ramses::UniformInput input;
-					currentAppearance_->getEffect().findUniformInput(uniformsHandle[i].getPropName().c_str(), input);
-					currentAppearance_->setInputTexture(input, *sampler);
-					newSamplers.emplace_back(sampler);
-				}
-			}
-		}
-		currentSamplers_ = newSamplers;
-	} else {
-		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using defaultEffect");
-		// current Appearance must be replaced before the current Effect to successfully delete last Ramses effect pointer
-		currentAppearance_ = raco::ramses_base::ramsesAppearance(sceneAdaptor_->scene(), *sceneAdaptor_->defaultEffect(haveMeshNormals));
-		currentEffect_ = sceneAdaptor_->defaultEffect(haveMeshNormals);
-		currentSamplers_.clear();
-	}
-	currentAppearance_->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
-
 	appearanceBinding_.reset();
-	appearanceBinding_ = {sceneAdaptor_->logicEngine().createRamsesAppearanceBinding(this->editorObject()->objectName() + "_AppearanceBinding"), [this](rlogic::RamsesAppearanceBinding* ptr) {
-							  sceneAdaptor_->logicEngine().destroy(*ptr);
-						  }};
-	appearanceBinding_->setRamsesAppearance(currentAppearance_.get());
-	ramsesObject().setAppearance(*currentAppearance_.get());
+	privateAppearance_.reset();
+
+	if (auto materialAdapt = materialAdaptor(index)) {
+		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using materialAdaptor (valid)");
+		if (editorObject()->materialPrivate(index)) {
+			privateAppearance_ = raco::ramses_base::ramsesAppearance(sceneAdaptor_->scene(), materialAdapt->getRamsesObjectPointer());
+			currentAppearance_ = privateAppearance_;
+
+			core::ValueHandle optionsHandle = editorObject()->getMaterialOptionsHandle(index);
+			core::ValueHandle uniformsHandle = editorObject()->getUniformContainerHandle(index);
+			updateAppearance(sceneAdaptor_, privateAppearance_, optionsHandle, uniformsHandle);
+
+			(*privateAppearance_)->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
+
+			appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(&sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
+			appearanceBinding_->setRamsesAppearance(privateAppearance_->get());
+
+		} else {
+			currentAppearance_ = materialAdapt->appearance();
+		}
+	} else {
+		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using materialAdaptor (invalid)");
+		currentAppearance_ = sceneAdaptor_->defaultAppearance(haveMeshNormals);
+	}
+
+	ramsesObject().setAppearance(*currentAppearance_->get());
 }
 
 void MeshNodeAdaptor::syncMeshObject() {
-	const auto& effect = currentAppearance_->getEffect();
+	const auto& effect = (*currentAppearance_)->getEffect();
 	geometryBinding_ = raco::ramses_base::ramsesGeometryBinding(sceneAdaptor_->scene(), effect);
 	geometryBinding_->setName(std::string(this->editorObject()->objectName() + "_GeometryBinding").c_str());
 
@@ -239,7 +203,7 @@ void MeshNodeAdaptor::syncMeshObject() {
 
 		auto status = geometryBinding_->setIndices(*meshAdapt->indicesPtr());
 		if (status == ramses::StatusOK) {
-			currentMeshIndices_ = meshAdapt->indicesPtr();				  
+			currentMeshIndices_ = meshAdapt->indicesPtr();
 		} else {
 			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, geometryBinding_->getStatusMessage(status));
 		}
@@ -247,7 +211,7 @@ void MeshNodeAdaptor::syncMeshObject() {
 	} else {
 		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using defaultMesh");
 		ramses::AttributeInput input;
-		currentAppearance_->getEffect().findAttributeInput("a_Position", input);
+		(*currentAppearance_)->getEffect().findAttributeInput("a_Position", input);
 		currentMeshVertexData_.emplace_back(sceneAdaptor_->defaultVertices());
 		currentMeshIndices_ = sceneAdaptor_->defaultIndices();
 
@@ -267,20 +231,24 @@ void MeshNodeAdaptor::addObjectToRenderGroup(ramses::RenderGroup& renderGroup, i
 
 void MeshNodeAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
 	SpatialAdaptor::getLogicNodes(logicNodes);
-	logicNodes.push_back(appearanceBinding_.get());
+	if (appearanceBinding_) {
+		logicNodes.push_back(appearanceBinding_.get());
+	}
 }
 
-const rlogic::Property& MeshNodeAdaptor::getProperty(const std::vector<std::string>& names) {
+const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::string>& names) {
 	if (names.size() > 1) {
-		const rlogic::Property* prop{appearanceBinding_->getInputs()};
-		// Remove the first 3 nesting levels of the handle: materials/slot #/uniforms container:
-		for (size_t i{3}; i < names.size(); i++) {
-			prop = prop->getChild(names.at(i));
+		if (appearanceBinding_) {
+			const rlogic::Property* prop{appearanceBinding_->getInputs()};
+			// Remove the first 3 nesting levels of the handle: materials/slot #/uniforms container:
+			for (size_t i{3}; i < names.size(); i++) {
+				prop = prop->getChild(names.at(i));
+			}
+			return prop;
 		}
-		return *prop;
-	} else {
-		return SpatialAdaptor::getProperty(names);
+		return nullptr;
 	}
+	return SpatialAdaptor::getProperty(names);
 }
 
 };	// namespace raco::ramses_adaptor

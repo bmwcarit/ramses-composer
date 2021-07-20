@@ -54,7 +54,7 @@ public:
 	ValueBase *addProperty(std::string const &name, PrimitiveType type);
 	
 	// Add user-created property; Table will take over ownership of object.
-	ValueBase* addProperty(std::string const &name, ValueBase* property);
+	ValueBase* addProperty(std::string const& name, ValueBase* property, int index_before = -1);
 
 	// Add user-created property; Table will take over ownership of object.
 	ValueBase* addProperty(const std::string &name, std::unique_ptr<ValueBase>&& property);
@@ -68,6 +68,10 @@ public:
 
 	void removeProperty(size_t index);
 	void removeProperty(std::string const& propertyName);
+
+	void renameProperty(const std::string& oldName, const std::string& newName);
+
+	void replaceProperty(size_t index, ValueBase* property);
 
 	// Remove all properties.
 	void clear();

@@ -24,7 +24,6 @@ struct MeshDescriptor;
 
 class Project;
 class ExternalProjectsStoreInterface;
-class FileChangeMonitor;
 class MeshCache;
 class UndoStack;
 class UserObjectFactoryInterface;

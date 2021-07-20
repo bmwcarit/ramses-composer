@@ -9,12 +9,15 @@
  */
 #include "ramses_adaptor/MaterialAdaptor.h"
 
-#include "utils/FileUtils.h"
 #include "log_system/log.h"
+#include "ramses_adaptor/CubeMapAdaptor.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
+#include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "ramses_base/Utils.h"
+#include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Material.h"
+#include "utils/FileUtils.h"
 
 namespace raco::ramses_adaptor {
 
@@ -39,6 +42,41 @@ MaterialAdaptor::MaterialAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMateri
 	: TypedObjectAdaptor{sceneAdaptor, material, createEffect(sceneAdaptor)},
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject(), [this]() {
 		  tagDirty();
+	  })},
+	  optionsSubscriptions_{
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendOperationColor"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendOperationAlpha"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorSrcColor"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorDestColor"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorSrcAlpha"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorDestAlpha"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendColor"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"depthwrite"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"depthFunction"}}, [this](auto) {
+			  tagDirty();
+		  }),
+		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"cullmode"}}, [this](auto) {
+			  tagDirty();
+		  })
+	  },
+	  uniformSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"uniforms"}}, [this](auto) {
+		  tagDirty();
 	  })} {
 }
 
@@ -49,6 +87,10 @@ bool MaterialAdaptor::isValid() {
 bool MaterialAdaptor::sync(core::Errors* errors) {
 	bool status = TypedObjectAdaptor<user_types::Material, ramses::Effect>::sync(errors);
 	LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "valid: {}", isValid());
+
+	appearanceBinding_.reset();
+	appearance_.reset();
+
 	if (editorObject()->isShaderValid()) {
 		std::string const vertexShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uriVertex"}}));
 		std::string const fragmentShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uriFragment"}}));
@@ -59,8 +101,94 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 	} else {
 		reset(createEffect(sceneAdaptor_));
 	}
+
+	appearance_ = raco::ramses_base::ramsesAppearance(sceneAdaptor_->scene(), getRamsesObjectPointer());
+	(*appearance_)->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
+
+	// Only create appearance binding and set uniforms & blend options if we are using a valid shader but not if
+	// we are using the empty default shaders.
+	if (editorObject()->isShaderValid()) {
+		core::ValueHandle optionsHandle = {editorObject()};
+		core::ValueHandle uniformsHandle = {editorObject(), {"uniforms"}};
+		updateAppearance(sceneAdaptor_, appearance_, optionsHandle, uniformsHandle);
+
+		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(&sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
+		appearanceBinding_->setRamsesAppearance(appearance_->get());
+	}
+
 	tagDirty(false);
 	return true;
+}
+
+void MaterialAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+	if (appearanceBinding_) {
+		logicNodes.push_back(appearanceBinding_.get());
+	}
+}
+
+const rlogic::Property* MaterialAdaptor::getProperty(const std::vector<std::string>& names) {
+	if (names.size() > 1) {
+		if (appearanceBinding_) {
+			const rlogic::Property* prop{appearanceBinding_->getInputs()};
+			// The first element in the names is the uniforms container
+			for (size_t i = 1; i < names.size(); i++) {
+				prop = prop->getChild(names.at(i));
+			}
+			return prop;
+		}
+		return nullptr;
+	}
+	return nullptr;
+}
+
+void MaterialAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {
+	core::ValueHandle const valueHandle{baseEditorObject()};
+	if (errors.hasError(valueHandle)) {
+		return;
+	}
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+}
+
+void updateAppearance(SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsHandle, const core::ValueHandle& uniformsHandle) {
+	setDepthWrite(appearance->get(), optionsHandle.get("depthwrite"));
+	setDepthFunction(appearance->get(), optionsHandle.get("depthFunction"));
+	setBlendMode(appearance->get(), optionsHandle);
+	setBlendColor(appearance->get(), optionsHandle.get("blendColor"));
+	setCullMode(appearance->get(), optionsHandle.get("cullmode"));
+
+	std::vector<raco::ramses_base::RamsesTextureSampler> newSamplers;
+
+	for (size_t i{0}; i < uniformsHandle.size(); i++) {
+		setUniform(appearance->get(), uniformsHandle[i]);
+
+		if (uniformsHandle[i].type() == core::PrimitiveType::Ref) {
+			auto anno = uniformsHandle[i].query<user_types::EngineTypeAnnotation>();
+			auto engineType = anno->type();
+
+			raco::ramses_base::RamsesTextureSampler sampler = nullptr;
+			if (engineType == raco::core::EnginePrimitive::TextureSampler2D) {
+				if (auto texture = uniformsHandle[i].asTypedRef<user_types::Texture>()) {
+					if (auto adaptor = sceneAdaptor->lookup<TextureSamplerAdaptor>(texture)) {
+						sampler = adaptor->getRamsesObjectPointer();
+					}
+				}
+			} else if (engineType == raco::core::EnginePrimitive::TextureSamplerCube) {
+				if (auto texture = uniformsHandle[i].asTypedRef<user_types::CubeMap>()) {
+					if (auto adaptor = sceneAdaptor->lookup<CubeMapAdaptor>(texture)) {
+						sampler = adaptor->getRamsesObjectPointer();
+					}
+				}
+			}
+
+			if (sampler) {
+				ramses::UniformInput input;
+				(*appearance)->getEffect().findUniformInput(uniformsHandle[i].getPropName().c_str(), input);
+				(*appearance)->setInputTexture(input, *sampler);
+				newSamplers.emplace_back(sampler);
+			}
+		}
+	}
+	appearance->replaceTrackedSamplers(newSamplers);
 }
 
 };	// namespace raco::ramses_adaptor

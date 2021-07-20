@@ -30,7 +30,11 @@ namespace raco::components {
  * 9: External references
  * 10: The viewport property in cameras is now four individual integers instead of a vec4i,
  *    needed for camera bindings [user_types::BaseCamera].
+ * 11: Added the viewport background color to the ProjectSettings.
+ * 12: Added 'private' property in meshnode material container.
+ *     Renamed 'depthfunction' ->  'depthFunction' in options container of meshnode material slot.
+ *     Added LinkEndAnnotation to material uniform properties
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 10;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 12;
 QJsonDocument migrateProject(const QJsonDocument& doc);
 }  // namespace raco::components

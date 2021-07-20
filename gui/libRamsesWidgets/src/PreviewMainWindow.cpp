@@ -98,7 +98,8 @@ PreviewMainWindow::~PreviewMainWindow() {
 	delete previewWidget_;
 }
 
-void PreviewMainWindow::displayScene(ramses::sceneId_t sceneId) {
+void PreviewMainWindow::displayScene(ramses::sceneId_t sceneId, data_storage::Vec3f const& backgroundColor) {
+	previewWidget_->setBackgroundColor(backgroundColor);
 	if (sceneId != previewWidget_->getSceneId()) {
 		sceneIdLabel_->setText(QString{"scene id: %1"}.arg(sceneId.getValue()));
 		previewWidget_->setSceneId(sceneId);
@@ -107,6 +108,10 @@ void PreviewMainWindow::displayScene(ramses::sceneId_t sceneId) {
 
 void PreviewMainWindow::setViewport(const QSize& sceneSize) {
 	scrollAreaWidget_->setViewport(sceneSize);
+}
+
+void PreviewMainWindow::commit() {
+	previewWidget_->commit();
 }
 
 }  // namespace raco::ramses_widgets

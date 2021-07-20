@@ -25,12 +25,15 @@ struct MeshDescriptor;
 
 class Project;
 class ExternalProjectsStoreInterface;
-class FileChangeMonitor;
 class MeshCache;
 class UndoStack;
 class Errors;
 class UserObjectFactoryInterface;
 class EngineInterface;
+
+class FileChangeCallback;
+template<typename T> class FileChangeMonitorInterface;
+using FileChangeMonitor = FileChangeMonitorInterface<core::FileChangeCallback>;
 
 // Contexts
 // - use context for every operation modifying the data model
@@ -141,7 +144,7 @@ private:
 	friend class PrefabOperations;
 	friend class ExtrefOperations;
 
-	void rerootRelativePaths(const SEditorObject& editorObject, const std::string& originFolder);
+	void rerootRelativePaths(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization);
 	bool extrefPasteDiscardObject(SEditorObject editorObject, raco::serialization::ObjectsDeserialization& deserialization);
 	void adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization, bool pasteAsExtref);
 	

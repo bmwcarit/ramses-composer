@@ -12,6 +12,8 @@
 #include "Handles.h"
 #include "Link.h"
 
+
+#include <map>
 #include <set>
 #include <vector>
 
@@ -67,11 +69,13 @@ public:
 	// Get the set of all changes Values
 	// - added/removed properties inside Tables will be recorded as change of the Table Value.
 	//   No separate add/remove property notification is generated.
-	std::set<ValueHandle> const& getChangedValues() const;
+	std::map<std::string, std::set<ValueHandle>> const& getChangedValues() const;
 
-	std::vector<LinkDescriptor> const& getAddedLinks() const;
-	std::vector<LinkDescriptor> const& getValidityChangedLinks() const;
-	std::vector<LinkDescriptor> const& getRemovedLinks() const;
+	bool hasValueChanged(const ValueHandle& handle) const;
+
+	std::map<std::string, std::set<LinkDescriptor>> const& getAddedLinks() const;
+	std::map<std::string, std::set<LinkDescriptor>> const& getValidityChangedLinks() const;
+	std::map<std::string, std::set<LinkDescriptor>> const& getRemovedLinks() const;
 
 	// Construct set of all objects that have been changed in some way, i.e.
 	// that have been created of which contain a changed Value.
@@ -86,14 +90,41 @@ public:
 	void mergeChanges(const DataChangeRecorder& other);
 
 private:
+	// private helper class that stores, accesses, updates and erases link descriptor entries with below-linear runtime complexity.
+	class LinkMap {
+	public:
+		void clear() {
+			linkMap_.clear();
+		}
+
+		// Try to find link, then erase it. Returns true when found and erased, false otherwise.
+		bool eraseLink(const LinkDescriptor& link);
+
+		// Iterate through the saved links and insert the link end point objects, depending on which should be included, in the "objects" set.
+		void insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, std::set<SEditorObject>& objects) const;
+
+		// Inserts a link or updates it when it is already contained in the linkMap_.
+		void insertOrUpdateLink(const LinkDescriptor& link);
+
+		// Only update the link when it is saved in the LinkMap. Returns true if a saved link was updated, false otherwise.
+		bool updateLinkIfSaved(const LinkDescriptor& link);
+
+		const std::map<std::string, std::set<LinkDescriptor>>& savedLinks() const {
+			return linkMap_;
+		}
+
+	private:
+		// Link descriptors are stored with end object id as key
+		std::map<std::string, std::set<LinkDescriptor>> linkMap_;
+	};
 	std::set<SEditorObject> createdObjects_;
 	std::set<SEditorObject> deletedObjects_;
+	
+	std::map<std::string, std::set<ValueHandle>> changedValues_;
 
-	std::set<ValueHandle> changedValues_;
-
-	std::vector<LinkDescriptor> addedLinks_;
-	std::vector<LinkDescriptor> changedValidityLinks_;
-	std::vector<LinkDescriptor> removedLinks_;
+	LinkMap addedLinks_;
+	LinkMap changedValidityLinks_;
+	LinkMap removedLinks_;
 
 	std::set<ValueHandle> changedErrors_;
 	std::set<SEditorObject> previewDirty_;

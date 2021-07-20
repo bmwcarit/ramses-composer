@@ -27,24 +27,6 @@ using namespace raco::user_types;
 
 namespace raco::property_browser {
 
-class MockURI : public core::EditorObject {
-public:
-	static inline const TypeDescriptor typeDescription = {"MockURI", true};
-	TypeDescriptor const &getTypeDescription() const override {
-		return typeDescription;
-	}
-	MockURI(MockURI const &) = delete;
-	MockURI(std::string name = std::string(), std::string id = std::string()) : EditorObject(name, id) {
-		fillPropertyDescription();
-	}
-	virtual ~MockURI() {}
-
-	void fillPropertyDescription() {
-		properties_.emplace_back("uri", &uri_);
-	}
-
-	data_storage::Property<std::string, data_storage::URIAnnotation> uri_{std::string(), {}};
-};
 
 class ExposedURIEditor : public URIEditor {
 public:

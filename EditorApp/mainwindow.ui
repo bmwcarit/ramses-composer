@@ -70,6 +70,7 @@
     <addaction name="actionNewPrefabTree"/>
     <addaction name="actionNewProjectBrowser"/>
     <addaction name="actionNewUndoView"/>
+    <addaction name="actionNewErrorView"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -188,6 +189,11 @@
   <action name="actionNewProjectBrowser">
    <property name="text">
     <string>New Project Browser</string>
+   </property>
+  </action>
+  <action name="actionNewErrorView">
+   <property name="text">
+    <string>New Error View</string>
    </property>
   </action>
   <action name="actionProjectSettings">

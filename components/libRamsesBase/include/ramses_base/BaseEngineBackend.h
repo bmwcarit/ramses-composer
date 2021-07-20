@@ -9,10 +9,10 @@
  */
 #pragma once
 
-#include "ramses-client-api/RamsesClient.h"
-#include "ramses-client-api/Scene.h"
-#include "ramses-framework-api/RamsesFramework.h"
-#include "ramses-framework-api/RamsesFrameworkConfig.h"
+#include <ramses-client-api/RamsesClient.h>
+#include <ramses-client-api/Scene.h>
+#include <ramses-framework-api/RamsesFramework.h>
+#include <ramses-framework-api/RamsesFrameworkConfig.h>
 #include "ramses_base/CoreInterfaceImpl.h"
 #include "ramses_base/LogicEngine.h"
 #include <QtCore>

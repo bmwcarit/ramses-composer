@@ -233,4 +233,6 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	raco::core::PropertyDescriptor endProp{sNode, {"translation"}};
 	EXPECT_EQ(endProp, sLink->endProp());
 
+	std::set<std::string> refRootObjectIDs{"node_id", "lua_script_id"};
+	EXPECT_EQ(result.rootObjectIDs, refRootObjectIDs);
 }

@@ -19,6 +19,9 @@
 #include "ramses_base/RamsesFormatter.h"
 #include "ramses_base/BaseEngineBackend.h"
 
+#include "ramses_adaptor/MeshNodeAdaptor.h"
+
+
 namespace raco::ramses_adaptor {
 
 SceneBackend::SceneBackend(ramses_base::BaseEngineBackend *engine, const SDataChangeDispatcher& dispatcher) 
@@ -112,14 +115,29 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 		parents[object] = static_cast<int>(sceneItems.size() - 1);
 	}
 
+	std::set<ramses::RamsesObject*> privateAppearances;
+	scene_->iterateAdaptors([&privateAppearances](ObjectAdaptor* adaptor) {
+		if (auto meshnode = dynamic_cast<MeshNodeAdaptor*>(adaptor)) {
+			if (meshnode->editorObject()->materialPrivate(0)) {
+				if (auto appearance = meshnode->privateAppearance().get()) {
+					if (auto ramsesAppearance = appearance->get()) {
+						privateAppearances.insert(ramsesAppearance);
+					}
+				}
+			}
+		}
+	});
+
 	for (const auto object : ramsesObjects) {
 		auto meshnode = dynamic_cast<ramses::MeshNode*>(object);
 		if (meshnode) {
 			int meshnodeIdx = parents[meshnode];
 
-			auto appearance = meshnode->getAppearance();	
-			int appIdx = parents[appearance];
-			sceneItems[appIdx].parentIndex_ = meshnodeIdx;
+			auto appearance = meshnode->getAppearance();
+			if (privateAppearances.find(appearance) != privateAppearances.end()) {
+				int appIdx = parents[appearance];
+				sceneItems[appIdx].parentIndex_ = meshnodeIdx;
+			}
 
 			auto geometryBinding = meshnode->getGeometryBinding();
 			auto geomIdx = parents[geometryBinding];

@@ -26,16 +26,18 @@
 
 namespace raco::components {
 
-class FileChangeListenerImpl : public core::FileChangeListener {
+class FileChangeListenerImpl {
 public:	
 	using Callback = std::function<void(void)>;
 
-	FileChangeListenerImpl(std::string &absPath, Callback& callbackHandler);
-	~FileChangeListenerImpl();
+	FileChangeListenerImpl(std::string &absPath, const Callback& callbackHandler);
+	virtual ~FileChangeListenerImpl();
 	
-	std::string getPath() const override;
+	std::string getPath() const;
 
-private:	
+	static constexpr int DELAYED_FILE_LOAD_TIME_MSEC = 100;
+private:
+	
 	std::filesystem::path path_;
 	Callback fileChangeCallback_;
 	QFileSystemWatcher fileWatcher_;

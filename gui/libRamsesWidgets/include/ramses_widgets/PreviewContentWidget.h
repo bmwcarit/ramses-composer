@@ -24,9 +24,11 @@ public:
 	explicit PreviewContentWidget(RendererBackend& rendererBackend, QWidget* parent = nullptr);
 	virtual QPaintEngine* paintEngine() const override { return nullptr; }
 	ramses::sceneId_t getSceneId();
+	void setSceneId(ramses::sceneId_t id);
+	void setBackgroundColor(data_storage::Vec3f backgroundColor);
+	void commit();
 
 public Q_SLOTS:
-	void setSceneId(ramses::sceneId_t id);
 	void setViewportRect(
 		const QSize areaSize,
 		const QPoint viewportPosition,
@@ -38,7 +40,6 @@ Q_SIGNALS:
 	void newMousePosition(const QPoint globalPosition);
 
 protected:
-	void paintEvent(QPaintEvent* event) override;
 	bool event(QEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 
