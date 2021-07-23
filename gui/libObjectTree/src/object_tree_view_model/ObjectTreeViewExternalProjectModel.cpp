@@ -151,8 +151,9 @@ bool ObjectTreeViewExternalProjectModel::canPasteInto(const QModelIndex& index) 
 	return false;
 }
 
-void ObjectTreeViewExternalProjectModel::deleteObjectAtIndex(const QModelIndex& index) {
+size_t ObjectTreeViewExternalProjectModel::deleteObjectAtIndex(const QModelIndex& index) {
 	// Don't modify external project structure.
+	return 0;
 }
 
 void ObjectTreeViewExternalProjectModel::cutObjectAtIndex(const QModelIndex& index, bool deepCut) {

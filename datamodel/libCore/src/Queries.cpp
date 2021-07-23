@@ -575,7 +575,7 @@ std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const
 	return result;
 }
 
-bool sameStructure(const Table* left, const Table* right) {
+bool sameStructure(const ReflectionInterface* left, const ReflectionInterface* right) {
 	if (left->size() != right->size()) {
 		return false;
 	}
@@ -609,14 +609,11 @@ bool sameStructure(const Table* left, const Table* right) {
 }
 
 bool checkLinkCompatibleTypes(const ValueHandle& start, const ValueHandle& end) {
-	if (start.type() == end.type()) {
-		if (start.type() == PrimitiveType::Table) {
-			return sameStructure(&start.constValueRef()->asTable(), &end.constValueRef()->asTable());
-		} else {
-			return true;
-		}
+	if ((start.type() == PrimitiveType::Table || start.type() == PrimitiveType::Struct) && 
+		(end.type() == PrimitiveType::Table || end.type() == PrimitiveType::Struct)) {
+		return sameStructure(&start.constValueRef()->getSubstructure(), &end.constValueRef()->getSubstructure());
 	}
-	return false;
+	return start.type() == end.type();
 }
 
 bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end) {

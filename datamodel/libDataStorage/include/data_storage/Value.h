@@ -28,6 +28,7 @@ using raco::core::SEditorObject;
 class AnnotationBase;
 
 class ReflectionInterface;
+class ClassWithReflectedMembers;
 class Table;
 
 class Vec2f;
@@ -56,7 +57,10 @@ enum class PrimitiveType {
 	Vec4f,
 	Vec2i,
 	Vec3i,
-	Vec4i
+	Vec4i,
+
+	// Complex C++ class types; must be class derived from ClassWithReflectedMembers
+	Struct
 };
 
 
@@ -90,6 +94,8 @@ constexpr PrimitiveType primitiveType() {
 		return PrimitiveType::Vec3i;
 	} else if constexpr (std::is_same<T, Vec4i>::value) {
 		return PrimitiveType::Vec4i;
+	} else if constexpr (std::is_base_of<ClassWithReflectedMembers, T>::value) {
+		return PrimitiveType::Struct;
 	} else if constexpr (std::is_base_of<EditorObject, typename T::element_type>::value) {
 		return PrimitiveType::Ref;
 	} else {
@@ -109,7 +115,7 @@ using TypeMapType = std::tuple<bool, int, double, std::string, SEditorObject, Ta
 //   - Table (no pointer, replaces embedded container)
 //   - vec3f, vec4f (embedded container)
 //   - NO EditorObject
-//   - can add further C++ classes implementing the ReflectionInterface
+//   - can add further C++ classes derived from ClassWithReflectedMembers as PrimitiveType::Struct
 //   - set of types is statically known at compile time; enum for type
 // - type is static, can't be changed after creation; type mismatch in get/set operations will fail
 
@@ -130,6 +136,20 @@ using TypeMapType = std::tuple<bool, int, double, std::string, SEditorObject, Ta
 // - Value::setRef and Value::canSetRef will enforce type compatibility:
 //   if the argument pointer can't be dynamic_cast to the actual pointer type (U in Value<U>)
 //   the assignment will fail with an exception and the check will return false.
+
+// On Struct type Values (PrimitiveType::Struct)
+// - Struct type Values store a subclass of ClassWithReflectedMembers as value (not as reference)
+//   similar to the way the Vec2f etc types work
+// - they are type safe: operations will enforce identical classes at runtime if
+//   multiple PrimitiveType::Struct Values are involved.
+// - for a Value<CC> to be usable the class CC must be derived from ClassWithReflectedMembers
+// - CC must implement the following member functions (same as for e.g. Vec2f)
+//   CC(const CC& other, std::function<SEditorObject(SEditorObject)>* translateRef)
+//   CC& operator=(const CC& other) 
+//   copyAnnotationData(const CC& other) 
+//   std::vector<std::pair<std::string, ValueBase*>> getProperties()
+// - Value::setStruct will enforce identical types at runtime using dynamic_cast and fail
+//   with an exception if the types are not identical
 
 class ValueBase {
 public:
@@ -187,6 +207,14 @@ public:
 	// Check if the current value is compatible with the argument pointer and could be set
 	virtual bool canSetRef(SEditorObject) const = 0;
 
+	// Get reference to generic base class for Struct type values.
+	// Will not work for vector (Vec2f etc) types or Tables.
+	virtual const ClassWithReflectedMembers& asStruct() const = 0;
+
+	// Set Struct type values.
+	// Identical types are dynamically enforced as runtime.
+	virtual void setStruct(const ClassWithReflectedMembers&) = 0;
+
 	// Check for equality of the actual classes of the arguments;
 	// differs from comparing the PrimitiveType by
 	// - Value<T> differs from Property<T>
@@ -198,7 +226,7 @@ public:
 	virtual ValueBase& operator=(const ValueBase&) = 0;
 
 	// Assign value and return true if new value different from current value
-	virtual bool assign(const ValueBase& newValue) = 0;
+	virtual bool assign(const ValueBase& newValue, bool includeAnnoData = false) = 0;
 
 	// Compare the value but not the annotation data
 	virtual bool operator==(const ValueBase&) const = 0;
@@ -257,7 +285,7 @@ class Value : public ValueBase {
 public:
 	Value() = default;
 	Value(T const& val) : ValueBase(), value_(val) {}
-	Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef);
+	Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other, translateRef) {}
 
 	virtual PrimitiveType type() const override;
 	virtual std::string typeName() const override {
@@ -265,6 +293,8 @@ public:
 			return getTypeName(primitiveType<T>());
 		} else if constexpr (std::is_convertible<T, std::shared_ptr<ReflectionInterface>>::value) {
 			return T::element_type::typeDescription.typeName;
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			return T::typeDescription.typeName;
 		} else {
 			return getTypeName(primitiveType<T>());
 		}
@@ -273,6 +303,8 @@ public:
 	ValueBase& operator=(const ValueBase& other) override {
 		if constexpr (std::is_convertible<T, SEditorObject>::value) {
 			setRef(other.asRef());
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			setStruct(other.asStruct());
 		} else {
 			value_ = other.as<T>();
 		}
@@ -280,10 +312,21 @@ public:
 	}
 
 	// Assign value and return true if new value different from current value
-	bool assign(const ValueBase& other) override {
+	bool assign(const ValueBase& other, bool includeAnnoData = false) override {
+		if (includeAnnoData) {
+			// TODO detect changes here
+			// Undo currently ignores changes in annotations too.
+			// OK like this until we have modifyable annotation data.
+			copyAnnotationData(other);
+		}
 		if constexpr (std::is_convertible<T, SEditorObject>::value) {
 			if (value_ != other.asRef()) {
 				setRef(other.asRef());
+				return true;
+			}
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			if (!(value_ == other.asStruct())) {
+				setStruct(other.asStruct());
 				return true;
 			}
 		} else {
@@ -299,6 +342,12 @@ public:
 		if (classesEqual(*this, other)) {
 			if constexpr (std::is_convertible<T, SEditorObject>::value) {
 				return value_ == other.asRef();
+			} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+				const T* vp = dynamic_cast<const T*>(&other.asStruct());
+				if (!vp) {
+					throw std::runtime_error("type mismatch");
+				}
+				return value_ == *vp;
 			} else {
 				return value_ == other.as<T>();
 			}
@@ -307,7 +356,13 @@ public:
 	}
 
 	virtual void copyAnnotationData(const ValueBase& src) override {
-		if constexpr (!std::is_convertible<T, SEditorObject>::value) {
+		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			const T* vp = dynamic_cast<const T*>(&src.asStruct());
+			if (!vp) {
+				throw std::runtime_error("type mismatch");
+			}
+			value_.copyAnnotationData(*vp);
+		} else if constexpr (!std::is_convertible<T, SEditorObject>::value) {
 			// The Vec2f,... types may have annotations nested inside, so we need to copy them too:
 			primitiveCopyAnnotationData<T>(value_, src.as<T>());
 		}
@@ -374,6 +429,21 @@ public:
 				}
 			}
 			value_ = std::static_pointer_cast<typename T::element_type>(v);
+		}
+	}
+	virtual const ClassWithReflectedMembers& asStruct() const override {
+		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			return value_;
+		}
+		throw std::runtime_error("type mismatch");
+	}
+	virtual void setStruct(const ClassWithReflectedMembers& newValue) override {
+		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			const T* vp = dynamic_cast<const T*>(&newValue);
+			if (!vp) {
+				throw std::runtime_error("type mismatch");
+			}
+			value_ = *vp;
 		}
 	}
 
@@ -592,5 +662,22 @@ public:
 	std::tuple<Args...> annotations_;
 	std::vector<AnnotationBase*> baseAnnotationPtrs_;
 };
+
+
+template <>
+inline Value<bool>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
+}
+
+template <>
+inline Value<int>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
+}
+
+template <>
+inline Value<double>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
+}
+
+template <>
+inline Value<std::string>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
+}
 
 }  // namespace raco::data_storage

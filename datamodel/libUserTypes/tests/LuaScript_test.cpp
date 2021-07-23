@@ -200,3 +200,51 @@ TEST_F(LuaScriptTest, restore_cached_struct_member) {
 	ASSERT_TRUE(in_struct);
 	ASSERT_EQ(in_struct.get("a").asDouble(), 2.0);
 }
+
+
+TEST_F(LuaScriptTest, properties_are_correctly_sorted) {
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle uri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.zz = INT
+	IN.aa = FLOAT
+
+	OUT.zz = INT
+	OUT.aa = FLOAT
+end
+
+function run()
+end
+
+)");
+	commandInterface.set(s.get("uri"), scriptFile);
+
+	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
+	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
+
+	auto scriptFile2 = makeFile("script2.lua", R"(
+function interface()
+	IN.zz = INT
+	IN.aa = FLOAT
+	IN.abc = INT
+	IN.za = STRING
+	IN.ff = BOOL
+
+	OUT.zz = INT
+	OUT.aa = FLOAT
+	OUT.zzz = FLOAT
+	OUT.e = STRING
+end
+
+function run()
+end
+
+)");
+
+	commandInterface.set(s.get("uri"), scriptFile2);
+	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
+	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+}

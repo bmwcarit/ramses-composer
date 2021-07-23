@@ -11,11 +11,11 @@ set(TEST_SOURCES
     Value_test.cpp
     Property_test.cpp
     Annotation_test.cpp
+    StructTypes.h
 )
 
 set(TEST_LIBRARIES
     raco::DataStorage
-    raco::RamsesBase
 )
 
 raco_package_add_test(

@@ -150,16 +150,15 @@ PropertyBrowserWidget::PropertyBrowserWidget(
 	  emptyLabel_{new QLabel{"Empty", this}},
 	  locked_{false},
 	  model_{new PropertyBrowserModel(this)} {
-	QPushButton* button = new QPushButton{this};
-	button->setContentsMargins(0, 0, 0, 0);
-	button->setFlat(true);
-	button->setIcon(Icons::icon(Pixmap::unlocked, this));
-	button->connect(button, &QPushButton::clicked, this, [this, button]() {
-		locked_ = !locked_;
-		button->setIcon(locked_ ? Icons::icon(Pixmap::locked, this) : Icons::icon(Pixmap::unlocked, this));
+	lockButton_ = new QPushButton{this};
+	lockButton_->setContentsMargins(0, 0, 0, 0);
+	lockButton_->setFlat(true);
+	lockButton_->setIcon(Icons::icon(Pixmap::unlocked, this));
+	lockButton_->connect(lockButton_, &QPushButton::clicked, this, [this]() {
+		setLocked(!locked_);
 	});
 
-	layout_.addWidget(button, 0, 0, Qt::AlignLeft);
+	layout_.addWidget(lockButton_, 0, 0, Qt::AlignLeft);
 	layout_.addWidget(emptyLabel_, 1, 0, Qt::AlignCenter);
 	layout_.setColumnStretch(0, 1);
 	layout_.setRowStretch(1, 1);
@@ -170,8 +169,16 @@ void PropertyBrowserWidget::setLockable(bool lockable) {
 }
 
 void PropertyBrowserWidget::clear() {
-	clearValueHandle(false);
+	if (!locked_) {
+		clearValueHandle(false);
+	}
 }
+
+void PropertyBrowserWidget::setLocked(bool locked) {
+	locked_ = locked;
+	lockButton_->setIcon(locked_ ? Icons::icon(Pixmap::locked, this) : Icons::icon(Pixmap::unlocked, this));
+}
+
 void PropertyBrowserWidget::clearValueHandle(bool restorable) {
 	if (restorable && propertyBrowser_) {
 		subscription_ = dispatcher_->registerOnObjectsLifeCycle([this](core::SEditorObject obj) {
@@ -191,8 +198,12 @@ void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
 		emptyLabel_->setVisible(false);
 		restorableObjectId_ = valueHandle.rootObject()->objectID();
 		subscription_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this, valueHandle](core::SEditorObject obj) {
-			if (valueHandle.rootObject() == obj)
+			if (valueHandle.rootObject() == obj) {
 				clearValueHandle(true);
+				if (locked_) {
+					setLocked(false);
+				}
+			}
 		});
 		propertyBrowser_.reset(new PropertyBrowserView{new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, model_}, model_, this});
 		layout_.addWidget(propertyBrowser_.get(), 1, 0);

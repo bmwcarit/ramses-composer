@@ -41,7 +41,7 @@ private:
 	raco::ramses_base::UniqueRamsesAppearanceBinding appearanceBinding_;
 
 	components::Subscription subscription_;
-	std::array<components::Subscription, 10> optionsSubscriptions_;
+	components::Subscription optionsSubscription_;
 	components::Subscription uniformSubscription_;
 };
 

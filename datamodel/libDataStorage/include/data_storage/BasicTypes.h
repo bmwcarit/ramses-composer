@@ -26,7 +26,7 @@ public:
 	bool serializationRequired() const override {
 		return true;
 	}
-	Vec2f(const Vec2f& other) : ClassWithReflectedMembers(getProperties()), x(other.x), y(other.y) {}
+	Vec2f(const Vec2f& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), x(other.x), y(other.y) {}
 
 	Vec2f(double defaultValue = 0.0, double step = 0.1, double min = 0.0, double max = 1.0) :
 		ClassWithReflectedMembers(getProperties()),
@@ -64,7 +64,7 @@ public:
 	bool serializationRequired() const override {
 		return true;
 	}
-	Vec3f(const Vec3f& other) : ClassWithReflectedMembers(getProperties()), x(other.x), y(other.y), z(other.z) {}
+	Vec3f(const Vec3f& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), x(other.x), y(other.y), z(other.z) {}
 
 	Vec3f(double defaultValue = 0.0, double step = 0.1, double min = 0.0, double max = 1.0) :
 		ClassWithReflectedMembers(getProperties()),
@@ -106,7 +106,7 @@ public:
 	bool serializationRequired() const override {
 		return true;
 	}
-	Vec4f(const Vec4f& other) : ClassWithReflectedMembers(getProperties()), x(other.x), y(other.y), z(other.z), w(other.w) {}
+	Vec4f(const Vec4f& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), x(other.x), y(other.y), z(other.z), w(other.w) {}
 
 	Vec4f(double defaultValue = 0.0, double step = 0.1, double min = 0.0, double max = 1.0) :
 		ClassWithReflectedMembers(getProperties()),
@@ -151,7 +151,7 @@ public:
 	bool serializationRequired() const override {
 		return true;
 	}
-	Vec2i(const Vec2i& other) : ClassWithReflectedMembers(getProperties()), i1_(other.i1_), i2_(other.i2_) {}
+	Vec2i(const Vec2i& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), i1_(other.i1_), i2_(other.i2_) {}
 
 	Vec2i(int defaultValue = 0, int step = 1, int min = 0, int max = 1) :
 		ClassWithReflectedMembers(getProperties()),
@@ -191,7 +191,7 @@ public:
 	bool serializationRequired() const override {
 		return true;
 	}
-	Vec3i(const Vec3i& other) : ClassWithReflectedMembers(getProperties()), i1_(other.i1_), i2_(other.i2_), i3_(other.i3_) {}
+	Vec3i(const Vec3i& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), i1_(other.i1_), i2_(other.i2_), i3_(other.i3_) {}
 
 	Vec3i(int defaultValue = 0, int step = 1, int min = 0, int max = 1) :
 		ClassWithReflectedMembers(getProperties()),
@@ -230,7 +230,7 @@ public:
 	bool serializationRequired() const override {
 		return true;
 	}
-	Vec4i(const Vec4i& other) : ClassWithReflectedMembers(getProperties()), i1_(other.i1_), i2_(other.i2_), i3_(other.i3_), i4_(other.i4_) {}
+	Vec4i(const Vec4i& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), i1_(other.i1_), i2_(other.i2_), i3_(other.i3_), i4_(other.i4_) {}
 
 	Vec4i(int defaultValue = 0, int step = 1, int min = 0, int max = 1) :
 		ClassWithReflectedMembers(getProperties()),

@@ -263,7 +263,7 @@ TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_private) {
 	auto meshNode = create_meshnode("MeshNode", mesh, material);
 
 	context.set(meshNode->getMaterialPrivateHandle(0), true);
-	context.set({material, {"depthwrite"}}, false);
+	context.set({material, {"options", "depthwrite"}}, false);
 	dispatch();
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
@@ -290,7 +290,7 @@ TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_shared) {
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
 	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 
-	context.set({material, {"depthwrite"}}, false);
+	context.set({material, {"options", "depthwrite"}}, false);
 	dispatch();
 
 	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
@@ -303,7 +303,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_materialReset_and_dep
 	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
 	auto meshNode = create_meshnode("MeshNode", mesh, material);
 
-	context.set({material, {"depthwrite"}}, false);
+	context.set({material, {"options", "depthwrite"}}, false);
 	dispatch();
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");

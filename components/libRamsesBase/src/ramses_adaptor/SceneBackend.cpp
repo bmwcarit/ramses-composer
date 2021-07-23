@@ -150,17 +150,17 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 	}
 
 	for (const auto* binding : logicEngine_->ramsesAppearanceBindings()) {
-		auto parentIdx = parents[binding->getRamsesAppearance()];
+		auto parentIdx = parents[&binding->getRamsesAppearance()];
 		sceneItems.emplace_back("AppearanceBinding", binding->getName().data(), parentIdx);
 	}
 
 	for (const auto* binding : logicEngine_->ramsesNodeBindings()) {
-		auto parentIdx = parents[binding->getRamsesNode()];
+		auto parentIdx = parents[&binding->getRamsesNode()];
 		sceneItems.emplace_back("NodeBinding", binding->getName().data(), parentIdx);
 	}
 
 	for (const auto* binding : logicEngine_->ramsesCameraBindings()) {
-		auto parentIdx = parents[binding->getRamsesCamera()];
+		auto parentIdx = parents[&binding->getRamsesCamera()];
 		sceneItems.emplace_back("CameraBinding", binding->getName().data(), parentIdx);
 	}
 

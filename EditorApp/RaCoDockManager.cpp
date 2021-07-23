@@ -82,7 +82,9 @@ void RaCoDockManager::saveCustomLayouts(QSettings& settings) {
 void RaCoDockManager::saveCurrentLayoutInCache(QSettings& settings) {
 	cachedLayoutInfo_.clear();
 	for (auto dockWidget : dockWidgetsMap()) {
-		cachedLayoutInfo_.append({dockWidget->windowTitle(), dockWidget->objectName()});
+		if (!dockWidget->isClosed()) {
+			cachedLayoutInfo_.append({dockWidget->windowTitle(), dockWidget->objectName()});
+		}
 	}
 
 	cachedLayoutState_ = ads::CDockManager::saveState();
@@ -99,7 +101,9 @@ void RaCoDockManager::addCustomLayout(const QString& layoutName) {
 	}
 
 	for (auto dockWidget : dockWidgetsMap()) {
-		customLayoutInfos_[layoutName].append({dockWidget->windowTitle(), dockWidget->objectName()});
+		if (!dockWidget->isClosed()) {
+			customLayoutInfos_[layoutName].append({dockWidget->windowTitle(), dockWidget->objectName()});
+		}
 	}
 
 	ads::CDockManager::addPerspective(layoutName);

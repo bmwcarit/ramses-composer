@@ -10,6 +10,8 @@
 #include "data_storage/BasicTypes.h"
 #include "data_storage/Value.h"
 
+#include "StructTypes.h"
+
 #include <memory>
 #include <stdexcept>
 #include <tuple>
@@ -73,4 +75,57 @@ TEST(PropertyTest, clone) {
 	EXPECT_EQ(*range->min_, *range_clone->min_);
 	EXPECT_EQ(*range->max_, *range_clone->max_);
 
+}
+
+
+TEST(PropertyTest, Struct) {
+	SimpleStruct s;
+	s.bb = false;
+	s.dd = 2.0;
+
+	Property<SimpleStruct> vs;
+	const Property<SimpleStruct> cvs(s);
+	Property<AltStruct> va;
+
+	EXPECT_EQ(vs.type(), PrimitiveType::Struct);
+	EXPECT_EQ(vs.typeName(), "SimpleStruct");
+
+	EXPECT_THROW(vs.asBool(), std::runtime_error);
+	EXPECT_THROW(vs.as<bool>(), std::runtime_error);
+	EXPECT_THROW(vs.asVec3f(), std::runtime_error);
+	EXPECT_THROW(vs.as<Vec3f>(), std::runtime_error);
+
+	ReflectionInterface& intf = vs.getSubstructure();
+	EXPECT_EQ(intf.size(), 2);
+
+	const ReflectionInterface& cintf = cvs.getSubstructure();
+	EXPECT_EQ(cintf.size(), 2);
+
+	EXPECT_EQ(vs->size(), 2);
+
+	EXPECT_THROW(vs.asRef(), std::runtime_error);
+
+	// operator=
+	vs = cvs;
+	EXPECT_EQ(*vs->dd, 2.0);
+
+	vs = s;
+	EXPECT_TRUE(*vs == s);
+
+	// operator==
+	EXPECT_TRUE(vs == cvs);
+	EXPECT_FALSE(vs == va);
+
+	// assign
+	EXPECT_FALSE(vs.assign(cvs));
+	EXPECT_THROW(vs.assign(va), std::runtime_error);
+
+	// copyAnnotationData
+	EXPECT_NO_THROW(vs.copyAnnotationData(cvs));
+	EXPECT_THROW(vs.copyAnnotationData(va), std::runtime_error);
+
+	// clone
+	auto vsclone = vs.clone(nullptr);
+
+	EXPECT_TRUE(vs == *vsclone.get());
 }

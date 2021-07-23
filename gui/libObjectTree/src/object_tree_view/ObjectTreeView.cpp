@@ -142,8 +142,10 @@ void ObjectTreeView::shortcutDelete() {
 		if (proxyModel_) {
 			selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
 		}
-		treeModel_->deleteObjectAtIndex(selectedItemIndex);
-		selectionModel()->Q_EMIT selectionChanged({}, {});
+		auto delObjAmount = treeModel_->deleteObjectAtIndex(selectedItemIndex);
+		if (delObjAmount > 0) {
+			selectionModel()->Q_EMIT selectionChanged({}, {});
+		}
 	}
 }
 

@@ -38,7 +38,6 @@ class ObjectAdaptor;
 
 class BaseCameraAdaptorHelpers {
 public:
-	static std::array<components::Subscription, 4> viewportSubscriptions(SceneAdaptor* sceneAdaptor, ObjectAdaptor* cameraAdaptor);
 	static void sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, rlogic::RamsesCameraBinding* cameraBinding);
 	static const rlogic::Property* getProperty(rlogic::RamsesCameraBinding* cameraBinding, const std::vector<std::string>& propertyNamesVector);
 };

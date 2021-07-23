@@ -29,8 +29,8 @@ public:
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 
 private:
-	std::array<components::Subscription, 4> viewportSubscriptions_;
-	std::array<components::Subscription, 4> frustrumSubscriptions_;
+	components::Subscription viewportSubscription_;
+	components::Subscription frustrumSubscription_;
 	raco::ramses_base::UniqueRamsesCameraBinding cameraBinding_;
 };
 

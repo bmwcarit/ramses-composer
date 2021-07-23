@@ -43,38 +43,9 @@ MaterialAdaptor::MaterialAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMateri
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject(), [this]() {
 		  tagDirty();
 	  })},
-	  optionsSubscriptions_{
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendOperationColor"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendOperationAlpha"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorSrcColor"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorDestColor"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorSrcAlpha"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendFactorDestAlpha"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"blendColor"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"depthwrite"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"depthFunction"}}, [this](auto) {
-			  tagDirty();
-		  }),
-		  sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"cullmode"}}, [this](auto) {
-			  tagDirty();
-		  })
-	  },
+	  optionsSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"options"}}, [this](auto) {
+		  tagDirty();
+	  })},
 	  uniformSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"uniforms"}}, [this](auto) {
 		  tagDirty();
 	  })} {
@@ -108,12 +79,11 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 	// Only create appearance binding and set uniforms & blend options if we are using a valid shader but not if
 	// we are using the empty default shaders.
 	if (editorObject()->isShaderValid()) {
-		core::ValueHandle optionsHandle = {editorObject()};
+		core::ValueHandle optionsHandle = {editorObject(), {"options"}};
 		core::ValueHandle uniformsHandle = {editorObject(), {"uniforms"}};
 		updateAppearance(sceneAdaptor_, appearance_, optionsHandle, uniformsHandle);
 
-		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(&sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
-		appearanceBinding_->setRamsesAppearance(appearance_->get());
+		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*appearance_->get(), & sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
 	}
 
 	tagDirty(false);

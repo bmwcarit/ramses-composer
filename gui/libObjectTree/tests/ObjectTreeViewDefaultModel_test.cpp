@@ -458,8 +458,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionJustOneObject) {
 	ASSERT_EQ(project.instances().size(), 1);
 
 	auto justAnIndex = viewModel_.indexFromObjectID(justANode->objectID());
-	deleteObjectAtIndex(justAnIndex);
+	auto delObjAmount = deleteObjectAtIndex(justAnIndex);
 
+	ASSERT_EQ(delObjAmount, 1);
 	ASSERT_TRUE(project.instances().empty());
 
 	justAnIndex = viewModel_.indexFromObjectID(justANode->objectID());
@@ -476,7 +477,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionChildNode) {
 	moveScenegraphChild(childNode, parentNode);
 
 	auto childIndex = viewModel_.indexFromObjectID(childNode->objectID());
-	deleteObjectAtIndex(childIndex);
+	auto delObjAmount = deleteObjectAtIndex(childIndex);
+	ASSERT_EQ(delObjAmount, 1);
 	ASSERT_EQ(project.instances().size(), 1);
 
 	auto parentIndex = viewModel_.indexFromObjectID(parentNode->objectID());
@@ -500,7 +502,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionParentNode) {
 	moveScenegraphChild(child2Node, parentNode);
 
 	auto parentIndex = viewModel_.indexFromObjectID(parentNode->objectID());
-	deleteObjectAtIndex(parentIndex);
+	auto delObjAmount = deleteObjectAtIndex(parentIndex);
+	ASSERT_EQ(delObjAmount, 3);
 	ASSERT_TRUE(project.instances().empty());
 
 	ASSERT_FALSE(viewModel_.indexFromObjectID(parentNode->objectID()).isValid());
@@ -524,7 +527,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMidNode) {
 	moveScenegraphChild(child2Node, midNode);
 
 	auto midIndex = viewModel_.indexFromObjectID(midNode->objectID());
-	deleteObjectAtIndex(midIndex);
+	auto delObjAmount = deleteObjectAtIndex(midIndex);
+	ASSERT_EQ(delObjAmount, 3);
 	ASSERT_EQ(project.instances().size(), 1);
 
 	ASSERT_TRUE(viewModel_.indexFromObjectID(parentNode->objectID()).isValid());

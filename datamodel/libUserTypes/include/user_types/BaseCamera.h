@@ -13,6 +13,56 @@
 
 namespace raco::user_types {
 
+	
+class CameraViewport : public ClassWithReflectedMembers {
+public:
+	static inline const TypeDescriptor typeDescription = {"CameraViewport", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	CameraViewport() : ClassWithReflectedMembers(getProperties()) {}
+
+	CameraViewport(const CameraViewport& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: ClassWithReflectedMembers(getProperties()),
+		  offsetX_(other.offsetX_),
+		  offsetY_(other.offsetY_),
+		  width_(other.width_),
+		  height_(other.height_) {
+	}
+
+	CameraViewport& operator=(const CameraViewport& other) {
+		offsetX_ = other.offsetX_;
+		offsetY_ = other.offsetY_;
+		width_ = other.width_;
+		height_ = other.height_;
+		return *this;
+	}
+
+	void copyAnnotationData(const CameraViewport& other) {
+		offsetX_.copyAnnotationData(other.offsetX_);
+		offsetY_.copyAnnotationData(other.offsetY_);
+		width_.copyAnnotationData(other.width_);
+		height_.copyAnnotationData(other.height_);
+	}
+
+	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
+		return {
+			{"offsetX", &offsetX_},
+			{"offsetY", &offsetY_},
+			{"width", &width_},
+			{"height", &height_}};
+	}
+	
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> offsetX_{0, {-7680, 7680}, {"Offset X"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> offsetY_{0, {-7680, 7680}, {"Offset Y"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> width_{1440, {0, 7680}, {"Width"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> height_{720, {0, 7680}, {"Height"}, {}};
+};
+
 class BaseCamera : public Node {
 	Property<double> step_;
 
@@ -27,16 +77,10 @@ public:
 	}
 
 	void fillPropertyDescription() {
-		properties_.emplace_back("viewPortOffsetX", &viewportOffsetX_);
-		properties_.emplace_back("viewPortOffsetY", &viewportOffsetY_);
-		properties_.emplace_back("viewPortWidth", &viewportWidth_);
-		properties_.emplace_back("viewPortHeight", &viewportHeight_);
+		properties_.emplace_back("viewport", &viewport_);
 	}
 
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> viewportOffsetX_{ 0, { -7680, 7680 }, { "Viewport Offset X" }, {} };
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> viewportOffsetY_{ 0, { -7680, 7680 }, { "Viewport Offset Y" }, {} };
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> viewportWidth_{ 1440, { 0, 7680 }, { "Viewport Width" }, {} };
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> viewportHeight_{ 720, { 0, 7680 }, { "Viewport Height" }, {} };
+	Property<CameraViewport, DisplayNameAnnotation, LinkEndAnnotation> viewport_{{}, {"Viewport"}, {}};
 };
 
 using SBaseCamera = std::shared_ptr<BaseCamera>;

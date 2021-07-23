@@ -57,7 +57,7 @@ public:
 	ValueBase* addProperty(std::string const& name, ValueBase* property, int index_before = -1);
 
 	// Add user-created property; Table will take over ownership of object.
-	ValueBase* addProperty(const std::string &name, std::unique_ptr<ValueBase>&& property);
+	ValueBase* addProperty(const std::string& name, std::unique_ptr<ValueBase>&& property, int index_before = -1);
 
 	// Insert new property at specified position into the property list.
 	// If index_before = -1 the property is appended, otherwise it will be insert before the

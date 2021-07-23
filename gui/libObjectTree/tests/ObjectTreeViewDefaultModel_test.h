@@ -37,9 +37,10 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 		dataChangeDispatcher_->dispatch(recorder.release());
 	}
 
-	void deleteObjectAtIndex(const QModelIndex& index) {
-		viewModel_.deleteObjectAtIndex(index);
+	size_t deleteObjectAtIndex(const QModelIndex& index) {
+		auto delObjAmount = viewModel_.deleteObjectAtIndex(index);
 		dataChangeDispatcher_->dispatch(recorder.release());
+		return delObjAmount;
 	}
 
 	std::string modelIndexToString(raco::object_tree::model::ObjectTreeViewDefaultModel &viewModel, const QModelIndex &currentIndex, Qt::ItemDataRole role = Qt::DisplayRole) {

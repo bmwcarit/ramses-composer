@@ -107,7 +107,10 @@ int deserializeFileVersion(const QJsonDocument& document);
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& jsonDocument, const DeserializationFactory& factory);
 ProjectDeserializationInfo deserializeProject(const std::string& json, const DeserializationFactory& factory);
 
-std::optional<QJsonValue> serializePropertyForMigration(const ValueBase& value, const ResolveReferencedId& resolveReferenceId);
+std::optional<QJsonValue> serializePropertyForMigration(const ValueBase& value, const ResolveReferencedId& resolveReferenceId, bool dynamicallyTyped);
 References deserializePropertyForMigration(const QJsonValue& property, ValueBase& value, const DeserializationFactory& factory = {});
+
+SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, const DeserializationFactory& factory, References& references);
+QJsonObject serializeTypedObject(const ReflectionInterface& object, const ResolveReferencedId& resolveReferenceId);
 
 };	// namespace raco::serialization

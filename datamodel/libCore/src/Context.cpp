@@ -169,10 +169,10 @@ void BaseContext::set(ValueHandle const& handle, SEditorObject const& value) {
 	setT(handle, value);
 }
 
-ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty) {
+ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty, int indexBefore) {
 	Table& table{handle.valueRef()->asTable()};
 
-	ValueBase* newValue = table.addProperty(name, std::move(newProperty));
+	ValueBase* newValue = table.addProperty(name, std::move(newProperty), indexBefore);
 
 	// Cache/Restore links starting or ending on parent properties:
 	// The structure on one side of the link has changed and links need to be revalidated.

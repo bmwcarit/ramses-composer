@@ -36,13 +36,6 @@ using namespace raco::user_types;
 
 class PrefabTest : public TestEnvironmentCore {
 public:
-	void checkLinks(std::vector<Link> refLinks) {
-		EXPECT_EQ(refLinks.size(), project.links().size());
-		for (const auto& refLink : refLinks) {
-			auto projectLink = Queries::getLink(project, refLink.endProp());
-			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp());
-		}
-	}
 };
 
 TEST_F(PrefabTest, move_node_in) {

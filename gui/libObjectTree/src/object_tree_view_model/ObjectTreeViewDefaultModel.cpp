@@ -414,9 +414,9 @@ bool ObjectTreeViewDefaultModel::canPasteInto(const QModelIndex& index) const {
 	return false;
 }
 
-void ObjectTreeViewDefaultModel::deleteObjectAtIndex(const QModelIndex& index) {
+size_t ObjectTreeViewDefaultModel::deleteObjectAtIndex(const QModelIndex& index) {
 	auto obj = indexToSEditorObject(index);
-	commandInterface_->deleteObjects({obj});
+	return commandInterface_->deleteObjects({obj});
 }
 
 bool ObjectTreeViewDefaultModel::canDeleteUnusedResources() const {

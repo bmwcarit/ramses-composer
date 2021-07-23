@@ -18,22 +18,13 @@ namespace raco::ramses_adaptor {
 
 PerspectiveCameraAdaptor::PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::PerspectiveCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesPerspectiveCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(&sceneAdaptor->logicEngine())},
-	  viewportSubscriptions_{ std::move(BaseCameraAdaptorHelpers::viewportSubscriptions(sceneAdaptor, this)) },
-      frustrumSubscriptions_{
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("near"), [this]() {
-			  tagDirty();
-		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("far"), [this]() {
-			  tagDirty();
-		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("fov"), [this]() {
-			  tagDirty();
-		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("aspect"), [this]() {
-			  tagDirty();
-		  })} {
-	cameraBinding_->setRamsesCamera(&ramsesObject());
+	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(this->ramsesObject(), & sceneAdaptor->logicEngine())},
+	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, {"viewport"}}, [this](auto) {
+		  tagDirty();
+	  })},
+	  frustrumSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, {"frustum"}}, [this](auto) {
+		  tagDirty();
+	  })} {
 }
 
 PerspectiveCameraAdaptor::~PerspectiveCameraAdaptor() {
@@ -43,14 +34,14 @@ PerspectiveCameraAdaptor::~PerspectiveCameraAdaptor() {
 bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 	SpatialAdaptor::sync(errors);
 	BaseCameraAdaptorHelpers::sync(editorObject(), &ramsesObject(), cameraBinding_.get());
-	ramsesObject().setFrustum(static_cast<float>(*editorObject()->fov_), static_cast<float>(*editorObject()->aspect_), static_cast<float>(*editorObject()->near_), static_cast<float>(*editorObject()->far_));
+	ramsesObject().setFrustum(static_cast<float>(*editorObject()->frustum_->fov_), static_cast<float>(*editorObject()->frustum_->aspect_), static_cast<float>(*editorObject()->frustum_->near_), static_cast<float>(*editorObject()->frustum_->far_));
 	sceneAdaptor_->setCamera(&ramsesObject());
 	// The logic engine will always set the entire struct even if there is a link for only one of the values, and use the default values in the binding
 	// for the non-linked elements in the struct - so we need to also set the default values for the bindings.
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("nearPlane")->set(static_cast<float>(*editorObject()->near_));
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("farPlane")->set(static_cast<float>(*editorObject()->far_));
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("fieldOfView")->set(static_cast<float>(*editorObject()->fov_));
-	cameraBinding_->getInputs()->getChild("frustumProperties")->getChild("aspectRatio")->set(static_cast<float>(*editorObject()->aspect_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("nearPlane")->set(static_cast<float>(*editorObject()->frustum_->near_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("farPlane")->set(static_cast<float>(*editorObject()->frustum_->far_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("fieldOfView")->set(static_cast<float>(*editorObject()->frustum_->fov_));
+	cameraBinding_->getInputs()->getChild("frustum")->getChild("aspectRatio")->set(static_cast<float>(*editorObject()->frustum_->aspect_));
 	tagDirty(false);
 	return true;
 }
@@ -61,22 +52,26 @@ const rlogic::Property* PerspectiveCameraAdaptor::getProperty(const std::vector<
 	using raco::user_types::property_name;
 
 	static std::map<std::string_view, std::string_view> propertyNameToFrustrumPropertyName{
-		{ "near", "nearPlane" },
-		{ "far", "farPlane" },
-		{ "fov", "fieldOfView" },
-		{ "aspect", "aspectRatio" }
+		{ "nearPlane", "nearPlane" },
+		{ "farPlane", "farPlane" },
+		{ "fieldOfView", "fieldOfView" },
+		{ "aspectRatio", "aspectRatio" }
 	};
-	std::string propName = propertyNamesVector[0];
-	assert(propertyNamesVector.size() == 1);
-	if(propertyNameToFrustrumPropertyName.find(propName) != propertyNameToFrustrumPropertyName.end()) {
-		auto const ramsesFrustrumProperties = cameraBinding_->getInputs()->getChild("frustumProperties");
-		assert(ramsesFrustrumProperties != nullptr);
-		auto const ramsesFrustrumProperty = ramsesFrustrumProperties->getChild(propertyNameToFrustrumPropertyName.at(propName));
-		assert(ramsesFrustrumProperty != nullptr);
-		return ramsesFrustrumProperty;
-	}
 	if (auto p = BaseCameraAdaptorHelpers::getProperty(cameraBinding_.get(), propertyNamesVector)) {
 		return p;
+	}
+	if (propertyNamesVector.size() == 1 && propertyNamesVector[0] == "frustum") {
+		return cameraBinding_->getInputs()->getChild("frustum");	
+	}
+	if (propertyNamesVector.size() == 2 && propertyNamesVector[0] == "frustum") {
+		std::string propName = propertyNamesVector[1];
+		if (propertyNameToFrustrumPropertyName.find(propName) != propertyNameToFrustrumPropertyName.end()) {
+			auto const ramsesFrustrumProperties = cameraBinding_->getInputs()->getChild("frustum");
+			assert(ramsesFrustrumProperties != nullptr);
+			auto const ramsesFrustrumProperty = ramsesFrustrumProperties->getChild(propertyNameToFrustrumPropertyName.at(propName));
+			assert(ramsesFrustrumProperty != nullptr);
+			return ramsesFrustrumProperty;
+		}
 	}
 	return SpatialAdaptor::getProperty(propertyNamesVector);
 }

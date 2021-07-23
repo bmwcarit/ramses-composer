@@ -100,7 +100,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const core::EditorObject::TypeDescriptor &typeDesc, const std::string &nodeName = "", const QModelIndex &parent = QModelIndex());
-	virtual void deleteObjectAtIndex(const QModelIndex& index);
+	virtual size_t deleteObjectAtIndex(const QModelIndex& index);
 	virtual void copyObjectAtIndex(const QModelIndex& index, bool deepCopy);
 	virtual void cutObjectAtIndex(const QModelIndex& index, bool deepCut);
 	virtual bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr);

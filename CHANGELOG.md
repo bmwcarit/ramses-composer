@@ -20,6 +20,20 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Bugs
 -->
 
+## [0.8.3]
+
+### Changes
+* Update from ramses-logic 0.6.2 to ramses-logic 0.7.0
+* Locked Property Browsers whose item has been deleted, will become automatically unlocked.
+* Dynamic LuaScript properties now follow the same alphabetical order as propagated by ramses-logic.
+* Material uniforms are now sorted according to their chronological declaration appearance in the shader files.
+* Added support for struct properties in the data model. Converted Camera viewport and frustum properties to structs. Allow the camera viewport and frustum structs to be linked as a whole.
+
+### Fixes
+* Deleting a Node will not affect locked Property Browsers anymore, except when the Property Browser was locked onto the now deleted Node.
+* Closed docks do not get cached/saved anymore.
+* The Property Browser does not get reset anymore when pressing the Delete key while a read-only object is selected.
+
 ## [0.8.2]
 
 ### Added

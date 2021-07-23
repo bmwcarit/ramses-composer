@@ -25,6 +25,7 @@ using SCubeMap = std::shared_ptr<CubeMap>;
 class Texture;
 using STexture = std::shared_ptr<Texture>;
 
+class BlendOptions;
 
 using namespace core;
 
@@ -48,6 +49,7 @@ public:
 		Property<int, DisplayNameAnnotation, EnumerationAnnotation>,
 		Property<bool, DisplayNameAnnotation>,
 		Property<Vec4f, DisplayNameAnnotation>,
+		Property<BlendOptions, DisplayNameAnnotation>,
 
 		Property<bool, EngineTypeAnnotation>,
 		Property<int, EngineTypeAnnotation>,

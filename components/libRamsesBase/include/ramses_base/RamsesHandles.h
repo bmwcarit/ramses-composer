@@ -222,20 +222,20 @@ using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBi
 using UniqueRamsesNodeBinding = std::unique_ptr<rlogic::RamsesNodeBinding, std::function<void(rlogic::RamsesNodeBinding*)>>;
 using UniqueRamsesCameraBinding = std::unique_ptr<rlogic::RamsesCameraBinding, std::function<void(rlogic::RamsesCameraBinding*)>>;
 
-inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(rlogic::LogicEngine* logicEngine, const std::string& name) {
-	return {logicEngine->createRamsesAppearanceBinding(name), [logicEngine](rlogic::RamsesAppearanceBinding* ptr) {
+inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, rlogic::LogicEngine* logicEngine, const std::string& name) {
+	return {logicEngine->createRamsesAppearanceBinding(appearance, name), [logicEngine](rlogic::RamsesAppearanceBinding* ptr) {
 				logicEngine->destroy(*ptr);
 			}};
 }
 
-inline UniqueRamsesNodeBinding ramsesNodeBinding(rlogic::LogicEngine* logicEngine) {
-	return {logicEngine->createRamsesNodeBinding(), [logicEngine](rlogic::RamsesNodeBinding* binding) { 
-		logicEngine->destroy(*binding); 
-	}};
+inline UniqueRamsesNodeBinding ramsesNodeBinding(ramses::Node& node, rlogic::LogicEngine* logicEngine) {
+	return {logicEngine->createRamsesNodeBinding(node), [logicEngine](rlogic::RamsesNodeBinding* binding) {
+				logicEngine->destroy(*binding);
+			}};
 }
 
-inline UniqueRamsesCameraBinding ramsesCameraBinding(rlogic::LogicEngine* logicEngine) {
-	return {logicEngine->createRamsesCameraBinding(), [logicEngine](rlogic::RamsesCameraBinding* binding) {
+inline UniqueRamsesCameraBinding ramsesCameraBinding(ramses::Camera& camera, rlogic::LogicEngine* logicEngine) {
+	return {logicEngine->createRamsesCameraBinding(camera), [logicEngine](rlogic::RamsesCameraBinding* binding) {
 				logicEngine->destroy(*binding);
 			}};
 }

@@ -34,7 +34,10 @@ namespace raco::components {
  * 12: Added 'private' property in meshnode material container.
  *     Renamed 'depthfunction' ->  'depthFunction' in options container of meshnode material slot.
  *     Added LinkEndAnnotation to material uniform properties
+ * 13: Introduced Struct properties and converted
+ *     - material and meshnode blend options
+ *     - camera viewport and frustum
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 12;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 13;
 QJsonDocument migrateProject(const QJsonDocument& doc);
 }  // namespace raco::components

@@ -98,15 +98,13 @@ std::string dataModelNameFromInterface(const PropertyInterface& propInterface, s
 	return propInterface.name;
 }
 
-const PropertyInterface* findNameInInterfaces(const PropertyInterfaceList& interfaces, const std::string& name) {
-	const PropertyInterface* it = nullptr;
+std::vector<PropertyInterface>::const_iterator findNameInInterfaces(const PropertyInterfaceList& interfaces, const std::string& name) {
 	for (size_t index{0}; index < interfaces.size(); index++) {
 		if (dataModelNameFromInterface(interfaces[index], index) == name) {
-			it = &interfaces[index];
-			break;
+			return std::next(interfaces.begin(), index);
 		}
 	}
-	return it;
+	return interfaces.end();
 }
 
 inline void cacheRecursive(raco::core::BaseContext& context, const ValueHandle& property, const std::string& propertyPath, OutdatedPropertiesStore& outdatedPropertiesStore) {
@@ -127,23 +125,23 @@ inline void cacheRecursive(raco::core::BaseContext& context, const ValueHandle& 
 
 inline void removeProperties(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, OutdatedPropertiesStore& outdatedPropertiesStore) {
 	std::vector<std::string> toRemove{};
-	for (size_t i{0}; i < property.size(); i++) {
-		const auto name = property[i].getPropName();
-		const PropertyInterface* it = findNameInInterfaces(interface, name);
-		const ValueBase* value = property[i].constValueRef();
+	for (size_t propertyIndex{0}; propertyIndex < property.size(); propertyIndex++) {
+		const auto name = property[propertyIndex].getPropName();
+		auto it = findNameInInterfaces(interface, name);
+		const ValueBase* value = property[propertyIndex].constValueRef();
 		auto anno = value->query<EngineTypeAnnotation>();
 		EnginePrimitive engineType = anno->type();
 
 		auto fullPropPath = propertyPath + propertyPathSeparator + name;
-		if (it == nullptr || it->type != engineType) {
+		if (it == interface.end() || it->type != engineType || std::distance(interface.begin(), it) != propertyIndex) {
 			toRemove.emplace_back(name);
 			if (value->type() != PrimitiveType::Table) {
 				outdatedPropertiesStore[std::make_pair(fullPropPath, engineType)] = value->clone(nullptr);
 			} else {
-				cacheRecursive(context, property[i], fullPropPath, outdatedPropertiesStore);
+				cacheRecursive(context, property[propertyIndex], fullPropPath, outdatedPropertiesStore);
 			}
 		} else if (value->type() == PrimitiveType::Table) {
-			removeProperties(context, it->children, property[i], fullPropPath, outdatedPropertiesStore);
+			removeProperties(context, it->children, property[propertyIndex], fullPropPath, outdatedPropertiesStore);
 		}
 	}
 	for (const auto& propName : toRemove) {
@@ -152,9 +150,9 @@ inline void removeProperties(raco::core::BaseContext& context, const PropertyInt
 }
 
 inline void addProperties(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, const OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd) {
-	for (size_t index{0}; index < interface.size(); index++) {
-		const auto& iEntry = interface[index];
-		const std::string name(dataModelNameFromInterface(iEntry, index));
+	for (size_t interfaceIndex{0}; interfaceIndex < interface.size(); interfaceIndex++) {
+		const auto& iEntry = interface[interfaceIndex];
+		const std::string name(dataModelNameFromInterface(iEntry, interfaceIndex));
 		if (!property.hasProperty(name)) {
 			std::unique_ptr<raco::data_storage::ValueBase> uniqueValue;
 			bool isRefType = PropertyInterface::primitiveType(iEntry.type) == PrimitiveType::Ref;
@@ -165,7 +163,7 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 			} else {
 				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<>(iEntry.type));
 			}
-			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue));
+			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue), interfaceIndex);
 			auto fullPropPath = propertyPath + propertyPathSeparator + name;
 
 			auto it = outdatedPropertiesStore.find(std::make_pair(fullPropPath, iEntry.type));

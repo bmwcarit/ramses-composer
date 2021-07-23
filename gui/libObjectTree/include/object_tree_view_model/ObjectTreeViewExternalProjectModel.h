@@ -54,7 +54,7 @@ public:
 	bool canPasteInto(const QModelIndex& index) const override;
 
 public Q_SLOTS:
-	void deleteObjectAtIndex(const QModelIndex& index) override;
+	size_t deleteObjectAtIndex(const QModelIndex& index) override;
 	void copyObjectAtIndex(const QModelIndex& index, bool deepCopy) override;
 	void cutObjectAtIndex(const QModelIndex& index, bool deepCut) override;
 	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr) override;

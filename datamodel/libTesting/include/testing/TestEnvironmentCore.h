@@ -14,9 +14,11 @@
 #include "core/Context.h"
 #include "core/EditorObject.h"
 #include "core/Errors.h"
+#include "core/Link.h"
 #include "core/MeshCacheInterface.h"
 #include "core/Project.h"
 #include "core/Undo.h"
+#include "core/Queries.h"
 #include "core/UserObjectFactoryInterface.h"
 #include "log_system/log.h"
 #include "ramses_base/HeadlessEngineBackend.h"
@@ -27,6 +29,7 @@
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Material.h"
+#include "user_types/LuaScript.h"
 
 #include <QCoreApplication>
 
@@ -92,6 +95,17 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return meshnode;
 	}
 
+	raco::user_types::SLuaScript create_lua(const std::string& name, const std::string& relpath) {
+		auto lua = create<raco::user_types::LuaScript>(name);
+		commandInterface.set({lua, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
+		return lua;
+	}
+
+	raco::user_types::SLuaScript create_lua(const std::string& name, const typename RacoBaseTest<BaseClass>::TextFile& file) {
+		auto lua = create<raco::user_types::LuaScript>(name);
+		commandInterface.set({lua, {"uri"}}, file);
+		return lua;
+	}
 
 	void checkUndoRedo(std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
 		RacoBaseTest<BaseClass>::checkUndoRedo(commandInterface, operation, preCheck, postCheck);
@@ -101,6 +115,19 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	void checkUndoRedoMultiStep(std::array<std::function<void()>, N> operations, std::array<std::function<void()>, N + 1> checks) {
 		RacoBaseTest<BaseClass>::checkUndoRedoMultiStep(commandInterface, operations, checks);
 	}
+
+	void checkLinks(Project& project, const std::vector<raco::core::Link>& refLinks) {
+		EXPECT_EQ(refLinks.size(), project.links().size());
+		for (const auto &refLink : refLinks) {
+			auto projectLink = raco::core::Queries::getLink(project, refLink.endProp());
+			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
+		}
+	}
+
+	void checkLinks(const std::vector<raco::core::Link>& refLinks) {
+		checkLinks(project, refLinks);
+	}
+
 
 	TestEnvironmentCoreT() : fileChangeMonitor(std::make_unique<FileChangeMonitorImpl>()), meshCache() {
 		spdlog::drop_all();

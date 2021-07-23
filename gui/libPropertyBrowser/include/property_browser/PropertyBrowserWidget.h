@@ -16,6 +16,8 @@
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 
+class QPushButton;
+
 namespace raco::property_browser {
 class PropertyBrowserItem;
 class PropertyBrowserModel;
@@ -45,6 +47,7 @@ public Q_SLOTS:
 	void setLockable(bool lockable);
 
 private:
+	void setLocked(bool locked);
 	void clearValueHandle(bool restorable);
 
 	raco::components::SDataChangeDispatcher dispatcher_;
@@ -56,6 +59,7 @@ private:
 	QWidget* emptyLabel_;
 	bool locked_;
 	PropertyBrowserModel* model_;
+	QPushButton* lockButton_;
 };
 
 }  // namespace raco::property_browser

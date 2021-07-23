@@ -97,9 +97,15 @@ ValueBase* Table::addProperty(std::string const& name, ValueBase* property, int 
 	return properties_.insert(properties_.begin() + index_before, std::make_pair(name, std::unique_ptr<ValueBase>(property)))->second.get();
 }
 
-ValueBase* Table::addProperty(const std::string& name, std::unique_ptr<ValueBase>&& property) {
-	properties_.emplace_back(std::make_pair(name, std::move(property)));
-	return properties_.back().second.get();
+ValueBase* Table::addProperty(const std::string& name, std::unique_ptr<ValueBase>&& property, int index_before) {
+	assert(index_before >= -1 && index_before <= static_cast<int>(properties_.size()));
+
+	if (index_before == -1) {
+		properties_.emplace_back(std::make_pair(name, std::move(property)));
+		return properties_.back().second.get();
+	}
+
+	return properties_.insert(properties_.begin() + index_before, std::make_pair(name, std::move(property)))->second.get();
 }
 
 

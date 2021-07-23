@@ -38,22 +38,7 @@ void MeshNode::createMaterialSlot(std::string const& name) {
 	auto container = materials_->addProperty(name, PrimitiveType::Table);
 	container->asTable().addProperty("material", new Value<SMaterial>());
 	container->asTable().addProperty("private", UserObjectFactory::staticCreateProperty<bool, DisplayNameAnnotation>({false}, {"Private Material"}));
-	Table& options = container->asTable().addProperty("options", PrimitiveType::Table)->asTable();
-	{
-		options.addProperty("blendOperationColor", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_COLOR, {"Blend Operation Color"}, {EngineEnumeration::BlendOperation}));
-		options.addProperty("blendOperationAlpha", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_ALPHA, {"Blend Operation Alpha"}, {EngineEnumeration::BlendOperation}));
-		options.addProperty("blendFactorSrcColor", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_COLOR, {"Blend Factor Src Color"}, {EngineEnumeration::BlendFactor}));
-		options.addProperty("blendFactorDestColor", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_COLOR, {"Blend Factor Dest Color"}, {EngineEnumeration::BlendFactor}));
-		options.addProperty("blendFactorSrcAlpha", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_ALPHA, {"Blend Factor Src Alpha"}, {EngineEnumeration::BlendFactor}));
-		options.addProperty("blendFactorDestAlpha", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_ALPHA, {"Blend Factor Dest Alpha"}, {EngineEnumeration::BlendFactor}));
-
-		options.addProperty("blendColor", UserObjectFactory::staticCreateProperty<Vec4f, DisplayNameAnnotation>({}, {"Blend Color"}));
-		options.addProperty("depthwrite", UserObjectFactory::staticCreateProperty<bool, DisplayNameAnnotation>({true}, {"Depth Write"}));
-
-		options.addProperty("depthFunction", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>({DEFAULT_VALUE_MATERIAL_DEPTH_FUNCTION}, {"Depth Function"}, {EngineEnumeration::DepthFunction}));
-
-		options.addProperty("cullmode", UserObjectFactory::staticCreateProperty<int, DisplayNameAnnotation, EnumerationAnnotation>(DEFAULT_VALUE_MATERIAL_CULL_MODE, {"Cull Mode"}, {EngineEnumeration::CullMode}));
-	}
+	container->asTable().addProperty("options", UserObjectFactory::staticCreateProperty<BlendOptions, DisplayNameAnnotation>({}, {"Options"}));
 	container->asTable().addProperty("uniforms", PrimitiveType::Table);
 }
 
@@ -178,7 +163,7 @@ void MeshNode::updateUniformContainer(BaseContext& context, const std::string& m
 				} else {
 					uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkEndAnnotation>(engineType));
 				}
-				ValueBase* newValue = context.addProperty(destUniforms, name, std::move(uniqueValue));
+				ValueBase* newValue = context.addProperty(destUniforms, name, std::move(uniqueValue), i);
 
 				auto it = cachedUniformValues_.find(std::make_tuple(materialName, name, engineType));
 				if (it != cachedUniformValues_.end()) {

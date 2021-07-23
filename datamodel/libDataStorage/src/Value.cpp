@@ -102,6 +102,9 @@ std::unique_ptr<ValueBase> ValueBase::create(PrimitiveType type)
 	case PrimitiveType::Vec4i:
 		return std::unique_ptr<ValueBase>(new Value<Vec4i>());
 		break;
+	case PrimitiveType::Struct:
+		throw std::runtime_error("ValueBase::create can't create generic Value<Struct>");
+		break;
 	}
 	return std::unique_ptr<ValueBase>();
 }
@@ -300,47 +303,4 @@ void primitiveCopyAnnotationData<Vec4i>(Vec4i& dest, const Vec4i& src) {
 	dest.copyAnnotationData(src);
 }
 
-template <>
-Value<Table>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other, translateRef) {
-}
-
-template <>
-Value<int>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<Vec3f>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<double>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<std::string>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<bool>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<Vec3i>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<Vec2f>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<Vec4i>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<Vec4f>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
-
-template <>
-Value<Vec2i>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
-}
 }

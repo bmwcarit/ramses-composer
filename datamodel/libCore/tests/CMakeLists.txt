@@ -46,4 +46,5 @@ raco_package_add_test_resouces(
     scripts/struct-simple.lua
     scripts/struct-nested.lua
     scripts/SimpleScript.lua
+    scripts/camera-control.lua
 )

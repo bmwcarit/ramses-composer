@@ -157,8 +157,7 @@ void MeshNodeAdaptor::syncMaterial(size_t index) {
 
 			(*privateAppearance_)->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
 
-			appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(&sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
-			appearanceBinding_->setRamsesAppearance(privateAppearance_->get());
+			appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*privateAppearance_->get(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
 
 		} else {
 			currentAppearance_ = materialAdapt->appearance();

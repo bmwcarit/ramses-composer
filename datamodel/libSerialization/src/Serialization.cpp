@@ -27,6 +27,8 @@ bool operator==(const ExternalProjectInfo& lhs, const ExternalProjectInfo& rhs) 
 	return lhs.path == rhs.path && lhs.name == rhs.name;
 }
 
+QJsonObject serializeTypedObject(const ReflectionInterface& object, const ResolveReferencedId& resolveReferenceId);
+
 }  // namespace raco::serialization
 
 namespace {
@@ -84,8 +86,6 @@ void deserializePrimitiveValue(const QJsonValue& jsonValue, ValueBase& value, Re
 	}
 }
 
-QJsonObject serializeTypedObject(const ReflectionInterface& object, const ResolveReferencedId& resolveReferenceId);
-
 /** Serializations of annotations need to be handled separately. This is the only case where we require to serialize a typed object within a typed property. */
 std::optional<QJsonArray> serializeAnnotations(const std::vector<raco::data_storage::AnnotationBase*>& annotations, const ResolveReferencedId& resolveReferenceId, bool dynamicallyTyped) {
 	QJsonArray jsonArray{};
@@ -138,7 +138,6 @@ void deserializeObjectAnnotations(const QJsonArray& annotations, ClassWithReflec
 		object->addAnnotation(deserializedAnno);
 	}
 }
-
 
 std::optional<QJsonObject> serializeObjectProperties(const ReflectionInterface& objectInterface, const ResolveReferencedId& resolveReferenceId, bool dynamicallyType);
 std::optional<QJsonArray> serializeArrayProperties(const ReflectionInterface& arrayInterface, const ResolveReferencedId& resolveReferenceId, bool dynamicallyType);
@@ -317,14 +316,17 @@ void deserializeObjectProperties(const QJsonObject& properties, ReflectionInterf
 	for (const auto& qPropertyName : properties.keys()) {
 		std::string name = qPropertyName.toStdString();
 		LOG_TRACE(raco::log_system::DESERIALIZATION, "{}, {}", name, dynamicallyTyped);
-		ValueBase &value = *objectInterface.get(objectInterface.index(name));
+		ValueBase& value = *objectInterface.get(objectInterface.index(name));
 		if (&value != nullptr) {
 			deserializeValueBase(properties[qPropertyName], value, references, factory, dynamicallyTyped);
 		} else {
-			LOG_WARNING(raco::log_system::DESERIALIZATION, "Dropping unsupported or deprecated property {}", name );
+			LOG_WARNING(raco::log_system::DESERIALIZATION, "Dropping unsupported or deprecated property {}", name);
 		}
 	}
 }
+}  // namespace
+
+namespace raco::serialization {
 
 /**
  * We have some form of C++ Object. Either an EditorObject or an Annotation.
@@ -333,7 +335,7 @@ void deserializeObjectProperties(const QJsonObject& properties, ReflectionInterf
 QJsonObject serializeTypedObject(const ReflectionInterface& object, const ResolveReferencedId& resolveReferenceId) {
 	QJsonObject jsonObject{};
 	jsonObject.insert(keys::TYPENAME, object.serializationTypeName().c_str());
-	
+
 	auto cwrm = dynamic_cast<const ClassWithReflectedMembers*>(&object);
 	if (cwrm) {
 		auto annotations{serializeObjectAnnotations(cwrm, resolveReferenceId)};
@@ -365,6 +367,10 @@ SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, const
 	deserializeObjectProperties(jsonObject[keys::PROPERTIES].toObject(), *object.get(), references, factory);
 	return object;
 }
+
+}  // namespace raco::serialization
+
+namespace {
 
 /**
  * Deserialize and log the values of version arrays that consist of the values [major.minor.patch].
@@ -577,8 +583,8 @@ ProjectDeserializationInfo raco::serialization::deserializeProject(const std::st
 	return deserializeProject(QJsonDocument::fromJson(json.c_str()), factory);
 }
 
-std::optional<QJsonValue> raco::serialization::serializePropertyForMigration(const ValueBase& value, const ResolveReferencedId& resolveReferenceId) {
-	return serializeValueBase(value, resolveReferenceId);
+std::optional<QJsonValue> raco::serialization::serializePropertyForMigration(const ValueBase& value, const ResolveReferencedId& resolveReferenceId, bool dynamicallyTyped) {
+	return serializeValueBase(value, resolveReferenceId, dynamicallyTyped);
 }
 
 References raco::serialization::deserializePropertyForMigration(const QJsonValue& property, ValueBase& value, const DeserializationFactory& factory) {

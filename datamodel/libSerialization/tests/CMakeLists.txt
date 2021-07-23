@@ -52,6 +52,7 @@ raco_package_add_test_resouces(
     testData/in-struct.lua
     testData/in-float-array.lua
     testData/in-specific-prop-names.lua
+    testData/float.lua
     testData/ToyCar.gltf
     testData/uniform-types-vert.glsl
     testData/uniform-types-frag.glsl
@@ -59,5 +60,6 @@ raco_package_add_test_resouces(
     migrationTestData/V1.rca
     migrationTestData/V9.rca
     migrationTestData/V10.rca
+    migrationTestData/V12.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

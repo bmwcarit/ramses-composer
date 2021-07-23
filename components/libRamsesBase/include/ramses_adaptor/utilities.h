@@ -402,7 +402,8 @@ inline void getLuaOutputFromEngine(const rlogic::Property& property, const core:
 			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<std::string>().value(), recorder);
 			break;
 		}
-		case PrimitiveType::Table: {
+		case PrimitiveType::Table: 
+		case PrimitiveType::Struct:	{
 			for (size_t i{0}; i < valueHandle.size(); i++) {
 				if (property.getType() == rlogic::EPropertyType::Array) {
 					getLuaOutputFromEngine(*property.getChild(i), valueHandle[i], recorder);

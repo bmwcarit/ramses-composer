@@ -114,7 +114,7 @@ INSTANTIATE_TEST_SUITE_P(
 			"EnumerationEditor",
 			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::EnumerationEditor(item, nullptr); },
 			Material::typeDescription.typeName,
-			{"blendOperationColor"},
+			{"options", "blendOperationColor"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, 4); }},
 		TestParam{
 			"IntEditor",

@@ -23,26 +23,26 @@ TEST_F(EnumerationEditorFixture, noValueChangeRecorded_onCreation) {
 	dispatch();
 	application.processEvents();
 
-	raco::property_browser::PropertyBrowserItem item{{material, {"blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, &model};
+	raco::property_browser::PropertyBrowserItem item{{material, {"options", "blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, &model};
 	raco::property_browser::EnumerationEditor editor{&item, nullptr};
 
 	application.processEvents();
 
-	ASSERT_FALSE(raco::isValueChanged(recorder, {material, {"blendOperationAlpha"}}));
+	ASSERT_FALSE(raco::isValueChanged(recorder, {material, {"options", "blendOperationAlpha"}}));
 }
 
 TEST_F(EnumerationEditorFixture, noValueChangeRecorded_onForeignSet) {
 	auto material{context.createObject(raco::user_types::Material::typeDescription.typeName)};
-	raco::property_browser::PropertyBrowserItem item{{material, {"blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, &model};
+	raco::property_browser::PropertyBrowserItem item{{material, {"options", "blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, &model};
 	raco::property_browser::EnumerationEditor editor{&item, nullptr};
 	dispatch();
 	application.processEvents();
 	ASSERT_EQ(0, editor.currentIndex());
 
-	commandInterface.set({material, {"blendOperationAlpha"}}, 4);
+	commandInterface.set({material, {"options", "blendOperationAlpha"}}, 4);
 	dispatch();
 	application.processEvents();
 
 	ASSERT_EQ(4, editor.currentIndex());
-	ASSERT_FALSE(raco::isValueChanged(recorder, {material, {"blendOperationAlpha"}}));
+	ASSERT_FALSE(raco::isValueChanged(recorder, {material, {"options", "blendOperationAlpha"}}));
 }

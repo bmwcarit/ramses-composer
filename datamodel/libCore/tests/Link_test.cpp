@@ -23,6 +23,8 @@
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/PerspectiveCamera.h"
+#include "user_types/OrthographicCamera.h"
 
 #include "utils/FileUtils.h"
 
@@ -36,46 +38,6 @@ using namespace raco::user_types;
 
 class LinkTest : public TestEnvironmentCore {
 public:
-	void checkLinks(std::vector<Link> refLinks) {
-		EXPECT_EQ(refLinks.size(), project.links().size());
-		for (const auto& refLink : refLinks) {
-			auto projectLink = Queries::getLink(project, refLink.endProp());
-			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
-		}
-	}
-
-	SLuaScript create_lua(const std::string& name, const std::string& relpath) {
-		auto lua = create<LuaScript>(name);
-		commandInterface.set({lua, {"uri"}}, (cwd_path() / relpath).string());
-		return lua;
-	}
-
-	SLuaScript create_lua(const std::string& name, const TextFile& file) {
-		auto lua = create<LuaScript>(name);
-		commandInterface.set({lua, {"uri"}}, file);
-		return lua;
-	}
-
-	SMesh create_mesh(const std::string& name, const std::string& relpath) {
-		auto mesh = create<Mesh>(name);
-		commandInterface.set({mesh, {"uri"}}, (cwd_path() / relpath).string());
-		return mesh;
-	}
-	
-	SMaterial create_material(const std::string& name, const std::string& relpathVertex, const std::string& relpathFragment) {
-		auto material = create<Material>(name);
-		commandInterface.set({material, {"uriVertex"}}, (cwd_path() / relpathVertex).string());
-		commandInterface.set({material, {"uriFragment"}}, (cwd_path() / relpathFragment).string());
-		return material;
-	}
-
-	SMeshNode create_meshnode(const std::string& name, SMesh mesh, SMaterial material) {
-		auto meshnode = create<MeshNode>(name);
-		commandInterface.set({meshnode, {"mesh"}}, mesh);
-		commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
-		return meshnode;
-	}
-
 	void change_uri(SEditorObject obj, const std::string& newvalue) {
 		commandInterface.set({obj, {"uri"}}, (cwd_path() / newvalue).string());
 	}
@@ -161,6 +123,80 @@ TEST_F(LinkTest, lua_lua_struct_simple) {
 			[this, start, end]() {
 				std::vector<Link> refLinks{{{{start, {"luaOutputs", "s"}}, {end, {"luaInputs", "s"}}}}};
 				checkLinks(refLinks);
+			}});
+}
+
+TEST_F(LinkTest, lua_persp_camera_struct_viewport_frustum) {
+	auto lua = create_lua("start", "scripts/camera-control.lua");
+	auto camera = create<PerspectiveCamera>("camera");
+
+	checkUndoRedoMultiStep<4>(
+		{[this, lua, camera]() {
+			 commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport", "offsetX"}}, ValueHandle{camera, {"viewport", "offsetX"}});
+		 },
+			[this, lua, camera]() {
+				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "perspFrustum", "nearPlane"}}, ValueHandle{camera, {"frustum", "nearPlane"}});
+			},
+			[this, lua, camera]() {
+				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport"}}, ValueHandle{camera, {"viewport"}});
+			},
+			[this, lua, camera]() {
+				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "perspFrustum"}}, ValueHandle{camera, {"frustum"}});
+			}},
+		{[this]() {
+			 EXPECT_EQ(project.links().size(), 0);
+		 },
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetX"}}, {camera, {"viewport", "offsetX"}}, true}});
+			},
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetX"}}, {camera, {"viewport", "offsetX"}}, true},
+					{{lua, {"luaOutputs", "perspFrustum", "nearPlane"}}, {camera, {"frustum", "nearPlane"}}, true}});
+			},
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"luaOutputs", "perspFrustum", "nearPlane"}}, {camera, {"frustum", "nearPlane"}}, true}});
+			},
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"luaOutputs", "perspFrustum"}}, {camera, {"frustum"}}, true}});
+			}});
+}
+
+TEST_F(LinkTest, lua_ortho_camera_struct_viewport_frustum) {
+	auto lua = create_lua("start", "scripts/camera-control.lua");
+	auto camera = create<OrthographicCamera>("camera");
+
+	checkUndoRedoMultiStep<4>(
+		{[this, lua, camera]() {
+			 commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport", "offsetY"}}, ValueHandle{camera, {"viewport", "offsetY"}});
+		 },
+			[this, lua, camera]() {
+				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "orthoFrustum", "leftPlane"}}, ValueHandle{camera, {"frustum", "leftPlane"}});
+			},
+			[this, lua, camera]() {
+				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport"}}, ValueHandle{camera, {"viewport"}});
+			},
+			[this, lua, camera]() {
+				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "orthoFrustum"}}, ValueHandle{camera, {"frustum"}});
+			}},
+		{[this]() {
+			 EXPECT_EQ(project.links().size(), 0);
+		 },
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetY"}}, {camera, {"viewport", "offsetY"}}, true}});
+			},
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetY"}}, {camera, {"viewport", "offsetY"}}, true},
+					{{lua, {"luaOutputs", "orthoFrustum", "leftPlane"}}, {camera, {"frustum", "leftPlane"}}, true}});
+			},
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"luaOutputs", "orthoFrustum", "leftPlane"}}, {camera, {"frustum", "leftPlane"}}, true}});
+			},
+			[this, lua, camera]() {
+				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"luaOutputs", "orthoFrustum"}}, {camera, {"frustum"}}, true}});
 			}});
 }
 

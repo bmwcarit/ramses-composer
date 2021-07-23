@@ -76,7 +76,7 @@ public:
 	void set(AnnotationValueHandle<AnnoType> const& handle, T const& value);
 
 	// Add property to Table
-	ValueBase* addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty);
+	ValueBase* addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty, int indexBefore = -1);
 
 	// Remove property from Table
 	void removeProperty(const ValueHandle& handle, size_t index);
