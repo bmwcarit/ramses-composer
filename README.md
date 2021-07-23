@@ -169,7 +169,7 @@ This example will create the setup for having a working directory with the speci
 
 ## Third Party Components
 
-The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/GENIVI/ramses-composer/releases/download/v0.8.1/qt-src-5.12.2.tgz). 
+The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/GENIVI/ramses-composer/releases/download/v0.8.1/qt-src-5.15.2.tgz). 
 
 Ramses Composer uses a number of third party libraries:
 
