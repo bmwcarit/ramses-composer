@@ -35,8 +35,11 @@ public:
 	Q_SIGNAL void dirtyChanged(bool dirty);
 
 private:
-	typedef QString raco::components::RaCoPreferences::*RaCoPreferencesQStringMember;
-	std::vector<std::pair<RaCoPreferencesQStringMember, QLineEdit*>> stringEdits_;
+	QLineEdit* userProjectEdit_;
+	QLineEdit* imageEdit_;
+	QLineEdit* meshEdit_;
+	QLineEdit* scriptEdit_;
+	QLineEdit* shaderEdit_;
 };
 
 }  // namespace raco::common_widgets

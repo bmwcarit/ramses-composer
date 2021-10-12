@@ -18,6 +18,10 @@
 #include "ramses_adaptor/NodeAdaptor.h"
 #include "ramses_adaptor/OrthographicCameraAdaptor.h"
 #include "ramses_adaptor/PerspectiveCameraAdaptor.h"
+#include "ramses_adaptor/RenderBufferAdaptor.h"
+#include "ramses_adaptor/RenderTargetAdaptor.h"
+#include "ramses_adaptor/RenderPassAdaptor.h"
+#include "ramses_adaptor/RenderLayerAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "user_types/CubeMap.h"
@@ -49,6 +53,10 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		{user_types::Texture::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TextureSamplerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Texture>(obj)); }},
 		{user_types::CubeMap::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<CubeMapAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::CubeMap>(obj)); }},
 
+		{user_types::RenderBuffer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderBufferAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderBuffer>(obj)); }},
+		{user_types::RenderTarget::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderTargetAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderTarget>(obj)); }},
+		{user_types::RenderPass::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderPassAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderPass>(obj)); }},
+		{user_types::RenderLayer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderLayerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderLayer>(obj)); }},
 
 		// LOGIC ENGINE
 		{user_types::LuaScript::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScript>(obj)); }}

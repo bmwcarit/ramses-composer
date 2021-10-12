@@ -56,10 +56,18 @@ raco_package_add_test_resouces(
     testData/ToyCar.gltf
     testData/uniform-types-vert.glsl
     testData/uniform-types-frag.glsl
+    testData/simple_texture.frag
+    testData/simple_texture.vert
+    testData/DuckCM.png
 
     migrationTestData/V1.rca
     migrationTestData/V9.rca
     migrationTestData/V10.rca
     migrationTestData/V12.rca
+    migrationTestData/V13.rca
+    migrationTestData/V14.rca
+    migrationTestData/V14b.rca
+    migrationTestData/V14c.rca
+    migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

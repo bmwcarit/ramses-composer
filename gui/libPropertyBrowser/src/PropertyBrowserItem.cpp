@@ -17,6 +17,7 @@
 #include "data_storage/BasicAnnotations.h"
 #include "log_system/log.h"
 #include "property_browser/PropertyBrowserRef.h"
+#include "user_types/RenderPass.h"
 
 using raco::log_system::PROPERTY_BROWSER;
 
@@ -50,12 +51,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	  dispatcher_{dispatcher},
 	  model_{model} {
 	LOG_TRACE(PROPERTY_BROWSER, "PropertyBrowserItem() from: {}", valueHandle_);
-	children_.reserve(static_cast<int>(valueHandle_.size()));
-	for (int i = 0; i < valueHandle_.size(); i++) {
-		if (!raco::core::Queries::isHidden(*project(), valueHandle_[i])) {
-			children_.push_back(new PropertyBrowserItem{valueHandle_[i], dispatcher, commandInterface_, model_, this});
-		}
-	}
+	createChildren();
 	if (!valueHandle_.isObject() && valueHandle_.type() == core::PrimitiveType::Ref) {
 		refItem_ = new PropertyBrowserRef(valueHandle_, dispatcher_, commandInterface_, this);
 	}
@@ -94,6 +90,13 @@ PropertyBrowserItem::PropertyBrowserItem(
 					}
 				}
 			});
+	}
+	if (auto renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && valueHandle_.depth() == 0) {
+		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {"target"}}, [this] {
+			if (valueHandle_) {
+				syncChildrenWithValueHandle();
+			}
+		});
 	}
 }
 
@@ -135,6 +138,7 @@ void PropertyBrowserItem::markForDeletion() {
 	errorSubscription_ = raco::components::Subscription{};
 	linkValidityChangeSub_ = raco::components::Subscription{};
 	linkLifecycleSub_ = raco::components::Subscription{};
+	changeChildrenSub_ = raco::components::Subscription{};
 
 	for (auto& child : children_) {
 		child->markForDeletion();
@@ -185,14 +189,18 @@ bool PropertyBrowserItem::editable() noexcept {
 	return !core::Queries::isReadOnly(*commandInterface_->project(), valueHandle());
 }
 
+bool PropertyBrowserItem::expandable() const noexcept {
+	// Currently the only item which could be expanded but is not allowed to do so is the tag container.
+	return valueHandle_.isObject() || !(query<core::TagContainerAnnotation>() || query<core::RenderableTagContainerAnnotation>());
+}
+
 bool PropertyBrowserItem::showChildren() const {
-	return children_.size() > 0 && expanded_;
+	return expandable() && children_.size() > 0 && expanded_;
 }
 
 bool PropertyBrowserItem::showControl() const {
-	return !expanded_ || children_.size() == 0;
+	return !expandable() || !expanded_ || children_.size() == 0;
 }
-
 
 raco::core::Queries::LinkState PropertyBrowserItem::linkState() const noexcept {
 	return core::Queries::linkState(*commandInterface_->project(), valueHandle_);
@@ -223,6 +231,18 @@ PropertyBrowserItem* PropertyBrowserItem::parentItem() const noexcept {
 	return parentItem_;
 }
 
+PropertyBrowserItem* PropertyBrowserItem::siblingItem(std::string_view propertyName) const noexcept {
+	if (!parentItem()) {
+		return nullptr;
+	}
+	for (auto* sibling : parentItem()->children()) {
+		if (sibling->valueHandle().getPropName() == propertyName) {
+			return sibling;
+		}
+	}
+	return nullptr;
+}
+
 bool PropertyBrowserItem::isRoot() const noexcept {
 	return parentItem() == nullptr;
 }
@@ -248,11 +268,33 @@ bool PropertyBrowserItem::expanded() const noexcept {
 }
 
 void PropertyBrowserItem::toggleExpanded() noexcept {
+	assert(expandable());
 	expanded_ = !expanded_;
 	// notify the view state accordingly
 	Q_EMIT expandedChanged(expanded_);
 	Q_EMIT showChildrenChanged(showChildren());
 	Q_EMIT showControlChanged(showControl());
+}
+
+void PropertyBrowserItem::createChildren() {
+	children_.reserve(static_cast<int>(valueHandle_.size()));
+	if(const auto& renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && renderPass->target_.asRef() == nullptr) {
+		// The render passes flags for clearing the target can only be used for offscreen rendering.
+		// For the default framebuffer, the settings are in the project settings.
+		// Given that this is a dynamic setting, do it here explicitly and not in Queries::isHidden for now.
+		// This needs to be refactored, see RAOS-XXX.
+		for (int i{0}; i < valueHandle_.size(); i++) {
+			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i]) && !renderPass->isClearTargetProperty(valueHandle_[i])) {
+				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
+			}
+		}						
+	} else {
+		for (int i{0}; i < valueHandle_.size(); i++) {
+			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i])) {
+				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
+			}
+		}			
+	}
 }
 
 void PropertyBrowserItem::syncChildrenWithValueHandle() {
@@ -265,14 +307,7 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	}
 
 	// create new children
-	{
-		children_.reserve(static_cast<int>(valueHandle_.size()));
-		for (int i{0}; i < valueHandle_.size(); i++) {
-			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
-			}
-		}
-	}
+	createChildren();
 
 	Q_EMIT childrenChanged(children_);
 

@@ -58,6 +58,8 @@ end
 		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
 		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
+		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
+		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
 }
 
@@ -99,6 +101,8 @@ end
 		ASSERT_EQ(2, app.activeRaCoProject().project()->links().size());
 		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
 		ASSERT_TRUE(app.activeRaCoProject().project()->links()[1]->isValid());
+		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
+		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
 
 	raco::utils::file::write((cwd_path() / "lua_script.lua").string(), R"(
@@ -115,6 +119,8 @@ end
 		ASSERT_EQ(2, app.activeRaCoProject().project()->links().size());
 		ASSERT_TRUE(app.activeRaCoProject().project()->links()[0]->isValid());
 		ASSERT_TRUE(app.activeRaCoProject().project()->links()[1]->isValid());
+		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
+		ASSERT_FALSE(app.activeRaCoProject().errors()->hasError(node));
 	}
 }
 
@@ -136,6 +142,8 @@ end
 		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
 		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
+		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
+		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
 }
 
@@ -402,28 +410,30 @@ TEST_F(RaCoProjectFixture, launchApplicationWithNoResourceSubFoldersCachedPathsA
 	raco::components::RaCoPreferences::instance().userProjectsDirectory = QString::fromStdString(newProjectFolder);
 	RaCoApplication app{backend};
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::DEFAULT_PROJECT_SUB_DIRECTORY), newProjectFolder);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::MESH_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SCRIPT_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::IMAGE_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SHADER_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SHADER_SUB_DIRECTORY);
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + prefs.meshSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + prefs.scriptSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + prefs.imageSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + prefs.shaderSubdirectory.toStdString());
 }
 
 TEST_F(RaCoProjectFixture, launchApplicationWithResourceSubFoldersCachedPathsAreSetToUserProjectsDirectoryAndSubFolders) {
 	raco::components::RaCoPreferences::instance().userProjectsDirectory = QString::fromStdString(cwd_path().generic_string());
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::MESH_SUB_DIRECTORY);
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::SHADER_SUB_DIRECTORY);
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	std::filesystem::create_directory(cwd_path() / prefs.meshSubdirectory.toStdString()); 
+	std::filesystem::create_directory(cwd_path() / prefs.scriptSubdirectory.toStdString()); 
+	std::filesystem::create_directory(cwd_path() / prefs.imageSubdirectory.toStdString()); 
+	std::filesystem::create_directory(cwd_path() / prefs.shaderSubdirectory.toStdString()); 
 
 	RaCoApplication app{backend};
 	auto newProjectFolder = raco::components::RaCoPreferences::instance().userProjectsDirectory.toStdString();
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::DEFAULT_PROJECT_SUB_DIRECTORY), newProjectFolder);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::MESH_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SCRIPT_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::IMAGE_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SHADER_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SHADER_SUB_DIRECTORY);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + prefs.meshSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + prefs.scriptSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + prefs.imageSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + prefs.shaderSubdirectory.toStdString());
 }
 
 TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
@@ -432,24 +442,30 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 
 	RaCoApplication app{backend};
 	app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca"));
+	
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::DEFAULT_PROJECT_SUB_DIRECTORY), newProjectFolder);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::MESH_SUB_DIRECTORY);
-	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + raco::core::PathManager::MESH_SUB_DIRECTORY));
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SCRIPT_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + raco::core::PathManager::SCRIPT_SUB_DIRECTORY));
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::IMAGE_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + raco::core::PathManager::IMAGE_SUB_DIRECTORY));
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SHADER_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SHADER_SUB_DIRECTORY);
-	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + raco::core::PathManager::SHADER_SUB_DIRECTORY));
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + prefs.meshSubdirectory.toStdString());
+	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + prefs.meshSubdirectory.toStdString()));
+
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + prefs.scriptSubdirectory.toStdString());
+	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + prefs.scriptSubdirectory.toStdString()));
+	
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + prefs.imageSubdirectory.toStdString());
+	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + prefs.imageSubdirectory.toStdString()));
+	
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + prefs.shaderSubdirectory.toStdString());
+	ASSERT_TRUE(raco::utils::path::isExistingDirectory(newProjectFolder + "/" + prefs.shaderSubdirectory.toStdString()));
 }
 
 TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 	raco::components::RaCoPreferences::instance().userProjectsDirectory = QString::fromStdString(cwd_path().generic_string());
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::MESH_SUB_DIRECTORY);
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	std::filesystem::create_directory(cwd_path() / raco::core::PathManager::SHADER_SUB_DIRECTORY);
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	std::filesystem::create_directory(cwd_path() / prefs.meshSubdirectory.toStdString());
+	std::filesystem::create_directory(cwd_path() / prefs.scriptSubdirectory.toStdString());
+	std::filesystem::create_directory(cwd_path() / prefs.imageSubdirectory.toStdString());
+	std::filesystem::create_directory(cwd_path() / prefs.shaderSubdirectory.toStdString());
 	std::filesystem::create_directory(cwd_path() / "newProject");
 
 	RaCoApplication app{backend};
@@ -458,11 +474,11 @@ TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 
 	auto newProjectFolder = raco::components::RaCoPreferences::instance().userProjectsDirectory.toStdString();
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::DEFAULT_PROJECT_SUB_DIRECTORY), newProjectFolder);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::MESH_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SCRIPT_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::IMAGE_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SHADER_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SHADER_SUB_DIRECTORY);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + prefs.meshSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + prefs.scriptSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + prefs.imageSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + prefs.shaderSubdirectory.toStdString());
 }
 
 TEST_F(RaCoProjectFixture, saveAsThenLoadProjectProperlySetCachedPaths) {
@@ -474,9 +490,22 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadProjectProperlySetCachedPaths) {
 	app.switchActiveRaCoProject("");
 	app.switchActiveRaCoProject(QString::fromStdString(newProjectFolder + "/project.rca"));
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::DEFAULT_PROJECT_SUB_DIRECTORY), newProjectFolder);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::MESH_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SCRIPT_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SCRIPT_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::IMAGE_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::IMAGE_SUB_DIRECTORY);
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::SHADER_SUB_DIRECTORY), newProjectFolder + "/" + raco::core::PathManager::SHADER_SUB_DIRECTORY);
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + prefs.meshSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + prefs.scriptSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + prefs.imageSubdirectory.toStdString());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + prefs.shaderSubdirectory.toStdString());
+}
+
+TEST_F(RaCoProjectFixture, loadingBrokenJSONFileThrowsException) {
+	auto luaScriptPath = (cwd_path() / "brokenJSON.rca").string();
+
+	raco::utils::file::write(luaScriptPath, R"(
+{
+    "externalProjects": {
+    },
+	)");
+	RaCoApplication app{backend};
+	ASSERT_THROW(app.switchActiveRaCoProject(QString::fromStdString(luaScriptPath)), std::runtime_error);
 }

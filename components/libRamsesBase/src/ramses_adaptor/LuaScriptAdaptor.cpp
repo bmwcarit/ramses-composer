@@ -20,7 +20,7 @@ namespace raco::ramses_adaptor {
 LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::LuaScript> editorObject)
 	: ObjectAdaptor{sceneAdaptor},
 	  editorObject_{editorObject},
-	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, {"objectName"}}, [this]() {
+	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, &user_types::LuaScript::objectName_}, [this]() {
 		  tagDirty();
 		  recreateStatus_ = true;
 	  })},
@@ -55,7 +55,7 @@ void LuaScriptAdaptor::setupParentSubscription() {
 	parent_ = editorObject_->getParent();
 
 	if (parent_ && parent_->as<user_types::PrefabInstance>()) {
-		parentNameSubscription_ = sceneAdaptor_->dispatcher()->registerOn({parent_, {"objectName"}}, [this]() {
+		parentNameSubscription_ = sceneAdaptor_->dispatcher()->registerOn({parent_, &user_types::LuaScript::objectName_}, [this]() {
 			tagDirty();
 			recreateStatus_ = true;
 		});
@@ -65,7 +65,7 @@ void LuaScriptAdaptor::setupParentSubscription() {
 }
 
 void LuaScriptAdaptor::setupInputValuesSubscription() {
-	inputSubscription_ = sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, {"luaInputs"}}, [this](auto) {
+	inputSubscription_ = sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScript::luaInputs_}, [this](auto) {
 		// Only normal tag dirty here; don't set recreateStatus_
 		tagDirty();
 	});
@@ -86,7 +86,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 
 	if (recreateStatus_) {
-		auto scriptContent = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, {"uri"}}));
+		auto scriptContent = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaScript::uri_}));
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), scriptContent);
 		luaScript_.reset();
 		if (!scriptContent.empty()) {
@@ -107,7 +107,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 	}
 
 	if (luaScript_) {
-		core::ValueHandle luaInputs{editorObject_, {"luaInputs"}};
+		core::ValueHandle luaInputs{editorObject_, &user_types::LuaScript::luaInputs_};
 		auto success = setLuaInputInEngine(luaScript_->getInputs(), luaInputs);
 		LOG_WARNING_IF(log_system::RAMSES_ADAPTOR, !success, "Script set properties failed: {}", LogicEngineErrors{sceneAdaptor_->logicEngine()});
 	}
@@ -119,7 +119,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 
 void LuaScriptAdaptor::readDataFromEngine(core::DataChangeRecorder &recorder) {
 	if (luaScript_) {
-		core::ValueHandle luaOutputs{editorObject_, {"luaOutputs"}};
+		core::ValueHandle luaOutputs{editorObject_, &user_types::LuaScript::luaOutputs_};
 		getLuaOutputFromEngine(*luaScript_->getOutputs(), luaOutputs, recorder);
 	}
 }

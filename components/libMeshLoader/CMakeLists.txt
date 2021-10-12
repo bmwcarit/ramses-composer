@@ -23,7 +23,8 @@ PUBLIC
 	raco::Core
 PRIVATE
 	openctm
-	assimp
+	tinygltf
+	glm
 )
 
 add_library(raco::MeshLoader ALIAS libMeshLoader)

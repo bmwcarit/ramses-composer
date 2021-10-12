@@ -56,8 +56,6 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 	auto* labelLayout = new PropertyBrowserHBoxLayout{labelContainer};
 	labelLayout->setAlignment(Qt::AlignLeft);
 	if (!item->valueHandle().isObject()) {
-		button_ = new ExpandControlButton{item, labelContainer};
-		button_->setFixedWidth(28);
 		label_ = WidgetFactory::createPropertyLabel(item, labelContainer);
 		label_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 		auto* linkControl = WidgetFactory::createLinkControl(item, labelContainer);
@@ -65,15 +63,29 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		propertyControl_ = WidgetFactory::createPropertyControl(item, labelContainer);
 		propertyControl_->setEnabled(item->editable());
 		QObject::connect(item, &PropertyBrowserItem::editableChanged, propertyControl_, &QWidget::setEnabled);
-		propertyControl_->setVisible(item->showControl());
+
+		if(item->expandable()) {
+			button_ = new ExpandControlButton{ item, labelContainer };
+			button_->setFixedWidth(28);
+			propertyControl_->setVisible(item->showControl());
+			labelLayout->addWidget(button_, 0);
+			labelLayout->addWidget(label_, 0);
+			labelLayout->addWidget(linkControl, 1);
+		}
+		else {
+			button_ = new QWidget{ this }; // Easier to make a dummy spacer widget than figuring out how to move everything else at the right place without it
+			button_->setFixedWidth(28);
+			button_->setFixedHeight(0);
+			propertyControl_->setVisible(true);
+			labelLayout->addWidget(button_, 0, Qt::AlignTop);
+			labelLayout->addWidget(label_, 0, Qt::AlignTop);
+			labelLayout->addWidget(linkControl, 1, Qt::AlignTop);
+		}
+
 		QObject::connect(item, &PropertyBrowserItem::showControlChanged, this, [this](bool show) { propertyControl_->setVisible(show); });
 		linkControl->setControl(propertyControl_);
 		label_->setEnabled(item->editable());
 		QObject::connect(item, &PropertyBrowserItem::editableChanged, label_, &QWidget::setEnabled);
-
-		labelLayout->addWidget(button_, 0);
-		labelLayout->addWidget(label_, 0);
-		labelLayout->addWidget(linkControl, 1);
 	} else {
 		// Dummy label for the case that we are an object.
 		button_ = new QWidget{this};
@@ -91,23 +103,29 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 
 	layout_.addWidget(labelContainer, 1, 0);
 
-	// Events which can cause a build or destroy of the childrenContainer_
-	QObject::connect(item, &PropertyBrowserItem::childrenChanged, this, &PropertySubtreeView::updateChildrenContainer);
-	QObject::connect(item, &PropertyBrowserItem::showChildrenChanged, this, &PropertySubtreeView::updateChildrenContainer);
-	QObject::connect(item, &PropertyBrowserItem::childrenChangedOrCollapsedChildChanged, this, &PropertySubtreeView::playStructureChangeAnimation);
-	updateChildrenContainer();
+	if (item->expandable()) {
+		// Events which can cause a build or destroy of the childrenContainer_
+		QObject::connect(item, &PropertyBrowserItem::childrenChanged, this, &PropertySubtreeView::updateChildrenContainer);
+		QObject::connect(item, &PropertyBrowserItem::showChildrenChanged, this, &PropertySubtreeView::updateChildrenContainer);
+		QObject::connect(item, &PropertyBrowserItem::childrenChangedOrCollapsedChildChanged, this, &PropertySubtreeView::playStructureChangeAnimation);
+		updateChildrenContainer();
+	}
 }
 
 void PropertySubtreeView::updateError() {
 	if (layout_.itemAtPosition(0, 0) && layout_.itemAtPosition(0, 0)->widget()) {
 		auto* widget = layout_.itemAtPosition(0, 0)->widget();
 		layout_.removeWidget(widget);
+		widget->hide();
 		widget->deleteLater();
 	}
 	if (item_->hasError()) {
 		auto errorItem = item_->error();
-		if (errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR || errorItem.category() == core::ErrorCategory::PARSE_ERROR || errorItem.category() == core::ErrorCategory::GENERAL) {
+		if (errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR || errorItem.category() == core::ErrorCategory::PARSE_ERROR || errorItem.category() == core::ErrorCategory::GENERAL || errorItem.category() == core::ErrorCategory::MIGRATION_ERROR) {
 			layout_.addWidget(new ErrorBox(errorItem.message().c_str(), errorItem.level(), this), 0, 0);
+			// It is unclear why this is needed - but without it, the error box does not appear immediately when an incompatible render buffer is assigned to a render target and the scene error view is in the background.
+			// The error box does appear later, e. g. when the mouse cursor is moved over the preview or when the left mouse button is clicked in a different widget.
+			update();
 		}
 	}
 }

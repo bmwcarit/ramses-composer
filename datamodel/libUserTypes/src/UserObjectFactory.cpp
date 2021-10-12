@@ -24,6 +24,10 @@
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderLayer.h"
+#include "user_types/RenderTarget.h"
+#include "user_types/RenderPass.h"
 #include "user_types/Texture.h"
 
 namespace raco::user_types {
@@ -81,7 +85,11 @@ UserObjectFactory::UserObjectFactory() {
 		OrthographicCamera,
 		PerspectiveCamera,
 		LuaScript,
-        Texture
+        Texture,
+		RenderBuffer,
+		RenderLayer,
+		RenderTarget,
+		RenderPass
 		>();
 
 	annotations_ = makeAnnotationMap<

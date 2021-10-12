@@ -7,14 +7,15 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "log_system/log.h"
+#include "application/RaCoApplication.h"
+#include "components/DataChangeDispatcher.h"
+#include "components/RaCoNameConstants.h"
 #include "core/PathManager.h"
+#include "log_system/log.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "utils/CrashDump.h"
-#include "components/DataChangeDispatcher.h"
-#include "application/RaCoApplication.h"
-#include "components/RaCoNameConstants.h"
+#include "utils/PathUtils.h"
 
 #include <QCoreApplication>
 #include <QTimer>
@@ -107,9 +108,13 @@ int main(int argc, char* argv[]) {
 	QString projectFile{};
 	if (parser.isSet(loadProjectAction)) {
 		QFileInfo path(parser.value(loadProjectAction));
-		if (path.suffix().compare( raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) == 0) {
+		if (path.suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) == 0) {
 			if (path.exists()) {
-				projectFile = path.absoluteFilePath();
+				if (raco::utils::path::userHasReadAccess(path.filePath().toStdString())) {
+					projectFile = path.absoluteFilePath();
+				} else {
+					LOG_ERROR(raco::log_system::COMMON, "project file could not be read {}", path.filePath().toStdString());
+				}
 			} else {
 				LOG_ERROR(raco::log_system::COMMON, "project file not found {}", path.filePath().toStdString());
 			}

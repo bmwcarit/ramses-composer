@@ -241,7 +241,7 @@ void RaCoStyle::drawComplexControl(QStyle::ComplexControl control, const QStyleO
 		case CC_ComboBox:
 			if (const QStyleOptionComboBox *cmb = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
 				// draw common area for edit and button
-				if (saveGetProperty(widget, "emptyReference", 1).toBool()) {
+				if (saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
 					drawRoundedRect(option->rect, p, Colors::brush(Colormap::warningColor), &cmb->palette.brush(QPalette::Window));
 				} else {
 					drawRoundedRect(option->rect, p, cmb->palette.brush(QPalette::Base), &cmb->palette.brush(QPalette::Window));

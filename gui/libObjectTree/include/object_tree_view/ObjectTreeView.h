@@ -38,17 +38,22 @@ public:
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
+	bool canCopy(const QModelIndex &parentIndex);
+	bool canPasteInto(const QModelIndex &parentIndex, bool asExtRef = false);
+
+	QSortFilterProxyModel *proxyModel() const;
 
 Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void newObjectTreeItemsSelected(const std::set<ValueHandle> &handles);
+	void externalObjectSelected();
 
 public Q_SLOTS:
 	void resetSelection();
-	void copy();
-	void paste();
+	void globalCopyCallback();
 	void cut();
+	void globalPasteCallback(const QModelIndex &index, bool asExtRef = false);
 	void shortcutDelete();
 	void selectObject(const QString &objectID);
 	void expandAllParentsOfObject(const QString &objectID);
@@ -65,10 +70,10 @@ protected:
 	virtual QMenu* createCustomContextMenu(const QPoint &p);
 
 	void dragMoveEvent(QDragMoveEvent *event) override;
+	void mousePressEvent(QMouseEvent *event) override;
 
 	SEditorObject indexToSEditorObject(const QModelIndex &index) const;
 	QModelIndex indexFromObjectID(const std::string &id) const;
-
 
 protected Q_SLOTS:
 	void restoreItemExpansionStates();

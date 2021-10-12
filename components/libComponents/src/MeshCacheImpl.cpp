@@ -39,9 +39,9 @@ raco::core::SharedMeshData MeshCacheImpl::loadMesh(const raco::core::MeshDescrip
 	return loader->loadMesh(descriptor);
 }
 
-raco::core::MeshScenegraph raco::components::MeshCacheImpl::getMeshScenegraph(const std::string &absPath, bool bakeAllSubmeshes) {
+raco::core::MeshScenegraph raco::components::MeshCacheImpl::getMeshScenegraph(const std::string &absPath) {
 	auto *loader = getLoader(absPath);
-	return loader->getScenegraph(bakeAllSubmeshes);
+	return loader->getScenegraph();
 }
 
 std::string raco::components::MeshCacheImpl::getMeshError(const std::string &absPath) {
@@ -49,9 +49,14 @@ std::string raco::components::MeshCacheImpl::getMeshError(const std::string &abs
 	return loader->getError();
 }
 
-int raco::components::MeshCacheImpl::getTotalMeshCount(const std::string &absPath, bool bakeAllSubmeshes) {
+std::string MeshCacheImpl::getMeshWarning(const std::string &absPath) {
 	auto *loader = getLoader(absPath);
-	return loader->getTotalMeshCount(bakeAllSubmeshes);
+	return loader->getWarning();
+}
+
+int raco::components::MeshCacheImpl::getTotalMeshCount(const std::string &absPath) {
+	auto *loader = getLoader(absPath);
+	return loader->getTotalMeshCount();
 }
 
 void MeshCacheImpl::forceReloadCachedMesh(const std::string &absPath) {

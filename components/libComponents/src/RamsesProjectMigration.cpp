@@ -20,6 +20,7 @@
 
 #include "user_types/BaseCamera.h"
 #include "user_types/DefaultValues.h"
+#include "user_types/Enumerations.h"
 #include "user_types/Material.h"
 #include "user_types/OrthographicCamera.h"
 #include "user_types/PerspectiveCamera.h"
@@ -54,6 +55,106 @@ std::string serializedProjectSetting() {
 	"typeName" : "ProjectSettings"
 })___";
 }
+
+std::string serializedRenderLayerV14(const std::string& layerID) {
+	return 
+R"---({
+	"properties" : {
+		"invertMaterialFilter" : true,
+		"objectID" : ")---" + layerID + R"---(",
+		"objectName" : "MainRenderLayer",
+		"renderableTags" : {
+			"order" : ["render_main"],
+			"properties" : {
+				"render_main" : {
+					"typeName" : "Int",
+					"value" : 0
+				}
+			}
+		},
+		"sortOrder" : 2
+	},
+	"typeName" : "RenderLayer"
+})---";
+}
+
+std::string serializedRenderPassV14(const std::string& layerID, const std::string& cameraID) {
+	std::string cameraIDValueString = cameraID.empty() ? "null" : ('\"' + cameraID + '\"');
+	return
+		R"---({
+	"properties" : {
+		"camera" : )---" + cameraIDValueString + R"---(,
+		"clearColor" : {
+			"w" : {
+				"annotations" : [
+					{
+						"properties" : {
+							"max" : 1,
+							"min" : 0
+						},
+						"typeName" : "RangeAnnotationDouble"
+					}
+				],
+				"value" : 0
+			},
+			"x" : {
+				"annotations" : [
+					{
+						"properties" : {
+							"max" : 1,
+							"min" : 0
+						},
+						"typeName" : "RangeAnnotationDouble"
+					}
+				],
+				"value" : 0
+			},
+			"y" : {
+				"annotations" : [
+					{
+						"properties" : {
+							"max" : 1,
+							"min" : 0
+						},
+						"typeName" : "RangeAnnotationDouble"
+					}
+				],
+				"value" : 0
+			},
+			"z" : {
+				"annotations" : [
+					{
+						"properties" : {
+							"max" : 1,
+							"min" : 0
+						},
+						"typeName" : "RangeAnnotationDouble"
+					}
+				],
+				"value" : 0
+			}
+		},
+		"enableClearColor" : true,
+		"enableClearDepth" : true,
+		"enableClearStencil" : true,
+		"enabled" : true,
+		"layer0" : ")---" + layerID + R"---(",
+		"layer1" : null,
+		"layer2" : null,
+		"layer3" : null,
+		"layer4" : null,
+		"layer5" : null,
+		"layer6" : null,
+		"layer7" : null,
+		"objectID" : ")---" + QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString() + R"---(",
+		"objectName" : "MainRenderPass",
+		"order" : 1,
+		"target" : null
+	},
+	"typeName" : "RenderPass"
+})---";
+}
+
 
 // Helper object needed for readprop(...). Note that this clearly does not work for more complicated cases, so far (file version V9->V10) no calls to the deserializationFactory were needed.
 // If you need a new object/property during migration, you need to make sure that you have the factory matching the version you are loading - and make sure you know what you are doing.
@@ -226,7 +327,7 @@ void linkReplaceEndIfMatching(raco::core::SLink& link, const std::string& oldPro
 
 namespace raco::components {
 
-QJsonDocument migrateProject(const QJsonDocument& document) {
+QJsonDocument migrateProject(const QJsonDocument& document, std::unordered_map<std::string, std::string>& migrationWarnings) {
 	using namespace data_storage;
 	using namespace user_types;
 
@@ -241,7 +342,53 @@ QJsonDocument migrateProject(const QJsonDocument& document) {
 		documentObject[raco::serialization::keys::INSTANCES] = instances;
 	}
 
-	// File Version 3..9: no migration code needed
+	// No file version number change for this change: added RangeAnnotation to MeshNode instanceCount property
+	if (documentVersion < 2) {
+		auto factory = deserializationFactoryV10plus();
+		iterateInstances(documentObject, [&factory](QString const& instancetype, QJsonObject& instanceproperties) {
+			if (instancetype == "MeshNode") {
+				Property<int, DisplayNameAnnotation> oldInstanceCount;
+				extractprop(factory, instanceproperties, u"instanceCount", oldInstanceCount);
+				
+				addprop(instanceproperties, u"instanceCount", Property<int, DisplayNameAnnotation, RangeAnnotation<int>>{*oldInstanceCount, DisplayNameAnnotation("Instance Count"), RangeAnnotation<int>(1, 20)});
+
+				return true;
+			}
+			return false;
+		});
+	}
+
+	// File Version 3: added ProjectSettings viewport property
+	if (documentVersion < 3) {
+		iterateInstances(documentObject, [](QString const& instancetype, QJsonObject& instanceproperties) {
+			if (instancetype == "ProjectSettings") {
+				addprop(instanceproperties, u"viewport", Property<Vec2i, DisplayNameAnnotation>{{{1440, 720}, 0, 4096}, {"Viewport"}});
+				return true;
+			}
+			return false;
+		});
+	}
+
+
+	// File Version 4..8: we might need to retroactively write the migration code for these
+
+	// File Version 9: External references
+	if (documentVersion < 9) {
+		raco::serialization::serializeExternalProjectsMap(documentObject, {});
+	}
+
+	// Added without file version number change somewhere before V10.
+	if (documentVersion < 10) {
+		iterateInstances(documentObject, [](QString const& instancetype, QJsonObject& instanceproperties) {
+			if (instancetype == "ProjectSettings") {
+				addprop(instanceproperties, u"enableTimerFlag", Property<bool, HiddenProperty>{false, HiddenProperty()});
+				addprop(instanceproperties, u"runTimer", Property<bool, HiddenProperty>{false, HiddenProperty()});
+				return true;
+			}
+			return false;
+		});
+	}
+
 
 	// File Version 10: cameras store viewport as four individual integers instead of a vec4i (for camera bindings).
 	if (documentVersion < 10) {
@@ -261,6 +408,18 @@ QJsonDocument migrateProject(const QJsonDocument& document) {
 			return true;
 		});
 	}
+	
+	// File Version 11: Added the viewport background color to the ProjectSettings.
+	if (documentVersion < 11) {
+		iterateInstances(documentObject, [](QString const& instancetype, QJsonObject& instanceproperties) {
+			if (instancetype == "ProjectSettings") {
+				addprop(instanceproperties, u"backgroundColor", data_storage::Property<Vec3f, DisplayNameAnnotation>{{}, {"Display Background Color"}});
+				return true;
+			}
+			return false;
+		});
+	}
+
 
 	// File version 12:
 	// Add 'private' property to material slot containers in MeshNodes.
@@ -443,55 +602,35 @@ QJsonDocument migrateProject(const QJsonDocument& document) {
 				changed = true;
 			}
 
-			if (instanceType == "MeshNode") {
-				Property<bool, DisplayNameAnnotation> depthwrite{true, DisplayNameAnnotation("Depth Write")};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "depthwrite"}, depthwrite);
+			if (instanceType == "MeshNode" && instanceproperties.contains(u"materials")) {
+				Property<Table, DisplayNameAnnotation> materials;
 
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> depthFunction{DEFAULT_VALUE_MATERIAL_DEPTH_FUNCTION, DisplayNameAnnotation("Depth Function"), EnumerationAnnotation{EngineEnumeration::DepthFunction}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "depthFunction"}, depthFunction);
+				auto references = readprop(factory, instanceproperties, u"materials", materials);
+				removeprop(instanceproperties, u"materials");
 
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> cullmode{DEFAULT_VALUE_MATERIAL_CULL_MODE, DisplayNameAnnotation("Cull Mode"), EnumerationAnnotation{EngineEnumeration::CullMode}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "cullmode"}, cullmode);
+				for (size_t i = 0; i < materials->size(); i++) {
+					Table& matCont = materials->get(i)->asTable();
+					Table& optionsCont = matCont.get("options")->asTable();
 
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendOperationColor{DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_COLOR, {"Blend Operation Color"}, {EngineEnumeration::BlendOperation}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendOperationColor"}, blendOperationColor);
+					auto options = new Property<user_types::BlendOptions, DisplayNameAnnotation>{{}, {"Options"}};
+					(*options)->depthwrite_.assign(*optionsCont.get("depthwrite"), true);
+					(*options)->depthFunction_.assign(*optionsCont.get("depthFunction"), true);
+					(*options)->cullmode_.assign(*optionsCont.get("cullmode"), true);
+					(*options)->blendOperationColor_.assign(*optionsCont.get("blendOperationColor"), true);
+					(*options)->blendOperationAlpha_.assign(*optionsCont.get("blendOperationAlpha"), true);
+					(*options)->blendFactorSrcColor_.assign(*optionsCont.get("blendFactorSrcColor"), true);
+					(*options)->blendFactorDestColor_.assign(*optionsCont.get("blendFactorDestColor"), true);
+					(*options)->blendFactorSrcAlpha_.assign(*optionsCont.get("blendFactorSrcAlpha"), true);
+					(*options)->blendFactorDestAlpha_.assign(*optionsCont.get("blendFactorDestAlpha"), true);
+					(*options)->blendColor_.assign(*optionsCont.get("blendColor"), true);
 
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendOperationAlpha{DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_ALPHA, {"Blend Operation Alpha"}, {EngineEnumeration::BlendOperation}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendOperationAlpha"}, blendOperationAlpha);
+					matCont.replaceProperty("options", options);
+				}
 
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcColor{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_COLOR, {"Blend Factor Src Color"}, {EngineEnumeration::BlendFactor}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendFactorSrcColor"}, blendFactorSrcColor);
-
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestColor{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_COLOR, {"Blend Factor Dest Color"}, {EngineEnumeration::BlendFactor}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendFactorDestColor"}, blendFactorDestColor);
-
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcAlpha{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_ALPHA, {"Blend Factor Src Alpha"}, {EngineEnumeration::BlendFactor}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendFactorSrcAlpha"}, blendFactorSrcAlpha);
-
-				Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestAlpha{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_ALPHA, {"Blend Factor Dest Alpha"}, {EngineEnumeration::BlendFactor}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendFactorDestAlpha"}, blendFactorDestAlpha);
-
-				Property<Vec4f, DisplayNameAnnotation> blendColor{{}, {"Blend Color"}};
-				readprop(factory, instanceproperties, {"materials", "material", "options", "blendColor"}, blendColor);
-
-				removeprop(instanceproperties, {"materials", "material", "options"});
-
-				Property<user_types::BlendOptions, DisplayNameAnnotation> options{{}, {"Options"}};
-				options->depthwrite_.assign(depthwrite, true);
-				options->depthFunction_.assign(depthFunction, true);
-				options->cullmode_.assign(cullmode, true);
-				options->blendOperationColor_.assign(blendOperationColor, true);
-				options->blendOperationAlpha_.assign(blendOperationAlpha, true);
-				options->blendFactorSrcColor_.assign(blendFactorSrcColor, true);
-				options->blendFactorDestColor_.assign(blendFactorDestColor, true);
-				options->blendFactorSrcAlpha_.assign(blendFactorSrcAlpha, true);
-				options->blendFactorDestAlpha_.assign(blendFactorDestAlpha, true);
-				options->blendColor_.assign(blendColor, true);
-
-				addprop(instanceproperties, {"materials", "material", "options"}, options, true);
+				addprop(instanceproperties, u"materials", materials, references, false);
 
 				changed = true;
-			}
+			}			
 
 			return changed;
 		});
@@ -514,7 +653,7 @@ QJsonDocument migrateProject(const QJsonDocument& document) {
 			linkReplaceEndIfMatching(link, "far", {"frustum", "farPlane"});
 			linkReplaceEndIfMatching(link, "fov", {"frustum", "fieldOfView"});
 			linkReplaceEndIfMatching(link, "aspect", {"frustum", "aspectRatio"});
-			linkReplaceEndIfMatching(link, "left", {"frustum", "leftPlane"}); 
+			linkReplaceEndIfMatching(link, "left", {"frustum", "leftPlane"});
 			linkReplaceEndIfMatching(link, "right", {"frustum", "rightPlane"});
 			linkReplaceEndIfMatching(link, "bottom", {"frustum", "bottomPlane"});
 			linkReplaceEndIfMatching(link, "top", {"frustum", "topPlane"});
@@ -529,6 +668,214 @@ QJsonDocument migrateProject(const QJsonDocument& document) {
 		}
 
 		documentObject[raco::serialization::keys::LINKS] = outJsonLinks;
+	}
+
+	if (documentVersion < 14) {
+		auto factory = deserializationFactoryV10plus();
+		iterateInstances(documentObject, [&factory](const QString& instanceType, QJsonObject& instanceproperties) {
+			bool changed = false;
+			if (instanceType == "Texture") {
+				Property<int, DisplayNameAnnotation, EnumerationAnnotation> origin{ DEFAULT_VALUE_TEXTURE_ORIGIN_BOTTOM, DisplayNameAnnotation("U/V Origin"), EnumerationAnnotation{EngineEnumeration::TextureOrigin}};
+				extractprop(factory, instanceproperties, u"origin", origin);
+
+				Property<bool, DisplayNameAnnotation> flipTexture{false, DisplayNameAnnotation("Flip U/V Origin")};
+				flipTexture = origin.asInt() == static_cast<int>(raco::user_types::ETextureOrigin::Top);
+
+				addprop(instanceproperties, u"flipTexture", flipTexture);
+
+				changed = true;
+			}
+
+			return changed;
+		});
+	}
+
+	// File version 15: offscreen rendering
+	// - changed texture uniform type for normal 2D textures from STexture -> STextureSampler2DBase
+	if (documentVersion < 15) {
+		auto factory = deserializationFactoryV10plus();
+
+		iterateInstances(documentObject, [&factory](const QString& instanceType, QJsonObject& instanceproperties) {
+			bool changed = false;
+
+			auto migrateUniforms = [](Table& uniforms, raco::serialization::References& references) {
+				for (size_t i = 0; i < uniforms.size(); i++) {
+					auto engineType = uniforms.get(i)->query<raco::user_types::EngineTypeAnnotation>()->type();
+					if (engineType == EnginePrimitive::TextureSampler2D) {
+						auto newValue = raco::user_types::createDynamicProperty<>(engineType);
+						auto oldValue = uniforms.get(i);
+						std::string valueObjectID;
+						if (references.find(oldValue) != references.end()) {
+							valueObjectID = references.at(uniforms.get(i));
+						}
+						references.erase(oldValue);
+						uniforms.replaceProperty(i, newValue);
+						if (!valueObjectID.empty()) {
+							references[uniforms.get(i)] = valueObjectID;
+						}
+					}
+				}
+			};
+
+			if (instanceType == "Material" && instanceproperties.contains(u"uniforms")) {
+				Property<Table, DisplayNameAnnotation> uniforms;
+				auto references = readprop(factory, instanceproperties, u"uniforms", uniforms);
+				removeprop(instanceproperties, u"uniforms");
+
+				migrateUniforms(*uniforms, references);
+
+				addprop(instanceproperties, u"uniforms", uniforms, references, false);
+				changed = true;
+			}
+
+			auto sprops = QString(QJsonDocument(instanceproperties).toJson()).toStdString();
+
+			if (instanceType == "MeshNode" && instanceproperties.contains(u"materials")) {
+				Property<Table, DisplayNameAnnotation> materials;
+				auto references = readprop(factory, instanceproperties, u"materials", materials);
+				removeprop(instanceproperties, u"materials");
+
+				for (size_t i = 0; i < materials->size(); i++) {
+					Table& matCont = materials->get(i)->asTable();
+					Table& uniformsCont = matCont.get("uniforms")->asTable();
+					migrateUniforms(uniformsCont, references);
+				}
+
+				addprop(instanceproperties, u"materials", materials, references, false);
+				changed = true;
+			}
+
+			return changed;
+		});
+
+		// create default render setup
+		// - tag top-level Nodes with "render_main" tag
+		// - create default RenderLayer and RenderPass 
+		
+		std::set<std::string> childObjIds;
+		std::string perspCameraID;
+		std::string orthoCameraID;
+		iterateInstances(documentObject, [&factory, &childObjIds, &perspCameraID, &orthoCameraID](const QString& instanceType, QJsonObject& instanceproperties) {
+			if (instanceproperties.contains(u"children")) {
+				Property<Table, ArraySemanticAnnotation, HiddenProperty> children{{}, {}, {}};
+				auto references = readprop(factory, instanceproperties, u"children", children);
+
+				for (size_t i = 0; i < children->size(); i++) {
+					auto vb = children->get(i);
+					auto it = references.find(vb);
+					if (it != references.end()) {
+						childObjIds.insert(it->second);
+					}
+				}
+			}
+
+			if (instanceType == "PerspectiveCamera") {
+				Property<std::string, HiddenProperty> objectID{std::string(), HiddenProperty()};
+				readprop(factory, instanceproperties, u"objectID", objectID);
+				perspCameraID = *objectID;
+			}
+	
+			if (instanceType == "OrthographicCamera") {
+				Property<std::string, HiddenProperty> objectID{std::string(), HiddenProperty()};
+				readprop(factory, instanceproperties, u"objectID", objectID);
+				orthoCameraID = *objectID;
+			}
+
+			return false;
+		});
+
+		iterateInstances(documentObject, [&factory, &childObjIds](const QString& instanceType, QJsonObject& instanceproperties) {
+			if (instanceType == "Node" || instanceType == "MeshNode" || instanceType == "PrefabInstance") {
+				Property<std::string, HiddenProperty> objectID{std::string(), HiddenProperty()};
+				readprop(factory, instanceproperties, u"objectID", objectID);
+
+				if (childObjIds.find(*objectID) == childObjIds.end()) {
+					Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags{{}, {}, {}, {"Tags"}};
+					tags.set(std::vector<std::string>({"render_main"}));
+					addprop(instanceproperties, u"tags", tags, false);
+
+					return true;
+				}
+			}
+
+			return false;
+		});
+
+		std::string cameraID = perspCameraID.empty() ? orthoCameraID : perspCameraID;
+
+		auto instances = documentObject[raco::serialization::keys::INSTANCES].toArray();
+		auto layerID = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+		instances.push_back(QJsonDocument::fromJson(serializedRenderLayerV14(layerID).c_str()).object());
+		instances.push_back(QJsonDocument::fromJson(serializedRenderPassV14(layerID, cameraID).c_str()).object());
+
+		documentObject[raco::serialization::keys::INSTANCES] = instances;
+	}
+
+	if (documentVersion < 16) {
+		auto factory = deserializationFactoryV10plus();
+		std::map<std::string, std::array<bool, 2>> objectsWithAffectedProperties;
+
+		auto inJsonLinks = documentObject[raco::serialization::keys::LINKS].toArray();
+		for (const auto& linkJson : inJsonLinks) {
+			if (linkJson.toObject()[raco::serialization::keys::PROPERTIES].toObject()["isValid"].toBool() == false) {
+				continue;
+			}
+
+			auto linkEndObjID = linkJson.toObject()[raco::serialization::keys::PROPERTIES].toObject()["endObject"].toString().toStdString();
+			auto linkEndProps = linkJson.toObject()[raco::serialization::keys::PROPERTIES].toObject()["endProp"].toObject()[raco::serialization::keys::PROPERTIES].toArray();
+
+			if (linkEndProps.size() == 1) {
+				auto endProp = linkEndProps.first().toObject()["value"].toString();
+
+				objectsWithAffectedProperties[linkEndObjID][0] = objectsWithAffectedProperties[linkEndObjID][0] || endProp == "rotation";
+				objectsWithAffectedProperties[linkEndObjID][1] = objectsWithAffectedProperties[linkEndObjID][1] || endProp == "scale";
+			}
+		}
+
+		iterateInstances(documentObject, [&migrationWarnings, &objectsWithAffectedProperties, &factory](const QString& instanceType, QJsonObject& instanceproperties) {
+			if (instanceType != "Node" && instanceType != "MeshNode") {
+				return false;
+			}
+
+			auto changed = false;
+			Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> scale{Vec3f(1.0, 0.1, 0.1, 100), DisplayNameAnnotation("Scaling"), {}};
+			Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> rotation{Vec3f(0.0, 5.0, -360.0, 360.0), DisplayNameAnnotation("Rotation"), {}};
+			Property<std::string> objID{{}};
+			readprop(factory, instanceproperties, u"scale", scale);
+			readprop(factory, instanceproperties, u"rotation", rotation);
+			readprop(factory, instanceproperties, u"objectID", objID);
+
+			constexpr auto EPSILON = 0.0001;
+			auto rotationVec = rotation.asVec3f();
+			auto scaleVec = scale.asVec3f();
+
+			auto rotationNotZero = rotationVec.x.asDouble() > EPSILON || rotationVec.y.asDouble() > EPSILON || rotationVec.z.asDouble() > EPSILON;
+			auto scaleNotUniform = std::abs(scaleVec.x.asDouble() - scaleVec.y.asDouble()) > EPSILON || std::abs(scaleVec.x.asDouble() - scaleVec.z.asDouble()) > EPSILON;
+			auto rotationLinked = objectsWithAffectedProperties[objID.asString()][0];
+			auto scaleLinked = objectsWithAffectedProperties[objID.asString()][1];
+
+			std::string warningText;
+
+			if ((rotationNotZero || rotationLinked) && (scaleNotUniform || scaleLinked)) {
+				warningText = fmt::format("This node has {} scaling values and {} rotation values{}.", 
+					scaleLinked ? "linked" : "non-uniform", rotationLinked ? "linked" : "non-zero", 
+					scaleLinked || rotationLinked ? " which may lead to non-uniform scaling values and non-zero rotation values" : "");
+			}
+
+			if (!warningText.empty()) {
+				migrationWarnings[objID.asString()] =
+					fmt::format(
+						"{}\n"
+						"Due to a new Ramses version that changed transformation order (previously: Translation -> Rotation -> Scale, now: Translation -> Scale -> Rotation), this node may be rendered differently from the previous version."
+						"\n\n"
+						"This message will disappear after saving & reloading the project or when a new warning/error for this Node pops up.",
+						warningText);
+
+				changed = true;
+			}
+
+			return changed;
+		});
 	}
 
 	QJsonDocument newDocument{documentObject};

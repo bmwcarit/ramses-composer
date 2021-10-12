@@ -211,7 +211,11 @@ void UndoStack::saveProjectState(const Project *src, Project *dest, Project *ref
 	}
 
 	for (const auto &srcLink : src->links()) {
-		dest->addLink(Link::cloneLinkWithTranslation(srcLink, translateRef));
+		if (!ref || changes.isLinkAdded(srcLink) || changes.isLinkValidityChanged(srcLink)) {
+			dest->addLink(Link::cloneLinkWithTranslation(srcLink, translateRef));
+		} else {
+			dest->addLink(ref->findLinkByObjectID(srcLink));
+		}
 	}
 
 	// Update external project name map
@@ -320,14 +324,14 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 }
 
 UndoStack::UndoStack(BaseContext* context, const Callback& onChange) : context_(context), onChange_ { onChange } {
-	auto initialState = &stack_.emplace_back("Initial").state;
+	auto initialState = &stack_.emplace_back(new Entry("Initial"))->state;
 	saveProjectState(context_->project(), initialState, nullptr, context_->modelChanges(), *context_->objectFactory());
 }
 
 void UndoStack::reset() {
 	stack_.clear();
 	index_ = 0;
-	auto initialState = &stack_.emplace_back("Initial").state;
+	auto initialState = &stack_.emplace_back(new Entry("Initial"))->state;
 	context_->modelChanges().reset();
 	saveProjectState(context_->project(), initialState, nullptr, context_->modelChanges(), *context_->objectFactory());
 	onChange_();
@@ -335,15 +339,15 @@ void UndoStack::reset() {
 
 void UndoStack::push(const std::string &description, std::string mergeId) {
 	stack_.resize(index_ + 1);
-	if (!mergeId.empty() && mergeId == stack_.back().mergeId) {
+	if (!mergeId.empty() && mergeId == stack_.back()->mergeId) {
 		// mergable -> In-place update of the last stack state
-		updateProjectState(context_->project(), &stack_.back().state, context_->modelChanges(), *context_->objectFactory());
-		stack_.back().description = description;
+		updateProjectState(context_->project(), &stack_.back()->state, context_->modelChanges(), *context_->objectFactory());
+		stack_.back()->description = description;
 	} else {
 		// not mergable -> create and fill new state
-		auto nextState = &stack_.emplace_back(description, mergeId).state;
+		auto nextState = &stack_.emplace_back(new Entry(description, mergeId))->state;
 		++index_;
-		saveProjectState(context_->project(), nextState, &stack_[index_ - 1].state, context_->modelChanges(), *context_->objectFactory());
+		saveProjectState(context_->project(), nextState, &stack_[index_ - 1]->state, context_->modelChanges(), *context_->objectFactory());
 	}
 
 	onChange_();
@@ -362,7 +366,7 @@ size_t UndoStack::setIndex(size_t newIndex, bool force) {
 	if (newIndex < size() && (newIndex != index_ || force)) {
 		index_ = newIndex;
 		try {
-			restoreProjectState(&stack_[index_].state, context_->project(), *context_, *context_->objectFactory());
+			restoreProjectState(&stack_[index_]->state, context_->project(), *context_, *context_->objectFactory());
 		} catch (ExtrefError &e) {
 			context_->modelChanges().reset();
 			onChange_();
@@ -390,7 +394,7 @@ UndoStack::Entry::Entry(std::string desc, std::string id) : description(desc), m
 }
 
 const std::string& UndoStack::description(size_t index) const {
-	return stack_.at(index).description;
+	return stack_.at(index)->description;
 }
 
 bool UndoStack::canUndo() const noexcept {

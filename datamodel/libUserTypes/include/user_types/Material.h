@@ -107,6 +107,7 @@ public:
 	}
 
 	Material(Material const& other) : BaseObject(other),
+									  tags_(other.tags_),
 									  uriVertex_(other.uriVertex_),
 									  uriGeometry_(other.uriGeometry_),
 									  uriFragment_(other.uriFragment_),
@@ -121,6 +122,7 @@ public:
 	}
 
 	void fillPropertyDescription() {
+		properties_.emplace_back("tags", &tags_);
 		properties_.emplace_back("uriVertex", &uriVertex_);
 		properties_.emplace_back("uriGeometry", &uriGeometry_);
 		properties_.emplace_back("uriFragment", &uriFragment_);
@@ -133,6 +135,8 @@ public:
 
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	void onAfterContextActivated(BaseContext& context) override;
+
+	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {"Tags"}};
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriVertex_{std::string(), {"Vertex shader files(*.glsl *.vert)"}, DisplayNameAnnotation("Vertex URI")};
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriGeometry_{std::string(), {"Geometry shader files(*.glsl *.geom)"}, DisplayNameAnnotation("Geometry URI")};

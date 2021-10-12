@@ -15,6 +15,8 @@ namespace raco::utils::path {
 
 bool exists(const std::string& path);
 
+bool userHasReadAccess(const std::string& path);
+
 bool isExistingDirectory(const std::string& path);
 
 bool isExistingFile(const std::string& path);

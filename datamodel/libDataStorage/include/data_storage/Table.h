@@ -72,6 +72,7 @@ public:
 	void renameProperty(const std::string& oldName, const std::string& newName);
 
 	void replaceProperty(size_t index, ValueBase* property);
+	void replaceProperty(const std::string& name, ValueBase* property);
 
 	// Remove all properties.
 	void clear();

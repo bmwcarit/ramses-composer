@@ -7,17 +7,61 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+
 #include "mesh_loader/glTFMesh.h"
 
-#include <assimp/scene.h>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/vec3.hpp>
+#include <log_system/log.h>
+#include <optional>
 #include <stdexcept>
+#include <tiny_gltf.h>
 #include <vector>
 
 namespace raco::mesh_loader {
 
 using namespace raco::core;
 
-glTFMesh::glTFMesh(const aiScene &scene, const core::MeshDescriptor &descriptor) : numTriangles_(0), numVertices_(0) {
+namespace {
+
+struct glTFBufferData {
+	glTFBufferData(const tinygltf::Model &scene, int accessorIndex, const std::set<int> &&allowedComponentTypes = {})
+		: scene_(scene),
+		  accessor_(scene_.accessors[accessorIndex]),
+		  view_(scene_.bufferViews[accessor_.bufferView]),
+		  bufferBytes(scene_.buffers[view_.buffer].data) {
+		if (!allowedComponentTypes.empty() && allowedComponentTypes.find(accessor_.componentType) == allowedComponentTypes.end()) {
+			LOG_ERROR(raco::log_system::MESH_LOADER, "glTF buffer accessor '{}' has invalid data type {}", accessor_.name, accessor_.componentType);
+		}
+	}
+
+	template <typename T>
+	std::vector<T> getDataAt(size_t index, bool useComponentSize = true) {
+		auto componentSize = (useComponentSize) ? accessor_.ByteStride(view_) / sizeof(T) : 1;
+		assert(componentSize > 0);
+
+		auto firstByte = reinterpret_cast<const T *>(&bufferBytes[(accessor_.byteOffset + view_.byteOffset)]);
+		std::vector<T> values(componentSize);
+
+		for (int i = 0; i < values.size(); ++i) {
+			values[i] = firstByte[index * componentSize + i];
+		}
+
+		return values;
+	}
+
+	const tinygltf::Model &scene_;
+	const tinygltf::Accessor &accessor_;
+	const tinygltf::BufferView &view_;
+	const std::vector<unsigned char> &bufferBytes;
+};
+
+}  // namespace
+
+
+glTFMesh::glTFMesh(const tinygltf::Model &scene, core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor) : numTriangles_(0), numVertices_(0) {
 	// Not included: Bones, textures, materials, node structure, etc.
 
 	// set up buffers we are going to fill in the loop
@@ -25,85 +69,74 @@ glTFMesh::glTFMesh(const aiScene &scene, const core::MeshDescriptor &descriptor)
 	std::vector<float> normalBuffer{};
 	std::vector<float> tangentBuffer{};
 	std::vector<float> bitangentBuffer{};
-	std::vector<std::vector<float>> uvBuffers;
-	std::vector<int> uvBufferSizes;
-	std::vector<std::vector<float>> colorBuffers;
+	std::vector<std::vector<float>> uvBuffers(MAX_NUMBER_TEXTURECOORDS);
+	std::vector<std::vector<float>> colorBuffers(MAX_NUMBER_COLORS);
+
+	std::vector<tinygltf::Primitive> flattenedPrimitiveList;
+
+	for (const auto &mesh : scene.meshes) {
+		for (const auto &prim : mesh.primitives) {
+			flattenedPrimitiveList.emplace_back(prim);
+		}
+	}
 
 	// Collect all meshes or selected mesh.
-	unsigned meshIndexLimit = (descriptor.bakeAllSubmeshes) ? scene.mNumMeshes : descriptor.submeshIndex + 1;
-	for (unsigned meshIndex = (descriptor.bakeAllSubmeshes) ? 0 : descriptor.submeshIndex; meshIndex < meshIndexLimit; ++meshIndex) {
-		const aiMesh &mesh = *scene.mMeshes[meshIndex];
+	if (!descriptor.bakeAllSubmeshes) {
+		for (auto primitiveIndex = descriptor.submeshIndex; primitiveIndex < descriptor.submeshIndex + 1; ++primitiveIndex) {
+			auto primitive = flattenedPrimitiveList[primitiveIndex];
 
-		// TODO enable this again once we have meshnode submesh support:
-		//materials_.emplace_back(scene.mMaterials[mesh.mMaterialIndex]->GetName().C_Str());
+			// TODO enable this again once we have meshnode submesh support:
+			//materials_.emplace_back(scene.materials[primitive.material].name);
 
-		// Collect our vertices.
-		for (unsigned vertexIndex = 0; vertexIndex < mesh.mNumVertices; ++vertexIndex) {
-			const aiVector3D &vertex{mesh.mVertices[vertexIndex]};
-			vertexBuffer.insert(vertexBuffer.end(), {vertex.x, vertex.y, vertex.z});
+			loadPrimitiveData(primitive, scene, vertexBuffer, normalBuffer, tangentBuffer, bitangentBuffer, uvBuffers, colorBuffers);
+		}
+	} else {
+		// calculate local node transformations to later transfer them to the node's vertex positions
+		// see: https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_004_ScenesNodes.md#global-transforms-of-nodes
 
-			const auto &normal{mesh.mNormals[vertexIndex]};
-			normalBuffer.insert(normalBuffer.end(), {normal.x, normal.y, normal.z});
+		auto generateTrafoMatrix = [](const core::MeshScenegraphNode &node) {
+			auto trafoMatrix = glm::identity<glm::dmat4x4>();
+			trafoMatrix = glm::translate(trafoMatrix, glm::dvec3(node.transformations.translation[0], node.transformations.translation[1], node.transformations.translation[2]));
+			auto rotationRadians = glm::radians(glm::dvec3{node.transformations.rotation[0], node.transformations.rotation[1], node.transformations.rotation[2]});
+			trafoMatrix = glm::rotate(trafoMatrix, rotationRadians.x, {1, 0, 0});
+			trafoMatrix = glm::rotate(trafoMatrix, rotationRadians.y, {0, 1, 0});
+			trafoMatrix = glm::rotate(trafoMatrix, rotationRadians.z, {0, 0, 1});
+			trafoMatrix = glm::scale(trafoMatrix, {node.transformations.scale[0], node.transformations.scale[1], node.transformations.scale[2]});
 
-			if (mesh.HasTangentsAndBitangents()) {
-				const auto &tangent{mesh.mTangents[vertexIndex]};
-				tangentBuffer.insert(tangentBuffer.end(), {tangent.x, tangent.y, tangent.z});
-				const auto &bitangent{mesh.mBitangents[vertexIndex]};
-				bitangentBuffer.insert(bitangentBuffer.end(), {bitangent.x, bitangent.y, bitangent.z});
-			}
+			return trafoMatrix;
+		};
+
+		std::vector<glm::dmat4x4> nodeTrafos(sceneGraph.nodes.size());
+		for (auto i = 0; i < sceneGraph.nodes.size(); ++i) {
+			auto &node = sceneGraph.nodes[i].value();
+			nodeTrafos[i] = generateTrafoMatrix(node);
+			// Cleaning out the extracted transformation for easier debugging 
+			node.transformations.translation = {0, 0, 0};
+			node.transformations.rotation = {0, 0, 0};
+			node.transformations.scale = {1, 1, 1};
 		}
 
-		// Collect our faces/indexes
-		// Note: we build the correct submesh ranges here in anticipation of submesh support in the meshnode.
-		IndexBufferRangeInfo bufferRange = {static_cast<uint32_t>(indexBuffer_.size()), 0};
-		for (unsigned faceIndex = 0; faceIndex < mesh.mNumFaces; ++faceIndex) {
-			const auto &face{mesh.mFaces[faceIndex]};
 
-			for (unsigned vertexIndex = 0; vertexIndex < face.mNumIndices; ++vertexIndex) {
-				indexBuffer_.push_back(face.mIndices[vertexIndex] + numVertices_);
-				++bufferRange.count;
+		for (auto nodeIndex = 0; nodeIndex < sceneGraph.nodes.size(); ++nodeIndex) {		
+			const auto &node = sceneGraph.nodes[nodeIndex].value();
+			if (node.subMeshIndeces.empty()) {
+				continue;
+			}
+
+			auto globalTransformation = glm::identity<glm::dmat4x4>();
+
+			auto currentIndex = nodeIndex;
+			while (currentIndex != -1) {
+				globalTransformation = nodeTrafos[currentIndex] * globalTransformation;
+				currentIndex = sceneGraph.nodes[currentIndex]->parentIndex;
+			}
+
+			for (const auto &primitiveIndex : sceneGraph.nodes[nodeIndex]->subMeshIndeces) {
+				auto primitive = flattenedPrimitiveList[*primitiveIndex];
+				loadPrimitiveData(primitive, scene, vertexBuffer, normalBuffer, tangentBuffer, bitangentBuffer, uvBuffers, colorBuffers, &globalTransformation);
 			}
 		}
-
-		// Add our mesh to the buffer ranges.
-		submeshIndexBufferRanges_.push_back(bufferRange);
-
-		// Collect all the UV maps.
-		for (unsigned uvChannelIndex = 0; uvChannelIndex < mesh.GetNumUVChannels(); ++uvChannelIndex) {
-			// Expand the buffers if we need more.
-			if (uvBuffers.size() <= uvChannelIndex) {
-				uvBuffers.emplace_back(std::vector<float>{});
-			}
-
-			std::vector<float> &uvBuffer{uvBuffers[uvChannelIndex]};
-
-			// Collect the UV coordinates.
-			const auto numComponents = mesh.mNumUVComponents[uvChannelIndex];
-			for (size_t vertexIndex = 0; vertexIndex < mesh.mNumVertices; ++vertexIndex) {
-				const aiVector3D &coordinate = mesh.mTextureCoords[uvChannelIndex][vertexIndex];
-				uvBuffer.insert(uvBuffer.end(), {coordinate.x, coordinate.y});
-				if (numComponents == 3) {
-					uvBuffer.push_back(coordinate.z);
-				}
-			}
-			uvBufferSizes.push_back(numComponents);
-		}  // end UV channel loop
-
-		// Collect colors
-		for (unsigned colorChannelIndex = 0; colorChannelIndex < mesh.GetNumColorChannels(); ++colorChannelIndex) {
-			if (colorBuffers.size() <= colorChannelIndex) {
-				colorBuffers.emplace_back(std::vector<float>{});
-			}
-			std::vector<float> &colorBuffer{colorBuffers[colorChannelIndex]};
-			for (size_t vertexIndex = 0; vertexIndex < mesh.mNumVertices; ++vertexIndex) {
-				const aiColor4D color = mesh.mColors[colorChannelIndex][vertexIndex];
-				colorBuffer.insert(colorBuffer.end(), {color.r, color.g, color.b, color.a});
-			}
-		}
-
-		numVertices_ += mesh.mNumVertices;
-		numTriangles_ += mesh.mNumFaces;
-	}  // end mesh loop
+	}
 
 	// TODO: only single material mesh right now; use full information from loop above when we have submesh support in meshnode
 	submeshIndexBufferRanges_ = {{0, static_cast<uint32_t>(indexBuffer_.size())}};
@@ -116,34 +149,28 @@ glTFMesh::glTFMesh(const aiScene &scene, const core::MeshDescriptor &descriptor)
 		vertexBuffer});
 
 	// Add the normals
-	attributes_.emplace_back(Attribute{
-		ATTRIBUTE_NORMAL,
-		VertexAttribDataType::VAT_Float3,
-		normalBuffer});
+	if (!normalBuffer.empty()) {
+		attributes_.emplace_back(Attribute{
+			ATTRIBUTE_NORMAL,
+			VertexAttribDataType::VAT_Float3,
+			normalBuffer});
+	}
 
-	if (tangentBuffer.size() > 0 && tangentBuffer.size() == bitangentBuffer.size() && tangentBuffer.size() == vertexBuffer.size()) {
+	if (!tangentBuffer.empty() && tangentBuffer.size() == bitangentBuffer.size() && tangentBuffer.size() == vertexBuffer.size()) {
 		attributes_.emplace_back(Attribute{ATTRIBUTE_TANGENT, VertexAttribDataType::VAT_Float3, tangentBuffer});
 		attributes_.emplace_back(Attribute{ATTRIBUTE_BITANGENT, VertexAttribDataType::VAT_Float3, bitangentBuffer});
 	}
 
 	// Add the UV maps
 	for (int bufferIndex = 0; bufferIndex < uvBuffers.size(); ++bufferIndex) {
-		const unsigned numComponents = uvBufferSizes[bufferIndex];
 		const std::string indexCharacter = (bufferIndex == 0) ? "" : std::to_string(bufferIndex);
 
 		// Check that uv buffer uses the same number of vertices as the vertex buffers;
-		if (vertexBuffer.size() / 3 == uvBuffers[bufferIndex].size() / numComponents) {
-			if (numComponents == 3) {
-				attributes_.emplace_back(Attribute{
-					std::string{ATTRIBUTE_UVWMAP} + indexCharacter,
-					VertexAttribDataType::VAT_Float3,
-					uvBuffers[bufferIndex]});
-			} else {
-				attributes_.emplace_back(Attribute{
-					std::string{ATTRIBUTE_UVMAP} + indexCharacter,
-					VertexAttribDataType::VAT_Float2,
-					uvBuffers[bufferIndex]});
-			}
+		if (vertexBuffer.size() / 3 == uvBuffers[bufferIndex].size() / 2) {
+			attributes_.emplace_back(Attribute{
+				std::string{ATTRIBUTE_UVMAP} + indexCharacter,
+				VertexAttribDataType::VAT_Float2,
+				uvBuffers[bufferIndex]});
 		}
 	}
 
@@ -217,6 +244,180 @@ MeshData::VertexAttribDataType glTFMesh::attribDataType(int attribute_index) con
 
 const char *glTFMesh::attribBuffer(int attribute_index) const {
 	return reinterpret_cast<const char *>(attributes_.at(attribute_index).data.data());
+}
+
+
+void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tinygltf::Model &scene, std::vector<float> &vertexBuffer, std::vector<float> &normalBuffer, std::vector<float> &tangentBuffer, std::vector<float> &bitangentBuffer, std::vector<std::vector<float>> &uvBuffers, std::vector<std::vector<float>> &colorBuffers, glm::dmat4 *rootTrafoMatrix) {
+	if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
+		LOG_ERROR(log_system::MESH_LOADER, "primitive has no position attributes defined");
+		return;
+	}
+
+	std::optional<glTFBufferData> normalData;
+	std::optional<glTFBufferData> tangentData;
+	std::array<std::optional<glTFBufferData>, MAX_NUMBER_TEXTURECOORDS> bufferTexCoordDatas;
+	std::array<std::optional<glTFBufferData>, MAX_NUMBER_COLORS> bufferColorDatas;
+
+	if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
+		normalData.emplace(scene, primitive.attributes.at("NORMAL"), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT});
+
+		if (primitive.attributes.find("TANGENT") != primitive.attributes.end()) {
+			tangentData.emplace(scene, primitive.attributes.at("TANGENT"), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT});
+		}
+	}
+
+	for (auto uvChannel = 0; uvChannel < MAX_NUMBER_TEXTURECOORDS; ++uvChannel) {
+		auto texCoordName = fmt::format("TEXCOORD_{}", uvChannel);
+		if (primitive.attributes.find(texCoordName) != primitive.attributes.end()) {
+			bufferTexCoordDatas[uvChannel].emplace(scene, primitive.attributes.at(texCoordName), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+		}
+	}
+
+	for (auto colorChannel = 0; colorChannel < MAX_NUMBER_COLORS; ++colorChannel) {
+		auto colorName = fmt::format("COLOR_{}", colorChannel);
+		if (primitive.attributes.find(colorName) != primitive.attributes.end()) {
+			bufferColorDatas[colorChannel].emplace(scene,primitive.attributes.at(colorName), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+		}
+	}
+
+	glTFBufferData posData(scene, primitive.attributes.at("POSITION"), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT});
+
+	for (size_t vertexIndex = 0; vertexIndex < posData.accessor_.count; vertexIndex++) {
+		auto position = posData.getDataAt<float>(vertexIndex);
+		if (rootTrafoMatrix) {
+			auto transformedVerts = *rootTrafoMatrix * glm::dvec4(position[0], position[1], position[2], 1);
+			vertexBuffer.insert(vertexBuffer.end(), {static_cast<float>(transformedVerts.x), static_cast<float>(transformedVerts.y), static_cast<float>(transformedVerts.z)});
+		} else {
+			vertexBuffer.insert(vertexBuffer.end(), {position[0], position[1], position[2]});
+		}
+
+		if (normalData) {
+			auto currentNormal = normalData->getDataAt<float>(vertexIndex);
+			normalBuffer.insert(normalBuffer.end(), currentNormal.begin(), currentNormal.end());
+
+			if (tangentData) {
+				auto tangent = tangentData->getDataAt<float>(vertexIndex);
+				assert(tangent.size() == 4);
+
+				tangentBuffer.insert(tangentBuffer.end(), tangent.begin(), tangent.end());
+				auto tangentW = tangent[3];
+
+				// cross tangent with normal and multiply with tangent.W to get bitangent
+				auto bitangentXYZ = {tangentW * (currentNormal[1] * tangent[2] - currentNormal[2] * tangent[1]),
+					tangentW * (currentNormal[2] * tangent[0] - currentNormal[0] * tangent[2]),
+					tangentW * (currentNormal[0] * tangent[1] - currentNormal[1] * tangent[0])};
+				bitangentBuffer.insert(bitangentBuffer.end(), bitangentXYZ.begin(), bitangentXYZ.end());
+
+			}
+
+		}
+
+		for (auto uvChannel = 0; uvChannel < MAX_NUMBER_TEXTURECOORDS; ++uvChannel) {
+			if (bufferTexCoordDatas[uvChannel]) {
+				std::vector<float> &uvBuffer{uvBuffers[uvChannel]};
+				auto textureData = bufferTexCoordDatas[uvChannel]->getDataAt<float>(vertexIndex);
+				assert(textureData.size() == 2);
+
+				uvBuffer.insert(uvBuffer.end(), textureData.begin(), textureData.end());
+			}
+		}
+
+		for (auto colorChannel = 0; colorChannel < MAX_NUMBER_COLORS; ++colorChannel) {
+			if (bufferColorDatas[colorChannel]) {
+				std::vector<float> &colorBuffer{colorBuffers[colorChannel]};
+				std::vector<float> colorData(4, 1.0F);
+
+				switch (bufferColorDatas[colorChannel]->accessor_.componentType) {
+					case TINYGLTF_PARAMETER_TYPE_FLOAT: {
+						auto floatColorData = bufferColorDatas[colorChannel]->getDataAt<float>(vertexIndex);
+						assert(colorData.size() == 3 || colorData.size() == 4);
+
+						for (auto i = 0; i < floatColorData.size(); ++i) {
+							colorData[i] = floatColorData[i];
+						}
+
+						break;
+					}
+					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+						auto byteColorData = bufferColorDatas[colorChannel]->getDataAt<uint8_t>(vertexIndex);
+						assert(byteColorData.size() == 3 || byteColorData.size() == 4);
+
+						for (auto i = 0; i < byteColorData.size(); ++i) {
+							colorData[i] = byteColorData[i] / (0.0F + std::numeric_limits<uint8_t>().max());
+						}
+
+						break;
+					}
+					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+						auto shortColorData = bufferColorDatas[colorChannel]->getDataAt<uint16_t>(vertexIndex);
+						assert(shortColorData.size() == 3 || shortColorData.size() == 4);
+
+						for (auto i = 0; i < shortColorData.size(); ++i) {
+							colorData[i] = shortColorData[i] / (0.0F + std::numeric_limits<uint16_t>().max());
+						}
+						break;
+					}
+					default: {
+						throw std::range_error("No valid color attribute type found.");
+						return;
+					}
+				}
+
+				colorBuffer.insert(colorBuffer.end(), colorData.begin(), colorData.end());
+			}
+		}
+	}
+
+	// Collect our faces/indexes
+	// Note: we build the correct submesh ranges here in anticipation of submesh support in the meshnode.
+	IndexBufferRangeInfo bufferRange = {static_cast<uint32_t>(indexBuffer_.size()), 0};
+
+	if (primitive.indices > -1) {
+		glTFBufferData indexBufferData(scene, primitive.indices, {TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, TINYGLTF_TEXTURE_TYPE_UNSIGNED_BYTE});
+		auto indexAccessorCount = indexBufferData.accessor_.count;
+
+		switch (indexBufferData.accessor_.componentType) {
+			case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+				for (size_t index = 0; index < indexAccessorCount; index++) {
+					auto data = indexBufferData.getDataAt<uint32_t>(index, false).front();
+					indexBuffer_.emplace_back(data + numVertices_);
+				}
+				break;
+			}
+			case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+				for (size_t index = 0; index < indexAccessorCount; index++) {
+					auto data = indexBufferData.getDataAt<uint16_t>(index, false).front();
+					indexBuffer_.emplace_back(data + numVertices_);
+				}
+				break;
+			}
+			case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+				for (size_t index = 0; index < indexAccessorCount; index++) {
+					auto data = indexBufferData.getDataAt<uint8_t>(index, false).front();
+					indexBuffer_.emplace_back(data + numVertices_);
+				}
+				break;
+			}
+			default: {
+				throw std::range_error("No valid primitive index attribute type found.");
+				return;
+			}
+		}
+		bufferRange.count += indexAccessorCount;
+		numTriangles_ += indexAccessorCount / 3;
+	} else {
+		auto indexCount = posData.accessor_.count;
+
+		for (auto index = 0; index < indexCount; ++index) {
+			indexBuffer_.emplace_back(index + numVertices_);
+		}
+
+		bufferRange.count += indexCount;
+		numTriangles_ += indexCount / 3;
+	}
+	submeshIndexBufferRanges_.push_back(bufferRange);
+
+	numVertices_ += posData.accessor_.count;
 }
 
 }  // namespace raco::mesh_loader

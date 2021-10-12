@@ -10,12 +10,18 @@
 #include "gtest/gtest.h"
 
 #include "ObjectTreeViewDefaultModel_test.h"
+
+
+#include "core/ExternalReferenceAnnotation.h"
+#include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "user_types/LuaScript.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/PrefabInstance.h"
+
 
 #include <QApplication>
 
@@ -53,6 +59,30 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 	}
 }
 
+std::vector<raco::core::SEditorObject> ObjectTreeViewDefaultModelTest::createAllSceneGraphObjects() {
+	std::vector<SEditorObject> allSceneGraphNodes;
+	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+		auto newNode = createNodes(typeName, {typeName});
+		if (Queries::isNotResource(newNode.front()) && typeName != Prefab::typeDescription.typeName) {
+			allSceneGraphNodes.emplace_back(newNode.front());
+		}
+	}
+
+	return allSceneGraphNodes;
+}
+
+std::vector<raco::core::SEditorObject> ObjectTreeViewDefaultModelTest::createAllResources() {
+	std::vector<raco::core::SEditorObject> allResources;
+	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+		auto newNode = createNodes(typeName, {typeName});
+		if (raco::core::Queries::isResource(newNode.front())) {
+			allResources.emplace_back(newNode.front());
+		}
+	}
+
+	return allResources;
+}
+
 
 TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingSimple) {
 	auto singleNodeName = "Test";
@@ -60,9 +90,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingSimple) {
 
 	auto singleNode = createNodes(MeshNode::typeDescription.typeName, nodeNames_).front();
 
-	auto singleNodeIndex = viewModel_.index(0, 0);
-	ASSERT_EQ(viewModel_.parent(singleNodeIndex), viewModel_.getInvisibleRootIndex());
-	compareValuesInTree(singleNode, singleNodeIndex, viewModel_);
+	auto singleNodeIndex = viewModel_->index(0, 0);
+	ASSERT_EQ(viewModel_->parent(singleNodeIndex), viewModel_->getInvisibleRootIndex());
+	compareValuesInTree(singleNode, singleNodeIndex, *viewModel_);
 }
 
 
@@ -72,10 +102,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingThreeRootNodes) {
 	auto createdNodes = createNodes(Node::typeDescription.typeName, nodeNames_);
 
 	for (size_t i = 0; i < nodeNames_.size(); ++i) {
-		auto currentNodeModel = viewModel_.index(i, 0);
+		auto currentNodeModel = viewModel_->index(i, 0);
 
-		ASSERT_EQ(viewModel_.parent(currentNodeModel).row(), viewModel_.getInvisibleRootIndex().row());
-		compareValuesInTree(createdNodes[i], currentNodeModel, viewModel_);
+		ASSERT_EQ(viewModel_->parent(currentNodeModel).row(), viewModel_->getInvisibleRootIndex().row());
+		compareValuesInTree(createdNodes[i], currentNodeModel, *viewModel_);
 	}
 }
 
@@ -91,13 +121,13 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingOneParentOneChild) {
 	auto childNode = createdNodes.back();
 	moveScenegraphChild(childNode, rootNode);
 
-	auto rootNodeModelIndex = viewModel_.index(0, ObjectTreeViewDefaultModel::COLUMNINDEX_NAME);
-	auto childNodeModelIndex = viewModel_.index(0, ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, rootNodeModelIndex);
+	auto rootNodeModelIndex = viewModel_->index(0, ObjectTreeViewDefaultModel::COLUMNINDEX_NAME);
+	auto childNodeModelIndex = viewModel_->index(0, ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, rootNodeModelIndex);
 
 	auto compareParentRelationshipPerColumn = [this, &rootNodeModelIndex, &childNodeModelIndex](auto column) {
-		auto parent = viewModel_.indexToTreeNode(rootNodeModelIndex);
-		auto child = viewModel_.indexToTreeNode(childNodeModelIndex);
-		auto invisibleRootNode = viewModel_.indexToTreeNode(viewModel_.getInvisibleRootIndex());
+		auto parent = viewModel_->indexToTreeNode(rootNodeModelIndex);
+		auto child = viewModel_->indexToTreeNode(childNodeModelIndex);
+		auto invisibleRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
 		
 		ASSERT_EQ(parent->getParent()->getRepresentedObject(), invisibleRootNode->getRepresentedObject());
 		ASSERT_EQ(parent->getChildren().size(), 1);
@@ -109,8 +139,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingOneParentOneChild) {
 		compareParentRelationshipPerColumn(i);
 	}
 
-	compareValuesInTree(rootNode, rootNodeModelIndex, viewModel_);
-	compareValuesInTree(childNode, childNodeModelIndex, viewModel_);
+	compareValuesInTree(rootNode, rootNodeModelIndex, *viewModel_);
+	compareValuesInTree(childNode, childNodeModelIndex, *viewModel_);
 }
 
 
@@ -134,8 +164,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingOneRootHasTwoChildrenOtherRoo
 	nodeNames_ = {"rootNode2"};
 	auto rootNode2 = createNodes(Node::typeDescription.typeName, nodeNames_).front();
 
-	auto invisibleRoot = viewModel_.getInvisibleRootIndex();
-	auto invisibleRootNode = viewModel_.indexToTreeNode(viewModel_.getInvisibleRootIndex());
+	auto invisibleRoot = viewModel_->getInvisibleRootIndex();
+	auto invisibleRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
 	ASSERT_EQ(invisibleRootNode->childCount(), 2);	
 	
 	auto firstRootLeaf = invisibleRootNode->getChild(0);
@@ -179,10 +209,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingNastyNesting) {
 		moveScenegraphChild(createdNodes[i + 1], createdNodes[i]);
 	}
 
-	QModelIndex parent = viewModel_.getInvisibleRootIndex();
+	QModelIndex parent = viewModel_->getInvisibleRootIndex();
 	for (int i = 0; i < NODE_AMOUNT - 1; ++i) {
-		auto currentIndex = viewModel_.index(0, ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, parent);
-		auto actualParent = viewModel_.parent(currentIndex);
+		auto currentIndex = viewModel_->index(0, ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, parent);
+		auto actualParent = viewModel_->parent(currentIndex);
 		ASSERT_EQ(parent, actualParent);
 		parent = currentIndex;
 	}
@@ -192,17 +222,17 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingNastyNesting) {
 TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveCreateTwoNodes) {
 	nodeNames_ = {"rootNode", "childNode"};
 
-	auto wrongItemIndex = viewModel_.indexFromObjectID("nothing");
+	auto wrongItemIndex = viewModel_->indexFromObjectID("nothing");
 	ASSERT_FALSE(wrongItemIndex.isValid());
 
 	auto createdNodes = createNodes(Node::typeDescription.typeName, nodeNames_);
-	auto rootIndex = viewModel_.indexFromObjectID(createdNodes.front()->objectID());
-	auto childIndex = viewModel_.indexFromObjectID(createdNodes.back()->objectID());
+	auto rootIndex = viewModel_->indexFromObjectID(createdNodes.front()->objectID());
+	auto childIndex = viewModel_->indexFromObjectID(createdNodes.back()->objectID());
 
 	ASSERT_EQ(rootIndex.row(), 0);
-	ASSERT_EQ(rootIndex.parent(), viewModel_.getInvisibleRootIndex());
+	ASSERT_EQ(rootIndex.parent(), viewModel_->getInvisibleRootIndex());
 	ASSERT_EQ(childIndex.row(), 1);
-	ASSERT_EQ(childIndex.parent(), viewModel_.getInvisibleRootIndex());
+	ASSERT_EQ(childIndex.parent(), viewModel_->getInvisibleRootIndex());
 }
 
 
@@ -216,15 +246,15 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveCreateParentAndChild) {
 	moveScenegraphChild(childNode, rootNode);
 	ASSERT_EQ(childNode->getParent(), rootNode);
 
-	auto rootIndex = viewModel_.indexFromObjectID(rootNode->objectID());
-	auto childIndex = viewModel_.indexFromObjectID(childNode->objectID());
+	auto rootIndex = viewModel_->indexFromObjectID(rootNode->objectID());
+	auto childIndex = viewModel_->indexFromObjectID(childNode->objectID());
 
 	ASSERT_EQ(rootIndex.row(), 0);
-	ASSERT_EQ(rootIndex.parent(), viewModel_.getInvisibleRootIndex());
+	ASSERT_EQ(rootIndex.parent(), viewModel_->getInvisibleRootIndex());
 	ASSERT_EQ(childIndex.row(), 0);
 	ASSERT_EQ(childIndex.parent(), rootIndex);
 
-	ASSERT_EQ(viewModel_.indexToTreeNode(rootIndex)->childCount(), 1);
+	ASSERT_EQ(viewModel_->indexToTreeNode(rootIndex)->childCount(), 1);
 
 	auto rootChildIndex = rootIndex.child(0, 0);
 	ASSERT_EQ(rootChildIndex.row(), childIndex.row());
@@ -238,11 +268,11 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveDontAllowMovingObjectIntoIt
 	auto rootNode = createdNodes.front();
 
 	moveScenegraphChild(rootNode, rootNode);
-	auto rootIndex = viewModel_.indexFromObjectID(createdNodes.front()->objectID());
+	auto rootIndex = viewModel_->indexFromObjectID(createdNodes.front()->objectID());
 
 	ASSERT_EQ(rootNode->getParent(), nullptr);
 	ASSERT_EQ(rootIndex.row(), 0);
-	ASSERT_EQ(rootIndex.parent(), viewModel_.getInvisibleRootIndex());
+	ASSERT_EQ(rootIndex.parent(), viewModel_->getInvisibleRootIndex());
 }
 
 
@@ -257,13 +287,13 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveDontAllowMovingParentIntoCh
 	ASSERT_EQ(childNode->getParent(), rootNode);
 
 	moveScenegraphChild(rootNode, childNode);
-	auto rootIndex = viewModel_.indexFromObjectID(createdNodes.front()->objectID());
-	auto childIndex = viewModel_.indexFromObjectID(createdNodes.back()->objectID());
+	auto rootIndex = viewModel_->indexFromObjectID(createdNodes.front()->objectID());
+	auto childIndex = viewModel_->indexFromObjectID(createdNodes.back()->objectID());
 
 	ASSERT_EQ(childNode->getParent(), rootNode);
 	ASSERT_EQ(rootNode->getParent(), nullptr);
 	ASSERT_EQ(rootIndex.row(), 0);
-	ASSERT_EQ(rootIndex.parent(), viewModel_.getInvisibleRootIndex());
+	ASSERT_EQ(rootIndex.parent(), viewModel_->getInvisibleRootIndex());
 	ASSERT_EQ(childIndex.row(), 0);
 	ASSERT_EQ(childIndex.parent(), rootIndex);
 }
@@ -283,8 +313,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveParentMidAndChildProperHier
 	for (size_t i = 1; i < createdNodes.size(); ++i) {
 		ASSERT_EQ(createdNodes[i]->getParent(), createdNodes[i - 1]);
 
-		auto currentNodeIndex = viewModel_.indexFromObjectID(createdNodes[i]->objectID());
-		auto parentNodeIndex = viewModel_.indexFromObjectID(createdNodes[i - 1]->objectID());
+		auto currentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i]->objectID());
+		auto parentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i - 1]->objectID());
 		ASSERT_EQ(currentNodeIndex.parent(), parentNodeIndex);
 	}
 }
@@ -308,8 +338,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveParentMidAndChildDontMovePa
 	for (size_t i = 1; i < createdNodes.size(); ++i) {
 		ASSERT_EQ(createdNodes[i]->getParent(), createdNodes[i - 1]);
 
-		auto currentNodeIndex = viewModel_.indexFromObjectID(createdNodes[i]->objectID());
-		auto parentNodeIndex = viewModel_.indexFromObjectID(createdNodes[i - 1]->objectID());
+		auto currentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i]->objectID());
+		auto parentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i - 1]->objectID());
 		ASSERT_EQ(currentNodeIndex.parent(), parentNodeIndex);
 	}
 }
@@ -363,7 +393,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveParentChildrenDifferentMovi
 	auto rootChildren = rootNode->children_->asVector<SEditorObject>();
 	ASSERT_EQ(rootChildren.size(), childAmount);
 
-	auto rootTreeNode = viewModel_.indexToTreeNode(viewModel_.indexFromObjectID(rootNode->objectID()));
+	auto rootTreeNode = viewModel_->indexToTreeNode(viewModel_->indexFromObjectID(rootNode->objectID()));
 	ASSERT_EQ(rootTreeNode->childCount(), childAmount);
 
 	for (int i = 1; i <= childAmount; ++i) {
@@ -457,13 +487,13 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionJustOneObject) {
 
 	ASSERT_EQ(project.instances().size(), 1);
 
-	auto justAnIndex = viewModel_.indexFromObjectID(justANode->objectID());
+	auto justAnIndex = viewModel_->indexFromObjectID(justANode->objectID());
 	auto delObjAmount = deleteObjectAtIndex(justAnIndex);
 
 	ASSERT_EQ(delObjAmount, 1);
 	ASSERT_TRUE(project.instances().empty());
 
-	justAnIndex = viewModel_.indexFromObjectID(justANode->objectID());
+	justAnIndex = viewModel_->indexFromObjectID(justANode->objectID());
 	ASSERT_FALSE(justAnIndex.isValid());
 }
 
@@ -476,15 +506,15 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionChildNode) {
 	auto childNode = createdNodes.back();
 	moveScenegraphChild(childNode, parentNode);
 
-	auto childIndex = viewModel_.indexFromObjectID(childNode->objectID());
+	auto childIndex = viewModel_->indexFromObjectID(childNode->objectID());
 	auto delObjAmount = deleteObjectAtIndex(childIndex);
 	ASSERT_EQ(delObjAmount, 1);
 	ASSERT_EQ(project.instances().size(), 1);
 
-	auto parentIndex = viewModel_.indexFromObjectID(parentNode->objectID());
-	ASSERT_EQ(viewModel_.indexToTreeNode(parentIndex)->childCount(), 0);
+	auto parentIndex = viewModel_->indexFromObjectID(parentNode->objectID());
+	ASSERT_EQ(viewModel_->indexToTreeNode(parentIndex)->childCount(), 0);
 
-	childIndex = viewModel_.indexFromObjectID(childNode->objectID());
+	childIndex = viewModel_->indexFromObjectID(childNode->objectID());
 	ASSERT_FALSE(childIndex.isValid());
 }
 
@@ -501,14 +531,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionParentNode) {
 	moveScenegraphChild(child1Node, parentNode);
 	moveScenegraphChild(child2Node, parentNode);
 
-	auto parentIndex = viewModel_.indexFromObjectID(parentNode->objectID());
+	auto parentIndex = viewModel_->indexFromObjectID(parentNode->objectID());
 	auto delObjAmount = deleteObjectAtIndex(parentIndex);
 	ASSERT_EQ(delObjAmount, 3);
 	ASSERT_TRUE(project.instances().empty());
 
-	ASSERT_FALSE(viewModel_.indexFromObjectID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_.indexFromObjectID(child1Node->objectID()).isValid());
-	ASSERT_FALSE(viewModel_.indexFromObjectID(child2Node->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromObjectID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromObjectID(child1Node->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromObjectID(child2Node->objectID()).isValid());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMidNode) {
@@ -526,13 +556,167 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMidNode) {
 	moveScenegraphChild(child1Node, midNode);
 	moveScenegraphChild(child2Node, midNode);
 
-	auto midIndex = viewModel_.indexFromObjectID(midNode->objectID());
+	auto midIndex = viewModel_->indexFromObjectID(midNode->objectID());
 	auto delObjAmount = deleteObjectAtIndex(midIndex);
 	ASSERT_EQ(delObjAmount, 3);
 	ASSERT_EQ(project.instances().size(), 1);
 
-	ASSERT_TRUE(viewModel_.indexFromObjectID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_.indexFromObjectID(midNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_.indexFromObjectID(child1Node->objectID()).isValid());
-	ASSERT_FALSE(viewModel_.indexFromObjectID(child2Node->objectID()).isValid());
+	ASSERT_TRUE(viewModel_->indexFromObjectID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromObjectID(midNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromObjectID(child1Node->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromObjectID(child2Node->objectID()).isValid());
+
+}
+
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsSceneGraphObjectsAreAllowedWithEmptyIndex) {
+	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		if (Queries::isNotResource(newObj) && typeName != Prefab::typeDescription.typeName) {
+			ASSERT_TRUE(viewModel_->objectsAreAllowedInModel({newObj}, viewModel_->getInvisibleRootIndex()));
+		}
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombinations) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		if (Queries::isNotResource(newObj) && typeName != Prefab::typeDescription.typeName) {
+			for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+				auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+				auto pastingSomethingUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
+				auto pastingSomethingUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
+
+				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript) {
+					ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({newObj}, sceneObjIndex));
+				} else {
+					ASSERT_TRUE(viewModel_->objectsAreAllowedInModel({newObj}, sceneObjIndex));
+				}
+			}
+		}
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedOnTopLevel) {
+	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		if (Queries::isResource(newObj)) {
+			ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({newObj}, viewModel_->getInvisibleRootIndex()));
+		}
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedUnderSceneGraphObjects) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		if (Queries::isResource(newObj)) {
+			for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+				auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+				ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({newObj}, sceneObjIndex));
+			}
+		}
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsPrefabsAreNotAllowed) {
+	auto prefab = viewModel_->objectFactory()->createObject(Prefab::typeDescription.typeName);
+
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({prefab}, viewModel_->getInvisibleRootIndex()));
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+		ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({prefab}, sceneObjIndex));
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckPrefabInstanceCombinations) {
+	auto prefabInstance = viewModel_->objectFactory()->createObject(PrefabInstance::typeDescription.typeName);
+
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	ASSERT_TRUE(viewModel_->objectsAreAllowedInModel({prefabInstance}, viewModel_->getInvisibleRootIndex()));
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+		auto pastingPrefabInstanceUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
+		auto pastingPrefabInstanceUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
+
+		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript) {
+			ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({prefabInstance}, sceneObjIndex));
+		} else {
+			ASSERT_TRUE(viewModel_->objectsAreAllowedInModel({prefabInstance}, sceneObjIndex));
+		}
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedSceneGraphWithResourcesIsAllowed) {
+	auto meshNode = createNodes(raco::user_types::MeshNode::typeDescription.typeName, {raco::user_types::MeshNode::typeDescription.typeName}).front();
+	auto mesh = createNodes(raco::user_types::Mesh::typeDescription.typeName, {raco::user_types::Mesh::typeDescription.typeName}).front();
+
+	commandInterface.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	auto cutObjs = commandInterface.cutObjects({meshNode}, true);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	ASSERT_TRUE(viewModel_->canPasteInto(viewModel_->getInvisibleRootIndex(), cutObjs));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPrefabIsAllowed) {
+	auto prefabInstance = createNodes(raco::user_types::PrefabInstance::typeDescription.typeName, {raco::user_types::PrefabInstance::typeDescription.typeName}).front();
+	auto prefab = createNodes(raco::user_types::Prefab::typeDescription.typeName, {raco::user_types::Prefab::typeDescription.typeName}).front();
+
+	commandInterface.set(raco::core::ValueHandle{prefabInstance, {"template"}}, prefab);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	auto cutObjs = commandInterface.cutObjects({prefabInstance}, true);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	ASSERT_TRUE(viewModel_->canPasteInto(viewModel_->getInvisibleRootIndex(), cutObjs));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsLuaScriptIsAllowedAsExtRefOnTopLevel) {
+	auto luaScript = createNodes(raco::user_types::LuaScript::typeDescription.typeName, {raco::user_types::LuaScript::typeDescription.typeName}).front();
+	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	ASSERT_TRUE(viewModel_->canPasteInto(viewModel_->getInvisibleRootIndex(), cutObjs, true));
+}
+
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsExtRef) {
+	auto luaScript = createNodes(raco::user_types::LuaScript::typeDescription.typeName, {raco::user_types::LuaScript::typeDescription.typeName}).front();
+	auto externalParentNode = createNodes(raco::user_types::Node::typeDescription.typeName, {Node::typeDescription.typeName}).front();
+	auto localParentNode = createNodes(raco::user_types::Node::typeDescription.typeName, {"localParent"});
+	moveScenegraphChild(luaScript, externalParentNode);
+
+	externalParentNode->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	ASSERT_FALSE(viewModel_->canPasteInto(viewModel_->getInvisibleRootIndex(), cutObjs, true));
+	ASSERT_FALSE(viewModel_->canPasteInto(viewModel_->indexFromObjectID("NodelocalParent"), cutObjs, true));
+}
+
+
+TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsLuaScriptIsNotAllowedAsExtRefUnderChild) {
+	auto luaScript = createNodes(raco::user_types::LuaScript::typeDescription.typeName, {raco::user_types::LuaScript::typeDescription.typeName}).front();
+	auto localParentNode = createNodes(raco::user_types::Node::typeDescription.typeName, {"localParent"});
+	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	ASSERT_FALSE(viewModel_->canPasteInto(viewModel_->indexFromObjectID("NodelocalParent"), cutObjs, true));
 }

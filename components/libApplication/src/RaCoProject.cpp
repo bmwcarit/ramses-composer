@@ -30,14 +30,22 @@
 #include "user_types/Node.h"
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/UserObjectFactory.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderLayer.h"
+#include "user_types/RenderTarget.h"
+#include "user_types/RenderPass.h"
 #include "utils/FileUtils.h"
 #include "utils/PathUtils.h"
+#include "core/CoreFormatter.h"
 
 #include <QFile>
 #include <QFileInfo>
 #include <QTextStream>
 #include "utils/stdfilesystem.h"
 #include <functional>
+
+#include "core/PrefabOperations.h"
+#include "user_types/PrefabInstance.h"
 
 namespace raco::application {
 
@@ -58,6 +66,39 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	context_->setMeshCache(meshCache_);
 	context_->setExternalProjectsStore(externalProjectsStore);
 	context_->setFileChangeMonitor(fileChangeMonitor_);
+	
+	// TODO: the following code repairs URIs which have been "rerooted" incorrectly during paste.
+	// This code should really be migration code but rewriting the code below to use only the JSON 
+	// is much more complicated than the code below.
+	// TODO: deal with this once we know how to do migration code in an easier way.
+	for (auto& object : context_->project()->instances()) {
+		if (auto prefabInst = PrefabOperations::findContainingPrefabInstance(object)) {
+			if (auto prefab = *prefabInst->template_) {
+				if (prefab->query<raco::core::ExternalReferenceAnnotation>()) {
+					for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
+						if (property.query<data_storage::URIAnnotation>()) {
+							// The PrefabInstance::mapToInstance_ property is only filled for the outermost PrefabInstance if 
+							// there are nested instances. So we need to search the topmost PrefabInstance first:
+							while (auto parentPrefabInst = PrefabOperations::findContainingPrefabInstance(prefabInst->getParent())) {
+								prefabInst = parentPrefabInst;
+							}
+							auto prefabObj = user_types::PrefabInstance::mapFromInstance(object, prefabInst);
+							auto prefabProperty = ValueHandle::translatedHandle(property, prefabObj);
+
+							if (property.asString() != prefabProperty.asString()) {
+								LOG_WARNING(raco::log_system::PROJECT, "Rewrite URI property '{}': '{}' -> '{}' in project '{}'",
+									property.getPropertyPath(),
+									property.asString(), prefabProperty.asString(),
+									project_.currentPath());
+									context_->set(property, prefabProperty.asString());
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	context_->performExternalFileReload(project_.instances());
 
 	// Push currently loading project on the project load stack to enable project loop detection to work.
@@ -94,10 +135,11 @@ void RaCoProject::generateProjectSubfolder(const std::string& subFolderPath) {
 }
 
 void RaCoProject::generateAllProjectSubfolders() {
-	generateProjectSubfolder(PathManager::IMAGE_SUB_DIRECTORY);
-	generateProjectSubfolder(PathManager::MESH_SUB_DIRECTORY);
-	generateProjectSubfolder(PathManager::SCRIPT_SUB_DIRECTORY);
-	generateProjectSubfolder(PathManager::SHADER_SUB_DIRECTORY);
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	generateProjectSubfolder(prefs.imageSubdirectory.toStdString());
+	generateProjectSubfolder(prefs.meshSubdirectory.toStdString());
+	generateProjectSubfolder(prefs.scriptSubdirectory.toStdString());
+	generateProjectSubfolder(prefs.shaderSubdirectory.toStdString());
 }
 
 RaCoProject::~RaCoProject() {
@@ -121,12 +163,19 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 		app,
 		stack));
 	auto sMeshNode = result->context_->createObject(raco::user_types::MeshNode::typeDescription.typeName, raco::components::Naming::format(raco::user_types::MeshNode::typeDescription.typeName));
-	auto sNode = result->context_->createObject(raco::user_types::Node::typeDescription.typeName, raco::components::Naming::format(raco::user_types::Node::typeDescription.typeName));
-	auto sCamera = result->context_->createObject(raco::user_types::PerspectiveCamera::typeDescription.typeName, raco::components::Naming::format(raco::user_types::PerspectiveCamera::typeDescription.typeName));
+	auto sNode = result->context_->createObject(raco::user_types::Node::typeDescription.typeName, raco::components::Naming::format(raco::user_types::Node::typeDescription.typeName))->as<user_types::Node>();
+	auto sCamera = result->context_->createObject(raco::user_types::PerspectiveCamera::typeDescription.typeName, raco::components::Naming::format(raco::user_types::PerspectiveCamera::typeDescription.typeName))->as<user_types::PerspectiveCamera>();
+	auto sRenderPass = result->context_->createObject(raco::user_types::RenderPass::typeDescription.typeName, "MainRenderPass")->as<user_types::RenderPass>();
+	auto sRenderLayer = result->context_->createObject(raco::user_types::RenderLayer::typeDescription.typeName, "MainRenderLayer")->as<user_types::RenderLayer>();
 
 	auto settings = result->context_->createObject(ProjectSettings::typeDescription.typeName);
+	
+	result->context_->set({sRenderPass, &user_types::RenderPass::camera_}, sCamera);
+	result->context_->set({sRenderPass, &user_types::RenderPass::layer0_}, sRenderLayer);
+	result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Value<int>>(0));
 
-	result->context_->set({sCamera, {"translation", "z"}}, 10.0);
+	result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
+	result->context_->set({sCamera, &user_types::Node::translation_, &data_storage::Vec3f::z}, 10.0);
 	result->context_->moveScenegraphChild(sMeshNode, sNode);
 	result->undoStack_.reset();
 	result->context_->changeMultiplexer().reset();
@@ -151,16 +200,35 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		return {};
 	}
 	auto document{QJsonDocument::fromJson(file.readAll())};
+	if (document.isNull()) {
+		throw std::runtime_error("Loading JSON file resulted in a null document object");
+	}
 	file.close();
 
 	auto fileVersion{raco::serialization::deserializeFileVersion(document)};
 	if (fileVersion > raco::components::RAMSES_PROJECT_FILE_VERSION) {
 		throw FutureFileVersion{fileVersion};
 	}
-	auto migratedJson{raco::components::migrateProject(document)};
 
-	auto result{raco::serialization::deserializeProject(migratedJson,
-		user_types::UserObjectFactoryInterface::deserializationFactory(&user_types::UserObjectFactory::getInstance()))};
+	std::unordered_map<std::string, std::string> migrationObjWarnings;
+	auto migratedJson{raco::components::migrateProject(document, migrationObjWarnings)};
+
+	auto newProject = loadFromJson(migratedJson, filename, app, pathStack);
+
+	for (const auto& [objectID, infoMessage] : migrationObjWarnings) {
+		if (const auto migratedObj = newProject->project()->getInstanceByID(objectID)) {
+			newProject->errors()->addError(raco::core::ErrorCategory::MIGRATION_ERROR, ErrorLevel::WARNING, migratedObj, infoMessage);
+		}
+	}
+
+	return newProject;
+}
+
+std::unique_ptr<RaCoProject> RaCoProject::loadFromJson(const QJsonDocument& migratedJson, const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack) {
+	std::string migratedString{migratedJson.toJson().toStdString()};
+
+	auto result{ raco::serialization::deserializeProject(migratedJson,
+		user_types::UserObjectFactoryInterface::deserializationFactory(&user_types::UserObjectFactory::getInstance())) };
 
 	std::vector<core::SEditorObject> instances{};
 	std::map<std::string, core::SEditorObject> instanceMap;
@@ -174,7 +242,7 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		*pair.first = instanceMap.at(pair.second);
 	}
 
-	Project p{instances};
+	Project p{ instances };
 	p.setCurrentPath(filename.toStdString());
 	for (const auto& instance : instances) {
 		instance->onAfterDeserialization();
@@ -195,35 +263,22 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		p,
 		app->engine(),
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
-		app->externalProjects(), 
+		app->externalProjects(),
 		app,
-		pathStack});
+		pathStack });
 }
 
 QString RaCoProject::name() const {
 	return QString::fromStdString(project_.settings()->objectName());
 }
 
-void RaCoProject::save() {
-	const auto path(project_.currentPath());
-	LOG_INFO(raco::log_system::PROJECT, "Saving project to {}", path);
-	QFile file{path.c_str()};
-	if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-		return;
+QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
 	const auto& instances{context_->project()->instances()};
 	std::vector<std::shared_ptr<ReflectionInterface>> instancesInterface{instances.begin(), instances.end()};
 	const auto& links{context_->project()->links()};
 	std::vector<std::shared_ptr<ReflectionInterface>> linksInterface{links.begin(), links.end()};
 
-	auto ramsesVersion = raco::ramses_base::getRamsesVersion();
-	auto ramsesLogicEngineVersion = raco::ramses_base::getLogicEngineVersion();
-
-	std::unordered_map<std::string, std::vector<int>> currentVersions = {
-		{raco::serialization::keys::FILE_VERSION, {raco::components::RAMSES_PROJECT_FILE_VERSION}},
-		{raco::serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
-		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
-		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
-	file.write(serialization::serializeProject(
+	return serialization::serializeProject(
 		currentVersions,
 		instancesInterface, linksInterface,
 		project_.externalProjectsMap(),
@@ -233,10 +288,34 @@ void RaCoProject::save() {
 			} else {
 				return {};
 			}
-		}).toJson());
+		});
+}
+
+void RaCoProject::save() {
+	const auto path(project_.currentPath());
+	LOG_INFO(raco::log_system::PROJECT, "Saving project to {}", path);
+	QFile file{path.c_str()};
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+		return;
+
+	auto ramsesVersion = raco::ramses_base::getRamsesVersion();
+	auto ramsesLogicEngineVersion = raco::ramses_base::getLogicEngineVersion();
+
+	std::unordered_map<std::string, std::vector<int>> currentVersions = {
+		{raco::serialization::keys::FILE_VERSION, {raco::components::RAMSES_PROJECT_FILE_VERSION}},
+		{raco::serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
+		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
+		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
+	file.write(serializeProject(currentVersions).toJson());
 	file.close();
 	generateAllProjectSubfolders();
-	PathManager::setAllCachedPathRoots(project_.currentFolder());
+
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	PathManager::setAllCachedPathRoots(project_.currentFolder(),
+		prefs.imageSubdirectory.toStdString(),
+		prefs.meshSubdirectory.toStdString(),
+		prefs.scriptSubdirectory.toStdString(),
+		prefs.shaderSubdirectory.toStdString());
 
 	dirty_ = false;
 	LOG_INFO(raco::log_system::PROJECT, "Finished saving project to {}", path);
@@ -255,7 +334,7 @@ void RaCoProject::saveAs(const QString& fileName, bool setProjectName) {
 			auto projName = std::filesystem::path(newPath).stem().string();
 			auto settings = project_.settings();
 			if (settings->objectName().empty()) {
-				context_->set({settings, {"objectName"}}, projName);
+				context_->set({settings, &raco::core::EditorObject::objectName_}, projName);
 			}
 		}
 		save();

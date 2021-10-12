@@ -257,6 +257,11 @@ template<> ValueBase& ValueBase::set<std::vector<std::string>>(std::vector<std::
 	return *this;
 }
 
+template <>
+ValueBase& ValueBase::set<Table>(Table const& value) {
+	asTable() = value;
+	return *this;
+}
 
 std::unique_ptr<ValueBase> ValueBase::from(bool value) {
 	return std::make_unique<Value<bool>>(value);

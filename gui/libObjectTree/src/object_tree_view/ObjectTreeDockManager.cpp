@@ -27,8 +27,8 @@ void ObjectTreeDockManager::eraseTreeDock(ObjectTreeDock* dockToErase) {
 	}
 
 	docks_.erase(dockPosition);
-	if (dockWithSelection_ == dockToErase) {
-		dockWithSelection_ = nullptr;
+	if (focusedDock_ == dockToErase) {
+		focusedDock_ = nullptr;
 		Q_EMIT selectionCleared();
 	}
 
@@ -39,10 +39,9 @@ void ObjectTreeDockManager::setFocusedDock(ObjectTreeDock* dock) {
 	for (auto savedDock : docks_) {
 		if (savedDock != dock) {
 			savedDock->resetSelection();
-		} else {
-			dockWithSelection_ = dock;
 		}
 	}
+	focusedDock_ = dock;
 }
 
 void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& objectID) {
@@ -70,7 +69,21 @@ std::vector<ObjectTreeDock*> ObjectTreeDockManager::getDocks() const {
 	return docks_;
 }
 
+ObjectTreeDock* ObjectTreeDockManager::getActiveDockWithSelection() const {
+	// only return the active dock when it actually contains a selection
+	if (focusedDock_ && !focusedDock_->getCurrentlyActiveTreeView()->selectionModel()->hasSelection()) {
+		return nullptr;
+	}
+	return focusedDock_;
+}
+
 void ObjectTreeDockManager::connectTreeDockSignals(ObjectTreeDock* dock) {
+	QObject::connect(dock, &ObjectTreeDock::externalObjectSelected, [this](auto* selectionSrcDock) {
+		// Keep the external dock focused while clearing selection to not show external objects in the Property Browser
+		setFocusedDock(selectionSrcDock);
+		Q_EMIT selectionCleared();
+	});
+
 	QObject::connect(dock, &ObjectTreeDock::newObjectTreeItemsSelected, [this](auto& objects, auto* selectionSrcDock) {
 		setFocusedDock(selectionSrcDock);
 		if (objects.empty()) {

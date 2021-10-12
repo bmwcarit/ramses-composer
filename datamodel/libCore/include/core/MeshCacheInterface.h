@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <vector>
 #include <array>
+#include <optional>
 
 namespace raco::core {
 
@@ -75,14 +76,36 @@ public:
 
 using SharedMeshData = std::shared_ptr<MeshData>;
 
+// Low-level one-to-one mapping of animation sampler data delivered by tinyglTF.
+struct AnimationSampler {
+	std::string interpolation;
+	int inputIndex;
+	int outputIndex;
+};
+
+// Low-level one-to-one mapping of animation channel data delivered by tinyglTF.
+struct AnimationChannel {
+	std::string targetPath;
+	int samplerIndex;
+	int nodeIndex;
+};
+
+// Animation as delivered by tinyglTF.
+// This purely uses the indeces from tinyglTF.
+struct Animation {
+	std::string name;
+	std::vector<AnimationSampler> samplers;
+	std::vector<AnimationChannel> channels;
+};
 
 // A node that may be part of a complex mesh scenegraph.
 // Holds information for when we want to translate mesh scenegraph information to our scenegraph.
+// Optional values are values that can be de-/activated in the MeshAssetImportDialog.
 struct MeshScenegraphNode {
 	static inline constexpr int NO_PARENT = -1;
 
 	int parentIndex{NO_PARENT};
-	std::vector<unsigned> subMeshIndeces{};
+	std::vector<std::optional<int>> subMeshIndeces{};
 	std::string name;
 	struct Transformations {
 		std::array<double, 3> scale;
@@ -96,16 +119,19 @@ struct MeshScenegraphNode {
 };
 
 struct MeshScenegraph {
-	std::vector<MeshScenegraphNode> nodes;
-	std::vector<std::string> materials;
-	std::vector<std::string> meshes;
+	std::vector<std::optional<MeshScenegraphNode>> nodes;
+	std::vector<std::optional<std::string>> materials;
+	std::vector<std::optional<std::string>> meshes;
+	std::vector<Animation> animations;
 
 	void clear() {
 		nodes.clear();
 		materials.clear();
 		meshes.clear();
+		animations.clear();
 	}
 };
+
 
 // MeshDescriptor contains all information to uniquely identify a mesh within a file.
 // This includes at least the absolute path name of the file. It may include more information
@@ -130,12 +156,14 @@ public:
 
 	virtual std::string getError() = 0;
 
+	virtual std::string getWarning() = 0;
+
 	// Discard away the currently loaded file. Use this to force a reload of the file on the next loadMesh.
 	virtual void reset() = 0;
 
-	virtual MeshScenegraph getScenegraph(bool bakeAllSubmeshes) = 0;
+	virtual MeshScenegraph getScenegraph() = 0;
 
-	virtual int getTotalMeshCount(bool bakeAllSubmeshes) = 0;
+	virtual int getTotalMeshCount() = 0;
 };
 
 using UniqueMeshCacheEntry = std::unique_ptr<MeshCacheEntry>;
@@ -146,10 +174,11 @@ public:
 
 	virtual SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) = 0;
 	
-	virtual MeshScenegraph getMeshScenegraph(const std::string& absPath, bool bakeAllSubmeshes) = 0;
+	virtual MeshScenegraph getMeshScenegraph(const std::string& absPath) = 0;
 	virtual std::string getMeshError(const std::string& absPath) = 0;
+	virtual std::string getMeshWarning(const std::string& absPath) = 0;
 
-	virtual int getTotalMeshCount(const std::string& absPath, bool bakeAllSubmeshes) = 0;
+	virtual int getTotalMeshCount(const std::string& absPath) = 0;
 
 protected:
 	virtual MeshCacheEntry* getLoader(std::string absPath) = 0;

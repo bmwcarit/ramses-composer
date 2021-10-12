@@ -87,7 +87,7 @@ TEST(HandleTests, Node)
 		ValueHandle h = n[i];
 		propNames.emplace_back(h.getPropName());
 	}
-	std::vector<std::string> refPropNames { "objectID", "objectName", "children", "visible", "translation", "rotation", "scale" };
+	std::vector<std::string> refPropNames { "objectID", "objectName", "children", "tags", "visible", "translation", "rotation", "scale" };
 	EXPECT_EQ(propNames, refPropNames);
 
 	ValueHandle n_rot = n.get("rotation");

@@ -173,13 +173,14 @@ The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the 
 
 Ramses Composer uses a number of third party libraries:
 
-* assimp
+* glm
 * googletest
 * OpenCTM-1.0.3
 * Qt Advanced Docking System
 * RAMSES 
 * RAMSES logic
 * spdlog
+* tinygltf
 
 Their source code and respective licenses can be found in the ```third_party/``` folder.
 	

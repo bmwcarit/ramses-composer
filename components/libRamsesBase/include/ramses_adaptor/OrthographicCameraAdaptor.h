@@ -18,7 +18,7 @@
 
 namespace raco::ramses_adaptor {
 
-class OrthographicCameraAdaptor : public SpatialAdaptor<user_types::OrthographicCamera, ramses::OrthographicCamera> {
+class OrthographicCameraAdaptor : public SpatialAdaptor<user_types::OrthographicCamera, ramses_base::RamsesOrthographicCameraHandle> {
 public:
 	explicit OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject);
 	~OrthographicCameraAdaptor() override;

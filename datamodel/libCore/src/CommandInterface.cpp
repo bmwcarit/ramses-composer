@@ -10,11 +10,14 @@
 #include "core/CommandInterface.h"
 
 #include "core/Context.h"
+#include "core/MeshCacheInterface.h"
+#include "core/PathManager.h"
 #include "core/PrefabOperations.h"
 #include "core/Queries.h"
 #include "core/Undo.h"
 #include "core/UserObjectFactoryInterface.h"
-#include "core/PathManager.h"
+
+#include <spdlog/fmt/bundled/ranges.h>
 
 namespace raco::core {
 
@@ -95,10 +98,31 @@ void CommandInterface::set(ValueHandle const& handle, SEditorObject const& value
 	}
 }
 
-SEditorObject CommandInterface::createObject(std::string type, std::string name, std::string id) {
+void CommandInterface::set(ValueHandle const& handle, std::vector<std::string> const& value) {
+	if (handle && handle.constValueRef()->asTable().asVector<std::string>() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, Table const& value) {
+	if (handle && !(handle.constValueRef()->asTable() == value)) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}'", handle.getPropertyPath()),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+SEditorObject CommandInterface::createObject(std::string type, std::string name, std::string id, SEditorObject parent) {
 	auto types = context_->objectFactory()->getTypes();
 	if (types.find(type) != types.end()) {
 		auto newObject = context_->createObject(type, name, id);
+		if (parent && Queries::canMoveScenegraphChild(*project(), newObject, parent)) {
+			context_->moveScenegraphChild(newObject, parent);
+		}
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
 		undoStack_->push(fmt::format("Create '{}' object '{}'", type, name));
 		return newObject;
@@ -128,12 +152,12 @@ void CommandInterface::moveScenegraphChild(SEditorObject const& object, SEditorO
 	}
 }
 
-bool CommandInterface::importAssetScenegraph(const std::string& absPath, SEditorObject const& parent) {
-	auto importSuccess = context_->importAssetScenegraph(absPath, parent);
+bool CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
+	auto importSuccess = context_->insertAssetScenegraph(scenegraph, absPath, parent);
 	if (importSuccess) {
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
-		undoStack_->push(fmt::format("Imported assets from {}", absPath));
-		PathManager::setCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY, std::filesystem::path(absPath).parent_path().generic_string());
+		undoStack_->push(fmt::format("Inserted assets from {}", absPath));
+		PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, std::filesystem::path(absPath).parent_path().generic_string());
 	}
 
 	return importSuccess;

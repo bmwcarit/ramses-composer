@@ -17,6 +17,17 @@
 
 namespace raco::core {
 
+bool DataChangeRecorder::LinkMap::contains(SLink link) const {
+	auto linkEndObjIt = linkMap_.find((*link->endObject_)->objectID());
+	if (linkEndObjIt != linkMap_.end()) {
+		auto desc = link->descriptor();
+		auto linkEndObjs = linkEndObjIt->second;
+		return linkEndObjs.find(desc) != linkEndObjs.end();
+	}
+	return false;
+}
+
+
 bool DataChangeRecorder::LinkMap::eraseLink(const LinkDescriptor& link) {
 	const auto& linkEndObjId = link.end.object()->objectID();
 	auto linkEndObjIt = linkMap_.find(linkEndObjId);
@@ -255,6 +266,14 @@ std::map<std::string, std::set<LinkDescriptor>> const& DataChangeRecorder::getVa
 
 std::map<std::string, std::set<LinkDescriptor>> const& DataChangeRecorder::getRemovedLinks() const {
 	return removedLinks_.savedLinks();
+}
+
+bool DataChangeRecorder::isLinkAdded(SLink link) const {
+	return addedLinks_.contains(link);
+}
+
+bool DataChangeRecorder::isLinkValidityChanged(SLink link) const {
+	return changedValidityLinks_.contains(link);
 }
 
 std::set<SEditorObject> DataChangeRecorder::getAllChangedObjects(bool includePreviewDirty, bool includeLinkStart, bool includeLinkEnd) const {

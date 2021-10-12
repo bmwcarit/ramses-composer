@@ -9,15 +9,16 @@
  */
 #include "mainwindow.h"
 
+#include "application/RaCoApplication.h"
+#include "components/DataChangeDispatcher.h"
+#include "components/RaCoNameConstants.h"
 #include "core/PathManager.h"
 #include "log_system/log.h"
-#include "ramses_widgets/RendererBackend.h"
 #include "ramses_adaptor/SceneBackend.h"
-#include "utils/CrashDump.h"
-#include "components/DataChangeDispatcher.h"
-#include "application/RaCoApplication.h"
-#include "components/RaCoNameConstants.h"
+#include "ramses_widgets/RendererBackend.h"
 #include "style/RaCoStyle.h"
+#include "utils/CrashDump.h"
+#include "utils/PathUtils.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -110,8 +111,12 @@ int main(int argc, char *argv[]) {
 		if (projectFileCandidate) {
 			if (projectFileCandidate->suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) == 0) {
 				if (projectFileCandidate->exists()) {
-					projectFile = projectFileCandidate->absoluteFilePath();
-					LOG_INFO(raco::log_system::COMMON, "starting Ramses Composer with project file {}", projectFile.toStdString());
+					if (raco::utils::path::userHasReadAccess(projectFileCandidate->filePath().toStdString())) {
+						projectFile = projectFileCandidate->absoluteFilePath();
+						LOG_INFO(raco::log_system::COMMON, "starting Ramses Composer with project file {}", projectFile.toStdString());
+					} else {
+						LOG_ERROR(raco::log_system::COMMON, "project file could not be read {}", projectFileCandidate->filePath().toStdString());
+					}
 				} else {
 					LOG_ERROR(raco::log_system::COMMON, "project file not found {}", projectFileCandidate->filePath().toStdString());
 				}

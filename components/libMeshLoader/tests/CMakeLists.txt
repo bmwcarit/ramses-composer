@@ -17,7 +17,6 @@ set(TEST_LIBRARIES
     raco::MeshLoader
     raco::RamsesBase
     raco::Testing
-    assimp
 )
 raco_package_add_headless_test(
     libMeshLoader_test

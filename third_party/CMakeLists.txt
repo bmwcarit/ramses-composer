@@ -12,22 +12,23 @@ set_target_properties(openctm PROPERTIES FOLDER third_party/openctm POSITION_IND
 set_target_properties(lzma PROPERTIES FOLDER third_party/openctm POSITION_INDEPENDENT_CODE ON)
 
 
-## ASSIMP
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "We do not need the Assimp tools" FORCE) # for build speed reasons
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "We do not need the Assimp tests" FORCE) # for build speed reasons
-set(ASSIMP_BUILD_NO_EXPORT ON CACHE BOOL "We do not need to export 3D using Assimp" FORCE) # for build speed reasons
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "We only need one specific importer" FORCE) # for build speed reasons
-set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "Re-enable support for glTF. Supported format." FORCE) # for build speed reasons
-set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "Force building of zlibstatic through assimp even if it already can be found (can happen on Ubuntu)." FORCE)
-add_subdirectory(assimp EXCLUDE_FROM_ALL)
-set_target_properties(assimp PROPERTIES
-    FOLDER third_party/assimp
+## TINYGLTF
+set(TINYGLTF_USE_CPP14 ON CACHE BOOL "" FORCE)
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+set(TINYGLTF_NO_EXTERNAL_IMAGE OFF CACHE INTERNAL "" FORCE)
+add_library(tinygltf INTERFACE)
+target_include_directories(tinygltf INTERFACE tinygltf/)
+set_target_properties(tinygltf PROPERTIES
+    FOLDER third_party/tinygltf
 )
 
-if (TARGET zlibstatic)
-    set_target_properties(zlibstatic PROPERTIES FOLDER third_party/zlibstatic)
-endif()
+## GLM
+add_library(glm INTERFACE)
+target_include_directories(glm INTERFACE glm/)
+set_target_properties(glm PROPERTIES
+    FOLDER third_party/glm
+)
 
 # Configure ramses-sdk build options
 set(ramses-sdk_BUILD_TOOLS OFF CACHE BOOL "" FORCE)

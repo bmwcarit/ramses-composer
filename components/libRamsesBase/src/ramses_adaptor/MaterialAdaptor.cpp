@@ -14,9 +14,11 @@
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
+#include "ramses_adaptor/RenderBufferAdaptor.h"
 #include "ramses_base/Utils.h"
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Material.h"
+#include "user_types/RenderBuffer.h"
 #include "utils/FileUtils.h"
 
 namespace raco::ramses_adaptor {
@@ -43,10 +45,10 @@ MaterialAdaptor::MaterialAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMateri
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject(), [this]() {
 		  tagDirty();
 	  })},
-	  optionsSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"options"}}, [this](auto) {
+	  optionsSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), &user_types::Material::options_}, [this](auto) {
 		  tagDirty();
 	  })},
-	  uniformSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), {"uniforms"}}, [this](auto) {
+	  uniformSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject(), &user_types::Material::uniforms_}, [this](auto) {
 		  tagDirty();
 	  })} {
 }
@@ -63,10 +65,10 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 	appearance_.reset();
 
 	if (editorObject()->isShaderValid()) {
-		std::string const vertexShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uriVertex"}}));
-		std::string const fragmentShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uriFragment"}}));
-		std::string const geometryShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uriGeometry"}}));
-		std::string const shaderDefines = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uriDefines"}}));
+		std::string const vertexShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriVertex_}));
+		std::string const fragmentShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriFragment_}));
+		std::string const geometryShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriGeometry_}));
+		std::string const shaderDefines = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriDefines_}));
 		auto const effectDescription = raco::ramses_base::createEffectDescription(vertexShader, geometryShader, fragmentShader, shaderDefines);
 		reset(raco::ramses_base::ramsesEffect(sceneAdaptor_->scene(), *effectDescription));
 	} else {
@@ -79,8 +81,8 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 	// Only create appearance binding and set uniforms & blend options if we are using a valid shader but not if
 	// we are using the empty default shaders.
 	if (editorObject()->isShaderValid()) {
-		core::ValueHandle optionsHandle = {editorObject(), {"options"}};
-		core::ValueHandle uniformsHandle = {editorObject(), {"uniforms"}};
+		core::ValueHandle optionsHandle = {editorObject(), &user_types::Material::options_};
+		core::ValueHandle uniformsHandle = {editorObject(), &user_types::Material::uniforms_};
 		updateAppearance(sceneAdaptor_, appearance_, optionsHandle, uniformsHandle);
 
 		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*appearance_->get(), & sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
@@ -141,7 +143,11 @@ void updateAppearance(SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppea
 					if (auto adaptor = sceneAdaptor->lookup<TextureSamplerAdaptor>(texture)) {
 						sampler = adaptor->getRamsesObjectPointer();
 					}
-				}
+				} else if (auto buffer = uniformsHandle[i].asTypedRef<user_types::RenderBuffer>()) {
+					if (auto adaptor = sceneAdaptor->lookup<RenderBufferAdaptor>(buffer)) {
+						sampler = adaptor->getRamsesObjectPointer();
+					}
+				} 
 			} else if (engineType == raco::core::EnginePrimitive::TextureSamplerCube) {
 				if (auto texture = uniformsHandle[i].asTypedRef<user_types::CubeMap>()) {
 					if (auto adaptor = sceneAdaptor->lookup<CubeMapAdaptor>(texture)) {

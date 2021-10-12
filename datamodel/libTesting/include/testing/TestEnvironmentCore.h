@@ -17,6 +17,7 @@
 #include "core/Link.h"
 #include "core/MeshCacheInterface.h"
 #include "core/Project.h"
+#include "core/PropertyDescriptor.h"
 #include "core/Undo.h"
 #include "core/Queries.h"
 #include "core/UserObjectFactoryInterface.h"
@@ -30,6 +31,7 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Material.h"
 #include "user_types/LuaScript.h"
+#include "user_types/RenderLayer.h"
 
 #include <QCoreApplication>
 
@@ -58,10 +60,13 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	};
 
 	template <class C>
-	std::shared_ptr<C> create(std::string name, raco::core::SEditorObject parent = nullptr) {
+	std::shared_ptr<C> create(std::string name, raco::core::SEditorObject parent = nullptr, const std::vector<std::string>& tags = {}) {
 		auto obj = std::dynamic_pointer_cast<C>(commandInterface.createObject(C::typeDescription.typeName, name));
 		if (parent) {
 			commandInterface.moveScenegraphChild(obj, parent);
+		}
+		if (!tags.empty()) {
+			context.set({obj, {"tags"}}, tags);
 		}
 		return obj;
 	}
@@ -95,8 +100,8 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return meshnode;
 	}
 
-	raco::user_types::SLuaScript create_lua(const std::string& name, const std::string& relpath) {
-		auto lua = create<raco::user_types::LuaScript>(name);
+	raco::user_types::SLuaScript create_lua(const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
+		auto lua = create<raco::user_types::LuaScript>(name, parent);
 		commandInterface.set({lua, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
 		return lua;
 	}
@@ -107,6 +112,25 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return lua;
 	}
 
+	raco::user_types::SRenderLayer create_layer(const std::string& name,
+		const std::vector<std::string>& tags = {}, 
+		const std::vector<std::pair<std::string, int>>& renderables = {}, 
+		const std::vector<std::string>& matFilterTags = {}, 
+		bool invertFilter = true) {
+		auto layer = create<raco::user_types::RenderLayer>(name, nullptr, tags);
+		for (int index = 0; index < renderables.size(); index++) {
+			context.addProperty({layer, {"renderableTags"}}, renderables[index].first, std::make_unique<raco::data_storage::Value<int>>(renderables[index].second));
+		}
+		if (!matFilterTags.empty()) {
+			context.set({layer, {"materialFilterTags"}}, matFilterTags);
+		}
+		context.set({layer, {"invertMaterialFilter"}}, invertFilter);
+
+		return layer;
+	}
+
+
+
 	void checkUndoRedo(std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
 		RacoBaseTest<BaseClass>::checkUndoRedo(commandInterface, operation, preCheck, postCheck);
 	}
@@ -114,6 +138,13 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	template <std::size_t N>
 	void checkUndoRedoMultiStep(std::array<std::function<void()>, N> operations, std::array<std::function<void()>, N + 1> checks) {
 		RacoBaseTest<BaseClass>::checkUndoRedoMultiStep(commandInterface, operations, checks);
+	}
+
+	std::pair<raco::core::PropertyDescriptor, raco::core::PropertyDescriptor> link(raco::user_types::SEditorObject startObj, std::vector<std::string> startProp, raco::user_types::SEditorObject endObj, std::vector<std::string> endProp) {
+		raco::core::PropertyDescriptor start{startObj, startProp};
+		raco::core::PropertyDescriptor end{endObj, endProp};
+		commandInterface.addLink(start, end);
+		return {start, end};
 	}
 
 	void checkLinks(Project& project, const std::vector<raco::core::Link>& refLinks) {

@@ -230,6 +230,9 @@ public:
 
 	// Compare the value but not the annotation data
 	virtual bool operator==(const ValueBase&) const = 0;
+	bool operator!=(const ValueBase& other) const {
+		return !operator==(other);
+	}
 
 	// Copy the annnotation data.
 	virtual void copyAnnotationData(const ValueBase& src) = 0;

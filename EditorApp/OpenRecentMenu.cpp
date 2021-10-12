@@ -10,10 +10,13 @@
 #include "OpenRecentMenu.h"
 
 #include "core/PathManager.h"
+#include "utils/PathUtils.h"
 #include <QSettings>
 
 OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open Recent", parent} {
-	refreshRecentFileMenu();
+	QObject::connect(this, &QMenu::aboutToShow, this, [this]() {
+		refreshRecentFileMenu();
+	});
 }
 
 void OpenRecentMenu::addRecentFile(const QString& file) {
@@ -25,6 +28,10 @@ void OpenRecentMenu::addRecentFile(const QString& file) {
 			recentFiles.erase(it);
 		}
 		recentFiles.insert(0, file);
+		int len = recentFiles.length();
+		if (len > maxRecentEntries) {
+			recentFiles.erase(recentFiles.begin() + maxRecentEntries, recentFiles.end());
+		}
 		recentFilesStore.setValue("recent_files", recentFiles);
 		refreshRecentFileMenu();
 	}
@@ -39,6 +46,15 @@ void OpenRecentMenu::refreshRecentFileMenu() {
 	}
 	for (const auto& file : recentFiles) {
 		auto* action = addAction(file);
+
+		auto fileString = file.toStdString();
+		if (!raco::utils::path::exists(fileString)) {
+			action->setEnabled(false);
+			action->setText(file + " (unavailable)");
+		} else if (!raco::utils::path::userHasReadAccess(fileString)) {
+			action->setEnabled(false);
+			action->setText(file + " (no read access)");
+		}
 		QObject::connect(action, &QAction::triggered, this, [this, file]() {
 			Q_EMIT openProject(file);
 		});

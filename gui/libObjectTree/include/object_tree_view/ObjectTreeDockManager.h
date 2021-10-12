@@ -27,6 +27,7 @@ public:
 
 	size_t getTreeDockAmount() const;
 	std::vector<ObjectTreeDock*> getDocks() const;
+	ObjectTreeDock* getActiveDockWithSelection() const;
 
 Q_SIGNALS:
 	void treeDockListChanged();
@@ -40,7 +41,7 @@ public Q_SLOTS:
 
 private:
 	std::vector<ObjectTreeDock*> docks_;
-	ObjectTreeDock* dockWithSelection_{nullptr};
+	ObjectTreeDock* focusedDock_{nullptr};
 
 	void connectTreeDockSignals(ObjectTreeDock* dock);
 };

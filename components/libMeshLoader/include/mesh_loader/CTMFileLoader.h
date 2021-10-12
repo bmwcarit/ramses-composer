@@ -22,9 +22,10 @@ public:
 
 	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
 	std::string getError() override;
+	std::string getWarning() override;
 	void reset() override;
-	raco::core::MeshScenegraph getScenegraph(bool bakeAllSubmeshes) override;
-	int getTotalMeshCount(bool bakeAllSubmeshes) override;
+	raco::core::MeshScenegraph getScenegraph() override;
+	int getTotalMeshCount() override;
 
 private:
 	bool loadFile();

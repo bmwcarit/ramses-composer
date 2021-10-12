@@ -24,6 +24,8 @@ class CubeMap;
 using SCubeMap = std::shared_ptr<CubeMap>;
 class Texture;
 using STexture = std::shared_ptr<Texture>;
+class TextureSampler2DBase;
+using STextureSampler2DBase = std::shared_ptr<TextureSampler2DBase>;
 
 class BlendOptions;
 
@@ -64,6 +66,7 @@ public:
 		Property<Vec3i, EngineTypeAnnotation>,
 		Property<Vec4i, EngineTypeAnnotation>,
 		Property<STexture, EngineTypeAnnotation>,
+		Property<STextureSampler2DBase, EngineTypeAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkStartAnnotation>,
@@ -79,6 +82,7 @@ public:
 		Property<Vec3i, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkStartAnnotation>,
+		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkEndAnnotation>,
@@ -94,6 +98,7 @@ public:
 		Property<Vec3i, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<Vec4i, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkEndAnnotation>,
+		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>>;
 
 	static UserObjectFactory& getInstance();

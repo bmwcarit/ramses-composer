@@ -68,10 +68,8 @@ void LinkAdaptor::connect() {
 
 	auto originAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.start.object())};
 	auto destAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.end.object())};
-	auto originPropertyHandle{raco::core::ValueHandle{editorLink_.start.object(), editorLink_.start.propertyNames()}};
-	auto destPropertyHandle{raco::core::ValueHandle{editorLink_.end.object(), editorLink_.end.propertyNames()}};
 
-	if (originAdaptor && destAdaptor && originPropertyHandle && destPropertyHandle && editorLink_.isValid) {
+	if (originAdaptor && destAdaptor && editorLink_.isValid) {
 		auto startProp = dynamic_cast<ILogicPropertyProvider*>(originAdaptor)->getProperty(editorLink_.start.propertyNames());
 		auto endProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
 		if (startProp && endProp) {

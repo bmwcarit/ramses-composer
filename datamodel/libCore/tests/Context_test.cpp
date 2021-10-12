@@ -102,6 +102,31 @@ TEST_F(ContextTest, Complex) {
 	print_recursive(s, 0);
 }
 
+TEST_F(ContextTest, SetTable) {
+	const std::shared_ptr<Foo> referencedObjectInner{new Foo()};
+	const std::shared_ptr<Foo> referencedObjectOuter{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> referencingObject{new ObjectWithTableProperty()};
+
+	const ValueHandle handleOuterTable{referencingObject, &ObjectWithTableProperty::t_};
+	context.addProperty(handleOuterTable, "outerDirectRef", std::make_unique<Value<SEditorObject>>(referencedObjectOuter));
+	context.addProperty(handleOuterTable, "innerTable", std::make_unique<Value<Table>>());
+	const ValueHandle handleInnerTable = handleOuterTable.get("innerTable");
+	context.addProperty(handleInnerTable, "innerDirectRef", std::make_unique<Value<SEditorObject>>(referencedObjectInner));
+
+	Table oldTable = handleOuterTable.constValueRef()->asTable();
+	Table newTable;
+
+	context.set(handleOuterTable, newTable);
+	EXPECT_EQ(handleOuterTable.constValueRef()->asTable(), Table());
+	EXPECT_EQ(referencedObjectInner->onBeforeRemoveReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[1][0]});
+	EXPECT_EQ(referencedObjectOuter->onBeforeRemoveReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[0]});
+
+	context.set(handleOuterTable, oldTable);
+	EXPECT_EQ(handleOuterTable.constValueRef()->asTable(), oldTable);
+	EXPECT_EQ(referencedObjectInner->onAfterAddReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[1][0]});
+	EXPECT_EQ(referencedObjectOuter->onAfterAddReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[0]});
+}
+
 TEST_F(ContextTest, Prefab) {
 	std::shared_ptr<Prefab> prefab{new Prefab("prefab")};
 	auto inst = std::make_shared<PrefabInstance>("inst");
@@ -717,6 +742,34 @@ TEST_F(ContextTest, shallowCutLink) {
 	context.pasteObjects(clipboard);
 
 	ASSERT_EQ(1, context.project()->links().size());
+}
+
+TEST_F(ContextTest, ShallowCopyNodeWithLink_pasteSameParent) {
+	auto root = create<Node>("root_node");
+	auto node = create<Node>("node", root);
+	auto lua = create_lua("lua", "scripts/types-scalar.lua", root);
+
+	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, node, {"translation"});
+
+	auto clipboard = context.copyObjects({node});
+	ASSERT_EQ(1, project.links().size());
+
+	context.pasteObjects(clipboard, root);
+	ASSERT_EQ(2, project.links().size());
+}
+
+TEST_F(ContextTest, ShallowCopyNodeWithLink_pasteRoot) {
+	auto root = create<Node>("root_node");
+	auto node = create<Node>("node", root);
+	auto lua = create_lua("lua", "scripts/types-scalar.lua", root);
+
+	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, node, {"translation"});
+
+	auto clipboard = context.copyObjects({node});
+	ASSERT_EQ(1, project.links().size());
+
+	context.pasteObjects(clipboard, nullptr);
+	ASSERT_EQ(1, project.links().size());
 }
 
 TEST_F(ContextTest, shallowCopyLink_deletedStartObject) {

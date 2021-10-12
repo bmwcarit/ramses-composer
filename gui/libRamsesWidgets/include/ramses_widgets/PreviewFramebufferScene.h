@@ -29,8 +29,8 @@ private:
 	// Scene
 	raco::ramses_base::RamsesScene scene_;
 	raco::ramses_base::RamsesOrthographicCamera camera_;
-	raco::ramses_base::RamsesRenderGroup renderGroup_;
-	raco::ramses_base::RamsesRenderPass renderPass_;
+	std::shared_ptr<ramses::RenderGroup> renderGroup_;
+	std::shared_ptr<ramses::RenderPass> renderPass_;
 	raco::ramses_base::RamsesEffect effect_;
 	raco::ramses_base::RamsesAppearance appearance_;
 	raco::ramses_base::RamsesArrayResource indexDataBuffer_;

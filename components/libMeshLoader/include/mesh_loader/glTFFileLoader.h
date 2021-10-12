@@ -11,39 +11,38 @@
 
 #include "core/MeshCacheInterface.h"
 
-namespace Assimp {
-	class Importer;
+namespace tinygltf {
+class TinyGLTF;
+class Model;
+class Node;
 }
-
-struct aiNode;
-struct aiScene; // forward declaration
 
 namespace raco::mesh_loader {
 
 class glTFFileLoader final : public raco::core::MeshCacheEntry {
 public:
 	glTFFileLoader(std::string absPath);
-	virtual ~glTFFileLoader() = default;
+	~glTFFileLoader() override;
 
 	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
-	raco::core::MeshScenegraph getScenegraph(bool bakeAllSubmeshes) override;
-	int getTotalMeshCount(bool bakeAllSubmeshes) override;
+	raco::core::MeshScenegraph getScenegraph() override;
+	int getTotalMeshCount() override;
 	std::string getError() override;
+	std::string getWarning() override;
 	void reset() override;
 
 
 private:
 	std::string path_;
-	std::unique_ptr<Assimp::Importer> bakedSceneImporter_;
-	std::unique_ptr<Assimp::Importer> unbakedSceneImporter_;
-	const aiScene* bakedScene_{nullptr};
-	raco::core::MeshScenegraph bakedScenegraph_;
-	const aiScene* unbakedScene_{nullptr};
-	raco::core::MeshScenegraph unbakedScenegraph_;
-	std::string error_;
 
-	bool buildglTFScenegraph(std::vector<core::MeshScenegraphNode>& sceneGraph, int parentIndex, aiNode* child);
-	bool importglTFScene(const core::MeshDescriptor& descriptor, std::unique_ptr<Assimp::Importer>& importer, const aiScene* &scene, raco::core::MeshScenegraph &sceneGraph, unsigned flags);
+	std::unique_ptr<tinygltf::Model> scene_;
+	std::unique_ptr<tinygltf::TinyGLTF> importer_;
+	raco::core::MeshScenegraph sceneGraph_;
+	std::string error_;
+	std::string warning_;
+
+	bool buildglTFScenegraph(const std::vector<int>& totalMeshPrimitiveSums);
+	bool importglTFScene(const core::MeshDescriptor& descriptor);
 
 
 };

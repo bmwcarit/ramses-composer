@@ -22,30 +22,41 @@ using WNode = std::weak_ptr<Node>;
 
 class Node : public BaseObject {
 public:
-	static inline const TypeDescriptor typeDescription = { "Node", false };
+	static inline const TypeDescriptor typeDescription = {"Node", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
-	Node(const Node& other) : BaseObject(other), visible_(other.visible_), translation_(other.translation_),
+	Node(const Node& other) : BaseObject(other), tags_(other.tags_), visible_(other.visible_), translation_(other.translation_),
 		rotation_(other.rotation_), scale_(other.scale_)
 	{
 		fillPropertyDescription();
 	}
 
 	Node(std::string name = std::string(), std::string id = std::string())
-		: BaseObject(name, id)
-	{
+		: BaseObject(name, id) {
 		fillPropertyDescription();
 	}
 
 	void fillPropertyDescription() {
-		properties_.emplace_back( "visible", &visible_ );
+		properties_.emplace_back("tags", &tags_);
+		properties_.emplace_back("visible", &visible_ );
 		properties_.emplace_back("translation", &translation_);
 		properties_.emplace_back("rotation", &rotation_);
 		properties_.emplace_back("scale", &scale_);
 	}
 
+	void onAfterContextActivated(BaseContext& context) override {
+		context.updateBrokenLinkErrors(shared_from_this());
+	}
+
+	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override {
+		if (value.isRefToProp(&Node::objectName_)) {
+			context.updateBrokenLinkErrors(shared_from_this());
+		}
+	}
+
+	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {"Tags"}};
 
 	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> visible_{true, DisplayNameAnnotation("Visible"), {}};
 

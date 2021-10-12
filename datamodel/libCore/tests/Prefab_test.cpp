@@ -10,6 +10,7 @@
 #include "core/Context.h"
 #include "core/Handles.h"
 #include "core/MeshCacheInterface.h"
+#include "core/PrefabOperations.h"
 #include "core/Project.h"
 #include "core/Queries.h"
 #include "application/RaCoApplication.h"
@@ -409,6 +410,8 @@ function run()
 	OUT.v = IN.v
 end
 )");
+	cmd.set({node, {"translation", "x"}}, 27.0);
+
 	cmd.set({lua, {"uri"}}, scriptFile);
 	cmd.addLink({lua, {"luaOutputs", "v"}}, {node, {"translation"}});
 	app.doOneLoop();
@@ -420,13 +423,13 @@ end
 	cmd.set({inst_lua, {"luaInputs", "v", "x"}}, 3.0);
 	app.doOneLoop();
 
-	EXPECT_EQ(*node->translation_->x, 2.0);
+	EXPECT_EQ(*node->translation_->x, 27.0);
 	EXPECT_EQ(*inst_node->translation_->x, 3.0);
 
 	cmd.removeLink({node, {"translation"}});
 
-	EXPECT_EQ(*node->translation_->x, 2.0);
-	EXPECT_EQ(*inst_node->translation_->x, 2.0);
+	EXPECT_EQ(*node->translation_->x, 27.0);
+	EXPECT_EQ(*inst_node->translation_->x, 27.0);
 }
 
 TEST_F(PrefabTest, restore_cached_lua_prop_when_breaking_uri) {
@@ -453,4 +456,55 @@ TEST_F(PrefabTest, restore_cached_lua_prop_when_breaking_uri) {
 
 	ASSERT_EQ(ValueHandle(lua, {"luaInputs"}).get("float").asDouble(), 2.0);
 	ASSERT_EQ(ValueHandle(inst_lua, {"luaInputs"}).get("float").asDouble(), 3.0);
+}
+
+TEST_F(PrefabTest, update_simultaneous_scenegraph_move_and_delete_parent_node_linked) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, {"template"}}, prefab);
+	auto node = create<Node>("node", prefab);
+	auto meshnode = create<MeshNode>("meshnode", node);
+	auto lua = create<LuaScript>("lua", prefab);
+
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+	commandInterface.set({lua, {"uri"}}, scriptFile);
+	EXPECT_EQ(inst->children_->size(), 2);
+	auto inst_node = raco::select<Node>(inst->children_->asVector<SEditorObject>());
+	auto inst_meshnode = raco::select<MeshNode>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	EXPECT_TRUE(inst_node);
+	EXPECT_FALSE(inst_meshnode);
+	EXPECT_TRUE(inst_lua);
+
+	commandInterface.addLink({lua, {"luaOutputs", "v"}}, {meshnode, {"translation"}});
+
+	ASSERT_EQ(project.links().size(), 2);
+
+	// Use context here to perform prefab update only after both operations are complete
+	context.moveScenegraphChild(meshnode, prefab);
+	context.deleteObjects({node});
+	raco::core::PrefabOperations::globalPrefabUpdate(context, context.modelChanges());
+
+	EXPECT_EQ(inst->children_->size(), 2);
+	inst_meshnode = raco::select<MeshNode>(inst->children_->asVector<SEditorObject>());
+	inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	EXPECT_TRUE(inst_meshnode);
+	EXPECT_TRUE(inst_lua);
+	// These are the crucial checks:
+	auto found_inst_meshnode = Queries::findById(project, inst_meshnode->objectID());
+	ASSERT_TRUE(found_inst_meshnode != nullptr);
+	ASSERT_EQ(found_inst_meshnode, inst_meshnode);
+
+	checkLinks({
+		{{lua, {"luaOutputs", "v"}}, {meshnode, {"translation"}}},
+		{{inst_lua, {"luaOutputs", "v"}}, {inst_meshnode, {"translation"}}}
+		});
+	ASSERT_EQ(project.links().size(), 2);
 }

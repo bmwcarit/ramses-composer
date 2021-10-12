@@ -21,13 +21,13 @@ class PropertyBrowserItem;
 
 class RefEditor final : public QWidget {
 	Q_OBJECT
-	Q_PROPERTY(bool emptyReference READ emptyReference);
+	Q_PROPERTY(bool unexpectedEmptyReference READ unexpectedEmptyReference);
 
 public:
 	explicit RefEditor(
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
-	bool emptyReference() const noexcept;
+	bool unexpectedEmptyReference() const noexcept;
 
 protected:
 	Q_SLOT void updateItems(const PropertyBrowserRef::ComboBoxItems& items);
@@ -36,6 +36,7 @@ protected:
 
 	bool emptyReference_ = false;
 
+	PropertyBrowserItem* item_{};
 	PropertyBrowserRef* ref_{nullptr};
 	QComboBox* comboBox_{nullptr};
 	QPushButton* goToRefObjectButton_{nullptr};

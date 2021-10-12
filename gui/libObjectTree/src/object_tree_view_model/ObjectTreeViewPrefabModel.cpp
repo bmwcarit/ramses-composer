@@ -9,10 +9,11 @@
  */
 
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
+#include "core/ExternalReferenceAnnotation.h"
+#include "core/PrefabOperations.h"
 #include "core/Queries.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
-
 
 namespace raco::object_tree::model {
 
@@ -30,5 +31,41 @@ std::vector<std::string> ObjectTreeViewPrefabModel::allowedCreatableUserTypes(co
 
 	return {raco::user_types::Prefab::typeDescription.typeName};
 }
+
+bool ObjectTreeViewPrefabModel::canInsertMeshAssets(const QModelIndex& index) const {
+	if (index.isValid()) {
+		return ObjectTreeViewDefaultModel::canInsertMeshAssets(index);
+	}
+
+	return false;
+}
+
+bool ObjectTreeViewPrefabModel::objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const {
+	if (parentIndex.isValid()) {
+		if (auto parentObj = indexToSEditorObject(parentIndex)) {
+			if (parentObj->query<core::ExternalReferenceAnnotation>() || raco::core::PrefabOperations::findContainingPrefabInstance(parentObj)) {
+				return false;
+			}
+		}
+		return ObjectTreeViewDefaultModel::objectsAreAllowedInModel(objs, parentIndex);
+	} else {
+		// pasting in blank space: Clipboard should contain one Prefab
+		// Any other top-level objects would then be part of a Prefab deep-copy
+		// If there is a PrefabInstance top-level object: PrefabInstance deep-copy
+
+		auto objsContainPrefab = false;
+		for (const auto& obj : objs) {
+			if (obj->as<user_types::Prefab>()) {
+				objsContainPrefab = true;
+			} else if (obj->as<user_types::PrefabInstance>()) {
+				return false;
+			}
+		}
+		return objsContainPrefab;
+
+	}
+	return true;
+}
+
 
 }  // namespace raco::object_tree::model

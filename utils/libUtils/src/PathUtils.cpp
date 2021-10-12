@@ -10,6 +10,7 @@
 #include "utils/PathUtils.h"
 
 #include "utils/stdfilesystem.h"
+#include <fstream>
 
 namespace raco::utils::path {
 
@@ -21,6 +22,11 @@ bool exists(const std::string& path) {
 	}
 
 	return false;
+}
+
+bool userHasReadAccess(const std::string& path) {
+	std::ifstream stream(path);
+	return stream.good();
 }
 
 bool isExistingDirectory(const std::string& path) {

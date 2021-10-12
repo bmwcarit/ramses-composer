@@ -41,8 +41,6 @@ public:
 	ramses_base::LogicEngine& logicEngine();
 	const ramses::RamsesClient* client() const;
 	const SRamsesAdaptorDispatcher dispatcher() const;
-	ramses::RenderGroup& defaultRenderGroup();
-	void setCamera(ramses::Camera* camera);
 	const ramses_base::RamsesAppearance defaultAppearance(bool withMeshNormals);
 	const ramses_base::RamsesArrayResource defaultVertices();
 	const ramses_base::RamsesArrayResource defaultIndices();
@@ -65,9 +63,6 @@ private:
 	void removeLink(const core::LinkDescriptor& link);
 	void createAdaptor(SEditorObject obj);
 	void removeAdaptor(SEditorObject obj);
-
-	void buildDefaultRenderGroup();
-	void buildRenderableOrder(ramses::RenderGroup& renderGroup, std::vector<SEditorObject>& objs, const std::function<void(const SEditorObject&)>& renderableOrderFunc);
 
 	void performBulkEngineUpdate(const std::set<SEditorObject>& changedObjects);
 
@@ -101,17 +96,15 @@ private:
 	ramses_base::RamsesArrayResource defaultIndices_{};
 	ramses_base::RamsesArrayResource defaultVertices_{};
 
-	// TODO: Dummy elements, delete when no longer needed
-	ramses_base::RamsesRenderPass defaultRenderPass_{};
-	ramses_base::RamsesRenderGroup defaultRenderGroup_{};
-	// --- end delete ---
-
 	std::map<SEditorObject, std::unique_ptr<ObjectAdaptor>> adaptors_{};
 	std::map<core::LinkDescriptor, UniqueLinkAdaptor> links_{};
 	components::Subscription subscription_;
+	components::Subscription childrenSubscription_;
 	components::Subscription linksLifecycle_;
 	components::Subscription linkValidityChangeSub_;
 	SRamsesAdaptorDispatcher dispatcher_;
+
+	bool adaptorStatusDirty_ = false;
 
 	std::vector<DependencyNode> dependencyGraph_;
 };

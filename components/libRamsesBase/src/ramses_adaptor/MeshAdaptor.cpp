@@ -27,7 +27,7 @@ MeshAdaptor::MeshAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMesh mesh)
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() {
 		  tagDirty();
 	  })},
-	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, {"objectName"}}, [this]() {
+	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, &user_types::Mesh::objectName_}, [this]() {
 		  tagDirty();
 	  })} {
 }

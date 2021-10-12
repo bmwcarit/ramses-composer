@@ -20,6 +20,64 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Bugs
 -->
 
+## [0.9.0]
+
+### Added
+* Added first simple support for offscreen render targets, render passes and render layers.
+    * It is possible to add render passes, render targets, render buffers and render layers as individual objects.
+    * Render passes contain references to the render layers which they render.
+    * A render layer can contain other render layers, nodes and mesh nodes which are rendered when the render layer is rendered.
+        * The contents of a render layer are determined via tags: the render layer has a property "Renderable tags" which can contain any number of tags.
+        * Nodes, materials and render layers also have a property "Tags" which can contain any number of tags (also cameras, but those tags are currently unused).
+        * If a tag in a nodes "Tags" property matches a tag in the render layers "Renderable tags" property, the node and all its children are added to the render layer.
+        * If a tag in a render layers "Tags" property matches a tag in another render layers "Renderable tags" property, the former render layer is added to the latter render layer.
+        * Each tag in the "Renderable tags" list has also an order index. 
+          * All renderables in a render layer are rendered in the order given by the order index. 
+          * If a renderable is added to a render layer more than once with different order indices, a scene warning is displayed.
+        * The render layers also contain a property "Material Filter Tags" and a property "Incl./Excl. Material Filter". 
+          * Those properties can be used to include or exclude mesh nodes based on the materials they use:
+            * If "Incl./Excl. Material Filter" is set to "Include materials with any of the selected tags", the render layer renders only mesh nodes if they use a material whose "Tags" property contains a tag which matches any tag in the render layers "Material Filter Tags" property.
+            * If "Incl./Excl. Material Filter" is set to "Exclude materials with any of the selected tags", the render layer renders only mesh nodes if they *do not* use a material whose "Tags" property contains a tag which matches any tag in the render layers "Material Filter Tags" property.
+* Added error items for broken links ending on valid properties. Only one combined error item is created for each object.
+* Added deselection in the UI - just click on an empty space in the Tree View
+* Added dragging and dropping external objects as external reference - hold the Alt key while drag and dropping
+* Limit number of entries in recent file menu to 10. Recent file menus longer than 10 entries will be truncated after loading a project.
+* Added selective import of glTF Assets. Before importing a glTF file you will be able to select/deselect individual parts of the glTF scenegraph (right now only nodes & meshes).
+
+### Changes
+* Update from ramses-logic 0.7.0 to ramses-logic 0.9.1
+* Update from ramses 27.0.105 to ramses 27.0.111
+    * **!!!!!WARNING!!!!!** The new Ramses version has changed order of transformations (previously: first rotation, then scaling, then translation. Now first scaling, then rotation, then translation). This may affect nodes with non-zero rotations and non-uniform scaling.
+* Improved copy-paste handling in the GUI.
+    * The "Paste" context menu will now be disabled in the tree views depending on the types of objects about to be pasted.
+    * Changed "Paste" context menu item in the Resource tree view to "Paste on Top Level".
+    * Copy-pasting will prefer Scenegraph objects over Resources, e.g. a deep-copied MeshNode that references a Mesh will not be pasteable in the Resources tree view, vice versa with deep-copied PrefabInstances that reference a Prefab.
+* The "U/V Origin" property for Textures has been replaced by a "Flip Vertically" flag.
+    * Textures that had their origin set to "Top Left" in previous project versions will have the origin flip flag enabled.
+* Importing meshes is now done by tinyGLTF instead of Assimp.
+    * **!!!!!WARNING!!!!!** Textures that are based on CTM mesh UV coordinates may have to be explicitly flipped by hand.
+    * **!!!!!WARNING!!!!!** Shaders that rely on UV coordinates may have to be recompensated due to Assimp flipping the V coordinate.
+* Don't create engine objects for Prefabs contents. 
+* Make the default resource subfolders configurable via the preferences.ini file and the preferences dialog.
+* Removed DirectX fallback texture. All fallback textures will use the OpenGL-based image now.
+
+### Fixes
+* Paths in the recent file menu that are not accessible (either deleted file or no read access) will not be openable in the menu anymore.
+* Project files that the user is not allowed to read will not be attempted to be loaded anymore.
+* The "Copy" and "Paste" menu entry in the Edit menu is not enabled all the time anymore.
+* Fixed "Paste" menu entry in the Edit menu not working anymore when the current layout contains no Tree Views.
+* Prevent "paste as external reference" from creating duplicate links when pasting the same objects repeatedly.
+* Prevent paste from sometimes dropping links incorrectly when pasting into existing object.
+* Don't log error messages when trying to read empty files.
+* "Create node" context menu item now generates only a single undo stack entry instead of separate "create" and "move" entries.
+* Fix crash when pasting PrefabInstances containing LuaScripts which are based on external reference Prefabs. 
+   * Caused by incorrect modification of the LuaScript URIs during paste.
+   * Old files will contain incorrect URIs. These are repaired automatically during load and warnings will be logged to the console.
+   * Projects which cause "Rewrite URI property..." warnings during load should be saved to avoid these warnings in the future.
+* Fix external reference update to correctly handle simultaneous scenegraph move and node deletions in all situations.
+* Fix prefab update to handle simultaneous scenegraph move and node deletion correctly.
+* Reduce memory usage when creating undo stack entries in scenes with many links.
+
 ## [0.8.3]
 
 ### Changes

@@ -19,9 +19,11 @@ class ObjectTreeViewPrefabModel : public ObjectTreeViewDefaultModel {
 
 public:
 	ObjectTreeViewPrefabModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
+	bool objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const override;
 
 protected:
 	std::vector<std::string> allowedCreatableUserTypes(const QModelIndexList& selectedIndexes) const override;
+	bool canInsertMeshAssets(const QModelIndex& index) const override;
 };
 
 }  // namespace raco::object_tree::model

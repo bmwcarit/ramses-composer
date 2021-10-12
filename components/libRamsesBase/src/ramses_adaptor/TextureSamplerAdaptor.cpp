@@ -24,19 +24,19 @@ using namespace raco::ramses_base;
 
 TextureSamplerAdaptor::TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::Texture> editorObject)
 	: TypedObjectAdaptor(sceneAdaptor, editorObject, {}),
-	  subscriptions_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("wrapUMode"), [this]() {
+	  subscriptions_ {sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::wrapUMode_}, [this]() {
 						 tagDirty();
 					 }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("wrapVMode"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::wrapVMode_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("minSamplingMethod"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::minSamplingMethod_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("magSamplingMethod"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::magSamplingMethod_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("anisotropy"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::anisotropy_}, [this]() {
 			  tagDirty();
 		  }),
 		  sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject, [this]() {
@@ -51,7 +51,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 		textureData_ = createTexture();
 		if (!textureData_) {
 			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': Couldn't load png file from '{}'", editorObject()->objectName(), uri);
-			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), {"uri"}}, "Image file could not be loaded.");
+			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::Texture::uri_}, "Image file could not be loaded.");
 		}
 	}
 
@@ -78,7 +78,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 }
 
 RamsesTexture2D TextureSamplerAdaptor::createTexture() {
-	std::string pngPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), {"uri"}});
+	std::string pngPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Texture::uri_});
 
 	unsigned int width = 0;
 	unsigned int height = 0;
@@ -90,57 +90,62 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture() {
 	}
 	
 	// PNG has top left origin. Flip it vertically if required to match U/V origin
-	if (*editorObject()->origin_ == raco::user_types::TEXTURE_ORIGIN_BOTTOM) { 
-		unsigned lineSize = width * 4;
-		for (unsigned y = 0; y < height/2; y++) {
-			unsigned lineIndex = y * lineSize;
-			unsigned swapIndex = (height - y - 1) * lineSize;
-			for (unsigned x = 0; x < lineSize; x++) {
-				unsigned char tmp = data[lineIndex + x];
-				data[lineIndex + x] = data[swapIndex + x];
-				data[swapIndex + x] = tmp;
-			}
-		}
+	if (*editorObject()->flipTexture_) { 
+		flipDecodedPicture(data, width, height);
 	} 
 	
 	ramses::MipLevelData mipLevelData(static_cast<uint32_t>(data.size()), data.data());
-	ramses::Texture2D* textureData = sceneAdaptor_->scene()->createTexture2D(ramses::ETextureFormat::RGBA8, width, height, 1, &mipLevelData, false, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 
-	return {textureData, createRamsesObjectDeleter<ramses::Texture2D>(sceneAdaptor_->scene())};
+	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, width, height, 1, &mipLevelData, false, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {
-	std::vector<unsigned char>* data = getFallbackTextureData(*editorObject()->origin_);
-	if (data) {
-		return ramsesTexture2DFromPngBuffer(sceneAdaptor_->scene(), *data);
-	}
+	auto& data = getFallbackTextureData(*editorObject()->flipTexture_);
+	ramses::MipLevelData mipLevelData(static_cast<uint32_t>(data.size()), data.data());
+	ramses::Texture2D* textureData = sceneAdaptor_->scene()->createTexture2D(ramses::ETextureFormat::RGBA8, FALLBACK_TEXTURE_SIZE_PX, FALLBACK_TEXTURE_SIZE_PX, 1, &mipLevelData, false, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 
-	return nullptr;
+	return {textureData, createRamsesObjectDeleter<ramses::Texture2D>(sceneAdaptor_->scene())};
 }
 
 std::string TextureSamplerAdaptor::createDefaultTextureDataName() {
 	return this->editorObject()->objectName() + "_Texture2D";
 }
 
-std::vector<unsigned char>* TextureSamplerAdaptor::getFallbackTextureData(int originMode) {
-	if (originMode < user_types::TEXTURE_ORIGIN_BOTTOM || originMode > user_types::TEXTURE_ORIGIN_TOP) {
-		return nullptr;
-	}
-	if (fallbackTextureData_[originMode].empty()) {
-		QFile file( originMode ? ":fallbackTextureDirectX" : ":fallbackTextureOpenGL" );
-		if (file.exists()) {
-			auto size = file.size();
-			file.open(QIODevice::ReadOnly);
-			QDataStream in(&file);
-			std::vector<char> sBuffer(size);
-			in.readRawData(&sBuffer[0], size);
-			fallbackTextureData_[originMode] = std::vector<unsigned char>(sBuffer.begin(), sBuffer.end());
-			file.close();
-		} else {
-			return nullptr;
+void TextureSamplerAdaptor::flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int width, unsigned int height) {
+	unsigned lineSize = width * 4;
+	for (unsigned y = 0; y < height / 2; y++) {
+		unsigned lineIndex = y * lineSize;
+		unsigned swapIndex = (height - y - 1) * lineSize;
+		for (unsigned x = 0; x < lineSize; x++) {
+			unsigned char tmp = rawPictureData[lineIndex + x];
+			rawPictureData[lineIndex + x] = rawPictureData[swapIndex + x];
+			rawPictureData[swapIndex + x] = tmp;
 		}
 	}
-	return &fallbackTextureData_[originMode];
+}
+
+std::vector<unsigned char>& TextureSamplerAdaptor::getFallbackTextureData(bool flipped) {
+	QFile file(":fallbackTextureOpenGL");
+	if (file.exists() && fallbackTextureData_.front().empty()) {
+		auto size = file.size();
+		file.open(QIODevice::ReadOnly);
+		QDataStream in(&file);
+		std::vector<unsigned char> sBuffer(size);
+
+		for (auto i = 0; i < size; ++i) {
+			in >> sBuffer[i];
+		}
+
+		file.close();
+
+		unsigned int width;
+		unsigned int height;
+		lodepng::decode(fallbackTextureData_[0], width, height, sBuffer);
+		fallbackTextureData_[1] = fallbackTextureData_[0];
+		flipDecodedPicture(fallbackTextureData_[1], width, height);
+	}
+
+	return fallbackTextureData_[flipped];
 }
 
 }  // namespace raco::ramses_adaptor

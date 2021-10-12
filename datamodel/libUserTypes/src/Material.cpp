@@ -33,20 +33,21 @@ const PropertyInterfaceList& Material::attributes() const {
 
 void Material::syncUniforms(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
-	if (uriGeometry_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), {"uriGeometry"}})) {
-		context.errors().removeError(ValueHandle{shared_from_this(), {"uriGeometry"}});
+	if (uriGeometry_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), &Material::uriGeometry_})) {
+		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriGeometry_});
 	}
-	if (uriDefines_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), {"uriDefines"}})) {
-		context.errors().removeError(ValueHandle{shared_from_this(), {"uriDefines"}});
+	if (uriDefines_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), &Material::uriDefines_})) {
+		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriDefines_});
 	}
 
 	isShaderValid_ = false;
 	PropertyInterfaceList uniforms;
-	if (validateURIs<const ValueHandle&, const ValueHandle&>(context, ValueHandle{shared_from_this(), {"uriFragment"}}, ValueHandle{shared_from_this(), {"uriVertex"}})) {
-		std::string vertexShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uriVertex"}}))};
-		std::string geometryShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uriGeometry"}}))};
-		std::string fragmentShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uriFragment"}}))};
-		std::string shaderDefines{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uriDefines"}}))};
+	if (validateURIs<const ValueHandle&, const ValueHandle&>(context, ValueHandle{shared_from_this(), &Material::uriFragment_}, ValueHandle{
+		shared_from_this(), &Material::uriVertex_})) {
+		std::string vertexShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriVertex_}))};
+		std::string geometryShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriGeometry_}))};
+		std::string fragmentShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriFragment_}))};
+		std::string shaderDefines{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriDefines_}))};
 		if (!vertexShader.empty() && !fragmentShader.empty()) {
 			std::string error{};
 			isShaderValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
@@ -59,42 +60,44 @@ void Material::syncUniforms(BaseContext& context) {
 		attributes_.clear();
 	}
 
-	syncTableWithEngineInterface(context, uniforms, ValueHandle(shared_from_this(), {"uniforms"}), cachedUniformValues_, false, true);
-	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), {"uniforms"}));
+	syncTableWithEngineInterface(context, uniforms, ValueHandle(shared_from_this(), &Material::uniforms_), cachedUniformValues_, false, true);
+	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &Material::uniforms_));
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
+
+	context.updateBrokenLinkErrors(shared_from_this());
 }
 
 void Material::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	ValueHandle vertextUriHandle(shared_from_this(), {"uriVertex"});
-	if (vertextUriHandle == value) {
-		vertexListener_ = registerFileChangedHandler(context, vertextUriHandle, [this, &context]() { syncUniforms(context); });
+	if (value.isRefToProp(&Material::uriVertex_)) {
+		vertexListener_ = registerFileChangedHandler(context, value, [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
-	ValueHandle fragmentUriHandle(shared_from_this(), {"uriFragment"});
-	if (fragmentUriHandle == value) {
-		fragmentListener_ = registerFileChangedHandler(context, fragmentUriHandle, [this, &context]() { syncUniforms(context); });
+	if (value.isRefToProp(&Material::uriFragment_)) {
+		fragmentListener_ = registerFileChangedHandler(context, value, [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
-	ValueHandle geometryUriHandle(shared_from_this(), {"uriGeometry"});
-	if (geometryUriHandle == value) {
-		geometryListener_ = registerFileChangedHandler(context, geometryUriHandle,  [this, &context]() { syncUniforms(context); });
+	if (value.isRefToProp(&Material::uriGeometry_)) {
+		geometryListener_ = registerFileChangedHandler(context, value,  [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
 	}
-	ValueHandle definesUriHandle(shared_from_this(), {"uriDefines"});
-	if (definesUriHandle == value) {
-		definesListener_ = registerFileChangedHandler(context, definesUriHandle, [this, &context]() { syncUniforms(context); });
+	if (value.isRefToProp(&Material::uriDefines_)) {
+			definesListener_ = registerFileChangedHandler(context, value, [this, &context]() { syncUniforms(context); });
 		syncUniforms(context);
+	}
+
+	if (value.isRefToProp(&Material::objectName_)) {
+		context.updateBrokenLinkErrors(shared_from_this());
 	}
 }
 
 void Material::onAfterContextActivated(BaseContext& context) {
-	vertexListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriVertex"}},  [this, &context]() { syncUniforms(context); });
+	vertexListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriVertex_},  [this, &context]() { syncUniforms(context); });
 
-	fragmentListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriFragment"}},  [this, &context]() { syncUniforms(context); });
+	fragmentListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriFragment_},  [this, &context]() { syncUniforms(context); });
 
-	geometryListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriGeometry"}}, [this, &context]() { syncUniforms(context); });
+	geometryListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriGeometry_}, [this, &context]() { syncUniforms(context); });
 
-	definesListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uriDefines"}}, 
+	definesListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriDefines_}, 
 			[this, &context]() { syncUniforms(context); });
 
 	syncUniforms(context);

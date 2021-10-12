@@ -23,7 +23,7 @@ namespace raco::ramses_adaptor {
 
 class SceneAdaptor;
 
-class MeshNodeAdaptor final : public SpatialAdaptor<user_types::MeshNode, ramses::MeshNode>, public IRenderGroupObject {
+class MeshNodeAdaptor final : public SpatialAdaptor<user_types::MeshNode, ramses_base::RamsesMeshNodeHandle> {
 public:
 	using BaseAdaptor = SpatialAdaptor<user_types::MeshNode, ramses::MeshNode>;
 
@@ -42,7 +42,10 @@ public:
 	void syncMaterials();
 	void syncMeshObject();
 
-	void addObjectToRenderGroup(ramses::RenderGroup& renderGroup, int orderWithinGroup) override;
+	RamsesHandle<ramses::Node> sceneObject() override {
+		auto handlePtr = getRamsesObjectPointer();
+		return std::shared_ptr<ramses::Node>(handlePtr, handlePtr->get()); 
+	}
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
@@ -58,10 +61,7 @@ private:
 	raco::ramses_base::RamsesAppearance privateAppearance_;
 	raco::ramses_base::RamsesAppearance currentAppearance_;
 	raco::ramses_base::UniqueRamsesAppearanceBinding appearanceBinding_;
-	std::vector<raco::ramses_base::RamsesArrayResource> currentMeshVertexData_;
-	raco::ramses_base::RamsesArrayResource currentMeshIndices_;
-	raco::ramses_base::RamsesGeometryBinding geometryBinding_;
-	
+
 	// Subscriptions
 	components::Subscription meshSubscription_;
 	components::Subscription materialsSubscription_;

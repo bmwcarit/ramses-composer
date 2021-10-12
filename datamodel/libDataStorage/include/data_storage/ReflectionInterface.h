@@ -93,6 +93,19 @@ public:
 	virtual int index(std::string const& propertyName) const override;
 	virtual std::string name(size_t index) const override;
 
+	template <typename BaseClassWithProperty, typename TPropertyType>
+	int index(TPropertyType BaseClassWithProperty::*propertyPtr) {
+		if constexpr (std::is_base_of<ClassWithReflectedMembers, BaseClassWithProperty>::value) {
+			if (auto self = dynamic_cast<BaseClassWithProperty*>(this); self != nullptr) {
+				for (std::size_t i = 0; i < size(); ++i) {
+					if (get(i) == &(self->*propertyPtr)) {
+						return i;
+					}
+				}
+			}
+		}
+		return -1;
+	}
 	
 	template <class Anno>
 	std::shared_ptr<Anno> query() const {

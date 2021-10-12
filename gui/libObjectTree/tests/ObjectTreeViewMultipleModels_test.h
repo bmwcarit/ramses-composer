@@ -24,7 +24,7 @@ protected:
 	}
 
 	void SetUp() override {
-		viewModel_.setProjectObjectFilterFunction([](const std::vector<raco::core::SEditorObject>& objects) -> std::vector<raco::core::SEditorObject> {
+		viewModel_->setProjectObjectFilterFunction([](const std::vector<raco::core::SEditorObject>& objects) -> std::vector<raco::core::SEditorObject> {
 			return raco::core::Queries::filterByTypeName(objects, {raco::user_types::Node::typeDescription.typeName});
 		});
 

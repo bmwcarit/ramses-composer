@@ -42,6 +42,14 @@ using raco::application::RaCoApplication;
 
 class ExtrefTest : public RacoBaseTest<> {
 public:
+	void checkLinks(const std::vector<raco::core::Link> &refLinks) {
+		EXPECT_EQ(refLinks.size(), project->links().size());
+		for (const auto &refLink : refLinks) {
+			auto projectLink = raco::core::Queries::getLink(*project, refLink.endProp());
+			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
+		}
+	}
+
 	template <class C>
 	std::shared_ptr<C> create(std::string name, SEditorObject parent = nullptr) {
 		auto obj = std::dynamic_pointer_cast<C>(cmd->createObject(C::typeDescription.typeName, name));
@@ -103,6 +111,16 @@ public:
 		auto objAsT = editorObj->as<T>();
 		EXPECT_TRUE(objAsT != nullptr);
 		return objAsT;
+	}
+
+	template<typename T = EditorObject>
+	std::shared_ptr<T> findChild(SEditorObject object) {
+		for (auto child : object->children_->asVector<SEditorObject>()) {
+			if (auto childAsT = child->as<T>()) {
+				return childAsT;
+			}
+		}
+		return {};
 	}
 
 	template<typename T>
@@ -812,6 +830,88 @@ TEST_F(ExtrefTest, prefab_update_inter_prefab_scenegraph_move) {
 	});
 }
 
+TEST_F(ExtrefTest, prefab_update_move_and_delete_parent) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto node = create<Node>("prefab_node", prefab);
+		auto child = create<Node>("prefab_child", node);
+	});
+
+	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
+		auto prefab = find("prefab");
+		auto node = find("prefab_node");
+		auto child = find("prefab_child");
+		EXPECT_EQ(child->getParent(), node);
+	});
+
+	updateBase(basePathName, [this]() {
+		auto prefab = find("prefab");
+		auto node = find("prefab_node");
+		auto child = find("prefab_child");
+		cmd->moveScenegraphChild(child, prefab);
+		cmd->deleteObjects({node});
+	});
+
+	updateComposite(compositePathName, [this]() {
+		auto prefab = find("prefab");
+		dontFind("prefab_node");
+		auto child = find("prefab_child");
+		EXPECT_EQ(child->getParent(), prefab);
+	});
+}
+
+TEST_F(ExtrefTest, prefab_update_move_and_delete_parent_linked) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto node = create<Node>("prefab_node", prefab);
+		auto child = create<Node>("prefab_child", node);
+		auto lua = create<LuaScript>("prefab_lua", prefab);
+
+		TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+		cmd->set({lua, {"uri"}}, scriptFile);
+		cmd->addLink({lua, {"luaOutputs", "v"}}, {child, {"translation"}});
+	});
+
+	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
+		auto prefab = find("prefab");
+		auto node = find("prefab_node");
+		auto child = find("prefab_child");
+		auto lua = find("prefab_lua");
+		EXPECT_EQ(child->getParent(), node);
+		checkLinks({{{lua, {"luaOutputs", "v"}}, {child, {"translation"}}}});
+	});
+
+	updateBase(basePathName, [this]() {
+		auto prefab = find("prefab");
+		auto node = find("prefab_node");
+		auto child = find("prefab_child");
+		auto lua = find("prefab_lua");
+		cmd->moveScenegraphChild(child, prefab);
+		cmd->deleteObjects({node});
+	});
+
+	updateComposite(compositePathName, [this]() {
+		auto prefab = find("prefab");
+		dontFind("prefab_node");
+		auto child = find("prefab_child");
+		auto lua = find("prefab_lua");
+		EXPECT_EQ(child->getParent(), prefab);
+		checkLinks({{{lua, {"luaOutputs", "v"}}, {child, {"translation"}}}});
+	});
+}
 TEST_F(ExtrefTest, update_losing_uniforms) {
 	auto basePathName{(cwd_path() / "base.rcp").string()};
 	auto compositePathName{(cwd_path() / "composite.rcp").string()};
@@ -956,6 +1056,102 @@ end
 
 		auto link = Queries::getLink(*project, {node, {"translation"}});
 		EXPECT_TRUE(link && link->startProp() == PropertyDescriptor(lua, {"luaOutputs", "v"}));
+	});
+}
+
+TEST_F(ExtrefTest, duplicate_link_paste_prefab) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto node = create<Node>("prefab_child", prefab);
+		auto lua = create<LuaScript>("prefab_lua", prefab);
+
+		TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+		cmd->set({lua, {"uri"}}, scriptFile);
+		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"translation"}});
+	});
+
+	setupGeneric([this, basePathName]() {
+		ASSERT_TRUE(pasteFromExt(basePathName, {"prefab"}, true));
+		ASSERT_EQ(project->links().size(), 1);
+		ASSERT_TRUE(pasteFromExt(basePathName, {"prefab"}, true));
+		ASSERT_EQ(project->links().size(), 1);
+	});
+}
+
+TEST_F(ExtrefTest, duplicate_link_paste_lua) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+		auto start = create<LuaScript>("start");
+		auto end = create<LuaScript>("end");
+
+		TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+		cmd->set({start, {"uri"}}, scriptFile);
+		cmd->set({end, {"uri"}}, scriptFile);
+		cmd->addLink({start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}});
+	});
+
+	setupGeneric([this, basePathName]() {
+		ASSERT_TRUE(pasteFromExt(basePathName, {"end"}, true));
+		auto start = findExt("start");
+		auto end = findExt("end");
+		checkLinks({{{start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}}});
+		ASSERT_TRUE(pasteFromExt(basePathName, {"end"}, true));
+		checkLinks({{{start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}}});
+	});
+}
+
+TEST_F(ExtrefTest, duplicate_link_paste_chained_lua) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+		auto start = create<LuaScript>("start");
+		auto mid = create<LuaScript>("mid");
+		auto end = create<LuaScript>("end");
+
+		TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+		cmd->set({start, {"uri"}}, scriptFile);
+		cmd->set({mid, {"uri"}}, scriptFile);
+		cmd->set({end, {"uri"}}, scriptFile);
+		cmd->addLink({start, {"luaOutputs", "v"}}, {mid, {"luaInputs", "v"}});
+		cmd->addLink({mid, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}});
+	});
+
+	setupGeneric([this, basePathName]() {
+		ASSERT_TRUE(pasteFromExt(basePathName, {"mid"}, true));
+		auto start = findExt("start");
+		auto mid = findExt("mid");
+		checkLinks({{{start, {"luaOutputs", "v"}}, {mid, {"luaInputs", "v"}}}});
+		ASSERT_TRUE(pasteFromExt(basePathName, {"mid", "end"}, true));
+		auto end = findExt("end");
+		checkLinks({
+			{{start, {"luaOutputs", "v"}}, {mid, {"luaInputs", "v"}}},
+			{{mid, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}}
+		});
 	});
 }
 
@@ -1451,7 +1647,7 @@ TEST_F(ExtrefTest, saveas_reroot_uri_lua) {
 	});
 }
 
-TEST_F(ExtrefTest, paste_reroot_uri_lua) {
+TEST_F(ExtrefTest, paste_reroot_lua_uri_dir_up) {
 	auto basePathName{(cwd_path() / "base.rcp").generic_string()};
 
 	auto base_id = setupBase(basePathName, [this]() {
@@ -1478,8 +1674,105 @@ TEST_F(ExtrefTest, paste_reroot_uri_lua) {
 		auto lua_inst = inst->children_->asVector<SEditorObject>()[0]->as<LuaScript>();
 		EXPECT_EQ(*lua_inst->uri_, std::string("relativeURI"));
 		
-		auto pasted_inst = cmd->pasteObjects(cmd->copyObjects({lua_inst}));
-		EXPECT_EQ(*pasted_inst[0]->as<LuaScript>()->uri_, std::string("../relativeURI"));
+		auto pasted_lua_inst = cmd->pasteObjects(cmd->copyObjects({lua_inst}));
+		EXPECT_EQ(*pasted_lua_inst[0]->as<LuaScript>()->uri_, std::string("../relativeURI"));
+
+		auto pasted_inst = cmd->pasteObjects(cmd->copyObjects({inst}));
+		EXPECT_EQ(pasted_inst.size(), 1);
+		auto pasted_inst_child_lua = pasted_inst[0]->children_->asVector<SEditorObject>()[0]->as<LuaScript>();
+		EXPECT_EQ(*pasted_inst_child_lua->uri_, std::string("relativeURI"));
 	});
 }
 
+TEST_F(ExtrefTest, paste_reroot_lua_uri_dir_down) {
+	std::filesystem::create_directory((cwd_path() / "subdir"));
+	auto basePathName{(cwd_path() / "subdir" / "base.rcp").generic_string()};
+
+	auto base_id = setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto lua = create<LuaScript>("lua", prefab);
+		cmd->set({lua, {"uri"}}, std::string("relativeURI"));
+	});
+
+	setupGeneric([this, basePathName, base_id]() {
+		project->setCurrentPath((cwd_path() / "project.file").string());
+
+		pasteFromExt(basePathName, {"prefab"}, true);
+		auto prefab = findExt("prefab");
+		auto lua_prefab = findExt<LuaScript>("lua");
+
+		EXPECT_EQ(*lua_prefab->uri_, std::string("relativeURI"));
+		ASSERT_EQ(project->externalProjectsMap().at(base_id).path, "subdir/base.rcp");
+
+		auto pasted = cmd->pasteObjects(cmd->copyObjects({lua_prefab}));
+		EXPECT_EQ(*pasted[0]->as<LuaScript>()->uri_, std::string("subdir/relativeURI"));
+
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, {"template"}}, prefab);
+		auto lua_inst = inst->children_->asVector<SEditorObject>()[0]->as<LuaScript>();
+		EXPECT_EQ(*lua_inst->uri_, std::string("relativeURI"));
+
+		auto pasted_lua_inst = cmd->pasteObjects(cmd->copyObjects({lua_inst}));
+		EXPECT_EQ(*pasted_lua_inst[0]->as<LuaScript>()->uri_, std::string("subdir/relativeURI"));
+
+		auto pasted_inst = cmd->pasteObjects(cmd->copyObjects({inst}));
+		EXPECT_EQ(pasted_inst.size(), 1);
+		auto pasted_inst_child_lua = pasted_inst[0]->children_->asVector<SEditorObject>()[0]->as<LuaScript>();
+		EXPECT_EQ(*pasted_inst_child_lua->uri_, std::string("relativeURI"));
+	});
+}
+
+TEST_F(ExtrefTest, paste_reroot_lua_uri_with_link_down) {
+	std::filesystem::create_directory((cwd_path() / "subdir"));
+	auto basePathName{(cwd_path() / "subdir" / "base.rcp").generic_string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName, [this, basePathName]() {
+		project->setCurrentPath(basePathName);
+
+		auto prefab = create<Prefab>("prefab");
+		auto node = create<Node>("prefab_node", prefab);
+		auto lua = create<LuaScript>("prefab_lua", prefab);
+		
+		raco::utils::file::write((cwd_path() / "subdir/script.lua").string(), R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+		cmd->set({lua, {"uri"}}, std::string("script.lua"));
+		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"translation"}});
+	});
+
+	setupGeneric([this, basePathName]() {
+		project->setCurrentPath((cwd_path() / "project.file").string());
+
+		pasteFromExt(basePathName, {"prefab"}, true);
+		auto prefab = findExt("prefab");
+		auto prefab_lua = findExt<LuaScript>("prefab_lua");
+		auto prefab_node = findExt<Node>("prefab_node");
+
+		EXPECT_EQ(*prefab_lua->uri_, std::string("script.lua"));
+		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}}});
+
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, {"template"}}, prefab);
+		auto inst_lua = findChild<LuaScript>(inst);
+		auto inst_node = findChild<Node>(inst);
+		EXPECT_EQ(*inst_lua->uri_, std::string("script.lua"));
+		checkLinks({
+			{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}},
+			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"translation"}}}});
+
+		auto pasted_inst = cmd->pasteObjects(cmd->copyObjects({inst}));
+		EXPECT_EQ(pasted_inst.size(), 1);
+		auto pasted_inst_lua = findChild<LuaScript>(pasted_inst[0]);
+		auto pasted_inst_node = findChild<Node>(pasted_inst[0]);
+		EXPECT_EQ(*pasted_inst_lua->uri_, std::string("script.lua"));
+		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}},
+			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"translation"}}},
+			{{pasted_inst_lua, {"luaOutputs", "v"}}, {pasted_inst_node, {"translation"}}}});
+	});
+}

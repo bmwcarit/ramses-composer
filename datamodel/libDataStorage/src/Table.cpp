@@ -163,6 +163,12 @@ void Table::replaceProperty(size_t index, ValueBase* property) {
 	}
 }
 
+void Table::replaceProperty(const std::string& name, ValueBase* property) {
+	int ind = index(name);
+	if (ind != -1) {
+		replaceProperty(ind, property);
+	}
+}
 
 void Table::clear() {
 	properties_.clear();

@@ -79,7 +79,7 @@ private:
 		Project state;
     };
 
-    std::vector<Entry> stack_;
+    std::vector<std::unique_ptr<Entry>> stack_;
 	size_t index_ = 0;
 };
 

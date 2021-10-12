@@ -21,10 +21,14 @@
 namespace raco {
 
 template <typename T, typename I>
-inline auto select(const std::vector<I>& vec) {
-	return std::dynamic_pointer_cast<T>(*std::find_if(vec.begin(), vec.end(), [](const auto& i) {
+inline std::shared_ptr<T> select(const std::vector<I>& vec) {
+	auto it = std::find_if(vec.begin(), vec.end(), [](const auto& i) {
 		return std::dynamic_pointer_cast<T>(i);
-	}));
+	});
+	if (it != vec.end()) {
+		return std::dynamic_pointer_cast<T>(*it);
+	}
+	return {};
 }
 
 template <typename ContextOrCommandInterface>

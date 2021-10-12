@@ -27,6 +27,7 @@ add_library(libPropertyBrowser
     include/property_browser/editors/LinkEditor.h src/editors/LinkEditor.cpp
     include/property_browser/editors/RefEditor.h src/editors/RefEditor.cpp
     include/property_browser/editors/StringEditor.h src/editors/StringEditor.cpp
+    include/property_browser/editors/TagContainerEditor.h src/editors/TagContainerEditor.cpp
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
     include/property_browser/editors/VecNTEditor.h
     
@@ -36,6 +37,11 @@ add_library(libPropertyBrowser
     include/property_browser/controls/SpinBox.h src/controls/SpinBox.cpp
 
     src/ErrorBox.h src/ErrorBox.cpp
+    src/editors/TagContainerEditor/TagContainerEditor_Popup.h src/editors/TagContainerEditor/TagContainerEditor_Popup.cpp
+    src/editors/TagContainerEditor/TagContainerEditor_TagDataCache.h src/editors/TagContainerEditor/TagContainerEditor_TagDataCache.cpp
+    src/editors/TagContainerEditor/TagContainerEditor_AvailableTagsItemModel.h src/editors/TagContainerEditor/TagContainerEditor_AvailableTagsItemModel.cpp
+    src/editors/TagContainerEditor/TagContainerEditor_AppliedTagModel.h src/editors/TagContainerEditor/TagContainerEditor_AppliedTagModel.cpp
+    src/editors/TagContainerEditor/TreeViewWithDel.h
 )
 
 target_include_directories(libPropertyBrowser

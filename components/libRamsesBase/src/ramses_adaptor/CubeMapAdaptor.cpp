@@ -24,19 +24,19 @@ namespace raco::ramses_adaptor {
 
 CubeMapAdaptor::CubeMapAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::CubeMap> editorObject)
 	: TypedObjectAdaptor(sceneAdaptor, editorObject, {}),
-	  subscriptions_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("wrapUMode"), [this]() {
+	  subscriptions_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::CubeMap::wrapUMode_}, [this]() {
 						 tagDirty();
 					 }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("wrapVMode"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::CubeMap::wrapVMode_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("minSamplingMethod"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::CubeMap::minSamplingMethod_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("magSamplingMethod"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::CubeMap::magSamplingMethod_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("anisotropy"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::CubeMap::anisotropy_}, [this]() {
 			  tagDirty();
 		  }),
 		  sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject, [this]() {
@@ -103,13 +103,12 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors*
 raco::ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
 	std::map<std::string, std::vector<unsigned char>> data;
 
-	unsigned int w, h;
-	lodepng::decode(data["uriRight"], w, h, *TextureSamplerAdaptor::getFallbackTextureData(user_types::TEXTURE_ORIGIN_TOP));
-	lodepng::decode(data["uriLeft"], w, h, *TextureSamplerAdaptor::getFallbackTextureData(user_types::TEXTURE_ORIGIN_TOP));
-	lodepng::decode(data["uriTop"], w, h, *TextureSamplerAdaptor::getFallbackTextureData(user_types::TEXTURE_ORIGIN_TOP));
-	lodepng::decode(data["uriBottom"], w, h, *TextureSamplerAdaptor::getFallbackTextureData(user_types::TEXTURE_ORIGIN_TOP));
-	lodepng::decode(data["uriFront"], w, h, *TextureSamplerAdaptor::getFallbackTextureData(user_types::TEXTURE_ORIGIN_TOP));
-	lodepng::decode(data["uriBack"], w, h, *TextureSamplerAdaptor::getFallbackTextureData(user_types::TEXTURE_ORIGIN_TOP));
+	data["uriRight"] = TextureSamplerAdaptor::getFallbackTextureData(false);
+	data["uriLeft"] = TextureSamplerAdaptor::getFallbackTextureData(false);
+	data["uriTop"] = TextureSamplerAdaptor::getFallbackTextureData(false);
+	data["uriBottom"] = TextureSamplerAdaptor::getFallbackTextureData(false);
+	data["uriFront"] = TextureSamplerAdaptor::getFallbackTextureData(false);
+	data["uriBack"] = TextureSamplerAdaptor::getFallbackTextureData(false);
 
 	ramses::CubeMipLevelData mipData = ramses::CubeMipLevelData((uint32_t)data["uriRight"].size(),
 		data["uriRight"].data(),
@@ -119,7 +118,7 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
 		data["uriFront"].data(),
 		data["uriBack"].data());
 
-	return raco::ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, w, 1u, &mipData, false, {}, ramses::ResourceCacheFlag_DoNotCache);
+	return raco::ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, TextureSamplerAdaptor::FALLBACK_TEXTURE_SIZE_PX, 1u, &mipData, false, {}, ramses::ResourceCacheFlag_DoNotCache);
 }
 
 std::string CubeMapAdaptor::createDefaultTextureDataName() {

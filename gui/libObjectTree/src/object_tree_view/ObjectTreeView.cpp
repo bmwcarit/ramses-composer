@@ -20,6 +20,7 @@
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
+#include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "utils/PathUtils.h"
 
 #include <QContextMenuEvent>
@@ -68,8 +69,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	connect(this->selectionModel(), &QItemSelectionModel::selectionChanged, [this](const auto &selectedItemList, const auto &deselectedItemList) {
 		if (auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_))) {
-			// act as if we removed our selection when we select something in the external project tree.
-			Q_EMIT newObjectTreeItemsSelected({});
+			Q_EMIT externalObjectSelected();
 			return;
 		}
 
@@ -93,10 +93,6 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	setColumnWidth(ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, width() / 3);
 
-	auto copyShortcut = new QShortcut(QKeySequence::Copy, this, nullptr, nullptr, Qt::WidgetShortcut);
-	QObject::connect(copyShortcut, &QShortcut::activated, this, &ObjectTreeView::copy);
-	auto pasteShortcut = new QShortcut(QKeySequence::Paste, this, nullptr, nullptr, Qt::WidgetShortcut);
-	QObject::connect(pasteShortcut, &QShortcut::activated, this, &ObjectTreeView::paste);
 	auto cutShortcut = new QShortcut(QKeySequence::Cut, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(cutShortcut, &QShortcut::activated, this, &ObjectTreeView::cut);
 	auto deleteShortcut = new QShortcut(QKeySequence::Delete, this, nullptr, nullptr, Qt::WidgetShortcut);
@@ -114,25 +110,15 @@ std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 	return handles;
 }
 
-void ObjectTreeView::copy() {
+void ObjectTreeView::globalCopyCallback() {
 	if (selectionModel()->selectedIndexes().size() > 0) {
 		auto selectedItemIndex{selectionModel()->selectedIndexes().at(0)};
 		if (proxyModel_) {
 			selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
 		}
-		treeModel_->copyObjectAtIndex(selectedItemIndex, false);
-	}
-}
-
-void ObjectTreeView::paste() {
-	if (selectionModel()->selectedIndexes().size() > 0) {
-		auto selectedItemIndex{selectionModel()->selectedIndexes().at(0)};
-		if (proxyModel_) {
-			selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
+		if (canCopy(selectedItemIndex)) {
+			treeModel_->copyObjectAtIndex(selectedItemIndex, false);
 		}
-		treeModel_->pasteObjectAtIndex(selectedItemIndex);
-	} else {
-		treeModel_->pasteObjectAtIndex({});
 	}
 }
 
@@ -180,6 +166,13 @@ void ObjectTreeView::cut() {
 	}
 }
 
+void ObjectTreeView::globalPasteCallback(const QModelIndex &index, bool asExtRef) {
+	auto selectionIndex = (proxyModel_) ? proxyModel_->mapToSource(index) : index;
+	if (canPasteInto(selectionIndex)) {
+		treeModel_->pasteObjectAtIndex(selectionIndex, asExtRef);
+	}
+}
+
 QString ObjectTreeView::getViewTitle() const {
 	return viewTitle_;
 }
@@ -197,13 +190,28 @@ void ObjectTreeView::showContextMenu(const QPoint &p) {
 	treeViewMenu->exec(viewport()->mapToGlobal(p));
 }
 
+bool ObjectTreeView::canCopy(const QModelIndex &parentIndex) {
+	return treeModel_->canCopy(parentIndex);
+}
+
+bool ObjectTreeView::canPasteInto(const QModelIndex &parentIndex, bool asExtref) {
+	if (RaCoClipboard::hasEditorObject()) {
+		return treeModel_->canPasteInto(parentIndex, RaCoClipboard::get(), asExtref);
+	}
+	return false;
+}
+
+QSortFilterProxyModel* ObjectTreeView::proxyModel() const {
+	return proxyModel_;
+}
+
 void ObjectTreeView::resetSelection() {
 	selectionModel()->reset();
 	selectedItemIDs_.clear();
 	viewport()->update();
 }
 
-QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
+QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	auto treeViewMenu = new QMenu(this);
 
 	auto selectedItemIndex = indexAt(p);
@@ -213,6 +221,7 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 	auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_));
 	auto prefabModel = (dynamic_cast<ObjectTreeViewPrefabModel *>(treeModel_));
+	auto resourceModel = (dynamic_cast<ObjectTreeViewResourceModel *>(treeModel_));
 	auto allTypes = treeModel_->objectFactory()->getTypes();
 	auto allowedCreatableUserTypes = treeModel_->allowedCreatableUserTypes({selectedItemIndex});
 
@@ -225,11 +234,11 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		}
 	}
 
-	if (!externalProjectModel && !prefabModel) {
+	if (treeModel_->canInsertMeshAssets(selectedItemIndex)) {
 		treeViewMenu->addSeparator();
 
 		treeViewMenu->addAction("Import glTF Assets...", [this, selectedItemIndex]() {
-			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::MESH_SUB_DIRECTORY, treeModel_->project()->currentFolder());
+			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
 			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, selectedItemIndex);
@@ -251,11 +260,12 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 	auto actionCopy = treeViewMenu->addAction(
 		"Copy", [this, selectedItemIndex]() { treeModel_->copyObjectAtIndex(selectedItemIndex, false); }, QKeySequence::Copy);
-	actionCopy->setEnabled(treeModel_->canCopy(selectedItemIndex));
+	actionCopy->setEnabled(canCopy(selectedItemIndex));
 
 	auto actionPaste = treeViewMenu->addAction(
-		"Paste", [this, selectedItemIndex]() { treeModel_->pasteObjectAtIndex(selectedItemIndex); }, QKeySequence::Paste);
-	actionPaste->setEnabled(treeModel_->canPasteInto(selectedItemIndex));
+		(resourceModel) ? "Paste on Top Level" : "Paste", [this, selectedItemIndex]() {
+		treeModel_->pasteObjectAtIndex(selectedItemIndex); }, QKeySequence::Paste);
+	actionPaste->setEnabled(canPasteInto(selectedItemIndex));
 
 	auto actionCut = treeViewMenu->addAction(
 		"Cut", [this, selectedItemIndex]() { treeModel_->cutObjectAtIndex(selectedItemIndex, false); }, QKeySequence::Cut);
@@ -264,7 +274,7 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	treeViewMenu->addSeparator();
 
 	auto actionCopyDeep = treeViewMenu->addAction("Copy (Deep)", [this, selectedItemIndex]() { treeModel_->copyObjectAtIndex(selectedItemIndex, true); });
-	actionCopyDeep->setEnabled(treeModel_->canCopy(selectedItemIndex));
+	actionCopyDeep->setEnabled(canCopy(selectedItemIndex));
 
 	auto actionCutDeep = treeViewMenu->addAction("Cut (Deep)", [this, selectedItemIndex]() { treeModel_->cutObjectAtIndex(selectedItemIndex, true); });
 	actionCutDeep->setEnabled(treeModel_->canDelete(selectedItemIndex));
@@ -282,7 +292,7 @@ QMenu *ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 						fmt::format("Update of pasted external references failed!\n\n{}", error).c_str());
 				}
 			});
-		extrefPasteAction->setDisabled(!RaCoClipboard::hasEditorObject());
+		extrefPasteAction->setEnabled(canPasteInto(selectedItemIndex, true));
 	}
 
 	if (externalProjectModel) {
@@ -322,6 +332,14 @@ void ObjectTreeView::dragMoveEvent(QDragMoveEvent *event) {
 	}
 }
 
+void ObjectTreeView::mousePressEvent(QMouseEvent *event) {
+	QTreeView::mousePressEvent(event);
+	if (!indexAt(event->pos()).isValid()) {
+		resetSelection();
+		Q_EMIT newObjectTreeItemsSelected({});
+	}
+}
+
 core::SEditorObject ObjectTreeView::indexToSEditorObject(const QModelIndex &index) const {
 	auto itemIndex = index;
 	if (proxyModel_) {
@@ -354,12 +372,17 @@ void ObjectTreeView::restoreItemSelectionStates() {
 	selectionModel()->reset();
 	std::vector<QModelIndex> selectedObjects;
 
-	for (const auto &selectionID : selectedItemIDs_) {
+	auto selectionIt = selectedItemIDs_.begin();
+	while (selectionIt != selectedItemIDs_.end()) {
+		const auto &selectionID = *selectionIt;
 		auto selectedObjectIndex = indexFromObjectID(selectionID);
 		if (selectedObjectIndex.isValid()) {
 			selectionModel()->select(selectedObjectIndex, SELECTION_MODE);
 			selectedObjects.emplace_back(selectedObjectIndex);
 			expandAllParentsOfObject(selectedObjectIndex);
+			++selectionIt;
+		} else {
+			selectionIt = selectedItemIDs_.erase(selectionIt);
 		}
 	}
 

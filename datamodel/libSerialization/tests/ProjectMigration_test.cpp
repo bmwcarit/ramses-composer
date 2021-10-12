@@ -9,40 +9,84 @@
  */
 #include "core/Queries.h"
 
+#include "components/RamsesProjectMigration.h"
+
 #include "application/RaCoApplication.h"
 #include "application/RaCoProject.h"
 
 #include "core/Link.h"
 
 #include "ramses_adaptor/SceneBackend.h"
+#include "serialization/SerializationKeys.h"
 
 #include "user_types/MeshNode.h"
 #include "user_types/OrthographicCamera.h"
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/Material.h"
+#include "user_types/Texture.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderPass.h"
 
 #include "testing/TestEnvironmentCore.h"
 
 #include <gtest/gtest.h>
+
+constexpr bool GENERATE_DIFF{false};
 
 using namespace raco::core;
 
 struct MigrationTest : public TestEnvironmentCore {
 	raco::ramses_base::HeadlessEngineBackend backend{};
 	raco::application::RaCoApplication application{backend};
+
+	std::unique_ptr<raco::application::RaCoProject> loadAndCheckJson(QString filename, int* outFileVersion = nullptr) {
+		QFile file{filename};
+		EXPECT_TRUE(file.open(QIODevice::ReadOnly | QIODevice::Text));
+		auto document{QJsonDocument::fromJson(file.readAll())};
+		file.close();
+		auto fileVersion{raco::serialization::deserializeFileVersion(document)};
+		EXPECT_TRUE(fileVersion <= raco::components::RAMSES_PROJECT_FILE_VERSION);
+		if (outFileVersion) {
+			*outFileVersion = fileVersion;
+		}
+		auto projectInfo = raco::serialization::deserializeProjectVersionInfo(document);
+		std::unordered_map<std::string, std::string> migrationObjWarnings;
+		auto migratedDoc{raco::components::migrateProject(document, migrationObjWarnings)};
+		std::string migratedJson{migratedDoc.toJson().toStdString()};
+
+		std::vector<std::string> pathStack;
+		auto racoproject = raco::application::RaCoProject::loadFromJson(migratedDoc, filename, &application, pathStack);
+
+		std::unordered_map<std::string, std::vector<int>> currentVersions = {
+			{raco::serialization::keys::FILE_VERSION, {fileVersion}},
+			{raco::serialization::keys::RAMSES_VERSION, {projectInfo.ramsesVersion.major, projectInfo.ramsesVersion.minor, projectInfo.ramsesVersion.patch}},
+			{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {projectInfo.ramsesLogicEngineVersion.major, projectInfo.ramsesLogicEngineVersion.minor, projectInfo.ramsesLogicEngineVersion.patch}},
+			{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {projectInfo.raCoVersion.major, projectInfo.raCoVersion.minor, projectInfo.raCoVersion.patch}}};
+
+		auto serialized = racoproject->serializeProject(currentVersions);
+		auto serializedJson = serialized.toJson().toStdString();
+
+		if (GENERATE_DIFF) {
+			// This show a diff but is _very_ slow when run under the visual studio
+			EXPECT_EQ(migratedJson, serializedJson);
+		} else {
+			// alternatively use this to show failure but this doesn't show the diff
+			EXPECT_TRUE(migratedJson == serializedJson);
+		}
+
+		return racoproject;
+	}
 };
 
 TEST_F(MigrationTest, migrate_from_V1) {
-	std::vector<std::string> pathStack;
-	auto racoproject = raco::application::RaCoProject::loadFromFile(QString::fromStdString((cwd_path() / "migrationTestData" / "V1.rca").string()), &application, pathStack);
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V1.rca").string()));
 
 	ASSERT_EQ(racoproject->project()->settings()->sceneId_.asInt(), 123);
 	ASSERT_NE(racoproject->project()->settings()->objectID(), "b5535e97-4e60-4d72-99a9-b137b2ed52a5");	// this was the magic hardcoded ID originally used by the migration code.
 }
 
 TEST_F(MigrationTest, migrate_from_V9) {
-	std::vector<std::string> pathStack;
-	auto racoproject = raco::application::RaCoProject::loadFromFile(QString::fromStdString((cwd_path() / "migrationTestData" / "V9.rca").string()), &application, pathStack);
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V9.rca").string()));
 
 	auto p = std::dynamic_pointer_cast<raco::user_types::PerspectiveCamera>(raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera"));
 	ASSERT_EQ(p->viewport_->offsetX_.asInt(), 1);
@@ -58,8 +102,7 @@ TEST_F(MigrationTest, migrate_from_V9) {
 }
 
 TEST_F(MigrationTest, migrate_from_V10) {
-	std::vector<std::string> pathStack;
-	auto racoproject = raco::application::RaCoProject::loadFromFile(QString::fromStdString((cwd_path() / "migrationTestData" / "V10.rca").string()), &application, pathStack);
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V10.rca").string()));
 
 	auto meshnode = raco::core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<raco::user_types::MeshNode>();
 
@@ -92,8 +135,7 @@ TEST_F(MigrationTest, migrate_from_V10) {
 }
 
 TEST_F(MigrationTest, migrate_from_V12) {
-	std::vector<std::string> pathStack;
-	auto racoproject = raco::application::RaCoProject::loadFromFile(QString::fromStdString((cwd_path() / "migrationTestData" / "V12.rca").string()), &application, pathStack);
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V12.rca").string()));
 
 	auto pcam = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
 	ASSERT_EQ(*pcam->viewport_->offsetX_, 1);
@@ -157,7 +199,12 @@ TEST_F(MigrationTest, migrate_from_V12) {
 	ASSERT_EQ(*options->blendColor_->z, 2.0);
 	ASSERT_EQ(*options->blendColor_->w, 1.0);
 
+	auto meshnode_no_mesh = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mesh")->as<raco::user_types::MeshNode>();
+	ASSERT_EQ(meshnode_no_mesh->materials_->size(), 0);
 	
+	auto meshnode_mesh_no_mat = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mesh_no_mat")->as<raco::user_types::MeshNode>();
+	ASSERT_EQ(meshnode_mesh_no_mat->materials_->size(), 1);
+
 	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
 	checkLinks(*racoproject->project(), {
 		{{lua, {"luaOutputs", "int"}}, {pcam, {"viewport", "offsetY"}}},
@@ -166,3 +213,136 @@ TEST_F(MigrationTest, migrate_from_V12) {
 		{{lua, {"luaOutputs", "float"}}, {ocam, {"frustum", "leftPlane"}}}});
 
 }
+
+TEST_F(MigrationTest, migrate_from_V13) {
+	std::vector<std::string> pathStack;
+
+	auto racoproject = raco::application::RaCoProject::loadFromFile(QString::fromStdString((cwd_path() / "migrationTestData" / "V13.rca").string()), &application, pathStack);
+
+	auto textureNotFlipped = raco::core::Queries::findByName(racoproject->project()->instances(), "DuckTextureNotFlipped")->as<raco::user_types::Texture>();
+	ASSERT_FALSE(*textureNotFlipped->flipTexture_);
+
+	auto textureFlipped = raco::core::Queries::findByName(racoproject->project()->instances(), "DuckTextureFlipped")->as<raco::user_types::Texture>();
+	ASSERT_TRUE(*textureFlipped->flipTexture_);
+}
+
+TEST_F(MigrationTest, migrate_from_V14) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V14.rca").string()));
+
+	auto camera = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
+	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
+	ASSERT_EQ(*renderpass->camera_, camera);
+
+	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<raco::user_types::Texture>();
+	auto mat_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<raco::user_types::Material>();
+	auto mat_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<raco::user_types::Material>();
+
+	ASSERT_EQ(mat_no_tex->uniforms_->get("u_Tex")->asRef(), nullptr);
+	ASSERT_EQ(mat_with_tex->uniforms_->get("u_Tex")->asRef(), texture);
+
+	auto buffer = create<raco::user_types::RenderBuffer>("buffer");
+	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
+	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
+
+	auto meshnode_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<raco::user_types::MeshNode>();
+	auto meshnode_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<raco::user_types::MeshNode>();
+
+	ASSERT_EQ(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->asRef(), nullptr);
+	ASSERT_EQ(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->asRef(), texture);
+
+	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+}
+
+TEST_F(MigrationTest, migrate_from_V14b) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V14b.rca").string()));
+
+	auto camera = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
+	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
+	ASSERT_EQ(*renderpass->camera_, camera);
+
+	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<raco::user_types::Texture>();
+	auto mat_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<raco::user_types::Material>();
+	auto mat_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<raco::user_types::Material>();
+
+	ASSERT_EQ(mat_no_tex->uniforms_->get("u_Tex")->asRef(), nullptr);
+	ASSERT_EQ(mat_with_tex->uniforms_->get("u_Tex")->asRef(), texture);
+
+	auto buffer = create<raco::user_types::RenderBuffer>("buffer");
+	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
+	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
+
+	auto meshnode_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<raco::user_types::MeshNode>();
+	auto meshnode_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<raco::user_types::MeshNode>();
+
+	ASSERT_EQ(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->asRef(), nullptr);
+	ASSERT_EQ(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->asRef(), texture);
+
+	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+}
+
+TEST_F(MigrationTest, migrate_from_V14c) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V14c.rca").string()));
+
+	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
+	ASSERT_EQ(*renderpass->camera_, nullptr);
+
+	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<raco::user_types::Texture>();
+	auto mat_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<raco::user_types::Material>();
+	auto mat_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<raco::user_types::Material>();
+
+	ASSERT_EQ(mat_no_tex->uniforms_->get("u_Tex")->asRef(), nullptr);
+	ASSERT_EQ(mat_with_tex->uniforms_->get("u_Tex")->asRef(), texture);
+
+	auto buffer = create<raco::user_types::RenderBuffer>("buffer");
+	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
+	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
+
+	auto meshnode_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<raco::user_types::MeshNode>();
+	auto meshnode_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<raco::user_types::MeshNode>();
+
+	ASSERT_EQ(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->asRef(), nullptr);
+	ASSERT_EQ(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->asRef(), texture);
+
+	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
+	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+}
+
+TEST_F(MigrationTest, migrate_from_current) {
+	// Check for changes in serialized JSON in newest version. 
+	// Should detect changes in data model with missing migration code.
+	// Also checks that all object types are present in file.
+	// 
+	// The "version-current.rca" project needs to be updated when the data model has 
+	// been changed in a way that changes the serialized JSON, e.g.
+	// - static properties added
+	// - annotations added to static properties
+	// - added new object types
+
+	int fileVersion;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "version-current.rca").string()), &fileVersion);
+	ASSERT_EQ(fileVersion, raco::components::RAMSES_PROJECT_FILE_VERSION);
+
+	// check that all user types present in file
+	auto& instances = racoproject->project()->instances();
+	for (auto& item : objectFactory()->getTypes()) {
+		auto name = item.first;
+		EXPECT_TRUE(std::find_if(instances.begin(), instances.end(), [name](SEditorObject obj) {
+			return name == obj->getTypeDescription().typeName;
+		}) != instances.end());
+	}
+}
+

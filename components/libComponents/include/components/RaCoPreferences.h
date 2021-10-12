@@ -31,6 +31,11 @@ public:
 	bool load();
 
 	QString userProjectsDirectory{};
+
+	QString imageSubdirectory;
+	QString meshSubdirectory;
+	QString scriptSubdirectory;
+	QString shaderSubdirectory;
 };
 
 }  // namespace raco

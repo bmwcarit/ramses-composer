@@ -11,6 +11,11 @@
 
 #include "ramses_widgets/PreviewContentWidget.h"
 #include "ramses_widgets/PreviewScrollAreaWidget.h"
+#include "user_types/BaseCamera.h"
+#include "user_types/PerspectiveCamera.h"
+#include "ramses_adaptor/SceneAdaptor.h"
+#include "ramses_adaptor/SceneBackend.h"
+
 #include "ui_PreviewMainWindow.h"
 #include <QLabel>
 #include <QMenu>
@@ -18,8 +23,10 @@
 
 namespace raco::ramses_widgets {
 
-PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, const QSize& sceneSize, QWidget* parent)
-	: QMainWindow{parent}, ui_{new Ui::PreviewMainWindow()} {
+PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ramses_adaptor::SceneBackend* sceneBackend, const QSize& sceneSize, raco::core::Project* project,
+	raco::components::SDataChangeDispatcher dispatcher, QWidget* parent)
+	: QMainWindow{parent},
+	  ui_{new Ui::PreviewMainWindow()} {
 	ui_->setupUi(this);
 
 	sceneIdLabel_ = new QLabel{"scene id: -", ui_->statusbar};

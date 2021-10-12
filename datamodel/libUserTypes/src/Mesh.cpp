@@ -24,7 +24,7 @@ void Mesh::onBeforeDeleteObject(Errors& errors) const {
 }
 
 void Mesh::onAfterContextActivated(BaseContext& context) {
-	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
+	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
 	uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
 			[this, &context]() { updateMesh(context); }});
 	updateMesh(context);
@@ -34,16 +34,21 @@ void Mesh::updateMesh(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
 
 	MeshDescriptor desc;
-	desc.absPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
+	desc.absPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
 	desc.bakeAllSubmeshes = bakeMeshes_.asBool();
 	desc.submeshIndex = meshIndex_.asInt();
 
-	if (validateURI(context, {shared_from_this(), {"uri"}})) {
+	if (validateURI(context, {shared_from_this(), &Mesh::uri_})) {
 		mesh_ = context.meshCache()->loadMesh(desc);
 		if (!mesh_) {
 			auto savedErrorString = context.meshCache()->getMeshError(desc.absPath);
 			auto errorMessage = (savedErrorString.empty()) ? "Invalid mesh file." : "Error while importing mesh: " + savedErrorString;
 			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, {shared_from_this()}, errorMessage);
+		} else {
+			auto savedWarningString = context.meshCache()->getMeshWarning(desc.absPath);
+			if (!savedWarningString.empty()) {
+				context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::WARNING, {shared_from_this()}, savedWarningString);
+			}
 		}
 	} else {
 		mesh_.reset();
@@ -65,7 +70,7 @@ void Mesh::updateMesh(BaseContext& context) {
 		infoText += fmt::format("Triangles: {}\n", selectedMesh->numTriangles());
 		infoText += fmt::format("Vertices: {}\n", selectedMesh->numVertices());
 		//infoText += fmt::format("Submeshes: {}\n", selectedMesh->numSubmeshes());
-		infoText += fmt::format("Total Asset File Meshes: {}\n", context.meshCache()->getTotalMeshCount(desc.absPath, desc.bakeAllSubmeshes));
+		infoText += fmt::format("Total Asset File Meshes: {}\n", context.meshCache()->getTotalMeshCount(desc.absPath));
 		infoText += "\nAttributes:";
 
 		for (uint32_t i{0}; i < selectedMesh->numAttributes(); i++) {
@@ -75,7 +80,7 @@ void Mesh::updateMesh(BaseContext& context) {
 			context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::INFORMATION, ValueHandle{shared_from_this()}, infoText);
 		}
 
-		ValueHandle matnames_handle{shared_from_this(), {"materialNames"}};
+		ValueHandle matnames_handle{shared_from_this(), &Mesh::materialNames_};
 		context.set(matnames_handle, std::vector<std::string>{"material"});
 	}
 
@@ -87,15 +92,12 @@ std::vector<std::string> Mesh::materialNames() {
 }
 
 void Mesh::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	ValueHandle uriHandle(shared_from_this(), {"uri"});
-	ValueHandle submeshIndexHandle(shared_from_this(), {"meshIndex"});
-	ValueHandle bakeMeshesHandle(shared_from_this(), {"bakeMeshes"});
-	if (value == uriHandle) {
-		auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
+	if (value.isRefToProp(&Mesh::uri_)) {
+		auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
 		uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
 			[this, &context]() { updateMesh(context); }});
 		updateMesh(context);
-	} else if (value == bakeMeshesHandle || !bakeMeshes_.asBool() && value == submeshIndexHandle) {
+	} else if (value.isRefToProp(&Mesh::bakeMeshes_) || !bakeMeshes_.asBool() && value.isRefToProp(&Mesh::meshIndex_)) {
 		context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 		updateMesh(context);
 	}

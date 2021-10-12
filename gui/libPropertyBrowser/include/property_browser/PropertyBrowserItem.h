@@ -48,6 +48,7 @@ public:
 	void setLink(const core::ValueHandle& start) noexcept;
 	void removeLink() noexcept;
 	bool editable() noexcept;
+	bool expandable() const noexcept;
 	template <typename T>
 	raco::core::AnnotationHandle<T> query() const {
 		return valueHandle_.query<T>();
@@ -62,6 +63,7 @@ public:
 	raco::core::ValueHandle& valueHandle() noexcept;
 	const QList<PropertyBrowserItem*>& children();
 	PropertyBrowserItem* parentItem() const noexcept;
+	PropertyBrowserItem* siblingItem(std::string_view propertyName) const noexcept;
 	PropertyBrowserRef* refItem() noexcept;
 	PropertyBrowserModel* model() const noexcept;
 	bool isRoot() const noexcept;
@@ -98,6 +100,7 @@ protected:
 	Q_SLOT void updateLinkState() noexcept;
 
 private:
+	void createChildren();
 	void syncChildrenWithValueHandle();
 
 	PropertyBrowserItem* parentItem_{nullptr};
@@ -107,6 +110,7 @@ private:
 	raco::components::Subscription errorSubscription_;
 	raco::components::Subscription linkValidityChangeSub_;
 	raco::components::Subscription linkLifecycleSub_;
+	raco::components::Subscription changeChildrenSub_;
 	raco::core::CommandInterface* commandInterface_;
 	raco::components::SDataChangeDispatcher dispatcher_;
 	PropertyBrowserModel* model_;

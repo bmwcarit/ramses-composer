@@ -21,11 +21,13 @@ namespace raco::ramses_adaptor {
 
 class TextureSamplerAdaptor : public TypedObjectAdaptor<user_types::Texture, ramses::TextureSampler> {
 public:
+	static inline auto FALLBACK_TEXTURE_SIZE_PX = 256;
+
 	explicit TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::Texture> editorObject);
 
 	bool sync(core::Errors* errors) override;
 
-	static std::vector<unsigned char>* getFallbackTextureData(int mode);
+	static std::vector<unsigned char>& getFallbackTextureData(bool flipped);
 
 private:
 	ramses_base::RamsesTexture2D createTexture();
@@ -34,8 +36,10 @@ private:
 	std::array<components::Subscription, 6> subscriptions_;
 	ramses_base::RamsesTexture2D textureData_;
 
-	static inline std::vector<unsigned char> fallbackTextureData_[2];
+	static inline std::array<std::vector<unsigned char>, 2> fallbackTextureData_;
 	std::string createDefaultTextureDataName();
+
+	static void flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int width, unsigned int height);
 };
 
 };  // namespace raco::ramses_adaptor

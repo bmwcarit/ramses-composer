@@ -19,6 +19,7 @@ set(TEST_SOURCES
     Prefab_test.cpp
     ExternalReference_test.cpp
     ValueHandle_test.cpp
+    Queries_Tags_test.cpp
 )
 
 set(TEST_LIBRARIES

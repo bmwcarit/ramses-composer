@@ -9,13 +9,21 @@
  */
 #pragma once
 
-#include "ramses_widgets/RendererBackend.h"
+#include "components/DataChangeDispatcher.h"
 #include "components/DebugInstanceCounter.h"
+#include "ramses_widgets/RendererBackend.h"
 #include <QLabel>
 #include <QMainWindow>
+#include <QToolButton>
 #include <memory>
 
-//
+namespace raco::user_types {
+
+class BaseCamera;
+using SBaseCamera = std::shared_ptr<BaseCamera>;
+}
+
+ //
 // Widget Hierarchy:
 // - root : PreviewMainWindow
 //   -> PreviewScrollAreaWidget
@@ -27,6 +35,10 @@ namespace Ui {
 class PreviewMainWindow;
 }
 
+namespace raco::ramses_adaptor {
+class SceneBackend;
+}
+
 namespace raco::ramses_widgets {
 
 class PreviewContentWidget;
@@ -36,7 +48,12 @@ class PreviewMainWindow final : public QMainWindow {
 	DEBUG_INSTANCE_COUNTER(PreviewMainWindow);
 
 public:
-	PreviewMainWindow(RendererBackend& rendererBackend, const QSize& sceneSize, QWidget* parent = nullptr);
+	PreviewMainWindow(RendererBackend& rendererBackend,
+		raco::ramses_adaptor::SceneBackend* sceneBackend,
+		const QSize& sceneSize,
+		raco::core::Project* project,
+		raco::components::SDataChangeDispatcher dispatcher,
+		QWidget* parent = nullptr);
 	~PreviewMainWindow();
 	void displayScene(ramses::sceneId_t sceneId, data_storage::Vec3f const& backgroundColor);
 

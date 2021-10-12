@@ -185,7 +185,7 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	};
 
 	// Perform external -> local update
-
+	
 	// Delete locate objects
 	std::vector<SEditorObject> toRemove;
 	{
@@ -199,9 +199,11 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 			}
 		}
 	}
+
 	// We need a full deleteObjects here in order to remove references to deleted extref objects in the local objects,
 	// e.g. local material referencing extref texture with the extref update deleting the extref texture
-	context.deleteObjects(toRemove, false);
+	context.deleteObjects(toRemove, false, false);
+
 
 	// Remove links
 	std::map<std::string, std::set<SLink>> localLinks = Queries::getLinksConnectedToObjects(*project, localObjects, true, true);

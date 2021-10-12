@@ -13,7 +13,6 @@
 #include "testing/RacoBaseTest.h"
 #include "testing/TestEnvironmentCore.h"
 
-#include <assimp/Importer.hpp>
 
 using namespace raco;
 
@@ -31,7 +30,7 @@ TEST_F(MeshLoaderTest, glTFLoadBaked) {
 	auto totalSubmeshIndexBufferRangeCount = std::accumulate(submeshIndexBufferRanges.begin(), submeshIndexBufferRanges.end(), 0, [](int sum, auto &info) { return sum + info.count; });
 	ASSERT_EQ(loadedMesh->getIndices().size(), totalSubmeshIndexBufferRangeCount);
 	ASSERT_EQ(loadedMesh->numSubmeshes(), 1);  // TODO should be 4 with full submesh support
-	ASSERT_EQ(fileloader.getTotalMeshCount(desc.bakeAllSubmeshes), 4);
+	ASSERT_EQ(fileloader.getTotalMeshCount(), 4);
 }
 
 TEST_F(MeshLoaderTest, glTFLoadUnbaked) {
@@ -45,7 +44,7 @@ TEST_F(MeshLoaderTest, glTFLoadUnbaked) {
 
 	ASSERT_EQ(loadedMesh->getIndices().size(), loadedMesh->submeshIndexBufferRanges().front().count);
 	ASSERT_EQ(loadedMesh->numSubmeshes(), 1);
-	ASSERT_EQ(fileloader.getTotalMeshCount(desc.bakeAllSubmeshes), 4);
+	ASSERT_EQ(fileloader.getTotalMeshCount(), 4);
 }
 
 TEST_F(MeshLoaderTest, glTFLoadUnbakedThenBaked) {
@@ -66,5 +65,5 @@ TEST_F(MeshLoaderTest, glTFLoadUnbakedThenBaked) {
 	ASSERT_EQ(bakedMesh->getIndices().size(), totalSubmeshIndexBufferRangeCount);
 	ASSERT_EQ(unbakedMesh->numSubmeshes(), 1);
 	ASSERT_EQ(bakedMesh->numSubmeshes(), 1);  // TODO should be 4 with full submesh support
-	ASSERT_EQ(fileloader.getTotalMeshCount(desc.bakeAllSubmeshes), 4);
+	ASSERT_EQ(fileloader.getTotalMeshCount(), 4);
 }

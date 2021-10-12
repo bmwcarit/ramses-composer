@@ -9,16 +9,18 @@
  */
 #pragma once
 #include "gtest/gtest.h"
+#include "components/DataChangeDispatcher.h"
 
 #include "object_tree_view/ObjectTreeDockManager.h"
-
 #include <QApplication>
+#include <testing/TestEnvironmentCore.h>
 
-class ObjectDefaultTreeDockManagerTest : public ::testing::Test {
+class ObjectDefaultTreeDockManagerTest : public TestEnvironmentCore {
 protected:
 	raco::object_tree::view::ObjectTreeDockManager manager_;
 	int argc = 0;
 	QApplication fakeApp_{argc, nullptr};	
+	raco::components::SDataChangeDispatcher dispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()};
 
 	std::unique_ptr<raco::object_tree::view::ObjectTreeDock> generateDockInManager() {
 		auto dockName = std::string("Dock").append(std::to_string(manager_.getTreeDockAmount()));

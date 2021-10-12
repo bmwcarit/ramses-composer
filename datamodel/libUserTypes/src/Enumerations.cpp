@@ -8,13 +8,23 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#include "user_types/Enumerations.h"
 #include <map>
 #include <string>
-#include "user_types/Enumerations.h"
 
 namespace raco::user_types {
 
 std::map<int, std::string> enumerationTextureOrigin{
-	{TEXTURE_ORIGIN_BOTTOM, "Bottom left (OpenGL)"},
-	{TEXTURE_ORIGIN_TOP, "Top left (Direct 3D)"}};
-}
+	{static_cast<int>(user_types::ETextureOrigin::Bottom), "Bottom left (OpenGL)"},
+	{static_cast<int>(user_types::ETextureOrigin::Top), "Top left (Direct 3D)"}};
+
+std::map<int, std::string> enumerationRenderLayerOrder{
+	{static_cast<int>(ERenderLayerOrder::Optimized), "Optimized"},
+	{static_cast<int>(ERenderLayerOrder::Manual), "By Priority"},
+	{static_cast<int>(ERenderLayerOrder::SceneGraph), "Scene Graph"}};
+
+std::map<int, std::string> enumerationRenderLayerMaterialFilterFlag{
+	{static_cast<int>(false), "Include materials with any of the listed tags"},
+	{static_cast<int>(true), "Exclude material with any of the listed tags"}};
+
+}  // namespace raco::user_types

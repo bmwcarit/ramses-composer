@@ -104,6 +104,7 @@ struct ProjectDeserializationInfo {
 ObjectDeserialization deserializeObject(const std::string& json, const DeserializationFactory& factory);
 ObjectsDeserialization deserializeObjects(const std::string& json, const DeserializationFactory& factory);
 int deserializeFileVersion(const QJsonDocument& document);
+ProjectDeserializationInfo deserializeProjectVersionInfo(const QJsonDocument& document);
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& jsonDocument, const DeserializationFactory& factory);
 ProjectDeserializationInfo deserializeProject(const std::string& json, const DeserializationFactory& factory);
 
@@ -112,5 +113,7 @@ References deserializePropertyForMigration(const QJsonValue& property, ValueBase
 
 SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, const DeserializationFactory& factory, References& references);
 QJsonObject serializeTypedObject(const ReflectionInterface& object, const ResolveReferencedId& resolveReferenceId);
+void serializeExternalProjectsMap(QJsonObject& outContainer, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap);
+
 
 };	// namespace raco::serialization

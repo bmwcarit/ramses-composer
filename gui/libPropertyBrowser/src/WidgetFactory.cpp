@@ -9,19 +9,23 @@
  */
 #include "property_browser/WidgetFactory.h"
 
-#include <QLabel>
-#include <QWidget>
-
 #include "property_browser/PropertyBrowserItem.h"
+
 #include "property_browser/editors/BoolEditor.h"
 #include "property_browser/editors/DoubleEditor.h"
-#include "property_browser/editors/IntEditor.h"
 #include "property_browser/editors/EnumerationEditor.h"
+#include "property_browser/editors/IntEditor.h"
+#include "property_browser/editors/LinkEditor.h"
 #include "property_browser/editors/RefEditor.h"
 #include "property_browser/editors/StringEditor.h"
-#include "property_browser/editors/VecNTEditor.h"
-#include "property_browser/editors/LinkEditor.h"
+#include "property_browser/editors/TagContainerEditor.h"
 #include "property_browser/editors/URIEditor.h"
+#include "property_browser/editors/VecNTEditor.h"
+
+#include "user_types/RenderLayer.h"
+
+#include <QLabel>
+#include <QWidget>
 
 namespace raco::property_browser {
 
@@ -37,7 +41,11 @@ QWidget* WidgetFactory::createPropertyControl(PropertyBrowserItem* item, QWidget
 
 	switch (item->type()) {
 		case PrimitiveType::Bool:
-			return new BoolEditor{item, parent};
+			if (item->query<core::EnumerationAnnotation>()) {
+				return new EnumerationEditor{item, parent};
+			} else {
+				return new BoolEditor{item, parent};
+			}
 		case PrimitiveType::Int:
 			if (item->query<core::EnumerationAnnotation>()) {
 				return new EnumerationEditor{item, parent};
@@ -63,6 +71,10 @@ QWidget* WidgetFactory::createPropertyControl(PropertyBrowserItem* item, QWidget
 		case PrimitiveType::Ref:
 			return new RefEditor{item, parent};
 		case PrimitiveType::Table:
+			if (item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {
+				return new TagContainerEditor{ item, parent };
+			}
+			return new QWidget{ parent };
 		default:
 			// used for group headlines
 			return new QWidget{parent};

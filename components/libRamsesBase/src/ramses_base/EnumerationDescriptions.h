@@ -118,4 +118,24 @@ std::map<int, std::string> enumerationTextureFormat{
 	{static_cast<int>(ramses::ETextureFormat::ASTC_SRGBA_10x10), "ASTC_SRGBA_10x10"},
 	{static_cast<int>(ramses::ETextureFormat::ASTC_SRGBA_12x10), "ASTC_SRGBA_12x12"},
 };
+
+std::map<int, std::string> enumerationRenderBufferFormat{
+	{static_cast<int>(ramses::ERenderBufferFormat_RGBA4), "RGBA4"},
+	{static_cast<int>(ramses::ERenderBufferFormat_R8), "R8"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RG8), "RG8"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RGB8), "RGB8"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RGBA8), "RGBA8"},
+	{static_cast<int>(ramses::ERenderBufferFormat_R16F), "R16F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_R32F), "R32F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RG16F), "RG16F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RG32F), "RG32F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RGB16F), "RGB16F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RGB32F), "RGB32F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RGBA16F), "RGBA16F"},
+	{static_cast<int>(ramses::ERenderBufferFormat_RGBA32F), "RGBA32F"},
+
+	{static_cast<int>(ramses::ERenderBufferFormat_Depth24), "Depth24"},
+	{static_cast<int>(ramses::ERenderBufferFormat_Depth24_Stencil8), "Depth24_Stencil8"}
+};
+
 }  // namespace raco::ramses_base

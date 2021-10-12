@@ -138,7 +138,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 				++it;
 			}
 		}
-		context.deleteObjects(toRemove);
+		context.deleteObjects(toRemove, true, false);
 	}
 
 	std::set<ValueHandle> allChangedValues;
@@ -198,8 +198,8 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 
 	// Single property updates from model changes
 	auto const& modelChanges = context.modelChanges().getChangedValues();
-	if (instanceDirty || context.modelChanges().hasValueChanged(ValueHandle(prefab, {"children"}))) {
-		updateSingleValue(&prefab->children_, &instance->children_, ValueHandle(instance, {"children"}), translateRefFunc, &localChanges, true);
+	if (instanceDirty || context.modelChanges().hasValueChanged(ValueHandle(prefab, &EditorObject::children_))) {
+		updateSingleValue(&prefab->children_, &instance->children_, ValueHandle(instance, &EditorObject::children_), translateRefFunc, &localChanges, true);
 	}
 
 	for (const auto& [id, cont] : modelChanges) {
@@ -310,7 +310,7 @@ bool prefabInstanceDirty(const DataChangeRecorder& changes, SPrefabInstance inst
 		}) != createdObjects.end()) {
 		return true;
 	}
-	ValueHandle templateHandle(instance, {"template"});
+	ValueHandle templateHandle(instance, &PrefabInstance::template_);
 	return changes.hasValueChanged(templateHandle);
 }
 
@@ -331,7 +331,7 @@ void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecord
 		if (std::find(context.project()->instances().begin(), context.project()->instances().end(), inst) != context.project()->instances().end()) {
 			auto children = inst->children_->asVector<SEditorObject>();
 			context.deleteObjects(children);
-			context.removeAllProperties({inst, {"mapToInstance"}});
+			context.removeAllProperties({inst, &PrefabInstance::mapToInstance_});
 		}
 	}
 

@@ -27,7 +27,9 @@ std::string read(const Path& path) {
 		in.close();
 		return ss.str();
 	} else {
-		LOG_WARNING("UTILS", "file not found: {}", path);
+		if (!path.empty()) {
+			LOG_WARNING("UTILS", "file not found: {}", path);
+		}
 		return {};
 	}
 }
@@ -39,7 +41,9 @@ std::vector<unsigned char> readBinary(const Path& path) {
 		in.close();
         return buffer;
 	} else {
-		LOG_WARNING("UTILS", "file not found: {}", path);
+		if (!path.empty()) {
+			LOG_WARNING("UTILS", "file not found: {}", path);
+		}
 		return {};
 	}
 }

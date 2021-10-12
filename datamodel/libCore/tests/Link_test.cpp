@@ -42,12 +42,6 @@ public:
 		commandInterface.set({obj, {"uri"}}, (cwd_path() / newvalue).string());
 	}
 
-	std::pair<PropertyDescriptor, PropertyDescriptor> link(SEditorObject startObj, std::vector<std::string> startProp, SEditorObject endObj, std::vector<std::string> endProp) {
-		PropertyDescriptor start{startObj, startProp};
-		PropertyDescriptor end{endObj, endProp};
-		commandInterface.addLink(start, end);
-		return { start, end };
-	}
 };
 
 TEST_F(LinkTest, fail_create_invalid_handles) {

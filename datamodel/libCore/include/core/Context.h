@@ -22,6 +22,7 @@ struct ObjectsDeserialization;
 
 namespace raco::core {
 struct MeshDescriptor;
+struct MeshScenegraph;
 
 class Project;
 class ExternalProjectsStoreInterface;
@@ -69,8 +70,10 @@ public:
 	void set(ValueHandle const& handle, int const& value);
 	void set(ValueHandle const& handle, double const& value);
 	void set(ValueHandle const& handle, std::string const& value);
+	void set(ValueHandle const& handle, char const* value); // avoid cast of char const* to bool
 	void set(ValueHandle const& handle, std::vector<std::string> const& value);
 	void set(ValueHandle const& handle, SEditorObject const& value);
+	void set(ValueHandle const& handle, Table const& value);
 
 	template <typename AnnoType, typename T>
 	void set(AnnotationValueHandle<AnnoType> const& handle, T const& value);
@@ -113,9 +116,14 @@ public:
 	std::vector<SEditorObject> pasteObjects(const std::string& val, SEditorObject const& target = {}, bool pasteAsExtref = false);
 
 	// Delete set of objects
-	// Returns number of actually deleted objects which may be larger than the passed in vector
-	// since dependent objects may need to be included.
-	size_t deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap = true);
+	// @param gcExternalProjectMap If true the external project map in the Project will be updated and external projects
+	// 	   which are now unused are removed.
+	// @param includeChildren Do not delete data model children object of the deleted object if set to false. If 
+	// 	   deletion of the children is disabled using this flag the caller _must_ make sure that the data model stays
+	// 	   consistent. This is only used in the Prefab update code and should normally never be used elsewhere.
+	// @return number of actually deleted objects which may be larger than the passed in vector since dependent 
+	//   objects may need to be included.
+	size_t deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap = true, bool includeChildren = true);
 
 
 	// Move scenegraph node to new parent at before the specified index.
@@ -123,11 +131,11 @@ public:
 	// - If insertionBeforeIndex = -1 the node will be appended at the end of the new parent children.
 	void moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex = -1);
 
-	// Import scenegraph from a mesh file and move that scenegraph root noder under parent.
+	// Import scenegraph as a hierarchy of EditorObjects and move that scenegraph root noder under parent.
 	// This includes generating Mesh resources, Nodes and MeshNodes as well as searching for already created Materials.
 	// If parent is invalid, the mesh scenegraph root node will be the project's scenegraph root node.
 	// Returns true when the import has succeeded, false otherwise.
-	bool importAssetScenegraph(const std::string& absPath, SEditorObject const& parent);
+	bool insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	// Link operations
 	SLink addLink(const ValueHandle& start, const ValueHandle& end);
@@ -137,6 +145,18 @@ public:
 
 	// @exception ExtrefError
 	void updateExternalReferences(std::vector<std::string>& pathStack);
+
+	void initBrokenLinkErrors();
+
+	//Update link errors for links ending on 'object'
+	void updateBrokenLinkErrors(SEditorObject endObject);
+	
+	// Update link errors for all links either starting or ending on 'object'
+	void updateBrokenLinkErrorsAttachedTo(SEditorObject object);
+
+	// Find and return the objects without parents within the serialized object set.
+	// Note: the objects may still have parents in the origin project they were copied from.
+	static std::vector<SEditorObject> getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, UserObjectFactoryInterface* objectFactory, Project* project);
 
 private:
 	friend class UndoStack;
@@ -150,17 +170,19 @@ private:
 	
 	static void restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization);
 
-
 	// Should only be used from the Undo system
 	static bool deleteWithVolatileSideEffects(Project* project, const std::set<SEditorObject>& objects, Errors& errors, bool gcExternalProjectMap = true);
 
 	void callReferencedObjectChangedHandlers(SEditorObject const& changedObject);
 	void removeReferencesTo(std::set<SEditorObject> const& objects);
 
+	template <void (EditorObject::*Handler)(ValueHandle const&) const>
+	void callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh);
+	
 	ValueTreeIterator erase(const ValueTreeIterator& it);
 
 	void updateLinkValidity(SLink link);
-	
+
 	template <typename T>
 	void setT(ValueHandle const& handle, T const& value);
 

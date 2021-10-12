@@ -16,7 +16,12 @@
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "testing/TestEnvironmentCore.h"
+#include "user_types/CubeMap.h"
+#include "user_types/OrthographicCamera.h"
+#include "user_types/PerspectiveCamera.h"
+#include "user_types/PrefabInstance.h"
 #include "user_types/UserObjectFactory.h"
+#include "user_types/Texture.h"
 
 
 class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
@@ -33,12 +38,12 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 	}
 
 	void moveScenegraphChild(raco::core::SEditorObject child, raco::core::SEditorObject parent, int row = -1) {
-		viewModel_.moveScenegraphChild(child, parent, row);
+		viewModel_->moveScenegraphChild(child, parent, row);
 		dataChangeDispatcher_->dispatch(recorder.release());
 	}
 
 	size_t deleteObjectAtIndex(const QModelIndex& index) {
-		auto delObjAmount = viewModel_.deleteObjectAtIndex(index);
+		auto delObjAmount = viewModel_->deleteObjectAtIndex(index);
 		dataChangeDispatcher_->dispatch(recorder.release());
 		return delObjAmount;
 	}
@@ -50,11 +55,18 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
    protected:
 	raco::components::SDataChangeDispatcher dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()};
 	std::vector<std::string> nodeNames_;
-	raco::object_tree::model::ObjectTreeViewDefaultModel viewModel_;
+	std::unique_ptr<raco::object_tree::model::ObjectTreeViewDefaultModel> viewModel_;
 
-	ObjectTreeViewDefaultModelTest() : viewModel_{&commandInterface, dataChangeDispatcher_, nullptr} {}
+	ObjectTreeViewDefaultModelTest() : viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dataChangeDispatcher_, nullptr,
+		{raco::user_types::Node::typeDescription.typeName,
+		 raco::user_types::MeshNode::typeDescription.typeName,
+		 raco::user_types::PrefabInstance::typeDescription.typeName,
+		 raco::user_types::OrthographicCamera::typeDescription.typeName,
+		 raco::user_types::PerspectiveCamera::typeDescription.typeName,
+		 raco::user_types::LuaScript::typeDescription.typeName})} {}
 
-	void compareValuesInTree(const raco::core::SEditorObject &obj,
-		const QModelIndex &objIndex,
-		const raco::object_tree::model::ObjectTreeViewDefaultModel &viewModel);
+	void compareValuesInTree(const raco::core::SEditorObject &obj, const QModelIndex &objIndex, const raco::object_tree::model::ObjectTreeViewDefaultModel &viewModel);
+
+	std::vector<raco::core::SEditorObject> createAllSceneGraphObjects();
+	std::vector<raco::core::SEditorObject> createAllResources();
 };

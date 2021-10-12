@@ -15,7 +15,7 @@
 
 namespace raco::user_types {
 
-class Texture : public BaseTexture {
+class Texture : public TextureSampler2DBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"Texture", true};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -23,17 +23,17 @@ public:
 	}
 
 	Texture(Texture const& other)
-		: BaseTexture(other), uri_(other.uri_), origin_(other.origin_) {
+		: TextureSampler2DBase(other), uri_(other.uri_), flipTexture_(other.flipTexture_) {
 		fillPropertyDescription();
 	}
 
-	Texture(const std::string& name, const std::string& id) : BaseTexture(name, id) {
+	Texture(const std::string& name, const std::string& id) : TextureSampler2DBase(name, id) {
 		fillPropertyDescription();
 	}
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("uri", &uri_);
-		properties_.emplace_back("origin", &origin_);
+		properties_.emplace_back("flipTexture", &flipTexture_);
 	}
 
     void onBeforeDeleteObject(Errors& errors) const override;
@@ -43,7 +43,7 @@ public:
 
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation("URI")};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> origin_{DEFAULT_VALUE_TEXTURE_ORIGIN_BOTTOM, DisplayNameAnnotation("U/V Origin"), EnumerationAnnotation{EngineEnumeration::TextureOrigin}};
+	Property<bool, DisplayNameAnnotation> flipTexture_{false, DisplayNameAnnotation("Flip Vertically")};
 
 private:
 	mutable FileChangeMonitor::UniqueListener uriListener_;

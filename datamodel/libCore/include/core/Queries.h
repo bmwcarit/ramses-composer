@@ -9,12 +9,12 @@
  */
 #pragma once
 
+#include "EditorObject.h"
+#include "Handles.h"
+#include "Link.h"
+
 #include <map>
 #include <vector>
-
-#include "Handles.h"
-#include "EditorObject.h"
-#include "Link.h"
 
 namespace raco::core {
 
@@ -44,11 +44,22 @@ namespace Queries {
 	bool canMoveScenegraphChild(Project const &project, SEditorObject const& object, SEditorObject const& newParent);
 	bool canDeleteObjects(Project const& project, const std::vector<SEditorObject>& objects);
 	bool canPasteIntoObject(Project const& project, SEditorObject const& object);
+	bool canPasteObjectAsExternalReference(SEditorObject editorObject, bool isTopLevelObject);
 	bool canDeleteUnreferencedResources(const Project& project);
 
 	std::vector<SEditorObject> filterForVisibleObjects(const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterForNotResource(const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterByTypeName(const std::vector<SEditorObject>& objects, const std::vector<std::string>& typeNames);
+	template<class UserType>
+	std::vector<std::shared_ptr<UserType>> filterByType(const std::vector<SEditorObject>& objects) {
+		std::vector<std::shared_ptr<UserType>> r;
+		for (auto const& o : objects) {
+			if (&o->getTypeDescription() == &UserType::typeDescription) {
+				r.push_back(o->as<UserType>());
+			}
+		}
+		return r;
+	}
 
 	bool isResource(const SEditorObject& object);
 	bool isNotResource(const SEditorObject& object);
@@ -120,6 +131,11 @@ namespace Queries {
 	// @return The set is partitioned in subsets according to the endpoint object and returned
 	//	       as a map indexed by the endpoint object ID.
 	std::map<std::string, std::set<SLink>> getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool inlucdeEnding);
+
+	// Find broken links ending on valid properties of the object and return 
+	// a formatted error message, showing each broken link.
+	// Returns empty string if no broken links found.
+	std::string getBrokenLinksErrorMessage(const Project& project, SEditorObject obj);
 
 	// Get all properties that are allowed as the start of a link ending on the given end property.
 	// Includes type compatibility checks and loop detection.

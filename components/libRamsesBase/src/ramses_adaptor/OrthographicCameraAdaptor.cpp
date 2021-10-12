@@ -19,24 +19,22 @@
 namespace raco::ramses_adaptor {
 OrthographicCameraAdaptor::OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesOrthographicCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(this->ramsesObject(), & sceneAdaptor->logicEngine())},
-	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, {"viewport"}}, [this](auto) {
+	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), & sceneAdaptor->logicEngine())},
+	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::OrthographicCamera::viewport_}, [this](auto) {
 		  tagDirty();
 	  })},
-	  frustrumSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, {"frustum"}}, [this](auto) {
+	  frustrumSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::OrthographicCamera::frustum_}, [this](auto) {
 		  tagDirty();
 	  })} {
 }
 
 OrthographicCameraAdaptor::~OrthographicCameraAdaptor() {
-	sceneAdaptor_->setCamera(nullptr);
 }
 
 bool OrthographicCameraAdaptor::sync(core::Errors* errors) {
 	SpatialAdaptor::sync(errors);
-	BaseCameraAdaptorHelpers::sync(editorObject(), &ramsesObject(), cameraBinding_.get());
-	ramsesObject().setFrustum(static_cast<float>(*editorObject()->frustum_->left_), static_cast<float>(*editorObject()->frustum_->right_), static_cast<float>(*editorObject()->frustum_->bottom_), static_cast<float>(*editorObject()->frustum_->top_), static_cast<float>(*editorObject()->frustum_->near_), static_cast<float>(*editorObject()->frustum_->far_));
-	sceneAdaptor_->setCamera(&ramsesObject());
+	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get());
+	(*ramsesObject()).setFrustum(static_cast<float>(*editorObject()->frustum_->left_), static_cast<float>(*editorObject()->frustum_->right_), static_cast<float>(*editorObject()->frustum_->bottom_), static_cast<float>(*editorObject()->frustum_->top_), static_cast<float>(*editorObject()->frustum_->near_), static_cast<float>(*editorObject()->frustum_->far_));
 	// The logic engine will always set the entire struct even if there is a link for only one of the values, and use the default values in the binding
 	// for the non-linked elements in the struct - so we need to also set the default values for the bindings.
 	cameraBinding_->getInputs()->getChild("frustum")->getChild("nearPlane")->set(static_cast<float>(*editorObject()->frustum_->near_));

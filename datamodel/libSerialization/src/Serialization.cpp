@@ -416,7 +416,7 @@ ObjectDeserialization raco::serialization::deserializeObject(const std::string& 
 		references};
 }
 
-void serializeExternalProjectsMap(QJsonObject& outContainer, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap) {
+void raco::serialization::serializeExternalProjectsMap(QJsonObject& outContainer, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap) {
 	QMap<QString, QVariant> map;
 	for (auto [id, info] : externalProjectsMap) {
 		auto qvinfo = QVariantMap({{keys::EXTERNAL_PROJECT_PATH, QString::fromStdString(info.path)}, 
@@ -551,6 +551,16 @@ QJsonDocument raco::serialization::serializeProject(const std::unordered_map<std
 	}
 	container.insert(keys::LINKS, linkArray);
 	return QJsonDocument{container};
+}
+
+ProjectDeserializationInfo raco::serialization::deserializeProjectVersionInfo(const QJsonDocument& document) {
+	ProjectDeserializationInfo deserializedProjectInfo;
+
+	deserializedProjectInfo.ramsesVersion = deserializeVersionNumberArray(document, keys::RAMSES_VERSION, "Ramses");
+	deserializedProjectInfo.ramsesLogicEngineVersion = deserializeVersionNumberArray(document, keys::RAMSES_LOGIC_ENGINE_VERSION, "Ramses Logic Engine");
+	deserializedProjectInfo.raCoVersion = deserializeVersionNumberArray(document, keys::RAMSES_COMPOSER_VERSION, "Ramses Composer");
+
+	return deserializedProjectInfo;
 }
 
 ProjectDeserializationInfo raco::serialization::deserializeProject(const QJsonDocument& document, const DeserializationFactory& factory) {

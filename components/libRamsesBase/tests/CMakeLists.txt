@@ -20,6 +20,7 @@ set(TEST_SOURCES
     NodeAdaptor_test.cpp
     Ramses_test.cpp
     RamsesLogic_test.cpp
+    RenderLayerAdaptor_test.cpp
     Resources_test.cpp
     SceneContext_test.cpp
     Utils_test.cpp

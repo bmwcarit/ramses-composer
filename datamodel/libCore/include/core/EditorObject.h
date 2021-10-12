@@ -160,9 +160,6 @@ public:
 
 	static std::string normalizedObjectID(std::string const& id);
 
-private:
-	friend class BaseContext;
-
 	void fillPropertyDescription() {
 		properties_.emplace_back("objectID", &objectID_);
 		properties_.emplace_back("objectName", &objectName_);
@@ -172,6 +169,9 @@ private:
 
 	Property<std::string, HiddenProperty> objectID_{ std::string(), HiddenProperty() };
 	Property<std::string, DisplayNameAnnotation> objectName_;
+
+private:
+	friend class BaseContext;
 
 	mutable WEditorObject parent_;
 	

@@ -13,6 +13,10 @@
 #include <QMenu>
 #include <QObject>
 
+namespace raco::object_tree::view {
+class ObjectTreeDockManager;
+}
+
 /**
  * Class Handeling the state of the edit menu in the menuBar.
  * TODO: if we at some point get rid of the ui files this should be made into an actual menu.
@@ -20,7 +24,12 @@
 class EditMenu final : public QObject {
 	Q_OBJECT
 public:
-	explicit EditMenu(raco::application::RaCoApplication* racoApplication, QMenu* menu);
+	explicit EditMenu(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager, QMenu* menu);
+
+	static void globalUndoCallback(raco::application::RaCoApplication* racoApplication);
+	static void globalRedoCallback(raco::application::RaCoApplication* racoApplication);
+	static void globalCopyCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager);
+	static void globalPasteCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager);
 
 private:
 	raco::components::Subscription sub_;

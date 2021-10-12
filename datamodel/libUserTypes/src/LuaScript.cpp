@@ -24,20 +24,23 @@ void LuaScript::onBeforeDeleteObject(Errors& errors) const {
 }
 
 void LuaScript::onAfterContextActivated(BaseContext& context) {
-	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uri"}}, [this, &context]() { this->syncLuaInterface(context); });
+	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), &LuaScript::uri_}, [this, &context]() { this->syncLuaInterface(context); });
 	syncLuaInterface(context);
 }
 
 void LuaScript::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	ValueHandle uriHandle{shared_from_this(), {"uri"}};
-	if (uriHandle == value) {
-		uriListener_ = registerFileChangedHandler(context, uriHandle, [this, &context]() { this->syncLuaInterface(context); });
+	if (value.isRefToProp(&LuaScript::uri_)) {
+		uriListener_ = registerFileChangedHandler(context, value, [this, &context]() { this->syncLuaInterface(context); });
 		syncLuaInterface(context);
+	}
+
+	if (ValueHandle(shared_from_this(), &LuaScript::objectName_) == value) {
+		context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 	}
 }
 
 void LuaScript::syncLuaInterface(BaseContext& context) {
-	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}}));
+	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScript::uri_}));
 	PropertyInterfaceList inputs{};
 	PropertyInterfaceList outputs{};
 	std::string error{};
@@ -45,15 +48,18 @@ void LuaScript::syncLuaInterface(BaseContext& context) {
 		context.engineInterface().parseLuaScript(luaScript, inputs, outputs, error);
 
 	context.errors().removeError({shared_from_this()});
-	if (validateURI(context, {shared_from_this(), {"uri"}})) {
+	if (validateURI(context, {shared_from_this(), &LuaScript::uri_})) {
 		if (error.size() > 0) {
 			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
 		}
 	}
 
-	syncTableWithEngineInterface(context, inputs, ValueHandle(shared_from_this(), {"luaInputs"}), cachedLuaInputValues_, false, true);
+	syncTableWithEngineInterface(context, inputs, ValueHandle(shared_from_this(), &LuaScript::luaInputs_), cachedLuaInputValues_, false, true);
 	OutdatedPropertiesStore dummyCache{};
-	syncTableWithEngineInterface(context, outputs, ValueHandle(shared_from_this(), {"luaOutputs"}), dummyCache, true, false);
+	syncTableWithEngineInterface(context, outputs, ValueHandle(shared_from_this(), &LuaScript::luaOutputs_), dummyCache, true, false);
+
+	context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
+
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 }
 

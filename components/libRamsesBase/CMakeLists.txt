@@ -40,6 +40,10 @@ add_library(libRamsesBase
     include/ramses_adaptor/OrthographicCameraAdaptor.h src/ramses_adaptor/OrthographicCameraAdaptor.cpp
     include/ramses_adaptor/PerspectiveCameraAdaptor.h src/ramses_adaptor/PerspectiveCameraAdaptor.cpp
     include/ramses_adaptor/SceneAdaptor.h src/ramses_adaptor/SceneAdaptor.cpp
+    include/ramses_adaptor/RenderBufferAdaptor.h src/ramses_adaptor/RenderBufferAdaptor.cpp
+    include/ramses_adaptor/RenderTargetAdaptor.h src/ramses_adaptor/RenderTargetAdaptor.cpp
+    include/ramses_adaptor/RenderPassAdaptor.h src/ramses_adaptor/RenderPassAdaptor.cpp
+    include/ramses_adaptor/RenderLayerAdaptor.h src/ramses_adaptor/RenderLayerAdaptor.cpp
 
     include/ramses_adaptor/LinkAdaptor.h src/ramses_adaptor/LinkAdaptor.cpp
 

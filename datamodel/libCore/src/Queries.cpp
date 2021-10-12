@@ -8,17 +8,20 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "core/Queries.h"
-#include "core/Iterators.h"
-#include "core/Project.h"
+#include "core/Queries_Tags.h"
+
 #include "core/ExternalReferenceAnnotation.h"
+#include "core/Iterators.h"
+#include "core/PrefabOperations.h"
+#include "core/Project.h"
 #include "core/PropertyDescriptor.h"
 
+#include "user_types/LuaScript.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
-#include "user_types/LuaScript.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
-#include "core/PrefabOperations.h"
+#include "user_types/RenderPass.h"
 
 #include <algorithm>
 #include <cassert>
@@ -104,7 +107,25 @@ std::vector<ValueHandle> Queries::findAllReferences(const SEditorObject& object)
 
 std::vector<SEditorObject> Queries::findAllUnreferencedObjects(Project const& project, std::function<bool(SEditorObject)> predicate) {
 	std::set<SEditorObject> referenced;
+	std::set<std::string> referencedRenderableTags;
+	std::set<std::string> referencedMaterialTags;
+
+	// This is deliberately naive right now: only objects which are not referenced (directly or via tag) by anything
+	// else count as "unreferenced". Render passes cannot be referenced by anything and are therefore never "unreferenced".
+	// A less naive alternative would be to use the render passes as seed objects, and then gather all objects which
+	// are referenced by them, but given that this function is mainly used to delete "unused" resources it
+	// seems to be better to return fewer rather than more objects.
 	for (auto instance : project.instances()) {
+		if (&instance->getTypeDescription() == &user_types::RenderPass::typeDescription) {
+			// Render passes cannot be referenced by anything - don't count them as unreferenced.
+			referenced.insert(instance);
+		}		
+		if (auto renderLayer = instance->as<user_types::RenderLayer>()) {
+			auto const& renderableTags = renderLayer->renderableTags();
+			auto materialTags = renderLayer->materialFilterTags();
+			referencedRenderableTags.insert(std::begin(renderableTags), std::end(renderableTags));
+			referencedMaterialTags.merge(materialTags);
+		}
 		for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
 			if (prop.type() == PrimitiveType::Ref) {
 				auto refValue = prop.asTypedRef<EditorObject>();
@@ -117,12 +138,22 @@ std::vector<SEditorObject> Queries::findAllUnreferencedObjects(Project const& pr
 
 	std::vector<SEditorObject> unreferenced;
 	for (auto instance : project.instances()) {
-		if (referenced.find(instance) == referenced.end()) {
-			if (predicate && !predicate(instance)) {
-				continue;
-			}
-			unreferenced.emplace_back(instance);
+		if (referenced.find(instance) != referenced.end()) {
+			continue;
 		}
+		if (predicate && !predicate(instance)) {
+			continue;
+		}
+		if (Queries::hasObjectAnyTag(instance->as<user_types::Node>(), referencedRenderableTags)) {
+			continue;
+		}
+		if (Queries::hasObjectAnyTag(instance->as<user_types::RenderLayer>(), referencedRenderableTags)) {
+			continue;
+		}
+		if (Queries::hasObjectAnyTag(instance->as<user_types::Material>(), referencedMaterialTags)) {
+			continue;
+		}
+		unreferenced.emplace_back(instance);
 	}
 	return unreferenced;
 }
@@ -229,6 +260,9 @@ bool wouldObjectInPrefabCauseLoop(SEditorObject object, user_types::SPrefab pref
 }
 
 bool Queries::canMoveScenegraphChild(Project const& project, SEditorObject const& object, SEditorObject const& newParent) {
+	// This query is disallowed for objects not in the project.
+	assert(project.getInstanceByID(object->objectID()) != nullptr);
+
 	using namespace user_types;
 
 	if (object->query<ExternalReferenceAnnotation>() || newParent && newParent->query<ExternalReferenceAnnotation>()) {
@@ -305,6 +339,11 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 	}
 
 	return true;
+}
+
+bool Queries::canPasteObjectAsExternalReference(SEditorObject editorObject, bool isTopLevelObject) {
+	return (editorObject->getTypeDescription().isResource  || editorObject->as<user_types::Prefab>()
+		|| (editorObject->as<user_types::LuaScript>() && isTopLevelObject));
 }
 
 bool Queries::isProjectSettings(const SEditorObject& obj) {
@@ -416,6 +455,11 @@ bool Queries::isHidden(const Project& project, const ValueHandle& handle) {
 				return true;
 			}
 		}
+	}
+
+	// Hide the tag property for the objects for which we currently do not use it
+	if (handle.isRefToProp(&user_types::Node::tags_) && handle.rootObject()->as<user_types::BaseCamera>() != nullptr) {
+		return true;
 	}
 
 	return false;
@@ -573,6 +617,21 @@ std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const
 	}
 
 	return result;
+}
+
+std::string Queries::getBrokenLinksErrorMessage(const Project& project, SEditorObject obj) {
+	std::vector<std::string> brokenLinks;
+	for (auto link : Queries::getLinksConnectedToObject(project, obj, false, true)) {
+		core::ValueHandle endHandle(link->endProp());
+		if (endHandle && !link->isValid()) {
+			brokenLinks.emplace_back(fmt::format("{} -> {}", link->startProp().getPropertyPath(), link->endProp().getPropertyPath()));
+		}
+	}
+	if (brokenLinks.size() > 0) {
+		std::sort(brokenLinks.begin(), brokenLinks.end());
+		return fmt::format("{} Invalid Link(s):\n{}", brokenLinks.size(), fmt::join(brokenLinks, "\n"));
+	}
+	return {};
 }
 
 bool sameStructure(const ReflectionInterface* left, const ReflectionInterface* right) {

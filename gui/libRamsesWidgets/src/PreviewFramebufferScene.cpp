@@ -19,13 +19,16 @@ using namespace raco::ramses_base;
 PreviewFramebufferScene::PreviewFramebufferScene(
 	ramses::RamsesClient& client,
 	ramses::sceneId_t sceneId)
-	: scene_{ ramsesScene(sceneId, &client)}, camera_{ ramsesOrthographicCamera(scene_.get()) }, renderGroup_{ ramsesRenderGroup(scene_.get())}, renderPass_{ramsesRenderPass(scene_.get())} {
-	camera_->setTranslation(0, 0, 10.0f);
-	camera_->setFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+	: scene_{ ramsesScene(sceneId, &client)}, 
+	camera_{ ramsesOrthographicCamera(scene_.get()) }, 
+	renderGroup_{std::shared_ptr<ramses::RenderGroup>(scene_.get()->createRenderGroup(), raco::ramses_base::createRamsesObjectDeleter<ramses::RenderGroup>(scene_.get()))},
+	  renderPass_{scene_->createRenderPass(), raco::ramses_base::createRamsesObjectDeleter<ramses::RenderPass>(scene_.get())} {
+	(*camera_)->setTranslation(0, 0, 10.0f);
+	(*camera_)->setFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 	// we need to have an inital viewport
-	camera_->setViewport(0, 0, 1, 1);
+	(*camera_)->setViewport(0, 0, 1, 1);
 
-	renderPass_->setCamera(*camera_.get());
+	renderPass_->setCamera(**camera_);
 	renderPass_->addRenderGroup(*renderGroup_.get());
 	// Ramses ignores the clear flags/clear color because we are rendering to the default framebuffer.
 	// Still: apply some sensible default here. We expect every pixel to be covered by the blit operation
@@ -90,22 +93,22 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	const uint32_t uvSize = static_cast<uint32_t>(sizeof(float) * uv_data.size());
 	uvDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector2F, uvSize, uv_data.data());
 
-	geometryBinding_ = ramsesGeometryBinding(scene_.get(), *effect_.get());
-	geometryBinding_->setIndices(*indexDataBuffer_.get());
+	geometryBinding_ = ramsesGeometryBinding(scene_.get(), effect_);
+	(*geometryBinding_)->setIndices(*indexDataBuffer_.get());
 
 	ramses::AttributeInput vertexInput;
 	effect_->findAttributeInput("aPosition", vertexInput);
-	geometryBinding_->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
+	(*geometryBinding_)->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
 
 	ramses::AttributeInput uvInput;
 	effect_->findAttributeInput("aUVSet0", uvInput);
-	geometryBinding_->setInputBuffer(uvInput, *uvDataBuffer_.get());
+	(*geometryBinding_)->setInputBuffer(uvInput, *uvDataBuffer_.get());
 
 	meshNode_ =  ramsesMeshNode(scene_.get());
-	meshNode_->setGeometryBinding(*geometryBinding_.get());
-	meshNode_->setAppearance(*appearance_->get());
+	meshNode_->setGeometryBinding(geometryBinding_);
+	meshNode_->setAppearance(appearance_);
 
-	renderGroup_->addMeshNode(*meshNode_.get());
+	renderGroup_->addMeshNode(**meshNode_);
 
 	scene_->flush();
 	scene_->publish();
@@ -118,9 +121,9 @@ void PreviewFramebufferScene::setViewport(const QPoint& viewportPosition, const 
 	const float bottom = 1.0 - static_cast<float>(viewportPosition.y() + viewportSize.height()) / virtualSize.height();
 	const float top = 1.0 - static_cast<float>(viewportPosition.y()) / virtualSize.height();
 	if (
-		left != camera_->getLeftPlane() || right != camera_->getRightPlane() || bottom != camera_->getBottomPlane() || top != camera_->getTopPlane() || camera_->getViewportWidth() != viewportSize.width() || camera_->getViewportHeight() != viewportSize.height()) {
-		camera_->setFrustum(left, right, bottom, top, 0.1f, 100.0f);
-		camera_->setViewport(0, 0, viewportSize.width(), viewportSize.height());
+		left != (*camera_)->getLeftPlane() || right != (*camera_)->getRightPlane() || bottom != (*camera_)->getBottomPlane() || top != (*camera_)->getTopPlane() || (*camera_)->getViewportWidth() != viewportSize.width() || (*camera_)->getViewportHeight() != viewportSize.height()) {
+		(*camera_)->setFrustum(left, right, bottom, top, 0.1f, 100.0f);
+		(*camera_)->setViewport(0, 0, viewportSize.width(), viewportSize.height());
 		scene_->flush();
 	}
 }
@@ -143,7 +146,7 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 	ramses::MipLevelData mipData(static_cast<uint32_t>(data.size()), data.data());
 	const ramses::TextureSwizzle textureSwizzle{};
 
-	framebufferTexture_ = ramsesTexture2D(scene_.get(), size.width(), size.height(), ramses::ETextureFormat::RGBA8, 1, &mipData, false, textureSwizzle, ramses::ResourceCacheFlag_DoNotCache, "framebuffer texture");
+	framebufferTexture_ = ramsesTexture2D(scene_.get(), ramses::ETextureFormat::RGBA8, size.width(), size.height(), 1, &mipData, false, textureSwizzle, ramses::ResourceCacheFlag_DoNotCache, "framebuffer texture");
 	sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode_Clamp, ramses::ETextureAddressMode_Clamp, ramses::ETextureSamplingMethod_Nearest, ramses::ETextureSamplingMethod_Nearest, framebufferTexture_.get(), 1, "framebuffer sampler");
 	(*appearance_)->setInputTexture(texUniformInput, *sampler_.get());
 	scene_->flush();

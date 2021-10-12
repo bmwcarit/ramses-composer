@@ -10,6 +10,8 @@
 #include "core/Context.h"
 
 #include "core/EditorObject.h"
+#include "core/ErrorItem.h"
+#include "core/Errors.h"
 #include "core/ExtrefOperations.h"
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Iterators.h"
@@ -145,6 +147,39 @@ void BaseContext::setT<SEditorObject>(ValueHandle const& handle, SEditorObject c
 	changeMultiplexer_.recordValueChanged(handle);
 }
 
+template<void (EditorObject::*Handler)(ValueHandle const&) const>
+void BaseContext::callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh) {
+	Table const& t = vh.valueRef()->asTable();
+	for (int i = 0; i < t.size(); ++i) {
+		auto v = t.get(i);
+		if (v->type() == PrimitiveType::Ref) {
+			auto vref = v->asRef();
+			if (vref) {
+				(vref.get()->*Handler)(vh[i]);
+			}
+		} else if (v->type() == PrimitiveType::Table) {
+			callReferenceToThisHandlerForAllTableEntries<Handler>(vh[i]);
+		}
+	}			
+}
+
+template <>
+void BaseContext::setT<Table>(ValueHandle const& handle, Table const& value) {
+	ValueBase* v = handle.valueRef();
+
+	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
+
+	v->set(value);
+
+	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onAfterAddReferenceToThis>(handle);
+
+	handle.object_->onAfterValueChanged(*this, handle);
+
+	callReferencedObjectChangedHandlers(handle.object_);
+
+	changeMultiplexer_.recordValueChanged(handle);
+}
+
 void BaseContext::set(ValueHandle const& handle, bool const& value) {
 	setT(handle, value);
 }
@@ -161,11 +196,19 @@ void BaseContext::set(ValueHandle const& handle, std::string const& value) {
 	setT(handle, value);
 }
 
+void BaseContext::set(ValueHandle const& handle, char const* value) {
+	setT(handle, std::string(value));
+}
+
 void BaseContext::set(ValueHandle const& handle, std::vector<std::string> const& value) {
 	setT(handle, value);
 }
 
 void BaseContext::set(ValueHandle const& handle, SEditorObject const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, Table const& value) {
 	setT(handle, value);
 }
 
@@ -195,6 +238,8 @@ ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name,
 void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 	Table& table{handle.valueRef()->asTable()};
 
+	std::set<SEditorObject> updateLinkErrors;
+
 	{
 		auto propHandle = handle[index];
 
@@ -204,6 +249,7 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 				link->isValid_ = false;
 				changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
 			}
+			updateLinkErrors.insert(*link->endObject_);
 		}
 
 		if (propHandle.type() == PrimitiveType::Ref) {
@@ -223,6 +269,12 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 		}
 
 		table.removeProperty(index);
+	}
+
+	// We need to update the broken link errors _after_ removing the property since links are only considered
+	// broken if the endpoint propery exists and removing properties therefore affects the broken status.
+	for (auto obj : updateLinkErrors) {
+		updateBrokenLinkErrors(obj);
 	}
 
 	// Cache/Restore links starting or ending on parent properties:
@@ -314,21 +366,23 @@ std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, b
 
 void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization) {
 	for (auto object : newObjects) {
-		for (auto property : core::ValueTreeIteratorAdaptor(core::ValueHandle{object})) {
-			if (property.query<data_storage::URIAnnotation>()) {
-				auto uriPath = property.asString();
-				std::string originFolder;
-				auto it = deserialization.objectOriginFolders.find(object->objectID());
-				if (it != deserialization.objectOriginFolders.end()) {
-					originFolder = it->second;
-				} else {
-					originFolder = deserialization.originFolder;
-				}
-				if (!originFolder.empty() && !uriPath.empty() && std::filesystem::path{uriPath}.is_relative()) {
-					if (PathManager::pathsShareSameRoot(originFolder, this->project()->currentPath())) {
-						property.valueRef()->set(PathManager::rerootRelativePath(uriPath, originFolder, this->project()->currentFolder()));
+		if (PathQueries::isPathRelativeToCurrentProject(object)) {
+			for (auto property : core::ValueTreeIteratorAdaptor(core::ValueHandle{object})) {
+				if (property.query<data_storage::URIAnnotation>()) {
+					auto uriPath = property.asString();
+					std::string originFolder;
+					auto it = deserialization.objectOriginFolders.find(object->objectID());
+					if (it != deserialization.objectOriginFolders.end()) {
+						originFolder = it->second;
 					} else {
-						property.valueRef()->set(PathManager::constructAbsolutePath(originFolder, uriPath));
+						originFolder = deserialization.originFolder;
+					}
+					if (!originFolder.empty() && !uriPath.empty() && std::filesystem::path{uriPath}.is_relative()) {
+						if (PathManager::pathsShareSameRoot(originFolder, this->project()->currentPath())) {
+							property.valueRef()->set(PathManager::rerootRelativePath(uriPath, originFolder, this->project()->currentFolder()));
+						} else {
+							property.valueRef()->set(PathManager::constructAbsolutePath(originFolder, uriPath));
+						}
 					}
 				}
 			}
@@ -340,11 +394,8 @@ void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, ra
 bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::serialization::ObjectsDeserialization& deserialization) {
 	// filter objects:
 	// - keep only top-level prefabs, top-level lua script and resources
-	if (!(editorObject->getTypeDescription().isResource || editorObject->as<user_types::Prefab>())) {
-		if (!editorObject->as<user_types::LuaScript>() ||
-			deserialization.rootObjectIDs.find(editorObject->objectID()) == deserialization.rootObjectIDs.end()) {
-			return true;
-		}
+	if (!Queries::canPasteObjectAsExternalReference(editorObject, deserialization.rootObjectIDs.find(editorObject->objectID()) != deserialization.rootObjectIDs.end())) {
+		return true;
 	}
 
 	auto localObj = Queries::findById(*project_, editorObject->objectID());
@@ -449,24 +500,20 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	// - don't make object name unique
 
 	std::vector<SEditorObject> newObjects{};
-	std::set<SEditorObject> discardedObjects{};
+	std::set<std::string> discardedObjects{};
 
 	// Filter out objects that need to be discarded in paste
 	for (auto& object : deserialization.objects) {
 		auto editorObject{std::dynamic_pointer_cast<core::EditorObject>(object)};
 
 		if (pasteAsExtref && extrefPasteDiscardObject(editorObject, deserialization)) {
-			discardedObjects.insert(editorObject);
+			discardedObjects.insert(editorObject->objectID());
 		} else {
 			newObjects.emplace_back(editorObject);
 		}
 	}
 
 	BaseContext::restoreReferences(*project_, newObjects, deserialization);
-
-	if (!pasteAsExtref) {
-		rerootRelativePaths(newObjects, deserialization);
-	}
 
 	try {
 		adjustExtrefAnnotationsForPaste(newObjects, deserialization, pasteAsExtref);
@@ -476,6 +523,17 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		throw e;
 	}
 
+	for (auto& instance : newObjects) {
+		instance->onAfterDeserialization();
+	}
+
+	// Ordering constraints
+	// - needs parent weak_ptrs: must run after onAfterDeserialization callbacks
+	// - needs original object IDs: must run before changing object IDs
+	if (!pasteAsExtref) {
+		rerootRelativePaths(newObjects, deserialization);
+	}
+	
 	// Generate new ids, reroot relative paths and call appropriate context functions for object creation
 	for (auto& editorObject : newObjects) {
 		// change object id and reroot uris of non-extref objects
@@ -487,27 +545,6 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		project_->addInstance(editorObject);
 		changeMultiplexer_.recordCreateObject(editorObject);
 	}
-
-	for (auto& i : deserialization.links) {
-		auto link{std::dynamic_pointer_cast<raco::core::Link>(i)};
-		// Drop links if the start/end object doesn't exist, it violates prefab constraints or creates a loop.
-		// Keep links if the property doesn't exist or the types don't match: these links are only (temporarily) invalid.
-		if (*link->startObject_ && *link->endObject_ &&
-			discardedObjects.find(*link->startObject_) == discardedObjects.end() &&
-			discardedObjects.find(*link->endObject_) == discardedObjects.end() &&
-			Queries::linkWouldBeAllowed(*project_, link->startProp(), link->endProp())) {
-			project_->addLink(link);
-			changeMultiplexer_.recordAddLink(link->descriptor());
-		} else {
-			LOG_INFO(log_system::CONTEXT, "Discard invalid link {}", link);
-		}
-	}
-
-	for (auto& instance : newObjects) {
-		instance->onAfterDeserialization();
-	}
-
-	performExternalFileReload(newObjects);
 
 	// collect all top level objects (e.g. everything which doesn't have a parent)
 	std::vector<SEditorObject> topLevelObjects{};
@@ -539,6 +576,23 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		}
 	}
 
+	for (auto& i : deserialization.links) {
+		auto link{std::dynamic_pointer_cast<raco::core::Link>(i)};
+		// Drop links if the start/end object doesn't exist, it violates prefab constraints or creates a loop.
+		// Keep links if the property doesn't exist or the types don't match: these links are only (temporarily) invalid.
+		if (*link->startObject_ && *link->endObject_ &&
+			discardedObjects.find((*link->endObject_)->objectID()) == discardedObjects.end() &&
+			Queries::linkWouldBeAllowed(*project_, link->startProp(), link->endProp())) {
+			link->isValid_ = Queries::linkWouldBeValid(*project_, link->startProp(), link->endProp());
+			project_->addLink(link);
+			changeMultiplexer_.recordAddLink(link->descriptor());
+		} else {
+			LOG_INFO(log_system::CONTEXT, "Discard invalid link {}", link);
+		}
+	}
+
+	performExternalFileReload(newObjects);
+
 	if (pasteAsExtref) {
 		changeMultiplexer_.recordExternalProjectMapChanged();
 
@@ -562,6 +616,50 @@ void BaseContext::updateLinkValidity(SLink link) {
 	} else if (link->isValid() && !Queries::linkWouldBeValid(*project(), link->startProp(), link->endProp())) {
 		link->isValid_ = false;
 		changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
+	}
+
+	updateBrokenLinkErrors(*link->endObject_);
+}
+
+void BaseContext::initBrokenLinkErrors() {
+	std::set<SEditorObject> brokenLinkEndObjects;
+	for (auto link : project_->links()) {
+		if (!link->isValid()) {
+			brokenLinkEndObjects.insert(*link->endObject_);
+		}
+	}
+	for (auto obj : brokenLinkEndObjects) {
+		auto msg = Queries::getBrokenLinksErrorMessage(*project(), obj);
+		if (!msg.empty()) {
+			errors_->addError(ErrorCategory::GENERAL, ErrorLevel::WARNING, obj, msg);
+		}
+	}
+}
+
+void BaseContext::updateBrokenLinkErrors(SEditorObject endObject) {
+	if (errors_->hasError(endObject)) {
+		auto error = errors_->getError(endObject);
+		if (error.category() == ErrorCategory::PARSE_ERROR) {
+			return;		
+		}
+		if (error.category() == ErrorCategory::GENERAL) {
+			errors_->removeError(endObject);
+		}
+	}
+	
+	auto msg = Queries::getBrokenLinksErrorMessage(*project(), endObject);
+	if (!msg.empty()) {
+		errors_->addError(ErrorCategory::GENERAL, ErrorLevel::WARNING, endObject, msg);
+	}
+}
+
+void BaseContext::updateBrokenLinkErrorsAttachedTo(SEditorObject object) {
+	std::set<SEditorObject> updateLinkErrors;
+	for (auto link : Queries::getLinksConnectedToObject(*project_, object, true, true)) {
+		updateLinkErrors.insert(*link->endObject_);
+	}
+	for (auto obj : updateLinkErrors) {
+		updateBrokenLinkErrors(obj);
 	}
 }
 
@@ -643,8 +741,13 @@ bool BaseContext::deleteWithVolatileSideEffects(Project* project, const std::set
 	return project->removeInstances(objects, gcExternalProjectMap);
 }
 
-size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap) {
-	auto toRemove = allChildren(objects);
+size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap, bool includeChildren) {
+	std::set<SEditorObject> toRemove;
+	if (includeChildren) {
+		toRemove = allChildren(objects);
+	} else {
+		std::copy(objects.begin(), objects.end(), std::inserter(toRemove, toRemove.end()));
+	}
 
 	// Remove links starting or ending on any of the deleted objects
 	for (auto obj : toRemove) {
@@ -693,7 +796,7 @@ void BaseContext::moveScenegraphChild(SEditorObject const& object, SEditorObject
 			--insertBeforeIndex;
 		}
 
-		ValueHandle oldParentChildren{oldParent, {"children"}};
+		ValueHandle oldParentChildren{oldParent, &EditorObject::children_};
 		removeProperty(oldParentChildren, oldChildIndex);
 	}
 
@@ -703,7 +806,7 @@ void BaseContext::moveScenegraphChild(SEditorObject const& object, SEditorObject
 
 		int newChildIndex = newParent->findChildIndex(object.get());
 
-		ValueHandle newParentChildren{newParent, {"children"}};
+		ValueHandle newParentChildren{newParent, &EditorObject::children_};
 		object->onAfterAddReferenceToThis(newParentChildren[newChildIndex]);
 
 		callReferencedObjectChangedHandlers(object);
@@ -723,133 +826,151 @@ void BaseContext::moveScenegraphChild(SEditorObject const& object, SEditorObject
 	}
 }
 
-bool BaseContext::importAssetScenegraph(const std::string& absPath, SEditorObject const& parent) {
-	MeshDescriptor descriptor{absPath, 0, false};
-	if (auto meshData = meshCache()->loadMesh(descriptor)) {
-		auto relativeFilePath = PathManager::constructRelativePath(descriptor.absPath, project()->currentFolder());
-		std::vector<SEditorObject> meshScenegraphMeshes;
-		std::vector<SEditorObject> meshScenegraphNodes;
+bool BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
+	auto relativeFilePath = PathManager::constructRelativePath(absPath, project()->currentFolder());
+	std::vector<SEditorObject> meshScenegraphMeshes;
+	std::vector<SEditorObject> meshScenegraphNodes;
 
-		auto findOrCreateObject = [this](auto& type, auto& name, auto& objectPoolToSearch) {
-			auto objectInPool = Queries::findByName(objectPoolToSearch, name);
+	LOG_INFO(log_system::CONTEXT, "Importing all meshes...");
+	auto projectMeshes = Queries::filterByTypeName(project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
+	std::map<std::tuple<bool, int, std::string>, SEditorObject> propertiesToMeshMap;
+	for (const auto& mesh : projectMeshes) {
+		if (!mesh->query<raco::core::ExternalReferenceAnnotation>()) {
+			propertiesToMeshMap[{mesh->get("bakeMeshes")->asBool(), mesh->get("meshIndex")->asInt(), mesh->get("uri")->asString()}] = mesh;
+		}
+	}
 
-			if (objectInPool) {
-				LOG_DEBUG(log_system::CONTEXT, "Found existing {} with name {}", type, name);
-				return objectInPool;
-			}
-			LOG_DEBUG(log_system::CONTEXT, "Did not find existing {} with name {}, creating one instead...", type, name);
-			return createObject(type, name);
-		};
+	for (size_t i{0}; i < scenegraph.meshes.size(); ++i) {
+		if (!scenegraph.meshes[i].has_value()) {
+			LOG_DEBUG(log_system::CONTEXT, "Found disabled mesh at index {}, ignoring Mesh...", i);
+			meshScenegraphMeshes.emplace_back(nullptr);
+			continue;
+		}
 
-		LOG_INFO(log_system::CONTEXT, "Importing scenegraph...");
-		auto meshScenegraph = meshCache()->getMeshScenegraph(descriptor.absPath, descriptor.bakeAllSubmeshes);
-
-		LOG_INFO(log_system::CONTEXT, "Importing all meshes...");
-		auto projectMeshes = Queries::filterByTypeName(project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
-		for (size_t i{0}; i < meshScenegraph.meshes.size(); ++i) {
-			auto currentSubmesh = meshScenegraphMeshes.emplace_back(findOrCreateObject(raco::user_types::Mesh::typeDescription.typeName, meshScenegraph.meshes[i], projectMeshes));
+		auto meshWithSameProperties = propertiesToMeshMap.find({false, static_cast<int>(i), relativeFilePath});
+		if (meshWithSameProperties == propertiesToMeshMap.end()) {
+			LOG_DEBUG(log_system::CONTEXT, "Did not find existing local Mesh with same properties as asset mesh, creating one instead...");
+			auto &currentSubmesh = meshScenegraphMeshes.emplace_back(createObject(raco::user_types::Mesh::typeDescription.typeName, *scenegraph.meshes[i]));
 			auto currentSubmeshHandle = ValueHandle{currentSubmesh};
 
 			set(currentSubmeshHandle.get("bakeMeshes"), false);
 			set(currentSubmeshHandle.get("meshIndex"), static_cast<int>(i));
 			set(currentSubmeshHandle.get("uri"), relativeFilePath);
+		} else {
+			LOG_DEBUG(log_system::CONTEXT, "Found existing local Mesh {} with same properties as asset mesh, using this Mesh...", *scenegraph.meshes[i]);
+			meshScenegraphMeshes.emplace_back(meshWithSameProperties->second);
 		}
-		LOG_INFO(log_system::CONTEXT, "All meshes imported.");
+	}
+	LOG_INFO(log_system::CONTEXT, "All meshes imported.");
 
-		LOG_INFO(log_system::CONTEXT, "Importing scenegraph nodes...");
-		std::vector<SEditorObject> topLevelObjects{};
-		std::copy_if(project_->instances().begin(), project_->instances().end(), std::back_inserter(topLevelObjects), [](const SEditorObject& object) {
-			return object->getParent() == nullptr;
-		});
+	LOG_INFO(log_system::CONTEXT, "Importing scenegraph nodes...");
+	std::vector<SEditorObject> topLevelObjects{};
+	std::copy_if(project_->instances().begin(), project_->instances().end(), std::back_inserter(topLevelObjects), [](const SEditorObject& object) {
+		return object->getParent() == nullptr;
+	});
 
-		auto meshPath = std::filesystem::path(relativeFilePath).filename().string();
-		meshPath = project_->findAvailableUniqueName(topLevelObjects.begin(), topLevelObjects.end(), nullptr, meshPath);
-		auto sceneRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshPath);
-		if (parent && core::Queries::canMoveScenegraphChild(*project(), sceneRootNode, parent)) {
-			moveScenegraphChild(sceneRootNode, parent);
-		}
-
-		LOG_DEBUG(log_system::CONTEXT, "Traversing through scenegraph nodes...");
-		auto projectMaterials = Queries::filterByTypeName(project()->instances(), {user_types::Material::typeDescription.typeName});
-		for (size_t i{0}; i < meshScenegraph.nodes.size(); ++i) {
-			auto meshScenegraphNode = meshScenegraph.nodes[i];
-			SEditorObject newNode;
-			if (meshScenegraphNode.subMeshIndeces.empty()) {
-				LOG_DEBUG(log_system::CONTEXT, "Found node {} with no submeshes -> creating Node...", meshScenegraphNode.name);
-				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
-			} else {
-				SEditorObject submeshRootNode;
-				if (meshScenegraphNode.subMeshIndeces.size() == 1) {
-					LOG_DEBUG(log_system::CONTEXT, "Found node {} with singular submesh -> creating MeshNode...", meshScenegraphNode.name);
-					newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name));
-					submeshRootNode = newNode;
-				} else {
-					LOG_DEBUG(log_system::CONTEXT, "Found node {} with multiple submeshes -> creating MeshNode for each submesh...", meshScenegraphNode.name);
-					newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
-					submeshRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name + "_meshnodes");
-					moveScenegraphChild(submeshRootNode, newNode);
-				}
-
-				for (size_t submeshIndex{0}; submeshIndex < meshScenegraphNode.subMeshIndeces.size(); ++submeshIndex) {
-					auto assignedSubmeshIndex = meshScenegraphNode.subMeshIndeces[submeshIndex];
-					SEditorObject submeshNode;
-					if (meshScenegraphNode.subMeshIndeces.size() == 1) {
-						submeshNode = newNode;
-					} else {
-						submeshNode = createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name + "_meshnode_" + std::to_string(submeshIndex));
-						moveScenegraphChild(submeshNode, submeshRootNode);
-					}
-
-					set(ValueHandle{submeshNode}.get("mesh"), meshScenegraphMeshes[assignedSubmeshIndex]);
-
-					auto glTFMaterialName = meshScenegraph.materials[assignedSubmeshIndex];
-					if (!glTFMaterialName.empty()) {
-						LOG_DEBUG(log_system::CONTEXT, "Searching for material {} which belongs to MeshNode {}", glTFMaterialName, meshScenegraphNode.name);
-						auto foundMaterial = Queries::findByName(projectMaterials, glTFMaterialName);
-
-						if (foundMaterial && foundMaterial->getTypeDescription().typeName == user_types::Material::typeDescription.typeName) {
-							LOG_DEBUG(log_system::CONTEXT, "Found matching material {} in project resources, will reassign current MeshNode material to it", glTFMaterialName);
-							set(ValueHandle{submeshNode}.get("materials")[0].get("material"), foundMaterial);
-						}
-					}
-				}
-			}
-
-			if (!meshScenegraphNode.hasParent() && core::Queries::canMoveScenegraphChild(*project(), newNode, sceneRootNode)) {
-				moveScenegraphChild(newNode, sceneRootNode);
-			}
-			LOG_DEBUG(log_system::CONTEXT, "All nodes traversed.");
-
-			LOG_DEBUG(log_system::CONTEXT, "Applying scenegraph node transformations...");
-			ValueHandle newNodeHandle{newNode};
-
-			auto transformNode = [this](auto& valueHandle, auto& propertyName, auto& vec3f) {
-				set(valueHandle.get(propertyName).get("x"), vec3f[0]);
-				set(valueHandle.get(propertyName).get("y"), vec3f[1]);
-				set(valueHandle.get(propertyName).get("z"), vec3f[2]);
-			};
-
-			transformNode(newNodeHandle, "scale", meshScenegraphNode.transformations.scale);
-			transformNode(newNodeHandle, "rotation", meshScenegraphNode.transformations.rotation);
-			transformNode(newNodeHandle, "translation", meshScenegraphNode.transformations.translation);
-			LOG_DEBUG(log_system::CONTEXT, "All scenegraph node transformations applied.");
-		}
-		LOG_INFO(log_system::CONTEXT, "All scenegraph nodes imported.");
-
-		LOG_INFO(log_system::CONTEXT, "Restoring scenegraph structure...");
-		for (size_t i{0}; i < meshScenegraph.nodes.size(); ++i) {
-			auto meshScenegraphNode = meshScenegraph.nodes[i];
-
-			if (meshScenegraphNode.hasParent() && core::Queries::canMoveScenegraphChild(*project(), meshScenegraphNodes[i], meshScenegraphNodes[meshScenegraphNode.parentIndex])) {
-				moveScenegraphChild(meshScenegraphNodes[i], meshScenegraphNodes[meshScenegraphNode.parentIndex]);
-			}
-		}
-		LOG_INFO(log_system::CONTEXT, "Scenegraph structure restored.");
-
-		return true;
+	auto meshPath = std::filesystem::path(relativeFilePath).filename().string();
+	meshPath = project_->findAvailableUniqueName(topLevelObjects.begin(), topLevelObjects.end(), nullptr, meshPath);
+	auto sceneRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshPath);
+	if (parent && core::Queries::canMoveScenegraphChild(*project(), sceneRootNode, parent)) {
+		moveScenegraphChild(sceneRootNode, parent);
 	}
 
-	return false;
+	LOG_DEBUG(log_system::CONTEXT, "Traversing through scenegraph nodes...");
+	auto projectMaterials = Queries::filterByTypeName(project()->instances(), {user_types::Material::typeDescription.typeName});
+	for (size_t i{0}; i < scenegraph.nodes.size(); ++i) {
+		if (!scenegraph.nodes[i].has_value()) {
+			LOG_DEBUG(log_system::CONTEXT, "Found disabled node at index {}, ignoring Node...", i);
+			meshScenegraphNodes.emplace_back(nullptr);
+			continue;
+		}
+		auto meshScenegraphNode = scenegraph.nodes[i].value();
+
+		SEditorObject newNode;
+		if (meshScenegraphNode.subMeshIndeces.empty()) {
+			LOG_DEBUG(log_system::CONTEXT, "Found node {} with no submeshes -> creating Node...", meshScenegraphNode.name);
+			newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
+		} else {
+			SEditorObject submeshRootNode;
+			if (meshScenegraphNode.subMeshIndeces.size() == 1) {
+				LOG_DEBUG(log_system::CONTEXT, "Found node {} with singular submesh -> creating MeshNode...", meshScenegraphNode.name);
+				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name));
+				submeshRootNode = newNode;
+			} else {
+				LOG_DEBUG(log_system::CONTEXT, "Found node {} with multiple submeshes -> creating MeshNode for each submesh...", meshScenegraphNode.name);
+				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
+				submeshRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name + "_meshnodes");
+				moveScenegraphChild(submeshRootNode, newNode);
+			}
+
+			for (size_t submeshIndex{0}; submeshIndex < meshScenegraphNode.subMeshIndeces.size(); ++submeshIndex) {
+				auto submesh = meshScenegraphNode.subMeshIndeces[submeshIndex];
+				if (!submesh.has_value()) {
+					LOG_DEBUG(log_system::CONTEXT, "Found disabled submesh at index {}.{}, ignoring MeshNode...", meshScenegraphNode.name, submeshIndex);
+					continue;
+				}
+				auto assignedSubmeshIndex = *meshScenegraphNode.subMeshIndeces[submeshIndex];
+
+				SEditorObject submeshNode;
+				if (meshScenegraphNode.subMeshIndeces.size() == 1) {
+					submeshNode = newNode;
+				} else {
+					submeshNode = createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name + "_meshnode_" + std::to_string(submeshIndex));
+					moveScenegraphChild(submeshNode, submeshRootNode);
+				}
+
+				if (assignedSubmeshIndex < 0) {
+					LOG_DEBUG(log_system::CONTEXT, "Found empty Mesh index for submesh {}.{}, created an empty MeshNode...", meshScenegraphNode.name, submeshIndex);
+					continue;
+				}
+
+				set(ValueHandle{submeshNode}.get("mesh"), meshScenegraphMeshes[assignedSubmeshIndex]);
+
+				const auto& glTFMaterial = scenegraph.materials[assignedSubmeshIndex];
+				if (glTFMaterial.has_value()) {
+					const auto& glTFMaterialName = *glTFMaterial;
+					LOG_DEBUG(log_system::CONTEXT, "Searching for material {} which belongs to MeshNode {}", glTFMaterialName, meshScenegraphNode.name);
+					auto foundMaterial = Queries::findByName(projectMaterials, glTFMaterialName);
+
+					if (foundMaterial && foundMaterial->getTypeDescription().typeName == user_types::Material::typeDescription.typeName) {
+						LOG_DEBUG(log_system::CONTEXT, "Found matching material {} in project resources, will reassign current MeshNode material to it", glTFMaterialName);
+						set(ValueHandle{submeshNode}.get("materials")[0].get("material"), foundMaterial);
+					}
+				}
+			}
+		}
+
+		if (!meshScenegraphNode.hasParent() && core::Queries::canMoveScenegraphChild(*project(), newNode, sceneRootNode)) {
+			moveScenegraphChild(newNode, sceneRootNode);
+		}
+		LOG_DEBUG(log_system::CONTEXT, "All nodes traversed.");
+
+		LOG_DEBUG(log_system::CONTEXT, "Applying scenegraph node transformations...");
+		ValueHandle newNodeHandle{newNode};
+
+		auto transformNode = [this](auto& valueHandle, auto& propertyName, auto& vec3f) {
+			set(valueHandle.get(propertyName).get("x"), vec3f[0]);
+			set(valueHandle.get(propertyName).get("y"), vec3f[1]);
+			set(valueHandle.get(propertyName).get("z"), vec3f[2]);
+		};
+
+		transformNode(newNodeHandle, "scale", meshScenegraphNode.transformations.scale);
+		transformNode(newNodeHandle, "rotation", meshScenegraphNode.transformations.rotation);
+		transformNode(newNodeHandle, "translation", meshScenegraphNode.transformations.translation);
+		LOG_DEBUG(log_system::CONTEXT, "All scenegraph node transformations applied.");
+	}
+	LOG_INFO(log_system::CONTEXT, "All scenegraph nodes imported.");
+
+	LOG_INFO(log_system::CONTEXT, "Restoring scenegraph structure...");
+	for (size_t i{0}; i < scenegraph.nodes.size(); ++i) {
+		auto meshScenegraphNode = scenegraph.nodes[i];
+		if (meshScenegraphNode.has_value() && meshScenegraphNode->hasParent() && core::Queries::canMoveScenegraphChild(*project(), meshScenegraphNodes[i], meshScenegraphNodes[meshScenegraphNode->parentIndex])) {
+			moveScenegraphChild(meshScenegraphNodes[i], meshScenegraphNodes[meshScenegraphNode->parentIndex]);
+		}
+	}
+	LOG_INFO(log_system::CONTEXT, "Scenegraph structure restored.");
+
+	return true;
 }
 
 SLink BaseContext::addLink(const ValueHandle& start, const ValueHandle& end) {
@@ -862,6 +983,7 @@ SLink BaseContext::addLink(const ValueHandle& start, const ValueHandle& end) {
 
 	project_->addLink(link);
 	changeMultiplexer_.recordAddLink(link->descriptor());
+	updateBrokenLinkErrors(*link->endObject_);
 	return link;
 }
 
@@ -869,12 +991,40 @@ void BaseContext::removeLink(const PropertyDescriptor& end) {
 	if (auto link = Queries::getLink(*project_, end)) {
 		project_->removeLink(link);
 		changeMultiplexer_.recordRemoveLink(link->descriptor());
+		updateBrokenLinkErrors(*link->endObject_);
 	}
 }
 
 void BaseContext::updateExternalReferences(std::vector<std::string>& pathStack) {
 	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), pathStack);
 	PrefabOperations::globalPrefabUpdate(*this, modelChanges());
+}
+
+std::vector<SEditorObject> BaseContext::getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, UserObjectFactoryInterface* objectFactory, Project* project) {
+	std::vector<SEditorObject> newObjects;
+	std::set<SEditorObject> childrenSet;
+
+	for (auto& object : deserialization.objects) {
+		auto editorObject{std::dynamic_pointer_cast<core::EditorObject>(object)};
+		newObjects.emplace_back(editorObject);
+	}
+
+	restoreReferences(*project, newObjects, deserialization);
+
+	for (const auto& obj : newObjects) {
+		for (const auto& objChild : obj->children_->asVector<SEditorObject>()) {
+			childrenSet.emplace(objChild);
+		}
+	}
+
+	std::vector<SEditorObject> topLevelObjects;
+	for (const auto& obj : newObjects) {
+		if (childrenSet.find(obj) == childrenSet.end()) {
+			topLevelObjects.emplace_back(obj);
+		}
+	}
+
+	return topLevelObjects;
 }
 
 }  // namespace raco::core

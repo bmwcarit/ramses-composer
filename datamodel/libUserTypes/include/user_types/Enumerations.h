@@ -14,8 +14,22 @@
 
 namespace raco::user_types {
 
-constexpr int TEXTURE_ORIGIN_BOTTOM(0);
-constexpr int TEXTURE_ORIGIN_TOP(1);
+enum class ETextureOrigin {
+	Bottom = 0,
+	Top
+};
 
 extern std::map<int, std::string> enumerationTextureOrigin;
+
+
+enum class ERenderLayerOrder {
+	Optimized = 0,
+	Manual,
+	SceneGraph
+};
+
+extern std::map<int, std::string> enumerationRenderLayerOrder;
+
+extern std::map<int, std::string> enumerationRenderLayerMaterialFilterFlag;
+
 }

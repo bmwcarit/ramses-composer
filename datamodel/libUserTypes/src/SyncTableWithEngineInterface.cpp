@@ -70,7 +70,7 @@ raco::data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
 			break;
 
 		case EnginePrimitive::TextureSampler2D:
-			return UserObjectFactory::staticCreateProperty<STexture, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			return UserObjectFactory::staticCreateProperty<STextureSampler2DBase, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
 			break;
 
 		case EnginePrimitive::TextureSamplerCube:

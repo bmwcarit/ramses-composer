@@ -55,11 +55,11 @@ void MeshNode::updateMaterialSlots(BaseContext& context, std::vector<std::string
 		}
 	}
 	for (auto name : toRemove) {
-		ValueHandle matHandle{shared_from_this(), {"materials"}};
+		ValueHandle matHandle{shared_from_this(), &MeshNode::materials_};
 		context.removeProperty(matHandle, materials_.asTable().index(name));
 	}
 
-	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), {"materials"}));
+	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &MeshNode::materials_));
 }
 
 
@@ -97,28 +97,28 @@ Table* MeshNode::getUniformContainer(size_t materialSlot) {
 
 ValueHandle MeshNode::getMaterialHandle(size_t materialSlot) {
 	if (materialSlot < materials_->size()) {
-		return ValueHandle(shared_from_this(), {"materials"})[materialSlot].get("material");
+		return ValueHandle(shared_from_this(), &MeshNode::materials_)[materialSlot].get("material");
 	}
 	return ValueHandle();
 }
 
 ValueHandle MeshNode::getMaterialPrivateHandle(size_t materialSlot) {
 	if (materialSlot < materials_->size()) {
-		return ValueHandle(shared_from_this(), {"materials"})[materialSlot].get("private");
+		return ValueHandle(shared_from_this(), &MeshNode::materials_)[materialSlot].get("private");
 	}
 	return ValueHandle();
 }
 
 ValueHandle MeshNode::getUniformContainerHandle(size_t materialSlot) {
 	if (materialSlot < materials_->size()) {
-		return ValueHandle(shared_from_this(), {"materials"})[materialSlot].get("uniforms");
+		return ValueHandle(shared_from_this(), &MeshNode::materials_)[materialSlot].get("uniforms");
 	}
 	return ValueHandle();
 }
 
 ValueHandle MeshNode::getMaterialOptionsHandle(size_t materialSlot) {
 	if (materialSlot < materials_->size()) {
-		return ValueHandle(shared_from_this(), {"materials"})[materialSlot].get("options");
+		return ValueHandle(shared_from_this(), &MeshNode::materials_)[materialSlot].get("options");
 	}
 	return ValueHandle();
 }
@@ -238,6 +238,8 @@ void MeshNode::checkMeshMaterialAttributMatch(BaseContext& context) {
 	if (!errors.empty()) {
 		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, errors);
 	}
+
+	context.updateBrokenLinkErrors(shared_from_this());
 }
 
 void MeshNode::onAfterContextActivated(BaseContext& context) {
@@ -264,6 +266,8 @@ void MeshNode::onAfterContextActivated(BaseContext& context) {
 
 	if (changed) {
 		checkMeshMaterialAttributMatch(context);
+	} else {
+		context.updateBrokenLinkErrors(shared_from_this());
 	}
 }
 
@@ -297,13 +301,12 @@ void MeshNode::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle 
 }
 
 void MeshNode::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	ValueHandle meshHandle(shared_from_this(), {"mesh"});
-	if (value == meshHandle) {
+	if (value.isRefToProp(&MeshNode::mesh_)) {
 		auto matnames = getMaterialNames();
 		updateMaterialSlots(context, matnames);
 		checkMeshMaterialAttributMatch(context);
 	}
-	ValueHandle materialsHandle(shared_from_this(), {"materials"});
+	ValueHandle materialsHandle(shared_from_this(), &MeshNode::materials_);
 	if (materialsHandle.contains(value) && value.depth() == 3 && value.getPropName() == "material") {
 		std::string materialName = value.parent().getPropName();
 		ValueHandle uniformsHandle = value.parent().get("uniforms");
@@ -336,6 +339,10 @@ void MeshNode::onAfterValueChanged(BaseContext& context, ValueHandle const& valu
 		// Synthetic change record: needed since toggling the 'private' flag will change the hidden status
 		// of the options; see Queries::isHidden
 		context.changeMultiplexer().recordValueChanged(value.parent().get("options"));
+	}
+
+	if (value.isRefToProp(&MeshNode::objectName_)) {
+		context.updateBrokenLinkErrors(shared_from_this());
 	}
 }
 

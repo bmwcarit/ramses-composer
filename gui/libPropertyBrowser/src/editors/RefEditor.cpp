@@ -32,6 +32,7 @@ RefEditor::RefEditor(
 	PropertyBrowserItem* item,
 	QWidget* parent)
 	: QWidget{parent},
+      item_{item},
 	  ref_{item->refItem()} {
 	auto* layout{new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>{this}};
 	comboBox_ = new QComboBox{this};
@@ -80,8 +81,8 @@ void RefEditor::changeEvent(QEvent* event) {
 	}
 }
 
-bool RefEditor::emptyReference() const noexcept {
-	return emptyReference_;
+bool RefEditor::unexpectedEmptyReference() const noexcept {
+	return emptyReference_ && !item_->valueHandle().query<data_storage::ExpectEmptyReference>();
 }
 
 }  // namespace raco::property_browser

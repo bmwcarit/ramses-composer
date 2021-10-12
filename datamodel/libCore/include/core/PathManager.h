@@ -29,11 +29,15 @@ struct PathManager {
 	static constexpr const char* Q_RECENT_FILES_STORE_NAME = "recent_files.ini";
 	static constexpr const char* DEFAULT_CONFIG_SUB_DIRECTORY = "configfiles";
 	static constexpr const char* DEFAULT_PROJECT_SUB_DIRECTORY = "projects";
-	static constexpr const char* RESOURCE_SUB_DIRECTORY = "resources";
-	static constexpr const char* IMAGE_SUB_DIRECTORY = "images";
-	static constexpr const char* MESH_SUB_DIRECTORY = "meshes";
-	static constexpr const char* SCRIPT_SUB_DIRECTORY = "scripts";
-	static constexpr const char* SHADER_SUB_DIRECTORY = "shaders";
+	
+	enum class FolderTypeKeys {
+		Invalid = 0,
+		Project,
+		Image,
+		Mesh,
+		Script,
+		Shader
+	};
 
 	static std::filesystem::path normal_path(const std::string& path);
 
@@ -68,23 +72,28 @@ struct PathManager {
 
 	static bool pathsShareSameRoot(const std::string& lhd, const std::string& rhd);
 
-	static const std::string& getCachedPath(const std::string& key, const std::string &fallbackPath = "");
+	static const std::string& getCachedPath(FolderTypeKeys Rekey, const std::string& fallbackPath = "");
 
-	static void setCachedPath(const std::string& key, const std::string& path);
+	static void setCachedPath(FolderTypeKeys key, const std::string& path);
 
-	static void setAllCachedPathRoots(const std::string& folder);
+	static void setAllCachedPathRoots(const std::string& folder,
+		const std::string& imageSubdirectory,
+		const std::string& MeshSubdirectory,
+		const std::string& ScriptSubdirectory,
+		const std::string& ShaderSubdirectory);
 
 private:
 	friend class raco::components::RaCoPreferences;
 
 	static std::filesystem::path basePath_;
 
-	static inline std::map<std::string, std::string> cachedPaths_ = {
-		{DEFAULT_PROJECT_SUB_DIRECTORY, ""},
-		{IMAGE_SUB_DIRECTORY, ""},
-		{MESH_SUB_DIRECTORY, ""},
-		{SCRIPT_SUB_DIRECTORY, ""},
-		{SHADER_SUB_DIRECTORY, ""}
+	// The default values for the subdirectories are set in RaCoPreferences::load
+	static inline std::map<FolderTypeKeys, std::string> cachedPaths_ = {
+		{FolderTypeKeys::Project, ""},
+		{FolderTypeKeys::Image, ""},
+		{FolderTypeKeys::Mesh, ""},
+		{FolderTypeKeys::Script, ""},
+		{FolderTypeKeys::Shader, ""}
 	};
 };
 

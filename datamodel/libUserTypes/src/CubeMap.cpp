@@ -29,9 +29,9 @@ void CubeMap::onBeforeDeleteObject(Errors& errors) const {
 	bottomListener_.reset();
 }
 
-void CubeMap::onAfterValueChangedURI(BaseContext& context, ValueHandle const& value, std::string name, const std::string& uri, FileChangeMonitor::UniqueListener& listener) { 
-	ValueHandle handle(shared_from_this(), {name});
-	if (handle == value) {
+void CubeMap::onAfterValueChangedURI(BaseContext& context, ValueHandle const& value, decltype(uriFront_) CubeMap::*ptom, FileChangeMonitor::UniqueListener& listener) { 
+	if (value.isRefToProp(ptom)) {
+		ValueHandle handle(shared_from_this(), ptom);
 		validateURI(context, handle);
 
 		listener = registerFileChangedHandler(context, handle,
@@ -45,29 +45,28 @@ void CubeMap::onAfterValueChangedURI(BaseContext& context, ValueHandle const& va
 
 void CubeMap::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	context.errors().removeError({shared_from_this()});
-	onAfterValueChangedURI(context, value, "uriFront", *uriFront_, frontListener_);
-	onAfterValueChangedURI(context, value, "uriBack", *uriBack_, backListener_);
-	onAfterValueChangedURI(context, value, "uriLeft", *uriLeft_, leftListener_);
-	onAfterValueChangedURI(context, value, "uriRight", *uriRight_, rightListener_);
-	onAfterValueChangedURI(context, value, "uriTop", *uriTop_, topListener_);
-	onAfterValueChangedURI(context, value, "uriBottom", *uriBottom_, bottomListener_);
+	onAfterValueChangedURI(context, value, &CubeMap::uriFront_, frontListener_);
+	onAfterValueChangedURI(context, value, &CubeMap::uriBack_, backListener_);
+	onAfterValueChangedURI(context, value, &CubeMap::uriLeft_, leftListener_);
+	onAfterValueChangedURI(context, value, &CubeMap::uriRight_, rightListener_);
+	onAfterValueChangedURI(context, value, &CubeMap::uriTop_, topListener_);
+	onAfterValueChangedURI(context, value, &CubeMap::uriBottom_, bottomListener_);
 }
 
-void CubeMap::afterContextActivatedURI(BaseContext& context, std::string name, const std::string& uri, FileChangeMonitor::UniqueListener& listener) {
-	validateURI(context, {shared_from_this(), {name}});
-	listener = registerFileChangedHandler(context, {shared_from_this(), {name}},
+void CubeMap::afterContextActivatedURI(BaseContext& context, decltype(uriFront_) CubeMap::*ptom, FileChangeMonitor::UniqueListener& listener) {
+	listener = registerFileChangedHandler(context, {shared_from_this(), ptom},
 		 [this, &context]() {
 			 context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 		 });
 }
 
 void CubeMap::onAfterContextActivated(BaseContext& context) {
-	afterContextActivatedURI(context, "uriFront", *uriFront_, frontListener_);
-	afterContextActivatedURI(context, "uriBack", *uriBack_, backListener_);
-	afterContextActivatedURI(context, "uriLeft", *uriLeft_, leftListener_);
-	afterContextActivatedURI(context, "uriRight", *uriRight_, rightListener_);
-	afterContextActivatedURI(context, "uriTop", *uriTop_, topListener_);
-	afterContextActivatedURI(context, "uriBottom", *uriBottom_, bottomListener_);
+	afterContextActivatedURI(context, &CubeMap::uriFront_, frontListener_);
+	afterContextActivatedURI(context, &CubeMap::uriBack_, backListener_);
+	afterContextActivatedURI(context, &CubeMap::uriLeft_, leftListener_);
+	afterContextActivatedURI(context, &CubeMap::uriRight_, rightListener_);
+	afterContextActivatedURI(context, &CubeMap::uriTop_, topListener_);
+	afterContextActivatedURI(context, &CubeMap::uriBottom_, bottomListener_);
 
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 }

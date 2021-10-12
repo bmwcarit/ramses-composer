@@ -20,16 +20,16 @@ namespace raco::ramses_adaptor {
 MeshNodeAdaptor::MeshNodeAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMeshNode node)
 	: SpatialAdaptor{sceneAdaptor, node, raco::ramses_base::ramsesMeshNode(sceneAdaptor->scene())},
 	  meshSubscription_{
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node}.get("mesh"), [this]() {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node, &user_types::MeshNode::mesh_}, [this]() {
 			  tagDirty();
 		  })},
 
-	  materialsSubscription_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node}.get("materials"), [this]() {
+	  materialsSubscription_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node, &user_types::MeshNode::materials_}, [this]() {
 		  setupMaterialSubscription();
 		  tagDirty();
 	  })},
 
-	  instanceCountSubscription_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node}.get("instanceCount"), [this] {
+	  instanceCountSubscription_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node, &user_types::MeshNode::instanceCount_}, [this] {
 		  tagDirty();
 	  })} {
 	setupMaterialSubscription();
@@ -75,9 +75,6 @@ void MeshNodeAdaptor::setupUniformChildrenSubscription() {
 MeshNodeAdaptor::~MeshNodeAdaptor() {
 	resetRamsesObject();
 	privateAppearance_.reset();
-	geometryBinding_.reset();
-	currentMeshIndices_.reset();
-	currentMeshVertexData_.clear();
 }
 
 user_types::SMesh MeshNodeAdaptor::mesh() {
@@ -114,9 +111,9 @@ const raco::ramses_base::RamsesAppearance& MeshNodeAdaptor::privateAppearance() 
 
 
 bool MeshNodeAdaptor::sync(core::Errors* errors) {
-	BaseAdaptor::sync(errors);
+	SpatialAdaptor::sync(errors);
 	if (*editorObject()->instanceCount_ >= 1) {
-		ramsesObject().setInstanceCount(*editorObject()->instanceCount_);
+		(*ramsesObject()).setInstanceCount(*editorObject()->instanceCount_);
 	}
 
 	syncMaterials();
@@ -167,65 +164,41 @@ void MeshNodeAdaptor::syncMaterial(size_t index) {
 		currentAppearance_ = sceneAdaptor_->defaultAppearance(haveMeshNormals);
 	}
 
-	ramsesObject().setAppearance(*currentAppearance_->get());
+	ramsesObject().setAppearance(currentAppearance_);
 }
 
 void MeshNodeAdaptor::syncMeshObject() {
-	const auto& effect = (*currentAppearance_)->getEffect();
-	geometryBinding_ = raco::ramses_base::ramsesGeometryBinding(sceneAdaptor_->scene(), effect);
-	geometryBinding_->setName(std::string(this->editorObject()->objectName() + "_GeometryBinding").c_str());
-
-	currentMeshVertexData_.clear();
-	currentMeshIndices_.reset();
+	auto geometryBinding = raco::ramses_base::ramsesGeometryBinding(sceneAdaptor_->scene(), currentAppearance_->effect());
+	(*geometryBinding)->setName(std::string(this->editorObject()->objectName() + "_GeometryBinding").c_str());
 
 	if (MeshAdaptor* meshAdapt = meshAdaptor()) {
 		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using meshAdaptor");
 
 		auto vertexData = meshAdapt->vertexData();
-		for (uint32_t i = 0; i < effect.getAttributeInputCount(); i++) {
+		for (uint32_t i = 0; i < currentAppearance_->effect()->getAttributeInputCount(); i++) {
 			ramses::AttributeInput attribInput;
-			effect.getAttributeInput(i, attribInput);
+			currentAppearance_->effect()->getAttributeInput(i, attribInput);
 			std::string attribName = attribInput.getName();
 
 			auto it = vertexData.find(attribName);
 			if (it != vertexData.end()) {
-				auto status = geometryBinding_->setInputBuffer(attribInput, *it->second);
-				if (status == ramses::StatusOK) {
-					currentMeshVertexData_.emplace_back(it->second);
-				} else {
-					LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, geometryBinding_->getStatusMessage(status));
-				}
+				geometryBinding->addAttributeBuffer(attribInput, it->second);
 			} else {
 				LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Attrribute mismatch in MeshNode '{}': attribute '{}' required by Material '{}' not found in Mesh '{}'.", editorObject()->objectName(), attribName, material(0)->objectName(), mesh()->objectName());
 			}
 		}
 
-		auto status = geometryBinding_->setIndices(*meshAdapt->indicesPtr());
-		if (status == ramses::StatusOK) {
-			currentMeshIndices_ = meshAdapt->indicesPtr();
-		} else {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, geometryBinding_->getStatusMessage(status));
-		}
+		geometryBinding->setIndices(meshAdapt->indicesPtr());
 
 	} else {
 		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using defaultMesh");
 		ramses::AttributeInput input;
 		(*currentAppearance_)->getEffect().findAttributeInput("a_Position", input);
-		currentMeshVertexData_.emplace_back(sceneAdaptor_->defaultVertices());
-		currentMeshIndices_ = sceneAdaptor_->defaultIndices();
-
-		geometryBinding_->setInputBuffer(input, *currentMeshVertexData_.front());
-		geometryBinding_->setIndices(*currentMeshIndices_);
+		geometryBinding->addAttributeBuffer(input, sceneAdaptor_->defaultVertices());
+		geometryBinding->setIndices(sceneAdaptor_->defaultIndices());
 	}
 
-	ramsesObject().setGeometryBinding(*geometryBinding_.get());
-}
-
-void MeshNodeAdaptor::addObjectToRenderGroup(ramses::RenderGroup& renderGroup, int orderWithinGroup) {
-	// We can use mesh node orders such as (0 2 3 6) in a render group
-	// Ramses stores the object handle and the order as a singular vector entry and lazily sorts the vector in-place according to the order
-	auto renderGroupAddStatus = renderGroup.addMeshNode(this->ramsesObject(), orderWithinGroup);
-	assert(renderGroupAddStatus == ramses::StatusOK);
+	ramsesObject().setGeometryBinding(geometryBinding);
 }
 
 void MeshNodeAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {

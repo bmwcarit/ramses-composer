@@ -61,6 +61,7 @@ public:
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath);
+	void showMeshImportWarningMessage(const std::string& filePath);
 
 protected:
 	void timerEvent(QTimerEvent* event) override;

@@ -35,11 +35,6 @@ public:
 	virtual RamsesHandle<ramses::Node> sceneObject() = 0;
 };
 
-class IRenderGroupObject {
-public:
-	virtual void addObjectToRenderGroup(ramses::RenderGroup& renderGroup, int orderWithinGroup) = 0;
-};
-
 
 /**
  * Base class for all EditorObject Adaptors

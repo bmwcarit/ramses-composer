@@ -41,7 +41,12 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const Q
 	logicEngineNeedsUpdate_ = true;
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 
-	raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder());
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder(),
+		prefs.imageSubdirectory.toStdString(),
+		prefs.meshSubdirectory.toStdString(),
+		prefs.scriptSubdirectory.toStdString(),
+		prefs.shaderSubdirectory.toStdString());
 
 	startTime_ = std::chrono::high_resolution_clock::now();
 }
@@ -87,7 +92,12 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file) {
 
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 
-        raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder());
+	const auto& prefs = raco::components::RaCoPreferences::instance();
+	raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder(),
+		prefs.imageSubdirectory.toStdString(),
+		prefs.meshSubdirectory.toStdString(),
+		prefs.scriptSubdirectory.toStdString(),
+		prefs.shaderSubdirectory.toStdString());
 }
 
 bool RaCoApplication::exportProject(const RaCoProject& project, const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError) const {

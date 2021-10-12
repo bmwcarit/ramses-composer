@@ -29,6 +29,12 @@ bool RaCoPreferences::init() noexcept {
 bool RaCoPreferences::save() {
 	QSettings settings(raco::core::PathManager::preferenceFileLocation().c_str(), QSettings::IniFormat);
 	settings.setValue("userProjectsDirectory", userProjectsDirectory);
+
+	settings.setValue("imageSubdirectory", imageSubdirectory);
+	settings.setValue("meshSubdirectory", meshSubdirectory);
+	settings.setValue("scriptSubdirectory", scriptSubdirectory);
+	settings.setValue("shaderSubdirectory", shaderSubdirectory);
+
 	return true;
 }
 
@@ -41,6 +47,12 @@ bool RaCoPreferences::load() {
 	} else {
 		userProjectsDirectory = QString::fromStdString(raco::core::PathManager::defaultProjectFallbackPath());
 	}
+
+	imageSubdirectory = settings.value("imageSubdirectory", "images").toString();
+	meshSubdirectory = settings.value("meshSubdirectory", "meshes").toString();
+	scriptSubdirectory = settings.value("scriptSubdirectory", "scripts").toString();
+	shaderSubdirectory = settings.value("shaderSubdirectory", "shaders").toString();
+
 	return true;
 }
 

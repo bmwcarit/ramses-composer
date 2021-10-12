@@ -20,7 +20,7 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MoveTopLevelNodeUnderPrefab) {
 	moveScenegraphChild(node, prefab_);
 
 	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_.indexToTreeNode(viewModel_.getInvisibleRootIndex());
+	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
 
 	ASSERT_TRUE(viewModelRootNode->getChildren().empty());
 	ASSERT_EQ(prefabNode->getChildren().size(), 1);
@@ -33,7 +33,7 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToTopLevel) {
 	moveScenegraphChild(node, nullptr);
 
 	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_.indexToTreeNode(viewModel_.getInvisibleRootIndex());
+	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
 
 	ASSERT_TRUE(prefabNode->getChildren().empty());
 	ASSERT_EQ(viewModelRootNode->getChildren().size(), 1);
@@ -48,7 +48,7 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MoveChildNodeUnderPrefab) {
 	moveScenegraphChild(node, prefab_);
 
 	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_.indexToTreeNode(viewModel_.getInvisibleRootIndex());
+	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
 
 	ASSERT_EQ(viewModelRootNode->getChildren().size(), 1);
 	ASSERT_EQ(viewModelRootNode->getChild(0)->getRepresentedObject()->objectName(), "NodeParent");
@@ -65,7 +65,7 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToNodeParent) {
 	moveScenegraphChild(node, nodeParent);
 
 	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_.indexToTreeNode(viewModel_.getInvisibleRootIndex());
+	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
 
 	ASSERT_EQ(viewModelRootNode->getChildren().size(), 1);
 	ASSERT_EQ(viewModelRootNode->getChild(0)->getRepresentedObject()->objectName(), "NodeParent");

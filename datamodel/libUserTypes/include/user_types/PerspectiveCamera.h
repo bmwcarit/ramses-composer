@@ -85,4 +85,6 @@ public:
 	Property<PerspectiveFrustum, DisplayNameAnnotation, LinkEndAnnotation> frustum_{{}, {"Frustum"}, {}};
 };
 
+using SPerspectiveCamera = std::shared_ptr<PerspectiveCamera>;
+
 }  // namespace raco::user_types

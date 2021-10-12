@@ -13,6 +13,8 @@ set(TEST_SOURCES
     ObjectTreeViewExternalProjectModel_test.cpp
     ObjectTreeViewDefaultModel_test.h ObjectTreeViewDefaultModel_test.cpp
     ObjectTreeViewMultipleModels_test.h ObjectTreeViewMultipleModels_test.cpp
+    ObjectTreeViewPrefabModel_test.cpp
+    ObjectTreeViewResourceModel_test.cpp
 )
 
 set(TEST_LIBRARIES

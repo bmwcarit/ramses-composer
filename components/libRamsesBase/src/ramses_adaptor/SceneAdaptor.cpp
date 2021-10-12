@@ -9,18 +9,22 @@
  */
 #include "ramses_adaptor/SceneAdaptor.h"
 
+#include "components/DataChangeDispatcher.h"
+#include "components/EditorObjectFormatter.h"
 #include "core/Iterators.h"
+#include "core/PrefabOperations.h"
 #include "core/Project.h"
 #include "core/Queries.h"
 #include "log_system/log.h"
 #include "ramses_adaptor/Factories.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
+#include "ramses_adaptor/OrthographicCameraAdaptor.h"
+#include "ramses_adaptor/PerspectiveCameraAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
-#include "components/DataChangeDispatcher.h"
-#include "components/EditorObjectFormatter.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Prefab.h"
+#include "user_types/RenderPass.h"
 
 #include <spdlog/fmt/fmt.h>
 
@@ -32,7 +36,7 @@
 namespace raco::ramses_adaptor {
 
 using namespace raco::ramses_base;
-	
+
 inline RamsesEffect createDefaultEffect(ramses::Scene* scene, bool withNormals) {
 	ramses::EffectDescription effectDescription{};
 	effectDescription.setVertexShader(withNormals ? defaultVertexShaderWithNormals : defaultVertexShader);
@@ -84,17 +88,17 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 	  logicEngine_{logicEngine},
 	  project_(project),
 	  scene_{ramsesScene(id, client_)},
-	  defaultRenderGroup_{ramsesRenderGroup(scene_.get())},
 	  subscription_{dispatcher->registerOnObjectsLifeCycle([this](SEditorObject obj) { createAdaptor(obj); }, [this](SEditorObject obj) { removeAdaptor(obj); })},
+	  childrenSubscription_(dispatcher->registerOnPropertyChange("children", [this](core::ValueHandle handle) {
+	adaptorStatusDirty_ = true; 
+		  })),
 	  linksLifecycle_{dispatcher->registerOnLinksLifeCycle(
 		  [this](const core::LinkDescriptor& link) { createLink(link); },
 		  [this](const core::LinkDescriptor& link) { removeLink(link); })},
 	  linkValidityChangeSub_{dispatcher->registerOnLinkValidityChange(
-		  [this](const core::LinkDescriptor& link) {
-			changeLinkValidity(link, link.isValid); })},
+		  [this](const core::LinkDescriptor& link) { changeLinkValidity(link, link.isValid); })},
 	  dispatcher_{dispatcher},
 	  errors_{errors} {
-	defaultRenderGroup_->setName(defaultRenderGroupName);
 
 	for (const SEditorObject& obj : project_->instances()) {
 		createAdaptor(obj);
@@ -128,10 +132,12 @@ ramses::sceneId_t SceneAdaptor::sceneId() {
 }
 
 void SceneAdaptor::createAdaptor(SEditorObject obj) {
-	auto adaptor = Factories::createAdaptor(this, obj);
-	if (adaptor) {
-		adaptor->tagDirty();
-		adaptors_[obj] = std::move(adaptor);
+	if (!core::PrefabOperations::findContainingPrefab(obj)) {
+		auto adaptor = Factories::createAdaptor(this, obj);
+		if (adaptor) {
+			adaptor->tagDirty();
+			adaptors_[obj] = std::move(adaptor);
+		}
 	}
 }
 
@@ -142,6 +148,7 @@ void SceneAdaptor::removeAdaptor(SEditorObject obj) {
 	if (adaptorWasLogicProvider) {
 		updateRuntimeErrorList();
 	}
+	dependencyGraph_.clear();
 }
 
 void SceneAdaptor::iterateAdaptors(std::function<void(ObjectAdaptor*)> func) {
@@ -149,7 +156,6 @@ void SceneAdaptor::iterateAdaptors(std::function<void(ObjectAdaptor*)> func) {
 		func(adaptor.get());
 	}
 }
-
 
 void SceneAdaptor::updateRuntimeErrorList() {
 	auto logicEngineErrors = logicEngine().getErrors();
@@ -163,7 +169,7 @@ void SceneAdaptor::updateRuntimeErrorList() {
 
 	// Avoid having to search the entire list of errors for each instance and O(N*M) complexity
 	std::sort(logicEngineErrors.begin(), logicEngineErrors.end(), [](rlogic::ErrorData const& e1, rlogic::ErrorData const& e2) {
-		return e1.node < e2.node;
+		return e1.object < e2.object;
 	});
 	std::unordered_set<ILogicPropertyProvider*> logicProvidersWithoutRuntimeError;
 	std::string runtimeErrorObjectNames;
@@ -174,9 +180,9 @@ void SceneAdaptor::updateRuntimeErrorList() {
 			rlogic::ErrorData const* runtimeError = nullptr;
 			for (auto logicNode : logicNodes) {
 				auto const itRuntimeErrorForScript = std::lower_bound(logicEngineErrors.begin(), logicEngineErrors.end(), logicNode, [](rlogic::ErrorData const& e, rlogic::LogicNode* s) {
-					return e.node < s;
+					return e.object < s;
 				});
-				if (itRuntimeErrorForScript != logicEngineErrors.end() && itRuntimeErrorForScript->node == logicNode) {
+				if (itRuntimeErrorForScript != logicEngineErrors.end() && itRuntimeErrorForScript->object == logicNode) {
 					runtimeError = &*itRuntimeErrorForScript;
 					break;
 				}
@@ -207,7 +213,6 @@ void SceneAdaptor::updateRuntimeErrorList() {
 		return false;
 	});
 
-
 	for (const auto& logicProvider : logicProvidersWithoutRuntimeError) {
 		logicProvider->onRuntimeError(*errors_, ramsesLogicErrorFoundMsg, core::ErrorLevel::INFORMATION);
 	}
@@ -217,7 +222,7 @@ void SceneAdaptor::deleteUnusedDefaultResources() {
 	// Resource use count is 1 => it is stored in the scene but not used by any MeshNodeAdaptor
 	// - delete the resource as to not get unnecessarily exported.
 	if (defaultAppearance_.use_count() == 1) {
-		defaultAppearance_.reset();	
+		defaultAppearance_.reset();
 	}
 	if (defaultAppearanceWithNormals_.use_count() == 1) {
 		defaultAppearanceWithNormals_.reset();
@@ -280,27 +285,6 @@ const SRamsesAdaptorDispatcher SceneAdaptor::dispatcher() const {
 	return dispatcher_;
 }
 
-ramses::RenderGroup& SceneAdaptor::defaultRenderGroup() {
-	return *defaultRenderGroup_;
-}
-
-void SceneAdaptor::setCamera(ramses::Camera* camera) {
-	if (camera == nullptr) {
-		defaultRenderPass_.reset();
-	} else {
-		defaultRenderPass_ = ramsesRenderPass(scene_.get());
-		defaultRenderPass_->addRenderGroup(defaultRenderGroup());
-		defaultRenderPass_->setCamera(*camera);
-		defaultRenderPass_->setName(defaultRenderPassName);
-		// Ramses ignores the clear flags/clear color because we are rendering to the default framebuffer.
-		// The default framebuffer for our scene happens to be an offscreen render buffer (this is set up in
-		// RamsesPreviewWindow::commit). Ramses will give an export warning if we apply any clear flags to a
-		// render pass rendering to the default framebuffer.
-		// The clear color is set with RamsesRenderer::setDisplayBufferClearColor (see RamsesPreviewWindow::commit).
-		defaultRenderPass_->setClearFlags(ramses::EClearFlags_None);
-	}
-}
-
 const RamsesAppearance SceneAdaptor::defaultAppearance(bool withMeshNormals) {
 	if (withMeshNormals) {
 		if (!defaultEffectWithNormals_) {
@@ -315,7 +299,6 @@ const RamsesAppearance SceneAdaptor::defaultAppearance(bool withMeshNormals) {
 		defaultEffect_ = createDefaultEffect(scene_.get(), false);
 		defaultAppearance_ = raco::ramses_base::ramsesAppearance(scene(), defaultEffect_);
 		(*defaultAppearance_)->setName(defaultAppearanceName);
-
 	}
 	return defaultAppearance_;
 }
@@ -335,6 +318,9 @@ const RamsesArrayResource SceneAdaptor::defaultIndices() {
 }
 
 ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObject) const {
+	if (!editorObject) {
+		return nullptr;
+	}
 	auto adaptorIt = adaptors_.find(editorObject);
 	if (adaptorIt != adaptors_.end()) {
 		return adaptorIt->second.get();
@@ -347,7 +333,6 @@ raco::core::Project& SceneAdaptor::project() const {
 }
 
 void SceneAdaptor::depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, std::set<SEditorObject> const& instances, std::set<SEditorObject>& sortedObjs, std::vector<DependencyNode>& outSorted) {
-
 	for (size_t index = 0; index < object->size(); index++) {
 		auto v = (*object)[index];
 		switch (v->type()) {
@@ -390,42 +375,45 @@ void SceneAdaptor::rebuildSortedDependencyGraph(std::set<SEditorObject> const& o
 	}
 }
 
-void SceneAdaptor::buildDefaultRenderGroup() {
-	defaultRenderGroup().removeAllRenderables();
-	defaultRenderGroup().removeAllRenderGroups();
-
-	std::vector<SEditorObject> topLevelNodes;
-	for (auto const& child : project_->instances()) {
-		if (!child->getParent() && child->getTypeDescription().typeName != raco::user_types::Prefab::typeDescription.typeName) {
-			topLevelNodes.emplace_back(child);
-		}
-	}
-
-	auto defaultMeshOrderIndex = 0;
-	auto defaultRenderableOrderFunc = [&defaultMeshOrderIndex, this](const SEditorObject& obj) {
-		if (obj->getTypeDescription().typeName == raco::user_types::MeshNode::typeDescription.typeName) {
-			auto renderGroupObj = lookup<IRenderGroupObject>(obj);
-			renderGroupObj->addObjectToRenderGroup(defaultRenderGroup(), defaultMeshOrderIndex++);
-		}
-	};
-
-	buildRenderableOrder(defaultRenderGroup(), topLevelNodes, defaultRenderableOrderFunc);
-}
-
-void SceneAdaptor::buildRenderableOrder(ramses::RenderGroup& renderGroup, std::vector<SEditorObject>& objs, const std::function<void(const SEditorObject&)>& renderableOrderFunc) {
-	for (const auto& obj : objs) {
-		renderableOrderFunc(obj); 
-		if (obj->children_->size() > 0) {
-			auto vec = obj->children_->asVector<SEditorObject>();
-			buildRenderableOrder(renderGroup, vec, renderableOrderFunc);
-		}
-	}
-}
-
 void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& changedObjects) {
+	if (adaptorStatusDirty_) {
+		for (const auto& item : dependencyGraph_) {
+			auto object = item.object;
+			auto adaptor = lookupAdaptor(object);
+
+			bool haveAdaptor = adaptor != nullptr;
+			bool needAdaptor = !core::PrefabOperations::findContainingPrefab(object);
+			if (haveAdaptor != needAdaptor) {
+				if (haveAdaptor) {
+					removeAdaptor(object);
+				} else {
+					createAdaptor(object);
+				}
+			}
+		}
+		adaptorStatusDirty_ = false;
+	}
+
 	if (dependencyGraph_.empty() || !changedObjects.empty()) {
-		buildDefaultRenderGroup();
 		rebuildSortedDependencyGraph(std::set<SEditorObject>(project_->instances().begin(), project_->instances().end()));
+		// Check if all render passes have a unique order index, otherwise Ramses renders them in arbitrary order.
+		errors_->removeIf([](core::ErrorItem const& error) {
+			return error.valueHandle().isRefToProp(&user_types::RenderPass::order_);
+		});
+		auto renderPasses = core::Queries::filterByTypeName(project_->instances(), {user_types::RenderPass::typeDescription.typeName});
+		std::map<int, std::vector<user_types::SRenderPass>> orderIndices;
+		for (auto const& rpObj : renderPasses) {
+			auto rp = rpObj->as<user_types::RenderPass>();
+			orderIndices[rp->order_.asInt()].emplace_back(rp);
+		}
+		for (auto const& oi : orderIndices) {
+			if (oi.second.size() > 1) {				
+				auto errorMsg = fmt::format("The render passes {} have the same order index and will be rendered in arbitrary order.", oi.second);
+				for (auto const& rp : oi.second) {
+					errors_->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, ValueHandle{rp, &user_types::RenderPass::order_}, errorMsg);
+				}
+			}
+		}
 	}
 	std::set<LinkAdaptor*> liftedLinks;
 

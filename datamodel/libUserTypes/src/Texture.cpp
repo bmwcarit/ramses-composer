@@ -24,9 +24,9 @@ void Texture::onBeforeDeleteObject(Errors& errors) const {
 
 void Texture::onAfterContextActivated(BaseContext& context) {
 	context.errors().removeError({shared_from_this()});
-	validateURI(context, {shared_from_this(), {"uri"}});
+	validateURI(context, {shared_from_this(), &Texture::uri_});
 
-	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uri"}},
+	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), &Texture::uri_},
 		[this, &context]() {
 			context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 		});
@@ -34,12 +34,12 @@ void Texture::onAfterContextActivated(BaseContext& context) {
 }
 
 void Texture::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	ValueHandle uriHandle{shared_from_this(), {"uri"}};
-	if (uriHandle == value) {
+	if (value.isRefToProp(&Texture::uri_)) {
+		ValueHandle uriHandle{shared_from_this(), &Texture::uri_};
 		context.errors().removeError({shared_from_this()});
 		validateURI(context, uriHandle);
 
-		uriListener_ = registerFileChangedHandler(context, {shared_from_this(), {"uri"}},
+		uriListener_ = registerFileChangedHandler(context, {shared_from_this(), &Texture::uri_},
 			[this, &context, uriHandle]() {
 				validateURI(context, uriHandle);
 				context.changeMultiplexer().recordPreviewDirty(shared_from_this());

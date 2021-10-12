@@ -38,6 +38,7 @@ public Q_SLOTS:
 	void resetSelection();
 
 Q_SIGNALS:
+	void externalObjectSelected(ObjectTreeDock *srcDock);
 	void newObjectTreeItemsSelected(const std::set<raco::core::ValueHandle> &objects, ObjectTreeDock *srcDock);
 	void dockClosed(ObjectTreeDock *closedDock);
 	void dockSelectionFocusRequested(ObjectTreeDock *focusDock);

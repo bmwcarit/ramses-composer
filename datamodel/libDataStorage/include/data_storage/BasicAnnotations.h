@@ -146,6 +146,38 @@ public:
 	}
 };
 
+class TagContainerAnnotation : public AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"TagContainerAnnotation", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	TagContainerAnnotation(const TagContainerAnnotation& other) : AnnotationBase({}) {}
+	TagContainerAnnotation() : AnnotationBase({}) {}
+	TagContainerAnnotation& operator=(const TagContainerAnnotation& other) {
+		return *this;
+	}
+};
+
+class RenderableTagContainerAnnotation : public AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"RenderableTagContainerAnnotation", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	RenderableTagContainerAnnotation(const RenderableTagContainerAnnotation& other) : AnnotationBase({}) {}
+	RenderableTagContainerAnnotation() : AnnotationBase({}) {}
+	RenderableTagContainerAnnotation& operator=(const RenderableTagContainerAnnotation& other) {
+		return *this;
+	}
+};
+
 class EnumerationAnnotation : public AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "EnumerationAnnotation", false };
@@ -168,6 +200,22 @@ public:
 	}
 
 	Value<int> type_;
+};
+
+class ExpectEmptyReference : public AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"EmptyReferenceAllowable", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	ExpectEmptyReference(ExpectEmptyReference const& other) : AnnotationBase({}) {}
+	ExpectEmptyReference() : AnnotationBase({}) {}
+	ExpectEmptyReference& operator=(const ExpectEmptyReference& other) {
+		return *this;
+	}
 };
 
 }  // namespace raco::data_storage

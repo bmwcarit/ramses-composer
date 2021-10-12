@@ -64,7 +64,7 @@ SEditorObject PrefabInstance::mapFromInstance(SEditorObject obj, SPrefabInstance
 void PrefabInstance::removePrefabInstanceChild(BaseContext& context, const SEditorObject& prefabChild) {
 	int index = findItemIndex(*mapToInstance_, prefabChild);
 	if (index != -1) {
-		context.removeProperty({shared_from_this(), {"mapToInstance"}}, index);
+		context.removeProperty({shared_from_this(), &PrefabInstance::mapToInstance_} , index);
 	}
 }
 
@@ -78,7 +78,7 @@ void PrefabInstance::addChildMapping(BaseContext& context, const SEditorObject& 
 		*key = prefabChild;
 		*val = instanceChild;
 	}
-	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), {"mapToInstance"}));
+	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &PrefabInstance::mapToInstance_));
 }
 
 

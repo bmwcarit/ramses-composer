@@ -22,6 +22,7 @@ add_library(libCore
 	include/core/PropertyDescriptor.h src/PropertyDescriptor.cpp
 	include/core/PathQueries.h src/PathQueries.cpp
 	include/core/Queries.h src/Queries.cpp
+	include/core/Queries_Tags.h src/Queries_Tags.cpp
 	include/core/Consistency.h src/Consistency.cpp
 	include/core/MeshCacheInterface.h
 	include/core/UserObjectFactoryInterface.h src/UserObjectFactoryInterface.cpp

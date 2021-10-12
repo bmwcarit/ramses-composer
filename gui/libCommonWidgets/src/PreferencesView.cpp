@@ -39,26 +39,45 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 
 		auto container = new QWidget{this};
 		auto containerLayout = new QGridLayout{container};
-		auto edit{new QLineEdit{this}};
+		userProjectEdit_ = new QLineEdit{this};
 
-		containerLayout->addWidget(edit, 0, 0);
+		containerLayout->addWidget(userProjectEdit_, 0, 0);
 		containerLayout->addWidget(selectDirectoryButton, 0, 1);
 		containerLayout->setColumnStretch(0, 1);
 		containerLayout->setMargin(0);
 
 		formLayout->addRow("User Projects Directory", container);
-		edit->setText(RaCoPreferences::instance().userProjectsDirectory);
-		QObject::connect(edit, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
-		stringEdits_.push_back(std::make_pair(&RaCoPreferences::userProjectsDirectory, edit));
+		userProjectEdit_->setText(RaCoPreferences::instance().userProjectsDirectory);
+		QObject::connect(userProjectEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
 
-		QObject::connect(selectDirectoryButton, &QPushButton::clicked, [this, edit]() {
-			auto dir = edit->text();
+		QObject::connect(selectDirectoryButton, &QPushButton::clicked, [this]() {
+			auto dir = userProjectEdit_->text();
 			dir = QFileDialog::getExistingDirectory(this, "Select Directory", dir);
 			if (dir.size() > 0) {
-				edit->setText(dir);
+				userProjectEdit_->setText(dir);
 			}
 		});
 	}
+
+	imageEdit_ = new QLineEdit{this};
+	formLayout->addRow("Image subdirectory", imageEdit_);
+	imageEdit_->setText(RaCoPreferences::instance().imageSubdirectory);
+	QObject::connect(imageEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
+
+	meshEdit_ = new QLineEdit{this};
+	formLayout->addRow("Mesh subdirectory", meshEdit_);
+	meshEdit_->setText(RaCoPreferences::instance().meshSubdirectory);
+	QObject::connect(meshEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
+
+	scriptEdit_ = new QLineEdit{this};
+	formLayout->addRow("Script subdirectory", scriptEdit_);
+	scriptEdit_->setText(RaCoPreferences::instance().scriptSubdirectory);
+	QObject::connect(scriptEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
+
+	shaderEdit_ = new QLineEdit{this};
+	formLayout->addRow("Shader subdirectory", shaderEdit_);
+	shaderEdit_->setText(RaCoPreferences::instance().shaderSubdirectory);
+	QObject::connect(shaderEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
 
 	auto buttonBox = new QDialogButtonBox{this};
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
@@ -73,21 +92,23 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 }
 
 void PreferencesView::save() {
-	for (const auto& edit : stringEdits_) {
-		if (raco::utils::path::isExistingDirectory(edit.second->text().toStdString())) {
-			RaCoPreferences::instance().*(edit.first) = edit.second->text();
-		}
+	if (raco::utils::path::isExistingDirectory(userProjectEdit_->text().toStdString())) {
+			RaCoPreferences::instance().userProjectsDirectory = userProjectEdit_->text();
 	}
+	RaCoPreferences::instance().imageSubdirectory = imageEdit_->text();
+	RaCoPreferences::instance().meshSubdirectory = meshEdit_->text();
+	RaCoPreferences::instance().scriptSubdirectory = scriptEdit_->text();
+	RaCoPreferences::instance().shaderSubdirectory = shaderEdit_->text();
 	RaCoPreferences::instance().save();
 	Q_EMIT dirtyChanged(false);
 }
 
 bool PreferencesView::dirty() {
-	for (const auto& edit : stringEdits_) {
-		if (RaCoPreferences::instance().*(edit.first) != edit.second->text())
-			return true;
-	}
-	return false;
+	return RaCoPreferences::instance().userProjectsDirectory != userProjectEdit_->text() || 
+		RaCoPreferences::instance().imageSubdirectory != imageEdit_->text() || 
+		RaCoPreferences::instance().meshSubdirectory != meshEdit_->text() ||
+		RaCoPreferences::instance().scriptSubdirectory != scriptEdit_->text() ||
+		RaCoPreferences::instance().shaderSubdirectory != shaderEdit_->text();
 }
 
 }  // namespace raco::common_widgets

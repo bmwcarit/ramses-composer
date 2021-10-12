@@ -47,6 +47,7 @@ public:
 	 * @exception ExtrefError
 	 */
 	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack);
+	static std::unique_ptr<RaCoProject> loadFromJson(const QJsonDocument& migratedJson, const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack);
 
 	QString name() const;
 
@@ -64,6 +65,8 @@ public:
 	raco::core::FileChangeMonitor* fileChangeMonitor();
 	raco::core::UndoStack* undoStack();
 	raco::core::MeshCache* meshCache();
+
+	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
 private:
 	// @exception ExtrefError

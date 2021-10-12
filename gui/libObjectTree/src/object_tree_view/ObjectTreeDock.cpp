@@ -52,6 +52,9 @@ void ObjectTreeDock::addTreeView(ObjectTreeView *treeView) {
 	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, [this](const auto &handles) {
 		Q_EMIT newObjectTreeItemsSelected(handles, this);
 	});
+	connect(treeView, &ObjectTreeView::externalObjectSelected, [this]() {
+		Q_EMIT externalObjectSelected(this);
+	});
 	connect(treeView, &ObjectTreeView::dockSelectionFocusRequested, [this]() {
 		Q_EMIT dockSelectionFocusRequested(this);
 	});

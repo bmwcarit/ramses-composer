@@ -70,8 +70,8 @@ public:
 		std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation{"URI bottom"}};
 
 private:
-	void afterContextActivatedURI(BaseContext& context, std::string name, const std::string& uri, FileChangeMonitor::UniqueListener& listener);
-	void onAfterValueChangedURI(BaseContext& context, ValueHandle const& value, std::string name, const std::string& uri, FileChangeMonitor::UniqueListener& listener);
+	void afterContextActivatedURI(BaseContext& context, decltype(uriFront_) CubeMap::*ptom, FileChangeMonitor::UniqueListener& listener);
+	void onAfterValueChangedURI(BaseContext& context, ValueHandle const &value, decltype(uriFront_) CubeMap::*ptom, FileChangeMonitor::UniqueListener& listener);
 
 	mutable FileChangeMonitor::UniqueListener frontListener_;
 	mutable FileChangeMonitor::UniqueListener backListener_;

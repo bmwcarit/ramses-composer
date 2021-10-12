@@ -91,19 +91,22 @@ public:
 	
 	virtual bool canCopy(const QModelIndex& index) const;
 	virtual bool canDelete(const QModelIndex& index) const;
-	virtual bool canPasteInto(const QModelIndex& index) const;
+	virtual bool canInsertMeshAssets(const QModelIndex& index) const;
+	virtual bool canPasteInto(const QModelIndex& index, const std::string& serializedObjs = RaCoClipboard::get(), bool asExtRef = false) const;
 	virtual bool canDeleteUnusedResources() const;
+	virtual bool objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const;
 
 Q_SIGNALS:
 	void repaintRequested();
 	void meshImportFailed(const std::string &filePath);
+	void meshImportSucceeded(const std::string& filePath);
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const core::EditorObject::TypeDescriptor &typeDesc, const std::string &nodeName = "", const QModelIndex &parent = QModelIndex());
 	virtual size_t deleteObjectAtIndex(const QModelIndex& index);
 	virtual void copyObjectAtIndex(const QModelIndex& index, bool deepCopy);
 	virtual void cutObjectAtIndex(const QModelIndex& index, bool deepCut);
-	virtual bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr);
+	virtual bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get());
 	void moveScenegraphChild(core::SEditorObject child, core::SEditorObject parent, int row = -1);
 	void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex);
 	void deleteUnusedResources();

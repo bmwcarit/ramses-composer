@@ -73,7 +73,7 @@ void EditorObject::onBeforeRemoveReferenceToThis(ValueHandle const& sourceRefere
 	referencesToThis_.erase(srcRootObject);
 
 	if (srcRootObject) {
-		if (ValueHandle(srcRootObject, {"children"}).contains(sourceReferenceProperty)) {
+		if (ValueHandle(srcRootObject, &EditorObject::children_).contains(sourceReferenceProperty)) {
 			assert(srcRootObject == parent_.lock());
 			parent_.reset();
 		}
@@ -96,7 +96,7 @@ void EditorObject::onAfterAddReferenceToThis(ValueHandle const& sourceReferenceP
 	referencesToThis_.insert(srcRootObject);
 
 	if (srcRootObject) {
-		if (ValueHandle(srcRootObject, {"children"}).contains(sourceReferenceProperty)) {
+		if (ValueHandle(srcRootObject, &EditorObject::children_).contains(sourceReferenceProperty)) {
 			parent_ = srcRootObject;
 		}
 	}

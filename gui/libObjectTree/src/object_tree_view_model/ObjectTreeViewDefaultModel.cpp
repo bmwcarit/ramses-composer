@@ -9,6 +9,7 @@
  */
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 
+#include "common_widgets/MeshAssetImportDialog.h"
 #include "core/Context.h"
 #include "core/CommandInterface.h"
 #include "core/EditorObject.h"
@@ -21,10 +22,13 @@
 #include "components/Naming.h"
 #include "style/Colors.h"
 #include "user_types/Mesh.h"
+#include "user_types/PrefabInstance.h"
+#include "user_types/UserObjectFactory.h"
 
 #include <QApplication>
 #include <QClipboard>
 #include <QDataStream>
+#include <QJsonObject>
 #include <QMimeData>
 #include <QProgressDialog>
 #include <QSet>
@@ -161,25 +165,26 @@ bool ObjectTreeViewDefaultModel::canDropMimeData(const QMimeData* data, Qt::Drop
 		return false;
 	}
 
-	auto parentNode = indexToSEditorObject(parent);
 	auto originPath = getOriginPathFromMimeData(data);
 	auto droppingFromOtherProject = originPath != project()->currentPath();
-
-	if (droppingFromOtherProject && parent == getInvisibleRootIndex()) {
-		return true;
+	auto droppingAsExternalReference = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::AltModifier);
+	if (droppingAsExternalReference && parent.isValid()) {
+		return false;
 	}
 
-	if (!idList.empty()) {
-		for (const auto& id : idList) {
-			auto objectFromId = Queries::findById((droppingFromOtherProject) ? *externalProjectStore_->getExternalProjectCommandInterface(originPath)->project() : *project(), id.toStdString());
-
-			if (!objectFromId || (objectFromId && !Queries::canMoveScenegraphChild(*project(), objectFromId, parentNode))) {
-				return false;
-			}
+	std::vector<SEditorObject> objectsFromId;
+	if (idList.empty()) {
+		return false;
+	}
+	for (const auto& id : idList) {
+		auto objectFromId = Queries::findById((droppingFromOtherProject) ? *externalProjectStore_->getExternalProjectCommandInterface(originPath)->project() : *project(), id.toStdString());
+		auto tryingToDropNonExtRefAsExtRef = droppingFromOtherProject && droppingAsExternalReference && !raco::core::Queries::canPasteObjectAsExternalReference(objectFromId, objectFromId->getParent() == nullptr);
+		if (tryingToDropNonExtRefAsExtRef) {
+			return false;
 		}
-		return true;
+		objectsFromId.emplace_back(objectFromId);
 	}
-	return false;
+	return objectsAreAllowedInModel(objectsFromId, parent);
 }
 
 QModelIndex ObjectTreeViewDefaultModel::parent(const QModelIndex& child) const {
@@ -267,12 +272,12 @@ bool ObjectTreeViewDefaultModel::dropMimeData(const QMimeData* data, Qt::DropAct
 	auto mimeDataContainsLocalInstances = originPath == project()->currentPath();
 	auto movedItemIDs = decodeMimeData(data);
 
-	SEditorObject parentObj;
-	if (parent.isValid()) {
-		parentObj = indexToSEditorObject(parent);
-	}
 
 	if (mimeDataContainsLocalInstances) {
+		SEditorObject parentObj;
+		if (parent.isValid()) {
+			parentObj = indexToSEditorObject(parent);
+		}
 		for (const auto& itemID : movedItemIDs) {
 			if (auto childObj = project()->getInstanceByID(itemID.toStdString())) {
 				moveScenegraphChild(childObj, parentObj, row);
@@ -288,7 +293,8 @@ bool ObjectTreeViewDefaultModel::dropMimeData(const QMimeData* data, Qt::DropAct
 		}
 		auto serializedObjects = originCommandInterface->copyObjects(objs, true);
 
-		commandInterface_->pasteObjects(serializedObjects, parentObj);
+		auto pressedKeys = QGuiApplication::queryKeyboardModifiers();
+		pasteObjectAtIndex(parent, pressedKeys.testFlag(Qt::KeyboardModifier::AltModifier), nullptr, serializedObjects);
 	}
 
 	return true;
@@ -384,12 +390,7 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::Ty
 	}
 	auto name = project()->findAvailableUniqueName(nodes.begin(), nodes.end(), nullptr, nodeName.empty() ? raco::components::Naming::format(typeDesc.typeName) : nodeName);
 
-	auto newObj = commandInterface_->createObject(typeDesc.typeName, name);
-
-	if (parent.isValid()) {
-		auto parentObj = indexToSEditorObject(parent);
-		moveScenegraphChild(newObj, parentObj);
-	}
+	auto newObj = commandInterface_->createObject(typeDesc.typeName, name, std::string(), parent.isValid() ? indexToSEditorObject(parent) : nullptr);
 
 	return newObj;
 }
@@ -406,12 +407,33 @@ bool ObjectTreeViewDefaultModel::canDelete(const QModelIndex& index) const {
 	return false;
 }
 
-bool ObjectTreeViewDefaultModel::canPasteInto(const QModelIndex& index) const {
-	if (RaCoClipboard::hasEditorObject()) {
+bool ObjectTreeViewDefaultModel::canInsertMeshAssets(const QModelIndex& index) const {
+	if (index.isValid()) {
 		auto obj = indexToSEditorObject(index);
-		return core::Queries::canPasteIntoObject(*commandInterface_->project(), obj);
+		return &obj->getTypeDescription() != &raco::user_types::LuaScript::typeDescription;
 	}
-	return false;
+
+	return true;
+}
+
+bool ObjectTreeViewDefaultModel::canPasteInto(const QModelIndex& index, const std::string& serializedObjs, bool asExtRef) const {
+	auto deserialization{raco::serialization::deserializeObjects(serializedObjs,
+		raco::user_types::UserObjectFactoryInterface::deserializationFactory(commandInterface_->objectFactory()))};
+	auto topLevelObjects = BaseContext::getTopLevelObjectsFromDeserializedObjects(deserialization, commandInterface_->objectFactory(), project());
+
+	if (asExtRef) {
+		if (index.isValid()) {
+			return false;
+		}
+		for (const auto& topLevelObj : topLevelObjects) {
+			if (!Queries::canPasteObjectAsExternalReference(topLevelObj, deserialization.rootObjectIDs.find(topLevelObj->objectID()) != deserialization.rootObjectIDs.end())) {
+				return false;
+			}
+		}
+	}
+
+
+	return objectsAreAllowedInModel(topLevelObjects, index);
 }
 
 size_t ObjectTreeViewDefaultModel::deleteObjectAtIndex(const QModelIndex& index) {
@@ -431,9 +453,9 @@ void ObjectTreeViewDefaultModel::copyObjectAtIndex(const QModelIndex& index, boo
 	RaCoClipboard::set(commandInterface_->copyObjects({indexToSEditorObject(index)}, deepCopy));
 }
 
-bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError) {
+bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	bool success = true;
-	commandInterface_->pasteObjects(RaCoClipboard::get(), indexToSEditorObject(index), pasteAsExtref, &success, outError);
+	commandInterface_->pasteObjects(serializedObjects, indexToSEditorObject(index), pasteAsExtref, &success, outError);
 	return success;
 }
 
@@ -455,10 +477,23 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 	meshDesc.bakeAllSubmeshes = false;
 
 	auto selectedObject = selectedIndex.isValid() ? indexToSEditorObject(selectedIndex) : nullptr;
-	auto importSuccess = commandInterface_->importAssetScenegraph(filePath.toStdString(), selectedObject);
+	auto importSuccess = true;
+
+	if (commandInterface_->meshCache()->loadMesh(meshDesc)) {
+		auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc.absPath);
+
+		auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, nullptr).exec();
+		if (importStatus == QDialog::Accepted) {
+			importSuccess = commandInterface_->insertAssetScenegraph(sceneGraph, meshDesc.absPath, selectedObject);
+		}
+	} else {
+		importSuccess = false;
+	}
+
 	if (!importSuccess) {
 		Q_EMIT meshImportFailed(meshDesc.absPath);
 	}
+	Q_EMIT meshImportSucceeded(meshDesc.absPath);
 }
 
 int ObjectTreeViewDefaultModel::rowCount(const QModelIndex& parent) const {
@@ -523,6 +558,35 @@ void raco::object_tree::model::ObjectTreeViewDefaultModel::updateTreeIndexes() {
 	},
 		invisibleRootIndex_);
 }
+
+bool ObjectTreeViewDefaultModel::objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const {
+	if (!core::Queries::canPasteIntoObject(*commandInterface_->project(), indexToSEditorObject(parentIndex))) {
+		return false;
+	}
+
+	auto objsContainSceneGraphObjs = false;
+	auto objsContainPrefabs = false;
+	auto objsContainPrefabInstances = false;
+
+	for (const auto& obj : objs) {
+		if (obj->as<user_types::Prefab>()) {
+			objsContainPrefabs = true;
+		} else if (obj->as<user_types::PrefabInstance>()) {
+			objsContainPrefabInstances = true;
+		}
+
+		if (!obj->getTypeDescription().isResource) {
+			objsContainSceneGraphObjs = true;
+		}
+	}
+
+	if (objsContainPrefabs && !objsContainPrefabInstances) {
+		return false;
+	}
+
+	return objsContainSceneGraphObjs;
+}
+
 
 UserObjectFactoryInterface* ObjectTreeViewDefaultModel::objectFactory() {
 	return commandInterface_->objectFactory();

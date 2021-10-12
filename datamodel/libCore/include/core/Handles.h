@@ -58,6 +58,41 @@ public:
 	ValueHandle(const std::shared_ptr<EditorObject>& object, const std::vector<size_t>& indices) : object_(object), indices_(indices) {
 	}
 
+	// Construct the ValueHandle using property fields and avoid using the property name. Example:
+	// SMeshNode meshNode = ...;
+	// ValueHandle vh { meshNode, &user_types::MeshNode::mesh_ };
+	template <class ReflectedClass, class BaseClassWithProperty, class PropertyClassType1>
+	ValueHandle(const std::shared_ptr<ReflectedClass>& object, PropertyClassType1 BaseClassWithProperty::*propertyPtr1) : object_(object) {
+		static_assert(std::is_member_object_pointer<decltype(propertyPtr1)>::value);
+		const int index = object->index(propertyPtr1);
+		if (index == -1) {
+ 			object_ = nullptr;
+			return;		
+		}
+		indices_ = {static_cast<std::size_t>(index)};
+	}
+	// Construct the ValueHandle using property fields and avoid using the property name. Example:
+	// SNode node = ...;
+	// ValueHandle vh { node, &user_types::Node::translation_, &Vec3f::y_ };
+	template <class ReflectedClass, class BaseClassWithProperty1, class PropertyClassType1,
+		class ClassWithProperty2, class PropertyClassType2>
+	ValueHandle(const std::shared_ptr<ReflectedClass>& object, PropertyClassType1 BaseClassWithProperty1::*propertyPtr1, PropertyClassType2 ClassWithProperty2::*propertyPtr2) : object_(object) {
+		static_assert(std::is_member_object_pointer<decltype(propertyPtr1)>::value);
+		static_assert(std::is_member_object_pointer<decltype(propertyPtr2)>::value);
+		const int index1 = object->index(propertyPtr1);
+		if (index1 == -1) {
+			object_ = nullptr;
+			return;
+		}
+		auto subObject = *(dynamic_cast<BaseClassWithProperty1*>(object.get())->*propertyPtr1);
+		const int index2 = subObject.index(propertyPtr2);
+		if (index2 == -1) {
+			object_ = nullptr;
+			return;
+		}
+		indices_ = {static_cast<std::size_t>(index1), static_cast<std::size_t>(index2)};
+	}
+
 	ValueHandle(const PropertyDescriptor& property) : ValueHandle(property.object(), property.propertyNames()) {
 	}
 
@@ -149,6 +184,24 @@ public:
 	ValueHandle& nextSibling();
 
 	const ValueBase* constValueRef() const;
+
+	// Check if a ValueHandle is referring to a specific property if the C++ property member is known. Example:
+	// ValueHandle vh = ....;
+	// if(vh.isReferencing(&user_types::Node::translation_)) { ... }
+	template <typename ReflectedClass, class PropertyClassType1>
+	bool isRefToProp(PropertyClassType1 ReflectedClass::*propertyPtr) const {
+		const SEditorObject r = rootObject();
+		static_assert(std::is_base_of<EditorObject, ReflectedClass>::value);
+		const ReflectedClass* userClassPtr = dynamic_cast<ReflectedClass*>(r.get());
+		if (userClassPtr == nullptr) {
+			return false;
+		}
+		if (indices_.size() != 1) {
+			return false;
+		}
+		return userClassPtr->get(indices_.front()) == &(userClassPtr->*propertyPtr);
+	}
+
 
 private:
 	friend class BaseContext;

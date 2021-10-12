@@ -14,6 +14,7 @@
 #include "core/CommandInterface.h"
 #include "core/PathManager.h"
 #include "components/Naming.h"
+#include "components/RaCoPreferences.h"
 #include "ui_mainwindow.h"
 #include "user_types/LuaScript.h"
 #include "user_types/Material.h"
@@ -30,6 +31,7 @@ QMetaObject::Connection actionCreateDummyScene;
 
 void configureDebugActions(Ui::MainWindow* ui, QWidget* widget, raco::core::CommandInterface* commandInterface) {
 	using raco::components::Naming;
+	using namespace raco::user_types;
 
 	// Debug actions
 	if (openLogFileConnection) QObject::disconnect(openLogFileConnection);
@@ -38,32 +40,34 @@ void configureDebugActions(Ui::MainWindow* ui, QWidget* widget, raco::core::Comm
 	actionDumpObjectTree = QObject::connect(ui->actionDumpObjectTree, &QAction::triggered, [widget]() { raco::debug::dumpLayoutInfo(widget); });
 	if (actionCreateDummyScene) QObject::disconnect(actionCreateDummyScene);
 	actionCreateDummyScene = QObject::connect(ui->actionCreateDummyScene, &QAction::triggered, [commandInterface]() {
+		const auto& prefs = raco::components::RaCoPreferences::instance();
+
 		auto mesh = commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName, Naming::format("DuckMesh"));
-		commandInterface->set(raco::core::ValueHandle{mesh, {"bakeMeshes"}}, true);
-		commandInterface->set(raco::core::ValueHandle{mesh, {"uri"}}, 
-			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::MESH_SUB_DIRECTORY / "Duck.glb").generic_string());
+		commandInterface->set(raco::core::ValueHandle{mesh, &Mesh::bakeMeshes_}, true);
+		commandInterface->set(raco::core::ValueHandle{mesh, &Mesh::uri_}, 
+			(raco::core::PathManager::defaultResourceDirectory() / prefs.meshSubdirectory.toStdString() / "Duck.glb").generic_string());
 		auto material = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, Naming::format("DuckMaterial"));
-		commandInterface->set(raco::core::ValueHandle{material, {"uriVertex"}},
-			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::SHADER_SUB_DIRECTORY / "simple_texture.vert").generic_string());
-		commandInterface->set(raco::core::ValueHandle{material, {"uriFragment"}}, 
-			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::SHADER_SUB_DIRECTORY / "simple_texture.frag").generic_string());
+		commandInterface->set(raco::core::ValueHandle{material, &Material::uriVertex_},
+			(raco::core::PathManager::defaultResourceDirectory() / prefs.shaderSubdirectory.toStdString() / "simple_texture.vert").generic_string());
+		commandInterface->set(raco::core::ValueHandle{material, &Material::uriFragment_}, 
+			(raco::core::PathManager::defaultResourceDirectory() / prefs.shaderSubdirectory.toStdString() / "simple_texture.frag").generic_string());
 		auto texture = commandInterface->createObject(raco::user_types::Texture::typeDescription.typeName, Naming::format("DuckTexture"));
-		commandInterface->set(raco::core::ValueHandle{texture, {"uri"}},
-			(raco::core::PathManager::defaultResourceDirectory() / raco::core::PathManager::IMAGE_SUB_DIRECTORY / "DuckCM.png").generic_string());
+	commandInterface->set(raco::core::ValueHandle{texture, &Texture::uri_},
+			(raco::core::PathManager::defaultResourceDirectory() / prefs.imageSubdirectory.toStdString() / "DuckCM.png").generic_string());
 
 		auto node = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, Naming::format("DuckNode"));
 		auto meshNode = commandInterface->createObject(raco::user_types::MeshNode::typeDescription.typeName, Naming::format("DuckMeshNode"));
 		commandInterface->moveScenegraphChild(meshNode, node);
 
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::mesh_}, mesh);
 		commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "uniforms", "u_Tex"}}, texture);
+		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::translation_, &Vec3f::y}, -1.7);
+		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::rotation_, &Vec3f::y}, -160.0);
+		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::scale_, &Vec3f::x}, 2.0);
+		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::scale_, &Vec3f::y}, 2.0);
+		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::scale_, &Vec3f::z}, 2.0);
 
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"translation", "y"}}, -1.7);
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"rotation", "y"}}, -160.0);
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"scale", "x"}}, 2.0);
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"scale", "y"}}, 2.0);
-		commandInterface->set(raco::core::ValueHandle{meshNode, {"scale", "z"}}, 2.0);
+		commandInterface->set(raco::core::ValueHandle{material, {"uniforms", "u_Tex"}}, texture);
 	});
 }

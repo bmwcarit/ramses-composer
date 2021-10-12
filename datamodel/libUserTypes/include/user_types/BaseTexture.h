@@ -51,4 +51,16 @@ public:
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> anisotropy_{1, DisplayNameAnnotation{"Anisotropy Level"}, RangeAnnotation<int>(1, 32000) };
 };
 
+class TextureSampler2DBase : public BaseTexture {
+public:
+	static inline const TypeDescriptor typeDescription = {"TextureSampler2DBase", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+    TextureSampler2DBase(const std::string& name, const std::string& id) : BaseTexture(name, id) {
+    }
+};
+
+using STextureSampler2DBase = std::shared_ptr<TextureSampler2DBase>;
 }

@@ -48,7 +48,9 @@ inline const T* select(const rlogic::LogicEngine& engine, const char* name) {
 
 template <typename T = ramses::RamsesObject>
 inline const T* select(const ramses::Scene& scene, const char* name) {
-	return static_cast<const T*>(scene.findObjectByName(name));
+	auto result = static_cast<const T*>(scene.findObjectByName(name));
+	EXPECT_TRUE(result != nullptr);
+	return result;
 }
 
 inline std::vector<ramses::RamsesObject*> select_all(const ramses::Scene& scene) {

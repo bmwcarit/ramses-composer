@@ -26,7 +26,10 @@ enum EngineEnumeration {
     TextureMinSamplingMethod,
 	TextureMagSamplingMethod,
 	TextureFormat,
-	TextureOrigin
+	TextureOrigin,
+	RenderBufferFormat,
+	RenderLayerOrder,
+	RenderLayerMaterialFilterFlag
 };
 
 // Collects types of all possible dynamic properties, i.e. lua in/out properties and material uniforms

@@ -12,6 +12,8 @@
 #include "core/EditorObject.h"
 #include "data_storage/BasicTypes.h"
 
+#include <vector>
+
 namespace raco::user_types {
 using namespace raco::core;
 
@@ -98,6 +100,39 @@ public:
 		{ 2.0 }
 	};
 
+	void onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const override {
+		onBeforeRemoveReferenceToThis_.push_back(sourceReferenceProperty);
+		EditorObject::onBeforeRemoveReferenceToThis(sourceReferenceProperty);
+	}
+
+	void onAfterAddReferenceToThis(ValueHandle const& sourceReferenceProperty) const override {
+		onAfterAddReferenceToThis_.push_back(sourceReferenceProperty);
+		EditorObject::onAfterAddReferenceToThis(sourceReferenceProperty);		
+	}
+
+	mutable std::vector<ValueHandle> onBeforeRemoveReferenceToThis_;
+	mutable std::vector<ValueHandle> onAfterAddReferenceToThis_;
 };
 
+class ObjectWithTableProperty : public EditorObject {
+public:
+	static inline const TypeDescriptor typeDescription = {"Foo", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	ObjectWithTableProperty(ObjectWithTableProperty const& other) : EditorObject(other), t_(other.t_) {
+		fillPropertyDescription();
+	}
+
+	ObjectWithTableProperty() : EditorObject() {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("t", &t_);
+	}
+
+	Value<Table> t_{};
+};
 }

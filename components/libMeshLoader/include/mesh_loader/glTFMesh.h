@@ -11,16 +11,22 @@
 
 #include "core/MeshCacheInterface.h"
 
-#include <assimp/scene.h>
-
+#include <glm/mat4x4.hpp>
 #include <string>
 #include <vector>
+
+namespace tinygltf {
+struct Primitive;
+struct BufferView;
+struct Accessor;
+class Model;
+}  // namespace tinygltf
 
 namespace raco::mesh_loader {
 
 class glTFMesh : public raco::core::MeshData {
 public:
-	glTFMesh(const aiScene &scene, const core::MeshDescriptor &descriptor);
+	glTFMesh(const tinygltf::Model &scene, core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor);
 
 	uint32_t numSubmeshes() const override;
 	uint32_t numTriangles() const override;
@@ -45,6 +51,12 @@ private:
 		VertexAttribDataType type;
 		std::vector<float> data;
 	};
+
+	constexpr static inline auto MAX_NUMBER_TEXTURECOORDS = 2;
+	constexpr static inline auto MAX_NUMBER_COLORS = 2;
+
+	void loadPrimitiveData(const tinygltf::Primitive& primitive, const tinygltf::Model& scene, std::vector<float>& vertexBuffer, std::vector<float>& normalBuffer, std::vector<float>& tangentBuffer, std::vector<float>& bitangentBuffer,
+		std::vector<std::vector<float>>& uvBuffers, std::vector<std::vector<float>>& colorBuffers, glm::dmat4* rootTrafoMatrix = nullptr);
 
 	uint32_t numTriangles_;
 	uint32_t numVertices_;

@@ -33,12 +33,25 @@ EnumerationEditor::EnumerationEditor(PropertyBrowserItem* item, QWidget* parent)
 	for (const auto& entry : values) {
 		comboBox_->insertItem(entry.first, entry.second.c_str());
 	}
-	comboBox_->setCurrentIndex(item->valueHandle().asInt());
+	if (item->type() == data_storage::PrimitiveType::Bool) {
+		assert(values.size() == 2);
+		comboBox_->setCurrentIndex(item->valueHandle().asBool() ? 1 : 0);		
+	} else {
+		comboBox_->setCurrentIndex(item->valueHandle().asInt());
+	}
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), item, [item](int index) {
-		item->set(index);
+		if (item->type() == data_storage::PrimitiveType::Bool) {
+			item->set(index > 0);
+		} else {
+			item->set(index);			
+		}
 	});
 	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this](raco::core::ValueHandle& handle) {
-		comboBox_->setCurrentIndex(handle.asInt());
+		if (handle.type() == data_storage::PrimitiveType::Bool) {
+			comboBox_->setCurrentIndex(handle.asBool() ? 1 : 0);
+		} else {
+			comboBox_->setCurrentIndex(handle.asInt());
+		}
 	});
 }
 

@@ -21,6 +21,7 @@ struct DeserializationFactory;
 
 namespace raco::core {
 struct MeshDescriptor;
+struct MeshScenegraph;
 
 class Project;
 class ExternalProjectsStoreInterface;
@@ -49,10 +50,11 @@ public:
 	void set(ValueHandle const& handle, double const& value);
 	void set(ValueHandle const& handle, std::string const& value);
 	void set(ValueHandle const& handle, std::vector<std::string> const& value);
+	void set(ValueHandle const& handle, Table const& value);
 	void set(ValueHandle const& handle, SEditorObject const& value);
 
 	// Object creation/deletion
-	SEditorObject createObject(std::string type, std::string name = std::string(), std::string id = std::string());
+	SEditorObject createObject(std::string type, std::string name = std::string(), std::string id = std::string(), SEditorObject parent = nullptr);
 
 	// Delete set of objects
 	// Returns number of actually deleted objects which may be larger than the passed in vector
@@ -64,8 +66,8 @@ public:
 	// - If insertionBeforeIndex = -1 the node will be appended at the end of the new parent children.
 	void moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex = -1);
 
-	// Calls Context::importAssetScenegraph and generates a composite undo command when import has been successful.
-	bool importAssetScenegraph(const std::string& absPath, SEditorObject const& parent);
+	// Calls Context::insertAssetScenegraph and generates a composite undo command when import has been successful.
+	bool insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	/**
 	 * Creates a serialized representation of all given [EditorObject]'s and their appropriate dependencies.

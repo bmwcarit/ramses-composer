@@ -16,6 +16,7 @@ add_library(libCommonWidgets
     include/common_widgets/ExportDialog.h src/ExportDialog.cpp
     include/common_widgets/LinkStartSearchView.h src/LinkStartSearchView.cpp
     include/common_widgets/LogWidget.h src/LogWidget.cpp
+    include/common_widgets/MeshAssetImportDialog.h src/MeshAssetImportDialog.cpp
     include/common_widgets/NoContentMarginsLayout.h
     include/common_widgets/PreferencesView.h src/PreferencesView.cpp
     include/common_widgets/PropertyBrowserButton.h src/PropertyBrowserButton.cpp
@@ -23,6 +24,7 @@ add_library(libCommonWidgets
     include/common_widgets/TimingsWidget.h
     include/common_widgets/QtGuiFormatter.h
     include/common_widgets/UndoView.h src/UndoView.cpp
+    include/common_widgets/PopupDialog.h src/PopupDialog.cpp
 )
 
 target_include_directories(libCommonWidgets
@@ -40,6 +42,7 @@ target_link_libraries(libCommonWidgets
         Qt5::Widgets
         raco::Components
         raco::ApplicationLib
+        raco::Style
     PRIVATE
         raco::LogSystem
 )

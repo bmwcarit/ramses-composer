@@ -11,6 +11,7 @@
 #include <data_storage/BasicTypes.h>
 #include <core/Handles.h>
 #include "user_types/Node.h"
+#include "user_types/PerspectiveCamera.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -20,27 +21,6 @@
 
 using namespace raco::core;
 using namespace raco::user_types;
-
-
-
-TEST(ValueHandle, std_collections_capabalbe) {
-	const std::shared_ptr<Node> editorObject1{std::make_shared<Node>("SomeName1")};
-	const std::shared_ptr<Node> editorObject2{std::make_shared<Node>("SomeName2")};
-
-	const ValueHandle valueHandle1{editorObject1};
-	const ValueHandle valueHandle2{editorObject2};
-
-	std::map<ValueHandle, int> map{};
-	map[valueHandle1] = 1;
-	map[valueHandle2] = 2;
-	EXPECT_EQ(map[valueHandle1], 1);
-	EXPECT_EQ(map[valueHandle2], 2);
-
-	std::set<ValueHandle> set{};
-	set.insert(valueHandle1);
-	set.insert(valueHandle2);
-	EXPECT_EQ(set.size(), 2);
-}
 
 class MockTableObject : public EditorObject {
 public:
@@ -59,6 +39,25 @@ public:
 
 	Property<Table> table_{{}};
 };
+ 
+TEST(ValueHandle, ValueHandle_std_collections_capable) {
+	const std::shared_ptr<Node> editorObject1{std::make_shared<Node>("SomeName1")};
+	const std::shared_ptr<Node> editorObject2{std::make_shared<Node>("SomeName2")};
+
+	const ValueHandle valueHandle1{editorObject1};
+	const ValueHandle valueHandle2{editorObject2};
+
+	std::map<ValueHandle, int> map{};
+	map[valueHandle1] = 1;
+	map[valueHandle2] = 2;
+	EXPECT_EQ(map[valueHandle1], 1);
+	EXPECT_EQ(map[valueHandle2], 2);
+
+	std::set<ValueHandle> set{};
+	set.insert(valueHandle1);
+	set.insert(valueHandle2);
+	EXPECT_EQ(set.size(), 2);
+}
 
 TEST(ValueHandle, ValueHandle_comparesByIndex_append) {
 	const std::shared_ptr<MockTableObject> tableObject{std::make_shared<MockTableObject>("SomeName1")};
@@ -100,4 +99,40 @@ TEST(ValueHandle, ValueHandle_comparesByIndex_prepend) {
 	// element it points to - and therefore now points to the new element.
 	EXPECT_FALSE(child1BeforeAdd == child2AfterAdd);
 	EXPECT_TRUE(child1BeforeAdd == child1AfterAdd);
+}
+
+TEST(ValueHandle, ValueHandle_PropertyPtr) {
+	const std::shared_ptr<Node> editorObject{std::make_shared<Node>("SomeName1")};
+	const std::shared_ptr<PerspectiveCamera> editorObjectWithBase{std::make_shared<PerspectiveCamera>("SomeName2", std::string{})};
+
+	const ValueHandle valueHandle1a{editorObject, &Node::translation_};
+	const ValueHandle valueHandle1b{editorObject, {"translation"}};
+	const ValueHandle valueHandle1c{editorObject, {"translation", "y"}};
+	const ValueHandle valueHandle1d{editorObject};
+	EXPECT_EQ(valueHandle1a, valueHandle1b);
+	EXPECT_TRUE(valueHandle1a.isRefToProp(&Node::translation_));
+	EXPECT_FALSE(valueHandle1a.isRefToProp(&PerspectiveCamera::frustum_));
+	EXPECT_TRUE(valueHandle1b.isRefToProp(&Node::translation_));
+	EXPECT_FALSE(valueHandle1b.isRefToProp(&PerspectiveCamera::frustum_));
+	EXPECT_FALSE(valueHandle1c.isRefToProp(&Node::translation_));
+	EXPECT_FALSE(valueHandle1d.isRefToProp(&Node::translation_));
+
+	const ValueHandle valueHandle2a{editorObject, &Node::translation_, &Vec3f::y};
+	const ValueHandle valueHandle2b{editorObject, {"translation", "y"}};
+	EXPECT_EQ(valueHandle2a, valueHandle2b);
+
+	const ValueHandle valueHandle3{editorObject, &Node::translation_, &Vec4f::y};
+	EXPECT_FALSE(valueHandle3);
+
+	// Compile errors. I'd like to test that. Should be possible with SFINAE?
+	// const ValueHandle valueHandle4a{editorObject, &Node::onAfterValueChanged};
+	
+	const ValueHandle valueHandle5a{editorObjectWithBase, {"translation", "y"}};
+	const ValueHandle valueHandle5b{editorObjectWithBase, &PerspectiveCamera::translation_, &Vec3f::y};
+	const ValueHandle valueHandle5c{editorObjectWithBase, &Node::translation_, &Vec3f::y};
+	EXPECT_EQ(valueHandle5a, valueHandle5b);
+	EXPECT_EQ(valueHandle5a, valueHandle5c);
+
+	const ValueHandle valueHandle6{editorObject, &PerspectiveCamera::frustum_};
+	EXPECT_FALSE(valueHandle6);
 }

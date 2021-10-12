@@ -26,7 +26,6 @@
 #include "style/Icons.h"
 
 #include "utils/PathUtils.h"
-#include "core/PathManager.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
 #include "property_browser/PropertyBrowserItem.h"
@@ -159,27 +158,27 @@ std::string URIEditor::createRelativePath() {
 	return PathManager::constructRelativePath(itemPath, projectAbsPath);
 }
 
-std::string URIEditor::getCachedPathKeyCorrespondingToUserType() {
+raco::core::PathManager::FolderTypeKeys URIEditor::getCachedPathKeyCorrespondingToUserType() {
 	auto rootObj = currentItem_->valueHandle().rootObject();
 
 	if (rootObj->as<raco::user_types::CubeMap>() || rootObj->as<raco::user_types::Texture>()) {
-		return raco::core::PathManager::IMAGE_SUB_DIRECTORY;
+		return raco::core::PathManager::FolderTypeKeys::Image;
 	}
 
 	if (rootObj->as<raco::user_types::Mesh>()) {
-		return raco::core::PathManager::MESH_SUB_DIRECTORY;
+		return raco::core::PathManager::FolderTypeKeys::Mesh;
 	}
 
 	if (rootObj->as<raco::user_types::LuaScript>()) {
-		return raco::core::PathManager::SCRIPT_SUB_DIRECTORY;
+		return raco::core::PathManager::FolderTypeKeys::Script;
 	}
 
 	if (rootObj->as<raco::user_types::Material>()) {
-		return raco::core::PathManager::SHADER_SUB_DIRECTORY;
+		return raco::core::PathManager::FolderTypeKeys::Shader;
 	}
 
 	assert(false && "unknown user type found in URIEditor::getCachedPathKeyCorrespondingToUserType()");
-	return "";
+	return raco::core::PathManager::FolderTypeKeys::Invalid;
 }
 
 }  // namespace raco::property_browser

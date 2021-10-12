@@ -1887,6 +1887,547 @@
                 "uri": "../testData/float.lua"
             },
             "typeName": "LuaScript"
+        },
+        {
+            "properties": {
+                "instanceCount": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 20,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 1
+                },
+                "mesh": null,
+                "objectID": "b6685c18-9609-49b9-a4fa-7a0d568583a5",
+                "objectName": "meshnode_no_mesh",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scale": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "visible": true
+            },
+            "typeName": "MeshNode"
+        },
+        {
+            "properties": {
+                "instanceCount": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 20,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 1
+                },
+                "materials": {
+                    "order": [
+                        "material"
+                    ],
+                    "properties": {
+                        "material": {
+                            "order": [
+                                "material",
+                                "private",
+                                "options",
+                                "uniforms"
+                            ],
+                            "properties": {
+                                "material": {
+                                    "typeName": "Material",
+                                    "value": null
+                                },
+                                "options": {
+                                    "order": [
+                                        "blendOperationColor",
+                                        "blendOperationAlpha",
+                                        "blendFactorSrcColor",
+                                        "blendFactorDestColor",
+                                        "blendFactorSrcAlpha",
+                                        "blendFactorDestAlpha",
+                                        "blendColor",
+                                        "depthwrite",
+                                        "depthFunction",
+                                        "cullmode"
+                                    ],
+                                    "properties": {
+                                        "blendColor": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Color"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                }
+                                            ],
+                                            "properties": {
+                                                "w": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 1,
+                                                                "min": 0
+                                                            },
+                                                            "typeName": "RangeAnnotationDouble"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "x": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 1,
+                                                                "min": 0
+                                                            },
+                                                            "typeName": "RangeAnnotationDouble"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "y": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 1,
+                                                                "min": 0
+                                                            },
+                                                            "typeName": "RangeAnnotationDouble"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "z": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 1,
+                                                                "min": 0
+                                                            },
+                                                            "typeName": "RangeAnnotationDouble"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                }
+                                            },
+                                            "typeName": "Vec4f::DisplayNameAnnotation"
+                                        },
+                                        "blendFactorDestAlpha": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Factor Dest Alpha"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 3
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 1
+                                        },
+                                        "blendFactorDestColor": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Factor Dest Color"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 3
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 3
+                                        },
+                                        "blendFactorSrcAlpha": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Factor Src Alpha"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 3
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 1
+                                        },
+                                        "blendFactorSrcColor": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Factor Src Color"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 3
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 2
+                                        },
+                                        "blendOperationAlpha": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Operation Alpha"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 2
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 0
+                                        },
+                                        "blendOperationColor": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Blend Operation Color"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 2
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 0
+                                        },
+                                        "cullmode": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Cull Mode"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 1
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 2
+                                        },
+                                        "depthFunction": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Depth Function"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "type": 4
+                                                    },
+                                                    "typeName": "EnumerationAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+                                            "value": 4
+                                        },
+                                        "depthwrite": {
+                                            "annotations": [
+                                                {
+                                                    "properties": {
+                                                        "name": "Depth Write"
+                                                    },
+                                                    "typeName": "DisplayNameAnnotation"
+                                                }
+                                            ],
+                                            "typeName": "Bool::DisplayNameAnnotation",
+                                            "value": true
+                                        }
+                                    },
+                                    "typeName": "Table"
+                                },
+                                "private": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "name": "Private Material"
+                                            },
+                                            "typeName": "DisplayNameAnnotation"
+                                        }
+                                    ],
+                                    "typeName": "Bool::DisplayNameAnnotation",
+                                    "value": false
+                                },
+                                "uniforms": {
+                                    "typeName": "Table"
+                                }
+                            },
+                            "typeName": "Table"
+                        }
+                    }
+                },
+                "mesh": "9d0fe3e2-1d52-455e-b47b-1b5ddc481b9f",
+                "objectID": "7afa0ed6-fd09-4c1b-82a7-82eb1b78d0a4",
+                "objectName": "meshnode_mesh_no_mat",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scale": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "visible": true
+            },
+            "typeName": "MeshNode"
         }
     ],
     "links": [
@@ -2005,8 +2546,8 @@
     ],
     "logicEngineVersion": [
         0,
-        6,
-        2
+        7,
+        0
     ],
     "racoVersion": [
         0,

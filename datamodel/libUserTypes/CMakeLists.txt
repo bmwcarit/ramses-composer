@@ -24,6 +24,10 @@ add_library(libUserTypes
 	include/user_types/PerspectiveCamera.h
 	include/user_types/Prefab.h src/Prefab.cpp
 	include/user_types/PrefabInstance.h src/PrefabInstance.cpp
+	include/user_types/RenderBuffer.h
+	include/user_types/RenderLayer.h
+	include/user_types/RenderTarget.h
+	include/user_types/RenderPass.h
 	include/user_types/Texture.h src/Texture.cpp
 	include/user_types/EngineTypeAnnotation.h
 

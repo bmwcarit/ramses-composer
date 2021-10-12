@@ -84,7 +84,7 @@ bool PathManager::pathsShareSameRoot(const std::string& lhd, const std::string& 
 	return leftRoot == rightRoot;
 }
 
-const std::string& PathManager::getCachedPath(const std::string& key, const std::string& fallbackPath) {
+const std::string& PathManager::getCachedPath(FolderTypeKeys key, const std::string& fallbackPath) {
 	auto pathIt = cachedPaths_.find(key);
 	if (pathIt != cachedPaths_.end()) {
 		auto& cachedPath = pathIt->second;
@@ -97,19 +97,23 @@ const std::string& PathManager::getCachedPath(const std::string& key, const std:
 	return fallbackPath;
 }
 
-void PathManager::setCachedPath(const std::string& key, const std::string& path) {
+void PathManager::setCachedPath(FolderTypeKeys key, const std::string& path) {
 	auto pathIt = cachedPaths_.find(key);
 	if (pathIt != cachedPaths_.end()) {
 		pathIt->second = path;
 	}
 }
 
-void PathManager::setAllCachedPathRoots(const std::string& folder) {
-	setCachedPath(DEFAULT_PROJECT_SUB_DIRECTORY, folder);
-	setCachedPath(IMAGE_SUB_DIRECTORY, folder + "/" + IMAGE_SUB_DIRECTORY);
-	setCachedPath(MESH_SUB_DIRECTORY, folder + "/" + MESH_SUB_DIRECTORY);
-	setCachedPath(SCRIPT_SUB_DIRECTORY, folder + "/" + SCRIPT_SUB_DIRECTORY);
-	setCachedPath(SHADER_SUB_DIRECTORY, folder + "/" + SHADER_SUB_DIRECTORY);
+void PathManager::setAllCachedPathRoots(const std::string& folder, 
+	const std::string& imageSubdirectory,
+	const std::string& MeshSubdirectory,
+	const std::string& ScriptSubdirectory,
+	const std::string& ShaderSubdirectory) {
+	setCachedPath(FolderTypeKeys::Project, folder);
+	setCachedPath(FolderTypeKeys::Image, folder + "/" + imageSubdirectory);
+	setCachedPath(FolderTypeKeys::Mesh, folder + "/" + MeshSubdirectory);
+	setCachedPath(FolderTypeKeys::Script, folder + "/" + ScriptSubdirectory);
+	setCachedPath(FolderTypeKeys::Shader, folder + "/" + ShaderSubdirectory);
 }
 
 std::string PathManager::sanitizePath(const std::string& path) {

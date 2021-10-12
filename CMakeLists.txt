@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 0.8.3)
+project(RaCoOS VERSION 0.9.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -45,6 +45,10 @@ set(RACO_QT_WINDEPLOY_PATH "${RACO_QT_BASE}/bin/")
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	# Enable multi-processor compilation for Visual Studio
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+	# Compile errors might occur with Visual Studio 2019 16.6 or earlier.
+	if(${MSVC_VERSION} LESS 1927)
+		message(SEND_ERROR "MSVC_VERSION reports version number ${MSVC_VERSION}. Minimum required version is 1927 (=Visual Studio 2019 16.7).")
+	endif()
 endif()
 
 # We only allow building against (and test with) one exact Qt version for now. 

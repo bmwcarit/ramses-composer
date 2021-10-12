@@ -10,6 +10,7 @@
 #pragma once
 
 #include <QJsonDocument>
+#include <unordered_map>
 #include <string>
 
 namespace raco::components {
@@ -37,7 +38,14 @@ namespace raco::components {
  * 13: Introduced Struct properties and converted
  *     - material and meshnode blend options
  *     - camera viewport and frustum
+ * 14: Replaced "U/V Origin" enum with Texture flip flag
+ *     Origin "Top Left" -> flag enabled
+ * 15: Added offscreen rendering support:
+ *     - changed texture uniform type for normal 2D textures from STexture -> STextureSampler2DBase
+ *     - added tag properties to Node and Material user types.
+ * 16: New Ramses version that changes transformation order
+ *     (previously: Translation * Scale * Rotation, now: Translation * Rotation * Scale)
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 13;
-QJsonDocument migrateProject(const QJsonDocument& doc);
+constexpr int RAMSES_PROJECT_FILE_VERSION = 16;
+QJsonDocument migrateProject(const QJsonDocument& doc, std::unordered_map<std::string, std::string>& migrationWarnings);
 }  // namespace raco::components

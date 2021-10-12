@@ -51,13 +51,14 @@ public:
 
 	bool canCopy(const QModelIndex& index) const override;
 	bool canDelete(const QModelIndex& index) const override;
-	bool canPasteInto(const QModelIndex& index) const override;
+	bool canInsertMeshAssets(const QModelIndex& index) const override;
+	bool canPasteInto(const QModelIndex& index, const std::string& deserializedObjs = RaCoClipboard::get(), bool asExtRef = false) const override;
 
 public Q_SLOTS:
 	size_t deleteObjectAtIndex(const QModelIndex& index) override;
 	void copyObjectAtIndex(const QModelIndex& index, bool deepCopy) override;
 	void cutObjectAtIndex(const QModelIndex& index, bool deepCut) override;
-	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr) override;
+	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get()) override;
 
 protected:
 	void buildObjectTree() override;

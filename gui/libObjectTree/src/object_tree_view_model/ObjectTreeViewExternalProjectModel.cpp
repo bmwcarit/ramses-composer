@@ -147,7 +147,7 @@ bool ObjectTreeViewExternalProjectModel::canDelete(const QModelIndex& index) con
 	return false;
 }
 
-bool ObjectTreeViewExternalProjectModel::canPasteInto(const QModelIndex& index) const {
+bool ObjectTreeViewExternalProjectModel::canPasteInto(const QModelIndex& index, const std::string& serializedObjs, bool asExtRef) const {
 	return false;
 }
 
@@ -160,9 +160,13 @@ void ObjectTreeViewExternalProjectModel::cutObjectAtIndex(const QModelIndex& ind
 	// Don't modify external project structure.
 }
 
-bool ObjectTreeViewExternalProjectModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError) {
+bool ObjectTreeViewExternalProjectModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	// Don't modify external project structure.
 	return true;
+}
+
+bool ObjectTreeViewExternalProjectModel::canInsertMeshAssets(const QModelIndex& index) const {
+	return false;
 }
 
 }  // namespace raco::object_tree::model

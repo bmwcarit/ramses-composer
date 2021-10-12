@@ -17,7 +17,7 @@
 
 namespace raco::ramses_adaptor {
 
-class PerspectiveCameraAdaptor : public SpatialAdaptor<user_types::PerspectiveCamera, ramses::PerspectiveCamera> {
+class PerspectiveCameraAdaptor : public SpatialAdaptor<user_types::PerspectiveCamera, ramses_base::RamsesPerspectiveCameraHandle> {
 public:
 	
 	explicit PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::PerspectiveCamera> editorObject);

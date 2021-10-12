@@ -30,14 +30,13 @@ class SpatialAdaptor : public TypedObjectAdaptor<EditorType, RamsesType>, public
 public:
 	explicit SpatialAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<EditorType> editorObject, RamsesHandle<RamsesType>&& ramsesObject, NodeAdaptor* parent = nullptr)
 		: TypedObjectAdaptor<EditorType, RamsesType>{sceneAdaptor, editorObject, std::move(ramsesObject)},
-		  nodeBinding_{raco::ramses_base::ramsesNodeBinding(this->ramsesObject(), &sceneAdaptor->logicEngine())},
+		  nodeBinding_{raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine())},
 		  subscriptions_{
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visible"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("children"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("translation"), [this](auto) { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("scale"), [this](auto) { this->tagDirty(); }),
-			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("rotation"), [this](auto) { this->tagDirty(); })} {		
-		
+			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("rotation"), [this](auto) { this->tagDirty(); })} {
 	}
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override {
@@ -86,7 +85,8 @@ public:
 	}
 
 	RamsesHandle<ramses::Node> sceneObject() override {
-		return this->getRamsesObjectPointer();
+		auto handlePtr = this->getRamsesObjectPointer();
+		return std::shared_ptr<ramses::Node>(handlePtr, handlePtr->get()); 
 	}
 
 protected:
@@ -94,7 +94,7 @@ protected:
 
 private:
 	void syncChildren() {
-		this->ramsesObject().removeAllChildren();
+		(*this->ramsesObject()).removeAllChildren();
 		currentRamsesChildren_.clear();
 
 		for (const auto& child : *this->editorObject()) {
@@ -102,7 +102,7 @@ private:
 			auto castedChild = scene->lookup<ISceneObjectProvider>(child);
 			if (castedChild) {
 				auto handle{castedChild->sceneObject()};
-				this->ramsesObject().addChild(*handle);
+				(*this->ramsesObject()).addChild(*handle);
 				currentRamsesChildren_.emplace_back(handle);
 
 			}
@@ -115,26 +115,26 @@ private:
 
 	void syncVisibility() {
 		auto visible = core::ValueHandle{this->editorObject()}.get("visible").as<bool>();
-		if ((this->ramsesObject().getVisibility() == ramses::EVisibilityMode::Visible) != visible) {
-			this->ramsesObject().setVisibility(visible ? ramses::EVisibilityMode::Visible : ramses::EVisibilityMode::Invisible);
+		if (((*this->ramsesObject()).getVisibility() == ramses::EVisibilityMode::Visible) != visible) {
+			(*this->ramsesObject()).setVisibility(visible ? ramses::EVisibilityMode::Visible : ramses::EVisibilityMode::Invisible);
 		}
 	}
 
 	void syncRotation() {
-		if (Rotation::from(this->editorObject()) != Rotation::from(this->ramsesObject())) {
-			Rotation::sync(this->editorObject(), this->ramsesObject());
+		if (Rotation::from(this->editorObject()) != Rotation::from(*this->ramsesObject())) {
+			Rotation::sync(this->editorObject(), *this->ramsesObject());
 		}
 	}
 
 	void syncTranslation() {
-		if (Translation::from(this->editorObject()) != Translation::from(this->ramsesObject())) {
-			Translation::sync(this->editorObject(), this->ramsesObject());
+		if (Translation::from(this->editorObject()) != Translation::from(*this->ramsesObject())) {
+			Translation::sync(this->editorObject(), *this->ramsesObject());
 		}
 	}
 
 	void syncScaling() {
-		if (Scaling::from(this->editorObject()) != Scaling::from(this->ramsesObject())) {
-			Scaling::sync(this->editorObject(), this->ramsesObject());
+		if (Scaling::from(this->editorObject()) != Scaling::from(*this->ramsesObject())) {
+			Scaling::sync(this->editorObject(), *this->ramsesObject());
 		}
 	}
 
@@ -142,7 +142,7 @@ private:
 	std::array<components::Subscription, 5> subscriptions_;
 };
 
-class NodeAdaptor final : public SpatialAdaptor<user_types::Node, ramses::Node> {
+class NodeAdaptor final : public SpatialAdaptor<user_types::Node, ramses_base::RamsesNodeHandle> {
 public:
 	explicit NodeAdaptor(SceneAdaptor* sceneAdaptor, user_types::SNode node);
 };

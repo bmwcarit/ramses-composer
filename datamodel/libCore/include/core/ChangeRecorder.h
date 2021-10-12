@@ -77,6 +77,10 @@ public:
 	std::map<std::string, std::set<LinkDescriptor>> const& getValidityChangedLinks() const;
 	std::map<std::string, std::set<LinkDescriptor>> const& getRemovedLinks() const;
 
+	bool isLinkAdded(SLink link) const;
+	bool isLinkValidityChanged(SLink link) const;
+
+
 	// Construct set of all objects that have been changed in some way, i.e.
 	// that have been created of which contain a changed Value.
 	std::set<SEditorObject> getAllChangedObjects(bool includePreviewDirty = false, bool includeLinkStart = false, bool includeLinkEnd = false) const;
@@ -96,6 +100,8 @@ private:
 		void clear() {
 			linkMap_.clear();
 		}
+
+		bool contains(SLink link) const;
 
 		// Try to find link, then erase it. Returns true when found and erased, false otherwise.
 		bool eraseLink(const LinkDescriptor& link);

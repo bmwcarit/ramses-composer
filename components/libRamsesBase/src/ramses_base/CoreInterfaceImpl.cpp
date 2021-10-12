@@ -48,6 +48,15 @@ const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco
 		case raco::core::EngineEnumeration::TextureOrigin:
 			return raco::user_types::enumerationTextureOrigin;
 
+		case raco::core::EngineEnumeration::RenderBufferFormat:
+			return enumerationRenderBufferFormat;
+
+		case raco::core::EngineEnumeration::RenderLayerOrder:
+			return raco::user_types::enumerationRenderLayerOrder;
+
+		case raco::core::EngineEnumeration::RenderLayerMaterialFilterFlag:
+			return raco::user_types::enumerationRenderLayerMaterialFilterFlag;
+
 		default:
 			assert(false);
 			return enumerationEmpty;

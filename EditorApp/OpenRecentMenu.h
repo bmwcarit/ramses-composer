@@ -12,7 +12,9 @@
 #include <QMenu>
 
 class OpenRecentMenu : public QMenu {
-    Q_OBJECT
+	Q_OBJECT
+
+	static constexpr int maxRecentEntries = 10;
 public:
     explicit OpenRecentMenu(QWidget* parent = nullptr);
     void addRecentFile(const QString& file);

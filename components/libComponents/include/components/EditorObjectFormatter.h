@@ -14,19 +14,29 @@
 #include <spdlog/fmt/fmt.h>
 #include <vector>
 
-template <>
-struct fmt::formatter<raco::core::SEditorObject> : formatter<string_view> {
+template <typename TUserType>
+struct fmt::formatter<std::shared_ptr<TUserType>> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const raco::core::SEditorObject& c, FormatContext& ctx) {
+	auto format(const std::shared_ptr<TUserType>& c, FormatContext& ctx) {
+		static_assert(std::is_base_of<raco::core::EditorObject, TUserType>::value);
 		return formatter<string_view>::format(c->objectName(), ctx);
 	}
 };
 
-template <>
-struct fmt::formatter<std::vector<raco::core::SEditorObject>> : formatter<string_view> {
+template <typename TUserType>
+struct fmt::formatter<std::vector<std::shared_ptr<TUserType>>> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const std::vector<raco::core::SEditorObject>& c, FormatContext& ctx) {
+	auto format(const std::vector<std::shared_ptr<TUserType>>& c, FormatContext& ctx) {
+		static_assert(std::is_base_of<raco::core::EditorObject, TUserType>::value);
 		return formatter<string_view>::format(fmt::format("{}", fmt::join(c, ", ")), ctx);
 	}
 };
 
+template <typename TUserType>
+struct fmt::formatter<std::set<std::shared_ptr<TUserType>>> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const std::set<std::shared_ptr<TUserType>>& c, FormatContext& ctx) {
+		static_assert(std::is_base_of<raco::core::EditorObject, TUserType>::value);
+		return formatter<string_view>::format(fmt::format("{}", fmt::join(c, ", ")), ctx);
+	}
+};
