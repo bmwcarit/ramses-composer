@@ -77,9 +77,9 @@ namespace raco::property_browser {
 		tagListItemModel_ = new TagContainerEditor_AppliedTagModel(listOfTags_.get(), tagType_);
 		
 		acceptButton_.setFlat(true);
-		acceptButton_.setIcon(style::Icons::icon(style::Pixmap::done));
+		acceptButton_.setText("Ok");
 		closeButton_.setFlat(true);
-		closeButton_.setIcon(style::Icons::icon(style::Pixmap::close));
+		closeButton_.setText("Cancel");
 
 		// Set up list of tags
 		for (size_t index{ 0 }; index < item->valueHandle().size(); index++) {
@@ -99,7 +99,7 @@ namespace raco::property_browser {
 		listOfTags_->setItemDelegate(new TreeViewItemWithFullWidthEditor(listOfTags_.get(), &completer_));
 		listOfTags_->setModel(tagListItemModel_);
 		if (tagType_ == TagType::NodeTags_Referencing) {
-			tagListItemModel_->setHorizontalHeaderLabels({"Applied tags", "Order"});
+			tagListItemModel_->setHorizontalHeaderLabels({"Applied tags", "Render Order"});
 			listOfTags_->header()->setStretchLastSection(false);
 			listOfTags_->header()->setSectionResizeMode(0, QHeaderView::ResizeMode::Stretch);
 			listOfTags_->header()->setSectionResizeMode(1, QHeaderView::ResizeMode::ResizeToContents);

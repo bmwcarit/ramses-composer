@@ -170,6 +170,9 @@ public:
 	Property<std::string, HiddenProperty> objectID_{ std::string(), HiddenProperty() };
 	Property<std::string, DisplayNameAnnotation> objectName_;
 
+	// Used to check back pointers in the unit tests.
+	const std::set<WEditorObject, std::owner_less<WEditorObject>>& referencesToThis() const;
+
 private:
 	friend class BaseContext;
 

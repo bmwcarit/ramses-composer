@@ -90,7 +90,9 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), scriptContent);
 		luaScript_.reset();
 		if (!scriptContent.empty()) {
-			auto ptr = sceneAdaptor_->logicEngine().createLuaScriptFromSource(scriptContent, generateRamsesObjectName());
+			rlogic::LuaConfig luaConfig;
+			luaConfig.addStandardModuleDependency(rlogic::EStandardModule::All);
+			auto ptr = sceneAdaptor_->logicEngine().createLuaScript(scriptContent, luaConfig, generateRamsesObjectName());
 			LOG_TRACE(log_system::RAMSES_ADAPTOR, "create: {}", fmt::ptr(ptr));
 			if (ptr) {
 				luaScript_ = {

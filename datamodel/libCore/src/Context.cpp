@@ -149,7 +149,7 @@ void BaseContext::setT<SEditorObject>(ValueHandle const& handle, SEditorObject c
 
 template<void (EditorObject::*Handler)(ValueHandle const&) const>
 void BaseContext::callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh) {
-	Table const& t = vh.valueRef()->asTable();
+	const ReflectionInterface& t = vh.valueRef()->getSubstructure();
 	for (int i = 0; i < t.size(); ++i) {
 		auto v = t.get(i);
 		if (v->type() == PrimitiveType::Ref) {
@@ -157,7 +157,7 @@ void BaseContext::callReferenceToThisHandlerForAllTableEntries(ValueHandle const
 			if (vref) {
 				(vref.get()->*Handler)(vh[i]);
 			}
-		} else if (v->type() == PrimitiveType::Table) {
+		} else if (hasTypeSubstructure(v->type())) {
 			callReferenceToThisHandlerForAllTableEntries<Handler>(vh[i]);
 		}
 	}			
@@ -226,6 +226,22 @@ ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name,
 	// Cache/Restore links starting or ending on the property or its child properties
 	for (auto link : Queries::getLinksConnectedToPropertySubtree(*project_, handle.get(name), true, true)) {
 		updateLinkValidity(link);
+	}
+
+	if (newValue->type() == PrimitiveType::Ref) {
+		auto refValue = newValue->asRef();
+		if (refValue) {
+			refValue->onAfterAddReferenceToThis(handle.get(name));
+		}
+	} else if (hasTypeSubstructure(newValue->type())) {
+		for (auto prop : ValueTreeIteratorAdaptor(handle.get(name))) {
+			if (prop.type() == PrimitiveType::Ref) {
+				auto refValue = prop.valueRef()->asRef();
+				if (refValue) {
+					refValue->onAfterAddReferenceToThis(prop);
+				}
+			}
+		}
 	}
 
 	callReferencedObjectChangedHandlers(handle.object_);
@@ -619,6 +635,14 @@ void BaseContext::updateLinkValidity(SLink link) {
 	}
 
 	updateBrokenLinkErrors(*link->endObject_);
+}
+
+void BaseContext::initLinkValidity() {
+	for (const auto& linksEnd : project()->linkEndPoints()) {
+		for (const auto& link : linksEnd.second) {
+			link->isValid_ = Queries::linkWouldBeValid(*project(), link->startProp(), link->endProp());
+		}
+	}
 }
 
 void BaseContext::initBrokenLinkErrors() {

@@ -11,6 +11,8 @@
 #include "core/PathManager.h"
 #include "core/ExternalReferenceAnnotation.h"
 #include "utils/PathUtils.h"
+#include "core/CoreFormatter.h"
+#include "log_system/log.h"
 
 #include <cctype>
 #include "utils/stdfilesystem.h"
@@ -91,11 +93,15 @@ void Project::addLink(SLink link) {
 }
 
 SLink Project::findLinkByObjectID(SLink link) const {
+	return findLinkByObjectID(linkEndPoints_, link);
+}
+
+SLink Project::findLinkByObjectID(const std::map<std::string, std::set<SLink>>& linksByEndPointID, SLink link) {
 	auto linkEndObjID = (*link->endObject_)->objectID();
 
-	auto linkEndPointIt = linkEndPoints_.find(linkEndObjID);
+	auto linkEndPointIt = linksByEndPointID.find(linkEndObjID);
 
-	if (linkEndPointIt != linkEndPoints_.end()) {
+	if (linkEndPointIt != linksByEndPointID.end()) {
 		auto& endPointLinks = linkEndPointIt->second;
 		for (const auto& endPointLink : endPointLinks) {
 			if (compareLinksByObjectID(*endPointLink, *link)) {
@@ -125,6 +131,13 @@ void Project::removeLink(SLink link) {
 	links_.erase(std::find(links_.begin(), links_.end(), link));
 }
 
+void Project::removeAllLinks() {
+	linkGraph_.removeAllLinks();
+	linkStartPoints_.clear();
+	linkEndPoints_.clear();
+	links_.clear();
+}
+
 const std::map<std::string, std::set<SLink>>& Project::linkStartPoints() const {
 	return linkStartPoints_;
 }
@@ -135,6 +148,44 @@ const std::map<std::string, std::set<SLink>>& Project::linkEndPoints() const {
 
 const std::vector<SLink>& Project::links() const {
 	return links_;
+}
+
+bool Project::checkLinkDuplicates() const {
+	for (const auto& linksEnd : linkEndPoints_) {
+		std::vector<SLink> cmpLinks;
+		for (const auto& link : linksEnd.second) {
+			for (auto cmpLink : cmpLinks) {
+				if (compareLinksByObjectID(*cmpLink, *link)) {
+					return true;
+				}
+			}
+			cmpLinks.emplace_back(link);
+		}
+	}
+	return false;
+}
+
+void Project::deduplicateLinks() {
+	std::map<std::string, std::set<SLink>> newLinkEndPoints;
+	for (const auto& linksEnd : linkEndPoints_) {
+		for (const auto& link : linksEnd.second) {
+			if (!Project::findLinkByObjectID(newLinkEndPoints, link)) {
+				// no duplicate -> insert 
+				newLinkEndPoints[(*link->endObject_)->objectID()].insert(link);
+			} else {
+				// duplicate -> log warning
+				LOG_WARNING(log_system::PROJECT, "Duplicate link discarded: {}", link);
+			}
+		}
+	}
+
+	removeAllLinks();
+
+	for (const auto& linksEnd : newLinkEndPoints) {
+		for (const auto& link : linksEnd.second) {
+			addLink(link);
+		}
+	}
 }
 
 std::shared_ptr<const ProjectSettings> Project::settings() const {
@@ -299,6 +350,10 @@ void Project::LinkGraph::removeLink(SLink link) {
 			graph.erase(it);
 		}
 	}
+}
+
+void Project::LinkGraph::removeAllLinks() {
+	graph.clear();
 }
 
 bool Project::LinkGraph::createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const {

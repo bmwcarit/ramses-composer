@@ -12,6 +12,7 @@
 #include <ramses-client-api/Node.h>
 #include <ramses-client-api/SceneGraphIterator.h>
 #include <ramses-client-api/SceneObjectIterator.h>
+#include <ramses-logic/LuaScript.h>
 #include <ramses-logic/RamsesAppearanceBinding.h>
 #include <ramses-logic/RamsesNodeBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>

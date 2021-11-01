@@ -57,15 +57,26 @@ RenderPassAdaptor::RenderPassAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr
 }
 
 bool RenderPassAdaptor::sync(core::Errors* errors) {
+	errors->removeError({editorObject()->shared_from_this()});
+	
 	ramses_base::RamsesRenderTarget ramsesTarget{};
+	bool validTarget = true;
 	if (auto target = *editorObject()->target_) {
 		if (auto targetAdaptor = sceneAdaptor_->lookup<RenderTargetAdaptor>(target)) {
 			ramsesTarget = targetAdaptor->getRamsesObjectPointer();
+			if (ramsesTarget == nullptr) {
+				// ramsesTarget == nullptr can only happen if the RamsesTarget is invalid (e. g. because render buffers don't match in size).
+				// Only reset render pass in this case and do not render anything.
+				validTarget = false;
+				const auto errorMsg = fmt::format("Render pass '{}' is not rendered due to invalid render target '{}'", editorObject()->objectName(), target->objectName());
+				LOG_WARNING(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+				errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::WARNING, {editorObject()->shared_from_this()}, 	errorMsg);
+			}
 		}
 	}
 
 	auto camera = *editorObject()->camera_;
-	if (camera) {
+	if (validTarget && camera) {
 		if (auto perspCamera = camera->as<user_types::OrthographicCamera>()) {
 			if (auto cameraAdaptor = sceneAdaptor_->lookup<OrthographicCameraAdaptor>(perspCamera)) {
 				auto newRamsesObject = ramses_base::ramsesRenderPass(sceneAdaptor_->scene(), cameraAdaptor->getRamsesObjectPointer(), ramsesTarget, editorObject()->objectName().c_str());

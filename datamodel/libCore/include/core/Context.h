@@ -158,6 +158,10 @@ public:
 	// Note: the objects may still have parents in the origin project they were copied from.
 	static std::vector<SEditorObject> getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, UserObjectFactoryInterface* objectFactory, Project* project);
 
+	// Initialize link validity flag during load. This does not update broken link errors and does not
+	// generated change recorder entries. Use only during load to fix corrupt files.
+	void initLinkValidity();
+
 private:
 	friend class UndoStack;
 	friend class FileChangeCallback;

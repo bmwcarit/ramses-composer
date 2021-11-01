@@ -878,6 +878,37 @@ QJsonDocument migrateProject(const QJsonDocument& document, std::unordered_map<s
 		});
 	}
 
+	// File version 17: removed "Optimized" option from render layer sort options
+	if (documentVersion < 17) {
+		auto factory = deserializationFactoryV10plus();
+		iterateInstances(documentObject, [&factory](const QString& instanceType, QJsonObject& instanceproperties) {
+			if (instanceType != "RenderLayer") {
+				return false;
+			}
+			Property<int> sortOrder{1 };	 // Neither the DisplayNameAnnotation nor the EnumerationAnnotation make a difference in the deserialization in this version
+			extractprop(factory, instanceproperties, u"sortOrder", sortOrder);
+			// Old enum:
+			// enum class ERenderLayerOrder {
+			//   Optimized = 0,
+			//   Manual = 0,
+			//   SceneGraph
+			// };
+			// New enum:
+			// enum class ERenderLayerOrder {
+			//   Manual = 0,
+			//   SceneGraph
+			// };
+			// Optimized is mapped to Manual.
+			switch (sortOrder.asInt()) {
+				case 0:	sortOrder.asInt() = 0; break;
+				case 1: sortOrder.asInt() = 0; break;
+				case 2:	sortOrder.asInt() = 1;	break;
+			}
+			addprop(instanceproperties, u"sortOrder", sortOrder);
+			return true;
+		});
+	}
+	
 	QJsonDocument newDocument{documentObject};
 	// for debugging:
 	//auto migratedJSON = QString(newDocument.toJson()).toStdString();

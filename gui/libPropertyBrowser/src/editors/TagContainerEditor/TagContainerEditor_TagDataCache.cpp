@@ -88,6 +88,7 @@ std::set<user_types::SRenderPass> TagDataCache::allRenderPassesForObjectWithTags
 	do {
 		// Find all layers referencing the new tags
 		// Collect all new referenced tags in the new layers
+		newLayers.clear();
 		if (const auto meshNode = obj->as<user_types::MeshNode>(); meshNode != nullptr) {
 			auto allNewLayers = allReferencingObjects<user_types::RenderLayer>(newTags);
 			std::copy_if(allNewLayers.begin(), allNewLayers.end(), std::insert_iterator(newLayers, newLayers.end()), [&meshNode](user_types::SRenderLayer const& renderLayer) {
@@ -97,14 +98,13 @@ std::set<user_types::SRenderPass> TagDataCache::allRenderPassesForObjectWithTags
 			newLayers = allReferencingObjects<user_types::RenderLayer>(newTags);
 		}
 		
+		newTags.clear();
 		for (auto const& rl : newLayers) {
 			auto tags = core::Queries::renderableTags(rl);
 			std::set_difference(tags.begin(), tags.end(), allTags.begin(), allTags.end(), std::insert_iterator(newTags, newTags.end()));
 			allTags.insert(newTags.begin(), newTags.end());
 		}
 		allLayers.insert(newLayers.begin(), newLayers.end());
-		newTags.clear();
-		newLayers.clear();
 	} while (!newLayers.empty());
 	auto rps = core::Queries::filterByType<user_types::RenderPass>(project_->instances());
 	for (auto const& rp : rps) {

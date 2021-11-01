@@ -45,7 +45,8 @@ namespace raco::components {
  *     - added tag properties to Node and Material user types.
  * 16: New Ramses version that changes transformation order
  *     (previously: Translation * Scale * Rotation, now: Translation * Rotation * Scale)
+ * 17: Remove "Optimized" from options in render layer sort order
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 16;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 17;
 QJsonDocument migrateProject(const QJsonDocument& doc, std::unordered_map<std::string, std::string>& migrationWarnings);
 }  // namespace raco::components

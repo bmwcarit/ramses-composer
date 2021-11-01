@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 17,
+    "fileVersion": 16,
     "instances": [
         {
             "properties": {
@@ -1753,7 +1753,7 @@
                 "invertMaterialFilter": false,
                 "objectID": "4ba33009-0575-4128-bbbe-48e3ebc6e6ad",
                 "objectName": "RenderLayerManual",
-                "sortOrder": 0
+                "sortOrder": 1
             },
             "typeName": "RenderLayer"
         },
@@ -1762,7 +1762,7 @@
                 "invertMaterialFilter": false,
                 "objectID": "b9826309-15d0-425b-8ca7-431dc9b6964e",
                 "objectName": "RenderLayerSceneGraph",
-                "sortOrder": 1
+                "sortOrder": 2
             },
             "typeName": "RenderLayer"
         }
@@ -1771,7 +1771,7 @@
     ],
     "logicEngineVersion": [
         0,
-        10,
+        9,
         1
     ],
     "racoVersion": [
@@ -1782,6 +1782,6 @@
     "ramsesVersion": [
         27,
         0,
-        112
+        111
     ]
 }

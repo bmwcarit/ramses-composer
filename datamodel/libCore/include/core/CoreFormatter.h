@@ -132,11 +132,12 @@ template <>
 struct fmt::formatter<raco::core::SLink> : formatter<string_view> {
 	template <typename FormatContext>
 	auto format(const raco::core::SLink& link, FormatContext& ctx) {
-		return fmt::format_to(ctx.out(), "Link {{ start: {}#{} end: {}#{} }}",
+		return fmt::format_to(ctx.out(), "Link {{ start: {}#{} end: {}#{} valid: {}}}",
 			ObjectNameOnly{*link->startObject_},
 			fmt::join(link->startProp_->asVector<std::string>(), "."),
 			ObjectNameOnly{*link->endObject_},
-			fmt::join(link->endProp_->asVector<std::string>(), "."));
+			fmt::join(link->endProp_->asVector<std::string>(), "."),
+			*link->isValid_);
 	}
 };
 

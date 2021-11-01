@@ -177,13 +177,18 @@ void MeshNode::updateUniformContainer(BaseContext& context, const std::string& m
 						if (cachedValue->asRef()) {
 							cachedObject = context.project()->getInstanceByID(cachedValue->asRef()->objectID());
 						}
-						*newValue = cachedObject;
+						// Use the context to set reference properties to make sure the onAfterAddReferenceToThis handlers are called.
+						context.set(destUniforms.get(name), cachedObject);
 					} else {
 						*newValue = *cachedValue;
 					}
 				} else {
 					// copy value from material
-					*newValue = *src->get(i);
+					if (PropertyInterface::primitiveType(engineType) == PrimitiveType::Ref) {
+						context.set(destUniforms.get(name), src->get(i)->asRef());
+					} else {
+						*newValue = *src->get(i);	
+					}
 				}
 			}
 		}

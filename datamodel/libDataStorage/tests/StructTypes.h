@@ -45,8 +45,8 @@ public:
 			{"double", &dd} };
 	}
 
-	Value<bool> bb;
-	Value<double> dd;
+	Value<bool> bb{true};
+	Value<double> dd{1.5};
 };
 
 class AltStruct : public ClassWithReflectedMembers {

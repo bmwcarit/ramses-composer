@@ -76,6 +76,8 @@ public:
 	const std::map<std::string, std::set<SLink>>& linkEndPoints() const;
 	const std::vector<SLink>& links() const;
 
+	bool checkLinkDuplicates() const;
+
 	SEditorObject getInstanceByID(const std::string& objectID) const;
 
 	bool createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const;
@@ -137,10 +139,17 @@ public:
 		return fmt::format("{} ({})", basename, *it + 1);
 	}
 
+	// Repair project by removing duplicate links
+	void deduplicateLinks();
+
 private:
 	// Needed because undo/redo needs to set the complete externalProjectsMap_ at once but
 	// we don't want public functions to allow anybody to do that.
 	friend class UndoStack;
+
+	static SLink findLinkByObjectID(const std::map<std::string, std::set<SLink>>& linksByEndPointID, SLink link);
+
+	void removeAllLinks();
 
 	class LinkGraph {
 	public:
@@ -148,6 +157,8 @@ private:
 
 		void addLink(SLink link);
 		void removeLink(SLink link);
+
+		void removeAllLinks();
 
 		bool createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const;
 

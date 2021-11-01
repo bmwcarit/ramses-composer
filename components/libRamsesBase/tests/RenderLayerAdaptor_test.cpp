@@ -395,39 +395,6 @@ TEST_F(RenderLayerAdaptorTest, nested_fail_child_indirect_loop) {
 	ASSERT_FALSE(engineGroup->containsRenderGroup(*engineGroup_b));
 }
 
-TEST_F(RenderLayerAdaptorTest, sortorder_optimized) {
-	auto root = create<Node>("root", nullptr, {"render_main"});
-	auto meshnode1 = create<MeshNode>("meshnode1", root);
-	auto meshnode2 = create<MeshNode>("meshnode2", nullptr, {"render_alt"});
-	auto meshnode3 = create<MeshNode>("meshnode3", root);
-	auto layer = create_layer("layer", {}, {{"render_main", 0}, {"render_alt", 1}});
-	context.set({layer, {"sortOrder"}}, static_cast<int>(raco::user_types::ERenderLayerOrder::Optimized));
-
-	dispatch();
-
-	auto engineMeshNode1 = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode1");
-	auto engineMeshNode2 = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode2");
-	auto engineMeshNode3 = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode3");
-	auto engineGroup = select<ramses::RenderGroup>(*sceneContext.scene(), "layer");
-
-	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode1));
-	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode2));
-	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode3));
-	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode1), 0);
-	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode2), 0);
-	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode3), 0);
-
-	set_renderables(layer, {{"render_alt", 0}, {"render_main", 1}});
-	dispatch();
-
-	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode1));
-	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode2));
-	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode3));
-	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode1), 0);
-	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode2), 0);
-	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode3), 0);
-}
-
 TEST_F(RenderLayerAdaptorTest, sortorder_manual) {
 	auto root = create<Node>("root", nullptr, {"render_main"});
 	auto meshnode1 = create<MeshNode>("meshnode1", root);

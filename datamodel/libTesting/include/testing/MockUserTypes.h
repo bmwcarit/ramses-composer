@@ -64,6 +64,41 @@ public:
 };
 
 
+class StructWithRef : public ClassWithReflectedMembers {
+public:
+	static inline const TypeDescriptor typeDescription = {"StructWithRef", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	StructWithRef() : ClassWithReflectedMembers(getProperties()) {}
+
+	StructWithRef(const StructWithRef& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()) {
+		if (translateRef) {
+			ref = (*translateRef)(*other.ref);
+		} else {
+			ref = other.ref;
+		}
+	}
+
+	StructWithRef& operator=(const StructWithRef& other) {
+		ref = other.ref;
+		return *this;
+	}
+	void copyAnnotationData(const StructWithRef& other) {
+		ref.copyAnnotationData(other.ref);
+	}
+	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
+		return {
+			{"ref", &ref}};
+	}
+
+	Value<SEditorObject> ref;
+};
+
 class Foo : public EditorObject {
 public:
 	static inline const TypeDescriptor typeDescription = { "Foo", false};

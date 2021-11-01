@@ -211,11 +211,20 @@ public:
 	bool serializationRequired() const override {
 		return false;
 	}
-	ExpectEmptyReference(ExpectEmptyReference const& other) : AnnotationBase({}) {}
-	ExpectEmptyReference() : AnnotationBase({}) {}
+
+	ExpectEmptyReference(ExpectEmptyReference const& other) : AnnotationBase({{"label", &emptyRefLabel_}}),
+															  emptyRefLabel_(other.emptyRefLabel_) {}
+
+	ExpectEmptyReference(std::string emptyRefLabel = std::string()) : AnnotationBase({{"label", &emptyRefLabel_}}),
+															 emptyRefLabel_(emptyRefLabel) {
+	}
+
 	ExpectEmptyReference& operator=(const ExpectEmptyReference& other) {
+		emptyRefLabel_ = other.emptyRefLabel_;
 		return *this;
 	}
+
+	Value<std::string> emptyRefLabel_;	
 };
 
 }  // namespace raco::data_storage

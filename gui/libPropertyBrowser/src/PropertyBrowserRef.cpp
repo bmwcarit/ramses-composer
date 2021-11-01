@@ -53,7 +53,13 @@ void PropertyBrowserRef::updateItems() noexcept {
 	if (parent_->valueHandle()) {
 		objectNames_.clear();
 		items_.clear();
-		items_.emplace_back("<empty>", "");
+		QString emptyRefDescription = "<empty>";
+		if (auto expectEmptyRef = parent_->valueHandle().query<data_storage::ExpectEmptyReference>()) {
+			if (const std::string& emptyRefLabel = expectEmptyRef->emptyRefLabel_.asString(); !emptyRefLabel.empty()) {
+				emptyRefDescription = QString::fromStdString(emptyRefLabel);
+			}
+		}
+		items_.emplace_back(emptyRefDescription, "");
 
 		auto validReferenceTargets = core::Queries::findAllValidReferenceTargets(*commandInterface_->project(), parent_->valueHandle());
 		std::sort(validReferenceTargets.begin(), validReferenceTargets.end(), [](const auto& lhs, const auto& rhs) { return lhs->objectName() < rhs->objectName(); });

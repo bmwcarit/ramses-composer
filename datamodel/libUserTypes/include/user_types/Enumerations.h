@@ -23,8 +23,7 @@ extern std::map<int, std::string> enumerationTextureOrigin;
 
 
 enum class ERenderLayerOrder {
-	Optimized = 0,
-	Manual,
+	Manual = 0,
 	SceneGraph
 };
 

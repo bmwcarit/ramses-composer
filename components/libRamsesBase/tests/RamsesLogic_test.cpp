@@ -11,12 +11,15 @@
 #include <gtest/gtest.h>
 
 #include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/LuaScript.h>
 #include <ramses-logic/Property.h>
 #include <ramses-logic/RamsesNodeBinding.h>
 #include <ramses-framework-api/RamsesFramework.h>
 #include <ramses-client-api/RamsesClient.h>
 #include <ramses-client-api/Scene.h>
 #include <ramses-client-api/Node.h>
+
+#include <cmath>
 
 /*
 * Basic test for third_party dependiences: ramses-logic.
@@ -25,7 +28,7 @@
 
 TEST(ramses_logic, relink_scriptToScript) {
 	rlogic::LogicEngine logicEngine;
-	auto* outScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* outScript = logicEngine.createLuaScript(R"(
 function interface()
     OUT.out_float = FLOAT
 end
@@ -33,7 +36,7 @@ end
 function run()
 end
 )");
-	auto* inScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* inScript = logicEngine.createLuaScript(R"(
 function interface()
     IN.in_float = FLOAT
 end
@@ -66,7 +69,7 @@ TEST(ramses_logic, relink_scriptToNode) {
 	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
 	ramses::Node* node = scene->createNode("some node");
 
-	auto* outScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* outScript = logicEngine.createLuaScript(R"(
 function interface()
 	IN.in_float = FLOAT
     OUT.out_vec3f = VEC3F
@@ -155,7 +158,7 @@ TEST(ramses_logic, linkUnlink_nodeBinding_single) {
 	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
 	ramses::Node* node = scene->createNode("some node");
 
-	auto* outScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* outScript = logicEngine.createLuaScript(R"(
 function interface()
 	IN.in_float = FLOAT
     OUT.out_vec3f = VEC3F
@@ -195,7 +198,7 @@ TEST(ramses_logic, linkUnlink_nodeBinding_multi) {
 	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
 	ramses::Node* node = scene->createNode("some node");
 
-	auto* outScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* outScript = logicEngine.createLuaScript(R"(
 function interface()
 	IN.in_float = FLOAT
     OUT.out_vec3f = VEC3F
@@ -240,7 +243,7 @@ TEST(ramses_logic, unlinkAndDestroy_nodeBinding) {
 	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
 	ramses::Node* node = scene->createNode("some node");
 
-	auto* outScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* outScript = logicEngine.createLuaScript(R"(
 function interface()
 	IN.in_float = FLOAT
     OUT.out_vec3f = VEC3F
@@ -271,7 +274,7 @@ TEST(ramses_logic, unlinkAndDestroyScript_multipleLinks) {
 	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
 	ramses::Node* node = scene->createNode("some node");
 
-	auto* outScript = logicEngine.createLuaScriptFromSource(R"(
+	auto* outScript = logicEngine.createLuaScript(R"(
 function interface()
     OUT.translation = VEC3F
     OUT.visibility = BOOL
@@ -307,8 +310,8 @@ end
 
 TEST(ramses_logic, arrayOfStruct_linking) {
 	rlogic::LogicEngine logicEngine;
-	auto scriptContent {
-R"(
+	auto scriptContent{
+		R"(
 function interface()
 	FloatPair = { a = FLOAT, b = FLOAT }
 	IN.arrayOfStruct = ARRAY(2, FloatPair)
@@ -318,11 +321,10 @@ end
 function run()
 	OUT.arrayOfStruct = IN.arrayOfStruct
 end
-)"
-	};
+)"};
 
-	auto* startScript = logicEngine.createLuaScriptFromSource(scriptContent);
-	auto* endScript = logicEngine.createLuaScriptFromSource(scriptContent);
+	auto* startScript = logicEngine.createLuaScript(scriptContent);
+	auto* endScript = logicEngine.createLuaScript(scriptContent);
 
 	const rlogic::Property* outA{startScript->getOutputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")};
 	const rlogic::Property* inA{endScript->getInputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")};
@@ -364,8 +366,8 @@ end
 )"
 	};
 
-	auto* startScript = logicEngine.createLuaScriptFromSource(scriptContentFloat);
-	auto* endScript = logicEngine.createLuaScriptFromSource(scriptContentFloatArray);
+	auto* startScript = logicEngine.createLuaScript(scriptContentFloat);
+	auto* endScript = logicEngine.createLuaScript(scriptContentFloatArray);
 
 	const rlogic::Property* outA{startScript->getOutputs()->getChild("float")};
 	const rlogic::Property* inA{endScript->getInputs()->getChild("float_array")->getChild(0)};
@@ -376,4 +378,26 @@ end
 	startScript->getInputs()->getChild("float")->set(1.0f);
 	ASSERT_TRUE(logicEngine.update());
 	ASSERT_EQ(1.0f, endScript->getInputs()->getChild("float_array")->getChild(0)->get<float>().value());
+}
+
+TEST(ramses_logic, standardModules) {
+	rlogic::LogicEngine logicEngine;
+	auto scriptContentFloat{
+		R"(
+function interface()
+	IN.float = FLOAT
+	OUT.float = FLOAT
+end
+
+function run()
+	OUT.float = math.cos(IN.float)
+end
+)"};
+
+	auto* script = logicEngine.createLuaScript(scriptContentFloat);
+
+	const float pi = static_cast<float>(std::acos(-1.0));
+	script->getInputs()->getChild("float")->set(pi);
+	ASSERT_TRUE(logicEngine.update());
+	ASSERT_EQ(-1.0, script->getOutputs()->getChild("float")->get<float>().value());
 }

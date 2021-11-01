@@ -34,6 +34,6 @@ constexpr int DEFAULT_VALUE_TEXTURE_ORIGIN_BOTTOM{0};
 
 constexpr int DEFAULT_VALUE_RENDER_BUFFER_FORMAT{4};
 
-constexpr int DEFAULT_VALUE_RENDER_LAYER_ORDER{1};
+constexpr int DEFAULT_VALUE_RENDER_LAYER_ORDER{0};
 
 };  // namespace raco::user_types

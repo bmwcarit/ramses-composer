@@ -19,9 +19,8 @@ std::map<int, std::string> enumerationTextureOrigin{
 	{static_cast<int>(user_types::ETextureOrigin::Top), "Top left (Direct 3D)"}};
 
 std::map<int, std::string> enumerationRenderLayerOrder{
-	{static_cast<int>(ERenderLayerOrder::Optimized), "Optimized"},
-	{static_cast<int>(ERenderLayerOrder::Manual), "By Priority"},
-	{static_cast<int>(ERenderLayerOrder::SceneGraph), "Scene Graph"}};
+	{static_cast<int>(ERenderLayerOrder::Manual), "Render order value in 'Renderables Tags'"},
+	{static_cast<int>(ERenderLayerOrder::SceneGraph), "Scene graph order"}};
 
 std::map<int, std::string> enumerationRenderLayerMaterialFilterFlag{
 	{static_cast<int>(false), "Include materials with any of the listed tags"},

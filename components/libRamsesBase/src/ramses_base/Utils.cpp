@@ -12,6 +12,7 @@
 #include "ramses_base/LogicEngine.h"
 #include <ramses-logic/Logger.h>
 #include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/LuaScript.h>
 #include <ramses-logic/Property.h>
 #include <sstream>
 
@@ -152,7 +153,9 @@ void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface> &interfac
 }  // namespace
 
 bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, raco::core::PropertyInterfaceList &outInputs, raco::core::PropertyInterfaceList &outOutputs, std::string &outError) {
-	auto script = engine.createLuaScriptFromSource(luaScript, "Stage::PreprocessScript");
+	rlogic::LuaConfig luaConfig;
+	luaConfig.addStandardModuleDependency(rlogic::EStandardModule::All);
+	auto script = engine.createLuaScript(luaScript, luaConfig, "Stage::PreprocessScript");
 	if (script) {
 		if (auto inputs = script->getInputs()) {
 			fillLuaScriptInterface(outInputs, inputs);

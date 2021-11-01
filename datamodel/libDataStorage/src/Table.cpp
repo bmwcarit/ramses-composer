@@ -234,8 +234,7 @@ template bool Table::compare<std::string>(std::vector<std::string> const& array)
 Table& Table::operator=(const Table& value) {
 	properties_.clear();
 	for (auto const &item : value.properties_) {
-		ValueBase* prop = addProperty(item.first, item.second->type());
-		*prop = *item.second;
+		addProperty(item.first, item.second->clone(nullptr));
 	}
 	return *this;
 }

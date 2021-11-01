@@ -52,7 +52,8 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedOnTopLevel
 			auto copiedObjs = commandInterface.copyObjects({newObj}, true);
 			dataChangeDispatcher_->dispatch(recorder.release());
 
-			ASSERT_TRUE(viewModel_->canPasteInto(viewModel_->getInvisibleRootIndex(), copiedObjs, true));
+			ASSERT_EQ(viewModel_->canPasteInto(viewModel_->getInvisibleRootIndex(), copiedObjs, true),
+				&newObj->getTypeDescription() != &raco::user_types::RenderPass::typeDescription);
 		}
 	}
 }
@@ -79,7 +80,8 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedAsExtRefWi
 			dataChangeDispatcher_->dispatch(recorder.release());
 
 			for (const auto &resourceInScene : allResources) {
-				ASSERT_TRUE(viewModel_->canPasteInto(viewModel_->indexFromObjectID(resourceInScene->objectID()), copyObjs, true));
+				ASSERT_EQ(viewModel_->canPasteInto(viewModel_->indexFromObjectID(resourceInScene->objectID()), copyObjs, true),
+					&newObj->getTypeDescription() != &raco::user_types::RenderPass::typeDescription);
 			}
 		}
 	}

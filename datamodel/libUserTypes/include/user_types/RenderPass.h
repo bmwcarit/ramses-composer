@@ -76,7 +76,7 @@ public:
 		return pn == "clearColor" || pn == "enableClearColor" || pn == "enableClearDepth" || pn == "enableClearStencil";
 	}
 	
-	Property<SRenderTarget, DisplayNameAnnotation> target_{{}, {"Target"}};
+	Property<SRenderTarget, DisplayNameAnnotation, ExpectEmptyReference> target_{{}, {"Target"}, {"Default Framebuffer"}};
 	Property<SBaseCamera, DisplayNameAnnotation> camera_{{}, {"Camera"}};
 
 	Property<SRenderLayer, DisplayNameAnnotation> layer0_{{}, {"Layer 0"}};

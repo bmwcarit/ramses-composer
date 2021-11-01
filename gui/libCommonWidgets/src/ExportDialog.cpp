@@ -10,6 +10,7 @@
 #include "common_widgets/ExportDialog.h"
 
 #include "components/RaCoNameConstants.h"
+#include "core/PathManager.h"
 #include "core/SceneBackendInterface.h"
 #include "utils/stdfilesystem.h"
 
@@ -149,9 +150,20 @@ ExportDialog::ExportDialog(const application::RaCoApplication* application, QWid
 void ExportDialog::exportProject() {
 	std::string error;
 	std::filesystem::path dir{pathEdit_->text().toStdString()};
+
+	std::filesystem::path ramsesFilePath = ramsesEdit_->text().toStdString();
+	if (ramsesFilePath.is_relative()) {
+		ramsesFilePath = raco::core::PathManager::constructAbsolutePath(dir.string(), ramsesFilePath.string());
+	}
+
+	std::filesystem::path rlogicFilePath = logicEdit_->text().toStdString();
+	if (rlogicFilePath.is_relative()) {
+		rlogicFilePath = raco::core::PathManager::constructAbsolutePath(dir.string(), rlogicFilePath.string());
+	}
+
 	if (application_->exportProject(application_->activeRaCoProject(),
-			(dir / ramsesEdit_->text().toStdString()).generic_string(),
-			(dir / logicEdit_->text().toStdString()).generic_string(),
+			ramsesFilePath.generic_string(),
+			rlogicFilePath.generic_string(),
 			compressEdit_->isChecked(), error)) {
 		accept();
 	} else {

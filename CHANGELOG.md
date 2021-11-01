@@ -20,6 +20,42 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Bugs
 -->
 
+## [0.9.1] Render pipeline bug fixes and minor changes, update ramses-logic to 0.10.2
+
+### Changes
+* **File version number has changed. Files saved with RaCo 0.9.1 cannot be opened by previous versions.**
+* Update from ramses-logic 0.9.1 to ramses-logic 0.10.2
+    * This restores the behaviour of ramses-logic 0.7 (interface method can access things outside its scope). This is a temporary revert and will be reintroduced in an upcoming version again, along other hardening measures!
+* Update from ramses 27.0.111 to ramses 27.0.112
+* "Import glTF assets..." can no longer import into the root of the scene.
+    * This is to avoid the need to tag the imported scene to make it visible.
+    * The menu point has been removed from the "File" main menu as well as the context menu for the root.
+    * It is now only displayed for object tree entries in which nodes can be created.
+* A renderable referenced by a render layer, but not by a render pass now shows the directly referencing render layers in its property browser.
+* Render layer property naming changes:
+    * The "Sort order" property is now called "Render Order".
+    * The options for the "Sort Order" property are now called "Render order value in 'Renderables Tags'" (default) and "Scene graph order".
+    * The column header in the tag editor for 'Renderable Tags' specifying the render order is now called "Render Order".
+    * The "Incl./Excl. Material Filter" property is now called "Material Filter Behaviour".
+* "Optimized" was removed from the options in the "Render Order" render layer property.
+    * It is not needed right now, and was unnecessarily confusing.
+    * In existing scenes it is replaced with "Determined by render order value".
+* The "Ok" and "Cancel" buttons in the tag dialog are now called "Ok" and "Cancel" instead of being displayed as a tick mark and a cross.
+
+### Fixes
+* A render pass rendering to the default framebuffer no longer marks its "Target" property in orange, and shows it as "Default Framebuffer" instead of "<empty>".
+* A broken render target now stops a render pass rendering to it from rendering, instead of rendering to the default framebuffer.
+    * Also: the render pass shows a warning that it won't render due to the broken render target.
+* A render target now displays an error if some of its render buffers are either not valid or not set.
+    * This is due to https://github.com/COVESA/ramses/issues/52
+* A render target now displays an error if its first render buffer is not set.
+* The sampling parameters are hidden for depth buffers.
+* Fixed absolute paths for .ramses & .rlogic files not being recognized in the "Export Project" dialog.
+* Disallow RenderPass objects being pasted as external references.
+    * This is a temporary workaround and will be reintroduced in later versions.
+* Detect and remove link duplicates in the project files when loading a project. Warning messages will be generated in the log if duplicates are detected.
+* Fix bug leading to uniform properties referencing deleted texture objects. Invalid references encountered during loading of project files are discarded and a warning message is logged.
+
 ## [0.9.0]
 
 ### Added

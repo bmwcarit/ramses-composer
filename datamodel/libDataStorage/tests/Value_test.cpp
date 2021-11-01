@@ -88,6 +88,28 @@ TEST(ValueTest, Tables)
 	EXPECT_EQ(tv->get("fval")->asDouble(), 2.0);
 }
 
+
+TEST(ValueTest, Table_nested_struct) {
+	Value<Table> tv;
+	
+	tv->addProperty("struct", std::make_unique<Value<SimpleStruct>>());
+	EXPECT_EQ((*tv)["struct"]->getSubstructure().get("bool")->asBool(), true);
+	EXPECT_EQ((*tv)["struct"]->getSubstructure().get("double")->asDouble(), 1.5);
+
+	Value<SimpleStruct> s;
+	s->bb = false;
+	s->dd = 2.0;
+	
+	*tv->get("struct") = s;
+	EXPECT_EQ((*tv)["struct"]->getSubstructure().get("bool")->asBool(), false);
+	EXPECT_EQ((*tv)["struct"]->getSubstructure().get("double")->asDouble(), 2.0);
+
+	Value<Table> tu;
+	tu = tv;
+	EXPECT_EQ((*tu)["struct"]->getSubstructure().get("bool")->asBool(), false);
+	EXPECT_EQ((*tu)["struct"]->getSubstructure().get("double")->asDouble(), 2.0);
+}
+
 TEST(ValueTest, Vec3f) {
 	Value<Vec3f> v;
 

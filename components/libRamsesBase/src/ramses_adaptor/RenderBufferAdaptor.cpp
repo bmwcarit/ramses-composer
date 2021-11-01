@@ -77,13 +77,27 @@ bool RenderBufferAdaptor::sync(core::Errors* errors) {
 		(editorObject()->objectName() + "_Buffer").c_str());
 
 	if (buffer_) {
-		auto textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
-			static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapUMode_),
-			static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapVMode_),
-			static_cast<ramses::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_),
-			static_cast<ramses::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_),
-			buffer_,
-			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));
+		// For depth buffers, the UI does not display the sampler parameters - so force them to default.
+		// Using depth buffers directly as textures is not recommended.
+		ramses_base::RamsesTextureSampler textureSampler;
+		if (type == ERenderBufferType_Color) {
+			textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
+				static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapUMode_),
+				static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapVMode_),
+				static_cast<ramses::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_),
+				static_cast<ramses::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_),
+				buffer_,
+				(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));			
+		} else {
+			textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
+				ramses::ETextureAddressMode_Clamp,
+				ramses::ETextureAddressMode_Clamp,
+				ramses::ETextureSamplingMethod_Nearest,
+				ramses::ETextureSamplingMethod_Nearest,
+				buffer_,
+				1);			
+		}
+
 		reset(std::move(textureSampler));
 	} else {
 		reset(nullptr);

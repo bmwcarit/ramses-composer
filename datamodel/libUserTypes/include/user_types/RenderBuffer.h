@@ -37,6 +37,21 @@ public:
 		properties_.emplace_back("format", &format_);
 	}
 
+	bool areSamplingParametersSupported(EngineInterface const& engineInterface) const {
+		// This is a temporary hack. We need to refactor the enums in general, and the format_ enum in particular now that the user_types need to know things about it.
+		auto const& enumMap = engineInterface.enumerationDescription(EngineEnumeration::RenderBufferFormat);
+		const auto it = enumMap.find(format_.asInt());
+		return it == enumMap.end() || (it->second != "Depth24" && it->second != "Depth24_Stencil8");
+	}
+
+	bool isSamplingProperty(ValueHandle const& valueHandle) const {
+		return valueHandle.isRefToProp(&TextureSampler2DBase::wrapUMode_) ||
+			   valueHandle.isRefToProp(&TextureSampler2DBase::wrapVMode_) ||
+			   valueHandle.isRefToProp(&TextureSampler2DBase::minSamplingMethod_) ||
+			   valueHandle.isRefToProp(&TextureSampler2DBase::magSamplingMethod_) ||
+			   valueHandle.isRefToProp(&TextureSampler2DBase::anisotropy_);
+	}
+
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {1, 7680}, {"Width"}};
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {1, 7680}, {"Height"}};
 

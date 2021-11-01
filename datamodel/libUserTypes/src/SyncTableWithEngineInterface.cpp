@@ -178,7 +178,8 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 					if (cachedValue->asRef()) {
 						cachedObject = context.project()->getInstanceByID(cachedValue->asRef()->objectID());
 					}
-					*newValue = cachedObject;
+					// Use the context to set reference properties to make sure the onAfterAddReferenceToThis handlers are called.
+					context.set(property.get(name), cachedObject);
 				} else {
 					*newValue = *cachedValue;
 				}

@@ -28,6 +28,7 @@
 #include "serialization/SerializationKeys.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/OrthographicCamera.h"
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/RenderBuffer.h"
@@ -67,6 +68,31 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	context_->setExternalProjectsStore(externalProjectsStore);
 	context_->setFileChangeMonitor(fileChangeMonitor_);
 	
+	// Abort file loading if we encounter external reference RenderPasses or extref cameras outside a Prefab.
+	// A bug in V0.9.0 allowed to create such projects.
+	// TODO: remove this eventually when we are reasonably certain that no such projects have been encountered.
+	for (const auto& object : context_->project()->instances()) {
+		if ((&object->getTypeDescription() == &user_types::RenderPass::typeDescription) &&
+			object->query<raco::core::ExternalReferenceAnnotation>()) {
+			throw std::runtime_error("project contains external reference RenderPass.");
+		}
+
+		if ((&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription ||
+			&object->getTypeDescription() == &user_types::OrthographicCamera::typeDescription) &&
+			object->query<raco::core::ExternalReferenceAnnotation>()) {
+			if (!PrefabOperations::findContainingPrefab(object)) {
+				throw std::runtime_error("file contains external reference camera outside a prefab");
+			}
+		}
+	}
+
+	// Detect and repair broken files with duplicate links.
+	// Since link duplicates may differ in link validity we need to initialize the link validity from scratch.
+	if (project_.checkLinkDuplicates()) {
+		project_.deduplicateLinks();
+		context_->initLinkValidity();
+	}
+
 	// TODO: the following code repairs URIs which have been "rerooted" incorrectly during paste.
 	// This code should really be migration code but rewriting the code below to use only the JSON 
 	// is much more complicated than the code below.
@@ -239,7 +265,11 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromJson(const QJsonDocument& migr
 		instanceMap[obj->objectID()] = obj;
 	}
 	for (const auto& pair : result.objectsDeserialization.references) {
-		*pair.first = instanceMap.at(pair.second);
+		if (instanceMap.find(pair.second) != instanceMap.end()) {
+			*pair.first = instanceMap.at(pair.second);
+		} else {
+			LOG_WARNING(raco::log_system::PROJECT, "Load: referenced object not found: {}", pair.second);
+		}
 	}
 
 	Project p{ instances };

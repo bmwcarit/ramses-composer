@@ -342,7 +342,8 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 }
 
 bool Queries::canPasteObjectAsExternalReference(SEditorObject editorObject, bool isTopLevelObject) {
-	return (editorObject->getTypeDescription().isResource  || editorObject->as<user_types::Prefab>()
+	return ((editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>())
+		|| editorObject->as<user_types::Prefab>()
 		|| (editorObject->as<user_types::LuaScript>() && isTopLevelObject));
 }
 

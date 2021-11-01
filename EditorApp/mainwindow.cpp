@@ -339,8 +339,6 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		ui->actionSaveAs->setShortcut(QKeySequence::SaveAs);
 		ui->actionSaveAs->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveAsActiveProject);
-
-		QObject::connect(ui->actionImportAssets, &QAction::triggered, this, &MainWindow::importScene);
 	}
 
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {

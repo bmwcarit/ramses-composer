@@ -25,6 +25,7 @@
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/Texture.h"
 
 #include "gtest/gtest.h"
 
@@ -102,29 +103,116 @@ TEST_F(ContextTest, Complex) {
 	print_recursive(s, 0);
 }
 
-TEST_F(ContextTest, SetTable) {
-	const std::shared_ptr<Foo> referencedObjectInner{new Foo()};
-	const std::shared_ptr<Foo> referencedObjectOuter{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> referencingObject{new ObjectWithTableProperty()};
+TEST_F(ContextTest, add_remove_property_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.addProperty(tableHandle, "ref", std::make_unique<Value<SEditorObject>>(refTarget));
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
 
-	const ValueHandle handleOuterTable{referencingObject, &ObjectWithTableProperty::t_};
-	context.addProperty(handleOuterTable, "outerDirectRef", std::make_unique<Value<SEditorObject>>(referencedObjectOuter));
-	context.addProperty(handleOuterTable, "innerTable", std::make_unique<Value<Table>>());
-	const ValueHandle handleInnerTable = handleOuterTable.get("innerTable");
-	context.addProperty(handleInnerTable, "innerDirectRef", std::make_unique<Value<SEditorObject>>(referencedObjectInner));
+	context.removeProperty(tableHandle, "ref");
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+}
 
-	Table oldTable = handleOuterTable.constValueRef()->asTable();
+TEST_F(ContextTest, add_remove_property_table_with_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+
+	Table innerTable;
+	innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+
+	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.addProperty(tableHandle, "innerTable", std::make_unique<Value<Table>>(innerTable));
+
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	context.removeProperty(tableHandle, "innerTable");
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+}
+
+TEST_F(ContextTest, add_remove_property_struct_with_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+
+	Value<StructWithRef>* value{new Value<StructWithRef>()};
+	(*value)->ref = refTarget;
+	
+	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.addProperty(tableHandle, "foo", std::unique_ptr<Value<StructWithRef>>(value));
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	context.removeProperty(tableHandle, "foo");
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+}
+
+TEST_F(ContextTest, setTable_with_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+
 	Table newTable;
+	newTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
 
-	context.set(handleOuterTable, newTable);
-	EXPECT_EQ(handleOuterTable.constValueRef()->asTable(), Table());
-	EXPECT_EQ(referencedObjectInner->onBeforeRemoveReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[1][0]});
-	EXPECT_EQ(referencedObjectOuter->onBeforeRemoveReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[0]});
+	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.set(tableHandle, newTable);
 
-	context.set(handleOuterTable, oldTable);
-	EXPECT_EQ(handleOuterTable.constValueRef()->asTable(), oldTable);
-	EXPECT_EQ(referencedObjectInner->onAfterAddReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[1][0]});
-	EXPECT_EQ(referencedObjectOuter->onAfterAddReferenceToThis_, std::vector<ValueHandle>{handleOuterTable[0]});
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	Table emptyTable;
+	context.set(tableHandle, emptyTable);
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+}
+
+TEST_F(ContextTest, setTable_nested_table_with_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+
+	Table innerTable;
+	innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+
+	Table outerTable;
+	outerTable.addProperty("inner", std::make_unique<Value<Table>>(innerTable));
+
+	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.set(tableHandle, outerTable);
+
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	Table emptyTable;
+	context.set(tableHandle, emptyTable);
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+}
+
+TEST_F(ContextTest, setTable_nested_struct_with_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+
+	Value<StructWithRef>* value{new Value<StructWithRef>()};
+	(*value)->ref = refTarget;
+
+	Table newTable;
+	newTable.addProperty("struct", std::unique_ptr<Value<StructWithRef>>(value));
+
+	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.set(tableHandle, newTable);
+
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	Table emptyTable;
+	context.set(tableHandle, emptyTable);
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
 }
 
 TEST_F(ContextTest, Prefab) {
@@ -419,6 +507,60 @@ TEST_F(ContextTest, DeletePrefabInstance) {
 	checkedDeleteObjects({inst});
 	EXPECT_EQ(prefab->instances_.size(), 0);
 }
+
+TEST_F(ContextTest, material_sync_restore_cached_ref_adds_backpointer) {
+	auto texture = create<Texture>("tex");
+	auto material = create_material("material", "shaders/simple_texture.vert", "shaders/simple_texture.frag");
+	context.set(ValueHandle(material, {"uniforms", "u_Tex"}), texture);
+
+	context.set({material, {"uriFragment"}}, std::string("NOSUCHFILE"));
+	EXPECT_TRUE(ValueHandle(material, {"uniforms"}));
+	EXPECT_FALSE(ValueHandle(material, {"uniforms", "u_Tex"}));
+
+	context.set({material, {"uriFragment"}}, (cwd_path() / "shaders/simple_texture.frag").string());
+	EXPECT_TRUE(ValueHandle(material, {"uniforms", "u_Tex"}));
+
+	context.deleteObjects({texture});
+	EXPECT_TRUE(ValueHandle(material, {"uniforms", "u_Tex"}));
+	EXPECT_EQ(ValueHandle(material, {"uniforms", "u_Tex"}).asRef(), nullptr);
+}
+
+TEST_F(ContextTest, meshnode_uniform_sync_restore_cached_ref_adds_backpointer) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", "shaders/simple_texture.vert", "shaders/simple_texture.frag");
+	auto texture = create<Texture>("tex");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+	context.set({meshnode, {"materials", "material", "uniforms", "u_Tex"}}, texture);
+
+	context.set({material, {"uriFragment"}}, std::string("NOSUCHFILE"));
+	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms"}));
+	EXPECT_FALSE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
+
+	context.set({material, {"uriFragment"}}, (cwd_path() / "shaders/simple_texture.frag").string());
+	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
+
+	context.deleteObjects({texture});
+	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
+	EXPECT_EQ(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}).asRef(), nullptr);
+}
+
+TEST_F(ContextTest, meshnode_set_material_adds_backpointers_for_reftype_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto texture = create<Texture>("tex");
+	auto material = create_material("material", "shaders/simple_texture.vert", "shaders/simple_texture.frag");
+	context.set(ValueHandle(material, {"uniforms", "u_Tex"}), texture);
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
+	EXPECT_EQ(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}).asRef(), texture);
+
+	context.deleteObjects({texture});
+	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
+	EXPECT_EQ(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}).asRef(), nullptr);
+}
+
 
 TEST_F(ContextTest, ObjectMovingOnTopLevel) {
 	auto firstRoot = context.createObject(Node::typeDescription.typeName);

@@ -19,6 +19,7 @@
 #include "ramses_adaptor/SceneBackend.h"
 #include "serialization/SerializationKeys.h"
 
+#include "user_types/Enumerations.h"
 #include "user_types/MeshNode.h"
 #include "user_types/OrthographicCamera.h"
 #include "user_types/PerspectiveCamera.h"
@@ -319,6 +320,17 @@ TEST_F(MigrationTest, migrate_from_V14c) {
 	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
 	ASSERT_TRUE(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->canSetRef(buffer));
+}
+
+TEST_F(MigrationTest, migrate_from_V16) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V16.rca").string()));
+
+	auto renderlayeropt = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerOptimized")->as<raco::user_types::RenderLayer>();
+	ASSERT_EQ(renderlayeropt->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
+	auto renderlayermanual = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<raco::user_types::RenderLayer>();
+	ASSERT_EQ(renderlayermanual->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
+	auto renderlayerscenegraph = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerSceneGraph")->as<raco::user_types::RenderLayer>();
+	ASSERT_EQ(renderlayerscenegraph->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::SceneGraph));
 }
 
 TEST_F(MigrationTest, migrate_from_current) {

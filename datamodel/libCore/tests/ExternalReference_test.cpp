@@ -28,6 +28,7 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/Texture.h"
+#include "user_types/RenderPass.h"
 
 #include "gtest/gtest.h"
 
@@ -280,6 +281,21 @@ TEST_F(ExtrefTest, extref_paste_empty_projectname) {
 		ASSERT_TRUE(pasteFromExt(basePathName, {"Prefab"}, true));
 
 		ASSERT_TRUE(project->hasExternalProjectMapping(base_id));
+	});
+}
+
+
+TEST_F(ExtrefTest, extref_paste_fail_renderpass) {
+	auto basePathName{(cwd_path() / "base.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<RenderPass>("renderpass");
+	});
+
+	setupGeneric([this, basePathName]() {
+		std::vector<SEditorObject> pasted;
+		ASSERT_TRUE(pasteFromExt(basePathName, {"renderpass"}, true, &pasted));
+		ASSERT_EQ(pasted.size(), 0);
 	});
 }
 

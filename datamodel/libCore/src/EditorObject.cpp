@@ -68,6 +68,10 @@ std::string EditorObject::normalizedObjectID(std::string const& id)
 	return id;
 }
 
+const std::set<WEditorObject, std::owner_less<WEditorObject>>& EditorObject::referencesToThis() const {
+	return referencesToThis_;
+}
+
 void EditorObject::onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const {
 	auto srcRootObject = sourceReferenceProperty.rootObject();
 	referencesToThis_.erase(srcRootObject);

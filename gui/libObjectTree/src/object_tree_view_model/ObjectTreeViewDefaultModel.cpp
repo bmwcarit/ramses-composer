@@ -409,11 +409,11 @@ bool ObjectTreeViewDefaultModel::canDelete(const QModelIndex& index) const {
 
 bool ObjectTreeViewDefaultModel::canInsertMeshAssets(const QModelIndex& index) const {
 	if (index.isValid()) {
-		auto obj = indexToSEditorObject(index);
-		return &obj->getTypeDescription() != &raco::user_types::LuaScript::typeDescription;
+		const auto sceneRootNode = indexToSEditorObject(index);
+		return Queries::canPasteIntoObject(*project(), sceneRootNode);
 	}
 
-	return true;
+	return false;
 }
 
 bool ObjectTreeViewDefaultModel::canPasteInto(const QModelIndex& index, const std::string& serializedObjs, bool asExtRef) const {

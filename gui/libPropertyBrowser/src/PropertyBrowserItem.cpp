@@ -91,12 +91,18 @@ PropertyBrowserItem::PropertyBrowserItem(
 				}
 			});
 	}
-	if (auto renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && valueHandle_.depth() == 0) {
-		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {"target"}}, [this] {
+	// This needs refactoring. There needs to be a way for a user_type to say that some properties are only visible (or enabled?)
+	// when certain conditions depending on another property are fulfilled.
+	static const std::map<data_storage::ReflectionInterface::TypeDescriptor const*, std::string> requiredChildSubscriptions = {
+		{&user_types::RenderPass::typeDescription, "target"},
+		{&user_types::RenderBuffer::typeDescription, "format"}
+	};
+	if (const auto itChildSub = requiredChildSubscriptions.find(&valueHandle_.rootObject()->getTypeDescription()); valueHandle_.depth() == 0 && itChildSub != requiredChildSubscriptions.end()) {
+		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {itChildSub->second}}, [this] {
 			if (valueHandle_) {
 				syncChildrenWithValueHandle();
 			}
-		});
+		});	
 	}
 }
 
@@ -278,7 +284,7 @@ void PropertyBrowserItem::toggleExpanded() noexcept {
 
 void PropertyBrowserItem::createChildren() {
 	children_.reserve(static_cast<int>(valueHandle_.size()));
-	if(const auto& renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && renderPass->target_.asRef() == nullptr) {
+	if (const auto& renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && renderPass->target_.asRef() == nullptr) {
 		// The render passes flags for clearing the target can only be used for offscreen rendering.
 		// For the default framebuffer, the settings are in the project settings.
 		// Given that this is a dynamic setting, do it here explicitly and not in Queries::isHidden for now.
@@ -287,7 +293,14 @@ void PropertyBrowserItem::createChildren() {
 			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i]) && !renderPass->isClearTargetProperty(valueHandle_[i])) {
 				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
 			}
-		}						
+		}
+	} else if (const auto& renderBuffer = valueHandle_.rootObject()->as<user_types::RenderBuffer>(); renderBuffer != nullptr && !renderBuffer->areSamplingParametersSupported(engineInterface())) {
+		// For the render buffer, the sampling properties should only be available for color formats, not for depth or stencil formats. 
+		for (int i{0}; i < valueHandle_.size(); i++) {
+			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i]) && !renderBuffer->isSamplingProperty(valueHandle_[i])) {
+				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
+			}
+		}
 	} else {
 		for (int i{0}; i < valueHandle_.size(); i++) {
 			if (!raco::core::Queries::isHidden(*project(), valueHandle_[i])) {

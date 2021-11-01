@@ -111,23 +111,15 @@ void TagContainerEditor::editButtonClicked() const {
 void TagContainerEditor::updateTags() const {
 	tagList_->clear();
 	if (tagType_ == TagType::NodeTags_Referencing) {
-		std::optional<int> prevOrderIndex;
-		QStringList tags;
-		const auto order = static_cast<user_types::ERenderLayerOrder>(item_->valueHandle().rootObject()->as<user_types::RenderLayer>()->sortOrder_.asInt());
+		const auto order = static_cast<user_types::ERenderLayerOrder>(item_->valueHandle().rootObject()->as<user_types::RenderLayer>()->sortOrder_.asInt());		
+		std::map<int, QStringList> tagsSorted;
 		for (size_t index{0}; index < item_->valueHandle().size(); index++) {
 			auto tag = item_->valueHandle()[index].getPropName();
-			auto orderIndex = item_->valueHandle()[index].asInt();
-			if (prevOrderIndex && prevOrderIndex != orderIndex) {
-				tagList_->addItem(tags.join(", "));
-				tags.clear();
-			}
-			tags.append(QString::fromStdString(tag));
-			if (order == user_types::ERenderLayerOrder::Manual) {
-				prevOrderIndex = orderIndex;
-			}
+			auto orderIndex = order == user_types::ERenderLayerOrder::Manual ? item_->valueHandle()[index].asInt() : 0;
+			tagsSorted[orderIndex].append(QString::fromStdString(tag));
 		}
-		if (!tags.isEmpty()) {
-			tagList_->addItem(tags.join(", "));
+		for (auto const& p : tagsSorted) {
+			tagList_->addItem(p.second.join(", "));
 		}
 	} else {
 		tagList_->setSortingEnabled(true);
@@ -150,8 +142,18 @@ void TagContainerEditor::updateRenderedBy() const {
 		return;
 	}
 	const auto tagData = TagDataCache::createTagDataCache(item_->project(), TagType::NodeTags_Referencing);
-	const auto rps = tagData->allRenderPassesForObjectWithTags(item_->valueHandle().rootObject() , core::Queries::renderableTagsWithParentTags(item_->valueHandle().rootObject()));
-	renderedBy_->setText(QString::fromStdString(fmt::format("Rendered by: {}", rps)));
+	auto alltags = core::Queries::renderableTagsWithParentTags(item_->valueHandle().rootObject());
+	const auto rps = tagData->allRenderPassesForObjectWithTags(item_->valueHandle().rootObject(), alltags);
+	if (!rps.empty()) {
+		renderedBy_->setText(QString::fromStdString(fmt::format("Rendered by: {}", rps)));
+	} else {
+		auto rls = tagData->allReferencingObjects<user_types::RenderLayer>(alltags);
+		if (!rls.empty()) {
+			renderedBy_->setText(QString::fromStdString(fmt::format("Rendered by: <none>\nAdded to: {}", rls)));
+		} else {
+			renderedBy_->setText(QString::fromStdString("Rendered by: <none>\nAdded to: <none>"));			
+		}
+	}
 }
 
 bool TagContainerEditor::showRenderedBy() const {
