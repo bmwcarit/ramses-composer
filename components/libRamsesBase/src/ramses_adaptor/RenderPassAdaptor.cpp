@@ -121,10 +121,17 @@ bool RenderPassAdaptor::sync(core::Errors* errors) {
 			*editorObject()->clearColor_->z,
 			*editorObject()->clearColor_->w);
 
-		(*ramsesObject()).setClearFlags(
-			(*editorObject()->enableClearColor_ ? ramses::EClearFlags_Color : 0) |
-			(*editorObject()->enableClearDepth_ ? ramses::EClearFlags_Depth : 0) |
-			(*editorObject()->enableClearStencil_ ? ramses::EClearFlags_Stencil : 0));
+		if (ramsesTarget != nullptr) {
+			(*ramsesObject()).setClearFlags(
+				(*editorObject()->enableClearColor_ ? ramses::EClearFlags_Color : 0) |
+				(*editorObject()->enableClearDepth_ ? ramses::EClearFlags_Depth : 0) |
+				(*editorObject()->enableClearStencil_ ? ramses::EClearFlags_Stencil : 0));			
+		} else {
+			// Force no clear flags for a render pass rendering to the default framebuffer.
+			// Otherwise the scene validation on export complains that the clear flags
+			// will have no effect.
+			(*ramsesObject()).setClearFlags(ramses::EClearFlags_None);
+		}
 	}
 
 	tagDirty(false);

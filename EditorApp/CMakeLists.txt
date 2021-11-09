@@ -46,7 +46,6 @@ target_link_libraries(RaCoEditor
 	raco::PropertyBrowser
 	raco::CommonWidgets
 	raco::Style
-	raco::Serialization
 	raco::Utils
 	raco::Core 
 	raco::RamsesWidgets
@@ -55,6 +54,8 @@ target_link_libraries(RaCoEditor
 	qtadvanceddocking
 )
 add_compile_definitions(RaCoEditor PRIVATE CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+seperate_debug_symbols(RaCoEditor "$<TARGET_FILE:RaCoEditor>")
 
 deploy_gui_shared_dlls(RaCoEditor)
 deploy_ramses_with_renderer_shared_dlls(RaCoEditor)

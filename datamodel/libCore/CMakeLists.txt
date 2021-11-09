@@ -38,6 +38,11 @@ add_library(libCore
 	include/core/ExternalReferenceAnnotation.h
 	include/core/ExtrefOperations.h src/ExtrefOperations.cpp
 	include/core/SceneBackendInterface.h
+	include/core/RamsesProjectMigration.h src/RamsesProjectMigration.cpp
+	include/core/Serialization.h src/Serialization.cpp
+    include/core/SerializationFunctions.h
+    include/core/SerializationKeys.h    
+	include/core/CoreAnnotations.h
 
     include/core/CoreFormatter.h
     include/core/ProjectSettings.h
@@ -52,7 +57,6 @@ target_link_libraries(libCore
 PUBLIC
 	raco::DataStorage	
 	raco::LogSystem
-	raco::Serialization
 	raco::Utils
 	Qt5::Core
 PRIVATE

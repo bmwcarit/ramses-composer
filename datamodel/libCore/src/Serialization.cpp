@@ -7,8 +7,8 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "serialization/Serialization.h"
-#include "serialization/SerializationKeys.h"
+#include "core/Serialization.h"
+#include "core/SerializationKeys.h"
 
 #include "data_storage/Table.h"
 #include "utils/stdfilesystem.h"
@@ -158,7 +158,7 @@ std::optional<QJsonValue> serializeValueBase(const ValueBase& value, const Resol
 			jsonObject.insert(keys::TYPENAME, value.typeName().c_str());
 
 		if (valueIsClassType) {
-			if (value.query<raco::data_storage::ArraySemanticAnnotation>()) {
+			if (value.query<raco::core::ArraySemanticAnnotation>()) {
 				if (auto properties{serializeArrayProperties(value.getSubstructure(), resolveReferenceId, childrenDynamicallyTyped)}) {
 					jsonObject.insert(keys::PROPERTIES, properties.value());
 				}
@@ -185,7 +185,7 @@ std::optional<QJsonValue> serializeValueBase(const ValueBase& value, const Resol
 		return {};
 	} else if (valueIsClassType) {
 		// We have a statically known class type which can be immediately seralized
-		if (value.query<raco::data_storage::ArraySemanticAnnotation>()) {
+		if (value.query<raco::core::ArraySemanticAnnotation>()) {
 			return serializeArrayProperties(value.getSubstructure(), resolveReferenceId, false);
 		} else {
 			return serializeObjectProperties(value.getSubstructure(), resolveReferenceId, false);

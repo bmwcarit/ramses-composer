@@ -45,8 +45,8 @@
 #include "components/Naming.h"
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
-#include "components/RamsesProjectMigration.h"
-#include "serialization/Serialization.h"
+#include "core/RamsesProjectMigration.h"
+#include "core/Serialization.h"
 #include "ui_mainwindow.h"
 
 #include "user_types/CubeMap.h"
@@ -520,7 +520,7 @@ void MainWindow::openProject(const QString& file) {
 		racoApplication_->switchActiveRaCoProject(file);
 	} catch (const raco::application::FutureFileVersion& error) {
 		racoApplication_->switchActiveRaCoProject({});
-		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", raco::components::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
+		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", raco::core::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
 	} catch (const ExtrefError& error) {
 		racoApplication_->switchActiveRaCoProject({});
 		QMessageBox::warning(this, "File Load Error", fmt::format("External reference update failed.\n\n{}", error.what()).c_str(), QMessageBox::Close);

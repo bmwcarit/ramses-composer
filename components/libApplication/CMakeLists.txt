@@ -22,7 +22,6 @@ PUBLIC
     raco::UserTypes
     raco::Core
     raco::LogSystem
-    raco::Serialization
     raco::Utils
     Qt5::Core
 PRIVATE

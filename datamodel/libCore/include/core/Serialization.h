@@ -12,6 +12,8 @@
 #include "data_storage/BasicAnnotations.h"
 #include "data_storage/BasicTypes.h"
 #include "data_storage/Value.h"
+#include "core/CoreAnnotations.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <functional>

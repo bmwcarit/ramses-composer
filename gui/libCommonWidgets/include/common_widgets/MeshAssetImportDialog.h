@@ -31,7 +31,6 @@ public:
 	QTreeWidget* widget_;
 	QPushButton* selectAllButton_;
 	QPushButton* deselectAllButton_;
-	QPushButton* useReferencedResourcesButton_;
 	QHBoxLayout* massSelectButtonLayout_;
 	QDialogButtonBox* dialogButtonBox_;
 

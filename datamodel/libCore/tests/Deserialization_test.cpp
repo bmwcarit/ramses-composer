@@ -7,8 +7,8 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "serialization/Serialization.h"
-#include "serialization/SerializationKeys.h"
+#include "core/Serialization.h"
+#include "core/SerializationKeys.h"
 
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
@@ -150,7 +150,7 @@ TEST_F(DeserializationTest, deserializeLuaScriptWithURI) {
 	auto* property{sLuaScript->luaInputs_->get(sLuaScript->luaInputs_->index("uri"))};
 	ASSERT_EQ("String::URIAnnotation", property->typeName());
 	ASSERT_EQ(1, property->baseAnnotationPtrs().size());
-	ASSERT_TRUE(property->dynamicQuery<raco::data_storage::URIAnnotation>() != nullptr);
+	ASSERT_TRUE(property->dynamicQuery<raco::core::URIAnnotation>() != nullptr);
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptWithAnnotatedDouble) {

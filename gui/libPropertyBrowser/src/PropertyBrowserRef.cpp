@@ -54,7 +54,7 @@ void PropertyBrowserRef::updateItems() noexcept {
 		objectNames_.clear();
 		items_.clear();
 		QString emptyRefDescription = "<empty>";
-		if (auto expectEmptyRef = parent_->valueHandle().query<data_storage::ExpectEmptyReference>()) {
+		if (auto expectEmptyRef = parent_->valueHandle().query<core::ExpectEmptyReference>()) {
 			if (const std::string& emptyRefLabel = expectEmptyRef->emptyRefLabel_.asString(); !emptyRefLabel.empty()) {
 				emptyRefDescription = QString::fromStdString(emptyRefLabel);
 			}

@@ -20,6 +20,25 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Bugs
 -->
 
+## [0.9.2]
+
+### Changes
+* Update from ramses-logic 0.10.2 to ramses-logic 0.11.0
+    * ramses-logic 0.11.0 introduces a new "init()" function for global variables. For details see ramses-logic CHANGELOG/docs.
+* Update from ramses 27.0.112 to ramses 27.0.113
+* Windows and Linux builds no longer contain debug symbols, reducing the size of the zip files significantly.
+* For now remove button "Check Resources Used by Enabled Nodes" from the "Import glTF Assets..." dialog to avoid confusion.
+* Reshuffling of library code: 
+    * libSerialization is now part of libCore,
+    * most annotations in libDataStorage have been moved to libCore,
+    * migration code for loading files saved with older versions has been moved from libComponents to libCore.
+
+### Fixes
+* Fixed clear flags warning on export for render passes rendering to the default framebuffer.
+* Fixed typo in options for "Render Order" property.
+* Fixed typo in options for "Material Filter Behaviour" property.
+* Suppress logging of misleading error messages to the console during load.
+
 ## [0.9.1] Render pipeline bug fixes and minor changes, update ramses-logic to 0.10.2
 
 ### Changes

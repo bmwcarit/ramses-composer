@@ -13,7 +13,7 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
-#include "serialization/SerializationFunctions.h"
+#include "core/SerializationFunctions.h"
 #include "user_types/RenderBuffer.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"

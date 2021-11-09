@@ -9,7 +9,7 @@
  */
 #include "core/Queries.h"
 
-#include "components/RamsesProjectMigration.h"
+#include "core/RamsesProjectMigration.h"
 
 #include "application/RaCoApplication.h"
 #include "application/RaCoProject.h"
@@ -17,7 +17,7 @@
 #include "core/Link.h"
 
 #include "ramses_adaptor/SceneBackend.h"
-#include "serialization/SerializationKeys.h"
+#include "core/SerializationKeys.h"
 
 #include "user_types/Enumerations.h"
 #include "user_types/MeshNode.h"
@@ -46,13 +46,13 @@ struct MigrationTest : public TestEnvironmentCore {
 		auto document{QJsonDocument::fromJson(file.readAll())};
 		file.close();
 		auto fileVersion{raco::serialization::deserializeFileVersion(document)};
-		EXPECT_TRUE(fileVersion <= raco::components::RAMSES_PROJECT_FILE_VERSION);
+		EXPECT_TRUE(fileVersion <= raco::core::RAMSES_PROJECT_FILE_VERSION);
 		if (outFileVersion) {
 			*outFileVersion = fileVersion;
 		}
 		auto projectInfo = raco::serialization::deserializeProjectVersionInfo(document);
 		std::unordered_map<std::string, std::string> migrationObjWarnings;
-		auto migratedDoc{raco::components::migrateProject(document, migrationObjWarnings)};
+		auto migratedDoc{raco::core::migrateProject(document, migrationObjWarnings)};
 		std::string migratedJson{migratedDoc.toJson().toStdString()};
 
 		std::vector<std::string> pathStack;
@@ -346,7 +346,7 @@ TEST_F(MigrationTest, migrate_from_current) {
 
 	int fileVersion;
 	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "version-current.rca").string()), &fileVersion);
-	ASSERT_EQ(fileVersion, raco::components::RAMSES_PROJECT_FILE_VERSION);
+	ASSERT_EQ(fileVersion, raco::core::RAMSES_PROJECT_FILE_VERSION);
 
 	// check that all user types present in file
 	auto& instances = racoproject->project()->instances();

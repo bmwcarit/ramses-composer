@@ -18,6 +18,8 @@
 #include "core/Handles.h"
 #include "core/PropertyDescriptor.h"
 
+#include "core/CoreAnnotations.h"
+
 namespace raco::core {
 
 using namespace raco::data_storage;

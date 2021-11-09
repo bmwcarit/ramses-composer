@@ -25,8 +25,8 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "core/CoreFormatter.h"
 #include "log_system/log.h"
-#include "serialization/Serialization.h"
-#include "serialization/SerializationFunctions.h"
+#include "core/Serialization.h"
+#include "core/SerializationFunctions.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -384,7 +384,7 @@ void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, ra
 	for (auto object : newObjects) {
 		if (PathQueries::isPathRelativeToCurrentProject(object)) {
 			for (auto property : core::ValueTreeIteratorAdaptor(core::ValueHandle{object})) {
-				if (property.query<data_storage::URIAnnotation>()) {
+				if (property.query<URIAnnotation>()) {
 					auto uriPath = property.asString();
 					std::string originFolder;
 					auto it = deserialization.objectOriginFolders.find(object->objectID());

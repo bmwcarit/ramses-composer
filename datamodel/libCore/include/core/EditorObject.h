@@ -13,6 +13,7 @@
 #include "data_storage/Value.h"
 #include "data_storage/Table.h"
 #include "data_storage/BasicAnnotations.h"
+#include "core/CoreAnnotations.h"
 
 #include <memory>
 #include <set>

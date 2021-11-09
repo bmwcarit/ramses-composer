@@ -69,6 +69,7 @@ INTERFACE
 )
 
 set(ramses-logic_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(ramses-logic_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(ramses-logic_ALLOW_RAMSES_BUILD OFF CACHE BOOL "" FORCE)
 set(ramses-logic_RAMSES_TARGET "ramses-api" CACHE STRING "" FORCE)
 set(ramses-logic_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)

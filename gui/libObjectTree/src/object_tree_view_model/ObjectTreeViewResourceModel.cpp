@@ -12,7 +12,7 @@
 
 #include "core/CommandInterface.h"
 #include "core/Queries.h"
-#include "serialization/Serialization.h"
+#include "core/Serialization.h"
 #include "user_types/UserObjectFactory.h"
 
 namespace raco::object_tree::model {

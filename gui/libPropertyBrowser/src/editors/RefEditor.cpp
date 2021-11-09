@@ -82,7 +82,7 @@ void RefEditor::changeEvent(QEvent* event) {
 }
 
 bool RefEditor::unexpectedEmptyReference() const noexcept {
-	return emptyReference_ && !item_->valueHandle().query<data_storage::ExpectEmptyReference>();
+	return emptyReference_ && !item_->valueHandle().query<core::ExpectEmptyReference>();
 }
 
 }  // namespace raco::property_browser

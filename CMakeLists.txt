@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 0.9.1)
+project(RaCoOS VERSION 0.9.2)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -57,6 +57,17 @@ set(REQUIRED_QT_VERSION 5.15.2)
 macro(raco_find_qt_components QTCOMPONENTS)
 	find_package(Qt5 ${REQUIRED_QT_VERSION} EXACT REQUIRED COMPONENTS ${ARGV})
 endmacro()
+
+function(seperate_debug_symbols exetarget TargetBinaryFile)
+        IF(NOT WIN32)
+                IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+                        ADD_CUSTOM_COMMAND(TARGET ${exetarget} POST_BUILD
+                                COMMAND objcopy --only-keep-debug "${TargetBinaryFile}" "${TargetBinaryFile}.debug"
+                                COMMAND objcopy --strip-debug "${TargetBinaryFile}"
+                                COMMAND objcopy --add-gnu-debuglink="${TargetBinaryFile}.debug" "${TargetBinaryFile}")
+                ENDIF()
+        endif()
+endfunction()
 
 # Adding third party libraries
 
@@ -117,32 +128,31 @@ endmacro()
 #
 # Create macros to copy necessary DLLs (we might be better off using the RUNTIME_OUTPUT_DIRECTORY property in a controlled manner?)
 #
+macro(deploy_dlls_and_strip_symbols exetarget dlltarget)
+	add_custom_command(TARGET ${exetarget} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${dlltarget}> "$<TARGET_FILE_DIR:${exetarget}>"
+	)
+	IF(WIN32)
+		add_custom_command(TARGET ${exetarget} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_PDB_FILE:${dlltarget}> "$<TARGET_FILE_DIR:${exetarget}>"
+		)
+	ENDIF()
+	seperate_debug_symbols(${exetarget} "$<TARGET_FILE_DIR:${exetarget}>/$<TARGET_FILE_NAME:${dlltarget}>")
+endmacro()
 macro(deploy_ramses_client_only_shared_dlls tgt)
-	add_custom_command(TARGET ${tgt} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:raco::ramses-lib-client-only> "$<TARGET_FILE_DIR:${tgt}>"
-	)
-	add_custom_command(TARGET ${tgt} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:raco::ramses-logic-lib-client-only> "$<TARGET_FILE_DIR:${tgt}>"
-	)
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-lib-client-only)
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-logic-lib-client-only)
 endmacro()
 macro(deploy_ramses_with_renderer_shared_dlls tgt)
-	add_custom_command(TARGET ${tgt} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:raco::ramses-lib> "$<TARGET_FILE_DIR:${tgt}>"
-	)
-	add_custom_command(TARGET ${tgt} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:raco::ramses-logic-lib> "$<TARGET_FILE_DIR:${tgt}>"
-	)
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-lib)
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-logic-lib)
 endmacro()
 macro(deploy_headless_shared_dlls tgt)
-	add_custom_command(TARGET ${tgt} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:openctm> "$<TARGET_FILE_DIR:${tgt}>"
-	)
+	deploy_dlls_and_strip_symbols(${tgt} openctm)
 endmacro()
 macro(deploy_gui_shared_dlls tgt)
 	deploy_headless_shared_dlls(${tgt})
-	add_custom_command(TARGET ${tgt} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:qtadvanceddocking> "$<TARGET_FILE_DIR:${tgt}>"
-	)
+	deploy_dlls_and_strip_symbols(${tgt} qtadvanceddocking)
 endmacro()
 
 if(PACKAGE_TESTS)

@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <string>
 
-namespace raco::components {
+namespace raco::core {
 /**
  * History of versions:
  * 1: Initial
@@ -49,4 +49,4 @@ namespace raco::components {
  */
 constexpr int RAMSES_PROJECT_FILE_VERSION = 17;
 QJsonDocument migrateProject(const QJsonDocument& doc, std::unordered_map<std::string, std::string>& migrationWarnings);
-}  // namespace raco::components
+}  // namespace raco::core

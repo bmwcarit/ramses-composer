@@ -22,8 +22,16 @@ bool Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandl
 		errors_.erase(it);
 	}
 	errors_.emplace(handle, ErrorItem(category, level, handle, message));
-	switch (level) {
 
+	recorder_->recordErrorChanged(handle);
+
+	return true;
+}
+
+void Errors::logError(const ErrorItem& error) const {
+	auto handle = error.valueHandle();
+	const auto& message = error.message();
+	switch (error.level()) {
 		case ErrorLevel::ERROR:
 			if (!handle) {
 				LOG_ERROR(log_system::CONTEXT, "Project-global error: {}", message);
@@ -45,10 +53,12 @@ bool Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandl
 		default:
 			break;
 	}
+}
 
-	recorder_->recordErrorChanged(handle);
-
-	return true;
+void Errors::logAllErrors() const {
+	for (const auto& [handle, error]: errors_) {
+		logError(error);
+	}
 }
 
 bool Errors::removeError(const ValueHandle& handle) {

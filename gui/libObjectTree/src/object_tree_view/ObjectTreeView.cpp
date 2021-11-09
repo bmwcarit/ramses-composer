@@ -234,17 +234,16 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		}
 	}
 
-	if (treeModel_->canInsertMeshAssets(selectedItemIndex)) {
-		treeViewMenu->addSeparator();
+	treeViewMenu->addSeparator();
 
-		treeViewMenu->addAction("Import glTF Assets...", [this, selectedItemIndex]() {
-			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
-			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
-			if (!file.isEmpty()) {
-				treeModel_->importMeshScenegraph(file, selectedItemIndex);
-			}
-		});
-	}
+	auto actionImport = treeViewMenu->addAction("Import glTF Assets...", [this, selectedItemIndex]() {
+		auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
+		auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
+		if (!file.isEmpty()) {
+			treeModel_->importMeshScenegraph(file, selectedItemIndex);
+		}
+	});
+	actionImport->setEnabled(treeModel_->canInsertMeshAssets(selectedItemIndex));
 
 	if (!externalProjectModel || !allowedCreatableUserTypes.empty()) {
 		treeViewMenu->addSeparator();

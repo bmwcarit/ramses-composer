@@ -37,6 +37,8 @@ add_dependencies(RaCoCommand RaCoResources RaCoPrepareReleaseFolder)
 
 target_compile_definitions( RaCoCommand PUBLIC -DRACO_OSS_VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
+seperate_debug_symbols(RaCoCommand "$<TARGET_FILE:RaCoCommand>")
+
 deploy_headless_shared_dlls(RaCoCommand)
 deploy_ramses_client_only_shared_dlls(RaCoCommand)
 deploy_qt(RaCoCommand)

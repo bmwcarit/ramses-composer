@@ -19,7 +19,6 @@ add_library(libComponents
     include/components/FileChangeListenerImpl.h src/FileChangeListenerImpl.cpp 
     include/components/FileChangeMonitorImpl.h 
     include/components/MeshCacheImpl.h src/MeshCacheImpl.cpp
-    include/components/RamsesProjectMigration.h src/RamsesProjectMigration.cpp
     include/components/RaCoNameConstants.h
     include/components/RaCoPreferences.h src/RaCoPreferences.cpp
     include/components/QtFormatter.h
@@ -30,7 +29,6 @@ PUBLIC
     raco::UserTypes
     raco::Core
     raco::LogSystem
-    raco::Serialization
     raco::Utils
     Qt5::Core
 PRIVATE

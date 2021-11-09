@@ -17,7 +17,7 @@
 #include "core/Errors.h"
 #include "core/Project.h"
 #include "core/Undo.h"
-#include "serialization/Serialization.h"
+#include "core/Serialization.h"
 #include "user_types/UserObjectFactory.h"
 #include <QObject>
 #include <exception>

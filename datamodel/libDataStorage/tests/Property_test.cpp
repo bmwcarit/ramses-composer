@@ -58,7 +58,7 @@ TEST(PropertyTest, Vec3f)
 }
 
 TEST(PropertyTest, clone) {
-	Property<int, HiddenProperty> p_int_hidden {42, {}};
+	Property<int, DisplayNameAnnotation> p_int_hidden{42, {"Name"}};
 	auto pihc = p_int_hidden.clone(nullptr);
 	EXPECT_EQ(pihc->asInt(), *p_int_hidden);
 

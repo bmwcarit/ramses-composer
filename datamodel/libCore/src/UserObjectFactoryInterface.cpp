@@ -11,7 +11,7 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "core/Link.h"
 
-#include "serialization/Serialization.h"
+#include "core/Serialization.h"
 
 namespace raco::core {
 

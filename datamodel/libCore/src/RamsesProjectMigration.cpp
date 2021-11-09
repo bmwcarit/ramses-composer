@@ -7,12 +7,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "components/RamsesProjectMigration.h"
+#include "core/RamsesProjectMigration.h"
 
 #include "core/Context.h"
 #include "core/Link.h"
-#include "serialization/Serialization.h"
-#include "serialization/SerializationKeys.h"
+#include "core/Serialization.h"
+#include "core/SerializationKeys.h"
 #include "user_types/UserObjectFactory.h"
 
 #include "core/EngineInterface.h"
@@ -325,7 +325,7 @@ void linkReplaceEndIfMatching(raco::core::SLink& link, const std::string& oldPro
 
 }  // namespace
 
-namespace raco::components {
+namespace raco::core {
 
 QJsonDocument migrateProject(const QJsonDocument& document, std::unordered_map<std::string, std::string>& migrationWarnings) {
 	using namespace data_storage;
@@ -915,4 +915,4 @@ QJsonDocument migrateProject(const QJsonDocument& document, std::unordered_map<s
 	return newDocument;
 }
 
-}  // namespace raco::components
+}  // namespace raco::core

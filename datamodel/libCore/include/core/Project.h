@@ -14,7 +14,7 @@
 #include "Link.h"
 #include "core/ProjectSettings.h"
 #include "log_system/log.h"
-#include "serialization/Serialization.h"
+#include "core/Serialization.h"
 #include <regex>
 #include <map>
 

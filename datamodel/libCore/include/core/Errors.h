@@ -31,8 +31,12 @@ public:
      * An empty [ValueHandle] is associated with a project-global error.
      * @returns if an error was added.
      */
-	bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
-	/**
+	 bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
+
+	 void logError(const ErrorItem& error) const;
+	 void logAllErrors() const;
+
+	 /**
      * Removes the associated error from the given [ValueHandle] if it exists.
      * @returns if an error was removed.
      */

@@ -23,9 +23,9 @@
 #include "components/Naming.h"
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
-#include "components/RamsesProjectMigration.h"
-#include "serialization/Serialization.h"
-#include "serialization/SerializationKeys.h"
+#include "core/RamsesProjectMigration.h"
+#include "core/Serialization.h"
+#include "core/SerializationKeys.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/OrthographicCamera.h"
@@ -102,7 +102,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 			if (auto prefab = *prefabInst->template_) {
 				if (prefab->query<raco::core::ExternalReferenceAnnotation>()) {
 					for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
-						if (property.query<data_storage::URIAnnotation>()) {
+						if (property.query<URIAnnotation>()) {
 							// The PrefabInstance::mapToInstance_ property is only filled for the outermost PrefabInstance if 
 							// there are nested instances. So we need to search the topmost PrefabInstance first:
 							while (auto parentPrefabInst = PrefabOperations::findContainingPrefabInstance(prefabInst->getParent())) {
@@ -141,7 +141,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 	for (auto& object : context_->project()->instances()) {
 		if (PathQueries::isPathRelativeToCurrentProject(object)) {
 			for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
-				if (property.query<data_storage::URIAnnotation>()) {
+				if (property.query<URIAnnotation>()) {
 					auto uriPath = property.asString();
 					if (!uriPath.empty() && std::filesystem::path{uriPath}.is_relative()) {
 						context_->set(property, PathManager::rerootRelativePath(uriPath, oldPath, newPath));
@@ -232,12 +232,12 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 	file.close();
 
 	auto fileVersion{raco::serialization::deserializeFileVersion(document)};
-	if (fileVersion > raco::components::RAMSES_PROJECT_FILE_VERSION) {
+	if (fileVersion > raco::core::RAMSES_PROJECT_FILE_VERSION) {
 		throw FutureFileVersion{fileVersion};
 	}
 
 	std::unordered_map<std::string, std::string> migrationObjWarnings;
-	auto migratedJson{raco::components::migrateProject(document, migrationObjWarnings)};
+	auto migratedJson{migrateProject(document, migrationObjWarnings)};
 
 	auto newProject = loadFromJson(migratedJson, filename, app, pathStack);
 
@@ -246,6 +246,8 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 			newProject->errors()->addError(raco::core::ErrorCategory::MIGRATION_ERROR, ErrorLevel::WARNING, migratedObj, infoMessage);
 		}
 	}
+
+	newProject->errors()->logAllErrors();
 
 	return newProject;
 }
@@ -332,7 +334,7 @@ void RaCoProject::save() {
 	auto ramsesLogicEngineVersion = raco::ramses_base::getLogicEngineVersion();
 
 	std::unordered_map<std::string, std::vector<int>> currentVersions = {
-		{raco::serialization::keys::FILE_VERSION, {raco::components::RAMSES_PROJECT_FILE_VERSION}},
+		{raco::serialization::keys::FILE_VERSION, {raco::core::RAMSES_PROJECT_FILE_VERSION}},
 		{raco::serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
 		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
 		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};

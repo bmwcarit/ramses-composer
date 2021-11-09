@@ -7,7 +7,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "serialization/Serialization.h"
+#include "core/Serialization.h"
 
 
 #include "testing/TestEnvironmentCore.h"
@@ -19,7 +19,7 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "utils/FileUtils.h"
-#include "serialization/SerializationFunctions.h"
+#include "core/SerializationFunctions.h"
 #include <gtest/gtest.h>
 
 constexpr bool WRITE_RESULT{false};

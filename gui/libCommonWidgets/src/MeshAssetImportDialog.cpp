@@ -76,48 +76,9 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		}
 	});
 
-	useReferencedResourcesButton_ = new QPushButton("Check Resources Used by Enabled Nodes", this);
-	connect(useReferencedResourcesButton_, &QPushButton::clicked, [this]() {
-		std::set<QTreeWidgetItem*> checkedResources;
-
-		for (auto nodeIndex = 0; nodeIndex < nodeTreeList_.size(); ++nodeIndex) {
-			auto* nodeItem = nodeTreeList_[nodeIndex];
-			auto subMeshIndeces = widgetItemToSubmeshIndexMap_[nodeItem];
-
-			if (subMeshIndeces->size() == 1) {
-				auto meshReferencedByNode = meshTreeList_[subMeshIndeces->front().value()];
-				if (checkedResources.find(meshReferencedByNode) == checkedResources.end()) {
-					auto nodeCheckState = nodeItem->checkState(0);
-					meshReferencedByNode->setCheckState(0, nodeCheckState);
-
-					if (nodeCheckState == Qt::CheckState::Checked) {
-						checkedResources.emplace(meshReferencedByNode);
-					}
-				}
-			} else if (subMeshIndeces->size() > 1) {
-				auto primitiveItems = nodeToPrimitiveTreeList_[nodeIndex];
-
-				for (auto primIndex = 1; primIndex < primitiveItems.size(); ++primIndex) {
-					auto* primitiveItem = primitiveItems[primIndex];
-					auto meshReferencedByPrimitive = meshTreeList_[(*subMeshIndeces)[primIndex - 1].value()];
-
-					if (checkedResources.find(meshReferencedByPrimitive) == checkedResources.end()) {
-						auto primitiveCheckState = primitiveItem->checkState(0);
-						meshReferencedByPrimitive->setCheckState(0, primitiveCheckState);
-
-						if (primitiveCheckState == Qt::CheckState::Checked) {
-							checkedResources.emplace(meshReferencedByPrimitive);
-						}
-					}
-				}
-			}
-		}
-	});
-
 	massSelectButtonLayout_ = new QHBoxLayout(nullptr);
 	massSelectButtonLayout_->addWidget(selectAllButton_);
 	massSelectButtonLayout_->addWidget(deselectAllButton_);
-	massSelectButtonLayout_->addWidget(useReferencedResourcesButton_);
 	massSelectButtonLayout_->addStretch();
 
 	dialogButtonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};
