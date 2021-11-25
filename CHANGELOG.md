@@ -20,6 +20,16 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Bugs
 -->
 
+## [0.9.3] Update to ramses-logic 0.12.0
+
+### Changes
+* Update from ramses-logic 0.11.0 to ramses-logic 0.12.0
+    * BREAKING CHANGE: It is no longer possible to use global variables in the Lua Scripts functions.
+        * There are now better alternatives:
+            * [init() function](https://ramses-logic.readthedocs.io/en/v0.11.0/lua_syntax.html#global-variables-and-the-init-function)
+            * [Custom modules](https://ramses-logic.readthedocs.io/en/v0.11.0/lua_syntax.html#custom-modules)
+            * Docs for new behavior: see [Lua docs](https://ramses-logic.readthedocs.io/en/v0.12.0/lua_syntax.html#environments-and-isolation)
+
 ## [0.9.2]
 
 ### Changes

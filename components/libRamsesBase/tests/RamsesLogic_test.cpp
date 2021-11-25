@@ -394,7 +394,9 @@ function run()
 end
 )"};
 
-	auto* script = logicEngine.createLuaScript(scriptContentFloat);
+	rlogic::LuaConfig luaConfig;
+	luaConfig.addStandardModuleDependency(rlogic::EStandardModule::All);
+	auto* script = logicEngine.createLuaScript(scriptContentFloat, luaConfig);
 
 	const float pi = static_cast<float>(std::acos(-1.0));
 	script->getInputs()->getChild("float")->set(pi);
