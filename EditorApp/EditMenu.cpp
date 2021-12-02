@@ -76,21 +76,13 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 
 void EditMenu::globalUndoCallback(raco::application::RaCoApplication* racoApplication) {
 	if (racoApplication->activeRaCoProject().undoStack()->canUndo()) {
-		try {
-			racoApplication->activeRaCoProject().undoStack()->undo();
-		} catch (raco::core::ExtrefError& error) {
-			// This ext ref update error message will be shown in the Error View.
-		}
+		racoApplication->activeRaCoProject().undoStack()->undo();
 	}
 }
 
 void EditMenu::globalRedoCallback(raco::application::RaCoApplication* racoApplication) {
 	if (racoApplication->activeRaCoProject().undoStack()->canRedo()) {
-		try {
-			racoApplication->activeRaCoProject().undoStack()->redo();
-		} catch (raco::core::ExtrefError& error) {
-			// This ext ref update error message will be shown in the Error View.
-		}
+		racoApplication->activeRaCoProject().undoStack()->redo();
 	}
 }
 

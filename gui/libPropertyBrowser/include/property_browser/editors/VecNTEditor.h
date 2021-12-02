@@ -58,6 +58,13 @@ public:
 				spinboxes_[i]->setValue(handle.as<T>());
 			});			
 
+			if (i < N - 1) {
+				int nextSpinboxIndex = i + 1;
+				QObject::connect(spinboxes_[i].get(), &SpinBoxType::focusNextRequested, this, [this, nextSpinboxIndex]() {
+					spinboxes_[nextSpinboxIndex]->setFocus();
+				});			
+			}
+
 			layout->addWidget(spinboxes_[i].get(), 0, i);
 		}
 	}
@@ -70,8 +77,8 @@ public Q_SLOTS:
 		}
 	}
 
-  protected:
-  std::array<std::unique_ptr<SpinBoxType>, N> spinboxes_;
+ protected:
+	std::array<std::unique_ptr<SpinBoxType>, N> spinboxes_;
 };
 
 using Vec2fEditor = VecNTEditor<double, 2>;

@@ -11,6 +11,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 # Adding the unit test with gtest using our macro from dsathe top level CMakeLists.txt file
 
 set(TEST_SOURCES
+    AnimationAdaptor_test.cpp
+    AnimationChannelAdaptor_test.cpp
     RamsesBaseFixture.h
     LinkAdaptor_test.cpp
     LuaScriptAdaptor_test.cpp
@@ -18,6 +20,8 @@ set(TEST_SOURCES
     MeshAdaptor_test.cpp
     MeshNodeAdaptor_test.cpp
     NodeAdaptor_test.cpp
+    OrthographicCameraAdaptor_test.cpp
+    PerspectiveCameraAdaptor_test.cpp
     Ramses_test.cpp
     RamsesLogic_test.cpp
     RenderLayerAdaptor_test.cpp
@@ -44,4 +48,9 @@ raco_package_add_test_resouces(
     shaders/simple_texture.frag
     shaders/simple_texture.vert
     meshes/Duck.glb
+    meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
+    meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
+    meshes/InterpolationTest/InterpolationTest.gltf
+    meshes/InterpolationTest/interpolation.bin
+    meshes/InterpolationTest/l.jpg
 )

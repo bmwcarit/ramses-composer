@@ -9,6 +9,7 @@
  */
 #include "core/EditorObject.h"
 #include "core/Handles.h"
+#include "core/Iterators.h"
 #include "core/Queries.h"
 #include "core/Errors.h"
 
@@ -74,7 +75,20 @@ const std::set<WEditorObject, std::owner_less<WEditorObject>>& EditorObject::ref
 
 void EditorObject::onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const {
 	auto srcRootObject = sourceReferenceProperty.rootObject();
-	referencesToThis_.erase(srcRootObject);
+
+	bool isReferenced = false;
+	for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(srcRootObject))) {
+		if (!(prop == sourceReferenceProperty) && prop.type() == PrimitiveType::Ref) {
+			auto refValue = prop.asTypedRef<EditorObject>();
+			if (refValue && refValue.get() == this) {
+				isReferenced = true;
+				break;
+			}
+		}
+	}
+	if (!isReferenced) {
+		referencesToThis_.erase(srcRootObject);
+	}
 
 	if (srcRootObject) {
 		if (ValueHandle(srcRootObject, &EditorObject::children_).contains(sourceReferenceProperty)) {

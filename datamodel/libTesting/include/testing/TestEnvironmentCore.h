@@ -100,16 +100,25 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return meshnode;
 	}
 
-	raco::user_types::SLuaScript create_lua(const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
-		auto lua = create<raco::user_types::LuaScript>(name, parent);
-		commandInterface.set({lua, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
+	raco::user_types::SLuaScript create_lua(raco::core::CommandInterface& cmd, const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
+		auto lua = create<raco::user_types::LuaScript>(cmd, name, parent);
+		cmd.set({lua, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
 		return lua;
 	}
 
-	raco::user_types::SLuaScript create_lua(const std::string& name, const typename RacoBaseTest<BaseClass>::TextFile& file) {
-		auto lua = create<raco::user_types::LuaScript>(name);
-		commandInterface.set({lua, {"uri"}}, file);
+	raco::user_types::SLuaScript create_lua(const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
+		return create_lua(commandInterface, name, relpath, parent);
+	}
+
+	raco::user_types::SLuaScript create_lua(raco::core::CommandInterface& cmd, const std::string& name, const typename RacoBaseTest<BaseClass>::TextFile& file) {
+		auto lua = create<raco::user_types::LuaScript>(cmd, name);
+		cmd.set({lua, {"uri"}}, file);
 		return lua;
+	}
+
+	raco::user_types::SLuaScript create_lua(const std::string& name, const typename 
+		RacoBaseTest<BaseClass>::TextFile& file) {
+		return create_lua(commandInterface, name, file);
 	}
 
 	raco::user_types::SRenderLayer create_layer(const std::string& name,

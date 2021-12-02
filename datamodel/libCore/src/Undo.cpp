@@ -12,6 +12,7 @@
 #include "core/ChangeRecorder.h"
 #include "core/Context.h"
 #include "core/EditorObject.h"
+#include "core/ExternalReferenceAnnotation.h"
 #include "core/Project.h"
 #include "core/UserObjectFactoryInterface.h"
 #include "core/Link.h"
@@ -54,6 +55,9 @@ void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHa
 			updateTableByName(&src->asTable(), &dest->asTable(), destHandle, translateRef, outChanges, invokeHandler);
 		}
 	} else {
+		// TODO: there seems to be a loophole here:
+		// for PrimitiveType::Struct properties the references inside the struct are not translated;
+		// we currently don't use classes with reference properties in PrimitiveType::Struct properties
 		changed = dest->assign(*src);
 		// Assume annotation data doesn't contain Ref type properties.
 		dest->copyAnnotationData(*src);
@@ -67,6 +71,10 @@ void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHa
 // - replace entire Table contents
 void updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
 	bool changed = false;
+	if (ReflectionInterface::compare(*src, *dest, translateRef)) {
+		return;
+	}
+
 	if (invokeHandler) {
 		for (size_t index{0}; index < dest->size(); index++) {
 			auto oldValue = dest->get(index);
@@ -179,7 +187,7 @@ void UndoStack::saveProjectState(const Project *src, Project *dest, Project *ref
 	assert(dest->linkEndPoints().empty());
 	assert(dest->instances().empty());
 
-	std::set<SEditorObject> dirtyObjects;
+	SEditorObjectSet dirtyObjects;
 	if (ref) {
 		dirtyObjects = changes.getAllChangedObjects();
 	} else {
@@ -223,7 +231,7 @@ void UndoStack::saveProjectState(const Project *src, Project *dest, Project *ref
 }
 
 void UndoStack::updateProjectState(const Project *src, Project *dest, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory) {
-	std::set<SEditorObject> dirtyObjects = changes.getAllChangedObjects();
+	SEditorObjectSet dirtyObjects = changes.getAllChangedObjects();
 
 	auto translateRef = [dest](SEditorObject srcObj) -> SEditorObject {
 		if (srcObj) {
@@ -243,6 +251,7 @@ void UndoStack::updateProjectState(const Project *src, Project *dest, const Data
 
 void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &context, UserObjectFactoryInterface &factory) {
 	DataChangeRecorder changes;
+	bool extrefDirty = false;
 
 	const auto destLinks{dest->links()};
 	const auto srcLinks{src->links()};
@@ -252,15 +261,17 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 		if (!src->findLinkByObjectID(destLink)) {
 			changes.recordRemoveLink(destLink->descriptor());
 			dest->removeLink(destLink);
+			extrefDirty = extrefDirty || (*destLink->endObject_)->query<ExternalReferenceAnnotation>();
 		}
 	}
 
 	// Remove dest objects not present in src
-	std::set<SEditorObject> toRemove;
+	SEditorObjectSet toRemove;
 	for (auto destObj : dest->instances()) {
 		if (!src->getInstanceByID(destObj->objectID())) {
 			toRemove.insert(destObj);
 			changes.recordDeleteObject(destObj);
+			extrefDirty = extrefDirty || destObj->query<ExternalReferenceAnnotation>();
 		}
 	}
 	BaseContext::deleteWithVolatileSideEffects(dest, toRemove, context.errors());
@@ -271,6 +282,7 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 			auto destObj = factory.createObject(srcObj->getTypeDescription().typeName, srcObj->objectName(), srcObj->objectID());
 			dest->addInstance(destObj);
 			changes.recordCreateObject(destObj);
+			extrefDirty = extrefDirty || srcObj->query<ExternalReferenceAnnotation>();
 		}
 	}
 
@@ -287,6 +299,19 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 		updateEditorObject(srcObj.get(), destObj, translateRef, [](const std::string &) { return false; }, factory, &changes, true);
 	}
 
+	auto findExtref = [](const std::map<std::string, std::set<ValueHandle>>& changes) {
+		for (const auto &[id, handles] : changes) {
+			for (const auto &handle : handles) {
+				if (handle.rootObject()->query<ExternalReferenceAnnotation>()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+	extrefDirty = extrefDirty || findExtref(changes.getChangedValues());
+
+
 	for (const auto &srcLink : srcLinks) {
 		auto foundDestLink = dest->findLinkByObjectID(srcLink);
 		if (!foundDestLink) {
@@ -294,15 +319,20 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 			auto destLink = Link::cloneLinkWithTranslation(srcLink, translateRef);
 			dest->addLink(destLink);
 			changes.recordAddLink(destLink->descriptor());
+			extrefDirty = extrefDirty || (*srcLink->endObject_)->query<ExternalReferenceAnnotation>();
 		} else if (srcLink->isValid() != foundDestLink->isValid()) {
 			// set validity of dest link to validity of src link
 			foundDestLink->isValid_ = srcLink->isValid();
 			changes.recordChangeValidityOfLink(foundDestLink->descriptor());
+			extrefDirty = extrefDirty || (*srcLink->endObject_)->query<ExternalReferenceAnnotation>();
 		}
 	}
 
 	// Update external project name map
-	dest->externalProjectsMap_ = src->externalProjectsMap_;
+	if (dest->externalProjectsMap_ != src->externalProjectsMap_) {
+		dest->externalProjectsMap_ = src->externalProjectsMap_;
+		extrefDirty = true;
+	}
 
 	// Update volatile data for new or changed objects
 	for (const auto &destObj : changes.getAllChangedObjects()) {
@@ -311,16 +341,26 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 
 	// Use the change recorder in the context from here on
 	context_->uiChanges().mergeChanges(changes);
-	context_->modelChanges().mergeChanges(changes);
-
+	
 	// Sync from external files for new or changed objects
-	for (const auto &destObj : changes.getAllChangedObjects()) {
-		destObj->onAfterContextActivated(context);
-	}
+	auto changedObjects = changes.getAllChangedObjects();
+	context_->performExternalFileReload({changedObjects.begin(), changedObjects.end()});
 
-	std::vector<std::string> stack;
-	stack.emplace_back(dest->currentPath());
-	context_->updateExternalReferences(stack);
+	if (extrefDirty) {
+		std::vector<std::string> stack;
+		stack.emplace_back(dest->currentPath());
+		// Reset model changes here to make sure that the prefab update which runs at the end of the external reference update
+		// will only see the changed external reference objects and will not perform unnecessary prefab updates.
+		context_->modelChanges().reset();
+		try {
+			context_->updateExternalReferences(stack);
+		} catch (ExtrefError &e) {
+			// Do nothing here:
+			// updateExternalReferences will create an error message that will be shown in the Error View in addition
+			// to throwing this exception.
+		}
+	}
+	context_->modelChanges().reset();
 }
 
 UndoStack::UndoStack(BaseContext* context, const Callback& onChange) : context_(context), onChange_ { onChange } {
@@ -337,9 +377,13 @@ void UndoStack::reset() {
 	onChange_();
 }
 
+bool UndoStack::canMerge(const DataChangeRecorder &changes) {
+	return changes.getCreatedObjects().empty() && changes.getDeletedObjects().empty() && changes.getAddedLinks().empty() && changes.getRemovedLinks().empty() && changes.getValidityChangedLinks().empty() && !changes.externalProjectMapChanged();
+}
+
 void UndoStack::push(const std::string &description, std::string mergeId) {
 	stack_.resize(index_ + 1);
-	if (!mergeId.empty() && mergeId == stack_.back()->mergeId) {
+	if (!mergeId.empty() && mergeId == stack_.back()->mergeId && canMerge(context_->modelChanges())) {
 		// mergable -> In-place update of the last stack state
 		updateProjectState(context_->project(), &stack_.back()->state, context_->modelChanges(), *context_->objectFactory());
 		stack_.back()->description = description;
@@ -365,14 +409,7 @@ size_t UndoStack::getIndex() const {
 size_t UndoStack::setIndex(size_t newIndex, bool force) {
 	if (newIndex < size() && (newIndex != index_ || force)) {
 		index_ = newIndex;
-		try {
-			restoreProjectState(&stack_[index_]->state, context_->project(), *context_, *context_->objectFactory());
-		} catch (ExtrefError &e) {
-			context_->modelChanges().reset();
-			onChange_();
-			throw e;
-		}
-		context_->modelChanges().reset();
+		restoreProjectState(&stack_[index_]->state, context_->project(), *context_, *context_->objectFactory());
 		onChange_();
 	}
 	return index_;

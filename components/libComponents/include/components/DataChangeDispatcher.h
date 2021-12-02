@@ -75,7 +75,7 @@ public:
 	using Callback = std::function<void()>;
 	using EditorObjectCallback = std::function<void(core::SEditorObject)>;
 	using ValueHandleCallback = std::function<void(const core::ValueHandle&)>;
-	using BulkChangeCallback = std::function<void(const std::set<core::SEditorObject>&)>;
+	using BulkChangeCallback = std::function<void(const core::SEditorObjectSet&)>;
 	using LinkCallback = std::function<void(const core::LinkDescriptor&)>;
 
 	explicit DataChangeDispatcher();
@@ -121,7 +121,7 @@ private:
 	void emitCreated(core::SEditorObject obj);
 	void emitDeleted(core::SEditorObject obj);
 	void emitPreviewDirty(core::SEditorObject obj);
-	void emitBulkChange(const std::set<core::SEditorObject>& changedObjects);
+	void emitBulkChange(const core::SEditorObjectSet& changedObjects);
 
 	std::set<std::weak_ptr<ObjectLifecycleListener>, std::owner_less<std::weak_ptr<ObjectLifecycleListener>>> objectLifecycleListeners_{};
 	std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>> linkLifecycleListeners_{};

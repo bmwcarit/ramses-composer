@@ -152,15 +152,11 @@ void CommandInterface::moveScenegraphChild(SEditorObject const& object, SEditorO
 	}
 }
 
-bool CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
-	auto importSuccess = context_->insertAssetScenegraph(scenegraph, absPath, parent);
-	if (importSuccess) {
-		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
-		undoStack_->push(fmt::format("Inserted assets from {}", absPath));
-		PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, std::filesystem::path(absPath).parent_path().generic_string());
-	}
-
-	return importSuccess;
+void CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
+	context_->insertAssetScenegraph(scenegraph, absPath, parent);
+	PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+	undoStack_->push(fmt::format("Inserted assets from {}", absPath));
+	PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, std::filesystem::path(absPath).parent_path().generic_string());
 }
 
 std::string CommandInterface::copyObjects(const std::vector<SEditorObject>& objects, bool deepCopy) {
@@ -195,11 +191,7 @@ std::vector<SEditorObject> CommandInterface::pasteObjects(const std::string& val
 			}
 			// Force restoring project from last undo stack state.
 			// Necessary to get consistent state when "paste as external reference" fails only during the external reference update.
-			try {
-				undoStack_->setIndex(undoStack_->getIndex(), true);
-			} catch (core::ExtrefError& /*error*/) {
-				// Do nothing here: we should now be in the same state as before the paste operation even if the external reference update failed.
-			}
+			undoStack_->setIndex(undoStack_->getIndex(), true);
 		}
 	}
 	if (outSuccess) {

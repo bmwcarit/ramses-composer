@@ -22,6 +22,8 @@
 #include "application/RaCoApplication.h"
 #include "ramses_adaptor/SceneBackend.h"
 
+#include "user_types/Animation.h"
+#include "user_types/AnimationChannel.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -58,6 +60,19 @@ public:
 			cmd->moveScenegraphChild(obj, parent);
 		}
 		return obj;
+	}
+
+	SAnimation create_animation(const std::string &name) {
+		auto channel = create<Animation>(name);
+		cmd->set({channel, {"play"}}, true);
+		cmd->set({channel, {"loop"}}, true);
+		return channel;
+	}
+
+	SAnimationChannel create_animationchannel(const std::string& name, const std::string& relpath) {
+		auto channel = create<AnimationChannel>(name);
+		cmd->set({channel, {"uri"}}, (cwd_path() / relpath).string());
+		return channel;
 	}
 
 	SMesh create_mesh(const std::string &name, const std::string &relpath) {
@@ -216,7 +231,7 @@ public:
 
 		func();
 
-		base.activeRaCoProject().save();
+		ASSERT_TRUE(base.activeRaCoProject().save());
 	}
 
 	void updateComposite(const std::string &pathName, std::function<void()> func) {
@@ -1653,7 +1668,7 @@ TEST_F(ExtrefTest, saveas_reroot_uri_lua) {
 
 		ASSERT_EQ(project->externalProjectsMap().at(base_id).path, "base.rcp");
 
-		app->activeRaCoProject().saveAs((cwd_path() / "subdir" / "project.file").string().c_str());
+		ASSERT_TRUE(app->activeRaCoProject().saveAs((cwd_path() / "subdir" / "project.file").string().c_str()));
 
 		EXPECT_EQ(*lua_prefab->uri_, std::string("relativeURI"));
 		EXPECT_EQ(*lua_inst->uri_, std::string("relativeURI"));
@@ -1790,5 +1805,100 @@ end
 		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}},
 			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"translation"}}},
 			{{pasted_inst_lua, {"luaOutputs", "v"}}, {pasted_inst_node, {"translation"}}}});
+	});
+}
+
+TEST_F(ExtrefTest, prefab_link_quaternion_in_prefab) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+
+	setupBase(basePathName1, [this, basePathName1]() {
+		project->setCurrentPath(basePathName1);
+
+		auto prefab = create<Prefab>("prefab");
+		auto node = create<Node>("prefab_node", prefab);
+		auto lua = create<LuaScript>("prefab_lua", prefab);
+
+		raco::utils::file::write((cwd_path() / "script.lua").string(), R"(
+function interface()
+	IN.v = VEC4F
+	OUT.v = VEC4F
+end
+function run()
+OUT.v = IN.v
+end
+)");
+		cmd->moveScenegraphChild(node, prefab);
+		cmd->moveScenegraphChild(lua, prefab);
+		cmd->set({lua, {"uri"}}, std::string("script.lua"));
+		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"rotation"}});
+	});
+
+	setupBase(basePathName2, [this, basePathName1, basePathName2]() {
+		project->setCurrentPath(basePathName2);
+		pasteFromExt(basePathName1, {"prefab"}, true);
+		auto prefab = findExt("prefab");
+		auto prefab_lua = findExt<LuaScript>("prefab_lua");
+		auto prefab_node = findExt<Node>("prefab_node");
+
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, {"template"}}, prefab);
+
+		auto inst_children = inst->children_->asVector<SEditorObject>();
+		auto inst_node = inst_children[0]->as<Node>();
+		auto inst_lua = inst_children[1]->as<LuaScript>();
+
+		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"rotation"}}},
+			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"rotation"}}}});
+	});
+}
+
+TEST_F(ExtrefTest, animation_channel_data_gets_propagated) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName1, [this]() {
+		auto animChannel = create_animationchannel("animCh", "meshse/InterpolationTest/InterpolationTest.gltf");
+	});
+
+	setupBase(basePathName2, [this, basePathName1]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"animCh"}, true));
+
+		auto anim = create_animation("anim");
+		auto animChannel = findExt<AnimationChannel>("animCh");
+		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+
+		ASSERT_NE(animChannel, nullptr);
+		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
+	});
+}
+
+TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName1, [this]() {
+		auto anim = create_animation("anim");
+		auto animNode = create<Node>("node");
+		cmd->moveScenegraphChild(anim, animNode);
+
+		auto prefab = create<Prefab>("prefab");
+		cmd->moveScenegraphChild(animNode, prefab);
+
+		auto animChannel = create_animationchannel("animCh", "meshse/InterpolationTest/InterpolationTest.gltf");
+		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+	});
+
+	setupBase(basePathName2, [this, basePathName1]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"prefab"}, true));
+
+		auto anim = findExt<Animation>("anim");
+		auto animChannel = findExt<AnimationChannel>("animCh");
+
+		ASSERT_NE(anim, nullptr);
+		ASSERT_NE(animChannel, nullptr);
+		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
 	});
 }

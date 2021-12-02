@@ -13,11 +13,29 @@
 #include <QString>
 #include <QWidget>
 #include <QLineEdit>
+#include <QKeyEvent>
 #include "core/ErrorItem.h"
 
 namespace raco::property_browser {
 	
 class PropertyBrowserItem;
+
+class StringEditorLineEdit : public QLineEdit {
+	Q_OBJECT
+
+public:
+	StringEditorLineEdit(QWidget* parent = nullptr) : QLineEdit(parent) {  }
+
+protected:
+	QString focusInOldText_;
+
+	void focusInEvent(QFocusEvent* event);
+
+	void keyPressEvent(QKeyEvent* event);
+
+Q_SIGNALS:
+	void focusNextRequested();
+};
 
 class StringEditor : public QWidget {
 	Q_OBJECT
@@ -38,7 +56,7 @@ protected:
 
 	bool updatedInBackground_ = false;
 	core::ErrorLevel errorLevel_{core::ErrorLevel::NONE};
-	QLineEdit* lineEdit_;
+	StringEditorLineEdit* lineEdit_;
 };
 
 }  // namespace raco::property_browser

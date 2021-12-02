@@ -55,13 +55,18 @@ void CTMFileLoader::reset() {
 	valid_ = false;
 }
 
-raco::core::MeshScenegraph CTMFileLoader::getScenegraph() {
+raco::core::MeshScenegraph* CTMFileLoader::getScenegraph(const std::string& absPath) {
 	// Scenegraph import for CTM is unsupported as CTM does not contain any scenegraph.
-	return {};
+	return nullptr;
 }
 
 int CTMFileLoader::getTotalMeshCount() {
 	return 1;
+}
+
+std::shared_ptr<raco::core::MeshAnimationSamplerData> CTMFileLoader::getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) {
+	// CTM has no animations yet
+	return {};
 }
 
 bool CTMFileLoader::loadFile() {
@@ -89,11 +94,6 @@ raco::core::SharedMeshData CTMFileLoader::loadMesh(const raco::core::MeshDescrip
 
 std::string CTMFileLoader::getError() {
 	return error_;
-}
-
-std::string CTMFileLoader::getWarning() {
-	// No warnings produced by ctm import
-	return "";
 }
 
 }  // namespace raco::mesh_loader

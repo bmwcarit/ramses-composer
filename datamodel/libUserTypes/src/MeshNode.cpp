@@ -43,9 +43,12 @@ void MeshNode::createMaterialSlot(std::string const& name) {
 }
 
 void MeshNode::updateMaterialSlots(BaseContext& context, std::vector<std::string> const& materialNames) {
+	bool changed = false;
+
 	for (auto matName : materialNames) {
 		if (!materials_->hasProperty(matName)) {
 			createMaterialSlot(matName);
+			changed = true;
 		}
 	}
 	std::vector<std::string> toRemove;
@@ -57,9 +60,12 @@ void MeshNode::updateMaterialSlots(BaseContext& context, std::vector<std::string
 	for (auto name : toRemove) {
 		ValueHandle matHandle{shared_from_this(), &MeshNode::materials_};
 		context.removeProperty(matHandle, materials_.asTable().index(name));
+		changed = true;
 	}
 
-	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &MeshNode::materials_));
+	if (changed) {
+		context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &MeshNode::materials_));
+	}
 }
 
 
@@ -235,16 +241,15 @@ void MeshNode::checkMeshMaterialAttributMatch(BaseContext& context) {
 			}
 		}
 		if (!errors.empty()) {
-			errors = "Attribute mismatch:\n\n" + errors;
+			errors = "Attribute mismatch:\n\n" + errors.substr(0, errors.length() - 1);
 		}
 	}
 
-	context.errors().removeError(ValueHandle{shared_from_this()});
-	if (!errors.empty()) {
-		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, errors);
-	}
-
+	context.errors().removeError(ValueHandle{shared_from_this(), {"mesh"}});
 	context.updateBrokenLinkErrors(shared_from_this());
+	if (!errors.empty()) {
+		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this(), {"mesh"}}, errors);
+	}
 }
 
 void MeshNode::onAfterContextActivated(BaseContext& context) {

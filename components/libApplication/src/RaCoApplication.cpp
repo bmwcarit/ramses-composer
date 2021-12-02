@@ -19,7 +19,7 @@
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/BaseEngineBackend.h"
-
+#include "user_types/Animation.h"
 
 #include <ramses_base/LogicEngineFormatter.h>
 
@@ -125,11 +125,14 @@ void RaCoApplication::doOneLoop() {
 		scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 	}
 
+	auto animNodes = engine_->logicEngine().animationNodes();
+	logicEngineNeedsUpdate_ |= (animNodes.size() > 0);
+
+	auto elapsedTime = std::chrono::high_resolution_clock::now() - startTime_;
+	auto elapsedMsec = std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count();
+
 	auto activeProjectRunsTimer = activeRaCoProject().project()->settings()->runTimer_.asBool();
 	if (activeProjectRunsTimer) {
-		auto elapsedTime = std::chrono::high_resolution_clock::now() - startTime_;
-		auto elapsedMsec = std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count();
-
 		auto loadedScripts = engine_->logicEngine().scripts();
 		for (auto* loadedScript : loadedScripts) {
 			if (auto* timerInput = loadedScript->getInputs()->getChild("time_ms")) {
@@ -149,6 +152,12 @@ void RaCoApplication::doOneLoop() {
 		logicEngineNeedsUpdate_ = false;
 	}
 
+	auto msecDiff = elapsedMsec - totalElapsedMsec_;
+	totalElapsedMsec_ = elapsedMsec;
+	// keep Ramses logic animation nodes dirty so they will keep running in the next loop
+	for (auto animNode : animNodes) {
+		animNode->getInputs()->getChild("timeDelta")->set(msecDiff / 1000.0F);
+	}
 	dataChangeDispatcher_->dispatch(dataChanges);
 }
 

@@ -908,6 +908,30 @@ QJsonDocument migrateProject(const QJsonDocument& document, std::unordered_map<s
 			return true;
 		});
 	}
+
+	// File version 19: Changed ProjectSettings::backgroundColor from Vec3f to Vec4f
+	if (documentVersion < 19) {
+		auto factory = deserializationFactoryV10plus();
+		iterateInstances(documentObject, [&factory](const QString& instanceType, QJsonObject& instanceproperties) {
+			if (instanceType != "ProjectSettings") {
+				return false;
+			}
+			Property<Vec3f> bgColor3;
+			extractprop(factory, instanceproperties, u"backgroundColor", bgColor3);
+			auto bgColor3Vec = bgColor3.asVec3f();
+			Vec4f bgColor4Vec;
+			bgColor4Vec.x = bgColor3Vec.x.asDouble();
+			bgColor4Vec.y = bgColor3Vec.y.asDouble();
+			bgColor4Vec.z = bgColor3Vec.z.asDouble();
+			bgColor4Vec.w = 1.0;
+			
+			addprop(instanceproperties, u"backgroundColor", Property<Vec4f, DisplayNameAnnotation> {
+				bgColor4Vec, { "Display Background Color" }
+			});
+			return true;
+		});
+	}
+	
 	
 	QJsonDocument newDocument{documentObject};
 	// for debugging:

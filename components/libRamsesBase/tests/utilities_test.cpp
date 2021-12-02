@@ -23,6 +23,7 @@ TEST(Rotation, initialSpatialProperties_areEqual) {
 	auto testScene = backend.client().createScene(ramses::sceneId_t{1u});
 
 	auto ramsesNode = testScene->createNode();
+	auto nodeBinding = backend.logicEngine().createRamsesNodeBinding(*ramsesNode);
 	auto dataNode = std::make_shared<Node>();
 
 	EXPECT_EQ(Rotation::from(*ramsesNode), Rotation::from(dataNode));
@@ -35,6 +36,8 @@ TEST(Rotation, spatialProperties_areEqual_afterSync) {
 	auto testScene = backend.client().createScene(ramses::sceneId_t{1u});
 
 	auto ramsesNode = testScene->createNode();
+	auto nodeBinding = backend.logicEngine().createRamsesNodeBinding(*ramsesNode);
+
 	auto dataNode = std::make_shared<Node>();
     dataNode->scale_->x = 10.0;
     dataNode->scale_->y = 15.0;

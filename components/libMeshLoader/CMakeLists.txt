@@ -11,8 +11,9 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 add_library(libMeshLoader
 	include/mesh_loader/CTMMesh.h src/CTMMesh.cpp
 	include/mesh_loader/CTMFileLoader.h src/CTMFileLoader.cpp
-	include/mesh_loader/glTFMesh.h src/glTFMesh.cpp
+	include/mesh_loader/glTFBufferData.h
 	include/mesh_loader/glTFFileLoader.h src/glTFFileLoader.cpp
+	include/mesh_loader/glTFMesh.h src/glTFMesh.cpp
 )
 
 target_include_directories(libMeshLoader PUBLIC include/)
@@ -22,6 +23,7 @@ target_link_libraries(libMeshLoader
 PUBLIC
 	raco::Core
 PRIVATE
+	raco::Utils
 	openctm
 	tinygltf
 	glm

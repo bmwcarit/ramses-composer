@@ -31,7 +31,7 @@ namespace raco::property_browser {
 StringEditor::StringEditor(PropertyBrowserItem* item, QWidget* parent)
 	: QWidget{parent} {
 	this->setLayout(new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(this));
-	lineEdit_ = new QLineEdit(this);
+	lineEdit_ = new StringEditorLineEdit(this);
 	layout()->addWidget(lineEdit_);
 	
 	// connect item to QLineEdit
@@ -44,6 +44,10 @@ StringEditor::StringEditor(PropertyBrowserItem* item, QWidget* parent)
 	QObject::connect(item, &PropertyBrowserItem::errorChanged, this, [this, item](core::ValueHandle& handle) {
 		this->updateErrorState(item);
 	});
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
+		lineEdit_->setFocus();
+	});
+	QObject::connect(lineEdit_, &StringEditorLineEdit::focusNextRequested, this, [this, item]() { item->requestNextSiblingFocus(); });
 
 	lineEdit_->setText(item->valueHandle().asString().c_str());
 	if (item->hasError()) {
@@ -88,5 +92,22 @@ int StringEditor::errorLevel() const noexcept {
 	return static_cast<int>(errorLevel_);
 }
 
+void StringEditorLineEdit::focusInEvent(QFocusEvent* event) {
+	this->selectAll();
+	focusInOldText_ = text();
+	QLineEdit::focusInEvent(event);
+}
+
+void StringEditorLineEdit::keyPressEvent(QKeyEvent* event) {
+	QLineEdit::keyPressEvent(event);
+
+	if (event->key() == Qt::Key_Escape) {
+		setText(focusInOldText_);
+		clearFocus();
+	} else if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return) {
+		clearFocus();
+		Q_EMIT focusNextRequested();
+	}
+}
 
 }  // namespace raco::property_browser

@@ -44,6 +44,6 @@ protected:
 	core::LinkDescriptor editorLink_;
 	std::vector<UniqueEngineLink> engineLink_;
 };
-using UniqueLinkAdaptor = std::unique_ptr<LinkAdaptor>;
+using SharedLinkAdaptor = std::shared_ptr<LinkAdaptor>;
 
 }  // namespace raco::ramses_adaptor

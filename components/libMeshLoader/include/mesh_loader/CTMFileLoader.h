@@ -22,10 +22,10 @@ public:
 
 	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
 	std::string getError() override;
-	std::string getWarning() override;
 	void reset() override;
-	raco::core::MeshScenegraph getScenegraph() override;
+	raco::core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
 	int getTotalMeshCount() override;
+	std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 
 private:
 	bool loadFile();

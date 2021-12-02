@@ -74,6 +74,7 @@ public:
 	bool expanded() const noexcept;
 	bool showChildren() const;
 	bool showControl() const;
+	void requestNextSiblingFocus();
 
 	const core::ErrorItem& error() const;
 	bool hasError() const noexcept;
@@ -92,6 +93,7 @@ Q_SIGNALS:
 	void expandedChanged(bool expanded);
 	void childrenChanged(const QList<PropertyBrowserItem*>& children);
 	void editableChanged(bool editable);
+	void widgetRequestFocus();
 
 public Q_SLOTS:
 	void toggleExpanded() noexcept;
@@ -115,7 +117,9 @@ private:
 	raco::components::SDataChangeDispatcher dispatcher_;
 	PropertyBrowserModel* model_;
 	QList<PropertyBrowserItem*> children_;
-	bool expanded_{true};
+	bool expanded_;
+
+	bool getDefaultExpandedFromValueHandleType() const;
 };
 
 std::string to_string(PropertyBrowserItem& item);

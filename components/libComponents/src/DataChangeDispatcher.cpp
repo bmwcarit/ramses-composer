@@ -225,9 +225,6 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 		emitPreviewDirty(object);
 	}
 
-	// Bulk update notification will be used by the SceneAdaptor to perform the actual engine update.
-	emitBulkChange(dataChanges.getAllChangedObjects(true));
-
 	for (auto& [endObjId, links] : dataChanges.getAddedLinks()) {
 		for (auto& link : links) {
 			auto copy{linkLifecycleListeners_};
@@ -239,6 +236,9 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 			}
 		}
 	}
+
+	// Bulk update notification will be used by the SceneAdaptor to perform the actual engine update.
+	emitBulkChange(dataChanges.getAllChangedObjects(true));
 
 	for (auto& deletedObject : dataChanges.getDeletedObjects()) {
 		LOG_TRACE(log_system::DATA_CHANGE, "emit emitDeleted {}", deletedObject->objectName());
@@ -552,7 +552,7 @@ void DataChangeDispatcher::emitPreviewDirty(SEditorObject obj) {
 	}
 }
 
-void DataChangeDispatcher::emitBulkChange(const std::set<SEditorObject>& changedObjects) {
+void DataChangeDispatcher::emitBulkChange(const SEditorObjectSet& changedObjects) {
 	if (bulkChangeCallback_) {
 		bulkChangeCallback_(changedObjects);
 	}

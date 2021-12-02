@@ -145,7 +145,7 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	auto extProjectMapCopy = project->externalProjectsMap();
 
 	// local = collect all extref objects in current project
-	std::set<SEditorObject> localObjects;
+	SEditorObjectSet localObjects;
 	std::copy_if(project->instances().begin(), project->instances().end(), std::inserter(localObjects, localObjects.end()), [](SEditorObject object) -> bool {
 		return object->query<ExternalReferenceAnnotation>() != nullptr;
 	});
@@ -282,12 +282,8 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	}
 
 	// Sync from external files for new or changed objects
-	for (const auto& destObj : localChanges.getAllChangedObjects()) {
-		destObj->onAfterContextActivated(context);
-		// This is necessary here although neither undo nor prefab update need it:
-		// we have to call handlers for local objects referencing updated extref objects.
-		context.callReferencedObjectChangedHandlers(destObj);
-	}
+	auto changedObjects = localChanges.getAllChangedObjects();
+	context.performExternalFileReload({changedObjects.begin(), changedObjects.end()});
 
 	project->setExternalReferenceUpdateFailed(false);
 }

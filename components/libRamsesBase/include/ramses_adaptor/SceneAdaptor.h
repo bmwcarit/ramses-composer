@@ -27,6 +27,7 @@ class SceneAdaptor {
 	using SEditorObject = raco::core::SEditorObject;
 	using SLink = raco::core::SLink;
 	using ValueHandle = raco::core::ValueHandle;
+	using SEditorObjectSet = raco::core::SEditorObjectSet;
 
 public:
 	explicit SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors *errors);
@@ -44,6 +45,7 @@ public:
 	const ramses_base::RamsesAppearance defaultAppearance(bool withMeshNormals);
 	const ramses_base::RamsesArrayResource defaultVertices();
 	const ramses_base::RamsesArrayResource defaultIndices();
+	const ramses_base::RamsesAnimationNode defaultAnimation();
 	ObjectAdaptor* lookupAdaptor(const core::SEditorObject& editorObject) const;
 	Project& project() const;
 
@@ -64,17 +66,17 @@ private:
 	void createAdaptor(SEditorObject obj);
 	void removeAdaptor(SEditorObject obj);
 
-	void performBulkEngineUpdate(const std::set<SEditorObject>& changedObjects);
+	void performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects);
 
 	struct DependencyNode {
 		SEditorObject object;
-		std::set<SEditorObject> referencedObjects;
+		SEditorObjectSet referencedObjects;
 	};
 
-	void depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, std::set<SEditorObject> const& instances, std::set<SEditorObject>& sortedObjs, std::vector<DependencyNode>& outSorted);
+	void depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted);
 
-	void depthFirstSearch(SEditorObject object, std::set<SEditorObject> const& instances, std::set<SEditorObject>& sortedObjs, std::vector<DependencyNode>& outSorted);
-	void rebuildSortedDependencyGraph(std::set<SEditorObject> const& objects);
+	void depthFirstSearch(SEditorObject object, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted);
+	void rebuildSortedDependencyGraph(SEditorObjectSet const& objects);
 
 	void updateRuntimeErrorList();
 
@@ -96,8 +98,19 @@ private:
 	ramses_base::RamsesArrayResource defaultIndices_{};
 	ramses_base::RamsesArrayResource defaultVertices_{};
 
+	ramses_base::RamsesAnimationNode defaultAnimation_{};
+	raco::ramses_base::RamsesAnimationChannelHandle defaultAnimChannel_{};
+
 	std::map<SEditorObject, std::unique_ptr<ObjectAdaptor>> adaptors_{};
-	std::map<core::LinkDescriptor, UniqueLinkAdaptor> links_{};
+	
+	struct LinkAdaptorContainer {
+		std::map<std::string, std::map<core::LinkDescriptor, SharedLinkAdaptor>> linksByStart_{};
+		std::map<std::string, std::map<core::LinkDescriptor, SharedLinkAdaptor>> linksByEnd_{};
+	};
+
+	LinkAdaptorContainer links_;
+	std::vector<core::LinkDescriptor> newLinks_{};
+
 	components::Subscription subscription_;
 	components::Subscription childrenSubscription_;
 	components::Subscription linksLifecycle_;

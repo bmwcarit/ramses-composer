@@ -10,6 +10,7 @@
 #pragma once
 
 #include "core/Handles.h"
+#include "core/Queries.h"
 
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
@@ -30,13 +31,65 @@ class SpatialAdaptor : public TypedObjectAdaptor<EditorType, RamsesType>, public
 public:
 	explicit SpatialAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<EditorType> editorObject, RamsesHandle<RamsesType>&& ramsesObject, NodeAdaptor* parent = nullptr)
 		: TypedObjectAdaptor<EditorType, RamsesType>{sceneAdaptor, editorObject, std::move(ramsesObject)},
-		  nodeBinding_{raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine())},
+		  rotationType_{DEFAULT_VEC3_ROTATION_TYPE},
+		  nodeBinding_{},
+		  linksLifecycle_{sceneAdaptor->dispatcher()->registerOnLinksLifeCycle(
+			  [this](const core::LinkDescriptor& link) {
+				  raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
+				  if (link.end == rotation) {
+					  setupLinkStartSubscription();
+						auto oldRotationType = this->rotationType_;
+						this->rotationType_ = this->newRotationType(link);
+						if (this->rotationType_ != oldRotationType) {
+							this->tagDirty();
+						}
+				  }
+			  },
+			  [this](const core::LinkDescriptor& link) {
+				  raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
+				  if (link.end == rotation) {
+					  setupLinkStartSubscription();
+
+					  if (rotationType_ != DEFAULT_VEC3_ROTATION_TYPE) {
+						  rotationType_ = DEFAULT_VEC3_ROTATION_TYPE;
+						  this->tagDirty();
+					  }
+				  }
+			  })},
 		  subscriptions_{
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visible"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("children"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("translation"), [this](auto) { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("scale"), [this](auto) { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("rotation"), [this](auto) { this->tagDirty(); })} {
+		raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
+		if (auto link = raco::core::Queries::getLink(sceneAdaptor->project(), rotation)) {
+			rotationType_ = newRotationType(link->descriptor());
+			setupLinkStartSubscription();
+		}
+
+		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine(), rotationType_);
+	}
+
+	void setupLinkStartSubscription() {
+		raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
+		if (auto link = raco::core::Queries::getLink(this->sceneAdaptor_->project(), rotation)) {
+			// TODO this is total overkill
+			// but we dont have a subscription which will trigger when the property or any parent property is changed.
+			linkStartSubscription_ = this->sceneAdaptor_->dispatcher()->registerOnChildren(raco::core::ValueHandle{*link->startObject_},
+			[this](auto) {
+					raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
+					if (auto link = raco::core::Queries::getLink(this->sceneAdaptor_->project(), rotation)) {
+						auto oldRotationType = rotationType_;
+						rotationType_ = newRotationType(link->descriptor());
+						if (rotationType_ != oldRotationType) {
+							this->tagDirty();
+						}
+					}
+				});
+		} else {
+			linkStartSubscription_ = components::Subscription{};
+		}
 	}
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override {
@@ -110,6 +163,7 @@ private:
 	}
 
 	void syncNodeBinding() {
+		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &this->sceneAdaptor_->logicEngine(), rotationType_);
 		nodeBinding_->setName(this->editorObject().get()->objectName() + "_NodeBinding");
 	}
 
@@ -124,6 +178,7 @@ private:
 		if (Rotation::from(this->editorObject()) != Rotation::from(*this->ramsesObject())) {
 			Rotation::sync(this->editorObject(), *this->ramsesObject());
 		}
+
 	}
 
 	void syncTranslation() {
@@ -138,8 +193,25 @@ private:
 		}
 	}
 
+	rlogic::ERotationType newRotationType(const raco::core::LinkDescriptor& linkDescriptor) {
+		if (linkDescriptor.isValid) {
+			auto startHandle = raco::core::ValueHandle{linkDescriptor.start};
+
+			if (startHandle && startHandle.type() == raco::data_storage::PrimitiveType::Vec4f) {
+				return rlogic::ERotationType::Quaternion;
+			}
+		}
+
+		return DEFAULT_VEC3_ROTATION_TYPE;
+	}
+
+	constexpr static inline rlogic::ERotationType DEFAULT_VEC3_ROTATION_TYPE = rlogic::ERotationType::Euler_ZYX;
+
+	rlogic::ERotationType rotationType_;
 	raco::ramses_base::UniqueRamsesNodeBinding nodeBinding_;
 	std::array<components::Subscription, 5> subscriptions_;
+	components::Subscription linksLifecycle_;
+	components::Subscription linkStartSubscription_;
 };
 
 class NodeAdaptor final : public SpatialAdaptor<user_types::Node, ramses_base::RamsesNodeHandle> {

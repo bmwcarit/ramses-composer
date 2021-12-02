@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 17,
+    "fileVersion": 19,
     "instances": [
         {
             "properties": {
@@ -623,6 +623,18 @@
         {
             "properties": {
                 "backgroundColor": {
+                    "w": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
                     "x": {
                         "annotations": [
                             {
@@ -1750,6 +1762,16 @@
         },
         {
             "properties": {
+                "animationIndex": 0,
+                "objectID": "d23a0d37-3a25-46f2-8a64-92f1a8a4b925",
+                "objectName": "AnimationChannel",
+                "samplerIndex": 0,
+                "uri": ""
+            },
+            "typeName": "AnimationChannel"
+        },
+        {
+            "properties": {
                 "invertMaterialFilter": false,
                 "objectID": "4ba33009-0575-4128-bbbe-48e3ebc6e6ad",
                 "objectName": "RenderLayerManual",
@@ -1765,23 +1787,101 @@
                 "sortOrder": 1
             },
             "typeName": "RenderLayer"
+        },
+        {
+            "properties": {
+                "animationChannels": {
+                    "order": [
+                        "Channel 0",
+                        "Channel 1",
+                        "Channel 2",
+                        "Channel 3",
+                        "Channel 4",
+                        "Channel 5",
+                        "Channel 6",
+                        "Channel 7"
+                    ],
+                    "properties": {
+                        "Channel 0": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 1": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 2": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 3": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 4": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 5": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 6": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 7": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        }
+                    }
+                },
+                "animationOutputs": {
+                    "order": [
+                        "progress"
+                    ],
+                    "properties": {
+                        "progress": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation",
+                            "value": 0
+                        }
+                    }
+                },
+                "loop": false,
+                "objectID": "6d1b00fe-912f-4a92-83ce-7d405ac6b989",
+                "objectName": "Animation",
+                "play": false,
+                "rewindOnStop": false
+            },
+            "typeName": "Animation"
         }
     ],
     "links": [
     ],
     "logicEngineVersion": [
         0,
-        10,
-        1
+        12,
+        0
     ],
     "racoVersion": [
         0,
         9,
-        0
+        3
     ],
     "ramsesVersion": [
         27,
         0,
-        112
+        113
     ]
 }

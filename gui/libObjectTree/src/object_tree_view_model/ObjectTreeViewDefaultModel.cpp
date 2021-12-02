@@ -477,23 +477,16 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 	meshDesc.bakeAllSubmeshes = false;
 
 	auto selectedObject = selectedIndex.isValid() ? indexToSEditorObject(selectedIndex) : nullptr;
-	auto importSuccess = true;
 
-	if (commandInterface_->meshCache()->loadMesh(meshDesc)) {
-		auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc.absPath);
-
-		auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, nullptr).exec();
+	if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {
+		auto importStatus = raco::common_widgets::MeshAssetImportDialog(*sceneGraph, nullptr).exec();
 		if (importStatus == QDialog::Accepted) {
-			importSuccess = commandInterface_->insertAssetScenegraph(sceneGraph, meshDesc.absPath, selectedObject);
+			commandInterface_->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, selectedObject);
 		}
 	} else {
-		importSuccess = false;
+		auto meshError = commandInterface_->meshCache()->getMeshError(meshDesc.absPath);
+		Q_EMIT meshImportFailed(meshDesc.absPath, meshError);
 	}
-
-	if (!importSuccess) {
-		Q_EMIT meshImportFailed(meshDesc.absPath);
-	}
-	Q_EMIT meshImportSucceeded(meshDesc.absPath);
 }
 
 int ObjectTreeViewDefaultModel::rowCount(const QModelIndex& parent) const {

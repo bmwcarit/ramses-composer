@@ -30,9 +30,14 @@ raco_package_add_test_resouces(
     libApplication_test "${CMAKE_SOURCE_DIR}/resources"
     shaders/basic.frag
     shaders/basic.vert
+    meshes/RiggedFigure/RiggedFigure.gltf
+    meshes/RiggedFigure/RiggedFigure0.bin
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
     meshes/CesiumMilkTruck/CesiumMilkTruck.png
+    meshes/InterpolationTest/InterpolationTest.gltf
+    meshes/InterpolationTest/interpolation.bin
+    meshes/InterpolationTest/l.jpg
     meshes/Duck.glb
     meshes/negativeScaleQuad.gltf
     meshes/ToyCar/ToyCar.gltf

@@ -134,8 +134,7 @@ public:
 	// Import scenegraph as a hierarchy of EditorObjects and move that scenegraph root noder under parent.
 	// This includes generating Mesh resources, Nodes and MeshNodes as well as searching for already created Materials.
 	// If parent is invalid, the mesh scenegraph root node will be the project's scenegraph root node.
-	// Returns true when the import has succeeded, false otherwise.
-	bool insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
+	void insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	// Link operations
 	SLink addLink(const ValueHandle& start, const ValueHandle& end);
@@ -175,10 +174,10 @@ private:
 	static void restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization);
 
 	// Should only be used from the Undo system
-	static bool deleteWithVolatileSideEffects(Project* project, const std::set<SEditorObject>& objects, Errors& errors, bool gcExternalProjectMap = true);
+	static bool deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap = true);
 
 	void callReferencedObjectChangedHandlers(SEditorObject const& changedObject);
-	void removeReferencesTo(std::set<SEditorObject> const& objects);
+	void removeReferencesTo(SEditorObjectSet const& objects);
 
 	template <void (EditorObject::*Handler)(ValueHandle const&) const>
 	void callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh);

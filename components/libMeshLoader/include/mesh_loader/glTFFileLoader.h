@@ -25,10 +25,10 @@ public:
 	~glTFFileLoader() override;
 
 	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
-	raco::core::MeshScenegraph getScenegraph() override;
+	raco::core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
 	int getTotalMeshCount() override;
+	std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 	std::string getError() override;
-	std::string getWarning() override;
 	void reset() override;
 
 
@@ -37,13 +37,13 @@ private:
 
 	std::unique_ptr<tinygltf::Model> scene_;
 	std::unique_ptr<tinygltf::TinyGLTF> importer_;
-	raco::core::MeshScenegraph sceneGraph_;
+	std::unique_ptr<raco::core::MeshScenegraph> sceneGraph_;
 	std::string error_;
 	std::string warning_;
 
-	bool buildglTFScenegraph(const std::vector<int>& totalMeshPrimitiveSums);
-	bool importglTFScene(const core::MeshDescriptor& descriptor);
-
+	bool buildglTFScenegraph();
+	bool importglTFScene(const std::string& absPath);
+	void importAnimations();
 
 };
 

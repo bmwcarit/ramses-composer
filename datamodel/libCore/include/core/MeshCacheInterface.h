@@ -76,15 +76,95 @@ public:
 
 using SharedMeshData = std::shared_ptr<MeshData>;
 
-// Low-level one-to-one mapping of animation sampler data delivered by tinyglTF.
-struct AnimationSampler {
-	std::string interpolation;
-	int inputIndex;
-	int outputIndex;
+enum class MeshAnimationInterpolation {
+	Linear,
+	CubicSpline,
+	Step
+};
+
+// Animation sampler data holder - currently created using MeshCache::getAnimationSamplerData()
+struct MeshAnimationSamplerData {
+	MeshAnimationInterpolation interpolation;
+	std::vector<float> input;
+	std::vector<std::vector<float>> output;
+
+	size_t getOutputComponentSize() {
+		if (output.empty()) {
+			return 0;
+		}
+		return output.front().size();
+	}
+
+	template <typename DataType>
+	std::array<std::vector<DataType>, 3> getOutputData() {
+		std::array<std::vector<DataType>, 3> outputData;
+		auto animInterpolationIsCubic = (interpolation == raco::core::MeshAnimationInterpolation::CubicSpline);
+
+		auto& tangentInData = outputData[0];
+		auto& transformedData = outputData[1];
+		auto& tangentOutData = outputData[2];
+
+		if (!animInterpolationIsCubic) {
+			if constexpr (std::is_same_v<DataType, std::array<float, 2>>) {
+				// edge case: weights
+				// see https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_018_MorphTargets.md
+				for (auto i = 0; i < output.size(); i += 2) {
+					transformedData.push_back({output[i][0], output[i + 1][0]});
+				}
+			} else {
+				for (const auto& vecfKeyframe : output) {
+					if constexpr (std::is_same_v<DataType, std::array<float, 3>>) {
+						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2]});
+					} else if constexpr (std::is_same_v<DataType, std::array<float, 4>>) {
+						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2], vecfKeyframe[3]});
+					}
+				}
+			}
+		} else {
+			for (auto i = 0; i < output.size(); i += 3) {
+				auto& tangentIn = output[i];
+				auto& vecfKeyframe = output[i + 1];
+				auto& tangentOut = output[i + 2];
+
+				if constexpr (std::is_same_v <DataType, std::array<float, 3>>) {
+					tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2]});
+					transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2]});
+					tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2]});
+				} else if constexpr (std::is_same_v<DataType, std::array<float, 4>>) {
+					tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2], tangentIn[3]});
+					transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2], vecfKeyframe[3]});
+					tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2], tangentOut[3]});
+				} else if constexpr (std::is_same_v<DataType, std::array<float, 2>>) {
+					tangentInData.push_back({tangentIn[0], tangentIn[1]});
+					transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1]});
+					tangentOutData.push_back({tangentOut[0], tangentOut[2]});
+				}
+			}
+		}
+
+		return outputData;
+	}
+
+	std::string interpolationToString() const {
+		switch (interpolation) {
+			case raco::core::MeshAnimationInterpolation::Linear: {
+				return "Linear";
+			}
+			case raco::core::MeshAnimationInterpolation::CubicSpline: {
+				return "Cubic";
+			}
+			case raco::core::MeshAnimationInterpolation::Step: {
+				return "Step";
+			}
+			default: {
+				return "Invalid";
+			}
+		}
+	}
 };
 
 // Low-level one-to-one mapping of animation channel data delivered by tinyglTF.
-struct AnimationChannel {
+struct MeshAnimationChannel {
 	std::string targetPath;
 	int samplerIndex;
 	int nodeIndex;
@@ -92,10 +172,9 @@ struct AnimationChannel {
 
 // Animation as delivered by tinyglTF.
 // This purely uses the indeces from tinyglTF.
-struct Animation {
+struct MeshAnimation {
 	std::string name;
-	std::vector<AnimationSampler> samplers;
-	std::vector<AnimationChannel> channels;
+	std::vector<MeshAnimationChannel> channels;
 };
 
 // A node that may be part of a complex mesh scenegraph.
@@ -122,13 +201,17 @@ struct MeshScenegraph {
 	std::vector<std::optional<MeshScenegraphNode>> nodes;
 	std::vector<std::optional<std::string>> materials;
 	std::vector<std::optional<std::string>> meshes;
-	std::vector<Animation> animations;
+	std::vector<std::optional<MeshAnimation>> animations;
+
+	// index of vector is index of the animation that uses the samplers
+	std::vector<std::vector<std::optional<std::string>>> animationSamplers;
 
 	void clear() {
 		nodes.clear();
 		materials.clear();
 		meshes.clear();
 		animations.clear();
+		animationSamplers.clear();
 	}
 };
 
@@ -156,14 +239,14 @@ public:
 
 	virtual std::string getError() = 0;
 
-	virtual std::string getWarning() = 0;
-
 	// Discard away the currently loaded file. Use this to force a reload of the file on the next loadMesh.
 	virtual void reset() = 0;
 
-	virtual MeshScenegraph getScenegraph() = 0;
+	virtual MeshScenegraph* getScenegraph(const std::string& absPath) = 0;
 
 	virtual int getTotalMeshCount() = 0;
+
+	virtual std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) = 0;
 };
 
 using UniqueMeshCacheEntry = std::unique_ptr<MeshCacheEntry>;
@@ -174,11 +257,12 @@ public:
 
 	virtual SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) = 0;
 	
-	virtual MeshScenegraph getMeshScenegraph(const std::string& absPath) = 0;
+	virtual MeshScenegraph* getMeshScenegraph(const raco::core::MeshDescriptor& descriptor) = 0;
 	virtual std::string getMeshError(const std::string& absPath) = 0;
-	virtual std::string getMeshWarning(const std::string& absPath) = 0;
 
 	virtual int getTotalMeshCount(const std::string& absPath) = 0;
+
+	virtual std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) = 0;
 
 protected:
 	virtual MeshCacheEntry* getLoader(std::string absPath) = 0;

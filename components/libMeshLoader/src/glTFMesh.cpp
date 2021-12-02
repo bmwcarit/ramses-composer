@@ -11,54 +11,18 @@
 
 #include "mesh_loader/glTFMesh.h"
 
+#include "mesh_loader/glTFBufferData.h"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/vec3.hpp>
 #include <log_system/log.h>
 #include <optional>
 #include <stdexcept>
-#include <tiny_gltf.h>
 #include <vector>
 
 namespace raco::mesh_loader {
 
 using namespace raco::core;
-
-namespace {
-
-struct glTFBufferData {
-	glTFBufferData(const tinygltf::Model &scene, int accessorIndex, const std::set<int> &&allowedComponentTypes = {})
-		: scene_(scene),
-		  accessor_(scene_.accessors[accessorIndex]),
-		  view_(scene_.bufferViews[accessor_.bufferView]),
-		  bufferBytes(scene_.buffers[view_.buffer].data) {
-		if (!allowedComponentTypes.empty() && allowedComponentTypes.find(accessor_.componentType) == allowedComponentTypes.end()) {
-			LOG_ERROR(raco::log_system::MESH_LOADER, "glTF buffer accessor '{}' has invalid data type {}", accessor_.name, accessor_.componentType);
-		}
-	}
-
-	template <typename T>
-	std::vector<T> getDataAt(size_t index, bool useComponentSize = true) {
-		auto componentSize = (useComponentSize) ? accessor_.ByteStride(view_) / sizeof(T) : 1;
-		assert(componentSize > 0);
-
-		auto firstByte = reinterpret_cast<const T *>(&bufferBytes[(accessor_.byteOffset + view_.byteOffset)]);
-		std::vector<T> values(componentSize);
-
-		for (int i = 0; i < values.size(); ++i) {
-			values[i] = firstByte[index * componentSize + i];
-		}
-
-		return values;
-	}
-
-	const tinygltf::Model &scene_;
-	const tinygltf::Accessor &accessor_;
-	const tinygltf::BufferView &view_;
-	const std::vector<unsigned char> &bufferBytes;
-};
-
-}  // namespace
 
 
 glTFMesh::glTFMesh(const tinygltf::Model &scene, core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor) : numTriangles_(0), numVertices_(0) {
@@ -246,7 +210,6 @@ const char *glTFMesh::attribBuffer(int attribute_index) const {
 	return reinterpret_cast<const char *>(attributes_.at(attribute_index).data.data());
 }
 
-
 void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tinygltf::Model &scene, std::vector<float> &vertexBuffer, std::vector<float> &normalBuffer, std::vector<float> &tangentBuffer, std::vector<float> &bitangentBuffer, std::vector<std::vector<float>> &uvBuffers, std::vector<std::vector<float>> &colorBuffers, glm::dmat4 *rootTrafoMatrix) {
 	if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
 		LOG_ERROR(log_system::MESH_LOADER, "primitive has no position attributes defined");
@@ -330,8 +293,9 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 				switch (bufferColorDatas[colorChannel]->accessor_.componentType) {
 					case TINYGLTF_PARAMETER_TYPE_FLOAT: {
 						auto floatColorData = bufferColorDatas[colorChannel]->getDataAt<float>(vertexIndex);
-						assert(colorData.size() == 3 || colorData.size() == 4);
+						assert(floatColorData.size() % 3 == 0 || floatColorData.size() % 4 == 0);
 
+						colorData.resize(floatColorData.size(), 1.0F);
 						for (auto i = 0; i < floatColorData.size(); ++i) {
 							colorData[i] = floatColorData[i];
 						}
@@ -340,8 +304,9 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
 						auto byteColorData = bufferColorDatas[colorChannel]->getDataAt<uint8_t>(vertexIndex);
-						assert(byteColorData.size() == 3 || byteColorData.size() == 4);
+						assert(byteColorData.size() % 3 == 0 || byteColorData.size() % 4 == 0);
 
+						colorData.resize(byteColorData.size(), 1.0F);
 						for (auto i = 0; i < byteColorData.size(); ++i) {
 							colorData[i] = byteColorData[i] / (0.0F + std::numeric_limits<uint8_t>().max());
 						}
@@ -350,8 +315,9 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
 						auto shortColorData = bufferColorDatas[colorChannel]->getDataAt<uint16_t>(vertexIndex);
-						assert(shortColorData.size() == 3 || shortColorData.size() == 4);
+						assert(shortColorData.size() % 3 == 0 || shortColorData.size() % 4 == 0);
 
+						colorData.resize(shortColorData.size(), 1.0F);
 						for (auto i = 0; i < shortColorData.size(); ++i) {
 							colorData[i] = shortColorData[i] / (0.0F + std::numeric_limits<uint16_t>().max());
 						}

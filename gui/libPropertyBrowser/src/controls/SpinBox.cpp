@@ -21,6 +21,10 @@ void raco::property_browser::IntSpinBox::emitEditingFinished() {
 	Q_EMIT editingFinished();
 }
 
+void raco::property_browser::IntSpinBox::emitFocusNextRequested() {
+	Q_EMIT focusNextRequested();
+}
+
 raco::property_browser::DoubleSpinBox::DoubleSpinBox(QWidget* parent) : SpinBox<double>{parent} {
 	widget_.setDecimals(5);
 }
@@ -31,6 +35,10 @@ void raco::property_browser::DoubleSpinBox::emitValueChanged(double value) {
 
 void raco::property_browser::DoubleSpinBox::emitEditingFinished() {
 	Q_EMIT editingFinished();
+}
+
+void raco::property_browser::DoubleSpinBox::emitFocusNextRequested() {
+	Q_EMIT focusNextRequested();
 }
 
 }  // namespace raco::property_browser

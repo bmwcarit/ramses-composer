@@ -9,6 +9,12 @@
  */
 #include "core/PathManager.h"
 #include "utils/PathUtils.h"
+#include "user_types/AnimationChannel.h"
+#include "user_types/CubeMap.h"
+#include "user_types/LuaScript.h"
+#include "user_types/Material.h"
+#include "user_types/Mesh.h"
+#include "user_types/Texture.h"
 
 #include <algorithm>
 #include <cctype>
@@ -114,6 +120,27 @@ void PathManager::setAllCachedPathRoots(const std::string& folder,
 	setCachedPath(FolderTypeKeys::Mesh, folder + "/" + MeshSubdirectory);
 	setCachedPath(FolderTypeKeys::Script, folder + "/" + ScriptSubdirectory);
 	setCachedPath(FolderTypeKeys::Shader, folder + "/" + ShaderSubdirectory);
+}
+
+PathManager::FolderTypeKeys PathManager::getCachedPathKeyCorrespondingToUserType(const raco::data_storage::ReflectionInterface::TypeDescriptor& type) {
+	if (&type == &raco::user_types::CubeMap::typeDescription || &type == &raco::user_types::Texture::typeDescription) {
+		return raco::core::PathManager::FolderTypeKeys::Image;
+	}
+
+	if (&type == &raco::user_types::Mesh::typeDescription || &type == &raco::user_types::AnimationChannel::typeDescription) {
+		return raco::core::PathManager::FolderTypeKeys::Mesh;
+	}
+
+	if (&type == &raco::user_types::LuaScript::typeDescription) {
+		return raco::core::PathManager::FolderTypeKeys::Script;
+	}
+
+	if (&type == &raco::user_types::Material::typeDescription) {
+		return raco::core::PathManager::FolderTypeKeys::Shader;
+	}
+
+	assert(false && "unknown user type found in URIEditor::getCachedPathKeyCorrespondingToUserType()");
+	return raco::core::PathManager::FolderTypeKeys::Invalid;
 }
 
 std::string PathManager::sanitizePath(const std::string& path) {

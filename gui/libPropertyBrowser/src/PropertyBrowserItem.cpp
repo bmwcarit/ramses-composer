@@ -18,8 +18,10 @@
 #include "log_system/log.h"
 #include "property_browser/PropertyBrowserRef.h"
 #include "user_types/RenderPass.h"
+#include "user_types/MeshNode.h"
 
 using raco::log_system::PROPERTY_BROWSER;
+using raco::data_storage::PrimitiveType;
 
 using SDataChangeDispatcher = raco::components::SDataChangeDispatcher;
 
@@ -49,7 +51,8 @@ PropertyBrowserItem::PropertyBrowserItem(
 
 	  commandInterface_{commandInterface},
 	  dispatcher_{dispatcher},
-	  model_{model} {
+	  model_{model},
+	  expanded_{getDefaultExpandedFromValueHandleType()} {
 	LOG_TRACE(PROPERTY_BROWSER, "PropertyBrowserItem() from: {}", valueHandle_);
 	createChildren();
 	if (!valueHandle_.isObject() && valueHandle_.type() == core::PrimitiveType::Ref) {
@@ -208,6 +211,14 @@ bool PropertyBrowserItem::showControl() const {
 	return !expandable() || !expanded_ || children_.size() == 0;
 }
 
+void PropertyBrowserItem::requestNextSiblingFocus() {
+	auto children = &parentItem()->children();
+	int index = children->indexOf(this);
+	if (index >= 0 && index < children->size() - 1) {
+		Q_EMIT children->at(index + 1)->widgetRequestFocus();
+	}
+}
+
 raco::core::Queries::LinkState PropertyBrowserItem::linkState() const noexcept {
 	return core::Queries::linkState(*commandInterface_->project(), valueHandle_);
 }
@@ -337,6 +348,44 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 		Q_EMIT showControlChanged(showControl());
 		Q_EMIT showChildrenChanged(showChildren());
 	}
+}
+
+
+bool PropertyBrowserItem::getDefaultExpandedFromValueHandleType() const {
+	if (valueHandle_.isObject()) {
+		return true;
+	}
+
+	const auto rootTypeRef = &valueHandle_.rootObject()->getTypeDescription();
+	
+	if (rootTypeRef == &raco::user_types::MeshNode::typeDescription || rootTypeRef == &raco::user_types::Material::typeDescription) {
+		auto parent = valueHandle_.parent();
+
+		if (parent.isProperty()) {
+			auto parentPropName = parent.getPropName();
+			bool isOptionsOrUniformGroup = parentPropName == "options" || parentPropName == "uniforms";
+			return !isOptionsOrUniformGroup;
+		}
+	} else if (rootTypeRef == &raco::user_types::LuaScript::typeDescription) {
+
+		auto parent = valueHandle_.parent();
+
+		bool isInputOutputGroup = parent.isObject() && 
+								  (valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaInputs_) || 
+								   valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaOutputs_));
+
+		bool isFirstLevelChildOfInputOutputGroup = parent.isProperty() && 
+											       parent.parent().isObject() &&
+												   (parent.isRefToProp(&raco::user_types::LuaScript::luaInputs_) ||
+												    parent.isRefToProp(&raco::user_types::LuaScript::luaOutputs_));
+
+
+		bool isTableOrStruct = valueHandle_.type() == PrimitiveType::Table || valueHandle_.type() == PrimitiveType::Struct;
+
+		return isInputOutputGroup || (isFirstLevelChildOfInputOutputGroup && isTableOrStruct);
+	}
+
+	return true;
 }
 
 std::string to_string(PropertyBrowserItem& item) {

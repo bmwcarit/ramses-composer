@@ -45,7 +45,10 @@ Icons& Icons::instance() {
 			{Pixmap::typeScript, QPixmap{":typeScriptIcon"}},
 			{Pixmap::typePrefabInternal, QPixmap{":typePrefabInternalIcon"}},
 			{Pixmap::typePrefabExternal, QPixmap{":typePrefabExternalIcon"}},
-			{Pixmap::typePrefabInstance, QPixmap{":typePrefabInstanceIcon"}}};
+			{Pixmap::typePrefabInstance, QPixmap{":typePrefabInstanceIcon"}},
+			{Pixmap::typeAnimationChannel, QPixmap{":typeAnimationChannelIcon"}},
+			{Pixmap::typeAnimation, QPixmap{":typeAnimationIcon"}}
+		};
 	}
 	return *Icons::instance_;
 }

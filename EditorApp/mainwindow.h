@@ -60,8 +60,7 @@ public:
 	void updateSavedLayoutMenu();
 
 public Q_SLOTS:
-	void showMeshImportErrorMessage(const std::string& filePath);
-	void showMeshImportWarningMessage(const std::string& filePath);
+	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
 
 protected:
 	void timerEvent(QTimerEvent* event) override;
@@ -76,8 +75,8 @@ protected:
 
 protected Q_SLOTS:
 	void openProject(const QString& file = {});
-	void saveActiveProject();
-	void saveAsActiveProject();
+	bool saveActiveProject();
+	bool saveAsActiveProject();
 	void importScene();
 	void resetDockManager();
 Q_SIGNALS:

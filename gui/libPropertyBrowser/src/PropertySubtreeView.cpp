@@ -58,29 +58,26 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 	if (!item->valueHandle().isObject()) {
 		label_ = WidgetFactory::createPropertyLabel(item, labelContainer);
 		label_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
+		if (item->expandable()) {
+			button_ = new ExpandControlButton{ item, labelContainer };
+		}
+		else {
+			button_ = new QWidget{ this }; // Easier to make a dummy spacer widget than figuring out how to move everything else at the right place without it
+			button_->setFixedHeight(0);
+		}
+		button_->setFixedWidth(28);
+
 		auto* linkControl = WidgetFactory::createLinkControl(item, labelContainer);
 
 		propertyControl_ = WidgetFactory::createPropertyControl(item, labelContainer);
 		propertyControl_->setEnabled(item->editable());
+		propertyControl_->setVisible(item->showControl());
 		QObject::connect(item, &PropertyBrowserItem::editableChanged, propertyControl_, &QWidget::setEnabled);
 
-		if(item->expandable()) {
-			button_ = new ExpandControlButton{ item, labelContainer };
-			button_->setFixedWidth(28);
-			propertyControl_->setVisible(item->showControl());
-			labelLayout->addWidget(button_, 0);
-			labelLayout->addWidget(label_, 0);
-			labelLayout->addWidget(linkControl, 1);
-		}
-		else {
-			button_ = new QWidget{ this }; // Easier to make a dummy spacer widget than figuring out how to move everything else at the right place without it
-			button_->setFixedWidth(28);
-			button_->setFixedHeight(0);
-			propertyControl_->setVisible(true);
-			labelLayout->addWidget(button_, 0, Qt::AlignTop);
-			labelLayout->addWidget(label_, 0, Qt::AlignTop);
-			labelLayout->addWidget(linkControl, 1, Qt::AlignTop);
-		}
+		labelLayout->addWidget(button_, 0);
+		labelLayout->addWidget(label_, 0);
+		labelLayout->addWidget(linkControl, 1);
 
 		QObject::connect(item, &PropertyBrowserItem::showControlChanged, this, [this](bool show) { propertyControl_->setVisible(show); });
 		linkControl->setControl(propertyControl_);
@@ -136,6 +133,29 @@ void PropertySubtreeView::updatePropertyControl() {
 	}
 }
 
+void PropertySubtreeView::collectTabWidgets(QObject* item, QWidgetList& tabWidgets) {
+	if (auto itemWidget = qobject_cast<QWidget*>(item)) {
+		if (itemWidget->focusPolicy() & Qt::TabFocus) {
+			tabWidgets.push_back(itemWidget);
+		}
+	}
+	for (auto child : item->children()) {
+		collectTabWidgets(child, tabWidgets);
+	}
+}
+
+
+void PropertySubtreeView::recalculateTabOrder() {
+	QWidgetList tabWidgets;
+	collectTabWidgets(this, tabWidgets);
+
+	auto lastWidget = previousInFocusChain();
+	for (auto widget : tabWidgets) {
+		setTabOrder(lastWidget, widget);
+		lastWidget = widget;
+	}
+}
+
 void PropertySubtreeView::updateChildrenContainer() {
 	if (item_->showChildren() && !childrenContainer_) {
 		if (!item_->valueHandle().isObject() && item_->type() == core::PrimitiveType::Ref) {
@@ -161,6 +181,7 @@ void PropertySubtreeView::updateChildrenContainer() {
 					auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
 					childrenContainer_->addWidget(subtree);
 				}
+				recalculateTabOrder();
 			});
 			recalculateLabelWidth();
 			layout_.addWidget(childrenContainer_, 2, 0);
@@ -169,6 +190,8 @@ void PropertySubtreeView::updateChildrenContainer() {
 		childrenContainer_->deleteLater();
 		childrenContainer_ = nullptr;
 	}
+
+	recalculateTabOrder();
 }
 
 void PropertySubtreeView::setLabelAreaWidth(int width) {
@@ -178,7 +201,7 @@ void PropertySubtreeView::setLabelAreaWidth(int width) {
 	}
 }
 
-void PropertySubtreeView::recalculateLabelWidth() {
+void PropertySubtreeView::recalculateLabelWidth() { 
 	if (childrenContainer_ != nullptr) {
 		childrenContainer_->setOffset(button_->width());
 	}

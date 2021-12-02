@@ -29,11 +29,6 @@
 #include "core/PathQueries.h"
 #include "core/Project.h"
 #include "property_browser/PropertyBrowserItem.h"
-#include "user_types/CubeMap.h"
-#include "user_types/LuaScript.h"
-#include "user_types/Material.h"
-#include "user_types/Mesh.h"
-#include "user_types/Texture.h"
 
 namespace raco::property_browser {
 
@@ -47,7 +42,7 @@ URIEditor::URIEditor(PropertyBrowserItem* item, QWidget* parent) : StringEditor(
 	QObject::connect(loadFileButton, &QPushButton::clicked, [this, filter]() {
 		std::string cachedPath;
 		auto projectAbsPath = currentItem_->project()->currentFolder();
-		auto cachedPathKey = getCachedPathKeyCorrespondingToUserType();
+		auto cachedPathKey = raco::core::PathManager::getCachedPathKeyCorrespondingToUserType(currentItem_->valueHandle().rootObject()->getTypeDescription());
 
 		if (fileExists()) {
 			auto fileInfo = QFileInfo(QString::fromStdString(PathManager::constructAbsolutePath(projectAbsPath, lineEdit_->text().toStdString())));
@@ -156,29 +151,6 @@ std::string URIEditor::createRelativePath() {
 	auto itemPath = currentItem_->valueHandle().asString();
 	auto projectAbsPath = currentItem_->project()->currentFolder();
 	return PathManager::constructRelativePath(itemPath, projectAbsPath);
-}
-
-raco::core::PathManager::FolderTypeKeys URIEditor::getCachedPathKeyCorrespondingToUserType() {
-	auto rootObj = currentItem_->valueHandle().rootObject();
-
-	if (rootObj->as<raco::user_types::CubeMap>() || rootObj->as<raco::user_types::Texture>()) {
-		return raco::core::PathManager::FolderTypeKeys::Image;
-	}
-
-	if (rootObj->as<raco::user_types::Mesh>()) {
-		return raco::core::PathManager::FolderTypeKeys::Mesh;
-	}
-
-	if (rootObj->as<raco::user_types::LuaScript>()) {
-		return raco::core::PathManager::FolderTypeKeys::Script;
-	}
-
-	if (rootObj->as<raco::user_types::Material>()) {
-		return raco::core::PathManager::FolderTypeKeys::Shader;
-	}
-
-	assert(false && "unknown user type found in URIEditor::getCachedPathKeyCorrespondingToUserType()");
-	return raco::core::PathManager::FolderTypeKeys::Invalid;
 }
 
 }  // namespace raco::property_browser

@@ -27,6 +27,8 @@
 #include "log_system/log.h"
 #include "core/Serialization.h"
 #include "core/SerializationFunctions.h"
+#include "user_types/Animation.h"
+#include "user_types/AnimationChannel.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -106,6 +108,11 @@ void BaseContext::callReferencedObjectChangedHandlers(SEditorObject const& chang
 }
 
 void BaseContext::performExternalFileReload(const std::vector<SEditorObject>& objects) {
+	// TODO: the implementation below is correct but sometimes leads to duplicate work:
+	// Objects implementing both onAfterReferencedObjectChanged and onAfterContextActivated handlers
+	// (currently MeshNodes and Animations) may perform snyc operations twice.
+	// This is not straightforward to fix since there are also situation where only one of the two handlers 
+	// will be called so we can't just remove one of the calls.
 	for (const auto& object : objects) {
 		object->onAfterContextActivated(*this);
 		callReferencedObjectChangedHandlers(object);
@@ -254,7 +261,7 @@ ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name,
 void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 	Table& table{handle.valueRef()->asTable()};
 
-	std::set<SEditorObject> updateLinkErrors;
+	SEditorObjectSet updateLinkErrors;
 
 	{
 		auto propHandle = handle[index];
@@ -264,6 +271,8 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 			if (*link->isValid_) {
 				link->isValid_ = false;
 				changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
+				// recordValueChanged is needed to force the undo stack to save the current value of the endpoint property.
+				changeMultiplexer_.recordValueChanged(link->endProp());
 			}
 			updateLinkErrors.insert(*link->endObject_);
 		}
@@ -317,7 +326,7 @@ void BaseContext::removeAllProperties(const ValueHandle& handle) {
 
 namespace {
 std::vector<SEditorObject> collectObjectsForCopyOrCutOperations(const std::vector<SEditorObject>& objects, bool deep) {
-	std::set<SEditorObject> toCheck{objects.begin(), objects.end()};
+	SEditorObjectSet toCheck{objects.begin(), objects.end()};
 	std::vector<SEditorObject> objectsNeededForCopy{objects.begin(), objects.end()};
 	while (toCheck.size() > 0) {
 		auto current{toCheck.extract(toCheck.begin()).value()};
@@ -632,6 +641,8 @@ void BaseContext::updateLinkValidity(SLink link) {
 	} else if (link->isValid() && !Queries::linkWouldBeValid(*project(), link->startProp(), link->endProp())) {
 		link->isValid_ = false;
 		changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
+		// recordValueChanged is needed to force the undo stack to save the current value of the endpoint property.
+		changeMultiplexer_.recordValueChanged(link->endProp());
 	}
 
 	updateBrokenLinkErrors(*link->endObject_);
@@ -646,7 +657,7 @@ void BaseContext::initLinkValidity() {
 }
 
 void BaseContext::initBrokenLinkErrors() {
-	std::set<SEditorObject> brokenLinkEndObjects;
+	SEditorObjectSet brokenLinkEndObjects;
 	for (auto link : project_->links()) {
 		if (!link->isValid()) {
 			brokenLinkEndObjects.insert(*link->endObject_);
@@ -678,7 +689,7 @@ void BaseContext::updateBrokenLinkErrors(SEditorObject endObject) {
 }
 
 void BaseContext::updateBrokenLinkErrorsAttachedTo(SEditorObject object) {
-	std::set<SEditorObject> updateLinkErrors;
+	SEditorObjectSet updateLinkErrors;
 	for (auto link : Queries::getLinksConnectedToObject(*project_, object, true, true)) {
 		updateLinkErrors.insert(*link->endObject_);
 	}
@@ -700,16 +711,16 @@ SEditorObject BaseContext::createObject(std::string type, std::string name, std:
 	return object;
 }
 
-std::set<SEditorObject> allChildren(std::vector<SEditorObject> const& objects) {
-	std::set<SEditorObject> children;
+SEditorObjectSet allChildren(std::vector<SEditorObject> const& objects) {
+	SEditorObjectSet children;
 	for (auto obj : objects) {
 		std::copy(TreeIteratorAdaptor(obj).begin(), TreeIteratorAdaptor(obj).end(), std::inserter(children, children.end()));
 	}
 	return children;
 }
 
-void BaseContext::removeReferencesTo(std::set<SEditorObject> const& objects) {
-	std::set<SEditorObject> srcObjects;
+void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
+	SEditorObjectSet srcObjects;
 	for (auto obj : objects) {
 		for (auto srcWeakObj : obj->referencesToThis_) {
 			if (auto srcObj = srcWeakObj.lock()) {
@@ -743,7 +754,7 @@ void BaseContext::removeReferencesTo(std::set<SEditorObject> const& objects) {
 	}
 }
 
-bool BaseContext::deleteWithVolatileSideEffects(Project* project, const std::set<SEditorObject>& objects, Errors& errors, bool gcExternalProjectMap) {
+bool BaseContext::deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap) {
 	// Pretend to remove references from the deleted into the non-deleted objects:
 	// only call the onBeforeRemoveReferenceToThis handler; needed for removing backpointers
 	std::vector<ValueHandle> outgoingRefs;
@@ -766,7 +777,7 @@ bool BaseContext::deleteWithVolatileSideEffects(Project* project, const std::set
 }
 
 size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap, bool includeChildren) {
-	std::set<SEditorObject> toRemove;
+	SEditorObjectSet toRemove;
 	if (includeChildren) {
 		toRemove = allChildren(objects);
 	} else {
@@ -850,7 +861,7 @@ void BaseContext::moveScenegraphChild(SEditorObject const& object, SEditorObject
 	}
 }
 
-bool BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
+void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
 	auto relativeFilePath = PathManager::constructRelativePath(absPath, project()->currentFolder());
 	std::vector<SEditorObject> meshScenegraphMeshes;
 	std::vector<SEditorObject> meshScenegraphNodes;
@@ -858,9 +869,13 @@ bool BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	LOG_INFO(log_system::CONTEXT, "Importing all meshes...");
 	auto projectMeshes = Queries::filterByTypeName(project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
 	std::map<std::tuple<bool, int, std::string>, SEditorObject> propertiesToMeshMap;
-	for (const auto& mesh : projectMeshes) {
-		if (!mesh->query<raco::core::ExternalReferenceAnnotation>()) {
-			propertiesToMeshMap[{mesh->get("bakeMeshes")->asBool(), mesh->get("meshIndex")->asInt(), mesh->get("uri")->asString()}] = mesh;
+	std::map<std::tuple<std::string, int, int>, SEditorObject> propertiesToChannelMap;
+
+	for (const auto& instance : project()->instances()) {
+		if (instance->as<raco::user_types::Mesh>() && !instance->query<raco::core::ExternalReferenceAnnotation>()) {
+			propertiesToMeshMap[{instance->get("bakeMeshes")->asBool(), instance->get("meshIndex")->asInt(), instance->get("uri")->asString()}] = instance;
+		} else if (instance->as<raco::user_types::AnimationChannel>() && !instance->query<raco::core::ExternalReferenceAnnotation>()) {
+			propertiesToChannelMap[{instance->get("uri")->asString(), instance->get("animationIndex")->asInt(), instance->get("samplerIndex")->asInt()}] = instance;
 		}
 	}
 
@@ -994,7 +1009,100 @@ bool BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	}
 	LOG_INFO(log_system::CONTEXT, "Scenegraph structure restored.");
 
-	return true;
+
+	LOG_INFO(log_system::CONTEXT, "Importing animation samplers...");
+	std::map<int, std::vector<SEditorObject>> sceneChannels;
+	for (auto animIndex = 0; animIndex < scenegraph.animationSamplers.size();  ++animIndex) {
+		auto& samplers = scenegraph.animationSamplers[animIndex];
+		for (auto samplerIndex = 0; samplerIndex < samplers.size(); ++samplerIndex) {
+			auto& meshAnimSampler = scenegraph.animationSamplers.at(animIndex)[samplerIndex];
+			if (!meshAnimSampler.has_value()) {
+				LOG_DEBUG(log_system::CONTEXT, "Found disabled mesh animation sampler at index {}.{}, ignoring AnimationChannel creatíon...", animIndex, samplerIndex);
+				sceneChannels[animIndex].emplace_back(nullptr);
+				continue;
+			}
+
+			auto samplerWithSameProperties = propertiesToChannelMap.find({absPath, animIndex, samplerIndex});
+			if (samplerWithSameProperties == propertiesToChannelMap.end()) {
+				LOG_DEBUG(log_system::CONTEXT, "Did not find existing local AnimationChannel with same properties as asset animation sampler, creating one instead...");
+				auto& sampler = sceneChannels[animIndex].emplace_back(createObject(raco::user_types::AnimationChannel::typeDescription.typeName, fmt::format("{}", *meshAnimSampler)));
+				set({sampler, {"uri"}}, absPath);
+				set({sampler, {"animationIndex"}}, animIndex);
+				set({sampler, {"samplerIndex"}}, samplerIndex);
+			} else {
+				LOG_DEBUG(log_system::CONTEXT, "Found existing local AnimationChannel '{}' with same properties as asset animation sampler, using this AnimationChannel...", *meshAnimSampler);
+				sceneChannels[animIndex].emplace_back(samplerWithSameProperties->second);
+			}
+
+		}
+	}
+	LOG_INFO(log_system::CONTEXT, "Animation samplers imported.");
+
+	LOG_INFO(log_system::CONTEXT, "Importing animations...");
+	for (auto animationIndex = 0; animationIndex < scenegraph.animations.size(); ++animationIndex) {
+		std::vector<SEditorObject> scenegraphAnims;
+		if (!scenegraph.animations[animationIndex].has_value()) {
+			LOG_DEBUG(log_system::CONTEXT, "Found disabled animation at index {}, ignoring Animation...", animationIndex);
+			scenegraphAnims.emplace_back(nullptr);
+			continue;
+		}
+
+		auto& meshAnim = *scenegraph.animations[animationIndex];
+		auto samplerSize = scenegraph.animationSamplers.at(animationIndex).size();
+		auto& newAnim = scenegraphAnims.emplace_back(createObject(raco::user_types::Animation::typeDescription.typeName, fmt::format("{}", meshAnim.name)));
+		newAnim->as<raco::user_types::Animation>()->setChannelAmount(samplerSize);
+		set({newAnim, {"play"}}, true);
+		set({newAnim, {"loop"}}, true);
+		moveScenegraphChild(newAnim, sceneRootNode);
+		LOG_INFO(log_system::CONTEXT, "Assigning animation samplers to animation '{}'...", meshAnim.name);
+		for (auto samplerIndex = 0; samplerIndex < samplerSize; ++samplerIndex) {
+			if (!sceneChannels[animationIndex][samplerIndex]) {
+				continue;
+			}
+
+			set({newAnim, {"animationChannels", fmt::format("Channel {}", samplerIndex)}}, sceneChannels[animationIndex][samplerIndex]);
+			LOG_DEBUG(log_system::CONTEXT, "Assigned sampler to anim channel {}", samplerIndex);
+		}
+		LOG_INFO(log_system::CONTEXT, "Samplers assigned.", meshAnim.name);
+
+		LOG_INFO(log_system::CONTEXT, "Linking samplers of animation '{}' to imported nodes...", meshAnim.name);
+		for (auto channelIndex = 0; channelIndex < meshAnim.channels.size(); ++channelIndex) {
+			auto& channel = meshAnim.channels[channelIndex];
+			auto& linkStartAnim = scenegraphAnims.back();
+			if (!linkStartAnim || !meshScenegraphNodes[channel.nodeIndex] || !sceneChannels[animationIndex][channel.samplerIndex]) {
+				LOG_DEBUG(log_system::CONTEXT, "Link impossible because at least one of the scene elements is missing (animation and/or sampler and/or node) - skipping link creation...");
+				continue;
+			}
+
+			auto &linkEndNode = meshScenegraphNodes[channel.nodeIndex];
+			ValueHandle linkEndProp;
+			auto& animTargetProp = channel.targetPath;
+
+			if (animTargetProp == "translation") {
+				linkEndProp = {linkEndNode, {"translation"}};
+			} else if (animTargetProp == "rotation") {
+				linkEndProp = {linkEndNode, {"rotation"}};
+			} else if (animTargetProp == "scale") {
+				linkEndProp = {linkEndNode, {"scale"}};
+			} else if (animTargetProp == "weights") {
+				LOG_WARNING(log_system::CONTEXT, "Animation sampler of animation '{}' at index {} has animation target 'weights' which is unsupported - skipping link...", meshAnim.name, channelIndex);
+				continue;
+			} else {
+				LOG_ERROR(log_system::CONTEXT, "Animation sampler of animation '{}' at index {} has invalid animation target '{}' - skipping link...", meshAnim.name, channelIndex, animTargetProp);
+				continue;
+			}
+
+			auto animChannelOutputName = linkStartAnim->as<user_types::Animation>()->createAnimChannelOutputName(channel.samplerIndex, sceneChannels[animationIndex][channel.samplerIndex]->objectName());
+			auto linkStart = ValueHandle{linkStartAnim, {"animationOutputs", animChannelOutputName}};
+			if (raco::core::Queries::linkWouldBeValid(*project(), linkStart.getDescriptor(), linkEndProp.getDescriptor())) {
+				addLink(linkStart, linkEndProp);
+			} else {
+				LOG_WARNING(log_system::CONTEXT, "Output property '{}' of Node '{}' can't be linked with Animation '{}' - either the property is already linked or types are incompatible", animTargetProp, linkEndProp.rootObject()->objectName(), linkStartAnim->objectName());
+			}
+		}
+		LOG_INFO(log_system::CONTEXT, "Samplers linked.");
+	}
+	LOG_INFO(log_system::CONTEXT, "Animations imported.");
 }
 
 SLink BaseContext::addLink(const ValueHandle& start, const ValueHandle& end) {
@@ -1015,6 +1123,11 @@ void BaseContext::removeLink(const PropertyDescriptor& end) {
 	if (auto link = Queries::getLink(*project_, end)) {
 		project_->removeLink(link);
 		changeMultiplexer_.recordRemoveLink(link->descriptor());
+		if (ValueHandle vh{end}; vh) {
+			// The end property might not exist anymore: we do not remove links when an end property vanishes
+			// (e. g. because a shader is updated). So only call recordValueChanged if the property exists.
+			changeMultiplexer_.recordValueChanged(vh);
+		}
 		updateBrokenLinkErrors(*link->endObject_);
 	}
 }
@@ -1026,7 +1139,7 @@ void BaseContext::updateExternalReferences(std::vector<std::string>& pathStack) 
 
 std::vector<SEditorObject> BaseContext::getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, UserObjectFactoryInterface* objectFactory, Project* project) {
 	std::vector<SEditorObject> newObjects;
-	std::set<SEditorObject> childrenSet;
+	SEditorObjectSet childrenSet;
 
 	for (auto& object : deserialization.objects) {
 		auto editorObject{std::dynamic_pointer_cast<core::EditorObject>(object)};

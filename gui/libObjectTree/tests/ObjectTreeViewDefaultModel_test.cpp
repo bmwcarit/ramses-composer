@@ -15,6 +15,7 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
+#include "user_types/Animation.h"
 #include "user_types/LuaScript.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
@@ -588,8 +589,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombin
 				auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
 				auto pastingSomethingUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
 				auto pastingSomethingUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
+				auto pastingSomethingUnderAnimaton = sceneGraphNodeInScene->as<Animation>();
 
-				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript) {
+				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript || pastingSomethingUnderAnimaton) {
 					ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({newObj}, sceneObjIndex));
 				} else {
 					ASSERT_TRUE(viewModel_->objectsAreAllowedInModel({newObj}, sceneObjIndex));
@@ -644,8 +646,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckPrefabInstanceCombination
 		auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
 		auto pastingPrefabInstanceUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
 		auto pastingPrefabInstanceUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
+		auto pastingPrefabInstanceUnderAnimation = sceneGraphNodeInScene->as<Animation>();
 
-		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript) {
+		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript || pastingPrefabInstanceUnderAnimation) {
 			ASSERT_FALSE(viewModel_->objectsAreAllowedInModel({prefabInstance}, sceneObjIndex));
 		} else {
 			ASSERT_TRUE(viewModel_->objectsAreAllowedInModel({prefabInstance}, sceneObjIndex));

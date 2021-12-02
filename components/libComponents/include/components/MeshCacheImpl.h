@@ -28,10 +28,11 @@ public:
 	MeshCacheImpl() {}
 
 	core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
-	core::MeshScenegraph getMeshScenegraph(const std::string& absPath) override;
+	core::MeshScenegraph* getMeshScenegraph(const raco::core::MeshDescriptor& descriptor) override;
 	std::string getMeshError(const std::string& absPath) override;
-	std::string getMeshWarning(const std::string& absPath) override;
 	int getTotalMeshCount(const std::string& absPath) override;
+
+	std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 
 private:
 	virtual void unregister(std::string absPath, typename core::MeshCache::Callback* listener) override;

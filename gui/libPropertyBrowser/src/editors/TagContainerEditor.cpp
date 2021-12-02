@@ -102,6 +102,9 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 	if (auto* sortOrderItem = item->siblingItem("sortOrder"); sortOrderItem != nullptr) {
 		QObject::connect(sortOrderItem, &PropertyBrowserItem::valueChanged, this, &TagContainerEditor::updateTags);
 	}
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
+		editButton_->setFocus();
+	});
 }
 
 void TagContainerEditor::editButtonClicked() const {

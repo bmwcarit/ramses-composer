@@ -11,6 +11,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 # Adding the unit test with gtest using our macro from dsathe top level CMakeLists.txt file
 
 set(TEST_SOURCES
+    Animation_test.cpp
+    AnimationChannel_test.cpp
     LuaScript_test.cpp
     DefaultValues_test.cpp
 )
@@ -27,6 +29,11 @@ raco_package_add_headless_test(
 )
 raco_package_add_test_resouces(
     libUserTypes_test "${CMAKE_SOURCE_DIR}/resources"
+    meshes/AnimatedMorphCube/AnimatedMorphCube.bin
+    meshes/AnimatedMorphCube/AnimatedMorphCube.gltf
+    meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
+    meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
+    meshes/Duck.glb
     scripts/struct.lua
     scripts/array.lua
     scripts/compile-error.lua

@@ -57,6 +57,18 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 
 	if (!textureData_) {
 		textureData_ = getFallbackTexture();
+	} else {
+		std::string infoText;
+
+		infoText += "Texture information\n\n";
+
+		infoText += fmt::format("Width: {} px\n", textureData_->getWidth());
+		infoText += fmt::format("Height: {} px\n\n", textureData_->getHeight());
+
+		std::string formatString{getTextureFormatString(textureData_->getTextureFormat())};		
+		infoText += fmt::format("Format: {}", formatString.substr(strlen("ETextureFormat_")));
+
+		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {editorObject()->shared_from_this()}, infoText);
 	}
 
 	if (textureData_) {

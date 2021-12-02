@@ -16,8 +16,11 @@
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "testing/RacoBaseTest.h"
 #include "testing/TestEnvironmentCore.h"
+#include "testing/TestUtil.h"
 #include "user_types/UserObjectFactory.h"
 
+#include "user_types/Animation.h"
+#include "user_types/AnimationChannel.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -32,51 +35,52 @@
 using namespace raco::core;
 using namespace raco::user_types;
 
-class UndoTest : public TestEnvironmentCore {
+template<class T = ::testing::Test>
+class UndoTestT : public TestEnvironmentCoreT<T> {
 public:
-	template <typename T>
-	void checkSetValue(ValueHandle handle, const T& value) {
-		T oldValue = handle.as<T>();
-		checkUndoRedo([this, handle, value]() { commandInterface.set(handle, value); },
+	template <typename C>
+	void checkSetValue(ValueHandle handle, const C& value) {
+		C oldValue = handle.as<C>();
+		this->checkUndoRedo([this, handle, value]() { this->commandInterface.set(handle, value); },
 			[this, handle, oldValue]() {
-				EXPECT_EQ(handle.as<T>(), oldValue);
+				EXPECT_EQ(handle.as<C>(), oldValue);
 			},
 			[this, handle, value]() {
-				EXPECT_EQ(handle.as<T>(), value);
+				EXPECT_EQ(handle.as<C>(), value);
 			});
 	}
 
 	void checkJump(std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
-		size_t preIndex = undoStack.getIndex();
+		size_t preIndex = this->undoStack.getIndex();
 		preCheck();
 		operation();
-		size_t postIndex = undoStack.getIndex();
+		size_t postIndex = this->undoStack.getIndex();
 		postCheck();
-		undoStack.setIndex(preIndex);
+		this->undoStack.setIndex(preIndex);
 		preCheck();
-		undoStack.setIndex(postIndex);
+		this->undoStack.setIndex(postIndex);
 		postCheck();
 	}
 
 	bool findInstance(std::string objectName) {
-		return std::find_if(project.instances().begin(), project.instances().end(), [objectName](const SEditorObject& obj) -> bool {
+		return std::find_if(this->project.instances().begin(), this->project.instances().end(), [objectName](const SEditorObject& obj) -> bool {
 			return objectName == obj->objectName();
-		}) != project.instances().end();
+		}) != this->project.instances().end();
 	}
 
 	template <class C>
 	std::shared_ptr<C> getInstance(std::string objectName) {
-		auto it = std::find_if(project.instances().begin(), project.instances().end(), [objectName](const SEditorObject& obj) -> bool {
+		auto it = std::find_if(this->project.instances().begin(), this->project.instances().end(), [objectName](const SEditorObject& obj) -> bool {
 			return objectName == obj->objectName();
 		});
-		if (it != project.instances().end()) {
+		if (it != this->project.instances().end()) {
 			return std::dynamic_pointer_cast<C>(*it);
 		}
 		return nullptr;
 	}
 
 	void checkInstances(const std::vector<std::string>& present, const std::vector<std::string>& absent) {
-		EXPECT_EQ(project.instances().size(), present.size());
+		EXPECT_EQ(this->project.instances().size(), present.size());
 		for (auto name : present) {
 			EXPECT_TRUE(findInstance(name));
 		}
@@ -85,6 +89,8 @@ public:
 		}
 	}
 };
+
+using UndoTest = UndoTestT<>;
 
 TEST_F(UndoTest, Node_undoredo_single_op) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "node");
@@ -537,4 +543,262 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 			ASSERT_FALSE(project.links()[0]->isValid());
 			ASSERT_TRUE(project.links()[1]->isValid());
 		});
+}
+
+TEST_F(UndoTest, link_quaternion_euler_change) {
+	raco::utils::file::write((cwd_path() / "lua_script_out1.lua").string(), R"(
+function interface()
+	IN.vec = VEC4F
+	OUT.vec = VEC4F
+end
+function run()
+    OUT.vec = IN.vec
+end
+)");
+
+	raco::utils::file::write((cwd_path() / "lua_script_out2.lua").string(), R"(
+function interface()
+	IN.vec = VEC3F
+	OUT.vec = VEC3F
+end
+function run()
+    OUT.vec = IN.vec
+end
+)");
+	auto lua = create<LuaScript>("script1");
+	commandInterface.set(ValueHandle{lua, {"uri"}}, cwd_path().append("lua_script_out1.lua").string());
+
+	auto node = create<Node>("node");
+	commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "vec"}}, ValueHandle{node, {"rotation"}});
+
+	checkUndoRedo([this, lua, node]() { 
+		commandInterface.set(ValueHandle{lua, {"uri"}}, cwd_path().append("lua_script_out2.lua").string());
+	},
+		[this, node, lua]() {
+			ASSERT_EQ(project.links().size(), 1);
+			ASSERT_TRUE(project.links()[0]->isValid());
+			auto nodeRotType = ValueHandle{node, {"rotation"}}.type();
+			auto luaVecType = ValueHandle{lua, {"luaOutputs", "vec"}}.type();
+			ASSERT_EQ(nodeRotType, raco::core::PrimitiveType::Vec3f);
+			ASSERT_EQ(luaVecType, raco::core::PrimitiveType::Vec4f);
+		},
+		[this, node, lua]() {
+			ASSERT_EQ(project.links().size(), 1);
+			ASSERT_TRUE(project.links()[0]->isValid());
+			auto nodeRotType = ValueHandle{node, {"rotation"}}.type();
+			auto luaVecType = ValueHandle{lua, {"luaOutputs", "vec"}}.type();
+			ASSERT_EQ(nodeRotType, raco::core::PrimitiveType::Vec3f);
+			ASSERT_EQ(luaVecType, raco::core::PrimitiveType::Vec3f);
+		});
+}
+
+
+TEST_F(UndoTest, mesh_asset_with_anims_import_multiple_undo_redo) {
+	raco::core::MeshDescriptor desc;
+	desc.absPath = cwd_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
+	desc.bakeAllSubmeshes = false;
+
+	auto scenegraph = commandInterface.meshCache()->getMeshScenegraph(desc);
+
+	commandInterface.insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+
+	for (auto i = 0; i < 10; ++i) {
+		commandInterface.undoStack().undo();
+		ASSERT_EQ(project.links().size(), 0);
+		commandInterface.undoStack().redo();
+		ASSERT_EQ(project.links().size(), 9);
+	}
+}
+
+class UndoTestWithIDParams : public UndoTestT<testing::TestWithParam<std::vector<std::string>>> {
+
+};
+
+TEST_P(UndoTestWithIDParams, animation_with_animation_channel) {
+	auto channelID = GetParam()[0];
+	auto animID = GetParam()[1];
+
+	auto absPath = cwd_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
+
+	checkJump([this, absPath, channelID, animID]() { 
+		auto channel = commandInterface.createObject(AnimationChannel::typeDescription.typeName, "channel", channelID);
+		commandInterface.set({channel, &AnimationChannel::uri_}, absPath);
+		auto anim = commandInterface.createObject(Animation::typeDescription.typeName, "anim", animID);
+
+		EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 1);
+		commandInterface.set(ValueHandle(anim, &Animation::animationChannels)[0], channel); 
+		},
+
+		[this]() {
+		},
+
+		[this]() {
+			auto anim = getInstance<Animation>("anim");
+			EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 2);
+		});
+}
+
+INSTANTIATE_TEST_SUITE_P(
+	UndoTest,
+	UndoTestWithIDParams,
+	testing::Values(
+		std::vector<std::string>({"AAA", "BBB"}), 
+		std::vector<std::string>({"BBB", "AAA"})));
+
+TEST_F(UndoTest, meshnode_uniform_update) {
+	TextFile vertShader = makeFile("shader.vert", R"(
+#version 300 es
+precision mediump float;
+in vec3 a_Position;
+uniform mat4 u_MVPMatrix;
+void main() {
+    float offset = float(gl_InstanceID) * 0.2;
+    gl_Position = u_MVPMatrix * vec4(a_Position.x + offset, a_Position.yz, 1.0);
+}
+)");
+
+	TextFile fragShader = makeFile("shader.frag", R"(
+#version 300 es
+precision mediump float;
+out vec4 FragColor;
+uniform vec3 u_color;
+void main() {
+    FragColor = vec4(u_color.r, u_color.g, u_color.b, 1.0);
+})");
+
+
+	std::string altFragShaderText = R"(
+#version 300 es
+precision mediump float;
+out vec4 FragColor;
+uniform vec3 alt_name;
+void main() {
+    FragColor = vec4(alt_name.r, alt_name.g, alt_name.b, 1.0);
+})";
+
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	
+	size_t preIndex = undoStack.getIndex();
+
+	auto material = commandInterface.createObject(Material::typeDescription.typeName, "material", "CCC");
+	auto meshnode = commandInterface.createObject(MeshNode::typeDescription.typeName, "meshnode", "BBB")->as<MeshNode>();
+	commandInterface.set({meshnode, {"mesh"}}, mesh);
+	commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
+	commandInterface.set(meshnode->getMaterialPrivateHandle(0), true);
+	commandInterface.set({material, &Material::uriVertex_}, vertShader);
+	commandInterface.set({material, &Material::uriFragment_}, fragShader);
+
+	size_t postIndex = undoStack.getIndex();
+
+	auto postCheck = [this](const std::string& uniformName) {
+		auto material = getInstance<Material>("material");
+		auto meshnode = getInstance<MeshNode>("meshnode");
+		ValueHandle matUniforms{material, {"uniforms"}};
+		ValueHandle meshnodeUniforms{meshnode, {"materials", "material", "uniforms"}};
+		EXPECT_TRUE(matUniforms.hasProperty(uniformName));
+		EXPECT_TRUE(meshnodeUniforms.hasProperty(uniformName));
+	};
+
+	postCheck("u_color");
+
+	undoStack.setIndex(preIndex);
+
+	raco::utils::file::write(fragShader.path.string(), altFragShaderText);
+
+	undoStack.setIndex(postIndex);
+
+	postCheck("alt_name");
+}
+
+TEST_F(UndoTest, lua_resync_after_undo) {
+	TextFile luaFile = makeFile("test.lua", R"(
+function interface()
+    OUT.vec = VEC3F
+end
+
+function run()
+end
+)");
+
+	std::string altLuaScript = R"(
+function interface()
+    OUT.renamed = VEC3F
+end
+
+function run()
+end
+)";
+
+	auto lua = create_lua("lua", luaFile);
+	auto node = create<Node>("node");
+
+	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
+	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
+
+	recorder.reset();
+	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	raco::awaitPreviewDirty(recorder, lua);
+
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	// undo node creation
+	commandInterface.undoStack().undo();
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	commandInterface.undoStack().redo();
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+}
+
+
+TEST_F(UndoTest, link_remove_break_on_undo) {
+	TextFile luaFile = makeFile("test.lua", R"(
+function interface()
+    OUT.vec = VEC3F
+end
+
+function run()
+end
+)");
+
+	std::string altLuaScript = R"(
+function interface()
+    OUT.renamed = VEC3F
+end
+
+function run()
+end
+)";
+
+	auto lua = create_lua("lua", luaFile);
+	auto node = create<Node>("node");
+
+	auto [sprop, eprop] = link(lua, {"luaOutputs", "vec"}, node, {"translation"});
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.removeLink(eprop);
+	checkLinks({});
+
+	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
+	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
+
+	recorder.reset();
+	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	raco::awaitPreviewDirty(recorder, lua);
+
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	commandInterface.undoStack().undo();
+	checkLinks({{sprop, eprop, false}});
+	ASSERT_TRUE(commandInterface.errors().hasError({node}));
+
+	commandInterface.undoStack().redo();
+	checkLinks({});
+	//The assert fails - needs to be fixed. See RAOS-687
+	//ASSERT_FALSE(commandInterface.errors().hasError({node}));
 }

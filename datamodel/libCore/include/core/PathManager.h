@@ -10,7 +10,7 @@
 #pragma once
 
 #include "utils/stdfilesystem.h"
-
+#include "data_storage/ReflectionInterface.h"
 
 #include <map>
 #include <string>
@@ -81,6 +81,8 @@ struct PathManager {
 		const std::string& MeshSubdirectory,
 		const std::string& ScriptSubdirectory,
 		const std::string& ShaderSubdirectory);
+
+	static FolderTypeKeys getCachedPathKeyCorrespondingToUserType(const raco::data_storage::ReflectionInterface::TypeDescriptor& type);
 
 private:
 	friend class raco::components::RaCoPreferences;

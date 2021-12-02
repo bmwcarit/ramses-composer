@@ -46,6 +46,8 @@ protected:
 	Q_SLOT void updateError();
 private:
 	void recalculateLabelWidth();
+	void collectTabWidgets(QObject* item, QWidgetList& tabWidgets);
+	void recalculateTabOrder();
 
 	PropertyBrowserItem* item_{nullptr};
 	PropertyBrowserModel* model_ {nullptr};

@@ -21,12 +21,12 @@
         <file alias="incrementIcon">_Default/icons/outline_chevron_right_white_24dp.png</file>
         <file alias="warningIcon">_Default/icons/baseline_warning_orange_24dp.png</file>
         <file alias="errorIcon">_Default/icons/baseline_report_red_24dp.png</file>
-		
         <file alias="RobotoBold">_Default/fonts/Roboto-Bold.ttf</file>
         <file alias="RobotoMedium">_Default/fonts/Roboto-Medium.ttf</file>
         <file alias="RobotoRegular">_Default/fonts/Roboto-Regular.ttf</file>
         <file alias="RobotoLight">_Default/fonts/Roboto-Light.ttf</file>
-		
+        <file alias="typeAnimationIcon">_Default/icons/animation_white_18dp.png</file>
+        <file alias="typeAnimationChannelIcon">_Default/icons/animation_sampler_white_18dp.png</file>
         <file alias="typeNodeIcon">_Default/icons/node_white_18dp.png</file>
         <file alias="typeCameraIcon">_Default/icons/camera_white_18dp.png</file>
         <file alias="typeMeshIcon">_Default/icons/mesh_white_18dp.png</file>

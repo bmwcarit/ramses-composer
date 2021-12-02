@@ -66,8 +66,8 @@ public:
 	// - If insertionBeforeIndex = -1 the node will be appended at the end of the new parent children.
 	void moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex = -1);
 
-	// Calls Context::insertAssetScenegraph and generates a composite undo command when import has been successful.
-	bool insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
+	// Calls Context::insertAssetScenegraph and generates a composite undo command.
+	void insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	/**
 	 * Creates a serialized representation of all given [EditorObject]'s and their appropriate dependencies.

@@ -56,6 +56,8 @@ private:
 	mutable FileChangeMonitor::UniqueListener uriListener_;
 	OutdatedPropertiesStore cachedLuaInputValues_;
 
+	std::string currentScriptContents_;
+	bool currentScriptValid_ = false;
 };
 
 using SLuaScript = std::shared_ptr<LuaScript>;

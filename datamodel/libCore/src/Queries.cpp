@@ -16,6 +16,7 @@
 #include "core/Project.h"
 #include "core/PropertyDescriptor.h"
 
+#include "user_types/Animation.h"
 #include "user_types/LuaScript.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -25,6 +26,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <unordered_set>
 
 namespace raco::core {
 
@@ -62,13 +64,13 @@ bool Queries::objectsReferencedByExtrefs(Project const& project, std::vector<SEd
 	return false;
 }
 
-std::vector<ValueHandle> Queries::findAllReferencesFrom(std::set<SEditorObject> const& objects) {
+std::vector<ValueHandle> Queries::findAllReferencesFrom(SEditorObjectSet const& objects) {
 	std::vector<ValueHandle> refs;
 	for (auto instance : objects) {
 		for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
 			if (prop.type() == PrimitiveType::Ref) {
 				auto refValue = prop.asTypedRef<EditorObject>();
-				if (refValue && std::find(objects.begin(), objects.end(), refValue) == objects.end()) {
+				if (refValue && objects.find(refValue) == objects.end()) {
 					refs.emplace_back(prop);
 				}
 			}
@@ -106,7 +108,7 @@ std::vector<ValueHandle> Queries::findAllReferences(const SEditorObject& object)
 }
 
 std::vector<SEditorObject> Queries::findAllUnreferencedObjects(Project const& project, std::function<bool(SEditorObject)> predicate) {
-	std::set<SEditorObject> referenced;
+	SEditorObjectSet referenced;
 	std::set<std::string> referencedRenderableTags;
 	std::set<std::string> referencedMaterialTags;
 
@@ -293,7 +295,7 @@ bool Queries::canMoveScenegraphChild(Project const& project, SEditorObject const
 		}
 	}
 
-	return (object->as<Node>() || object->as<LuaScript>()) &&
+	return (object->as<Node>() || object->as<LuaScript>() || object->as<Animation>()) &&
 		(newParent == nullptr || newParent->as<Node>() || newParent->as<Prefab>());
 }
 
@@ -329,7 +331,7 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 		return false;
 	}
 
-	if (object->as<user_types::LuaScript>()) {
+	if (object->as<user_types::LuaScript>() || object->as<user_types::Animation>()) {
 		return false;
 	}
 
@@ -376,7 +378,7 @@ bool Queries::isReadOnly(SEditorObject editorObj) {
 	if (inst && inst != editorObj) {
 		// Exception: LuaScript objects which are direct children of a PrefabInstance which is not nested inside another PrefabInstance
 		// are not read-only.
-		if (!(editorObj->as<user_types::LuaScript>() &&
+		if (!(&editorObj->getTypeDescription() == &user_types::LuaScript::typeDescription &&
 				editorObj->getParent() == inst &&
 				!PrefabOperations::findContainingPrefabInstance(inst->getParent()))) {
 			return true;
@@ -591,7 +593,9 @@ std::vector<SLink> Queries::getLinksConnectedToObject(const Project& project, co
 	return result;
 }
 
-std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool includeEnding) {
+
+template <typename Container>
+inline std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const Project& project, const Container& objects, bool includeStarting, bool includeEnding) {
 	// use a set to avoid duplicate link entries
 	std::map<std::string, std::set<SLink>> result;
 	const auto& linkStartPoints = project.linkStartPoints();
@@ -619,6 +623,11 @@ std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const
 
 	return result;
 }
+
+template std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects<SEditorObjectSet>(const Project& project, const SEditorObjectSet& objects, bool includeStarting, bool includeEnding);
+
+template std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects<std::unordered_set<SEditorObject>>(const Project& project, const std::unordered_set<SEditorObject>& objects, bool includeStarting, bool includeEnding);
+
 
 std::string Queries::getBrokenLinksErrorMessage(const Project& project, SEditorObject obj) {
 	std::vector<std::string> brokenLinks;
@@ -669,11 +678,20 @@ bool sameStructure(const ReflectionInterface* left, const ReflectionInterface* r
 }
 
 bool checkLinkCompatibleTypes(const ValueHandle& start, const ValueHandle& end) {
-	if ((start.type() == PrimitiveType::Table || start.type() == PrimitiveType::Struct) && 
-		(end.type() == PrimitiveType::Table || end.type() == PrimitiveType::Struct)) {
+	auto startType = start.type();
+	auto endType = end.type();
+	if ((startType == PrimitiveType::Table || startType == PrimitiveType::Struct) &&
+		(endType == PrimitiveType::Table || endType == PrimitiveType::Struct)) {
 		return sameStructure(&start.constValueRef()->getSubstructure(), &end.constValueRef()->getSubstructure());
 	}
-	return start.type() == end.type();
+
+	// Node rotations can be linked as euler or quaternion values
+	if (end.rootObject()->as<user_types::Node>() && end.isRefToProp(&user_types::Node::rotation_)) {
+		if (startType == PrimitiveType::Vec4f && endType == PrimitiveType::Vec3f) {
+			return true;
+		}
+	}
+	return startType == endType;
 }
 
 bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end) {

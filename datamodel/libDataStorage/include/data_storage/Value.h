@@ -15,6 +15,8 @@
 #include <vector>
 #include <functional>
 
+#include "ReflectionInterface.h"
+
 namespace raco::core {
 class EditorObject;
 using SEditorObject = std::shared_ptr<EditorObject>;
@@ -27,8 +29,6 @@ using raco::core::SEditorObject;
 
 class AnnotationBase;
 
-class ReflectionInterface;
-class ClassWithReflectedMembers;
 class Table;
 
 class Vec2f;
@@ -234,6 +234,12 @@ public:
 		return !operator==(other);
 	}
 
+	// Compare value but not annotation data with reference property translation.
+	// @param translateRef used to translated PrimitiveType::Ref properties inside the owning object 
+	//   properties nested inside Table or Struct properties before comparing to the corresponding property
+	//   in 'other'
+	virtual bool compare(const ValueBase& other, std::function<SEditorObject(SEditorObject)> translateRef) const = 0;
+
 	// Copy the annnotation data.
 	virtual void copyAnnotationData(const ValueBase& src) = 0;
 
@@ -351,6 +357,26 @@ public:
 					throw std::runtime_error("type mismatch");
 				}
 				return value_ == *vp;
+			} else {
+				return value_ == other.as<T>();
+			}
+		}
+		return false;
+	}
+
+	bool compare(const ValueBase& other, std::function<SEditorObject(SEditorObject)> translateRef) const override {
+		if (classesEqual(*this, other)) {
+			if constexpr (std::is_convertible<T, SEditorObject>::value) {
+				auto translatedValue = translateRef(value_);
+				return translatedValue == other.asRef();
+			} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+				const T* vp = dynamic_cast<const T*>(&other.asStruct());
+				if (!vp) {
+					throw std::runtime_error("type mismatch");
+				}
+				return ReflectionInterface::compare(value_, *vp, translateRef);
+			} else if constexpr (primitiveType<T>() == PrimitiveType::Table) {
+				return ReflectionInterface::compare(value_, other.as<T>(), translateRef);
 			} else {
 				return value_ == other.as<T>();
 			}

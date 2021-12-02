@@ -46,15 +46,12 @@ public:
     size_t getIndex() const;
 
     // Jump backward or forward to any position in the undo stack.
-	// @exception ExtrefError
-    size_t setIndex(size_t newIndex, bool force = false);
+	size_t setIndex(size_t newIndex, bool force = false);
 
     // Go one entry backwards.
-	// @exception ExtrefError
     void undo();
 
     // Go one entry forward.
-	// @exception ExtrefError
 	void redo();
 
     bool canUndo() const noexcept;
@@ -66,8 +63,9 @@ private:
     void saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 	void updateProjectState(const Project *src, Project *dest, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 
-    // @exception ExtrefError
     void restoreProjectState(Project *src, Project *dest, BaseContext &context, UserObjectFactoryInterface &factory);
+
+	bool canMerge(const DataChangeRecorder &changes);
 
 	BaseContext* context_;
 	Callback onChange_;

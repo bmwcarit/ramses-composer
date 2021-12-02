@@ -55,6 +55,9 @@ RefEditor::RefEditor(
 		emptyReference_ = (index == PropertyBrowserRef::EMPTY_REF_INDEX);
 		goToRefObjectButton_->setDisabled(index == PropertyBrowserRef::EMPTY_REF_INDEX);
 	});
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
+		comboBox_->setFocus();
+	});
 	updateItems(ref_->items());
 }
 

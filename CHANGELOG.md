@@ -11,6 +11,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 <!--- Template for next release section
 ## [unreleased]
+* **File version number has changed. Files saved with RaCo X.Y.Z cannot be opened by previous versions.**
+
 ### Added
 
 ### Changes
@@ -19,6 +21,33 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 ### Known Bugs
 -->
+
+## [0.10.0] Animations
+* **File version number has changed. Files saved with RaCo 0.10.0 cannot be opened by previous versions.**
+
+### Added
+* Added animation support.
+    * Currently only animations defined in glTF files are able to be imported.
+    * The first new user type AnimationChannel is a low-level data accessor for animation data, akin to the Mesh type.
+    * The second new user type Animation is a scene graph object that groups AnimationChannels and contains the channels' linkable outputs.
+    * Importing assets via the "Import glTF Assets" option will automatically create links from enabled Animations to the respective enabled Nodes.
+* Added quaternion rotation for Nodes.
+    * Quaternion rotation is activated by linking a vec4f output to the Rotation property of a Node. The rotation property will then show the converted Euler angles as calculated by ramses-logic.
+* Texture and CubeMap resources now have boxes in the property browser describing their size and channel format.
+* Added option to set alpha component of display background clear color in project settings.
+
+### Changes
+* The property browser now supports localized thousand and decimal seperators for number input (i.e. comma as decimal seperator on German language systems).
+* Project files which are not writable are now marked as read-only in the application title.
+* Number sliders in the property browser now lock the cursor in place while dragging.
+* LuaScript, Material and MeshNode objects now have some of their properties collapsed by default in the property browser. 
+* Improved performance of undo/redo of link creation/deletion.
+
+### Fixes
+* Improved keyboard navigation in property browser using Tab, Shift-Tab, Esc and Enter.
+* If a file cannot be saved (e. g. because it is read-only), the save no longer silently fails but instead displays an appropriate error message.
+* An error is now shown for MeshNodes where the material requires an attribute that the mesh data does not provide.
+* Fix crash when performing undo after changing lua script file.
 
 ## [0.9.3] Update to ramses-logic 0.12.0
 
@@ -84,6 +113,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
     * This is a temporary workaround and will be reintroduced in later versions.
 * Detect and remove link duplicates in the project files when loading a project. Warning messages will be generated in the log if duplicates are detected.
 * Fix bug leading to uniform properties referencing deleted texture objects. Invalid references encountered during loading of project files are discarded and a warning message is logged.
+
 
 ## [0.9.0]
 

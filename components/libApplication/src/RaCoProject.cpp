@@ -253,8 +253,6 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 }
 
 std::unique_ptr<RaCoProject> RaCoProject::loadFromJson(const QJsonDocument& migratedJson, const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack) {
-	std::string migratedString{migratedJson.toJson().toStdString()};
-
 	auto result{ raco::serialization::deserializeProject(migratedJson,
 		user_types::UserObjectFactoryInterface::deserializationFactory(&user_types::UserObjectFactory::getInstance())) };
 
@@ -323,12 +321,14 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 		});
 }
 
-void RaCoProject::save() {
+bool RaCoProject::save() {
 	const auto path(project_.currentPath());
 	LOG_INFO(raco::log_system::PROJECT, "Saving project to {}", path);
 	QFile file{path.c_str()};
-	if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-		return;
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
+		return false;
+	}
 
 	auto ramsesVersion = raco::ramses_base::getRamsesVersion();
 	auto ramsesLogicEngineVersion = raco::ramses_base::getLogicEngineVersion();
@@ -339,6 +339,11 @@ void RaCoProject::save() {
 		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
 		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
 	file.write(serializeProject(currentVersions).toJson());
+	if (!file.flush() || file.error() != QFile::FileError::NoError) {
+		LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Could not write to disk: FileError {} {}", file.error(), file.errorString().toStdString());
+		file.close();
+		return false;
+	}
 	file.close();
 	generateAllProjectSubfolders();
 
@@ -351,14 +356,15 @@ void RaCoProject::save() {
 
 	dirty_ = false;
 	LOG_INFO(raco::log_system::PROJECT, "Finished saving project to {}", path);
+	return true;
 }
 
-void RaCoProject::saveAs(const QString& fileName, bool setProjectName) {
+bool RaCoProject::saveAs(const QString& fileName, bool setProjectName) {
 	auto oldPath = project_.currentPath();
 	auto oldProjectFolder = project_.currentFolder();
 	auto newPath = fileName.toStdString();
 	if (newPath == oldPath) {
-		save();
+		return save();
 	} else {
 		project_.setCurrentPath(newPath);
 		onAfterProjectPathChange(oldProjectFolder, project_.currentFolder());
@@ -369,9 +375,14 @@ void RaCoProject::saveAs(const QString& fileName, bool setProjectName) {
 				context_->set({settings, &raco::core::EditorObject::objectName_}, projName);
 			}
 		}
-		save();
-		undoStack_.reset();
-		dirty_ = false;
+		if (save()) {
+			undoStack_.reset();
+			dirty_ = false;
+			return true;
+		} else {
+			return false;
+		}
+			
 	}
 }
 

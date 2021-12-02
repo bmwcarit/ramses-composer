@@ -138,8 +138,13 @@ public:
 	// - need to use contexts for modifying persistent data.
 	//
 
-	// Called after a context was created for the Project containg the EditorObject
-	// sync with external files
+	// Called
+	// - after a context was created for the Project containg the EditorObject
+	// - after undo/prefab update/external reference update has changed an EditorObject
+	// 	   
+	// must perform sync with external files
+	// - this needs to invalidate any cached data related to external files, .e.g
+	//   script or shader content
 	virtual void onAfterContextActivated(BaseContext& context) {}
 
 	// Called after changing a value inside this object, possibly nested multiple levels.
@@ -183,6 +188,25 @@ private:
 	mutable std::set<WEditorObject, std::owner_less<WEditorObject>> referencesToThis_;
 };
 
+class CompareEditorObjectByID {
+public:
+	bool operator()(const SEditorObject& lhs, const SEditorObject& rhs) const {
+		return lhs != rhs &&  (lhs == nullptr || (rhs != nullptr && lhs->objectID() < rhs->objectID()));
+	} 
+};
+
+// Make order of objects in std::set<SEditorObject> predictable in debug mode.
+// We need this to reliably test for bugs which are order-dependent.
+// The solution is to use a custom comparison function for the set which uses
+// the EditorObject::objectID(). Tests can then force a particular order by 
+// creating objects with known IDs.
+// Since this might have a performance impact due to the necessary string comparisons
+// this is only enabled in debug mode.
+#ifdef NDEBUG
+using SEditorObjectSet = std::set<SEditorObject>;
+#else
+using SEditorObjectSet = std::set<SEditorObject, CompareEditorObjectByID>;
+#endif
 
 class TreeIterator {
 public:

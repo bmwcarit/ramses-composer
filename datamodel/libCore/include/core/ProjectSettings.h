@@ -27,6 +27,7 @@ public:
 
 	ProjectSettings(const std::string& name, const std::string& id = std::string()) : EditorObject(name, id) {
 		fillPropertyDescription();
+		backgroundColor_.asVec4f().w = 1.0;
 	}
 
 	ProjectSettings() : ProjectSettings("Main") {}
@@ -41,7 +42,7 @@ public:
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> sceneId_{123u, DisplayNameAnnotation("Scene Id"), {1, 1024}};
 	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Display Size"}};
-	Property<Vec3f, DisplayNameAnnotation> backgroundColor_{ {}, {"Display Background Color"} };
+	Property<Vec4f, DisplayNameAnnotation> backgroundColor_{{}, {"Display Background Color"}};
 
 	// Properties related to timer running hack - remove these properties and all related code when proper animations have been implemented
 	Property<bool, HiddenProperty> enableTimerFlag_{false, HiddenProperty()};

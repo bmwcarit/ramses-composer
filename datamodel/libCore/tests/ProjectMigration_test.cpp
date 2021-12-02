@@ -333,6 +333,19 @@ TEST_F(MigrationTest, migrate_from_V16) {
 	ASSERT_EQ(renderlayerscenegraph->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::SceneGraph));
 }
 
+TEST_F(MigrationTest, migrate_from_V18) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V18.rca").string()));
+
+	auto bgColor = racoproject->project()->settings()->backgroundColor_;
+	ASSERT_EQ(bgColor->typeDescription.typeName, Vec4f::typeDescription.typeName);
+
+	auto bgColorVec4 = bgColor.asVec4f();
+	ASSERT_EQ(bgColorVec4.x.asDouble(), 0.3);
+	ASSERT_EQ(bgColorVec4.y.asDouble(), 0.2);
+	ASSERT_EQ(bgColorVec4.z.asDouble(), 0.1);
+	ASSERT_EQ(bgColorVec4.w.asDouble(), 1.0);
+}
+
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version. 
 	// Should detect changes in data model with missing migration code.

@@ -26,11 +26,7 @@ UndoView::UndoView(raco::core::UndoStack* undoStack, raco::components::SDataChan
 	layout->addWidget(list_);
 	QObject::connect(list_, &QListView::clicked, this, [this](const QModelIndex& index) {
 		if (index.row() != undoStack_->getIndex())
-			try {
-				undoStack_->setIndex(static_cast<size_t>(index.row()));
-			} catch (core::ExtrefError& error) {
-				// This ext ref update error message will be shown in the Error View.
-			}
+			undoStack_->setIndex(static_cast<size_t>(index.row()));
 	});
 	rebuild();
 }

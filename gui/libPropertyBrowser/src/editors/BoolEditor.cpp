@@ -27,6 +27,10 @@ BoolEditor::BoolEditor(
 	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this](core::ValueHandle& handle) { checkBox_->setChecked(handle.asBool()); });
 	checkBox_->setChecked(item->valueHandle().asBool());
 	layout->addWidget(checkBox_);
+
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
+		checkBox_->setFocus();
+	});
 }
 
 }  // namespace raco::property_browser

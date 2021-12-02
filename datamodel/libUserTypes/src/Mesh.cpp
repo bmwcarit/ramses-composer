@@ -44,11 +44,6 @@ void Mesh::updateMesh(BaseContext& context) {
 			auto savedErrorString = context.meshCache()->getMeshError(desc.absPath);
 			auto errorMessage = (savedErrorString.empty()) ? "Invalid mesh file." : "Error while importing mesh: " + savedErrorString;
 			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, {shared_from_this()}, errorMessage);
-		} else {
-			auto savedWarningString = context.meshCache()->getMeshWarning(desc.absPath);
-			if (!savedWarningString.empty()) {
-				context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::WARNING, {shared_from_this()}, savedWarningString);
-			}
 		}
 	} else {
 		mesh_.reset();

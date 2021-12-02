@@ -12,6 +12,8 @@
 #include "property_browser/PropertyBrowserLayouts.h"
 #include <QDoubleSpinBox>
 #include <QSpinBox>
+#include <QKeyEvent>
+#include <optional>
 
 namespace raco::property_browser {
 
@@ -33,29 +35,50 @@ struct SpinBoxTraits<int> {
 template <typename T>
 class InternalSpinBox : public SpinBoxTraits<T>::BaseType {
 public:
-	InternalSpinBox(QWidget* parent = nullptr) : SpinBoxTraits<T>::BaseType(parent) { this->setKeyboardTracking(false); }
+	InternalSpinBox(QWidget* parent = nullptr) : SpinBoxTraits<T>::BaseType(parent) {
+		this->setKeyboardTracking(false);
+		this->setCorrectionMode(QAbstractSpinBox::CorrectionMode::CorrectToNearestValue);
+	}
+
 	virtual ~InternalSpinBox() {}
 	QValidator::State validate(QString& input, int& pos) const override {
-		if (SpinBoxTraits<T>::BaseType::validate(input, pos) != QValidator::Acceptable) {
-			if (input.size() > 0 && input.at(0) == '.') {
-				return QValidator::Acceptable;
-			}
+		if (SpinBoxTraits<T>::BaseType::validate(input, pos) != QValidator::Acceptable
+			&& !tryGetValueFromText(input).has_value()) {			
 			return QValidator::Intermediate;
+		} else {
+			return QValidator::Acceptable;
 		}
-		return QValidator::Acceptable;
 	}
 
 	QString textFromValue(T value) const {
 		return SpinBoxTraits<T>::BaseType::textFromValue(value);
 	}
 
-    T valueFromText(const QString& text) const {
-		return SpinBoxTraits<T>::BaseType::valueFromText(text);
-    }
+
+	T valueFromText(const QString& text) const {
+		return tryGetValueFromText(text).value_or(SpinBoxTraits<T>::BaseType::value());
+	}
+
+protected:
+	T focusInOldValue_;
 
 	void focusInEvent(QFocusEvent* event) {
 		this->selectAll();
+		focusInOldValue_ = SpinBoxTraits<T>::BaseType::value();
 		SpinBoxTraits<T>::BaseType::focusInEvent(event);
+	}
+
+	void keyPressEvent(QKeyEvent* event) {
+		SpinBoxTraits<T>::BaseType::keyPressEvent(event);
+
+		if (event->key() == Qt::Key_Escape) {
+			SpinBoxTraits<T>::BaseType::setValue(focusInOldValue_);
+			SpinBoxTraits<T>::BaseType::clearFocus();
+		}
+	}
+	
+	std::optional<T> tryGetValueFromText(const QString& text) const {
+		return SpinBoxTraits<T>::BaseType::valueFromText(text);
 	}
 };
 
@@ -65,15 +88,29 @@ inline QString InternalSpinBox<double>::textFromValue(double value) const {
 };
 
 template <>
-inline double InternalSpinBox<double>::valueFromText(const QString& text) const {
+inline std::optional<double> InternalSpinBox<double>::tryGetValueFromText(const QString& text) const {
 	bool ok = false;
 	QString textToInterpret = text;
 
 	if (textToInterpret.size() > 0 && text.at(0) == '.') {
 		textToInterpret.insert(0, '0');
-    }
-	double ret = QLocale(QLocale::C).toDouble(textToInterpret, &ok);
-	return ok ? ret : this->value();
+	}
+	double ret = QLocale::system().toDouble(textToInterpret, &ok);
+	if (!ok) {
+		ret = QLocale(QLocale::C).toDouble(textToInterpret, &ok);
+	}
+	return ok ? ret : std::optional<double>{};
+};
+
+template <>
+inline std::optional<int> InternalSpinBox<int>::tryGetValueFromText(const QString& text) const {
+	bool ok = false;
+
+	int ret = QLocale::system().toInt(text, &ok);
+	if (!ok) {
+		ret = QLocale(QLocale::C).toInt(text, &ok);
+	}
+	return ok ? ret : std::optional<int>{};
 };
 
 template <typename T>
@@ -86,6 +123,8 @@ public:
 		widget_.setRange(min_, max_);
 		// Disable QSpinBox sizing based on range
 		widget_.setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+		setFocusPolicy(Qt::FocusPolicy::StrongFocus);
+		setFocusProxy(&widget_);
 	}
 
 	void setValue(T v) {
@@ -109,9 +148,19 @@ public:
 		max_ = max;
 	}
 
+	void keyPressEvent(QKeyEvent* event) {
+		QWidget::keyPressEvent(event);
+
+		if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return) {
+			widget_.clearFocus();
+			emitFocusNextRequested();
+		}
+	}
+
 protected:
 	virtual void emitValueChanged(T value) = 0;
 	virtual void emitEditingFinished() = 0;
+	virtual void emitFocusNextRequested() = 0;
 
 	InternalSpinBox<T> widget_{this};
 
@@ -131,10 +180,12 @@ public:
 Q_SIGNALS:
 	void valueChanged(double val);
 	void editingFinished();
+	void focusNextRequested();
 
 protected:
 	void emitValueChanged(double value) override;
 	void emitEditingFinished() override;
+	void emitFocusNextRequested() override;
 };
 
 class IntSpinBox final : public SpinBox<int> {
@@ -146,10 +197,12 @@ public:
 Q_SIGNALS:
 	void valueChanged(int val);
 	void editingFinished();
+	void focusNextRequested();
 
 protected:
 	void emitValueChanged(int value) override;
 	void emitEditingFinished() override;
+	void emitFocusNextRequested() override;
 };
 
 }  // namespace raco::property_browser

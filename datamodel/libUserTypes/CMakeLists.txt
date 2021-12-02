@@ -9,6 +9,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ]]
 
 add_library(libUserTypes
+	include/user_types/Animation.h src/Animation.cpp
+	include/user_types/AnimationChannel.h src/AnimationChannel.cpp
 	include/user_types/BaseCamera.h
 	include/user_types/BaseObject.h
 	include/user_types/BaseTexture.h
@@ -39,6 +41,12 @@ add_library(libUserTypes
 
 target_include_directories(libUserTypes PUBLIC include/)
 enable_warnings_as_errors(libUserTypes)
+
+if (MSVC)
+    # MSVC builds need /bigobj enabled for libUserTypes
+    # because of the high amount of user types causing large object files
+    target_compile_options(libUserTypes PRIVATE /bigobj)
+endif()
 
 target_link_libraries(libUserTypes
 PUBLIC

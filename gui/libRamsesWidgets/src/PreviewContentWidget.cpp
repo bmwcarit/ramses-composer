@@ -35,9 +35,9 @@ void PreviewContentWidget::setSceneId(ramses::sceneId_t id) {
 	}
 }
 
-void PreviewContentWidget::setBackgroundColor(data_storage::Vec3f backgroundColor) {
+void PreviewContentWidget::setBackgroundColor(data_storage::Vec4f backgroundColor) {
 	if (ramsesPreview_) {
-		ramsesPreview_->state().backgroundColor = QColor::fromRgbF(backgroundColor.x.asDouble(), backgroundColor.y.asDouble(), backgroundColor.z.asDouble());
+		ramsesPreview_->state().backgroundColor = QColor::fromRgbF(backgroundColor.x.asDouble(), backgroundColor.y.asDouble(), backgroundColor.z.asDouble(), backgroundColor.w.asDouble());
 		update();
 	}
 }

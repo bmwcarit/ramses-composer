@@ -28,7 +28,7 @@ namespace Queries {
 
 	bool objectsReferencedByExtrefs(Project const& project, std::vector<SEditorObject> const& objects);
 
-	std::vector<ValueHandle> findAllReferencesFrom(std::set<SEditorObject> const& objects);
+	std::vector<ValueHandle> findAllReferencesFrom(SEditorObjectSet const& objects);
 	std::vector<ValueHandle> findAllReferences(Project const &project);
 	std::vector<ValueHandle> findAllReferences(const SEditorObject& object);
 	std::vector<SEditorObject> findAllUnreferencedObjects(Project const& project, std::function<bool(SEditorObject)> predicate = nullptr);
@@ -130,7 +130,8 @@ namespace Queries {
 	// Find all links starting or ending on any property of a set of objects.
 	// @return The set is partitioned in subsets according to the endpoint object and returned
 	//	       as a map indexed by the endpoint object ID.
-	std::map<std::string, std::set<SLink>> getLinksConnectedToObjects(const Project& project, const std::set<SEditorObject>& objects, bool includeStarting, bool inlucdeEnding);
+	template<typename Container>
+	std::map<std::string, std::set<SLink>> getLinksConnectedToObjects(const Project& project, const Container& objects, bool includeStarting, bool inlucdeEnding);
 
 	// Find broken links ending on valid properties of the object and return 
 	// a formatted error message, showing each broken link.

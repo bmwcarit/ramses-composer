@@ -11,7 +11,7 @@
 
 #include "Handles.h"
 #include "Link.h"
-
+#include "EditorObject.h"
 
 #include <map>
 #include <set>
@@ -63,8 +63,8 @@ public:
 	 */
 	DataChangeRecorder release();
 
-	std::set<SEditorObject> const& getCreatedObjects() const;
-	std::set<SEditorObject> const& getDeletedObjects() const;
+	SEditorObjectSet const& getCreatedObjects() const;
+	SEditorObjectSet const& getDeletedObjects() const;
 
 	// Get the set of all changes Values
 	// - added/removed properties inside Tables will be recorded as change of the Table Value.
@@ -83,11 +83,11 @@ public:
 
 	// Construct set of all objects that have been changed in some way, i.e.
 	// that have been created of which contain a changed Value.
-	std::set<SEditorObject> getAllChangedObjects(bool includePreviewDirty = false, bool includeLinkStart = false, bool includeLinkEnd = false) const;
+	SEditorObjectSet getAllChangedObjects(bool includePreviewDirty = false, bool includeLinkStart = false, bool includeLinkEnd = false) const;
 
 	std::set<ValueHandle> getChangedErrors() const;
 
-	std::set<SEditorObject> getPreviewDirtyObjects() const;
+	SEditorObjectSet getPreviewDirtyObjects() const;
 
 	bool externalProjectMapChanged() const;
 
@@ -107,7 +107,7 @@ private:
 		bool eraseLink(const LinkDescriptor& link);
 
 		// Iterate through the saved links and insert the link end point objects, depending on which should be included, in the "objects" set.
-		void insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, std::set<SEditorObject>& objects) const;
+		void insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, SEditorObjectSet& objects) const;
 
 		// Inserts a link or updates it when it is already contained in the linkMap_.
 		void insertOrUpdateLink(const LinkDescriptor& link);
@@ -123,8 +123,8 @@ private:
 		// Link descriptors are stored with end object id as key
 		std::map<std::string, std::set<LinkDescriptor>> linkMap_;
 	};
-	std::set<SEditorObject> createdObjects_;
-	std::set<SEditorObject> deletedObjects_;
+	SEditorObjectSet createdObjects_;
+	SEditorObjectSet deletedObjects_;
 	
 	std::map<std::string, std::set<ValueHandle>> changedValues_;
 
@@ -133,7 +133,7 @@ private:
 	LinkMap removedLinks_;
 
 	std::set<ValueHandle> changedErrors_;
-	std::set<SEditorObject> previewDirty_;
+	SEditorObjectSet previewDirty_;
 
 	bool externalProjectMapChanged_ = false;
 };

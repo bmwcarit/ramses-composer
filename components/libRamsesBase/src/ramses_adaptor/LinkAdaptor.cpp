@@ -34,14 +34,16 @@ LinkAdaptor::UniqueEngineLink engineLink(rlogic::LogicEngine* engine, const rlog
 }
 
 inline const void eachLinkableProperty(const rlogic::Property& a, const rlogic::Property& b, const std::function<void(const rlogic::Property&, const rlogic::Property&)>& fn) {
-	assert(a.getType() == b.getType());
-	if (a.getType() == rlogic::EPropertyType::Struct) {
+	auto aType = a.getType();
+	auto bType = b.getType();
+	assert(aType == bType);
+	if (aType == rlogic::EPropertyType::Struct) {
 		assert(a.getChildCount() == b.getChildCount());
 		for (int i = 0; i < a.getChildCount(); i++) {
 			const auto& nextA{*a.getChild(i)};
 			eachLinkableProperty(nextA, *b.getChild(nextA.getName()), fn);
 		}
-	} else if (a.getType() == rlogic::EPropertyType::Array) {
+	} else if (aType == rlogic::EPropertyType::Array) {
 		assert(a.getChildCount() == b.getChildCount());
 		for (int i = 0; i < a.getChildCount(); i++) {
 			eachLinkableProperty(*a.getChild(i), *b.getChild(i), fn);

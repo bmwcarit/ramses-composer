@@ -54,6 +54,12 @@ IntEditor::IntEditor(
 	// State change: Show spinbox or slider
 	QObject::connect(slider, &IntSlider::singleClicked, this, [this, spinBox]() { stack_->setCurrentWidget(spinBox); });
 	QObject::connect(spinBox, &IntSpinBox::editingFinished, this, [this, slider]() { stack_->setCurrentWidget(slider); });
+	QObject::connect(spinBox, &IntSpinBox::focusNextRequested, this, [this, item]() { item->requestNextSiblingFocus(); });
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this, spinBox]() {
+		stack_->setCurrentWidget(spinBox);
+		spinBox->setFocus();
+	});
+
 	stack_->addWidget(slider);
 	stack_->addWidget(spinBox);
 

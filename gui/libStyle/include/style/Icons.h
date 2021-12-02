@@ -51,7 +51,9 @@ enum class Pixmap {
 	typeScript,
 	typePrefabInternal,
 	typePrefabExternal,
-	typePrefabInstance
+	typePrefabInstance,
+	typeAnimationChannel,
+	typeAnimation
 };
 
 class Icons {

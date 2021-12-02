@@ -38,9 +38,127 @@
             "properties": {
                 "luaOutputs": {
                     "order": [
+                        "rotation3",
+                        "rotation4",
                         "translation"
                     ],
                     "properties": {
+                        "rotation3": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 8
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "properties": {
+                                "x": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "y": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "z": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                }
+                            },
+                            "typeName": "Vec3f::EngineTypeAnnotation::LinkStartAnnotation"
+                        },
+                        "rotation4": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 9
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "properties": {
+                                "w": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "x": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "y": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "z": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                }
+                            },
+                            "typeName": "Vec4f::EngineTypeAnnotation::LinkStartAnnotation"
+                        },
                         "translation": {
                             "annotations": [
                                 {

@@ -46,7 +46,10 @@ namespace raco::core {
  * 16: New Ramses version that changes transformation order
  *     (previously: Translation * Scale * Rotation, now: Translation * Rotation * Scale)
  * 17: Remove "Optimized" from options in render layer sort order
+ * 18: Added Animation and AnimationChannel types
+ * 19: Changed ProjectSettings::backgroundColor from Vec3f to Vec4f
+ *     Links from Vec4f to Node::rotation are now allowed
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 17;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 19;
 QJsonDocument migrateProject(const QJsonDocument& doc, std::unordered_map<std::string, std::string>& migrationWarnings);
 }  // namespace raco::core

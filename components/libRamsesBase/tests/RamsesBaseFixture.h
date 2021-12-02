@@ -35,11 +35,12 @@ inline std::vector<T*> select(const ramses::Scene& scene, ramses::ERamsesObjectT
 
 template <typename T>
 inline const T* select(const rlogic::LogicEngine& engine, const char* name) {
-	if constexpr (std::is_same<rlogic::LuaScript, T>::value) {
-		for (const auto& luaScript: engine.scripts()) {
-			if (luaScript->getName() == name)
-				return luaScript;
-		}
+	if constexpr (std::is_same_v<rlogic::LuaScript, T>) {
+		return engine.findScript(name);
+	} else if constexpr (std::is_same_v<rlogic::DataArray, T>) {
+		return engine.findDataArray(name);
+	} else if constexpr (std::is_same_v<rlogic::AnimationNode, T>) {
+		return engine.findAnimationNode(name);
 	} else {
 		static_assert(std::is_same<rlogic::LuaScript, T>::value);
 	}
@@ -69,6 +70,11 @@ public:
 	raco::ramses_adaptor::SceneAdaptor sceneContext;
 
 	void dispatch() {
+		for (auto animNode : sceneContext.logicEngine().animationNodes()) {
+			// arbitrary 17 ms update
+			animNode->getInputs()->getChild("timeDelta")->set(0.017f);
+		}
+
 		dataChangeDispatcher->dispatch(this->recorder.release());
 		sceneContext.logicEngine().update();
 	}

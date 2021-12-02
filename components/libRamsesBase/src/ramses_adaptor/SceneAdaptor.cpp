@@ -16,12 +16,14 @@
 #include "core/Project.h"
 #include "core/Queries.h"
 #include "log_system/log.h"
+#include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/Factories.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/OrthographicCameraAdaptor.h"
 #include "ramses_adaptor/PerspectiveCameraAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
+#include "user_types/Animation.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Prefab.h"
 #include "user_types/RenderPass.h"
@@ -83,6 +85,29 @@ inline RamsesArrayResource createDefaultVertexDataBuffer(ramses::Scene* scene) {
 	return ramsesArrayResource(scene, ramses::EDataType::Vector3F, static_cast<uint32_t>(vertices.size()), vertices.data(), defaultVertexDataBufferName);
 }
 
+inline raco::ramses_base::RamsesAnimationChannelHandle createDefaultAnimationChannel(ramses_base::LogicEngine& logicEngine) {
+	auto animHandle = raco::ramses_base::RamsesAnimationChannelHandle(new ramses_base::RamsesAnimationChannelData);
+	animHandle->keyframeTimes = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelTimestampsName);
+	animHandle->animOutput = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelKeyframesName);
+	animHandle->name = defaultAnimationChannelName;
+	animHandle->interpolationType = rlogic::EInterpolationType::Linear;
+
+	return animHandle;
+}
+
+inline ramses_base::RamsesAnimationNode createDefaultAnimation(const raco::ramses_base::RamsesAnimationChannelHandle& animChannel, ramses_base::LogicEngine& logicEngine) {
+	rlogic::AnimationChannels channels;
+	channels.push_back({animChannel->name,
+		animChannel->keyframeTimes.get(),
+		animChannel->animOutput.get(),
+		animChannel->interpolationType,
+		animChannel->tangentIn.get(),
+		animChannel->tangentOut.get()});
+
+	return ramsesAnimationNode(channels, &logicEngine, defaultAnimationName);
+};
+
+
 SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors)
 	: client_{client},
 	  logicEngine_{logicEngine},
@@ -104,11 +129,11 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 		createAdaptor(obj);
 	}
 
-	dispatcher_->registerBulkChangeCallback([this](const std::set<SEditorObject>& changedObjects) {
+	dispatcher_->registerBulkChangeCallback([this](const core::SEditorObjectSet& changedObjects) {
 		performBulkEngineUpdate(changedObjects);
 	});
 	const auto& instances{project_->instances()};
-	std::set<SEditorObject> initialBulkUpdate(instances.begin(), instances.end());
+	core::SEditorObjectSet initialBulkUpdate(instances.begin(), instances.end());
 	performBulkEngineUpdate(initialBulkUpdate);
 
 	for (const SLink& link : project_->links()) {
@@ -239,34 +264,50 @@ void SceneAdaptor::deleteUnusedDefaultResources() {
 	if (defaultVertices_.use_count() == 1) {
 		defaultVertices_.reset();
 	}
+	if (defaultAnimation_.use_count() == 1) {
+		defaultAnimation_.reset();
+		defaultAnimChannel_.reset();
+	}
 }
 
 void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	updateRuntimeErrorList();
 
-	for (const auto& [link, adaptor] : links_) {
-		adaptor->readDataFromEngine(recorder);
+	for (const auto& [endObjecttID, linkMap] : links_.linksByEnd_) {
+		for (const auto& [link, adaptor] : linkMap) {
+			adaptor->readDataFromEngine(recorder);
+		}
 	}
-	for (const auto& adaptor : adaptors_) {
-		if (adaptor.first->getTypeDescription().typeName == user_types::LuaScript::typeDescription.typeName) {
-			static_cast<LuaScriptAdaptor*>(adaptor.second.get())->readDataFromEngine(recorder);
+	for (const auto& [editorObject, adaptor] : adaptors_) {
+		if (&editorObject->getTypeDescription() == &user_types::LuaScript::typeDescription) {
+			static_cast<LuaScriptAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
+		} else if (&editorObject->getTypeDescription() == &user_types::Animation::typeDescription) {
+			static_cast<AnimationAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
 		}
 	}
 }
 
-void SceneAdaptor::createLink(const core::LinkDescriptor& link) {
-	links_[link] = std::make_unique<LinkAdaptor>(link, this);
+void SceneAdaptor::createLink(const core::LinkDescriptor& link) {	
+	newLinks_.emplace_back(link);	
 }
 
 void SceneAdaptor::changeLinkValidity(const core::LinkDescriptor& link, bool isValid) {
-	assert(links_.count(link) > 0);
-	links_[link]->editorLink().isValid = isValid;
+	auto& map = links_.linksByEnd_.at(link.end.object()->objectID());
+	map[link]->editorLink().isValid = isValid;
 }
 
 void SceneAdaptor::removeLink(const core::LinkDescriptor& link) {
-	auto it = links_.find(link);
-	assert(it != links_.end());
-	links_.erase(it);
+	auto startObjId = link.start.object()->objectID();
+	links_.linksByStart_[startObjId].erase(link);
+	if (links_.linksByStart_[startObjId].empty()) {
+		links_.linksByStart_.erase(startObjId);
+	}
+
+	auto endObjId = link.end.object()->objectID();
+	links_.linksByEnd_[endObjId].erase(link);
+	if (links_.linksByEnd_[endObjId].empty()) {
+		links_.linksByEnd_.erase(endObjId);
+	}
 }
 
 ramses::RamsesClient* SceneAdaptor::client() {
@@ -317,6 +358,15 @@ const RamsesArrayResource SceneAdaptor::defaultIndices() {
 	return defaultIndices_;
 }
 
+const ramses_base::RamsesAnimationNode SceneAdaptor::defaultAnimation() {
+	if (!defaultAnimation_) {
+		defaultAnimChannel_ = createDefaultAnimationChannel(*logicEngine_);
+		defaultAnimation_ = createDefaultAnimation(defaultAnimChannel_, *logicEngine_);
+	}
+
+	return defaultAnimation_;
+}
+
 ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObject) const {
 	if (!editorObject) {
 		return nullptr;
@@ -332,7 +382,7 @@ raco::core::Project& SceneAdaptor::project() const {
 	return *project_;
 }
 
-void SceneAdaptor::depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, std::set<SEditorObject> const& instances, std::set<SEditorObject>& sortedObjs, std::vector<DependencyNode>& outSorted) {
+void SceneAdaptor::depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted) {
 	for (size_t index = 0; index < object->size(); index++) {
 		auto v = (*object)[index];
 		switch (v->type()) {
@@ -351,7 +401,7 @@ void SceneAdaptor::depthFirstSearch(data_storage::ReflectionInterface* object, D
 	}
 }
 
-void SceneAdaptor::depthFirstSearch(SEditorObject object, std::set<SEditorObject> const& instances, std::set<SEditorObject>& sortedObjs, std::vector<DependencyNode>& outSorted) {
+void SceneAdaptor::depthFirstSearch(SEditorObject object, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted) {
 	using namespace raco::core;
 
 	if (sortedObjs.find(object) != sortedObjs.end()) {
@@ -366,16 +416,16 @@ void SceneAdaptor::depthFirstSearch(SEditorObject object, std::set<SEditorObject
 	sortedObjs.insert(item.object);
 }
 
-void SceneAdaptor::rebuildSortedDependencyGraph(std::set<SEditorObject> const& objects) {
+void SceneAdaptor::rebuildSortedDependencyGraph(SEditorObjectSet const& objects) {
 	dependencyGraph_.clear();
 	dependencyGraph_.reserve(objects.size());
-	std::set<SEditorObject> sortedObjs;
+	SEditorObjectSet sortedObjs;
 	for (auto obj : objects) {
 		depthFirstSearch(obj, objects, sortedObjs, dependencyGraph_);
 	}
 }
 
-void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& changedObjects) {
+void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects) {
 	if (adaptorStatusDirty_) {
 		for (const auto& item : dependencyGraph_) {
 			auto object = item.object;
@@ -395,7 +445,7 @@ void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& 
 	}
 
 	if (dependencyGraph_.empty() || !changedObjects.empty()) {
-		rebuildSortedDependencyGraph(std::set<SEditorObject>(project_->instances().begin(), project_->instances().end()));
+		rebuildSortedDependencyGraph(SEditorObjectSet(project_->instances().begin(), project_->instances().end()));
 		// Check if all render passes have a unique order index, otherwise Ramses renders them in arbitrary order.
 		errors_->removeIf([](core::ErrorItem const& error) {
 			return error.valueHandle().isRefToProp(&user_types::RenderPass::order_);
@@ -417,7 +467,7 @@ void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& 
 	}
 	std::set<LinkAdaptor*> liftedLinks;
 
-	std::set<SEditorObject> updated;
+	SEditorObjectSet updated;
 	for (const auto& item : dependencyGraph_) {
 		auto object = item.object;
 		if (auto adaptor = lookupAdaptor(object)) {
@@ -430,10 +480,19 @@ void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& 
 			}
 
 			if (needsUpdate) {
-				for (const auto& link : links_) {
-					if (link.first.start.object() == object || link.first.end.object() == object) {
-						liftedLinks.insert(link.second.get());
-						link.second->lift();
+				auto startIt = links_.linksByStart_.find(object->objectID());
+				if (startIt != links_.linksByStart_.end()) {
+					for (const auto& [id, link] : startIt->second) {
+						liftedLinks.insert(link.get());
+						link->lift();
+					}
+				}
+
+				auto endIt = links_.linksByEnd_.find(object->objectID());
+				if (endIt != links_.linksByEnd_.end()) {
+					for (const auto& [id, link] : endIt->second) {
+						liftedLinks.insert(link.get());
+						link->lift();
 					}
 				}
 			}
@@ -450,6 +509,14 @@ void SceneAdaptor::performBulkEngineUpdate(const std::set<core::SEditorObject>& 
 	for (const auto& link : liftedLinks) {
 		link->connect();
 	}
+
+	for (const auto& newLink : newLinks_) {
+		auto adaptor = std::make_shared<LinkAdaptor>(newLink, this);
+		links_.linksByStart_[newLink.start.object()->objectID()][newLink] = adaptor;
+		links_.linksByEnd_[newLink.end.object()->objectID()][newLink] = adaptor;
+	}
+
+	newLinks_.clear();
 
 	if (!updated.empty()) {
 		deleteUnusedDefaultResources();

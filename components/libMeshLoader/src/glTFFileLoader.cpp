@@ -14,67 +14,44 @@
 
 #include "mesh_loader/glTFFileLoader.h"
 
+#include "mesh_loader/glTFBufferData.h"
 #include "mesh_loader/glTFMesh.h"
+#include "utils/MathUtils.h"
 #include "utils/stdfilesystem.h"
 
 #include <log_system/log.h>
-#include <tiny_gltf.h>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/ext/quaternion_double.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 
 namespace {
 
-constexpr auto PI = 3.14159265358979323846;
-
-std::array<double, 3> quaternionToXYZDegrees(double qX, double qY, double qZ, double qW) {
-	auto mat = glm::toMat3(glm::normalize(glm::dquat(qW, qX, qY, qZ)));
-	std::array<double, 3> degrees;
-	auto& [degreeX, degreeY, degreeZ] = degrees;
-
-	degreeY = std::asin(std::clamp(static_cast<double>(mat[2].x), -1.0, 1.0)) / PI * 180;
-	if (std::abs(mat[2][0]) < 0.99999) {
-		degreeX = std::atan2(-mat[2].y, mat[2].z) / PI * 180;
-		degreeZ = std::atan2(-mat[1].x, mat[0].x) / PI * 180;
-
-	} else {
-		degreeX = std::atan2(mat[1].z, mat[1].y) / PI * 180;
-		degreeZ = 0;
-	}
-
-
-	return {degreeX, degreeY, degreeZ};
-}
-
-// see: https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_004_ScenesNodes.md#local-and-global-transforms
-raco::core::MeshScenegraphNode::Transformations trafoMatrixToXYZTrafos(const std::vector<double>& tinyMatrix) {
+std::array<std::array<double, 3>, 3> tinyglTFtrafoMatrixToXYZTrafos(const std::vector<double>& tinyMatrix) {
 	assert(tinyMatrix.size() == 16);
 
-	raco::core::MeshScenegraphNode::Transformations trafos;
+	std::array<std::array<double, 3>, 3> trafos;
 
 	glm::dmat4 trafoMatrix(tinyMatrix[0], tinyMatrix[1], tinyMatrix[2], tinyMatrix[3],
 		tinyMatrix[4], tinyMatrix[5], tinyMatrix[6], tinyMatrix[7],
 		tinyMatrix[8], tinyMatrix[9], tinyMatrix[10], tinyMatrix[11],
 		tinyMatrix[12], tinyMatrix[13], tinyMatrix[14], tinyMatrix[15]);
 	glm::dvec3 scale;
-	glm::dquat rotation{0,0,0,0};
+	glm::dquat rotation{0, 0, 0, 0};
 	glm::dvec3 translation;
 	glm::dvec3 skew;
 	glm::dvec4 perspective;
 	glm::decompose(trafoMatrix, scale, rotation, translation, skew, perspective);
 
-	trafos.translation = {translation.x, translation.y, translation.z};
-	trafos.scale = {scale.x, scale.y, scale.z};
-	trafos.rotation = quaternionToXYZDegrees(rotation.x, rotation.y, rotation.z, rotation.w);
+	trafos[0] = {translation.x, translation.y, translation.z};
+	trafos[1] = {scale.x, scale.y, scale.z};
+	trafos[2] = raco::utils::math::quaternionToXYZDegrees(rotation.x, rotation.y, rotation.z, rotation.w);
 
 	return trafos;
 }
+}
 
-}  // namespace
 
 namespace raco::mesh_loader {
 
@@ -90,19 +67,47 @@ glTFFileLoader::~glTFFileLoader() {
 
 void glTFFileLoader::reset() {
 	error_.clear();
-	sceneGraph_.clear();
+	sceneGraph_.reset();
 	importer_.reset();
+	scene_.reset(new tinygltf::Model);
 }
 
-bool glTFFileLoader::buildglTFScenegraph(const std::vector<int>& totalMeshPrimitiveSums) {
-	constexpr auto EPSILON = 0.0001;
+bool glTFFileLoader::buildglTFScenegraph() {
+	sceneGraph_.reset(new raco::core::MeshScenegraph);
 
+	// import nodes
+	std::vector<int> totalMeshPrimitiveSums(scene_->meshes.size());
+	for (auto meshIndex = 0; meshIndex < scene_->meshes.size(); ++meshIndex) {
+		const auto& mesh = scene_->meshes[meshIndex];
+		auto meshName = mesh.name.empty() ? fmt::format("mesh_{}", meshIndex) : mesh.name;
+
+		totalMeshPrimitiveSums[meshIndex] = meshIndex == 0 ? mesh.primitives.size() : mesh.primitives.size() + totalMeshPrimitiveSums[meshIndex - 1];
+
+		for (auto primitiveIndex = 0; primitiveIndex < mesh.primitives.size(); ++primitiveIndex) {
+			const auto& primitive = mesh.primitives[primitiveIndex];
+			if (mesh.primitives.size() == 1) {
+				sceneGraph_->meshes.emplace_back(meshName);
+			} else {
+				sceneGraph_->meshes.emplace_back(fmt::format("{}.{}", meshName, primitiveIndex));
+			}
+			if (primitive.material >= 0) {
+				auto meshMaterial = scene_->materials[primitive.material];
+
+				auto meshMaterialName = meshMaterial.name.empty() ? fmt::format("material_{}", primitive.material) : meshMaterial.name;
+				sceneGraph_->materials.emplace_back(meshMaterialName);
+			} else {
+				sceneGraph_->materials.emplace_back();
+			}
+		}
+	}
+
+	// import meshes - we are currently replicating Assimp's primitive-> mesh behavior
 	auto& nodes = scene_->nodes;
-	sceneGraph_.nodes = std::vector<std::optional<raco::core::MeshScenegraphNode>>(nodes.size(), raco::core::MeshScenegraphNode());
+	sceneGraph_->nodes = std::vector<std::optional<raco::core::MeshScenegraphNode>>(nodes.size(), raco::core::MeshScenegraphNode());
 	std::vector<std::string> nodesAffectedByRamsesTrafo;
 
 	for (auto nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
-		auto& newNode = sceneGraph_.nodes[nodeIndex].value();
+		auto& newNode = sceneGraph_->nodes[nodeIndex].value();
 		auto& tinyNode = nodes[nodeIndex];
 
 		newNode.name = tinyNode.name.empty() ? fmt::format("nodes_{}", nodeIndex) : tinyNode.name;
@@ -114,7 +119,7 @@ bool glTFFileLoader::buildglTFScenegraph(const std::vector<int>& totalMeshPrimit
 		}
 
 		for (const auto& child : tinyNode.children) {
-			sceneGraph_.nodes[child]->parentIndex = nodeIndex;
+			sceneGraph_->nodes[child]->parentIndex = nodeIndex;
 		}
 
 		auto transferNodeTransformations = [](auto& newNodeTrafoArray, const auto& tinyNodeTrafoVec, const auto defaultValue) {
@@ -125,107 +130,91 @@ bool glTFFileLoader::buildglTFScenegraph(const std::vector<int>& totalMeshPrimit
 			}
 		};
 		if (!tinyNode.matrix.empty()) {
-			newNode.transformations = trafoMatrixToXYZTrafos(tinyNode.matrix);
+			auto trafos = tinyglTFtrafoMatrixToXYZTrafos(tinyNode.matrix);
+
+			newNode.transformations.translation = trafos[0];
+			newNode.transformations.scale = trafos[1];
+			newNode.transformations.rotation = trafos[2];
 		} else {
 			transferNodeTransformations(newNode.transformations.translation, tinyNode.translation, 0.0);
-			auto eulerRotation = tinyNode.rotation.empty() ? std::array<double, 3>{} : quaternionToXYZDegrees(tinyNode.rotation[0], tinyNode.rotation[1], tinyNode.rotation[2], tinyNode.rotation[3]);
+			auto eulerRotation = tinyNode.rotation.empty() ? std::array<double, 3>{} : raco::utils::math::quaternionToXYZDegrees(tinyNode.rotation[0], tinyNode.rotation[1], tinyNode.rotation[2], tinyNode.rotation[3]);
 			transferNodeTransformations(newNode.transformations.rotation, eulerRotation, 0.0);
 			transferNodeTransformations(newNode.transformations.scale, tinyNode.scale, 1.0);
 		}
 	}
 
+	importAnimations();
+
 	return true;
 }
 
-bool glTFFileLoader::importglTFScene(const core::MeshDescriptor& descriptor) {
+bool glTFFileLoader::importglTFScene(const std::string& absPath) {
 	error_.clear();
 
 	if (!importer_) {
-		LOG_DEBUG(log_system::MESH_LOADER, "Create importer for: {}", descriptor.absPath);
+		LOG_DEBUG(log_system::MESH_LOADER, "Create importer for: {}", absPath);
 		importer_ = std::make_unique<tinygltf::TinyGLTF>();
 		std::string err;
 		std::string warn;
-		LOG_DEBUG(log_system::MESH_LOADER, "Import baked glTF scene: {}", descriptor.bakeAllSubmeshes);
 
-		if (std::filesystem::path(descriptor.absPath).extension() == ".glb") {
-			importer_->LoadBinaryFromFile(&*scene_, &err, &warn, descriptor.absPath);
+		if (std::filesystem::path(absPath).extension() == ".glb") {
+			importer_->LoadBinaryFromFile(&*scene_, &err, &warn, absPath);
 		} else {
-			importer_->LoadASCIIFromFile(&*scene_, &err, &warn, descriptor.absPath);
+			importer_->LoadASCIIFromFile(&*scene_, &err, &warn, absPath);
 		}
 		if (!warn.empty()) {
-			LOG_WARNING(log_system::MESH_LOADER, "Encountered warnings while loading glTF mesh {}: {}", descriptor.absPath, warn);
+			LOG_WARNING(log_system::MESH_LOADER, "Encountered warnings while loading glTF mesh {}: {}", absPath, warn);
 		}
 		if (!err.empty()) {
 			error_ = err;
 		}
-	}
 
-	if (!error_.empty() || scene_->meshes.empty()) {
-		LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", descriptor.absPath, error_);		
-		return false;
-	}
+		if (!error_.empty() || scene_->meshes.empty()) {
+			LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", absPath, error_);
+			return false;
+		}
 
-	sceneGraph_.clear();
-	std::vector<int> totalMeshPrimitiveSums(scene_->meshes.size());
-	for (auto meshIndex = 0; meshIndex < scene_->meshes.size(); ++meshIndex) {
-		const auto& mesh = scene_->meshes[meshIndex];
-		auto meshName = mesh.name.empty() ? fmt::format("mesh_{}", meshIndex) : mesh.name;
-
-		totalMeshPrimitiveSums[meshIndex] = meshIndex == 0 ? mesh.primitives.size() : mesh.primitives.size() + totalMeshPrimitiveSums[meshIndex - 1];
-
-		for (auto primitiveIndex = 0; primitiveIndex < mesh.primitives.size(); ++primitiveIndex) {
-			const auto& primitive = mesh.primitives[primitiveIndex];
-			if (mesh.primitives.size() == 1) {
-				sceneGraph_.meshes.emplace_back(meshName);
-			} else {
-				sceneGraph_.meshes.emplace_back(fmt::format("{}.{}", meshName, primitiveIndex));
-			}
-			if (primitive.material >= 0) {
-				auto meshMaterial = scene_->materials[primitive.material];
-
-				auto meshMaterialName = meshMaterial.name.empty() ? fmt::format("material_{}", primitive.material) : meshMaterial.name;
-				sceneGraph_.materials.emplace_back(meshMaterialName);
-			} else {
-				sceneGraph_.materials.emplace_back();
-			}
+		if (!buildglTFScenegraph()) {
+			LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", absPath, error_);
+			sceneGraph_.reset();
+			return false;
 		}
 	}
+	return true;
+}
 
-	if (!buildglTFScenegraph(totalMeshPrimitiveSums)) {
-		LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", descriptor.absPath, error_);
-		sceneGraph_.clear();
-		return false;
-	}
-
-	if (descriptor.bakeAllSubmeshes) {
-		return true;
-	}
+void glTFFileLoader::importAnimations() {
+	sceneGraph_->animations.resize(scene_->animations.size(), raco::core::MeshAnimation{});
+	sceneGraph_->animationSamplers.resize(scene_->animations.size());
 
 	for (auto animIndex = 0; animIndex < scene_->animations.size(); ++animIndex) {
 		auto tinyAnim = scene_->animations[animIndex];
-		auto& anim = sceneGraph_.animations.emplace_back();
-		anim.name = tinyAnim.name.empty() ? fmt::format("animation_{}", animIndex) : tinyAnim.name;
+		auto& anim = sceneGraph_->animations[animIndex];
+		auto& animSamplers = sceneGraph_->animationSamplers[animIndex];
+		animSamplers.resize(tinyAnim.samplers.size());
+		anim->name = tinyAnim.name.empty() ? fmt::format("animation_{}", animIndex) : tinyAnim.name;
 
-		for (const auto& sampler : tinyAnim.samplers) {
-			auto& newSampler = anim.samplers.emplace_back();
-			newSampler.interpolation = sampler.interpolation;
-			newSampler.inputIndex = sampler.input;
-			newSampler.outputIndex = sampler.output;
+		for (auto samplerIndex = 0; samplerIndex < tinyAnim.samplers.size(); ++samplerIndex) {
+			const auto& sampler = tinyAnim.samplers[samplerIndex];
+			auto& newSampler = animSamplers[samplerIndex];
+
+			newSampler = fmt::format("{}.ch{}", anim->name, samplerIndex);
 		}
 
 		for (const auto& channel : tinyAnim.channels) {
-			auto& newChannel = anim.channels.emplace_back();
+			auto& newChannel = anim->channels.emplace_back();
 			newChannel.targetPath = channel.target_path;
 			newChannel.samplerIndex = channel.sampler;
 			newChannel.nodeIndex = channel.target_node;
 		}
 	}
-
-	return true;
 }
 
-raco::core::MeshScenegraph glTFFileLoader::getScenegraph() {
-	return sceneGraph_;
+raco::core::MeshScenegraph* glTFFileLoader::getScenegraph(const std::string& absPath) {
+	if (!importglTFScene(absPath)) {
+		return nullptr;
+	}
+	return sceneGraph_.get();
 }
 
 int glTFFileLoader::getTotalMeshCount() {
@@ -237,23 +226,113 @@ int glTFFileLoader::getTotalMeshCount() {
 	return primitiveCount;
 }
 
+std::shared_ptr<raco::core::MeshAnimationSamplerData> glTFFileLoader::getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) {
+	if (!importglTFScene(absPath)) {
+		return {};
+	}
+
+	if (animIndex < 0 || animIndex >= sceneGraph_->animations.size()) {
+		return {};
+	}
+
+	if (samplerIndex < 0 || samplerIndex >= sceneGraph_->animationSamplers[animIndex].size()) {
+		return {};
+	}
+
+	raco::core::MeshAnimationInterpolation interpolation = raco::core::MeshAnimationInterpolation::Linear;
+	std::vector<float> input;
+	std::vector<std::vector<float>> output;
+
+	const auto& tinyAnim = scene_->animations[animIndex];
+	const auto& sampler = tinyAnim.samplers[samplerIndex];
+
+	if (sampler.interpolation == "CUBICSPLINE") {
+		interpolation = raco::core::MeshAnimationInterpolation::CubicSpline;
+	} else if (sampler.interpolation == "STEP") {
+		interpolation = raco::core::MeshAnimationInterpolation::Step;
+	} else if (sampler.interpolation != "LINEAR") {
+		LOG_ERROR(log_system::MESH_LOADER, "animation sampler at index {}.{} has no valid interpolation type. Using linear interpolation as a fallback.", animIndex, samplerIndex);
+	}
+
+	auto inputData = glTFBufferData(*scene_, sampler.input, {TINYGLTF_COMPONENT_TYPE_FLOAT});
+	for (auto count = 0; count < inputData.accessor_.count; ++count) {
+		input.emplace_back(inputData.getDataAt<float>(count).front());
+	}
+
+	auto outputData = glTFBufferData(*scene_, sampler.output, {TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_SHORT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+	for (auto count = 0; count < outputData.accessor_.count; ++count) {
+		switch (outputData.accessor_.componentType) {
+			case TINYGLTF_COMPONENT_TYPE_FLOAT: {
+				auto data = outputData.getDataAt<float>(count);
+
+				output.emplace_back(data);
+				break;
+			}
+			// use int-to-float conversion from glTF spec
+			// https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc#311-animations
+			case TINYGLTF_COMPONENT_TYPE_BYTE: {
+				auto data = outputData.getDataAt<char>(count);
+				std::vector<float> convertedData(data.size());
+				for (auto i = 0; i < data.size(); ++i) {
+					convertedData[i] = std::max(data[i] / 127.0F, -1.0F);
+				}
+
+				output.emplace_back(convertedData);
+				break;
+			}
+			case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
+				auto data = outputData.getDataAt<unsigned char>(count);
+				std::vector<float> convertedData(data.size());
+				for (auto i = 0; i < data.size(); ++i) {
+					convertedData[i] = data[i] / 255.0F;
+				}
+
+				output.emplace_back(convertedData);
+				break;
+			}
+			case TINYGLTF_COMPONENT_TYPE_SHORT: {
+				auto data = outputData.getDataAt<short>(count);
+				std::vector<float> convertedData(data.size());
+				for (auto i = 0; i < data.size(); ++i) {
+					convertedData[i] = std::max(data[i] / 32767.0F, -1.0F);
+				}
+
+				output.emplace_back(convertedData);
+				break;
+			}
+			case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
+				auto data = outputData.getDataAt<unsigned short>(count);
+				std::vector<float> convertedData(data.size());
+				for (auto i = 0; i < data.size(); ++i) {
+					convertedData[i] = data[i] / 65535.0F;
+				}
+
+				output.emplace_back(convertedData);
+				break;
+			}
+			default:
+				LOG_ERROR(log_system::MESH_LOADER, "animation sampler at index {}.{} has invalid component type", animIndex, samplerIndex);
+				continue;
+		}
+	}
+
+	return std::make_shared<raco::core::MeshAnimationSamplerData>(raco::core::MeshAnimationSamplerData{interpolation, input, output});
+}
+
 raco::core::SharedMeshData glTFFileLoader::loadMesh(const core::MeshDescriptor& descriptor) {
-	if (!importglTFScene(descriptor)) {
+	if (!importglTFScene(descriptor.absPath)) {
 		return raco::core::SharedMeshData();
 	}
 	if (!descriptor.bakeAllSubmeshes && (descriptor.submeshIndex < 0 || descriptor.submeshIndex >= getTotalMeshCount())) {
 		error_ = "Selected submesh index is out of valid submesh index range [0," + std::to_string(getTotalMeshCount() - 1) + "]";
 		return raco::core::SharedMeshData();
 	}
-	return std::make_shared<glTFMesh>(*scene_, sceneGraph_, descriptor);
+
+	return std::make_shared<glTFMesh>(*scene_, *sceneGraph_, descriptor);
 }
 
 std::string glTFFileLoader::getError() {
 	return error_;
-}
-
-std::string glTFFileLoader::getWarning() {
-	return warning_;
 }
 
 } // namespace raco::mesh_loader

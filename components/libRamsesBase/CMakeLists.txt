@@ -28,6 +28,8 @@ add_library(libRamsesBase
     
     src/ramses_base/EnumerationDescriptions.h
 
+    include/ramses_adaptor/AnimationAdaptor.h src/ramses_adaptor/AnimationAdaptor.cpp
+    include/ramses_adaptor/AnimationChannelAdaptor.h src/ramses_adaptor/AnimationChannelAdaptor.cpp
     include/ramses_adaptor/CubeMapAdaptor.h src/ramses_adaptor/CubeMapAdaptor.cpp
     include/ramses_adaptor/Factories.h src/ramses_adaptor/Factories.cpp
     include/ramses_adaptor/MaterialAdaptor.h src/ramses_adaptor/MaterialAdaptor.cpp

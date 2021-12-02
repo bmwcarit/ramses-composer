@@ -93,6 +93,7 @@ private:
 	bool logicEngineNeedsUpdate_ = false;
 
 	std::chrono::high_resolution_clock::time_point startTime_;
+	long long totalElapsedMsec_{0};
 };
 
 }  // namespace raco::application

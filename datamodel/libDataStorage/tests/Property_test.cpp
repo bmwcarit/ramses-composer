@@ -116,6 +116,11 @@ TEST(PropertyTest, Struct) {
 	EXPECT_TRUE(vs == cvs);
 	EXPECT_FALSE(vs == va);
 
+	// compare
+	auto translateRef = [](SEditorObject obj) { return obj; };
+	EXPECT_TRUE(vs.compare(cvs, translateRef));
+	EXPECT_FALSE(vs.compare(va, translateRef));
+
 	// assign
 	EXPECT_FALSE(vs.assign(cvs));
 	EXPECT_THROW(vs.assign(va), std::runtime_error);

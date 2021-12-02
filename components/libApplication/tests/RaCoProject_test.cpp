@@ -33,11 +33,68 @@ TEST_F(RaCoProjectFixture, saveLoadWithLink) {
 	{
 		RaCoApplication app{backend};
 		raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 	{
 		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
+	}
+}
+
+
+TEST_F(RaCoProjectFixture, saveLoadWithRunningAnimation) {
+	{
+		RaCoApplication app{backend};
+		auto [anim, animChannel, node, link] = raco::createAnimatedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
+		app.activeRaCoProject().commandInterface()->set({anim, {"play"}}, true);
+		app.activeRaCoProject().commandInterface()->set({anim, {"loop"}}, true);
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
+		app.doOneLoop();
+		app.doOneLoop();
+		app.doOneLoop();
+	}
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
+		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
+		ASSERT_TRUE(app.activeRaCoProject().project()->links().front()->isValid());
+	}
+}
+
+TEST_F(RaCoProjectFixture, saveLoadWithPausedAnimation) {
+	{
+		RaCoApplication app{backend};
+		auto [anim, animChannel, node, link] = raco::createAnimatedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
+		app.activeRaCoProject().commandInterface()->set({anim, {"play"}}, true);
+		app.activeRaCoProject().commandInterface()->set({anim, {"loop"}}, true);
+		app.doOneLoop();
+		app.doOneLoop();
+		app.activeRaCoProject().commandInterface()->set({anim, {"play"}}, false);
+		app.doOneLoop();
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
+	}
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
+		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
+		ASSERT_TRUE(app.activeRaCoProject().project()->links().front()->isValid());
+	}
+}
+
+TEST_F(RaCoProjectFixture, saveLoadWithStoppedAnimation) {
+	{
+		RaCoApplication app{backend};
+		auto [anim, animChannel, node, link] = raco::createAnimatedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
+		app.activeRaCoProject().commandInterface()->set({anim, {"play"}}, true);
+		app.activeRaCoProject().commandInterface()->set({anim, {"loop"}}, true);
+		app.activeRaCoProject().commandInterface()->set({anim, {"rewindOnStop"}}, true);
+		app.doOneLoop();
+		app.activeRaCoProject().commandInterface()->set({anim, {"play"}}, false);
+		app.doOneLoop();
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
+	}
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
+		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
+		ASSERT_TRUE(app.activeRaCoProject().project()->links().front()->isValid());
 	}
 }
 
@@ -52,7 +109,7 @@ end
 function run()
 end
 	)");
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 	{
 		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
@@ -84,7 +141,7 @@ end
 		ASSERT_TRUE(app.activeRaCoProject().project()->links()[0]->isValid());
 		ASSERT_TRUE(app.activeRaCoProject().project()->links()[1]->isValid());
 
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 
 	raco::utils::file::write((cwd_path() / "lua_script.lua").string(), R"(
@@ -128,7 +185,7 @@ TEST_F(RaCoProjectFixture, saveWithValidLinkLoadWithBrokenLink) {
 	{
 		RaCoApplication app{backend};
 		auto linkedScene = raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 		raco::utils::file::write((cwd_path() / "lua_script.lua").string(), R"(
 function interface()
@@ -159,7 +216,7 @@ end
 function run()
 end
 	)");
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 
 	raco::utils::file::write((cwd_path() / "lua_script.lua").string(), R"(
@@ -182,7 +239,7 @@ TEST_F(RaCoProjectFixture, saveLoadWithLinkRemoveOutputPropertyBeforeLoading) {
 	{
 		RaCoApplication app{backend};
 		raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 
 	// replace OUT.translation with OUT.scale in external script file
@@ -223,7 +280,7 @@ end
 		const auto luaScript{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 		app.activeRaCoProject().commandInterface()->set(raco::core::ValueHandle{luaScript, {"uri"}}, luaScriptPath);
 		app.activeRaCoProject().commandInterface()->set(raco::core::ValueHandle{luaScript, {"luaInputs", "integer"}}, 5);
-		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+		ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str()));
 	}
 
 	raco::utils::file::write((cwd_path() / "lua_script.lua").string(), R"(
@@ -254,11 +311,37 @@ TEST_F(RaCoProjectFixture, saveAsMeshRerootRelativeURIHierarchyDown) {
 
 	std::string relativeUri{"Duck.glb"};
 	app.activeRaCoProject().commandInterface()->set({mesh, {"uri"}}, relativeUri);
-
-	app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str());
+	
+	QDir().mkdir((cwd_path() / "project").string().c_str());
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str()));
 	std::string newRelativeDuckPath{"../" + relativeUri};
 
 	ASSERT_EQ(app.activeRaCoProject().project()->instances().back()->get("uri")->asString(), newRelativeDuckPath);
+}
+
+
+TEST_F(RaCoProjectFixture, saveAsThenLoadAnimationKeepsChannelAmount) {
+	RaCoApplication app{backend};
+	auto* commandInterface = app.activeRaCoProject().commandInterface();
+
+	raco::core::MeshDescriptor desc;
+	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.bakeAllSubmeshes = false;
+
+	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->createObject(raco::user_types::Animation::typeDescription.typeName, "userAnim", "userAnim");
+
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "anims.rca").string().c_str()));
+	app.switchActiveRaCoProject("");
+	app.switchActiveRaCoProject(QString::fromStdString((cwd_path() / "anims.rca").string()));
+
+	auto anims = raco::core::Queries::filterByTypeName(app.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
+	auto importedAnim = raco::core::Queries::findByName(anims, "Wheels");
+	auto userAnim = raco::core::Queries::findByName(anims, "userAnim");
+
+	ASSERT_EQ(userAnim->as<raco::user_types::Animation>()->animationChannels.asTable().size(), raco::user_types::Animation::ANIMATION_CHANNEL_AMOUNT);
+	ASSERT_EQ(importedAnim->as<raco::user_types::Animation>()->animationChannels.asTable().size(), 2);
 }
 
 TEST_F(RaCoProjectFixture, saveAsMeshRerootRelativeURIHierarchyUp) {
@@ -269,7 +352,7 @@ TEST_F(RaCoProjectFixture, saveAsMeshRerootRelativeURIHierarchyUp) {
 	std::string relativeUri{"Duck.glb"};
 	app.activeRaCoProject().commandInterface()->set({mesh, {"uri"}}, relativeUri);
 
-	app.activeRaCoProject().saveAs((cwd_path() / "project.file").string().c_str());
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project.file").string().c_str()));
 	std::string newRelativeDuckPath{"project/" + relativeUri};
 
 	ASSERT_EQ(app.activeRaCoProject().project()->instances().back()->get("uri")->asString(), newRelativeDuckPath);
@@ -278,13 +361,14 @@ TEST_F(RaCoProjectFixture, saveAsMeshRerootRelativeURIHierarchyUp) {
 TEST_F(RaCoProjectFixture, saveAsMaterialRerootRelativeURI) {
 	RaCoApplication app{backend};
 	app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.file").string());
-	auto mesh = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Material::typeDescription.typeName, "material");
+	auto mat = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Material::typeDescription.typeName, "material");
 
 	std::string relativeUri{"relativeURI"};
-	app.activeRaCoProject().commandInterface()->set({mesh, {"uriVertex"}}, relativeUri);
-	app.activeRaCoProject().commandInterface()->set({mesh, {"uriFragment"}}, relativeUri);
+	app.activeRaCoProject().commandInterface()->set({mat, {"uriVertex"}}, relativeUri);
+	app.activeRaCoProject().commandInterface()->set({mat, {"uriFragment"}}, relativeUri);
 
-	app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str());
+	QDir().mkdir((cwd_path() / "project").string().c_str());
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str()));
 	std::string newRelativePath{"../" + relativeUri};
 
 	ASSERT_EQ(app.activeRaCoProject().project()->instances().back()->get("uriVertex")->asString(), newRelativePath);
@@ -294,12 +378,13 @@ TEST_F(RaCoProjectFixture, saveAsMaterialRerootRelativeURI) {
 TEST_F(RaCoProjectFixture, saveAsLuaScriptRerootRelativeURI) {
 	RaCoApplication app{backend};
 	app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.file").string());
-	auto mesh = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua");
+	auto lua = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua");
 
 	std::string relativeUri{"relativeURI"};
-	app.activeRaCoProject().commandInterface()->set({mesh, {"uri"}}, relativeUri);
+	app.activeRaCoProject().commandInterface()->set({lua, {"uri"}}, relativeUri);
 
-	app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str());
+	QDir().mkdir((cwd_path() / "project").string().c_str());
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str()));
 	std::string newRelativePath{"../" + relativeUri};
 
 	ASSERT_EQ(app.activeRaCoProject().project()->instances().back()->get("uri")->asString(), newRelativePath);
@@ -314,7 +399,8 @@ TEST_F(RaCoProjectFixture, saveAsSimulateSavingFromNewProjectCorrectlyRerootedRe
 	std::string relativeUri{"relativeURI.ctm"};
 	app.activeRaCoProject().commandInterface()->set({mesh, {"uri"}}, relativeUri);
 
-	app.activeRaCoProject().saveAs(QString::fromStdString((cwd_path() / "project" / "project.file").string()));
+	QDir().mkdir((cwd_path() / "project").string().c_str());
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((cwd_path() / "project" / "project.file").string().c_str()));
 
 	ASSERT_EQ(raco::core::ValueHandle(mesh, {"uri"}).asString(), relativeUri);
 }
@@ -328,6 +414,8 @@ TEST_F(RaCoProjectFixture, saveAsToDifferentDriveSetsRelativeURIsToAbsolute) {
 	std::string relativeUri{"relativeURI.ctm"};
 	app.activeRaCoProject().commandInterface()->set({mesh, {"uri"}}, relativeUri);
 
+	// Usually, an ASSERT_TRUE could be put around saving of RaCo projects,
+	// here saving this will fail if the drive Z: does not exist. 
 	app.activeRaCoProject().saveAs("Z:/projectOnDifferentDrive.rca");
 
 	ASSERT_EQ(raco::core::ValueHandle(mesh, {"uri"}).asString(), (cwd_path() / "project" / relativeUri).generic_string());
@@ -348,7 +436,7 @@ TEST_F(RaCoProjectFixture, enableTimerFlagChange) {
 	RaCoApplication app{backend};
 	const auto PROJECT_PATH = QString::fromStdString((cwd_path() / "project.file").string());
 	app.activeRaCoProject().commandInterface()->set({app.activeRaCoProject().project()->settings(), {"enableTimerFlag"}}, true);
-	app.activeRaCoProject().saveAs(PROJECT_PATH);
+	ASSERT_TRUE(app.activeRaCoProject().saveAs(PROJECT_PATH));
 	app.switchActiveRaCoProject(PROJECT_PATH);
 	ASSERT_EQ(app.activeRaCoProject().project()->settings()->enableTimerFlag_.asBool(), true);
 }
@@ -441,7 +529,7 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 	std::filesystem::create_directory(newProjectFolder);
 
 	RaCoApplication app{backend};
-	app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca"));
+	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca")));
 	
 	const auto& prefs = raco::components::RaCoPreferences::instance();
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
@@ -469,7 +557,7 @@ TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 	std::filesystem::create_directory(cwd_path() / "newProject");
 
 	RaCoApplication app{backend};
-	app.activeRaCoProject().saveAs(QString::fromStdString((cwd_path() / "newProject/project.rca").generic_string()));
+	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString((cwd_path() / "newProject/project.rca").generic_string())));
 	app.switchActiveRaCoProject("");
 
 	auto newProjectFolder = raco::components::RaCoPreferences::instance().userProjectsDirectory.toStdString();
@@ -486,7 +574,7 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadProjectProperlySetCachedPaths) {
 	std::filesystem::create_directory(newProjectFolder);
 
 	RaCoApplication app{backend};
-	app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca"));
+	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca")));
 	app.switchActiveRaCoProject("");
 	app.switchActiveRaCoProject(QString::fromStdString(newProjectFolder + "/project.rca"));
 
@@ -499,13 +587,145 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadProjectProperlySetCachedPaths) {
 }
 
 TEST_F(RaCoProjectFixture, loadingBrokenJSONFileThrowsException) {
-	auto luaScriptPath = (cwd_path() / "brokenJSON.rca").string();
+	auto jsonPath = (cwd_path() / "brokenJSON.rca").string();
 
-	raco::utils::file::write(luaScriptPath, R"(
+	raco::utils::file::write(jsonPath, R"(
 {
     "externalProjects": {
     },
 	)");
 	RaCoApplication app{backend};
-	ASSERT_THROW(app.switchActiveRaCoProject(QString::fromStdString(luaScriptPath)), std::runtime_error);
+	ASSERT_THROW(app.switchActiveRaCoProject(QString::fromStdString(jsonPath)), std::runtime_error);
+}
+
+TEST_F(RaCoProjectFixture, saveLoadRotationLinksGetReinstated) {
+	{
+		RaCoApplication app{backend};
+		auto linkedScene = raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
+		auto lua = std::get<raco::user_types::SLuaScript>(linkedScene);
+		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul", "node_eul")};
+		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat", "node_quat")};
+
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+
+		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+	}
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
+		ASSERT_EQ(5, app.activeRaCoProject().project()->links().size());
+	}
+}
+
+TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstated) {
+	{
+		RaCoApplication app{backend};
+		auto linkedScene = raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
+		auto lua = std::get<raco::user_types::SLuaScript>(linkedScene);
+		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul", "node_eul")};
+		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat", "node_quat")};
+
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({lua, {"uri"}}, std::string());
+		app.doOneLoop();
+
+		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+	}
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
+		ASSERT_EQ(5, app.activeRaCoProject().project()->links().size());
+		for (const auto& link : app.activeRaCoProject().project()->links()) {
+			ASSERT_FALSE(link->isValid());
+		}
+		app.doOneLoop();
+	}
+}
+
+TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstatedWithDifferentTypes) {
+	{
+		RaCoApplication app{backend};
+		auto linkedScene = raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), cwd_path());
+		auto lua = std::get<raco::user_types::SLuaScript>(linkedScene);
+		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul", "node_eul")};
+		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat", "node_quat")};
+
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({lua, {"uri"}}, std::string());
+		app.doOneLoop();
+
+		app.activeRaCoProject().saveAs((cwd_path() / "project.rcp").string().c_str());
+	}
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rcp").string().c_str()};
+		app.doOneLoop();
+
+		auto lua = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
+		auto switchedRotationTypes = makeFile("switchedTypes.lua", R"(
+function interface()
+	OUT.translation = VEC3F
+	OUT.rotation3 = VEC4F
+	OUT.rotation4 = VEC3F
+end
+function run()
+end
+	)");
+		app.activeRaCoProject().commandInterface()->set({lua, {"uri"}}, switchedRotationTypes);
+		app.doOneLoop();
+	}
+}
+
+
+TEST_F(RaCoProjectFixture, copyPasteShallowAnimationReferencingAnimationChannel) {
+	std::string clipboard;
+	{
+		RaCoApplication app{backend};
+		app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.file").string());
+		auto path = (cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string();
+		auto scenegraph = app.activeRaCoProject().meshCache()->getMeshScenegraph({path, 0, false});
+		app.activeRaCoProject().commandInterface()->insertAssetScenegraph(*scenegraph, path, nullptr);
+		app.doOneLoop();
+
+		auto anim = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "Step Scale");
+		ASSERT_NE(anim, nullptr);
+		clipboard = app.activeRaCoProject().commandInterface()->copyObjects({anim});
+	}
+	{
+		RaCoApplication app{backend};
+		app.activeRaCoProject().commandInterface()->pasteObjects(clipboard);
+		ASSERT_NO_FATAL_FAILURE(app.doOneLoop());
+	}
+}
+
+
+TEST_F(RaCoProjectFixture, copyPasteDeepAnimationReferencingAnimationChannel) {
+	std::string clipboard;
+	{
+		RaCoApplication app{backend};
+		app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.file").string());
+		auto path = (cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string();
+		auto scenegraph = app.activeRaCoProject().meshCache()->getMeshScenegraph({path, 0, false});
+		app.activeRaCoProject().commandInterface()->insertAssetScenegraph(*scenegraph, path, nullptr);
+		app.doOneLoop();
+
+		auto anim = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "Step Scale");
+		ASSERT_NE(anim, nullptr);
+		clipboard = app.activeRaCoProject().commandInterface()->copyObjects({anim}, true);
+	}
+	{
+		RaCoApplication app{backend};
+		app.activeRaCoProject().commandInterface()->pasteObjects(clipboard);
+		ASSERT_NO_FATAL_FAILURE(app.doOneLoop());
+	}
 }

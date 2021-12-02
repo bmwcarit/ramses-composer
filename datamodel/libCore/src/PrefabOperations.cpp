@@ -19,6 +19,8 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 
+#include <unordered_set>
+
 namespace raco::core {
 
 using namespace user_types;
@@ -42,8 +44,8 @@ SPrefab PrefabOperations::findContainingPrefab(SEditorObject object) {
 SPrefabInstance PrefabOperations::findContainingPrefabInstance(SEditorObject object) {
 	SEditorObject current = object;
 	while (current) {
-		if (auto inst = current->as<PrefabInstance>()) {
-			return inst;
+		if (&current->getTypeDescription() == &PrefabInstance::typeDescription) {
+			return current->as<PrefabInstance>();
 		}
 		current = current->getParent();
 	}
@@ -86,10 +88,10 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		return;
 	}
 
-	std::set<SEditorObject> prefabChildren;
+	std::unordered_set<SEditorObject> prefabChildren;
 	std::copy(++TreeIteratorAdaptor(prefab).begin(), TreeIteratorAdaptor(prefab).end(), std::inserter(prefabChildren, prefabChildren.end()));
 
-	std::set<SEditorObject> instanceChildren;
+	SEditorObjectSet instanceChildren;
 	std::copy(++TreeIteratorAdaptor(instance).begin(), TreeIteratorAdaptor(instance).end(), std::inserter(instanceChildren, instanceChildren.end()));
 
 	std::map<SEditorObject, SEditorObject> mapToInstance;
@@ -126,12 +128,13 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		auto it = instanceChildren.begin();
 		while (it != instanceChildren.end()) {
 			auto instChild = *it;
-			auto prefabChild = PrefabInstance::mapFromInstance(instChild, instance);
-			if (!prefabChild ||
-				std::find(prefabChildren.begin(), prefabChildren.end(), prefabChild) == prefabChildren.end()) {
+			
+			auto prefabIt = mapToPrefab.find(instChild);
+			if (prefabIt == mapToPrefab.end() ||
+				prefabChildren.find(prefabIt->second) == prefabChildren.end()) {
 				toRemove.emplace_back(instChild);
-				instance->removePrefabInstanceChild(context, prefabChild);
-				mapToInstance.erase(prefabChild);
+				instance->removePrefabInstanceChild(context, prefabIt->second);
+				mapToInstance.erase(prefabIt->second);
 				mapToPrefab.erase(instChild);
 				it = instanceChildren.erase(it);
 			} else {
@@ -259,9 +262,8 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	context.uiChanges().mergeChanges(localChanges);
 
 	// Sync from external files for new or changed objects
-	for (const auto& destObj : localChanges.getAllChangedObjects()) {
-		destObj->onAfterContextActivated(context);
-	}
+	auto changedObjects = localChanges.getAllChangedObjects();
+	context.performExternalFileReload({changedObjects.begin(), changedObjects.end()});
 }
 
 void PrefabOperations::prefabUpdateOrderDepthFirstSearch(SPrefab current, std::vector<SPrefab>& order) {

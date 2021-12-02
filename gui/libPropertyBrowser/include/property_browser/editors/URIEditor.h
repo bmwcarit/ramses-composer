@@ -33,7 +33,6 @@ public:
 protected:
 	std::string createAbsolutePath();
 	std::string createRelativePath();
-	raco::core::PathManager::FolderTypeKeys getCachedPathKeyCorrespondingToUserType();
 	bool fileExists();
 	void showCustomLineEditContextMenu(const QPoint& p, PropertyBrowserItem* item);
 	void updateFileEditButton();

@@ -18,7 +18,7 @@
 #include "utils/stdfilesystem.h"
 namespace raco::core {
 
-bool Project::removeInstances(std::set<SEditorObject> const& objects, bool gcExternalProjectMap) {
+bool Project::removeInstances(SEditorObjectSet const& objects, bool gcExternalProjectMap) {
 	for (const auto& object : objects) {
 		instances_.erase(std::find(instances_.begin(), instances_.end(), object));
 		instanceMap_.erase(object->objectID());
@@ -363,13 +363,13 @@ bool Project::LinkGraph::createsLoop(const PropertyDescriptor& start, const Prop
 		return true;
 	}
 	if (graph.find(endObj) != graph.end()) {
-		std::set<SEditorObject> visited;
+		SEditorObjectSet visited;
 		return depthFirstSearch(endObj, startObj, visited);
 	}
 	return false;
 }
 
-bool Project::LinkGraph::depthFirstSearch(SEditorObject current, SEditorObject obj, std::set<SEditorObject>& visited) const {
+bool Project::LinkGraph::depthFirstSearch(SEditorObject current, SEditorObject obj, SEditorObjectSet& visited) const {
 	if (current == obj) {
 		return true;
 	}

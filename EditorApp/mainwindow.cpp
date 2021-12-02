@@ -49,6 +49,8 @@
 #include "core/Serialization.h"
 #include "ui_mainwindow.h"
 
+#include "user_types/Animation.h"
+#include "user_types/AnimationChannel.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaScript.h"
 #include "user_types/MeshNode.h"
@@ -126,7 +128,7 @@ ads::CDockWidget* createDockWidget(const QString& title, QWidget* parent) {
 
 ads::CDockAreaWidget* createAndAddPreview(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::ramses_widgets::RendererBackend& rendererBackend, raco::application::RaCoApplication* application) {
 	const auto& viewport = application->activeRaCoProject().project()->settings()->viewport_;
-	const auto& backgroundColor = application->activeRaCoProject().project()->settings()->backgroundColor_.asVec3f();
+	const auto& backgroundColor = application->activeRaCoProject().project()->settings()->backgroundColor_.asVec4f();
 	auto* previewWidget = new raco::ramses_widgets::PreviewMainWindow{rendererBackend, application->sceneBackendImpl(), {*viewport->i1_, *viewport->i2_}, application->activeRaCoProject().project(), application->dataChangeDispatcher()};
 	QObject::connect(mainWindow, &MainWindow::viewportChanged, previewWidget, &raco::ramses_widgets::PreviewMainWindow::setViewport);
 	previewWidget->displayScene(application->sceneBackendImpl()->currentSceneId(), backgroundColor);
@@ -170,7 +172,6 @@ void createAndAddProjectSettings(MainWindow* mainWindow, const char* dockObjName
 ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel *dockModel, QSortFilterProxyModel* sortFilterModel, const raco::object_tree::model::ObjectFilterFunc& filter, ads::DockWidgetArea area, MainWindow* mainWindow, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, ads::CDockAreaWidget* dockArea) {
 	auto* dockObjectView = new raco::object_tree::view::ObjectTreeDock(title, mainWindow);
 	QObject::connect(dockModel, &raco::object_tree::model::ObjectTreeViewDefaultModel::meshImportFailed, mainWindow, &MainWindow::showMeshImportErrorMessage);
-	QObject::connect(dockModel, &raco::object_tree::model::ObjectTreeViewDefaultModel::meshImportSucceeded, mainWindow, &MainWindow::showMeshImportWarningMessage);
 	dockModel->setProjectObjectFilterFunction(filter);
 	dockModel->buildObjectTree();
 	auto newTreeView = new raco::object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
@@ -195,6 +196,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 	using namespace raco::user_types;
 
 	static const std::vector<std::string> allowedCreateableUserTypes{
+		AnimationChannel::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
 		Material::typeDescription.typeName,
 		Mesh::typeDescription.typeName,
@@ -224,6 +226,7 @@ ads::CDockAreaWidget* createAndAddPrefabTree(MainWindow* mainWindow, const char*
 		PrefabInstance::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
+		Animation::typeDescription.typeName,
 		LuaScript::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewPrefabModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
@@ -255,6 +258,7 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 		PrefabInstance::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
+		Animation::typeDescription.typeName,
 		LuaScript::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewDefaultModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
@@ -443,7 +447,7 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 	racoApplication_->doOneLoop();
 
 	const auto& viewport = racoApplication_->activeRaCoProject().project()->settings()->viewport_;
-	const auto& backgroundColor = racoApplication_->activeRaCoProject().project()->settings()->backgroundColor_.asVec3f();
+	const auto& backgroundColor = racoApplication_->activeRaCoProject().project()->settings()->backgroundColor_.asVec4f();
 
 	Q_EMIT viewportChanged({*viewport->i1_, *viewport->i2_});
 
@@ -558,37 +562,56 @@ void MainWindow::updateApplicationTitle() {
 	if (racoApplication_->activeProjectPath().empty()) {
 		setWindowTitle(applicationName_ + " - <New project>");
 	} else {
-		setWindowTitle(applicationName_ + " - " + project.name() + " (" + QString::fromStdString(racoApplication_->activeProjectPath()) + ")");
+		auto path = QString::fromStdString(racoApplication_->activeProjectPath());
+		auto windowTitle = applicationName_ + " - " + project.name() + " (" + path + ")";
+		if (!QFileInfo(path).isWritable()) {
+			windowTitle += " <read-only>";
+		}
+		setWindowTitle(windowTitle);
 	}
 }
 
-void MainWindow::saveActiveProject() {
+bool MainWindow::saveActiveProject() {
 	if (racoApplication_->canSaveActiveProject()) {
 		if (racoApplication_->activeProjectPath().empty()) {
-			saveAsActiveProject();
+			return saveAsActiveProject();
 		} else {
-			racoApplication_->activeRaCoProject().save();
-			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
+			if (racoApplication_->activeRaCoProject().save()) {
+				recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
+				updateApplicationTitle();	
+				return true;
+			} else {
+				updateApplicationTitle();	
+				QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed (detailed error in the log). If you are using source control and the file is read-only: check if the file is in a state where you are allowed to edit it?", racoApplication_->activeProjectPath()).c_str(), QMessageBox::Ok);
+			}
+			
 		}
 	} else {
-		QMessageBox::warning(this, "Save Error", fmt::format("Can't save project: externally referenced projects not clean.").c_str(), QMessageBox::Close);
+		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 	}
+	return false;
 }
 
-void MainWindow::saveAsActiveProject() {
+bool MainWindow::saveAsActiveProject() {
 	if (racoApplication_->canSaveActiveProject()) {
 		bool setProjectName = racoApplication_->activeProjectPath().empty();
 		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project)), "Ramses Composer Assembly (*.rca)");
 		if (newPath.isEmpty()) {
-			return;
+			return false;
 		}
-		racoApplication_->activeRaCoProject().saveAs(newPath, setProjectName);
-		recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
+		if (racoApplication_->activeRaCoProject().saveAs(newPath, setProjectName)) {
+			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 
-		updateApplicationTitle();
+			updateApplicationTitle();		
+			return true;
+		} else {
+			updateApplicationTitle();
+			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed (detailed error in the log). If you are using source control and the file is read-only: check if the file is in a state where you are allowed to edit it?", applicationName_.toStdString()).c_str(), QMessageBox::Ok);
+		}
 	} else {
-		QMessageBox::warning(this, "Save Error", fmt::format("Can't save project: externally referenced projects not clean.").c_str(), QMessageBox::Close);
+		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 	}
+	return false;
 }
 
 void MainWindow::importScene() {
@@ -598,23 +621,16 @@ void MainWindow::importScene() {
 		MeshDescriptor meshDesc;
 		meshDesc.absPath = filePath.toStdString();
 		meshDesc.bakeAllSubmeshes = false;
-		auto importSuccess = true;
 
-		if (racoApplication_->activeRaCoProject().meshCache()->loadMesh(meshDesc)) {
-			auto sceneGraph = racoApplication_->activeRaCoProject().meshCache()->getMeshScenegraph(meshDesc.absPath);
-
-			auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, this).exec();
+		if (auto sceneGraph = racoApplication_->activeRaCoProject().meshCache()->getMeshScenegraph(meshDesc)) {
+			auto importStatus = raco::common_widgets::MeshAssetImportDialog(*sceneGraph, this).exec();
 			if (importStatus == QDialog::Accepted) {
-				importSuccess = racoApplication_->activeRaCoProject().commandInterface()->insertAssetScenegraph(sceneGraph, meshDesc.absPath, nullptr);
+				racoApplication_->activeRaCoProject().commandInterface()->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, nullptr);
 			}
 		} else {
-			importSuccess = false;
+			auto meshError = racoApplication_->activeRaCoProject().meshCache()->getMeshError(meshDesc.absPath);
+			showMeshImportErrorMessage(meshDesc.absPath, meshError);
 		}
-
-		if (!importSuccess) {
-			showMeshImportErrorMessage(meshDesc.absPath);
-		}
-		showMeshImportWarningMessage(meshDesc.absPath);
 	}
 }
 
@@ -638,7 +654,7 @@ bool MainWindow::resolveDirtiness() {
 			QMessageBox::Yes);
 		continueWithAction = resBtn != QMessageBox::Cancel;
 		if (resBtn == QMessageBox::Yes) {
-			saveActiveProject();
+			return saveActiveProject();
 		}
 	}
 	return continueWithAction;
@@ -704,26 +720,12 @@ void MainWindow::resetDockManager() {
 	dockManager_ = createDockManager(this);
 }
 
-void MainWindow::showMeshImportErrorMessage(const std::string& filePath) {
-	auto importErrorMsg = QString::fromStdString(racoApplication_->activeRaCoProject().meshCache()->getMeshError(filePath));
+void MainWindow::showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError) {
 	auto filePathQString = QString::fromStdString(filePath);
-	auto dialogText = importErrorMsg.isEmpty() ? QString{"Ramses Composer encountered an unknown error while importing assets from %1.\nConsult with the logs or file contents to find the error."}.arg(filePathQString)
-											   : QString{"Ramses Composer encountered the following error while importing assets from %1:\n\n%2"}.arg(filePathQString).arg(importErrorMsg);
+	auto dialogText = meshError.empty() ? QString{"Ramses Composer encountered an unknown error while importing assets from %1.\nConsult with the logs or file contents to find the error."}.arg(filePathQString)
+										: QString{"Ramses Composer encountered the following error while importing assets from %1:\n\n%2"}.arg(filePathQString).arg(meshError.c_str());
 
 	QMessageBox importErrorBox(QMessageBox::Critical, "Mesh Import Error", dialogText, QMessageBox::Ok, this);
-	importErrorBox.setTextInteractionFlags(Qt::TextSelectableByKeyboard | Qt::TextSelectableByMouse);
-	importErrorBox.exec();
-}
-
-void MainWindow::showMeshImportWarningMessage(const std::string& filePath) {
-	auto importWarningMsg = QString::fromStdString(racoApplication_->activeRaCoProject().meshCache()->getMeshWarning(filePath));
-	auto filePathQString = QString::fromStdString(filePath);
-	if (importWarningMsg.isEmpty()) {
-		return;
-	}
-	auto dialogText = QString{"Ramses Composer encountered the following warning while importing assets from %1:\n\n%2"}.arg(filePathQString).arg(importWarningMsg);
-
-	QMessageBox importErrorBox(QMessageBox::Warning, "Mesh Import Warning", dialogText, QMessageBox::Ok, this);
 	importErrorBox.setTextInteractionFlags(Qt::TextSelectableByKeyboard | Qt::TextSelectableByMouse);
 	importErrorBox.exec();
 }

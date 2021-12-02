@@ -63,7 +63,7 @@ size_t Table::size() const {
 	return properties_.size();
 }
 
-std::string Table::name(size_t index) const {
+const std::string& Table::name(size_t index) const {
 	assert(index < properties_.size());
 	return properties_[index].first;
 }

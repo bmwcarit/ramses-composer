@@ -260,6 +260,35 @@ end
 }
 
 
+TEST_F(PrefabTest, link_lua_quaternion_in_prefab) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, {"template"}}, prefab);
+	auto lua_global = create<LuaScript>("global");
+	auto node = create<Node>("node", prefab);
+	auto lua = create<LuaScript>("lua", prefab);
+
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC4F
+	OUT.v = VEC4F
+end
+function run()
+end
+)");
+	commandInterface.set({lua, {"uri"}}, scriptFile);
+	commandInterface.set({lua_global, {"uri"}}, scriptFile);
+
+	commandInterface.addLink({lua, {"luaOutputs", "v"}}, {node, {"rotation"}});
+
+	ASSERT_EQ(project.links().size(), 2);
+
+	commandInterface.deleteObjects({lua});
+
+	ASSERT_EQ(project.links().size(), 0);
+}
+
+
 TEST_F(PrefabTest, nesting_move_node_in) {
 	auto prefab_1 = create<Prefab>("prefab 1");
 	auto prefab_2 = create<Prefab>("prefab 2");

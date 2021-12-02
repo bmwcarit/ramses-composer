@@ -179,7 +179,7 @@ void RamsesPreviewWindow::commit() {
 	}
 
 	if (displayId_.isValid() && offscreenBufferId_.isValid() && next_.backgroundColor != current_.backgroundColor) {
-		rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_,next_.backgroundColor.redF(), next_.backgroundColor.greenF(), next_.backgroundColor.blueF(), 1.0f);
+		rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_, next_.backgroundColor.redF(), next_.backgroundColor.greenF(), next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 		rendererBackend_.renderer().flush();
 	}
 

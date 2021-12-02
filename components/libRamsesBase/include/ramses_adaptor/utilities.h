@@ -16,12 +16,15 @@
 #include "core/MeshCacheInterface.h"
 #include "data_storage/Value.h"
 #include "log_system/log.h"
-#include <ramses-logic/Property.h>
 #include "ramses_adaptor/BuildOptions.h"
 #include "ramses_base/RamsesHandles.h"
 #include "components/DataChangeDispatcher.h"
 #include "user_types/Material.h"
 #include "user_types/Node.h"
+#include "utils/MathUtils.h"
+
+#include <ramses-logic/Property.h>
+#include <ramses-logic/RamsesNodeBinding.h>
 #include <memory>
 #include <type_traits>
 
@@ -80,6 +83,10 @@ static constexpr const char* defaultIndexDataBufferName = "raco::ramses_adaptor:
 static constexpr const char* defaultVertexDataBufferName = "raco::ramses_adaptor::DefaultVertexDataBuffer";
 static constexpr const char* defaultRenderGroupName = "raco::ramses_adaptor::DefaultRenderGroup";
 static constexpr const char* defaultRenderPassName = "raco::ramses_adaptor::DefaultRenderPass";
+static constexpr const char* defaultAnimationName = "raco::ramses_adaptor::DefaultAnimation";
+static constexpr const char* defaultAnimationChannelName = "raco::ramses_adaptor::DefaultAnimationChannel";
+static constexpr const char* defaultAnimationChannelTimestampsName = "raco::ramses_adaptor::DefaultAnimationTimestamps";
+static constexpr const char* defaultAnimationChannelKeyframesName = "raco::ramses_adaptor::DefaultAnimationKeyframes";
 
 
 struct Vec3f {
@@ -354,6 +361,14 @@ inline void getLuaOutputFromEngine(const rlogic::Property& property, const core:
 	// Don't spam the log with constant messages:
 	//LOG_TRACE(log_system::RAMSES_ADAPTOR, "{} => {}", fmt::ptr(&property), valueHandle);
 	using core::PrimitiveType;
+
+	// read quaternion rotation data
+	if (valueHandle.type() == PrimitiveType::Vec3f && property.getType() == rlogic::EPropertyType::Vec4f) {
+		auto [x, y, z, w] = property.get<rlogic::vec4f>().value();
+		auto [eulerX, eulerY, eulerZ] = raco::utils::math::quaternionToXYZDegrees(x, y, z, w);
+		ReadFromEngineManager::setVec3f(valueHandle, eulerX, eulerY, eulerZ, recorder);
+		return;
+	}
 
 	switch (valueHandle.type()) {
 		case PrimitiveType::Double: {

@@ -10,6 +10,7 @@
 
 #include "common_widgets/MeshAssetImportDialog.h"
 #include "style/Icons.h"
+#include "user_types/Animation.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -22,8 +23,9 @@ namespace raco::common_widgets {
 
 MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, QWidget* parent)
 	: sceneGraph_{sceneGraph},
-	  nodeTreeList_{std::vector<QTreeWidgetItem*>(sceneGraph_.nodes.size())},
-	  meshTreeList_{std::vector<QTreeWidgetItem*>(sceneGraph_.meshes.size())} {
+	  nodeTreeList_{sceneGraph_.nodes.size()},
+	  meshTreeList_{sceneGraph_.meshes.size()},
+	  animTreeList_{sceneGraph_.animations.size()} {
 	setWindowTitle("Import External Assets");
 
 	widget_ = new QTreeWidget(this);
@@ -150,6 +152,23 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		item->setCheckState(0, Qt::CheckState::Checked);
 		widget_->addTopLevelItem(item);
 	}
+
+	for (auto animIndex = 0; animIndex < sceneGraph_.animations.size(); ++animIndex) {
+		auto& anim = sceneGraph_.animations[animIndex].value();
+		auto animItem = animTreeList_[animIndex] = new QTreeWidgetItem({QString::fromStdString(anim.name), QString::fromStdString(raco::user_types::Animation::typeDescription.typeName)});
+		animItem->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeAnimation));
+		animItem->setCheckState(0, Qt::CheckState::Checked);
+		widget_->addTopLevelItem(animItem);
+
+		for (auto samplerIndex = 0; samplerIndex < sceneGraph_.animationSamplers[animIndex].size(); ++samplerIndex) {
+			auto& sampler = sceneGraph_.animationSamplers[animIndex][samplerIndex];
+			auto sampItem = new QTreeWidgetItem({QString::fromStdString(*sampler), QString::fromStdString(raco::user_types::AnimationChannel::typeDescription.typeName)});
+			animSamplerItemMap_[animIndex].emplace_back(sampItem);
+			sampItem->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeAnimationChannel));
+			sampItem->setCheckState(0, Qt::CheckState::Checked);
+			widget_->addTopLevelItem(sampItem);
+		}
+	}
 }
 
 void MeshAssetImportDialog::iterateThroughChildren(QTreeWidgetItem* item, const std::function<void(QTreeWidgetItem*)>& func) {
@@ -175,6 +194,20 @@ void MeshAssetImportDialog::applyChangesToScenegraph() {
 		if (nodeTreeList_[i]->checkState(0) == Qt::Unchecked) {
 			sceneGraph_.nodes[i].reset();
 			nodeToPrimitiveTreeList_.erase(i);
+		}
+	}
+
+	for (auto i = 0; i < animTreeList_.size(); ++i) {
+		if (animTreeList_[i]->checkState(0) == Qt::Unchecked) {
+			sceneGraph_.animations[i].reset();
+		}
+	}
+
+	for (const auto& [animIndex, samplerItems] : animSamplerItemMap_) {
+		for (auto samplerIndex = 0; samplerIndex < samplerItems.size(); ++samplerIndex) {
+			if (samplerItems[samplerIndex]->checkState(0) == Qt::Unchecked) {
+				sceneGraph_.animationSamplers[animIndex][samplerIndex].reset();
+			}
 		}
 	}
 

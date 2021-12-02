@@ -150,6 +150,14 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 		sceneItems.emplace_back("LuaScript", script->getName().data(), -1);
 	}
 
+	for (const auto* dataArray : logicEngine_->dataArrays()) {
+		sceneItems.emplace_back("DataArray", dataArray->getName().data(), -1);
+	}
+
+	for (const auto* animation : logicEngine_->animationNodes()) {
+		sceneItems.emplace_back("Animation", animation->getName().data(), -1);
+	}
+
 	for (const auto* binding : logicEngine_->ramsesAppearanceBindings()) {
 		auto parentIdx = parents[&binding->getRamsesAppearance()];
 		sceneItems.emplace_back("AppearanceBinding", binding->getName().data(), parentIdx);

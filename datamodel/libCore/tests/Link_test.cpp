@@ -17,6 +17,9 @@
 #include "testing/RacoBaseTest.h"
 #include "testing/TestEnvironmentCore.h"
 #include "user_types/UserObjectFactory.h"
+#include "application/RaCoApplication.h"
+#include "ramses_base/HeadlessEngineBackend.h"
+#include "ramses_adaptor/SceneBackend.h"
 
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
@@ -1104,4 +1107,194 @@ TEST_F(LinkTest, restore_meshnode_uniform_switching_shared) {
 
 	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
 	checkLinks({{sprop, eprop, true}});
+}
+
+TEST_F(LinkTest, lua_to_quaternion) {
+	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
+	auto node = create<raco::user_types::Node>("node", nullptr);
+
+	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector4f"}, node, {"rotation"});
+	checkLinks({{sprop, eprop, true}});
+}
+
+TEST_F(LinkTest, lua_to_euler_after_quaternion) {
+	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
+	auto node = create<raco::user_types::Node>("node", nullptr);
+
+	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector4f"}, node, {"rotation"});
+	auto [sprop2, eprop2] = link(luaScript, {"luaOutputs", "ovector3f"}, node, {"rotation"});
+	checkLinks({{sprop2, eprop2, true}});
+}
+
+TEST_F(LinkTest, remove_link_keeps_value_with_undo_redo) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::application::RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+
+	auto start = create_lua(cmd, "lua_start", "scripts/SimpleScript.lua");
+	auto end = create_lua(cmd, "lua_end", "scripts/SimpleScript.lua");
+
+	cmd.set({start, {"luaInputs", "in_float"}}, 2.0);
+	cmd.set({end, {"luaInputs", "in_float"}}, 42.0);
+
+	PropertyDescriptor sprop{start, {"luaOutputs", "out_float"}};
+	PropertyDescriptor eprop{end, {"luaInputs", "in_float"}};
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 42.0);
+
+	cmd.addLink(sprop, eprop);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.removeLink(eprop);
+	checkLinks(*app.activeRaCoProject().project(), {});
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.undoStack().undo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.undoStack().undo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 42.0);
+
+	cmd.undoStack().redo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.undoStack().redo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+}
+
+
+TEST_F(LinkTest, break_link_keeps_value_with_undo_redo) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::application::RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+
+	auto start = create_lua(cmd, "lua_start", "scripts/SimpleScript.lua");
+	auto end = create_lua(cmd, "lua_end", "scripts/SimpleScript.lua");
+
+	cmd.set({start, {"luaInputs", "in_float"}}, 2.0);
+	cmd.set({end, {"luaInputs", "in_float"}}, 42.0);
+
+	PropertyDescriptor sprop{start, {"luaOutputs", "out_float"}};
+	PropertyDescriptor eprop{end, {"luaInputs", "in_float"}};
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 42.0);
+
+	cmd.addLink(sprop, eprop);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.set({start, {"uri"}}, std::string());
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, false}});
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.undoStack().undo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.undoStack().undo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 42.0);
+
+	cmd.undoStack().redo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+
+	cmd.undoStack().redo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
+}
+
+TEST_F(LinkTest, break_link_remove_child_prop_keeps_value_with_undo_redo) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::application::RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+
+	TextFile script_1 = makeFile("script-1.lua",
+		R"(
+function interface()
+	st = { x = FLOAT, y = FLOAT }
+	IN.s = st
+	OUT.s = st
+end
+
+function run()
+	OUT.s = IN.s
+end
+
+)");
+
+	TextFile script_2 = makeFile("script-2.lua",
+		R"(
+function interface()
+	st = { x = FLOAT}
+	IN.s = st
+	OUT.s = st
+end
+
+function run()
+	OUT.s = IN.s
+end
+
+)");
+
+	auto start = create_lua(cmd, "start", script_1);
+	auto end = create_lua(cmd, "end", script_1);
+
+	cmd.set({start, {"luaInputs", "s", "x"}}, 2.0);
+	cmd.set({end, {"luaInputs", "s", "x"}}, 42.0);
+
+	PropertyDescriptor sprop{start, {"luaOutputs", "s"}};
+	PropertyDescriptor eprop{end, {"luaInputs", "s"}};
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 42.0);
+
+	cmd.addLink(sprop, eprop);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+
+	cmd.set({start, {"uri"}}, script_2);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, false}});
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+
+	cmd.undoStack().undo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+
+	cmd.undoStack().undo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 42.0);
+
+	cmd.undoStack().redo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+
+	cmd.undoStack().redo();
+	app.doOneLoop();
+	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+}
+
+TEST_F(LinkTest, dont_crash_when_object_is_deleted_after_property_with_link_was_removed) {
+	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
+	auto meshNode = create_meshnode("meshnode", mesh, material);
+	auto emptyMaterial = create<Material>("emptymat");
+	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
+
+	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.set(ValueHandle{meshNode, {"materials", "material", "material"}}, emptyMaterial);
+	checkLinks({{sprop, eprop, false}});
+
+	// Delete the object - this caused a crash in RAOS-682
+	commandInterface.deleteObjects({meshNode});
 }

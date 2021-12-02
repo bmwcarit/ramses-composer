@@ -25,6 +25,8 @@
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderTarget.h"
 #include "user_types/Texture.h"
 
 #include "gtest/gtest.h"
@@ -103,6 +105,31 @@ TEST_F(ContextTest, Complex) {
 	print_recursive(s, 0);
 }
 
+TEST_F(ContextTest, rendertarget_set_remove_multi_ref) {
+	auto buffer = create<RenderBuffer>("buffer");
+	auto target = create<RenderTarget>("target");
+
+	ValueHandle buffer_0_handle{target, &RenderTarget::buffer0_};
+	ValueHandle buffer_1_handle{target, &RenderTarget::buffer1_};
+
+	EXPECT_EQ(buffer->referencesToThis().size(), 0);
+
+	context.set(buffer_0_handle, buffer);
+	ASSERT_EQ(buffer->referencesToThis().size(), 1);
+	EXPECT_EQ(buffer->referencesToThis().begin()->lock(), target);
+
+	context.set(buffer_1_handle, buffer);
+	ASSERT_EQ(buffer->referencesToThis().size(), 1);
+	EXPECT_EQ(buffer->referencesToThis().begin()->lock(), target);
+
+	context.set(buffer_0_handle, SRenderBuffer{});
+	ASSERT_EQ(buffer->referencesToThis().size(), 1);
+	EXPECT_EQ(buffer->referencesToThis().begin()->lock(), target);
+
+	context.set(buffer_1_handle, SRenderBuffer{});
+	EXPECT_EQ(buffer->referencesToThis().size(), 0);
+}
+
 TEST_F(ContextTest, add_remove_property_ref) {
 	const std::shared_ptr<Foo> refTarget{new Foo()};
 	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
@@ -114,6 +141,28 @@ TEST_F(ContextTest, add_remove_property_ref) {
 	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
 
 	context.removeProperty(tableHandle, "ref");
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+}
+
+TEST_F(ContextTest, add_remove_multiple_property_ref) {
+	const std::shared_ptr<Foo> refTarget{new Foo()};
+	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
+	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	context.addProperty(tableHandle, "ref1", std::make_unique<Value<SEditorObject>>(refTarget));
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	context.addProperty(tableHandle, "ref2", std::make_unique<Value<SEditorObject>>(refTarget));
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	context.removeProperty(tableHandle, "ref1");
+	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+
+	context.removeProperty(tableHandle, "ref2");
 	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
 }
 
@@ -390,7 +439,7 @@ TEST_F(ContextTest, ObjectCreation) {
 
 	EXPECT_EQ(project.instances(), std::vector<SEditorObject>({root, mnb, mnl}));
 
-	EXPECT_EQ(recorder.getCreatedObjects(), std::set<SEditorObject>({root, mnb, mnl}));
+	EXPECT_EQ(recorder.getCreatedObjects(), SEditorObjectSet({root, mnb, mnl}));
 }
 
 TEST_F(ContextTest, DeleteIsolatedNode) {
@@ -1013,7 +1062,7 @@ TEST_F(ContextTest, queryLinkConnectedToObjectsReturnsNoDuplicateLinks) {
 	auto objs{raco::createLinkedScene(*this)};
 
 	auto totalLinks = raco::core::Queries::getLinksConnectedToObjects(
-		*context.project(), {context.project()->instances().begin(), context.project()->instances().end()}, true, true);
+		*context.project(), SEditorObjectSet{context.project()->instances().begin(), context.project()->instances().end()}, true, true);
 
 	ASSERT_EQ(totalLinks.size(), 1);
 }

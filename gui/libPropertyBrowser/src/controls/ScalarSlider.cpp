@@ -30,6 +30,7 @@ ScalarSlider<T>::ScalarSlider(QWidget* parent)
 
 	// adjust size to LineEdits
 	setMaximumSize(QWIDGETSIZE_MAX, 22);
+	setFocusPolicy(Qt::FocusPolicy::StrongFocus);
 	setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 }
 
@@ -81,6 +82,8 @@ void ScalarSlider<T>::paintEvent(QPaintEvent* event) {
 		sliderBrush.setColor(sliderBrush.color().darker());
 		backgroundBrush.setColor(Colors::color(Colormap::grayEditDisabled));
 		painter.setPen(Colors::color(Colormap::textDisabled));
+	} else if (hasFocus()) {
+		sliderBrush.setColor(sliderBrush.color().lighter());		
 	}
 
 	if (const RaCoStyle* roundStyle = qobject_cast<const RaCoStyle*>(style())) {
@@ -100,6 +103,13 @@ void ScalarSlider<T>::paintEvent(QPaintEvent* event) {
 	if (mouseIsInside_ && !mouseIsDragging_) {
 		painter.drawPixmap(rect().x() - 4, rect().y() - 2, Icons::pixmap(Pixmap::decrement));
 		painter.drawPixmap(rect().width() - rect().height(), rect().y() - 2, Icons::pixmap(Pixmap::increment));
+	}
+}
+
+template <typename T>
+void ScalarSlider<T>::focusInEvent(QFocusEvent* event) {
+	if (event->reason() == Qt::FocusReason::TabFocusReason || event->reason() == Qt::FocusReason::BacktabFocusReason) {
+		signalSingleClicked();
 	}
 }
 
@@ -126,6 +136,9 @@ void ScalarSlider<T>::mousePressEvent(QMouseEvent* event) {
 	if (isEnabled()) {
 		setFocus(Qt::FocusReason::MouseFocusReason);
 		mousePivot_ = event->globalPos();
+		mouseDraggingCurrentOffsetX_ = 0;
+		setCursor(Qt::CursorShape::BlankCursor);
+		update();
 	}
 }
 
@@ -148,6 +161,8 @@ void ScalarSlider<T>::mouseReleaseEvent(QMouseEvent* event) {
 		}
 	}
 	mouseIsDragging_ = false;
+	setCursor(Qt::CursorShape::SizeHorCursor);
+	clearFocus();
 	update();
 }
 
@@ -155,12 +170,15 @@ template <typename T>
 void ScalarSlider<T>::mouseMoveEvent(QMouseEvent* event) {
 	if (hasFocus()) {
 		mouseIsDragging_ = true;
-		double widgetFraction = ((event->globalPos().x() - mousePivot_.x()) / static_cast<double>(rect().width()));
+		mouseDraggingCurrentOffsetX_ += event->globalPos().x() - mousePivot_.x();
+		cursor().setPos(mousePivot_.x(), mousePivot_.y());
+		
+		double widgetFraction = (mouseDraggingCurrentOffsetX_ / static_cast<double>(rect().width()));
 		T newValue = value() + static_cast<T>((max_ - min_) * widgetFraction);
 		if (newValue != value()) {
+			mouseDraggingCurrentOffsetX_ -= static_cast<int>(widgetFraction * rect().width());
 			slotSetValue(newValue);
 			signalValueEdited(newValue);
-			mousePivot_ = event->globalPos();
 		}
 	}
 }

@@ -88,6 +88,18 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors*
 		return fallbackCube();
 	}
 
+	std::string infoText = "CubeMap information\n\n";
+
+	infoText += fmt::format("Width: {} px\n", width);
+	infoText += fmt::format("Height: {} px\n\n", height);
+
+	// As can be seen below, RGBA8 is the only supported cubemap format. Thus we can show this here statically.
+	// It is only shown to be consistent with the texture information box.
+	infoText += "Format: RGBA8";
+
+	errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {editorObject()->shared_from_this()}, infoText);
+	
+
 	// Order: +x, -X, +Y, -Y, +Z, -Z
 	ramses::CubeMipLevelData mipData = ramses::CubeMipLevelData((uint32_t)data["uriRight"].size(),
 		data["uriRight"].data(),

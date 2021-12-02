@@ -47,7 +47,7 @@ bool DataChangeRecorder::LinkMap::eraseLink(const LinkDescriptor& link) {
 	return false;
 }
 
-void DataChangeRecorder::LinkMap::insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, std::set<SEditorObject>& objects) const {
+void DataChangeRecorder::LinkMap::insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, SEditorObjectSet& objects) const {
 	for (auto const& [linkEndObjId, links] : linkMap_) {
 		if (includeLinkEnd) {
 			objects.insert(links.begin()->end.object());
@@ -236,11 +236,11 @@ void DataChangeRecorder::mergeChanges(const DataChangeRecorder& other) {
 	}
 }
 
-std::set<SEditorObject> const& DataChangeRecorder::getCreatedObjects() const {
+SEditorObjectSet const& DataChangeRecorder::getCreatedObjects() const {
 	return createdObjects_;
 }
 
-std::set<SEditorObject> const& DataChangeRecorder::getDeletedObjects() const {
+SEditorObjectSet const& DataChangeRecorder::getDeletedObjects() const {
 	return deletedObjects_;
 }
 
@@ -276,8 +276,8 @@ bool DataChangeRecorder::isLinkValidityChanged(SLink link) const {
 	return changedValidityLinks_.contains(link);
 }
 
-std::set<SEditorObject> DataChangeRecorder::getAllChangedObjects(bool includePreviewDirty, bool includeLinkStart, bool includeLinkEnd) const {
-	std::set<SEditorObject> objects;
+SEditorObjectSet DataChangeRecorder::getAllChangedObjects(bool includePreviewDirty, bool includeLinkStart, bool includeLinkEnd) const {
+	SEditorObjectSet objects;
 	std::transform(createdObjects_.begin(), createdObjects_.end(), std::inserter(objects, objects.end()),
 		[](const ValueHandle& handle) -> SEditorObject {
 			return handle.rootObject();
@@ -306,7 +306,7 @@ std::set<ValueHandle> DataChangeRecorder::getChangedErrors() const {
 	return changedErrors_;
 }
 
-std::set<SEditorObject> DataChangeRecorder::getPreviewDirtyObjects() const {
+SEditorObjectSet DataChangeRecorder::getPreviewDirtyObjects() const {
 	return previewDirty_;
 }
 

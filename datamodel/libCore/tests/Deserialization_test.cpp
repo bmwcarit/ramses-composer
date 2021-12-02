@@ -202,7 +202,7 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode_outputsAreD
 		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptLinkedToNode.json").string()), deserializationFactory());
 
 	raco::user_types::SLuaScript sScript{ raco::select<raco::user_types::LuaScript>(result.objects)};
-	ASSERT_EQ(1, sScript->luaOutputs_->size());
+	ASSERT_EQ(3, sScript->luaOutputs_->size());
 }
 
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {

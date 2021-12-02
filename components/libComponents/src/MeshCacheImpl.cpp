@@ -39,9 +39,9 @@ raco::core::SharedMeshData MeshCacheImpl::loadMesh(const raco::core::MeshDescrip
 	return loader->loadMesh(descriptor);
 }
 
-raco::core::MeshScenegraph raco::components::MeshCacheImpl::getMeshScenegraph(const std::string &absPath) {
-	auto *loader = getLoader(absPath);
-	return loader->getScenegraph();
+raco::core::MeshScenegraph* raco::components::MeshCacheImpl::getMeshScenegraph(const raco::core::MeshDescriptor &descriptor) {
+	auto *loader = getLoader(descriptor.absPath);
+	return loader->getScenegraph(descriptor.absPath);
 }
 
 std::string raco::components::MeshCacheImpl::getMeshError(const std::string &absPath) {
@@ -49,14 +49,14 @@ std::string raco::components::MeshCacheImpl::getMeshError(const std::string &abs
 	return loader->getError();
 }
 
-std::string MeshCacheImpl::getMeshWarning(const std::string &absPath) {
-	auto *loader = getLoader(absPath);
-	return loader->getWarning();
-}
-
 int raco::components::MeshCacheImpl::getTotalMeshCount(const std::string &absPath) {
 	auto *loader = getLoader(absPath);
 	return loader->getTotalMeshCount();
+}
+
+std::shared_ptr<raco::core::MeshAnimationSamplerData> MeshCacheImpl::getAnimationSamplerData(const std::string &absPath, int animIndex, int samplerIndex) {
+	auto *loader = getLoader(absPath);
+	return loader->getAnimationSamplerData(absPath, animIndex, samplerIndex);
 }
 
 void MeshCacheImpl::forceReloadCachedMesh(const std::string &absPath) {

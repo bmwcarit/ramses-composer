@@ -25,15 +25,23 @@ ExpandControlButton::ExpandControlButton(PropertyBrowserItem* item, QWidget* par
 	setIcon(icon);
 	setContentsMargins(0, 0, 0, 0);
 	setFlat(true);
+
+	QSizePolicy retainSizePolicy = sizePolicy();
+	retainSizePolicy.setRetainSizeWhenHidden(true);
+	setSizePolicy(retainSizePolicy);
+
 	if (item->size() == 0) {
-		// setVisible(false);
+		setVisible(false);
 		setMaximumHeight(0);
 	}
+		
 	QObject::connect(item, &PropertyBrowserItem::childrenChanged, this, [this](const auto& children) {
 		if (children.size() > 0) {
 			setMaximumHeight(QWIDGETSIZE_MAX);
+			setVisible(true);
 		} else {
 			setMaximumHeight(0);
+			setVisible(false);
 		}
 	});
 

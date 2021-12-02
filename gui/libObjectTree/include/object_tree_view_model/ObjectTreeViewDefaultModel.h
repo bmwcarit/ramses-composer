@@ -98,8 +98,7 @@ public:
 
 Q_SIGNALS:
 	void repaintRequested();
-	void meshImportFailed(const std::string &filePath);
-	void meshImportSucceeded(const std::string& filePath);
+	void meshImportFailed(const std::string &filePath, const std::string &error);
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const core::EditorObject::TypeDescriptor &typeDesc, const std::string &nodeName = "", const QModelIndex &parent = QModelIndex());
@@ -149,7 +148,9 @@ protected:
 		{std::string("Node"), Pixmap::typeNode},
 		{std::string("Prefab"), Pixmap::typePrefabInternal},
 		{std::string("ExtrefPrefab"), Pixmap::typePrefabExternal},
-		{std::string("PrefabInstance"), Pixmap::typePrefabInstance}
+		{std::string("PrefabInstance"), Pixmap::typePrefabInstance},
+		{std::string{"AnimationChannel"}, Pixmap::typeAnimationChannel},
+		{std::string{"Animation"}, Pixmap::typeAnimation}
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;

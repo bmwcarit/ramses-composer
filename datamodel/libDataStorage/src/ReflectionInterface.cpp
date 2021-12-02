@@ -80,7 +80,7 @@ int ClassWithReflectedMembers::index(std::string const& propertyName) const {
 	return -1;
 }
 
-std::string ClassWithReflectedMembers::name(size_t index) const {
+const std::string& ClassWithReflectedMembers::name(size_t index) const {
 	assert(index < properties_.size());
 	return properties_[index].first;
 }
@@ -103,6 +103,23 @@ bool ReflectionInterface::operator==(const ReflectionInterface& other) const {
 	}
 	return true;
 }
+
+bool ReflectionInterface::compare(const ReflectionInterface& left, const ReflectionInterface& right, std::function<SEditorObject(SEditorObject)> translateRefLeftToRight) {
+	if (left.size() != right.size()) {
+		return false;
+	}
+	for (size_t index{0}; index < left.size(); index++) {
+		if (left.name(index) != right.name(index)) {
+			return false;
+		}
+
+		if (!(left.get(index)->compare(*right.get(index), translateRefLeftToRight))) {
+			return false;
+		}
+	}
+	return true;
+}
+
 
 std::shared_ptr<AnnotationBase> ClassWithReflectedMembers::query(const std::string& typeName) {
 	for (auto anno : annotations_ ) {

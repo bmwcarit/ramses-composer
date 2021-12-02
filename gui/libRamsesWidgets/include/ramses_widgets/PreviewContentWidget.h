@@ -25,7 +25,7 @@ public:
 	virtual QPaintEngine* paintEngine() const override { return nullptr; }
 	ramses::sceneId_t getSceneId();
 	void setSceneId(ramses::sceneId_t id);
-	void setBackgroundColor(data_storage::Vec3f backgroundColor);
+	void setBackgroundColor(data_storage::Vec4f backgroundColor);
 	void commit();
 
 public Q_SLOTS:

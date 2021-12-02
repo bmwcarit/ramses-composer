@@ -42,7 +42,7 @@ public:
 	virtual size_t size() const override;
 
 	virtual int index(std::string const& propertyName) const override;
-	virtual std::string name(size_t index) const override;
+	virtual const std::string& name(size_t index) const override;
 
 
 	std::vector<std::string> propertyNames() const;

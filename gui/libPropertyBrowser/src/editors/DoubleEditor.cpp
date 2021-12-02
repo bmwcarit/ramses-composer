@@ -57,6 +57,13 @@ DoubleEditor::DoubleEditor(
 	// State change: Show spinbox or slider
 	QObject::connect(slider, &DoubleSlider::singleClicked, this, [this, spinBox]() { stack_->setCurrentWidget(spinBox); });
 	QObject::connect(spinBox, &DoubleSpinBox::editingFinished, this, [this, slider]() { stack_->setCurrentWidget(slider); });
+	QObject::connect(spinBox, &DoubleSpinBox::focusNextRequested, this, [this, item]() { item->requestNextSiblingFocus(); });
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this, spinBox]() { 
+		stack_->setCurrentWidget(spinBox);
+		spinBox->setFocus();
+	});
+
+
 	stack_->addWidget(slider);
 	stack_->addWidget(spinBox);
 

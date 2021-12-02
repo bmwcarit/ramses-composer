@@ -17,6 +17,7 @@
 #include "core/Serialization.h"
 #include <regex>
 #include <map>
+#include <unordered_map>
 
 namespace raco::core {
 
@@ -37,7 +38,7 @@ public:
 	}
 
 	// Remove a set of objects from the instance pool.
-	bool removeInstances(std::set<SEditorObject> const& objects, bool gcExternalProjectMap = true);
+	bool removeInstances(SEditorObjectSet const& objects, bool gcExternalProjectMap = true);
 
 	void addInstance(SEditorObject object);
 
@@ -163,8 +164,8 @@ private:
 		bool createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const;
 
 	private:
-		bool depthFirstSearch(SEditorObject current, SEditorObject obj, std::set<SEditorObject>& visited) const;
-		std::map<SEditorObject, std::set<SEditorObject>> graph;
+		bool depthFirstSearch(SEditorObject current, SEditorObject obj, SEditorObjectSet& visited) const;
+		std::map<SEditorObject, SEditorObjectSet> graph;
 	};
 
 	std::string folder_;
@@ -173,7 +174,7 @@ private:
 	// Ordered list of all instances.
 	std::vector<SEditorObject> instances_;
 	// Instance dictionary using object id as key for faster lookup.
-	std::map<std::string, SEditorObject> instanceMap_;
+	std::unordered_map<std::string, SEditorObject> instanceMap_;
 
 	// This map contains all the external project used by the current one;
 	// Keys are the project IDs

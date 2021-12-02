@@ -14,6 +14,7 @@
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "core/SerializationFunctions.h"
+#include "user_types/AnimationChannel.h"
 #include "user_types/RenderBuffer.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
@@ -23,7 +24,9 @@ class ObjectTreeViewResourceModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewResourceModelTest() : ObjectTreeViewDefaultModelTest() {
 		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewResourceModel(&commandInterface, dataChangeDispatcher_, nullptr,
-			{raco::user_types::CubeMap::typeDescription.typeName,
+			{
+				raco::user_types::AnimationChannel::typeDescription.typeName,
+				raco::user_types::CubeMap::typeDescription.typeName,
 				raco::user_types::Material::typeDescription.typeName,
 				raco::user_types::Mesh::typeDescription.typeName,
 				raco::user_types::Texture::typeDescription.typeName,

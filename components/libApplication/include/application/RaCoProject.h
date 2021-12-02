@@ -52,8 +52,8 @@ public:
 	QString name() const;
 
 	bool dirty() const noexcept;
-	void save();
-	void saveAs(const QString& fileName, bool setProjectName = false);
+	bool save();
+	bool saveAs(const QString& fileName, bool setProjectName = false);
 
 	// @exception ExtrefError
 	void updateExternalReferences(std::vector<std::string>& pathStack);

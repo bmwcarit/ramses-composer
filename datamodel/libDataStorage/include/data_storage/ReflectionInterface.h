@@ -14,7 +14,15 @@
 #include <string>
 #include <vector>
 
+namespace raco::core {
+class EditorObject;
+using SEditorObject = std::shared_ptr<EditorObject>;
+}  // namespace raco::core
+
 namespace raco::data_storage {
+
+//using raco::core::EditorObject;
+using raco::core::SEditorObject;
 
 class ValueBase;
 class AnnotationBase;
@@ -64,12 +72,14 @@ public:
 	virtual int index(std::string const& propertyName) const = 0;
 
 	// Find name from index; asserts when index out of bounds
-	virtual std::string name(size_t index) const = 0;
+	virtual const std::string& name(size_t index) const = 0;
 
 	bool hasProperty(std::string const& propertyName) const;
 	
 	// Compare the value but not the annotation data
 	bool operator==(const ReflectionInterface& other) const;
+
+	static bool compare(const ReflectionInterface& left, const ReflectionInterface& right, std::function<SEditorObject(SEditorObject)> translateRefLeftToRight);
 };
 
 class ClassWithReflectedMembers : public ReflectionInterface {
@@ -91,7 +101,7 @@ public:
 	virtual size_t size() const override;
 
 	virtual int index(std::string const& propertyName) const override;
-	virtual std::string name(size_t index) const override;
+	virtual const std::string& name(size_t index) const override;
 
 	template <typename BaseClassWithProperty, typename TPropertyType>
 	int index(TPropertyType BaseClassWithProperty::*propertyPtr) {

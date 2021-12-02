@@ -27,8 +27,12 @@ public:
 		return typeDescription;
 	}
 
-	Node(const Node& other) : BaseObject(other), tags_(other.tags_), visible_(other.visible_), translation_(other.translation_),
-		rotation_(other.rotation_), scale_(other.scale_)
+	Node(const Node& other) : BaseObject(other),
+		tags_(other.tags_),
+		visible_(other.visible_),
+		translation_(other.translation_),
+		rotation_(other.rotation_),
+		scale_(other.scale_)
 	{
 		fillPropertyDescription();
 	}

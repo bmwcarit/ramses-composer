@@ -45,6 +45,8 @@ private:
 	std::map<int, std::vector<QTreeWidgetItem*>> nodeToPrimitiveTreeList_;
 	std::vector<QTreeWidgetItem*> meshTreeList_;
 	std::map<int, std::unordered_set<int>> meshNodeIndexReferencedByNodes_;
+	std::vector<QTreeWidgetItem*> animTreeList_;
+	std::map<int, std::vector<QTreeWidgetItem*>> animSamplerItemMap_;
 };
 
 }  // namespace raco::common_widgets

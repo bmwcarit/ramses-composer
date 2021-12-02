@@ -10,6 +10,8 @@
 #include "ramses_adaptor/Factories.h"
 
 #include "log_system/log.h"
+#include "ramses_adaptor/AnimationAdaptor.h"
+#include "ramses_adaptor/AnimationChannelAdaptor.h"
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/MaterialAdaptor.h"
@@ -48,6 +50,8 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 
 
 		// RESOURCES
+		{user_types::Animation::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<AnimationAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Animation>(obj)); }},
+		{user_types::AnimationChannel::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<AnimationChannelAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::AnimationChannel>(obj)); }},
 		{user_types::Material::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<MaterialAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Material>(obj)); }},
 		{user_types::Mesh::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<MeshAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Mesh>(obj)); }},
 		{user_types::Texture::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TextureSamplerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Texture>(obj)); }},
