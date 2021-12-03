@@ -58,7 +58,7 @@ end
 }
 
 #if (!defined (__linux__))
-// TODO: Investigate this on Linux
+// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
 
 TEST_F(LinkAdaptorFixture, linkWorksIfScriptContentChanges) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
@@ -93,7 +93,7 @@ function run()
 end
 	)");
 
-	raco::awaitPreviewDirty(recorder, luaScript);
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, luaScript));
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());

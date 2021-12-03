@@ -710,6 +710,9 @@ void main() {
 	postCheck("alt_name");
 }
 
+#if (!defined(__linux__))
+// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
+
 TEST_F(UndoTest, lua_resync_after_undo) {
 	TextFile luaFile = makeFile("test.lua", R"(
 function interface()
@@ -738,7 +741,7 @@ end
 
 	recorder.reset();
 	raco::utils::file::write(luaFile.path.string(), altLuaScript);
-	raco::awaitPreviewDirty(recorder, lua);
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
@@ -788,7 +791,7 @@ end
 
 	recorder.reset();
 	raco::utils::file::write(luaFile.path.string(), altLuaScript);
-	raco::awaitPreviewDirty(recorder, lua);
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
@@ -802,3 +805,5 @@ end
 	//The assert fails - needs to be fixed. See RAOS-687
 	//ASSERT_FALSE(commandInterface.errors().hasError({node}));
 }
+
+#endif

@@ -85,6 +85,7 @@ inline bool awaitPreviewDirty(const raco::core::DataChangeRecorder& recorder, co
 	while (std::find(dirtyObjects.begin(), dirtyObjects.end(), obj) == dirtyObjects.end()) {
 		if (std::chrono::steady_clock::now() > timeoutTS) {
 			assert(false && "Timeout");
+			return false;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds{5});
 		QCoreApplication::processEvents();
