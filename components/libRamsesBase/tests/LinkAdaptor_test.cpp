@@ -237,7 +237,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_EQ(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 	auto rotationProperty = nodeBinding->getInputs()->getChild("rotation");
 	ASSERT_EQ(rotationProperty->getType(), rlogic::EPropertyType::Vec4f);
@@ -283,7 +283,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_NE(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 	auto rotationProperty = nodeBinding->getInputs()->getChild("rotation");
 	ASSERT_EQ(rotationProperty->getType(), rlogic::EPropertyType::Vec3f);
@@ -329,7 +329,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_EQ(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 	auto rotationProperty = nodeBinding->getInputs()->getChild("rotation");
 	ASSERT_EQ(rotationProperty->getType(), rlogic::EPropertyType::Vec4f);
@@ -372,7 +372,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_NE(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 }
 
@@ -411,7 +411,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_EQ(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 }
 
@@ -448,7 +448,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_EQ(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 }
 
@@ -504,14 +504,14 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 	ASSERT_FALSE(commandInterface.project()->links()[0]->isValid());
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_NE(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 
 	context.set({luaScriptOut, {"uri"}}, (cwd_path() / "lua_script_out2.lua").string());
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 	ASSERT_TRUE(commandInterface.project()->links()[0]->isValid());
-	nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_NE(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 }
 
@@ -556,13 +556,13 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 	ASSERT_FALSE(commandInterface.project()->links()[0]->isValid());
-	auto nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	auto nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_NE(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 
 	context.set({luaScriptOut, {"uri"}}, (cwd_path() / "lua_script_out1.lua").string());
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 	ASSERT_TRUE(commandInterface.project()->links()[0]->isValid());
-	nodeBinding = backend.logicEngine().findNodeBinding("node_NodeBinding");
+	nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_EQ(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
 }

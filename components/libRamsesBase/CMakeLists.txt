@@ -37,6 +37,7 @@ add_library(libRamsesBase
     include/ramses_adaptor/MeshNodeAdaptor.h src/ramses_adaptor/MeshNodeAdaptor.cpp
     include/ramses_adaptor/NodeAdaptor.h src/ramses_adaptor/NodeAdaptor.cpp
     include/ramses_adaptor/LuaScriptAdaptor.h src/ramses_adaptor/LuaScriptAdaptor.cpp
+    include/ramses_adaptor/LuaScriptModuleAdaptor.h src/ramses_adaptor/LuaScriptModuleAdaptor.cpp
     include/ramses_adaptor/ObjectAdaptor.h src/ramses_adaptor/ObjectAdaptor.cpp
     include/ramses_adaptor/BaseCameraAdaptorHelpers.h src/ramses_adaptor/BaseCameraAdaptorHelpers.cpp
     include/ramses_adaptor/OrthographicCameraAdaptor.h src/ramses_adaptor/OrthographicCameraAdaptor.cpp

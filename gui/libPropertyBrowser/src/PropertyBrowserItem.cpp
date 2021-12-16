@@ -370,9 +370,10 @@ bool PropertyBrowserItem::getDefaultExpandedFromValueHandleType() const {
 
 		auto parent = valueHandle_.parent();
 
-		bool isInputOutputGroup = parent.isObject() && 
-								  (valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaInputs_) || 
-								   valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaOutputs_));
+		bool isTopLevelLuaValueGroup = parent.isObject() &&
+								  (valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaInputs_)
+									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaOutputs_)
+									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaModules_));
 
 		bool isFirstLevelChildOfInputOutputGroup = parent.isProperty() && 
 											       parent.parent().isObject() &&
@@ -382,7 +383,7 @@ bool PropertyBrowserItem::getDefaultExpandedFromValueHandleType() const {
 
 		bool isTableOrStruct = valueHandle_.type() == PrimitiveType::Table || valueHandle_.type() == PrimitiveType::Struct;
 
-		return isInputOutputGroup || (isFirstLevelChildOfInputOutputGroup && isTableOrStruct);
+		return isTopLevelLuaValueGroup || (isFirstLevelChildOfInputOutputGroup && isTableOrStruct);
 	}
 
 	return true;

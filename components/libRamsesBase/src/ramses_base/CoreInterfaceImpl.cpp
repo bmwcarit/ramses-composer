@@ -22,8 +22,21 @@ bool CoreInterfaceImpl::parseShader(const std::string& vertexShader, const std::
 	return raco::ramses_base::parseShaderText(backend_->internalScene(), vertexShader, geometryShader, fragmentShader, shaderDefines, outUniforms, outAttributes, outError);
 }
 
-bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
-	return raco::ramses_base::parseLuaScript(backend_->logicEngine(), luaScript, outInputs, outOutputs, outError);
+bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const raco::data_storage::Table &modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
+	return raco::ramses_base::parseLuaScript(backend_->logicEngine(), luaScript, modules, outInputs, outOutputs, outError);
+}
+
+bool CoreInterfaceImpl::parseLuaScriptModule(const std::string& luaScriptModule, std::string& error) {
+	return raco::ramses_base::parseLuaScriptModule(backend_->logicEngine(), luaScriptModule, error);
+}
+
+bool CoreInterfaceImpl::extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) {
+	auto callback = [&moduleList](const std::string& module) { moduleList.emplace_back(module); };
+	auto extractStatus = backend_->logicEngine().extractLuaDependencies(luaScript, callback);
+	if (!extractStatus) {
+		outError = backend_->logicEngine().getErrors().at(0).message;
+	}
+	return extractStatus;
 }
 
 const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco::core::EngineEnumeration type) const {

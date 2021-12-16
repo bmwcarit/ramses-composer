@@ -52,10 +52,10 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 			pasteAction->setEnabled(raco::RaCoClipboard::hasEditorObject());
 		} else {
 			auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
-			auto selectedRows = focusedTreeView->selectionModel()->selectedRows();
-			auto selectedIndex = focusedTreeView->proxyModel() ? focusedTreeView->proxyModel()->mapToSource(selectedRows.front()) : selectedRows.front();
-			copyAction->setEnabled(focusedTreeView->canCopy(selectedIndex));
-			pasteAction->setEnabled(focusedTreeView->canPasteInto(selectedIndex));
+			auto selectedIndices = focusedTreeView->getSelectedIndices();
+			auto pasteIndex = focusedTreeView->getSelectedInsertionTargetIndex();
+			copyAction->setEnabled(focusedTreeView->canCopyAtIndices(selectedIndices));
+			pasteAction->setEnabled(focusedTreeView->canPasteIntoIndex(pasteIndex, false) || focusedTreeView->canPasteIntoIndex({}, false));
 		}
 
 		QObject::connect(copyAction, &QAction::triggered, [racoApplication, objectTreeDockManager]() {
@@ -96,10 +96,8 @@ void EditMenu::globalCopyCallback(raco::application::RaCoApplication* racoApplic
 void EditMenu::globalPasteCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager) {
 	if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
 		auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
-		auto selectedRows = focusedTreeView->selectionModel()->selectedRows();
-		auto selectionIndex = selectedRows.empty() ? QModelIndex() : selectedRows.front();
 
-		focusedTreeView->globalPasteCallback(selectionIndex);
+		focusedTreeView->globalPasteCallback(focusedTreeView->getSelectedInsertionTargetIndex());
 	} else {
 		auto copiedObjs = raco::RaCoClipboard::get();
 		racoApplication->activeRaCoProject().commandInterface()->pasteObjects(copiedObjs);

@@ -146,29 +146,33 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 		}
 	}
 
-	for (const auto* script : logicEngine_->scripts()) {
+	for (const auto* module : logicEngine_->getCollection<rlogic::LuaModule>()) {
+		sceneItems.emplace_back("LuaScriptModule", module->getName().data(), -1);
+	}
+
+	for (const auto* script : logicEngine_->getCollection<rlogic::LuaScript>()) {
 		sceneItems.emplace_back("LuaScript", script->getName().data(), -1);
 	}
 
-	for (const auto* dataArray : logicEngine_->dataArrays()) {
+	for (const auto* dataArray : logicEngine_->getCollection<rlogic::DataArray>()) {
 		sceneItems.emplace_back("DataArray", dataArray->getName().data(), -1);
 	}
 
-	for (const auto* animation : logicEngine_->animationNodes()) {
+	for (const auto* animation : logicEngine_->getCollection<rlogic::AnimationNode>()) {
 		sceneItems.emplace_back("Animation", animation->getName().data(), -1);
 	}
 
-	for (const auto* binding : logicEngine_->ramsesAppearanceBindings()) {
+	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesAppearanceBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesAppearance()];
 		sceneItems.emplace_back("AppearanceBinding", binding->getName().data(), parentIdx);
 	}
 
-	for (const auto* binding : logicEngine_->ramsesNodeBindings()) {
+	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesNodeBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesNode()];
 		sceneItems.emplace_back("NodeBinding", binding->getName().data(), parentIdx);
 	}
 
-	for (const auto* binding : logicEngine_->ramsesCameraBindings()) {
+	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesCameraBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesCamera()];
 		sceneItems.emplace_back("CameraBinding", binding->getName().data(), parentIdx);
 	}

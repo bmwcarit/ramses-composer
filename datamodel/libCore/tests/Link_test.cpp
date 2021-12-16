@@ -549,7 +549,7 @@ TEST_F(LinkTest, removal_move_start_lua_lua) {
 
 	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
 
-	commandInterface.moveScenegraphChild(start, node);
+	commandInterface.moveScenegraphChildren({start}, node);
 	ASSERT_EQ(project.links().size(), 0);
 }
 
@@ -561,16 +561,16 @@ TEST_F(LinkTest, removal_move_end_lua_lua) {
 
 	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
 
-	commandInterface.moveScenegraphChild(end, node);
+	commandInterface.moveScenegraphChildren({end}, node);
 	checkLinks({{sprop, eprop, true}});
 
-	commandInterface.moveScenegraphChild(start, node);
+	commandInterface.moveScenegraphChildren({start}, node);
 	checkLinks({{sprop, eprop, true}});
 
-	commandInterface.moveScenegraphChild(start, meshnode);
+	commandInterface.moveScenegraphChildren({start}, meshnode);
 	checkLinks({{sprop, eprop, true}});
 
-	commandInterface.moveScenegraphChild(end, nullptr);
+	commandInterface.moveScenegraphChildren({end}, nullptr);
 	ASSERT_EQ(project.links().size(), 0);
 }
 
@@ -582,7 +582,7 @@ TEST_F(LinkTest, removal_move_start_lua_mat) {
 	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, material, {"uniforms", "u_color"});
 	checkLinks({{sprop, eprop, true}});
 
-	commandInterface.moveScenegraphChild(lua, node);
+	commandInterface.moveScenegraphChildren({lua}, node);
 	ASSERT_EQ(project.links().size(), 0);
 }
 
@@ -596,7 +596,7 @@ TEST_F(LinkTest, removal_move_middle_lua_lua_mat) {
 	auto [oprop, eprop] = link(end, {"luaOutputs", "ovector3f"}, material, {"uniforms", "u_color"});
 	checkLinks({{sprop, iprop, true}, {oprop, eprop, true}});
 
-	commandInterface.moveScenegraphChild(end, node);
+	commandInterface.moveScenegraphChildren({end}, node);
 	checkLinks({{sprop, iprop, true}});
 }
 

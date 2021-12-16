@@ -14,54 +14,51 @@
 
 #include "core/FileChangeMonitor.h"
 #include <map>
+#include <set>
 
 namespace raco::user_types {
 
-class LuaScript : public BaseObject {
+class LuaScriptModule : public BaseObject {
 public:
-	static inline const TypeDescriptor typeDescription = { "LuaScript", false };
+	static inline const TypeDescriptor typeDescription = { "LuaScriptModule", true };
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
-	LuaScript(LuaScript const& other) : BaseObject(other), uri_(other.uri_), luaModules_(other.luaModules_), luaInputs_(other.luaInputs_), luaOutputs_(other.luaOutputs_) {
+	static inline const std::set<std::string> LUA_STANDARD_MODULES = {
+		"string",
+		"table",
+		"math",
+		"debug"};
+
+	LuaScriptModule(LuaScriptModule const& other) : BaseObject(other), uri_(other.uri_) {
 		fillPropertyDescription();
 	}
 
-	LuaScript(std::string name = std::string(), std::string id = std::string())
+	LuaScriptModule(std::string name = std::string(), std::string id = std::string())
 		: BaseObject(name, id) {
 		fillPropertyDescription();
 	}
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("uri", &uri_);
-		properties_.emplace_back("luaModules", &luaModules_);
-		properties_.emplace_back("luaInputs", &luaInputs_);
-		properties_.emplace_back("luaOutputs", &luaOutputs_);
 	}
 
 	void onBeforeDeleteObject(Errors& errors) const override;
 
 	void onAfterContextActivated(BaseContext& context) override;
-	void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
-	Property<Table, DisplayNameAnnotation> luaModules_{{}, DisplayNameAnnotation("Modules")};
-	Property<Table, DisplayNameAnnotation> luaInputs_ {{}, DisplayNameAnnotation("Inputs")};
-	Property<Table, DisplayNameAnnotation> luaOutputs_{{}, DisplayNameAnnotation("Outputs")};
-
+	std::string currentScriptContents_;
 private:
 
 	void syncLuaInterface(BaseContext& context);
-	void syncLuaModules(BaseContext& context, const std::string& fileContents, std::string &outError);
 
 	mutable FileChangeMonitor::UniqueListener uriListener_;
-	OutdatedPropertiesStore cachedLuaInputValues_;
-	std::map<std::string, SEditorObject> cachedModuleRefs_;
 };
 
-using SLuaScript = std::shared_ptr<LuaScript>;
+using SLuaScriptModule = std::shared_ptr<LuaScriptModule>;
 
 }

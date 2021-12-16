@@ -38,10 +38,13 @@ public:
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
-	bool canCopy(const QModelIndex &parentIndex);
-	bool canPasteInto(const QModelIndex &parentIndex, bool asExtRef = false);
+	bool canCopyAtIndices(const QModelIndexList &indices);
+	bool canPasteIntoIndex(const QModelIndex &index, bool asExtref);
 
 	QSortFilterProxyModel *proxyModel() const;
+
+	QModelIndexList getSelectedIndices(bool sorted = false) const;
+	QModelIndex getSelectedInsertionTargetIndex() const;
 
 Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);

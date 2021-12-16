@@ -42,8 +42,8 @@ public:
 		commandInterface.set({meshnode_, {"mesh"}}, mesh_);
 		commandInterface.set({meshnodeInPrefab_, {"mesh"}}, mesh_);
 
-		commandInterface.moveScenegraphChild(meshnode_, rootnode_);
-		commandInterface.moveScenegraphChild(meshnodeInPrefab_, prefab_);
+		commandInterface.moveScenegraphChildren({meshnode_}, rootnode_);
+		commandInterface.moveScenegraphChildren({meshnodeInPrefab_}, prefab_);
 
 		commandInterface.set(ValueHandle{rootnode_, &Node::tags_}, std::vector<std::string>{"rntag1", "rntag2"});
 		commandInterface.set(ValueHandle{meshnode_, &MeshNode::tags_}, std::vector<std::string>{"tag1", "tag2"});

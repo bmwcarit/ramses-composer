@@ -17,6 +17,7 @@
 #include <ramses-client-api/EffectInputDataType.h>
 #include <ramses-client.h>
 #include <ramses-framework-api/RamsesVersion.h>
+#include <ramses-logic/LuaConfig.h>
 #include <ramses-logic/RamsesLogicVersion.h>
 #include <string>
 
@@ -31,7 +32,13 @@ bool parseShaderText(ramses::Scene& scene, const std::string& vertexShader, cons
 
 // Parse luascripts using ramses logic and return set of in and out parameters with name and type.
 // Returns true if script can be successfully parsed.
-bool parseLuaScript(LogicEngine& engine, const std::string& luaScript, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& outError);
+bool parseLuaScript(LogicEngine& engine, const std::string& luaScript, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& outError);
+
+// Parse luascript module using ramses logic.
+// Returns true if module can be successfully parsed.
+bool parseLuaScriptModule(LogicEngine& engine, const std::string& luaScriptModule, std::string& outError);
+
+rlogic::LuaConfig defaultLuaConfig();
 
 ramses::RamsesVersion getRamsesVersion();
 rlogic::RamsesLogicVersion getLogicEngineVersion();

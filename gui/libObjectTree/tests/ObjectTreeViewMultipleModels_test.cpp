@@ -17,10 +17,10 @@ using namespace raco::user_types;
 
 TEST_F(ObjectTreeViewMultipleModelsTest, MoveTopLevelNodeUnderPrefab) {
 	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
-	moveScenegraphChild(node, prefab_);
+	moveScenegraphChildren({node}, prefab_);
 
-	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
+	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, {}));
+	auto *viewModelRootNode = viewModel_->indexToTreeNode({});
 
 	ASSERT_TRUE(viewModelRootNode->getChildren().empty());
 	ASSERT_EQ(prefabNode->getChildren().size(), 1);
@@ -29,11 +29,11 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MoveTopLevelNodeUnderPrefab) {
 
 TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToTopLevel) {
 	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
-	moveScenegraphChild(node, prefab_);
-	moveScenegraphChild(node, nullptr);
+	moveScenegraphChildren({node}, prefab_);
+	moveScenegraphChildren({node}, nullptr);
 
-	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
+	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, {}));
+	auto *viewModelRootNode = viewModel_->indexToTreeNode({});
 
 	ASSERT_TRUE(prefabNode->getChildren().empty());
 	ASSERT_EQ(viewModelRootNode->getChildren().size(), 1);
@@ -44,11 +44,11 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToTopLevel) {
 TEST_F(ObjectTreeViewMultipleModelsTest, MoveChildNodeUnderPrefab) {
 	auto nodeParent = createNodes(raco::user_types::Node::typeDescription.typeName, {"NodeParent"}).front();
 	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
-	moveScenegraphChild(node, nodeParent);
-	moveScenegraphChild(node, prefab_);
+	moveScenegraphChildren({node}, nodeParent);
+	moveScenegraphChildren({node}, prefab_);
 
-	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
+	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, {}));
+	auto *viewModelRootNode = viewModel_->indexToTreeNode({});
 
 	ASSERT_EQ(viewModelRootNode->getChildren().size(), 1);
 	ASSERT_EQ(viewModelRootNode->getChild(0)->getRepresentedObject()->objectName(), "NodeParent");
@@ -61,11 +61,11 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MoveChildNodeUnderPrefab) {
 TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToNodeParent) {
 	auto nodeParent = createNodes(raco::user_types::Node::typeDescription.typeName, {"NodeParent"}).front();
 	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
-	moveScenegraphChild(node, prefab_);
-	moveScenegraphChild(node, nodeParent);
+	moveScenegraphChildren({node}, prefab_);
+	moveScenegraphChildren({node}, nodeParent);
 
-	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, prefabModel_.getInvisibleRootIndex()));
-	auto *viewModelRootNode = viewModel_->indexToTreeNode(viewModel_->getInvisibleRootIndex());
+	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, {}));
+	auto *viewModelRootNode = viewModel_->indexToTreeNode({});
 
 	ASSERT_EQ(viewModelRootNode->getChildren().size(), 1);
 	ASSERT_EQ(viewModelRootNode->getChild(0)->getRepresentedObject()->objectName(), "NodeParent");

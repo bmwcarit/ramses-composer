@@ -187,7 +187,7 @@ void PropertySubtreeView::updateChildrenContainer() {
 			layout_.addWidget(childrenContainer_, 2, 0);
 		}
 	} else if (!item_->showChildren() && childrenContainer_) {
-		childrenContainer_->deleteLater();
+		delete childrenContainer_;
 		childrenContainer_ = nullptr;
 	}
 

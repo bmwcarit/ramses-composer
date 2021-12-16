@@ -16,6 +16,8 @@
 #include "core/PathManager.h"
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
+#include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
@@ -725,6 +727,60 @@ TEST_F(RaCoProjectFixture, copyPasteDeepAnimationReferencingAnimationChannel) {
 	}
 	{
 		RaCoApplication app{backend};
+		app.activeRaCoProject().commandInterface()->pasteObjects(clipboard);
+		ASSERT_NO_FATAL_FAILURE(app.doOneLoop());
+	}
+}
+
+TEST_F(RaCoProjectFixture, copyPasteShallowLuaScriptReferencingLuaScriptModule) {
+	std::string clipboard;
+	{
+		RaCoApplication app{ backend };
+		app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.file").string());
+		auto module = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScriptModule::typeDescription.typeName, "m", "m");
+		auto script = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScript::typeDescription.typeName, "s", "s");
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({ module, &raco::user_types::LuaScriptModule::uri_ }, cwd_path().append("scripts/moduleDefinition.lua").string());
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({ script, &raco::user_types::LuaScript::uri_ }, cwd_path().append("scripts/moduleDependency.lua").string());
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({ script, {"luaModules", "coalas"} }, module);
+		app.doOneLoop();
+
+		clipboard = app.activeRaCoProject().commandInterface()->copyObjects({ script });
+	}
+	{
+		RaCoApplication app{ backend };
+		app.activeRaCoProject().commandInterface()->pasteObjects(clipboard);
+		ASSERT_NO_FATAL_FAILURE(app.doOneLoop());
+	}
+}
+
+TEST_F(RaCoProjectFixture, copyPasteDeepLuaScriptReferencingLuaScriptModule) {
+	std::string clipboard;
+	{
+		RaCoApplication app{ backend };
+		app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.file").string());
+		auto module = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScriptModule::typeDescription.typeName, "m", "m");
+		auto script = app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScript::typeDescription.typeName, "s", "s");
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({ module, &raco::user_types::LuaScriptModule::uri_ }, cwd_path().append("scripts/moduleDefinition.lua").string());
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({ script, &raco::user_types::LuaScript::uri_ }, cwd_path().append("scripts/moduleDependency.lua").string());
+		app.doOneLoop();
+
+		app.activeRaCoProject().commandInterface()->set({ script, {"luaModules", "coalas"} }, module);
+		app.doOneLoop();
+
+		clipboard = app.activeRaCoProject().commandInterface()->copyObjects({ script }, true);
+	}
+	{
+		RaCoApplication app{ backend };
 		app.activeRaCoProject().commandInterface()->pasteObjects(clipboard);
 		ASSERT_NO_FATAL_FAILURE(app.doOneLoop());
 	}

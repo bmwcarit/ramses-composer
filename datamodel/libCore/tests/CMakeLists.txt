@@ -46,11 +46,13 @@ raco_package_add_test_resouces(
     meshes/InterpolationTest/InterpolationTest.gltf
     meshes/InterpolationTest/interpolation.bin
     meshes/InterpolationTest/l.jpg
+    scripts/camera-control.lua
+    scripts/moduleDefinition.lua
+    scripts/moduleDependency.lua
     scripts/types-scalar.lua
     scripts/struct-simple.lua
     scripts/struct-nested.lua
     scripts/SimpleScript.lua
-    scripts/camera-control.lua
 )
 
 

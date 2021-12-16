@@ -32,7 +32,7 @@ end
 	std::string error;
 	raco::core::PropertyInterfaceList in;
 	raco::core::PropertyInterfaceList out;
-	parseLuaScript(backend.logicEngine(), script, in, out, error);
+	parseLuaScript(backend.logicEngine(), script, {}, in, out, error);
 
 	EXPECT_EQ(1, in.size());
 	const auto& structProperty = in.at(0);
@@ -63,7 +63,7 @@ end
 	std::string error;
 	raco::core::PropertyInterfaceList in;
 	raco::core::PropertyInterfaceList out;
-	parseLuaScript(backend.logicEngine(), script, in, out, error);
+	parseLuaScript(backend.logicEngine(), script, {}, in, out, error);
 
 	EXPECT_EQ(1, in.size());
 	EXPECT_EQ(EnginePrimitive::Array, in.at(0).type);

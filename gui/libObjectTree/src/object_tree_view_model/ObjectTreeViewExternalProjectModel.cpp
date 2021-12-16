@@ -77,20 +77,59 @@ void raco::object_tree::model::ObjectTreeViewExternalProjectModel::addProject(co
 	}
 }
 
-void raco::object_tree::model::ObjectTreeViewExternalProjectModel::removeProject(const QModelIndex& itemIndex) {
-	auto projectPath = getOriginProjectPathOfSelectedIndex(itemIndex);
-	externalProjectStore_->removeExternalProject(projectPath);
+void raco::object_tree::model::ObjectTreeViewExternalProjectModel::removeProjectsAtIndices(const QModelIndexList& indices) {
+	std::set<std::string> projectsToRemove;
+	for (const auto& index : indices) {
+		projectsToRemove.emplace(getOriginProjectPathOfSelectedIndex(index));
+	}
+
+	for (const auto& projectPath : projectsToRemove) {
+		externalProjectStore_->removeExternalProject(projectPath);
+	}
 }
 
-bool raco::object_tree::model::ObjectTreeViewExternalProjectModel::canRemoveProject(const QModelIndex& itemIndex) {
-	auto projectPath = getOriginProjectPathOfSelectedIndex(itemIndex);
-	return externalProjectStore_->canRemoveExternalProject(projectPath);
+bool raco::object_tree::model::ObjectTreeViewExternalProjectModel::canRemoveProjectsAtIndices(const QModelIndexList& indices) {
+	if (indices.isEmpty()) {
+		return false;	
+	}
+
+	for (const auto& index : indices) {
+		if (!index.isValid()) {
+			return false;
+		}		
+
+		auto projectPath = getOriginProjectPathOfSelectedIndex(index);
+		if (!externalProjectStore_->canRemoveExternalProject(projectPath)) {
+			return false;
+		}		
+	}
+	return true;
 }
 
-void ObjectTreeViewExternalProjectModel::copyObjectAtIndex(const QModelIndex& index, bool deepCopy) {
-	auto originPath = getOriginProjectPathOfSelectedIndex(index);
-	auto* commandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
-	RaCoClipboard::set(commandInterface->copyObjects({indexToSEditorObject(index)}, deepCopy));
+void ObjectTreeViewExternalProjectModel::copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) {
+
+	raco::core::CommandInterface* commandInterface = nullptr;
+
+	std::vector<raco::core::SEditorObject> objects;
+	for (const auto& index : indices) {
+
+		auto object = indexToSEditorObject(index);
+		if (&object->getTypeDescription() != &ProjectNode::typeDescription) {		
+
+			objects.push_back(indexToSEditorObject(index));
+
+			// canCopyAtIndices already enforces that we only copy objects from the same project, so we can just take the project path from the first index
+			if (!commandInterface) {
+				const auto& index = indices.front();
+				auto originPath = getOriginProjectPathOfSelectedIndex(index);
+				commandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
+			}
+		}
+	}
+
+	if (commandInterface) {
+		RaCoClipboard::set(commandInterface->copyObjects(objects, deepCopy));
+	}
 }
 
 void raco::object_tree::model::ObjectTreeViewExternalProjectModel::buildObjectTree() {
@@ -139,34 +178,52 @@ Qt::TextElideMode ObjectTreeViewExternalProjectModel::textElideMode() const {
 	return Qt::TextElideMode::ElideLeft;
 }
 
-bool ObjectTreeViewExternalProjectModel::canCopy(const QModelIndex& index) const {
-	return index.isValid() && indexToSEditorObject(index)->as<ProjectNode>() == nullptr;
+bool ObjectTreeViewExternalProjectModel::canCopyAtIndices(const QModelIndexList& indices) const {
+
+	bool atLeastOneCopyableItem = false;
+	std::string originPath;
+	for (const auto& index : indices) {
+		if (index.isValid() && indexToSEditorObject(index)->as<ProjectNode>() == nullptr) {
+			atLeastOneCopyableItem = true;
+
+			// Make sure all items belong to the same external project
+			auto indexOriginPath = getOriginProjectPathOfSelectedIndex(index);
+			if (originPath == "") {
+				originPath = indexOriginPath;
+			} else if (indexOriginPath != originPath) {
+				return false;
+			}
+		}
+
+	}
+
+	return atLeastOneCopyableItem;
 }
 
-bool ObjectTreeViewExternalProjectModel::canDelete(const QModelIndex& index) const {
+bool ObjectTreeViewExternalProjectModel::canDeleteAtIndices(const QModelIndexList& indices) const {
 	return false;
 }
 
-bool ObjectTreeViewExternalProjectModel::canPasteInto(const QModelIndex& index, const std::string& serializedObjs, bool asExtRef) const {
+bool ObjectTreeViewExternalProjectModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
 	return false;
 }
 
-size_t ObjectTreeViewExternalProjectModel::deleteObjectAtIndex(const QModelIndex& index) {
+bool ObjectTreeViewExternalProjectModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
+	return false;
+}
+
+size_t ObjectTreeViewExternalProjectModel::deleteObjectsAtIndices(const QModelIndexList& index) {
 	// Don't modify external project structure.
 	return 0;
 }
 
-void ObjectTreeViewExternalProjectModel::cutObjectAtIndex(const QModelIndex& index, bool deepCut) {
+void ObjectTreeViewExternalProjectModel::cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut) {
 	// Don't modify external project structure.
 }
 
 bool ObjectTreeViewExternalProjectModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	// Don't modify external project structure.
 	return true;
-}
-
-bool ObjectTreeViewExternalProjectModel::canInsertMeshAssets(const QModelIndex& index) const {
-	return false;
 }
 
 }  // namespace raco::object_tree::model

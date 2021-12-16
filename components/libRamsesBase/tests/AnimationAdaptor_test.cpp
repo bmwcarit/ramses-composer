@@ -26,8 +26,8 @@ TEST_F(AnimationAdaptorTest, defaultConstruction) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_STREQ(sceneContext.logicEngine().animationNodes().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
 }
 
 TEST_F(AnimationAdaptorTest, defaultConstruction_2_empty_anims) {
@@ -36,8 +36,8 @@ TEST_F(AnimationAdaptorTest, defaultConstruction_2_empty_anims) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_STREQ(sceneContext.logicEngine().animationNodes().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
 }
 
 TEST_F(AnimationAdaptorTest, animNode_Creation) {
@@ -54,7 +54,7 @@ TEST_F(AnimationAdaptorTest, animNode_Creation) {
 	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
 	ASSERT_NE(select<rlogic::AnimationNode>(sceneContext.logicEngine(), "Animation Name"), nullptr);
 }
 
@@ -75,8 +75,8 @@ TEST_F(AnimationAdaptorTest, animNode_Deletion) {
 	context.set({anim, {"animationChannels", "Channel 0"}}, SEditorObject{});
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_STREQ(sceneContext.logicEngine().animationNodes().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
 }
 
 TEST_F(AnimationAdaptorTest, animNode_animName) {
@@ -96,7 +96,7 @@ TEST_F(AnimationAdaptorTest, animNode_animName) {
 	context.set({anim, {"objectName"}}, "Changed");
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
 	ASSERT_NE(select<rlogic::AnimationNode>(sceneContext.logicEngine(), "Changed"), nullptr);
 }
 
@@ -120,10 +120,10 @@ TEST_F(AnimationAdaptorTest, prefab_noAnimNode) {
 	auto prefab = create<Prefab>("Prefab");
 	dispatch();
 
-	commandInterface.moveScenegraphChild(anim, prefab);
+	commandInterface.moveScenegraphChildren({anim}, prefab);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 0);
 }
 
 TEST_F(AnimationAdaptorTest, animNode_multiple_channels) {
@@ -176,7 +176,7 @@ TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
 	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 4);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 4);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
@@ -187,7 +187,7 @@ TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
@@ -221,7 +221,7 @@ end
 	context.set({luaScript, {"luaInputs", "in_value"}}, true);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().begin()->getInputs()->getChild("play")->get<bool>(), true);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getInputs()->getChild("play")->get<bool>(), true);
 }
 
 TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
@@ -390,8 +390,8 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_link_inside_prefabins
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(anim, prefab);
-	commandInterface.moveScenegraphChild(meshNode, prefab);
+	commandInterface.moveScenegraphChildren({anim}, prefab);
+	commandInterface.moveScenegraphChildren({meshNode}, prefab);
 	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
 	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
 	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
@@ -429,12 +429,12 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_gets_propag
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(anim, prefab);
+	commandInterface.moveScenegraphChildren({anim}, prefab);
 	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
 	commandInterface.set({prefabInstance, {"template"}}, prefab);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
 
 	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
 	dispatch();
@@ -443,8 +443,8 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_gets_propag
 	dispatch();
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().animationNodes().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
 }
 
 TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_pause_gets_propagated) {
@@ -458,12 +458,12 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_pause_gets_
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(anim, prefab);
+	commandInterface.moveScenegraphChildren({anim}, prefab);
 	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
 	commandInterface.set({prefabInstance, {"template"}}, prefab);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
 
 	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
 	dispatch();
@@ -472,14 +472,14 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_pause_gets_
 	dispatch();
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().animationNodes().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
 
 	commandInterface.set({anim, &raco::user_types::Animation::play_}, false);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().animationNodes().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
 }
 
 TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_stop_gets_propagated) {
@@ -493,12 +493,12 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_stop_gets_p
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(anim, prefab);
+	commandInterface.moveScenegraphChildren({anim}, prefab);
 	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
 	commandInterface.set({prefabInstance, {"template"}}, prefab);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
 
 	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
 	commandInterface.set({anim, &raco::user_types::Animation::rewindOnStop_}, true);
@@ -508,12 +508,12 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_stop_gets_p
 	dispatch();
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().animationNodes().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
 
 	commandInterface.set({anim, &raco::user_types::Animation::play_}, false);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().size(), 1);
-	ASSERT_EQ(sceneContext.logicEngine().animationNodes().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
 }

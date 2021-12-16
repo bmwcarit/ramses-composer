@@ -14,6 +14,7 @@ set(TEST_SOURCES
     Animation_test.cpp
     AnimationChannel_test.cpp
     LuaScript_test.cpp
+    LuaScriptModule_test.cpp
     DefaultValues_test.cpp
 )
 set(TEST_LIBRARIES
@@ -34,7 +35,9 @@ raco_package_add_test_resouces(
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
     meshes/Duck.glb
-    scripts/struct.lua
     scripts/array.lua
     scripts/compile-error.lua
+    scripts/moduleDefinition.lua
+    scripts/moduleDependency.lua
+    scripts/struct.lua
 )

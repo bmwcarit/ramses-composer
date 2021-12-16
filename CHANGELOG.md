@@ -12,6 +12,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 <!--- Template for next release section
 ## [unreleased]
 * **File version number has changed. Files saved with RaCo X.Y.Z cannot be opened by previous versions.**
+* **Export file format has changed. Scenes exported with RaCo X.Y.Z / ramses-logic A.B.C cannot be opened by previous ramses-logic versions.**
 
 ### Added
 
@@ -19,8 +20,37 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 ### Fixes
 
-### Known Bugs
+### Known Issues
 -->
+
+## [0.11.0] Lua Modules
+* **File version number has changed. Files saved with RaCo 0.11.0 cannot be opened by previous versions.**
+* **Export file format has changed. Scenes exported with RaCo 0.11.0 / ramses-logic 0.13.0 cannot be opened by previous ramses-logic versions.**
+
+### Added
+* Added multi-selection for deleting, copying, cutting and pasting in Scene Graph, Resources, Prefabs and Project Browser.
+* Added Lua module support.
+    * The new user type LuaScriptModule is a resource that loads modules from specified Lua files.
+    * LuaScripts have a new output entry "Modules" - for each module defined in the Lua script file, this entry will contain a reference drop-down where LuaScriptModules can be selected
+    * Nested modules are currently not supported.
+* Added support for generating mipmaps for a textures.
+    * The texture object has a new option "Generate Mipmaps" which by default is off. If enabled, Ramses will auto-generate mipmaps for the texture.
+
+### Changes
+* Update from ramses-logic 0.12.0 to ramses-logic 0.13.0
+    * Major performance improvement for large scenes with lots of links alongside few bugfixes
+* Update from ramses 27.0.113 to 27.0.114
+
+### Fixes
+* Undo / Redo is now properly working for collapsed vector editors in the property browser.
+* Fixed visual issue with number inputs in property editor not leaving highlighted state after pressing enter.
+* Fixed undo/redo to prevent creation of valid links starting on non-existing properties.
+* Fixed drop down boxes with "<empty>" reference in property browser causing a crash when being deactivated.
+
+### Known Issues
+* The INT64 type introduced in ramses-logic 0.13.0 is not supported yet.
+* The property "timeRange" in Animations introduced in ramses-logic 0.13.0 is not supported yet.
+* The new "TimerNode" introduced in ramses-logic 0.13.0 cannot be created in RaCo yet.
 
 ## [0.10.0] Animations
 * **File version number has changed. Files saved with RaCo 0.10.0 cannot be opened by previous versions.**

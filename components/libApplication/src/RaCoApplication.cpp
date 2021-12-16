@@ -125,7 +125,7 @@ void RaCoApplication::doOneLoop() {
 		scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 	}
 
-	auto animNodes = engine_->logicEngine().animationNodes();
+	auto animNodes = engine_->logicEngine().getCollection<rlogic::AnimationNode>();
 	logicEngineNeedsUpdate_ |= (animNodes.size() > 0);
 
 	auto elapsedTime = std::chrono::high_resolution_clock::now() - startTime_;
@@ -133,7 +133,7 @@ void RaCoApplication::doOneLoop() {
 
 	auto activeProjectRunsTimer = activeRaCoProject().project()->settings()->runTimer_.asBool();
 	if (activeProjectRunsTimer) {
-		auto loadedScripts = engine_->logicEngine().scripts();
+		auto loadedScripts = engine_->logicEngine().getCollection<rlogic::LuaScript>();
 		for (auto* loadedScript : loadedScripts) {
 			if (auto* timerInput = loadedScript->getInputs()->getChild("time_ms")) {
 				timerInput->set(static_cast<int32_t>(elapsedMsec));

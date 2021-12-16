@@ -341,7 +341,11 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 
 	// Use the change recorder in the context from here on
 	context_->uiChanges().mergeChanges(changes);
-	
+
+	// Reset model changes here to make sure the next undo stack push will see 
+	// all changes relative to the last undo stack entry
+	context_->modelChanges().reset();
+
 	// Sync from external files for new or changed objects
 	auto changedObjects = changes.getAllChangedObjects();
 	context_->performExternalFileReload({changedObjects.begin(), changedObjects.end()});
@@ -349,9 +353,11 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 	if (extrefDirty) {
 		std::vector<std::string> stack;
 		stack.emplace_back(dest->currentPath());
+		// TODO needed to remove model change reset here since this allows the undo stack to get into inconsistent state.
+		// See commment above.
 		// Reset model changes here to make sure that the prefab update which runs at the end of the external reference update
 		// will only see the changed external reference objects and will not perform unnecessary prefab updates.
-		context_->modelChanges().reset();
+		//context_->modelChanges().reset();
 		try {
 			context_->updateExternalReferences(stack);
 		} catch (ExtrefError &e) {
@@ -360,7 +366,6 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 			// to throwing this exception.
 		}
 	}
-	context_->modelChanges().reset();
 }
 
 UndoStack::UndoStack(BaseContext* context, const Callback& onChange) : context_(context), onChange_ { onChange } {

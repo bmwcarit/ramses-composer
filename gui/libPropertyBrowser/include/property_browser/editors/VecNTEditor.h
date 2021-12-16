@@ -56,7 +56,7 @@ public:
 			QObject::connect(spinboxes_[i].get(), &SpinBoxType::valueChanged, item, [item, i](T value) { item->children().at(i)->set(value); });
 			QObject::connect(item->children().at(i), &PropertyBrowserItem::valueChanged, spinboxes_[i].get(), [this, i](raco::core::ValueHandle& handle) {
 				spinboxes_[i]->setValue(handle.as<T>());
-			});			
+			});
 
 			if (i < N - 1) {
 				int nextSpinboxIndex = i + 1;
@@ -67,6 +67,12 @@ public:
 
 			layout->addWidget(spinboxes_[i].get(), 0, i);
 		}
+		QObject::connect(item, &PropertyBrowserItem::childrenChanged, item, [this](const QList<PropertyBrowserItem*>& children) {
+			for (int i = 0; i < N; i++) {
+				spinboxes_[i]->setValue(children.at(i)->valueHandle().as<T>());
+			}
+		});			
+
 	}
 public Q_SLOTS:
     void setEnabled(bool val) {

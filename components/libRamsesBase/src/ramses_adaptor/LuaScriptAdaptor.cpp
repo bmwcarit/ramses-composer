@@ -9,9 +9,11 @@
  */
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 
+#include "ramses_adaptor/LuaScriptModuleAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
 #include "ramses_base/LogicEngineFormatter.h"
+#include "ramses_base/Utils.h"
 #include "user_types/PrefabInstance.h"
 #include "utils/FileUtils.h"
 
@@ -35,7 +37,11 @@ LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<u
 			  tagDirty();
 			  recreateStatus_ = true;
 		  }
-	  })) {
+	  })),
+	  moduleSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScript::luaModules_}, [this](auto) {
+		  tagDirty();
+		  recreateStatus_ = true;
+	  })} {
 	setupParentSubscription();
 	setupInputValuesSubscription();
 }
@@ -89,9 +95,20 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 		auto scriptContent = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaScript::uri_}));
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), scriptContent);
 		luaScript_.reset();
+		modules.clear();
 		if (!scriptContent.empty()) {
-			rlogic::LuaConfig luaConfig;
-			luaConfig.addStandardModuleDependency(rlogic::EStandardModule::All);
+			auto luaConfig = raco::ramses_base::defaultLuaConfig();
+
+			const auto& moduleDeps = editorObject_->luaModules_.asTable();
+			for (auto i = 0; i < moduleDeps.size(); ++i) {
+				if (auto moduleRef = moduleDeps.get(i)->asRef()) {
+					auto moduleAdaptor = sceneAdaptor_->lookup<LuaScriptModuleAdaptor>(moduleRef);
+					if (auto module = moduleAdaptor->module_) {
+						modules.emplace_back(module);
+						luaConfig.addDependency(moduleDeps.name(i), *module);
+					}
+				}
+			}
 			auto ptr = sceneAdaptor_->logicEngine().createLuaScript(scriptContent, luaConfig, generateRamsesObjectName());
 			LOG_TRACE(log_system::RAMSES_ADAPTOR, "create: {}", fmt::ptr(ptr));
 			if (ptr) {

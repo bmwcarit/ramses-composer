@@ -59,7 +59,7 @@ public:
 
 	void reset();
 
-private:
+protected:
     void saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 	void updateProjectState(const Project *src, Project *dest, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 

@@ -68,7 +68,7 @@ constexpr QLabel* createNotificationWidget(PropertyBrowserModel* model, QWidget*
 }
 
 PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent)
-	: QWidget{parent} {
+	: currentObjectID_(item->valueHandle().rootObject()->objectID()), QWidget{parent} {
 	item->setParent(this);
 	auto* layout = new PropertyBrowserGridLayout{this};
 	layout->setColumnStretch(0, 1);
@@ -139,6 +139,10 @@ PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrow
 	contentLayout->addWidget(new PropertySubtreeView{model, item, this});
 }
 
+std::string PropertyBrowserView::getCurrentObjectID() const {
+	return currentObjectID_;
+}
+
 PropertyBrowserWidget::PropertyBrowserWidget(
 	SDataChangeDispatcher dispatcher,
 	raco::core::CommandInterface* commandInterface,
@@ -169,9 +173,7 @@ void PropertyBrowserWidget::setLockable(bool lockable) {
 }
 
 void PropertyBrowserWidget::clear() {
-	if (!locked_) {
-		clearValueHandle(false);
-	}
+	clearValueHandle(false);
 }
 
 void PropertyBrowserWidget::setLocked(bool locked) {
@@ -180,29 +182,38 @@ void PropertyBrowserWidget::setLocked(bool locked) {
 }
 
 void PropertyBrowserWidget::clearValueHandle(bool restorable) {
-	if (restorable && propertyBrowser_) {
-		subscription_ = dispatcher_->registerOnObjectsLifeCycle([this](core::SEditorObject obj) {
-			if (restorableObjectId_ == obj->objectID())
-				setValueHandle({ obj });
-		}, [](auto){});
-	} else {
-		restorableObjectId_ = "";
-		subscription_ = raco::components::Subscription{};
+	if (!locked_) {
+		if (restorable && propertyBrowser_) {
+			subscription_ = dispatcher_->registerOnObjectsLifeCycle([this](core::SEditorObject obj) { 
+				if (restorableObjectId_ == obj->objectID()) {
+					setValueHandle({ obj });
+				}}, [](auto) {});
+
+		} else {
+			restorableObjectId_ = "";
+			subscription_ = raco::components::Subscription{};
+		}
+		propertyBrowser_.reset();
+		emptyLabel_->setVisible(true);
 	}
-	propertyBrowser_.reset();
-	emptyLabel_->setVisible(true);
 }
 
 void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
+	if (propertyBrowser_ && propertyBrowser_->getCurrentObjectID() == valueHandle.rootObject()->objectID()) {
+		// No need to update the Value Handle if we still are referencing to the same object.
+		// This happens for example when the display name changes, thus the tree view will update and then restore the selected item in the property browser.
+		return;	
+	}
+
 	if (!locked_) {
 		emptyLabel_->setVisible(false);
 		restorableObjectId_ = valueHandle.rootObject()->objectID();
 		subscription_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this, valueHandle](core::SEditorObject obj) {
 			if (valueHandle.rootObject() == obj) {
-				clearValueHandle(true);
 				if (locked_) {
 					setLocked(false);
 				}
+				clearValueHandle(true);
 			}
 		});
 		propertyBrowser_.reset(new PropertyBrowserView{new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, model_}, model_, this});
@@ -220,7 +231,7 @@ void PropertyBrowserWidget::setValueHandles(const std::set<raco::core::ValueHand
 	//QTime t;
 	//t.start();
 	if (valueHandles.size() > 1) {
-		// TODO: handle multi-selection here
+		clearValueHandle(false);
 	} else {
 		setValueHandle(*valueHandles.begin());
 	}

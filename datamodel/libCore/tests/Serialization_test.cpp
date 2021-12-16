@@ -95,7 +95,7 @@ TEST_F(SerializationTest, serializeMeshNodeWithMesh) {
 TEST_F(SerializationTest, serializeNodeWithChildMeshNode) {
 	const auto sMeshNode{commandInterface.createObject(raco::user_types::MeshNode::typeDescription.typeName, "mesh_node", "mesh_node_id")};
 	const auto sNode{commandInterface.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
-	commandInterface.moveScenegraphChild(sMeshNode, sNode);
+	commandInterface.moveScenegraphChildren({sMeshNode}, sNode);
 	auto result = raco::serialization::serialize(sNode);
 	if (WRITE_RESULT) raco::utils::file::write((std::filesystem::path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "NodeWithChildMeshNode.json").string(), result);
 

@@ -31,6 +31,8 @@ set(RESOURCE_FILES
 	scripts/array.lua
 	scripts/compile-error.lua
 	scripts/Heavy.lua
+	scripts/moduleDefinition.lua
+	scripts/moduleDependency.lua
 	scripts/order.lua
 	scripts/runtime-error.lua
 	scripts/SimpleScript.lua

@@ -53,7 +53,7 @@ RefEditor::RefEditor(
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), ref_, &PropertyBrowserRef::setIndex);
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::currentIndexChanged), [this](auto index) {
 		emptyReference_ = (index == PropertyBrowserRef::EMPTY_REF_INDEX);
-		goToRefObjectButton_->setDisabled(index == PropertyBrowserRef::EMPTY_REF_INDEX);
+		goToRefObjectButton_->setDisabled(emptyReference_);
 	});
 	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
 		comboBox_->setFocus();

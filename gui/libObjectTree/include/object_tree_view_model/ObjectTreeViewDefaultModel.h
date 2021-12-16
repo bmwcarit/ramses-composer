@@ -66,7 +66,7 @@ public:
 	bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
 	bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
 	Qt::ItemFlags flags(const QModelIndex& index) const override;
-	QMimeData* mimeData(const QModelIndexList& indexes) const override;
+	QMimeData* mimeData(const QModelIndexList& indices) const override;
 	QStringList mimeTypes() const override;
 	Qt::DropActions supportedDropActions() const override;
 	
@@ -74,9 +74,9 @@ public:
 	virtual void setUpTreeModificationFunctions();
 
 	void iterateThroughTree(std::function<void(QModelIndex&)> nodeFunc, QModelIndex& currentIndex);
-	QModelIndex getInvisibleRootIndex() const;
 	ObjectTreeNode* indexToTreeNode(const QModelIndex& index) const;
 	core::SEditorObject indexToSEditorObject(const QModelIndex& index) const;
+	std::vector<core::SEditorObject> indicesToSEditorObjects(const QModelIndexList& indices) const;
 	QModelIndex indexFromObjectID(const std::string& id) const;
 
 	void setProjectObjectFilterFunction(const ObjectFilterFunc& func);
@@ -87,14 +87,20 @@ public:
 
 	virtual Qt::TextElideMode textElideMode() const;
 
-	virtual std::vector<std::string> allowedCreatableUserTypes(const QModelIndexList& selectedIndexes) const;
+	// Compare function that produces the following order: First sort by hierachy level then by row in scene graph.
+	static bool isIndexAboveInHierachyOrPosition(QModelIndex left, QModelIndex right);
+
+public:
+	std::pair<std::vector<core::SEditorObject>, std::set<std::string>> getObjectsAndRootIdsFromClipboardString(const std::string& serializedObjs) const;
 	
-	virtual bool canCopy(const QModelIndex& index) const;
-	virtual bool canDelete(const QModelIndex& index) const;
-	virtual bool canInsertMeshAssets(const QModelIndex& index) const;
-	virtual bool canPasteInto(const QModelIndex& index, const std::string& serializedObjs = RaCoClipboard::get(), bool asExtRef = false) const;
+	virtual bool canCopyAtIndices(const QModelIndexList& index) const;
+	virtual bool canDeleteAtIndices(const QModelIndexList& indices) const;
+	virtual bool canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef = false) const;
+
 	virtual bool canDeleteUnusedResources() const;
-	virtual bool objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const;
+
+	virtual bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const;
+	virtual std::vector<std::string> typesAllowedIntoIndex(const QModelIndex& index) const;
 
 Q_SIGNALS:
 	void repaintRequested();
@@ -102,11 +108,11 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const core::EditorObject::TypeDescriptor &typeDesc, const std::string &nodeName = "", const QModelIndex &parent = QModelIndex());
-	virtual size_t deleteObjectAtIndex(const QModelIndex& index);
-	virtual void copyObjectAtIndex(const QModelIndex& index, bool deepCopy);
-	virtual void cutObjectAtIndex(const QModelIndex& index, bool deepCut);
+	virtual size_t deleteObjectsAtIndices(const QModelIndexList& indices);
+	virtual void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy);
+	virtual void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut);
 	virtual bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get());
-	void moveScenegraphChild(core::SEditorObject child, core::SEditorObject parent, int row = -1);
+	void moveScenegraphChildren(const std::vector<core::SEditorObject>& objects, core::SEditorObject parent, int row = -1);
 	void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex);
 	void deleteUnusedResources();
 
@@ -137,20 +143,21 @@ protected:
 	using Pixmap = ::raco::style::Pixmap;
 
 	static inline const std::map<std::string, Pixmap> typeIconMap{
-		{std::string("PerspectiveCamera"), Pixmap::typeCamera},
-		{std::string("OrthographicCamera"), Pixmap::typeCamera},
-		{std::string("Texture"), Pixmap::typeTexture},
-		{std::string("CubeMap"), Pixmap::typeCubemap},
-		{std::string("LuaScript"), Pixmap::typeScript},
-		{std::string("Material"), Pixmap::typeMaterial},
-		{std::string("Mesh"), Pixmap::typeMesh},
-		{std::string("MeshNode"), Pixmap::typeMesh},
-		{std::string("Node"), Pixmap::typeNode},
-		{std::string("Prefab"), Pixmap::typePrefabInternal},
-		{std::string("ExtrefPrefab"), Pixmap::typePrefabExternal},
-		{std::string("PrefabInstance"), Pixmap::typePrefabInstance},
-		{std::string{"AnimationChannel"}, Pixmap::typeAnimationChannel},
-		{std::string{"Animation"}, Pixmap::typeAnimation}
+		{"PerspectiveCamera", Pixmap::typeCamera},
+		{"OrthographicCamera", Pixmap::typeCamera},
+		{"Texture", Pixmap::typeTexture},
+		{"CubeMap", Pixmap::typeCubemap},
+		{"LuaScript", Pixmap::typeScript},
+		{"Material", Pixmap::typeMaterial},
+		{"Mesh", Pixmap::typeMesh},
+		{"MeshNode", Pixmap::typeMesh},
+		{"Node", Pixmap::typeNode},
+		{"Prefab", Pixmap::typePrefabInternal},
+		{"ExtrefPrefab", Pixmap::typePrefabExternal},
+		{"PrefabInstance", Pixmap::typePrefabInstance},
+		{"LuaScriptModule", Pixmap::typeLuaScriptModule},
+		{"AnimationChannel", Pixmap::typeAnimationChannel},
+		{"Animation", Pixmap::typeAnimation}
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;

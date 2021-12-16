@@ -21,51 +21,42 @@ ObjectTreeViewPrefabModel::ObjectTreeViewPrefabModel(raco::core::CommandInterfac
 	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, allowedCreatableUserTypes) {
 }
 
-std::vector<std::string> ObjectTreeViewPrefabModel::allowedCreatableUserTypes(const QModelIndexList& selectedIndexes) const {
-	if (!selectedIndexes.isEmpty()) {
-		auto selectedIndex = selectedIndexes.front();
-		if (selectedIndex.isValid()) {
-			return allowedUserCreatableUserTypes_;
-		}
-	}
+std::vector<std::string> ObjectTreeViewPrefabModel::typesAllowedIntoIndex(const QModelIndex& index) const {
 
-	return {raco::user_types::Prefab::typeDescription.typeName};
-}
-
-bool ObjectTreeViewPrefabModel::canInsertMeshAssets(const QModelIndex& index) const {
+	auto prefabType = raco::user_types::Prefab::typeDescription.typeName;
 	if (index.isValid()) {
-		return ObjectTreeViewDefaultModel::canInsertMeshAssets(index);
-	}
+		auto types = ObjectTreeViewDefaultModel::typesAllowedIntoIndex(index);
 
-	return false;
+		auto prefabIndex = std::find(types.begin(), types.end(), prefabType);
+		if (prefabIndex != types.end()) {
+			types.erase(std::find(types.begin(), types.end(), prefabType));
+		}
+
+		return types;
+	} else {
+		return {prefabType};	
+	}
 }
 
-bool ObjectTreeViewPrefabModel::objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const {
-	if (parentIndex.isValid()) {
-		if (auto parentObj = indexToSEditorObject(parentIndex)) {
+bool ObjectTreeViewPrefabModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
+	if (index.isValid()) {
+
+		if (auto parentObj = indexToSEditorObject(index)) {
 			if (parentObj->query<core::ExternalReferenceAnnotation>() || raco::core::PrefabOperations::findContainingPrefabInstance(parentObj)) {
 				return false;
 			}
 		}
-		return ObjectTreeViewDefaultModel::objectsAreAllowedInModel(objs, parentIndex);
+
+		return ObjectTreeViewDefaultModel::isObjectAllowedIntoIndex(index, obj);
 	} else {
-		// pasting in blank space: Clipboard should contain one Prefab
-		// Any other top-level objects would then be part of a Prefab deep-copy
-		// If there is a PrefabInstance top-level object: PrefabInstance deep-copy
-
-		auto objsContainPrefab = false;
-		for (const auto& obj : objs) {
-			if (obj->as<user_types::Prefab>()) {
-				objsContainPrefab = true;
-			} else if (obj->as<user_types::PrefabInstance>()) {
-				return false;
-			}
+		if (obj->as<user_types::Prefab>()) {
+			return true;
+		} else {
+			return false;
 		}
-		return objsContainPrefab;
-
 	}
-	return true;
 }
+
 
 
 }  // namespace raco::object_tree::model

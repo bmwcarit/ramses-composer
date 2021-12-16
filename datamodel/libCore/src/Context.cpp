@@ -385,7 +385,7 @@ std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, b
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
 	std::string serialization{raco::serialization::serialize(allObjects, rootObjectIDs, allLinks, project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str()};
-	deleteObjects(allObjects);
+	deleteObjects(Queries::filterForDeleteableObjects(*project_, allObjects));
 	return serialization;
 }
 
@@ -580,9 +580,8 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	if (!pasteAsExtref) {
 		// move all top level objects onto the target if it is allowed.
 		for (const SEditorObject& obj : topLevelObjects) {
-			if (!obj->query<ExternalReferenceAnnotation>() &&
-				Queries::canMoveScenegraphChild(*project_, obj, target)) {
-				moveScenegraphChild(obj, target);
+			if (!obj->query<ExternalReferenceAnnotation>()) {
+				moveScenegraphChildren(Queries::filterForMoveableScenegraphChildren(*project_, {obj}, target), target);
 			}
 		}
 
@@ -711,14 +710,6 @@ SEditorObject BaseContext::createObject(std::string type, std::string name, std:
 	return object;
 }
 
-SEditorObjectSet allChildren(std::vector<SEditorObject> const& objects) {
-	SEditorObjectSet children;
-	for (auto obj : objects) {
-		std::copy(TreeIteratorAdaptor(obj).begin(), TreeIteratorAdaptor(obj).end(), std::inserter(children, children.end()));
-	}
-	return children;
-}
-
 void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
 	SEditorObjectSet srcObjects;
 	for (auto obj : objects) {
@@ -779,7 +770,7 @@ bool BaseContext::deleteWithVolatileSideEffects(Project* project, const SEditorO
 size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap, bool includeChildren) {
 	SEditorObjectSet toRemove;
 	if (includeChildren) {
-		toRemove = allChildren(objects);
+		toRemove = Queries::collectAllChildren(objects);
 	} else {
 		std::copy(objects.begin(), objects.end(), std::inserter(toRemove, toRemove.end()));
 	}
@@ -806,57 +797,63 @@ size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, boo
 	return toRemove.size();
 }
 
-void BaseContext::moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex) {
-	if (!object) {
+void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objects, SEditorObject const& newParent, int insertBeforeIndex) {
+	if (objects.size() == 0) {
 		return;
 	}
 
-	auto oldParent = object->parent_.lock();
-	int oldChildIndex = -1;
-	if (oldParent) {
-		oldChildIndex = oldParent->findChildIndex(object.get());
-	}
+	for (const auto& object : objects) {
+		auto oldParent = object->parent_.lock();
 
-	// Moving the object to before itself or to before its successor is a NOP:
-	if (oldParent == newParent &&
-		(oldChildIndex == insertBeforeIndex || oldChildIndex + 1 == insertBeforeIndex)) {
-		return;
-	}
+		if (oldParent) {
+			int oldChildIndex = oldParent->findChildIndex(object.get());
 
-	if (oldParent) {
-		// Special case: move inside the same object:
-		// if moving towards the end we need to adjust the insertion index since removing the
-		// object in its current position will shift the insertion index by one.
-		if (oldParent == newParent && insertBeforeIndex > oldChildIndex) {
-			--insertBeforeIndex;
+			if (oldParent == newParent) {
+
+				// Moving the object to before itself or to before its successor is a NOP: 
+				if (oldChildIndex == insertBeforeIndex || oldChildIndex + 1 == insertBeforeIndex) {
+					++insertBeforeIndex;
+					continue;
+				}
+				// Special case: move inside the same object:
+				// if moving towards the end we need to adjust the insertion index since removing the
+				// object in its current position will shift the insertion index by one.
+				else if (insertBeforeIndex > oldChildIndex) {
+					--insertBeforeIndex;
+				}
+			}
+
+			ValueHandle oldParentChildren{oldParent, &EditorObject::children_};
+			removeProperty(oldParentChildren, oldChildIndex);
 		}
 
-		ValueHandle oldParentChildren{oldParent, &EditorObject::children_};
-		removeProperty(oldParentChildren, oldChildIndex);
-	}
+		if (newParent) {
+			ValueBase* newChildEntry = newParent->children_->addProperty(PrimitiveType::Ref, insertBeforeIndex);
+			*newChildEntry = object;
 
-	if (newParent) {
-		ValueBase* newChildEntry = newParent->children_->addProperty(PrimitiveType::Ref, insertBeforeIndex);
-		*newChildEntry = object;
+			int newChildIndex = newParent->findChildIndex(object.get());
 
-		int newChildIndex = newParent->findChildIndex(object.get());
+			ValueHandle newParentChildren{newParent, &EditorObject::children_};
+			object->onAfterAddReferenceToThis(newParentChildren[newChildIndex]);
 
-		ValueHandle newParentChildren{newParent, &EditorObject::children_};
-		object->onAfterAddReferenceToThis(newParentChildren[newChildIndex]);
+			callReferencedObjectChangedHandlers(object);
 
-		callReferencedObjectChangedHandlers(object);
+			changeMultiplexer_.recordValueChanged(newParentChildren);
+		}
 
-		changeMultiplexer_.recordValueChanged(newParentChildren);
-	}
-
-	// Remove links attached to the moved object subtree that are not allowed with the new parent by the prefab-related constraints.
-	std::vector<SLink> linksToRemove;
-	for (auto child : TreeIteratorAdaptor(object)) {
-		for (auto link : Queries::getLinksConnectedToObject(*project_, child, true, true)) {
-			if (!Queries::linkSatisfiesConstraints(link->startProp(), link->endProp())) {
-				removeLink(link->endProp());
-				LOG_WARNING(log_system::CONTEXT, "Removed link violating prefab constraints: {}", link);
+		// Remove links attached to the moved object subtree that are not allowed with the new parent by the prefab-related constraints.
+		std::vector<SLink> linksToRemove;
+		for (auto child : TreeIteratorAdaptor(object)) {
+			for (auto link : Queries::getLinksConnectedToObject(*project_, child, true, true)) {
+				if (!Queries::linkSatisfiesConstraints(link->startProp(), link->endProp())) {
+					removeLink(link->endProp());
+					LOG_WARNING(log_system::CONTEXT, "Removed link violating prefab constraints: {}", link);
+				}
 			}
+		}
+
+		if (insertBeforeIndex != -1) {
+			++insertBeforeIndex;
 		}
 	}
 }
@@ -911,8 +908,8 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	auto meshPath = std::filesystem::path(relativeFilePath).filename().string();
 	meshPath = project_->findAvailableUniqueName(topLevelObjects.begin(), topLevelObjects.end(), nullptr, meshPath);
 	auto sceneRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshPath);
-	if (parent && core::Queries::canMoveScenegraphChild(*project(), sceneRootNode, parent)) {
-		moveScenegraphChild(sceneRootNode, parent);
+	if (parent) {
+		moveScenegraphChildren(core::Queries::filterForMoveableScenegraphChildren(*project(), {sceneRootNode}, parent), parent);
 	}
 
 	LOG_DEBUG(log_system::CONTEXT, "Traversing through scenegraph nodes...");
@@ -939,7 +936,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				LOG_DEBUG(log_system::CONTEXT, "Found node {} with multiple submeshes -> creating MeshNode for each submesh...", meshScenegraphNode.name);
 				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
 				submeshRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name + "_meshnodes");
-				moveScenegraphChild(submeshRootNode, newNode);
+				moveScenegraphChildren({submeshRootNode}, newNode);
 			}
 
 			for (size_t submeshIndex{0}; submeshIndex < meshScenegraphNode.subMeshIndeces.size(); ++submeshIndex) {
@@ -955,7 +952,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 					submeshNode = newNode;
 				} else {
 					submeshNode = createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name + "_meshnode_" + std::to_string(submeshIndex));
-					moveScenegraphChild(submeshNode, submeshRootNode);
+					moveScenegraphChildren({submeshNode}, submeshRootNode);
 				}
 
 				if (assignedSubmeshIndex < 0) {
@@ -979,8 +976,8 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			}
 		}
 
-		if (!meshScenegraphNode.hasParent() && core::Queries::canMoveScenegraphChild(*project(), newNode, sceneRootNode)) {
-			moveScenegraphChild(newNode, sceneRootNode);
+		if (!meshScenegraphNode.hasParent()) {
+			moveScenegraphChildren(core::Queries::filterForMoveableScenegraphChildren(*project(), {newNode}, sceneRootNode), sceneRootNode);
 		}
 		LOG_DEBUG(log_system::CONTEXT, "All nodes traversed.");
 
@@ -1003,8 +1000,8 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	LOG_INFO(log_system::CONTEXT, "Restoring scenegraph structure...");
 	for (size_t i{0}; i < scenegraph.nodes.size(); ++i) {
 		auto meshScenegraphNode = scenegraph.nodes[i];
-		if (meshScenegraphNode.has_value() && meshScenegraphNode->hasParent() && core::Queries::canMoveScenegraphChild(*project(), meshScenegraphNodes[i], meshScenegraphNodes[meshScenegraphNode->parentIndex])) {
-			moveScenegraphChild(meshScenegraphNodes[i], meshScenegraphNodes[meshScenegraphNode->parentIndex]);
+		if (meshScenegraphNode.has_value() && meshScenegraphNode->hasParent()) {
+			moveScenegraphChildren(core::Queries::filterForMoveableScenegraphChildren(*project(), {meshScenegraphNodes[i]}, meshScenegraphNodes[meshScenegraphNode->parentIndex]), meshScenegraphNodes[meshScenegraphNode->parentIndex]);
 		}
 	}
 	LOG_INFO(log_system::CONTEXT, "Scenegraph structure restored.");
@@ -1053,7 +1050,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		newAnim->as<raco::user_types::Animation>()->setChannelAmount(samplerSize);
 		set({newAnim, {"play"}}, true);
 		set({newAnim, {"loop"}}, true);
-		moveScenegraphChild(newAnim, sceneRootNode);
+		moveScenegraphChildren({newAnim}, sceneRootNode);
 		LOG_INFO(log_system::CONTEXT, "Assigning animation samplers to animation '{}'...", meshAnim.name);
 		for (auto samplerIndex = 0; samplerIndex < samplerSize; ++samplerIndex) {
 			if (!sceneChannels[animationIndex][samplerIndex]) {

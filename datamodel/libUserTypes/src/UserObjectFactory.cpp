@@ -18,6 +18,7 @@
 #include "user_types/BaseTexture.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
@@ -89,6 +90,7 @@ UserObjectFactory::UserObjectFactory() {
 		OrthographicCamera,
 		PerspectiveCamera,
 		LuaScript,
+		LuaScriptModule,
         Texture,
 		RenderBuffer,
 		RenderLayer,

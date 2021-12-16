@@ -120,8 +120,8 @@ SEditorObject CommandInterface::createObject(std::string type, std::string name,
 	auto types = context_->objectFactory()->getTypes();
 	if (types.find(type) != types.end()) {
 		auto newObject = context_->createObject(type, name, id);
-		if (parent && Queries::canMoveScenegraphChild(*project(), newObject, parent)) {
-			context_->moveScenegraphChild(newObject, parent);
+		if (parent) {
+			context_->moveScenegraphChildren(Queries::filterForMoveableScenegraphChildren(*project(), {newObject}, parent), parent);
 		}
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
 		undoStack_->push(fmt::format("Create '{}' object '{}'", type, name));
@@ -131,24 +131,31 @@ SEditorObject CommandInterface::createObject(std::string type, std::string name,
 }
 
 size_t CommandInterface::deleteObjects(std::vector<SEditorObject> const& objects) {
-	if (!objects.empty()) {
-		if (Queries::canDeleteObjects(*project(), objects)) {
-			auto numDeleted = context_->deleteObjects(objects);
-			PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
-			undoStack_->push(fmt::format("Delete {} objects", objects.size()));
-			return numDeleted;
-		}
+	auto deletableObjects = Queries::filterForDeleteableObjects(*project(), objects);
+	if (!deletableObjects.empty()) {
+		auto numDeleted = context_->deleteObjects(deletableObjects);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Delete {} objects", numDeleted));
+		return numDeleted;
 	}
 	return 0;
 }
 
-void CommandInterface::moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex) {
-	if (Queries::canMoveScenegraphChild(*project(), object, newParent)) {
-		context_->moveScenegraphChild(object, newParent, insertBeforeIndex);
+void CommandInterface::moveScenegraphChildren(std::vector<SEditorObject> const& objects, SEditorObject const& newParent, int insertBeforeIndex) {
+	auto moveableChildren = Queries::filterForMoveableScenegraphChildren(*project(), objects, newParent);
+
+	if (moveableChildren.size() > 0) {
+		context_->moveScenegraphChildren(moveableChildren, newParent, insertBeforeIndex);
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
-		undoStack_->push(fmt::format("Move object '{}' to new parent '{}' before index {}", object->objectName(),
-			newParent ? newParent->objectName() : "<root>",
-			insertBeforeIndex));
+		if (moveableChildren.size() == 1) {
+			undoStack_->push(fmt::format("Move object '{}' to new parent '{}' before index {}", moveableChildren.front()->objectName(),
+				newParent ? newParent->objectName() : "<root>",
+				insertBeforeIndex));		
+		} else {
+			undoStack_->push(fmt::format("Move {} objects to new parent '{}' before index {}", moveableChildren.size(),
+				newParent ? newParent->objectName() : "<root>",
+				insertBeforeIndex));
+		}
 	}
 }
 
@@ -164,10 +171,11 @@ std::string CommandInterface::copyObjects(const std::vector<SEditorObject>& obje
 }
 
 std::string CommandInterface::cutObjects(const std::vector<SEditorObject>& objects, bool deepCut) {
-	if (Queries::canDeleteObjects(*project(), objects)) {
-		auto result = context_->cutObjects(objects, deepCut);
+	auto deletableObjects = Queries::filterForDeleteableObjects(*project(), objects);
+	if (!deletableObjects.empty()) {
+		auto result = context_->cutObjects(deletableObjects, deepCut);
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
-		undoStack_->push(fmt::format("Cut {} objects with deep = {}", objects.size(), deepCut));
+		undoStack_->push(fmt::format("Cut {} objects with deep = {}", deletableObjects.size(), deepCut));
 		return result;
 	}
 	return std::string();

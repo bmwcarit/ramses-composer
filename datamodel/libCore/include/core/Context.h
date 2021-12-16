@@ -126,10 +126,10 @@ public:
 	size_t deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap = true, bool includeChildren = true);
 
 
-	// Move scenegraph node to new parent at before the specified index.
+	// Move scenegraph nodes to new parent at before the specified index.
 	// - If ValueHandle is invalid/empty the scenegraph parent is removed.
 	// - If insertionBeforeIndex = -1 the node will be appended at the end of the new parent children.
-	void moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex = -1);
+	void moveScenegraphChildren(std::vector<SEditorObject> const& objects, SEditorObject const& newParent, int insertBeforeIndex = -1);
 
 	// Import scenegraph as a hierarchy of EditorObjects and move that scenegraph root noder under parent.
 	// This includes generating Mesh resources, Nodes and MeshNodes as well as searching for already created Materials.

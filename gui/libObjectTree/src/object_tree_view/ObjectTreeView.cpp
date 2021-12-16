@@ -15,6 +15,7 @@
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "core/UserObjectFactoryInterface.h"
+#include "user_types/Node.h"
 
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
@@ -45,7 +46,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 	setDragDropMode(QAbstractItemView::DragDrop);
 	setDragEnabled(true);
 	setDropIndicatorShown(true);
-	setSelectionMode(QAbstractItemView::SingleSelection);
+	setSelectionMode(QAbstractItemView::ExtendedSelection);
 	viewport()->setAcceptDrops(true);
 
 	if (proxyModel_) {
@@ -73,10 +74,8 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 			return;
 		}
 
-		std::set<ValueHandle> handles;
 		for (const auto &selectedItemIndex : selectedItemList.indexes()) {
 			auto selObj = indexToSEditorObject(selectedItemIndex);
-			handles.emplace(selObj);
 			selectedItemIDs_.emplace(selObj->objectID());
 		}
 
@@ -85,7 +84,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 			selectedItemIDs_.erase(selObj->objectID());
 		}
 
-		Q_EMIT newObjectTreeItemsSelected(handles);
+		Q_EMIT newObjectTreeItemsSelected(getSelectedHandles());
 	});
 
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemExpansionStates);
@@ -111,24 +110,19 @@ std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 }
 
 void ObjectTreeView::globalCopyCallback() {
-	if (selectionModel()->selectedIndexes().size() > 0) {
-		auto selectedItemIndex{selectionModel()->selectedIndexes().at(0)};
-		if (proxyModel_) {
-			selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
-		}
-		if (canCopy(selectedItemIndex)) {
-			treeModel_->copyObjectAtIndex(selectedItemIndex, false);
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.empty()) {
+		if (canCopyAtIndices(selectedIndices)) {
+			treeModel_->copyObjectsAtIndices(selectedIndices, false);
 		}
 	}
 }
 
 void ObjectTreeView::shortcutDelete() {
-	if (selectionModel()->selectedIndexes().size() > 0) {
-		auto selectedItemIndex{selectionModel()->selectedIndexes().at(0)};
-		if (proxyModel_) {
-			selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
-		}
-		auto delObjAmount = treeModel_->deleteObjectAtIndex(selectedItemIndex);
+	auto selectedIndices = getSelectedIndices();
+	if (!selectedIndices.empty()) {
+		auto delObjAmount = treeModel_->deleteObjectsAtIndices(selectedIndices);
+
 		if (delObjAmount > 0) {
 			selectionModel()->Q_EMIT selectionChanged({}, {});
 		}
@@ -157,19 +151,15 @@ void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
 }
 
 void ObjectTreeView::cut() {
-	if (selectionModel()->selectedIndexes().size() > 0) {
-		auto selectedItemIndex{selectionModel()->selectedIndexes().at(0)};
-		if (proxyModel_) {
-			selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
-		}
-		treeModel_->cutObjectAtIndex(selectedItemIndex, false);
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.isEmpty()) {
+		treeModel_->cutObjectsAtIndices(selectedIndices, false);
 	}
 }
 
 void ObjectTreeView::globalPasteCallback(const QModelIndex &index, bool asExtRef) {
-	auto selectionIndex = (proxyModel_) ? proxyModel_->mapToSource(index) : index;
-	if (canPasteInto(selectionIndex)) {
-		treeModel_->pasteObjectAtIndex(selectionIndex, asExtRef);
+	if (canPasteIntoIndex(index, asExtRef)) {
+		treeModel_->pasteObjectAtIndex(index, asExtRef);
 	}
 }
 
@@ -190,15 +180,18 @@ void ObjectTreeView::showContextMenu(const QPoint &p) {
 	treeViewMenu->exec(viewport()->mapToGlobal(p));
 }
 
-bool ObjectTreeView::canCopy(const QModelIndex &parentIndex) {
-	return treeModel_->canCopy(parentIndex);
+bool ObjectTreeView::canCopyAtIndices(const QModelIndexList &parentIndices) {
+	return treeModel_->canCopyAtIndices(parentIndices);
 }
 
-bool ObjectTreeView::canPasteInto(const QModelIndex &parentIndex, bool asExtref) {
-	if (RaCoClipboard::hasEditorObject()) {
-		return treeModel_->canPasteInto(parentIndex, RaCoClipboard::get(), asExtref);
+bool ObjectTreeView::canPasteIntoIndex(const QModelIndex &index, bool asExtref) {
+	if (!RaCoClipboard::hasEditorObject()) {
+		return false;
+	} else {
+		auto [pasteObjects, sourceProjectTopLevelObjectIds] = treeModel_->getObjectsAndRootIdsFromClipboardString(RaCoClipboard::get());
+		return treeModel_->canPasteIntoIndex(index, pasteObjects, sourceProjectTopLevelObjectIds, asExtref);
 	}
-	return false;
+
 }
 
 QSortFilterProxyModel* ObjectTreeView::proxyModel() const {
@@ -214,69 +207,92 @@ void ObjectTreeView::resetSelection() {
 QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	auto treeViewMenu = new QMenu(this);
 
-	auto selectedItemIndex = indexAt(p);
-	if (proxyModel_) {
-		selectedItemIndex = proxyModel_->mapToSource(selectedItemIndex);
-	}
+	auto selectedItemIndices = getSelectedIndices(true);
+	auto insertionTargetIndex = getSelectedInsertionTargetIndex();
+	
+	bool canDeleteSelectedIndices = treeModel_->canDeleteAtIndices(selectedItemIndices);
+	bool canCopySelectedIndices = treeModel_->canCopyAtIndices(selectedItemIndices);
 
 	auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_));
 	auto prefabModel = (dynamic_cast<ObjectTreeViewPrefabModel *>(treeModel_));
 	auto resourceModel = (dynamic_cast<ObjectTreeViewResourceModel *>(treeModel_));
 	auto allTypes = treeModel_->objectFactory()->getTypes();
-	auto allowedCreatableUserTypes = treeModel_->allowedCreatableUserTypes({selectedItemIndex});
+	auto allowedCreatableUserTypes = treeModel_->typesAllowedIntoIndex(insertionTargetIndex);
+	auto canInsertMeshAsset = false;
 
 	for (auto type : allowedCreatableUserTypes) {
 		if (allTypes.count(type) > 0 && treeModel_->objectFactory()->isUserCreatable(type)) {
 			auto typeDescriptor = allTypes[type];
-			treeViewMenu->addAction(QString::fromStdString("Create " + type), [this, typeDescriptor, selectedItemIndex]() {
-				requestNewNode(typeDescriptor.description, "", selectedItemIndex);
+			auto actionCreate = treeViewMenu->addAction(QString::fromStdString("Create " + type), [this, typeDescriptor, insertionTargetIndex]() {
+				requestNewNode(typeDescriptor.description, "", insertionTargetIndex);
 			});
+		}
+		if (type == raco::user_types::Node::typeDescription.typeName) {
+			canInsertMeshAsset = true;
 		}
 	}
 
-	treeViewMenu->addSeparator();
+	if (canInsertMeshAsset) {
+		treeViewMenu->addSeparator();
 
-	auto actionImport = treeViewMenu->addAction("Import glTF Assets...", [this, selectedItemIndex]() {
-		auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
-		auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
-		if (!file.isEmpty()) {
-			treeModel_->importMeshScenegraph(file, selectedItemIndex);
-		}
-	});
-	actionImport->setEnabled(treeModel_->canInsertMeshAssets(selectedItemIndex));
+		auto actionImport = treeViewMenu->addAction("Import glTF Assets...", [this, insertionTargetIndex]() {
+			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
+			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
+			if (!file.isEmpty()) {
+				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
+			}
+		});
+		actionImport->setEnabled(canInsertMeshAsset);
+	}
 
 	if (!externalProjectModel || !allowedCreatableUserTypes.empty()) {
 		treeViewMenu->addSeparator();
 	}
 
 	auto actionDelete = treeViewMenu->addAction(
-		"Delete", [this, selectedItemIndex]() {
-			treeModel_->deleteObjectAtIndex(selectedItemIndex);
+		"Delete", [this, selectedItemIndices]() {
+			treeModel_->deleteObjectsAtIndices(selectedItemIndices);
 			selectionModel()->Q_EMIT selectionChanged({}, {});
 		},
 		QKeySequence::Delete);
-	actionDelete->setEnabled(treeModel_->canDelete(selectedItemIndex));
+	actionDelete->setEnabled(canDeleteSelectedIndices);
 
 	auto actionCopy = treeViewMenu->addAction(
-		"Copy", [this, selectedItemIndex]() { treeModel_->copyObjectAtIndex(selectedItemIndex, false); }, QKeySequence::Copy);
-	actionCopy->setEnabled(canCopy(selectedItemIndex));
+		"Copy", [this, selectedItemIndices]() { 
+		treeModel_->copyObjectsAtIndices(selectedItemIndices, false); 
+	}, QKeySequence::Copy);
+	actionCopy->setEnabled(canCopySelectedIndices);
 
-	auto actionPaste = treeViewMenu->addAction(
-		(resourceModel) ? "Paste on Top Level" : "Paste", [this, selectedItemIndex]() {
-		treeModel_->pasteObjectAtIndex(selectedItemIndex); }, QKeySequence::Paste);
-	actionPaste->setEnabled(canPasteInto(selectedItemIndex));
+	auto [pasteObjects, sourceProjectTopLevelObjectIds] = treeModel_->getObjectsAndRootIdsFromClipboardString(RaCoClipboard::get());
+	QAction* actionPaste;
+	if (treeModel_->canPasteIntoIndex(insertionTargetIndex, pasteObjects, sourceProjectTopLevelObjectIds)) {
+		actionPaste = treeViewMenu->addAction(
+			"Paste Here", [this, insertionTargetIndex]() { treeModel_->pasteObjectAtIndex(insertionTargetIndex); }, QKeySequence::Paste);
+	} else if (treeModel_->canPasteIntoIndex({}, pasteObjects, sourceProjectTopLevelObjectIds)) {
+		actionPaste = treeViewMenu->addAction(
+			"Paste Into Project", [this]() { treeModel_->pasteObjectAtIndex(QModelIndex()); }, QKeySequence::Paste);
+	} else {
+		actionPaste = treeViewMenu->addAction("Paste", [](){}, QKeySequence::Paste);
+		actionPaste->setEnabled(false);
+	}
 
 	auto actionCut = treeViewMenu->addAction(
-		"Cut", [this, selectedItemIndex]() { treeModel_->cutObjectAtIndex(selectedItemIndex, false); }, QKeySequence::Cut);
-	actionCut->setEnabled(treeModel_->canDelete(selectedItemIndex));
+		"Cut", [this, selectedItemIndices]() {
+		treeModel_->cutObjectsAtIndices(selectedItemIndices, false); 
+	}, QKeySequence::Cut);
+	actionCut->setEnabled(canDeleteSelectedIndices && canCopySelectedIndices);
 
 	treeViewMenu->addSeparator();
 
-	auto actionCopyDeep = treeViewMenu->addAction("Copy (Deep)", [this, selectedItemIndex]() { treeModel_->copyObjectAtIndex(selectedItemIndex, true); });
-	actionCopyDeep->setEnabled(canCopy(selectedItemIndex));
+	auto actionCopyDeep = treeViewMenu->addAction("Copy (Deep)", [this, selectedItemIndices]() { 
+		treeModel_->copyObjectsAtIndices(selectedItemIndices, true); 
+	});
+	actionCopyDeep->setEnabled(canCopySelectedIndices);
 
-	auto actionCutDeep = treeViewMenu->addAction("Cut (Deep)", [this, selectedItemIndex]() { treeModel_->cutObjectAtIndex(selectedItemIndex, true); });
-	actionCutDeep->setEnabled(treeModel_->canDelete(selectedItemIndex));
+	auto actionCutDeep = treeViewMenu->addAction("Cut (Deep)", [this, selectedItemIndices]() { 		
+		treeModel_->cutObjectsAtIndices(selectedItemIndices, true); 
+	});
+	actionCutDeep->setEnabled(canDeleteSelectedIndices && canCopySelectedIndices);
 
 	if (!externalProjectModel) {
 		auto actionDeleteUnrefResources = treeViewMenu->addAction("Delete Unused Resources", [this] { treeModel_->deleteUnusedResources(); });
@@ -284,14 +300,16 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 		treeViewMenu->addSeparator();
 		auto extrefPasteAction = treeViewMenu->addAction(
-			"Paste As External Reference", [this, selectedItemIndex]() {
+			"Paste As External Reference", [this]() {
 				std::string error;
-				if (!treeModel_->pasteObjectAtIndex(selectedItemIndex, true, &error)) {
+				if (!treeModel_->pasteObjectAtIndex({}, true, &error)) {
 					QMessageBox::warning(this, "Paste As External Reference",
 						fmt::format("Update of pasted external references failed!\n\n{}", error).c_str());
 				}
 			});
-		extrefPasteAction->setEnabled(canPasteInto(selectedItemIndex, true));
+
+		// Pasting extrefs will ignore the current selection and always paste on top level.
+		extrefPasteAction->setEnabled(treeModel_->canPasteIntoIndex({}, pasteObjects, sourceProjectTopLevelObjectIds, true));
 	}
 
 	if (externalProjectModel) {
@@ -310,8 +328,8 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 			externalProjectModel->addProject(projectFile);
 		});
 
-		auto actionCloseImportedProject = treeViewMenu->addAction("Remove Project", [this, selectedItemIndex, externalProjectModel]() { externalProjectModel->removeProject(selectedItemIndex); });
-		actionCloseImportedProject->setEnabled(selectedItemIndex.isValid() && externalProjectModel->canRemoveProject(selectedItemIndex));
+		auto actionCloseImportedProject = treeViewMenu->addAction("Remove Project", [this, selectedItemIndices, externalProjectModel]() { externalProjectModel->removeProjectsAtIndices(selectedItemIndices); });
+		actionCloseImportedProject->setEnabled(externalProjectModel->canRemoveProjectsAtIndices(selectedItemIndices));
 	}
 
 	return treeViewMenu;
@@ -354,6 +372,49 @@ QModelIndex ObjectTreeView::indexFromObjectID(const std::string &id) const {
 	}
 
 	return index;
+}
+
+
+QModelIndexList ObjectTreeView::getSelectedIndices(bool sorted) const {
+	auto selectedIndices = selectionModel()->selectedRows();
+
+	if (proxyModel_) {
+		for (auto& index : selectedIndices) {
+			index = proxyModel_->mapToSource(index);
+		}
+	}
+
+	// For operation like copy, cut and move, the order of selection matters
+	if (sorted) {
+		auto sortedList = selectedIndices.toVector();
+		std::sort(sortedList.begin(), sortedList.end(), ObjectTreeViewDefaultModel::isIndexAboveInHierachyOrPosition);
+		return QModelIndexList(sortedList.begin(), sortedList.end());
+	}
+
+	return selectedIndices;
+}
+
+QModelIndex ObjectTreeView::getSelectedInsertionTargetIndex() const {
+	auto selectedIndices = getSelectedIndices();
+
+	// For single selection, just insert unter the selection.
+	if (selectedIndices.count() == 0) {
+		return {};
+	} else if (selectedIndices.count() == 1) {
+		return selectedIndices.front();
+	}
+
+	// For multiselection, look for the index on the highest hierachy level which is topmost in its hierachy level.
+	// Partially sort selectedIndices so that the first index of the list is the highest level topmost index of the tree.
+	std::nth_element(selectedIndices.begin(), selectedIndices.begin(), selectedIndices.end(), ObjectTreeViewDefaultModel::isIndexAboveInHierachyOrPosition);
+	
+	// Now take this highest level topmost index from the list and insert into its parent, if it exists.
+	auto canidate = selectedIndices.front();
+	if (canidate.isValid()) {
+		return canidate.parent();		
+	} else {
+		return canidate;
+	}
 }
 
 void ObjectTreeView::restoreItemExpansionStates() {

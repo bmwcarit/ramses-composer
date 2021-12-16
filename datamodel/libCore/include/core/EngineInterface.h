@@ -97,7 +97,9 @@ class EngineInterface {
 public:
 	virtual ~EngineInterface() = default;
 	virtual bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& error) = 0;
-	virtual bool parseLuaScript(const std::string& luaScript, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
+	virtual bool parseLuaScript(const std::string& luaScript, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
+	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, std::string& outError) = 0;
+	virtual bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string &outError) = 0;
 	virtual const std::map<int, std::string>& enumerationDescription(EngineEnumeration type) const = 0;
 };
 

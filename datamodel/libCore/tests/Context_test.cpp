@@ -306,50 +306,50 @@ TEST_F(ContextTest, Scenegraph) {
 	EXPECT_EQ(bar->children_->size(), 0);
 
 	// Move child from scenegraph root -> foo
-	context.moveScenegraphChild(child, foo);
+	context.moveScenegraphChildren({child}, foo);
 	EXPECT_EQ(child->getParent(), foo);
 	EXPECT_EQ(foo->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 	EXPECT_EQ(bar->children_->size(), 0);
 
 	// Insert child2 before child
-	context.moveScenegraphChild(child2, foo, 0);
+	context.moveScenegraphChildren({child2}, foo, 0);
 	EXPECT_EQ(child->getParent(), foo);
 	EXPECT_EQ(child2->getParent(), foo);
 	EXPECT_EQ(foo->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child2, child}));
 
 	// Remove first child
-	context.moveScenegraphChild(child2, nullptr);
+	context.moveScenegraphChildren({child2}, nullptr);
 	EXPECT_EQ(child->getParent(), foo);
 	EXPECT_EQ(child2->getParent(), nullptr);
 	EXPECT_EQ(foo->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 
 	// Move child from foo -> bar
-	context.moveScenegraphChild(child, bar);
+	context.moveScenegraphChildren({child}, bar);
 	EXPECT_EQ(child->getParent(), bar);
 	EXPECT_EQ(foo->children_->size(), 0);
 	EXPECT_EQ(bar->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 
 	// Move child from bar -> scenegraph root
-	context.moveScenegraphChild(child, nullptr);
+	context.moveScenegraphChildren({child}, nullptr);
 	EXPECT_EQ(child->getParent(), nullptr);
 	EXPECT_EQ(foo->children_->size(), 0);
 	EXPECT_EQ(bar->children_->size(), 0);
 
 	// Check correct behaviour for moving towards the back
-	context.moveScenegraphChild(child, foo);
-	context.moveScenegraphChild(child2, foo);
-	context.moveScenegraphChild(child3, foo);
+	context.moveScenegraphChildren({child}, foo);
+	context.moveScenegraphChildren({child2}, foo);
+	context.moveScenegraphChildren({child3}, foo);
 	EXPECT_EQ(foo->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child, child2, child3}));
 
-	context.moveScenegraphChild(child, foo, 2);
+	context.moveScenegraphChildren({child}, foo, 2);
 	EXPECT_EQ(foo->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child2, child, child3}));
 
 	// Check for NOP handling
 	recorder.reset();
-	context.moveScenegraphChild(child, foo, 1);
+	context.moveScenegraphChildren({child}, foo, 1);
 	EXPECT_EQ(recorder.getChangedValues().size(), 0);
 
-	context.moveScenegraphChild(child, foo, 2);
+	context.moveScenegraphChildren({child}, foo, 2);
 	EXPECT_EQ(recorder.getChangedValues().size(), 0);
 
 	// iterator testing
@@ -452,7 +452,7 @@ TEST_F(ContextTest, DeleteNodeWithChild) {
 	auto node = context.createObject(Node::typeDescription.typeName, "parent");
 	auto child = context.createObject(Node::typeDescription.typeName, "child");
 
-	context.moveScenegraphChild(child, node);
+	context.moveScenegraphChildren({child}, node);
 	EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 
 	checkedDeleteObjects({node});
@@ -462,7 +462,7 @@ TEST_F(ContextTest, DeleteNodeAndChild) {
 	auto node = context.createObject(Node::typeDescription.typeName, "parent");
 	auto child = context.createObject(Node::typeDescription.typeName, "child");
 
-	context.moveScenegraphChild(child, node);
+	context.moveScenegraphChildren({child}, node);
 	EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 
 	checkedDeleteObjects({node, child});
@@ -472,7 +472,7 @@ TEST_F(ContextTest, DeleteNodeInParent) {
 	auto node = context.createObject(Node::typeDescription.typeName, "parent");
 	auto child = context.createObject(Node::typeDescription.typeName, "child");
 
-	context.moveScenegraphChild(child, node);
+	context.moveScenegraphChildren({child}, node);
 	EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 
 	checkedDeleteObjects({child});
@@ -483,19 +483,19 @@ TEST_F(ContextTest, DeleteMultiNodeInParent) {
 	auto node = context.createObject(Node::typeDescription.typeName, "parent");
 
 	auto child1 = context.createObject(Node::typeDescription.typeName, "child1");
-	context.moveScenegraphChild(child1, node);
+	context.moveScenegraphChildren({child1}, node);
 
 	auto child2 = context.createObject(Node::typeDescription.typeName, "child2");
-	context.moveScenegraphChild(child2, node);
+	context.moveScenegraphChildren({child2}, node);
 
 	auto child3 = context.createObject(Node::typeDescription.typeName, "child3");
-	context.moveScenegraphChild(child3, node);
+	context.moveScenegraphChildren({child3}, node);
 
 	auto child4 = context.createObject(Node::typeDescription.typeName, "child4");
-	context.moveScenegraphChild(child4, node);
+	context.moveScenegraphChildren({child4}, node);
 
 	auto child5 = context.createObject(Node::typeDescription.typeName, "child5");
-	context.moveScenegraphChild(child5, node);
+	context.moveScenegraphChildren({child5}, node);
 	
 	EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child1, child2, child3, child4, child5}));
 
@@ -507,19 +507,19 @@ TEST_F(ContextTest, DeleteMultiNodeWithParent) {
 	auto node = context.createObject(Node::typeDescription.typeName, "parent");
 
 	auto child1 = context.createObject(Node::typeDescription.typeName, "child1");
-	context.moveScenegraphChild(child1, node);
+	context.moveScenegraphChildren({child1}, node);
 
 	auto child2 = context.createObject(Node::typeDescription.typeName, "child2");
-	context.moveScenegraphChild(child2, node);
+	context.moveScenegraphChildren({child2}, node);
 
 	auto child3 = context.createObject(Node::typeDescription.typeName, "child3");
-	context.moveScenegraphChild(child3, node);
+	context.moveScenegraphChildren({child3}, node);
 
 	auto child4 = context.createObject(Node::typeDescription.typeName, "child4");
-	context.moveScenegraphChild(child4, node);
+	context.moveScenegraphChildren({child4}, node);
 
 	auto child5 = context.createObject(Node::typeDescription.typeName, "child5");
-	context.moveScenegraphChild(child5, node);
+	context.moveScenegraphChildren({child5}, node);
 
 	EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child1, child2, child3, child4, child5}));
 
@@ -617,7 +617,7 @@ TEST_F(ContextTest, ObjectMovingOnTopLevel) {
 
 	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({firstRoot, secondRoot}));
 
-	context.moveScenegraphChild({secondRoot}, {}, 0);
+	context.moveScenegraphChildren({secondRoot}, {}, 0);
 
 	ASSERT_NE(project.instances(), std::vector<SEditorObject>({secondRoot, firstRoot})) << "[!!!]  Moving top-level scenegraph nodes has been implemented / fixed. Replace ASSERT_NE macro with ASSERT_EQ macro in ContextTest unit test ObjectMovingOnTopLevel!";
 }
@@ -755,7 +755,7 @@ TEST_F(ContextTest, copy_paste_loses_uniforms) {
 TEST_F(ContextTest, copyAndPasteHierarchy) {
 	auto parent = context.createObject(Node::typeDescription.typeName);
 	auto child = context.createObject(Node::typeDescription.typeName);
-	context.moveScenegraphChild(child, parent);
+	context.moveScenegraphChildren({child}, parent);
 	auto copyResult = context.pasteObjects(context.copyObjects({ parent }));
 	auto parentCopy = std::dynamic_pointer_cast<Node>(copyResult.at(0));
 
@@ -766,7 +766,7 @@ TEST_F(ContextTest, copyAndPasteHierarchy) {
 TEST_F(ContextTest, cutAndPasteHierarchy) {
 	auto parent = context.createObject(Node::typeDescription.typeName);
 	auto child = context.createObject(Node::typeDescription.typeName);
-	context.moveScenegraphChild(child, parent);
+	context.moveScenegraphChildren({child}, parent);
 	auto clipboardContent = context.cutObjects({ parent });
 
 	ASSERT_EQ(0, project.instances().size());
@@ -779,9 +779,9 @@ TEST_F(ContextTest, cutAndPasteHierarchy) {
 TEST_F(ContextTest, copyAndPasteDeeperHierarchy) {
 	auto parent = context.createObject(Node::typeDescription.typeName, "parent");
 	auto child = context.createObject(Node::typeDescription.typeName, "child");
-	auto sub_child = context.createObject(Node::typeDescription.typeName, "sub_child");
-	context.moveScenegraphChild(child, parent);
-	context.moveScenegraphChild(sub_child, child);
+	auto subChild = context.createObject(Node::typeDescription.typeName, "subChild");
+	context.moveScenegraphChildren({child}, parent);
+	context.moveScenegraphChildren({subChild}, child);
 	auto pasteResult = context.pasteObjects(context.copyObjects({ parent }));
 	
 	ASSERT_EQ(1, pasteResult.size());
@@ -791,16 +791,16 @@ TEST_F(ContextTest, copyAndPasteDeeperHierarchy) {
 	ASSERT_EQ(6, project.instances().size());
 	ASSERT_EQ("parent (1)", parentCopy->objectName());
 	ASSERT_EQ("child", parentCopy->children_->get(0)->asRef()->objectName());
-	ASSERT_EQ("sub_child", parentCopy->children_->get(0)->asRef()->children_->get(0)->asRef()->objectName());
+	ASSERT_EQ("subChild", parentCopy->children_->get(0)->asRef()->children_->get(0)->asRef()->objectName());
 }
 
 TEST_F(ContextTest, cutAndPasteDeeperHierarchy) {
 	auto parent = context.createObject(Node::typeDescription.typeName, "parent");
 	auto child = context.createObject(Node::typeDescription.typeName, "child");
-	auto sub_child = context.createObject(Node::typeDescription.typeName, "sub_child");
-	context.moveScenegraphChild(child, parent);
-	context.moveScenegraphChild(sub_child, child);
-	context.moveScenegraphChild(child, parent);
+	auto subChild = context.createObject(Node::typeDescription.typeName, "subChild");
+	context.moveScenegraphChildren({child}, parent);
+	context.moveScenegraphChildren({subChild}, child);
+	context.moveScenegraphChildren({child}, parent);
 
 	auto clipboardContent = context.cutObjects({ parent });
 
@@ -907,7 +907,7 @@ TEST_F(ContextTest, deepCut) {
 	auto node = context.createObject(Node::typeDescription.typeName, "node");
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "mesh");
-	context.moveScenegraphChild(meshNode, node);
+	context.moveScenegraphChildren({meshNode}, node);
 	context.set({ meshNode, { "mesh" }}, mesh);
 
 	auto serial = context.cutObjects({node}, true);
@@ -1017,9 +1017,9 @@ TEST_F(ContextTest, copyAndPasteStructureUniqueName) {
 	auto child1 = context.createObject(Node::typeDescription.typeName, "Child1");
 	auto child11 = context.createObject(Node::typeDescription.typeName, "Child1_1");
 	auto child2 = context.createObject(Node::typeDescription.typeName, "Child2");
-	context.moveScenegraphChild(child1, node);
-	context.moveScenegraphChild(child2, node);
-	context.moveScenegraphChild(child11, child1);
+	context.moveScenegraphChildren({child1}, node);
+	context.moveScenegraphChildren({child2}, node);
+	context.moveScenegraphChildren({child11}, child1);
 
 	auto copiedObjs = context.copyObjects({node});
 
@@ -1036,9 +1036,9 @@ TEST_F(ContextTest, cutAndPasteStructureUniqueName) {
 	auto child1 = context.createObject(Node::typeDescription.typeName, "Child1");
 	auto child11 = context.createObject(Node::typeDescription.typeName, "Child1_1");
 	auto child2 = context.createObject(Node::typeDescription.typeName, "Child2");
-	context.moveScenegraphChild(child1, node);
-	context.moveScenegraphChild(child2, node);
-	context.moveScenegraphChild(child11, child1);
+	context.moveScenegraphChildren({child1}, node);
+	context.moveScenegraphChildren({child2}, node);
+	context.moveScenegraphChildren({child11}, child1);
 
 	auto cutObjs = context.cutObjects({node});
 

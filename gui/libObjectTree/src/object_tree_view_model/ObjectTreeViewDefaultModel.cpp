@@ -144,7 +144,7 @@ QModelIndex ObjectTreeViewDefaultModel::index(int row, int column, const QModelI
 	auto* parentNode = indexToTreeNode(parent);
 
 	if (!parentNode) {
-		return getInvisibleRootIndex();
+		return {};
 	} else {
 		return createIndex(row, column, parentNode->getChild(row));
 	}
@@ -173,23 +173,23 @@ bool ObjectTreeViewDefaultModel::canDropMimeData(const QMimeData* data, Qt::Drop
 	}
 
 	std::vector<SEditorObject> objectsFromId;
+	std::set<std::string> sourceProjectTopLevelObjectIds;
 	if (idList.empty()) {
 		return false;
 	}
 	for (const auto& id : idList) {
 		auto objectFromId = Queries::findById((droppingFromOtherProject) ? *externalProjectStore_->getExternalProjectCommandInterface(originPath)->project() : *project(), id.toStdString());
-		auto tryingToDropNonExtRefAsExtRef = droppingFromOtherProject && droppingAsExternalReference && !raco::core::Queries::canPasteObjectAsExternalReference(objectFromId, objectFromId->getParent() == nullptr);
-		if (tryingToDropNonExtRefAsExtRef) {
-			return false;
+		if (objectFromId->getParent() == nullptr) {
+			sourceProjectTopLevelObjectIds.emplace(id.toStdString());
 		}
 		objectsFromId.emplace_back(objectFromId);
 	}
-	return objectsAreAllowedInModel(objectsFromId, parent);
+	return canPasteIntoIndex(parent, objectsFromId, sourceProjectTopLevelObjectIds, droppingAsExternalReference);
 }
 
 QModelIndex ObjectTreeViewDefaultModel::parent(const QModelIndex& child) const {
 	if (!child.isValid()) {
-		return QModelIndex();
+		return {};
 	}
 
 	auto* childNode = indexToTreeNode(child);
@@ -197,12 +197,12 @@ QModelIndex ObjectTreeViewDefaultModel::parent(const QModelIndex& child) const {
 
 	if (parentNode) {
 		if (parentNode == invisibleRootNode_.get()) {
-			return getInvisibleRootIndex();
+			return {};
 		}
 		return createIndex(parentNode->row(), COLUMNINDEX_NAME, parentNode);
 	}
 
-	return QModelIndex();
+	return {};
 }
 
 Qt::DropActions ObjectTreeViewDefaultModel::supportedDropActions() const {
@@ -272,17 +272,19 @@ bool ObjectTreeViewDefaultModel::dropMimeData(const QMimeData* data, Qt::DropAct
 	auto mimeDataContainsLocalInstances = originPath == project()->currentPath();
 	auto movedItemIDs = decodeMimeData(data);
 
-
 	if (mimeDataContainsLocalInstances) {
 		SEditorObject parentObj;
 		if (parent.isValid()) {
 			parentObj = indexToSEditorObject(parent);
 		}
-		for (const auto& itemID : movedItemIDs) {
-			if (auto childObj = project()->getInstanceByID(itemID.toStdString())) {
-				moveScenegraphChild(childObj, parentObj, row);
+		std::vector<SEditorObject> objs;
+		for (const auto& movedItemID : movedItemIDs) {
+			if (auto childObj = project()->getInstanceByID(movedItemID.toStdString())) {
+				objs.emplace_back(childObj);
 			}
 		}
+
+		moveScenegraphChildren(objs, parentObj, row);
 	} else {
 		auto originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
 		std::vector<SEditorObject> objs;
@@ -310,8 +312,13 @@ Qt::ItemFlags ObjectTreeViewDefaultModel::flags(const QModelIndex& index) const 
 	}
 }
 
-QMimeData* ObjectTreeViewDefaultModel::mimeData(const QModelIndexList& indexes) const {
-	return generateMimeData(indexes, project()->currentPath());
+QMimeData* ObjectTreeViewDefaultModel::mimeData(const QModelIndexList& indices) const {
+
+	// Sort the list to make sure order after dropping remains consistent, regardless of what selectiong order is.
+	auto sortedList = indices.toVector();
+	std::sort(sortedList.begin(), sortedList.end(), ObjectTreeViewDefaultModel::isIndexAboveInHierachyOrPosition);
+
+	return generateMimeData(QModelIndexList(sortedList.begin(), sortedList.end()), project()->currentPath());
 }
 
 QStringList ObjectTreeViewDefaultModel::mimeTypes() const {
@@ -377,7 +384,7 @@ void ObjectTreeViewDefaultModel::setUpTreeModificationFunctions() {
 
 SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::TypeDescriptor& typeDesc, const std::string& nodeName, const QModelIndex& parent) {
 	std::vector<SEditorObject> nodes;
-	if (parent == getInvisibleRootIndex()) {
+	if (!parent.isValid()) {
 		std::copy_if(project()->instances().begin(), project()->instances().end(), std::back_inserter(nodes), [](const SEditorObject& obj) { return obj->getParent() == nullptr; });
 	} else {
 		std::copy_if(project()->instances().begin(), project()->instances().end(), std::back_inserter(nodes), [this, parent](const SEditorObject& obj) {
@@ -395,50 +402,67 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::Ty
 	return newObj;
 }
 
-bool ObjectTreeViewDefaultModel::canCopy(const QModelIndex& index) const {
-	return index.isValid();
-}
-
-bool ObjectTreeViewDefaultModel::canDelete(const QModelIndex& index) const {
-	if (index.isValid()) {
-		auto obj = indexToSEditorObject(index);
-		return obj && core::Queries::canDeleteObjects(*commandInterface_->project(), {obj});
+bool ObjectTreeViewDefaultModel::canCopyAtIndices(const QModelIndexList& indices) const {
+	for (const auto& index : indices) {
+		if (index.isValid()) {
+			return true;
+		}
 	}
 	return false;
 }
 
-bool ObjectTreeViewDefaultModel::canInsertMeshAssets(const QModelIndex& index) const {
-	if (index.isValid()) {
-		const auto sceneRootNode = indexToSEditorObject(index);
-		return Queries::canPasteIntoObject(*project(), sceneRootNode);
-	}
-
-	return false;
+bool ObjectTreeViewDefaultModel::canDeleteAtIndices(const QModelIndexList& indices) const {
+	return !Queries::filterForDeleteableObjects(*commandInterface_->project(), indicesToSEditorObjects(indices)).empty();
 }
 
-bool ObjectTreeViewDefaultModel::canPasteInto(const QModelIndex& index, const std::string& serializedObjs, bool asExtRef) const {
+bool ObjectTreeViewDefaultModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
+	if (index.isValid() && !core::Queries::canPasteIntoObject(*commandInterface_->project(), indexToSEditorObject(index))) {
+		return false;
+	} else {
+		auto types = typesAllowedIntoIndex(index);
+		
+		return std::find(types.begin(), types.end(), obj->getTypeDescription().typeName) != types.end();
+	}
+}
+
+std::pair<std::vector<core::SEditorObject>, std::set<std::string>> ObjectTreeViewDefaultModel::getObjectsAndRootIdsFromClipboardString(const std::string& serializedObjs) const {
 	auto deserialization{raco::serialization::deserializeObjects(serializedObjs,
 		raco::user_types::UserObjectFactoryInterface::deserializationFactory(commandInterface_->objectFactory()))};
-	auto topLevelObjects = BaseContext::getTopLevelObjectsFromDeserializedObjects(deserialization, commandInterface_->objectFactory(), project());
+	auto objects = BaseContext::getTopLevelObjectsFromDeserializedObjects(deserialization, commandInterface_->objectFactory(), project());
 
+	return {objects, deserialization.rootObjectIDs};
+}
+
+bool ObjectTreeViewDefaultModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
 	if (asExtRef) {
 		if (index.isValid()) {
 			return false;
 		}
-		for (const auto& topLevelObj : topLevelObjects) {
-			if (!Queries::canPasteObjectAsExternalReference(topLevelObj, deserialization.rootObjectIDs.find(topLevelObj->objectID()) != deserialization.rootObjectIDs.end())) {
-				return false;
+
+		// Allow pasting objects if any objects fits the location.
+		for (const auto& obj : objects) {
+			if (Queries::canPasteObjectAsExternalReference(obj, sourceProjectTopLevelObjectIds.find(obj->objectID()) != sourceProjectTopLevelObjectIds.end()) &&
+				isObjectAllowedIntoIndex(index, obj)) {
+				return true;
+			}
+		}
+	}
+	else {
+		// Allow pasting objects if any objects fits the location.
+		for (const auto& obj : objects) {
+			if (isObjectAllowedIntoIndex(index, obj)) {
+				return true;
 			}
 		}
 	}
 
 
-	return objectsAreAllowedInModel(topLevelObjects, index);
+	return false;
 }
 
-size_t ObjectTreeViewDefaultModel::deleteObjectAtIndex(const QModelIndex& index) {
-	auto obj = indexToSEditorObject(index);
-	return commandInterface_->deleteObjects({obj});
+size_t ObjectTreeViewDefaultModel::deleteObjectsAtIndices(const QModelIndexList& indices) {
+
+	return commandInterface_->deleteObjects(indicesToSEditorObjects(indices));
 }
 
 bool ObjectTreeViewDefaultModel::canDeleteUnusedResources() const {
@@ -449,8 +473,9 @@ void ObjectTreeViewDefaultModel::deleteUnusedResources() {
 	commandInterface_->deleteUnreferencedResources();
 }
 
-void ObjectTreeViewDefaultModel::copyObjectAtIndex(const QModelIndex& index, bool deepCopy) {
-	RaCoClipboard::set(commandInterface_->copyObjects({indexToSEditorObject(index)}, deepCopy));
+void ObjectTreeViewDefaultModel::copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) {
+	auto objects = indicesToSEditorObjects(indices);
+	RaCoClipboard::set(commandInterface_->copyObjects(objects, deepCopy));
 }
 
 bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
@@ -459,16 +484,16 @@ bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bo
 	return success;
 }
 
-void ObjectTreeViewDefaultModel::cutObjectAtIndex(const QModelIndex& index, bool deepCut) {
-	auto obj = indexToSEditorObject(index);
-	auto text = commandInterface_->cutObjects({obj}, deepCut);
+void ObjectTreeViewDefaultModel::cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut) {
+	auto objects = indicesToSEditorObjects(indices);
+	auto text = commandInterface_->cutObjects(objects, deepCut);
 	if (!text.empty()) {
 		RaCoClipboard::set(text);
 	}
 }
 
-void ObjectTreeViewDefaultModel::moveScenegraphChild(SEditorObject child, SEditorObject parent, int row) {
-	commandInterface_->moveScenegraphChild(child, parent, row);
+void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEditorObject>& objects, SEditorObject parent, int row) {
+	commandInterface_->moveScenegraphChildren(objects, parent, row);
 }
 
 void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex) {
@@ -496,10 +521,6 @@ int ObjectTreeViewDefaultModel::rowCount(const QModelIndex& parent) const {
 	return 0;
 }
 
-QModelIndex ObjectTreeViewDefaultModel::getInvisibleRootIndex() const {
-	return invisibleRootIndex_;
-}
-
 void ObjectTreeViewDefaultModel::iterateThroughTree(std::function<void(QModelIndex&)> nodeFunc, QModelIndex& currentIndex) {
 	if (currentIndex.row() != -1) {
 		nodeFunc(currentIndex);
@@ -521,6 +542,19 @@ ObjectTreeNode* ObjectTreeViewDefaultModel::indexToTreeNode(const QModelIndex& i
 
 SEditorObject ObjectTreeViewDefaultModel::indexToSEditorObject(const QModelIndex& index) const {
 	return indexToTreeNode(index)->getRepresentedObject();
+}
+
+std::vector<core::SEditorObject> ObjectTreeViewDefaultModel::indicesToSEditorObjects(const QModelIndexList& indices) const {
+	std::vector<SEditorObject> objects;
+	for (const auto& index : indices) {
+		if (index.isValid()) {
+			auto obj = indexToSEditorObject(index);
+			if (obj) {
+				objects.push_back(indexToSEditorObject(index));
+			}
+		}
+	}
+	return objects;
 }
 
 QModelIndex ObjectTreeViewDefaultModel::indexFromObjectID(const std::string& id) const {
@@ -552,35 +586,6 @@ void raco::object_tree::model::ObjectTreeViewDefaultModel::updateTreeIndexes() {
 		invisibleRootIndex_);
 }
 
-bool ObjectTreeViewDefaultModel::objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const {
-	if (!core::Queries::canPasteIntoObject(*commandInterface_->project(), indexToSEditorObject(parentIndex))) {
-		return false;
-	}
-
-	auto objsContainSceneGraphObjs = false;
-	auto objsContainPrefabs = false;
-	auto objsContainPrefabInstances = false;
-
-	for (const auto& obj : objs) {
-		if (obj->as<user_types::Prefab>()) {
-			objsContainPrefabs = true;
-		} else if (obj->as<user_types::PrefabInstance>()) {
-			objsContainPrefabInstances = true;
-		}
-
-		if (!obj->getTypeDescription().isResource) {
-			objsContainSceneGraphObjs = true;
-		}
-	}
-
-	if (objsContainPrefabs && !objsContainPrefabInstances) {
-		return false;
-	}
-
-	return objsContainSceneGraphObjs;
-}
-
-
 UserObjectFactoryInterface* ObjectTreeViewDefaultModel::objectFactory() {
 	return commandInterface_->objectFactory();
 }
@@ -589,12 +594,31 @@ Project* ObjectTreeViewDefaultModel::project() const {
 	return commandInterface_->project();
 }
 
-Qt::TextElideMode raco::object_tree::model::ObjectTreeViewDefaultModel::textElideMode() const {
+Qt::TextElideMode ObjectTreeViewDefaultModel::textElideMode() const {
 	return Qt::TextElideMode::ElideRight;
 }
 
-std::vector<std::string> raco::object_tree::model::ObjectTreeViewDefaultModel::allowedCreatableUserTypes(const QModelIndexList& selectedIndexes) const {
-	return allowedUserCreatableUserTypes_;
+bool ObjectTreeViewDefaultModel::isIndexAboveInHierachyOrPosition(QModelIndex left, QModelIndex right) {
+	while (left.parent() != right.parent()) {
+		left = left.parent();
+		right = right.parent();
+
+		if (!left.isValid()) {
+			return true;
+		} else if (!right.isValid()) {
+			return false;
+		}
+	}
+
+	return left.row() < right.row();
+}
+
+std::vector<std::string> raco::object_tree::model::ObjectTreeViewDefaultModel::typesAllowedIntoIndex(const QModelIndex& index) const {
+	if (index.isValid() && !core::Queries::canPasteIntoObject(*commandInterface_->project(), indexToSEditorObject(index))) {
+		return {};
+	} else {
+		return allowedUserCreatableUserTypes_;
+	}
 }
 
 }  // namespace raco::object_tree::model

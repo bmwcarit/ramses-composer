@@ -24,6 +24,7 @@
 
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -57,7 +58,7 @@ public:
 	std::shared_ptr<C> create(std::string name, SEditorObject parent = nullptr) {
 		auto obj = std::dynamic_pointer_cast<C>(cmd->createObject(C::typeDescription.typeName, name));
 		if (parent) {
-			cmd->moveScenegraphChild(obj, parent);
+			cmd->moveScenegraphChildren({obj}, parent);
 		}
 		return obj;
 	}
@@ -682,15 +683,58 @@ TEST_F(ExtrefTest, extref_can_delete_only_unused) {
 		auto prefab = findExt("prefab");
 		auto material = findExt("material");
 		auto mesh = findExt("mesh");
+		auto meshnode = findExt("prefab_meshnode");
 
-		EXPECT_TRUE(Queries::canDeleteObjects(*project, {material}));
-		EXPECT_FALSE(Queries::canDeleteObjects(*project, {mesh}));
-		EXPECT_TRUE(Queries::canDeleteObjects(*project, {prefab}));
+		EXPECT_FALSE(Queries::filterForDeleteableObjects(*project, {material}).empty());
+		EXPECT_TRUE(Queries::filterForDeleteableObjects(*project, {mesh}).empty());
+		EXPECT_FALSE(Queries::filterForDeleteableObjects(*project, {prefab}).empty());
+
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {material, mesh}).size(), 1);
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {prefab, mesh}).size(), 3);
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {prefab, meshnode}).size(), 2);
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {prefab, mesh, meshnode}).size(), 3);
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {prefab, meshnode, mesh, material}).size(), 4);
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {prefab, material}).size(), 3);
 
 		cmd->deleteObjects({prefab});
 
-		EXPECT_TRUE(Queries::canDeleteObjects(*project, {material}));
-		EXPECT_TRUE(Queries::canDeleteObjects(*project, {mesh}));
+		EXPECT_FALSE(Queries::filterForDeleteableObjects(*project, {material}).empty());
+		EXPECT_FALSE(Queries::filterForDeleteableObjects(*project, {mesh}).empty());
+	});
+}
+
+TEST_F(ExtrefTest, extref_can_delete_only_unused_with_links) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+		auto luaSource = create<LuaScript>("luaSource");
+		auto luaSink = create<LuaScript>("luaSink");
+
+		TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+		cmd->set({luaSource, {"uri"}}, scriptFile);
+		cmd->set({luaSink, {"uri"}}, scriptFile);
+		cmd->addLink({luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}});
+	});
+
+	setupComposite(basePathName, compositePathName, {"luaSink"}, [this]() {
+		auto luaSource = findExt("luaSource");
+		auto luaSink = findExt("luaSink");
+
+		EXPECT_FALSE(Queries::filterForDeleteableObjects(*project, {luaSink}).empty());
+		EXPECT_EQ(Queries::filterForDeleteableObjects(*project, {luaSink, luaSource}).size(), 2);
+		EXPECT_TRUE(Queries::filterForDeleteableObjects(*project, {luaSource}).empty());
+
+		cmd->deleteObjects({luaSink});
+
+		EXPECT_FALSE(Queries::filterForDeleteableObjects(*project, {luaSource}).empty());
 	});
 }
 
@@ -714,9 +758,9 @@ TEST_F(ExtrefTest, extref_cant_move) {
 		auto mesh = findExt("mesh");
 		auto meshnode = findExt("meshnode");
 
-		EXPECT_FALSE(Queries::canMoveScenegraphChild(*project, meshnode, node));
-		EXPECT_FALSE(Queries::canMoveScenegraphChild(*project, meshnode, nullptr));
-		EXPECT_FALSE(Queries::canMoveScenegraphChild(*project, node, meshnode));
+		EXPECT_TRUE(Queries::filterForMoveableScenegraphChildren(*project, {meshnode}, node).empty());
+		EXPECT_TRUE(Queries::filterForMoveableScenegraphChildren(*project, {meshnode}, nullptr).empty());
+		EXPECT_TRUE(Queries::filterForMoveableScenegraphChildren(*project, {node}, meshnode).empty());
 	});
 }
 
@@ -818,7 +862,7 @@ TEST_F(ExtrefTest, prefab_update_stop_using_child) {
 	updateBase(basePathName, [this]() {
 		auto right = find("prefab_right");
 		auto node = find("node");
-		cmd->moveScenegraphChild(node, right);
+		cmd->moveScenegraphChildren({node}, right);
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -848,7 +892,7 @@ TEST_F(ExtrefTest, prefab_update_inter_prefab_scenegraph_move) {
 	updateBase(basePathName, [this]() {
 		auto right = find("prefab_right");
 		auto node = find("node");
-		cmd->moveScenegraphChild(node, right);
+		cmd->moveScenegraphChildren({node}, right);
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -882,7 +926,7 @@ TEST_F(ExtrefTest, prefab_update_move_and_delete_parent) {
 		auto prefab = find("prefab");
 		auto node = find("prefab_node");
 		auto child = find("prefab_child");
-		cmd->moveScenegraphChild(child, prefab);
+		cmd->moveScenegraphChildren({child}, prefab);
 		cmd->deleteObjects({node});
 	});
 
@@ -930,7 +974,7 @@ end
 		auto node = find("prefab_node");
 		auto child = find("prefab_child");
 		auto lua = find("prefab_lua");
-		cmd->moveScenegraphChild(child, prefab);
+		cmd->moveScenegraphChildren({child}, prefab);
 		cmd->deleteObjects({node});
 	});
 
@@ -1621,7 +1665,7 @@ end
 	updateBase(basePathName, [this]() {
 		auto node = create<Node>("dummyNode");
 		auto lua = find("global_control");
-		cmd->moveScenegraphChild(lua, node);
+		cmd->moveScenegraphChildren({lua}, node);
 		cmd->set({lua, {"luaInputs", "scalar"}}, 0.5);
 	});
 
@@ -1828,8 +1872,8 @@ function run()
 OUT.v = IN.v
 end
 )");
-		cmd->moveScenegraphChild(node, prefab);
-		cmd->moveScenegraphChild(lua, prefab);
+		cmd->moveScenegraphChildren({node}, prefab);
+		cmd->moveScenegraphChildren({lua}, prefab);
 		cmd->set({lua, {"uri"}}, std::string("script.lua"));
 		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"rotation"}});
 	});
@@ -1877,15 +1921,14 @@ TEST_F(ExtrefTest, animation_channel_data_gets_propagated) {
 TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 	auto basePathName1{(cwd_path() / "base.rcp").string()};
 	auto basePathName2{(cwd_path() / "base2.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto anim = create_animation("anim");
 		auto animNode = create<Node>("node");
-		cmd->moveScenegraphChild(anim, animNode);
+		cmd->moveScenegraphChildren({anim}, animNode);
 
 		auto prefab = create<Prefab>("prefab");
-		cmd->moveScenegraphChild(animNode, prefab);
+		cmd->moveScenegraphChildren({animNode}, prefab);
 
 		auto animChannel = create_animationchannel("animCh", "meshse/InterpolationTest/InterpolationTest.gltf");
 		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
@@ -1900,5 +1943,178 @@ TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 		ASSERT_NE(anim, nullptr);
 		ASSERT_NE(animChannel, nullptr);
 		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
+	});
+}
+
+TEST_F(ExtrefTest, prefab_cut_deep_linked_does_not_delete_shared) {
+	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+
+	setupBase(basePathName, [this]() {
+
+		auto mesh1 = create_mesh("mesh1", "meshes/Duck.glb");
+		auto mesh2 = create_mesh("mesh2", "meshes/Duck.glb");
+		auto sharedMaterial = create_material("sharedMaterial", "shaders/basic.vert", "shaders/basic.frag");
+
+		auto prefab1 = create<Prefab>("prefab1");
+		auto prefab2 = create<Prefab>("prefab2");
+
+		auto meshNode1 = create_meshnode("prefab1_meshNode", mesh1, sharedMaterial, prefab1);
+		auto meshNode2 = create_meshnode("prefab2_meshNode", mesh2, sharedMaterial, prefab2);
+
+	});
+
+	setupComposite(basePathName, compositePathName, {"prefab1", "prefab2"}, [this]() {
+		auto prefab1 = find("prefab1");
+		auto prefab2 = find("prefab2");
+		
+		find("sharedMaterial");
+
+		cmd->cutObjects({prefab2}, true);
+		
+		find("sharedMaterial");
+
+		cmd->cutObjects({prefab1}, true);
+		
+		dontFind("sharedMaterial");
+	});
+}
+
+TEST_F(ExtrefTest, module_gets_propagated) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+
+	setupBase(basePathName1, [this]() {
+		auto module = create<LuaScriptModule>("module");
+		cmd->set({module, &LuaScriptModule::uri_}, (cwd_path() / "scripts" / "moduleDefinition.lua").string());
+	});
+
+	setupBase(basePathName2, [this, basePathName1]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"module"}, true));
+		auto lua = create<LuaScript>("script");
+		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts" / "moduleDependency.lua").string());
+
+		auto module = findExt<LuaScriptModule>("module");
+		cmd->set({lua, {"luaModules", "coalas"}}, module);
+
+		ASSERT_NE(module, nullptr);		
+		ASSERT_FALSE(cmd->errors().hasError({lua}));
+	});
+}
+
+TEST_F(ExtrefTest, prefab_instance_with_lua_and_module) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+
+	setupBase(basePathName1, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, &PrefabInstance::template_}, prefab);
+
+		auto lua = create<LuaScript>("lua", prefab);
+		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+		cmd->moveScenegraphChildren({lua}, prefab);
+
+		auto luaModule = create<LuaScriptModule>("luaModule");
+		cmd->set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+
+		cmd->set({lua, {"luaModules", "coalas"}}, luaModule);
+	});
+
+	setupBase(basePathName2, [this, basePathName1]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"prefab"}, true));
+		auto lua = findExt<LuaScript>("lua");
+		auto module = findExt<LuaScriptModule>("luaModule");
+
+		ASSERT_NE(lua, nullptr);
+		ASSERT_NE(module, nullptr);
+		ASSERT_FALSE(cmd->errors().hasError({lua}));
+	});
+}
+TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+
+	setupBase(basePathName1, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, &PrefabInstance::template_}, prefab);
+
+		auto lua = create<LuaScript>("lua", prefab);
+		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+		cmd->moveScenegraphChildren({lua}, prefab);
+
+		auto luaModule = create<LuaScriptModule>("luaModule");
+		cmd->set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+
+		cmd->set({lua, {"luaModules", "coalas"}}, luaModule);
+	});
+
+	setupBase(basePathName2, [this, basePathName1]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"prefab"}, true));
+		auto lua = findExt<LuaScript>("lua");
+		auto module = findExt<LuaScriptModule>("luaModule");
+
+		ASSERT_NE(lua, nullptr);
+		ASSERT_NE(module, nullptr);
+		ASSERT_FALSE(cmd->errors().hasError({lua}));
+	});
+
+	updateBase(basePathName1, [this]() {
+		auto lua = find("lua");
+		cmd->set({lua, {"luaModules", "coalas"}}, SEditorObject{});
+	});
+
+	updateBase(basePathName2, [this]() {
+		auto lua = findExt<LuaScript>("lua");
+		auto module = findExt<LuaScriptModule>("luaModule");
+
+		ASSERT_NE(lua, nullptr);
+		ASSERT_NE(module, nullptr);
+		ASSERT_TRUE(cmd->errors().hasError({lua}));
+	});
+}
+
+TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
+	auto basePathName1{(cwd_path() / "base.rcp").string()};
+	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+
+	setupBase(basePathName1, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, &PrefabInstance::template_}, prefab);
+
+		auto lua = create<LuaScript>("lua", prefab);
+		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+		cmd->moveScenegraphChildren({lua}, prefab);
+
+		auto luaModule = create<LuaScriptModule>("luaModule");
+		cmd->set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+
+		cmd->set({lua, {"luaModules", "coalas"}}, luaModule);
+	});
+
+	setupBase(basePathName2, [this, basePathName1]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"prefab"}, true));
+		auto lua = findExt<LuaScript>("lua");
+		auto module = findExt<LuaScriptModule>("luaModule");
+
+		ASSERT_NE(lua, nullptr);
+		ASSERT_NE(module, nullptr);
+		ASSERT_FALSE(cmd->errors().hasError({lua}));
+	});
+
+	updateBase(basePathName1, [this]() {
+		auto lua = find("lua");
+		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/types-scalar.lua").string());
+	});
+
+	updateBase(basePathName2, [this]() {
+		auto lua = findExt<LuaScript>("lua");
+		auto module = findExt<LuaScriptModule>("luaModule");
+
+		ASSERT_NE(lua, nullptr);
+		ASSERT_NE(module, nullptr);
+		ASSERT_FALSE(cmd->errors().hasError({lua}));
 	});
 }

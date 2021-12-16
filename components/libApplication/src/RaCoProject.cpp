@@ -202,7 +202,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 
 	result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
 	result->context_->set({sCamera, &user_types::Node::translation_, &data_storage::Vec3f::z}, 10.0);
-	result->context_->moveScenegraphChild(sMeshNode, sNode);
+	result->context_->moveScenegraphChildren({sMeshNode}, sNode);
 	result->undoStack_.reset();
 	result->context_->changeMultiplexer().reset();
 	result->dirty_ = false;

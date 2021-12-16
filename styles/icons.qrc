@@ -37,5 +37,6 @@
         <file alias="typePrefabInternalIcon">_Default/icons/baseline_center_focus_strong_white_18dp.png</file>
         <file alias="typePrefabExternalIcon">_Default/icons/baseline_center_focus_weak_white_18dp.png</file>
         <file alias="typePrefabInstanceIcon">_Default/icons/baseline_crop_free_white_18dp.png</file>
+        <file alias="typeLuaScriptModuleIcon">_Default/icons/baseline_view_module_white_18dp.png</file>
     </qresource>
 </RCC>

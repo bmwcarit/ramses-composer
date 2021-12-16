@@ -22,7 +22,7 @@ TEST_F(AnimationChannelAdaptorTest, defaultConstruction) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays) {
@@ -34,7 +34,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays) {
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 }
@@ -51,7 +51,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays_rename_obj
 	context.set({animChannel, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.timestamps"), nullptr);
 }
@@ -72,7 +72,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_animAssigned_dataArra
 	context.set({animChannel, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.timestamps"), nullptr);
 }
@@ -89,7 +89,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_noDataArrays) {
 	context.set({animChannel, &raco::user_types::AnimationChannel::samplerIndex_}, -1);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_animAssigned_defaultDataArrays) {
@@ -108,7 +108,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_animAssigned_defaul
 	context.set({animChannel, &raco::user_types::AnimationChannel::samplerIndex_}, -1);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), raco::ramses_adaptor::defaultAnimationChannelKeyframesName), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), raco::ramses_adaptor::defaultAnimationChannelTimestampsName), nullptr);
 }
@@ -125,7 +125,7 @@ TEST_F(AnimationChannelAdaptorTest, invalidAnim_invalidSampler_noDataArrays) {
 	context.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, -1);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, noAnim_noDataArrays) {
@@ -137,7 +137,7 @@ TEST_F(AnimationChannelAdaptorTest, noAnim_noDataArrays) {
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, interpolationTest_dynamicDataArrays) {
@@ -152,7 +152,7 @@ TEST_F(AnimationChannelAdaptorTest, interpolationTest_dynamicDataArrays) {
 	context.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 4);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 4);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 4);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
@@ -161,7 +161,7 @@ TEST_F(AnimationChannelAdaptorTest, interpolationTest_dynamicDataArrays) {
 	context.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 3);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
@@ -182,7 +182,7 @@ TEST_F(AnimationChannelAdaptorTest, mesh_baked_flag_true_anim_data_gets_imported
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().dataArrays().size(), 2);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 }

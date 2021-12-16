@@ -18,6 +18,7 @@ add_library(libUserTypes
 	include/user_types/DefaultValues.h
 	include/user_types/Enumerations.h src/Enumerations.cpp
 	include/user_types/LuaScript.h src/LuaScript.cpp
+	include/user_types/LuaScriptModule.h src/LuaScriptModule.cpp
 	include/user_types/Material.h src/Material.cpp
 	include/user_types/Mesh.h src/Mesh.cpp
 	include/user_types/MeshNode.h src/MeshNode.cpp

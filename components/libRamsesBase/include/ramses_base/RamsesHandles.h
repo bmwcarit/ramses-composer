@@ -11,6 +11,7 @@
 #pragma once
 
 #include "log_system/log.h"
+#include "ramses_base/Utils.h"
 #include <ramses-utils.h>
 
 #include <memory>
@@ -40,6 +41,7 @@
 #include <ramses-logic/AnimationNode.h>
 #include <ramses-logic/DataArray.h>
 #include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/LuaModule.h>
 #include <ramses-logic/RamsesAppearanceBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>
 #include <ramses-logic/RamsesNodeBinding.h>
@@ -543,6 +545,7 @@ using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBi
 using UniqueRamsesDataArray = std::unique_ptr<rlogic::DataArray, std::function<void(rlogic::DataArray*)>>;
 using UniqueRamsesNodeBinding = std::unique_ptr<rlogic::RamsesNodeBinding, std::function<void(rlogic::RamsesNodeBinding*)>>;
 using UniqueRamsesCameraBinding = std::unique_ptr<rlogic::RamsesCameraBinding, std::function<void(rlogic::RamsesCameraBinding*)>>;
+using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
 
 using RamsesAnimationNode = RamsesHandle<rlogic::AnimationNode>;
 
@@ -577,6 +580,17 @@ inline UniqueRamsesCameraBinding ramsesCameraBinding(ramses::Camera& camera, rlo
 	return {logicEngine->createRamsesCameraBinding(camera), [logicEngine](rlogic::RamsesCameraBinding* binding) {
 				logicEngine->destroy(*binding);
 			}};
+}
+
+inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, rlogic::LogicEngine* logicEngine, const std::string& name) {
+	auto moduleConfig = defaultLuaConfig();
+	return {
+		logicEngine->createLuaModule(luaContent, moduleConfig, name), [logicEngine](rlogic::LuaModule* module) {
+			if (module) {
+				logicEngine->destroy(*module);
+			}
+		}};
+
 }
 
 struct RamsesAnimationChannelData {

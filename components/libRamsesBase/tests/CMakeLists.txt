@@ -16,6 +16,7 @@ set(TEST_SOURCES
     RamsesBaseFixture.h
     LinkAdaptor_test.cpp
     LuaScriptAdaptor_test.cpp
+    LuaScriptModuleAdaptor_test.cpp
     MaterialAdaptor_test.cpp
     MeshAdaptor_test.cpp
     MeshNodeAdaptor_test.cpp

@@ -931,7 +931,22 @@ QJsonDocument migrateProject(const QJsonDocument& document, std::unordered_map<s
 			return true;
 		});
 	}
-	
+
+	// File version 21: Added mipmap flag to textures
+	if (documentVersion < 21) {
+		auto factory = deserializationFactoryV10plus();
+		iterateInstances(documentObject, [&factory](const QString& instanceType, QJsonObject& instanceproperties) {
+			if (instanceType != "Texture") {
+				return false;
+			}
+			Property<bool, DisplayNameAnnotation> generateMipMaps{false, DisplayNameAnnotation("Generate Mipmaps")};
+			generateMipMaps = false;
+
+			addprop(instanceproperties, u"generateMipmaps", generateMipMaps);
+			
+			return true;
+		});
+	}
 	
 	QJsonDocument newDocument{documentObject};
 	// for debugging:

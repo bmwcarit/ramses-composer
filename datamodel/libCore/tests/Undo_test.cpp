@@ -7,6 +7,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include "core/Undo.h"
 #include "core/Context.h"
 #include "core/Handles.h"
 #include "core/MeshCacheInterface.h"
@@ -18,9 +19,9 @@
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
 #include "user_types/UserObjectFactory.h"
-
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -35,7 +36,7 @@
 using namespace raco::core;
 using namespace raco::user_types;
 
-template<class T = ::testing::Test>
+template <class T = ::testing::Test>
 class UndoTestT : public TestEnvironmentCoreT<T> {
 public:
 	template <typename C>
@@ -69,14 +70,19 @@ public:
 	}
 
 	template <class C>
-	std::shared_ptr<C> getInstance(std::string objectName) {
-		auto it = std::find_if(this->project.instances().begin(), this->project.instances().end(), [objectName](const SEditorObject& obj) -> bool {
+	std::shared_ptr<C> getInstance(Project& project, std::string objectName) {
+		auto it = std::find_if(project.instances().begin(), project.instances().end(), [objectName](const SEditorObject& obj) -> bool {
 			return objectName == obj->objectName();
 		});
-		if (it != this->project.instances().end()) {
+		if (it != project.instances().end()) {
 			return std::dynamic_pointer_cast<C>(*it);
 		}
 		return nullptr;
+	}
+
+	template <class C>
+	std::shared_ptr<C> getInstance(std::string objectName) {
+		return getInstance<C>(this->project, objectName);
 	}
 
 	void checkInstances(const std::vector<std::string>& present, const std::vector<std::string>& absent) {
@@ -90,7 +96,12 @@ public:
 	}
 };
 
-using UndoTest = UndoTestT<>;
+class UndoTest : public UndoTestT<> {
+public:
+	std::vector<std::unique_ptr<TestUndoStack::Entry>>& stack() {
+		return undoStack.stack();
+	}
+};
 
 TEST_F(UndoTest, Node_undoredo_single_op) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "node");
@@ -191,7 +202,7 @@ TEST_F(UndoTest, ScenegraphMove_simple) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "parent");
 	auto child = commandInterface.createObject(Node::typeDescription.typeName, "child");
 
-	checkUndoRedo([this, node, child]() { commandInterface.moveScenegraphChild(child, node); },
+	checkUndoRedo([this, node, child]() { commandInterface.moveScenegraphChildren({child}, node); },
 		[this, node, child]() {
 			EXPECT_EQ(node->children_->size(), 0);
 			EXPECT_EQ(child->getParent(), nullptr);
@@ -205,12 +216,12 @@ TEST_F(UndoTest, ScenegraphMove_simple) {
 TEST_F(UndoTest, ScenegraphMove_multiple_children) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "parent");
 	auto child1 = commandInterface.createObject(Node::typeDescription.typeName, "child1");
-	commandInterface.moveScenegraphChild(child1, node);
+	commandInterface.moveScenegraphChildren({child1}, node);
 	auto child2 = commandInterface.createObject(Node::typeDescription.typeName, "child2");
 
 	checkUndoRedoMultiStep<2>(
-		{[this, node, child1, child2]() { commandInterface.moveScenegraphChild(child2, node); },
-			[this, node, child1, child2]() { commandInterface.moveScenegraphChild(child1, nullptr); }},
+		{[this, node, child1, child2]() { commandInterface.moveScenegraphChildren({child2}, node); },
+			[this, node, child1, child2]() { commandInterface.moveScenegraphChildren({child1}, nullptr); }},
 		{[this, node, child1, child2]() {
 			 EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child1}));
 			 EXPECT_EQ(child1->getParent(), node);
@@ -276,7 +287,7 @@ TEST_F(UndoTest, Delete_single) {
 TEST_F(UndoTest, DeleteNodeWithChild) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "parent");
 	auto child = commandInterface.createObject(Node::typeDescription.typeName, "child");
-	commandInterface.moveScenegraphChild(child, node);
+	commandInterface.moveScenegraphChildren({child}, node);
 
 	checkUndoRedo([this, node]() { commandInterface.deleteObjects({node}); },
 		[this, node, child]() {
@@ -290,7 +301,7 @@ TEST_F(UndoTest, DeleteNodeWithChild) {
 TEST_F(UndoTest, DeleteNodeInParent) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "parent");
 	auto child = commandInterface.createObject(Node::typeDescription.typeName, "child");
-	commandInterface.moveScenegraphChild(child, node);
+	commandInterface.moveScenegraphChildren({child}, node);
 
 	checkUndoRedo([this, child]() { commandInterface.deleteObjects({child}); },
 		[this, node]() {
@@ -418,7 +429,7 @@ TEST_F(UndoTest, deepCut) {
 	auto node = create<Node>("node");
 	auto meshNode = create<MeshNode>("meshnode");
 	auto mesh = create<Mesh>("mesh");
-	commandInterface.moveScenegraphChild(meshNode, node);
+	commandInterface.moveScenegraphChildren({meshNode}, node);
 	commandInterface.set({meshNode, {"mesh"}}, mesh);
 
 	checkUndoRedo([this, node]() { commandInterface.cutObjects({node}, true); },
@@ -508,7 +519,7 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_output) {
 	// link gets broken here
 	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
 
-        // Simulate user doing stuff after changing URI to prevent undo stack merging when changing URI again.
+	// Simulate user doing stuff after changing URI to prevent undo stack merging when changing URI again.
 	create<Node>("Node");
 
 	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string()); },
@@ -542,6 +553,68 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 			ASSERT_EQ(project.links().size(), 2);
 			ASSERT_FALSE(project.links()[0]->isValid());
 			ASSERT_TRUE(project.links()[1]->isValid());
+		});
+}
+
+TEST_F(UndoTest, lua_module_added) {
+	auto script = create<LuaScript>("script");
+	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/moduleDependency.lua").string());
+
+	auto module = create<LuaScriptModule>("module");
+	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, cwd_path().append("scripts/moduleDefinition.lua").string());
+
+	checkUndoRedo([this, script, module]() {
+		commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
+	},
+		[this, script, module]() {
+			ASSERT_TRUE(commandInterface.errors().hasError({script}));
+			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
+			ASSERT_EQ(coalasRef, nullptr);
+		},
+		[this, script, module]() {
+			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
+			ASSERT_EQ(coalasRef, coalasRef);
+		});
+}
+
+TEST_F(UndoTest, lua_module_script_uri_changed) {
+	auto script = create<LuaScript>("script");
+	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/moduleDependency.lua").string());
+
+	auto module = create<LuaScriptModule>("module");
+	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, cwd_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
+
+	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/types-scalar.lua").string()); },
+		[this, script]() {
+			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
+			ASSERT_EQ(coalasRef, coalasRef);
+		},
+		[this, script]() {
+			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			ASSERT_EQ(script->get("luaModules")->asTable().size(), 0);
+		});
+}
+
+TEST_F(UndoTest, lua_module_script_module_made_invalid) {
+	auto script = create<LuaScript>("script");
+	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/moduleDependency.lua").string());
+
+	auto module = create<LuaScriptModule>("module");
+	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, cwd_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
+
+	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, std::string()); },
+		[this, script]() {
+			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
+			ASSERT_EQ(coalasRef, coalasRef);
+		},
+		[this, script, module]() {
+			ASSERT_TRUE(commandInterface.errors().hasError({script}));
+			ASSERT_TRUE(commandInterface.errors().hasError({module, &raco::user_types::LuaScriptModule::uri_}));
 		});
 }
 
@@ -642,7 +715,7 @@ INSTANTIATE_TEST_SUITE_P(
 	UndoTest,
 	UndoTestWithIDParams,
 	testing::Values(
-		std::vector<std::string>({"AAA", "BBB"}), 
+		std::vector<std::string>({"AAA", "BBB"}),
 		std::vector<std::string>({"BBB", "AAA"})));
 
 TEST_F(UndoTest, meshnode_uniform_update) {
@@ -677,7 +750,7 @@ void main() {
 })";
 
 	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
-	
+
 	size_t preIndex = undoStack.getIndex();
 
 	auto material = commandInterface.createObject(Material::typeDescription.typeName, "material", "CCC");
@@ -804,6 +877,112 @@ end
 	checkLinks({});
 	//The assert fails - needs to be fixed. See RAOS-687
 	//ASSERT_FALSE(commandInterface.errors().hasError({node}));
+}
+
+TEST_F(UndoTest, lua_link_create_inconsistent_undo_stack) {
+	TextFile luaFile = makeFile("test.lua", R"(
+function interface()
+    OUT.vec = VEC3F
+end
+
+function run()
+end
+)");
+
+	std::string altLuaScript = R"(
+function interface()
+    OUT.renamed = VEC3F
+end
+
+function run()
+end
+)";
+
+	auto lua = create_lua("lua", luaFile);
+	auto node = create<Node>("node");
+
+	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
+	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
+
+	recorder.reset();
+	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	// force restore from undo stack
+	commandInterface.undoStack().setIndex(commandInterface.undoStack().getIndex(), true);
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	auto [sprop, eprop] = link(lua, {"luaOutputs", "renamed"}, node, {"translation"});
+	checkLinks({{sprop, eprop, true}});
+
+	{
+		Project& stackProject = stack().back()->state;
+
+		auto stackLua = getInstance<LuaScript>(stackProject, "lua");
+		ASSERT_EQ(stackProject.links().size(), 1);
+		auto stackLink = stackProject.links()[0];
+
+		ValueHandle startProp{stackLua, stackLink->startPropertyNamesVector()};
+		EXPECT_TRUE(startProp && *stackLink->isValid_ || !startProp && !*stackLink->isValid_);
+	}
+}
+
+TEST_F(UndoTest, link_redo_creates_impossible_link) {
+	std::string origLuaScript = R"(
+function interface()
+    OUT.vec = VEC3F
+end
+
+function run()
+end
+)";
+
+	std::string altLuaScript = R"(
+function interface()
+    OUT.renamed = VEC3F
+end
+
+function run()
+end
+)";
+
+	TextFile luaFile = makeFile("test.lua", origLuaScript);
+	auto lua = create_lua("lua", luaFile);
+	auto node = create<Node>("node");
+
+	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
+	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
+
+	recorder.reset();
+	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	// force restore from undo stack
+	commandInterface.undoStack().setIndex(commandInterface.undoStack().getIndex(), true);
+	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
+	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
+
+	auto [sprop, eprop] = link(lua, {"luaOutputs", "renamed"}, node, {"translation"});
+	checkLinks({{sprop, eprop, true}});
+
+	raco::utils::file::write(luaFile.path.string(), origLuaScript);
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+
+	undoStack.undo();
+	checkLinks({});
+
+	undoStack.redo();
+	checkLinks({{sprop, eprop, false}});
+	ASSERT_FALSE(static_cast<bool>(ValueHandle(sprop)));
 }
 
 #endif

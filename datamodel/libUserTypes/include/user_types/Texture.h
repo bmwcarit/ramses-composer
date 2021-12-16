@@ -34,6 +34,7 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("uri", &uri_);
 		properties_.emplace_back("flipTexture", &flipTexture_);
+		properties_.emplace_back("generateMipmaps", &generateMipmaps_);
 	}
 
     void onBeforeDeleteObject(Errors& errors) const override;
@@ -44,6 +45,7 @@ public:
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation("URI")};
 	Property<bool, DisplayNameAnnotation> flipTexture_{false, DisplayNameAnnotation("Flip Vertically")};
+	Property<bool, DisplayNameAnnotation> generateMipmaps_{false, DisplayNameAnnotation("Generate Mipmaps")};
 
 private:
 	mutable FileChangeMonitor::UniqueListener uriListener_;

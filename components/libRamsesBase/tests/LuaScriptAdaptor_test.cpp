@@ -470,9 +470,9 @@ end
 	commandInterface.set({luaScriptChild, {"uri"}}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(node, prefab);
-	commandInterface.moveScenegraphChild(luaScriptChild, node);
-	commandInterface.moveScenegraphChild(luaScriptTopLevel, prefab);
+	commandInterface.moveScenegraphChildren({node}, prefab);
+	commandInterface.moveScenegraphChildren({luaScriptChild}, node);
+	commandInterface.moveScenegraphChildren({luaScriptTopLevel}, prefab);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.LuaScript Name")};
@@ -484,7 +484,7 @@ end
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "Child LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
 
-	commandInterface.moveScenegraphChild(luaScriptTopLevel, {});
+	commandInterface.moveScenegraphChildren({luaScriptTopLevel}, {});
 	dispatch();
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.LuaScript Name");
@@ -493,13 +493,13 @@ end
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
 
-	commandInterface.moveScenegraphChild(luaScriptChild, prefab);
+	commandInterface.moveScenegraphChildren({luaScriptChild}, prefab);
 	dispatch();
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.Child LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
 
-	commandInterface.moveScenegraphChild(luaScriptChild, node);
+	commandInterface.moveScenegraphChildren({luaScriptChild}, node);
 	dispatch();
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.Child LuaScript Name");
@@ -532,7 +532,7 @@ end
 	commandInterface.set({luaScript, {"uri"}}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(luaScript, prefab);
+	commandInterface.moveScenegraphChildren({luaScript}, prefab);
 	dispatch();
 
 	commandInterface.set({prefabInst, {"objectName"}}, std::string("New PrefabInstance"));
@@ -570,7 +570,7 @@ end
 	commandInterface.set({luaScript, {"uri"}}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(luaScript, prefab);
+	commandInterface.moveScenegraphChildren({luaScript}, prefab);
 	dispatch();
 
 	auto copiedObjs = commandInterface.copyObjects({prefabInst, luaScript}, false);
@@ -607,7 +607,7 @@ end
 	commandInterface.set({luaScript, {"uri"}}, uriPath);
 	dispatch();
 
-	commandInterface.moveScenegraphChild(luaScript, prefab);
+	commandInterface.moveScenegraphChildren({luaScript}, prefab);
 	dispatch();
 
 	commandInterface.set({prefabInst, {"objectName"}}, std::string("New PrefabInstance"));

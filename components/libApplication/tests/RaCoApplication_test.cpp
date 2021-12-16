@@ -55,7 +55,7 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 
 	auto node = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, Naming::format("NodeDuck"));
 	auto meshNode = commandInterface->createObject(raco::user_types::MeshNode::typeDescription.typeName, Naming::format("MeshNodeDuck"));
-	commandInterface->moveScenegraphChild(meshNode, node);
+	commandInterface->moveScenegraphChildren({meshNode}, node);
 
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);

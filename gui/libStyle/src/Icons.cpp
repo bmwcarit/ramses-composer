@@ -46,6 +46,7 @@ Icons& Icons::instance() {
 			{Pixmap::typePrefabInternal, QPixmap{":typePrefabInternalIcon"}},
 			{Pixmap::typePrefabExternal, QPixmap{":typePrefabExternalIcon"}},
 			{Pixmap::typePrefabInstance, QPixmap{":typePrefabInstanceIcon"}},
+			{Pixmap::typeLuaScriptModule, QPixmap{":typeLuaScriptModuleIcon"}},
 			{Pixmap::typeAnimationChannel, QPixmap{":typeAnimationChannelIcon"}},
 			{Pixmap::typeAnimation, QPixmap{":typeAnimationIcon"}}
 		};

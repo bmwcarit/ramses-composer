@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 19,
+    "fileVersion": 21,
     "instances": [
         {
             "properties": {
@@ -841,6 +841,7 @@
                     "value": 1
                 },
                 "flipTexture": false,
+                "generateMipmaps": false,
                 "magSamplingMethod": 0,
                 "minSamplingMethod": 0,
                 "objectID": "0d2c96e3-0ed2-4f95-ac54-03b9fa81e963",
@@ -1865,6 +1866,14 @@
                 "rewindOnStop": false
             },
             "typeName": "Animation"
+        },
+        {
+            "properties": {
+                "objectID": "04ada1c4-7e3a-4f9e-983d-4724a073cad8",
+                "objectName": "LuaScriptModule",
+                "uri": ""
+            },
+            "typeName": "LuaScriptModule"
         }
     ],
     "links": [
@@ -1876,8 +1885,8 @@
     ],
     "racoVersion": [
         0,
-        9,
-        3
+        10,
+        0
     ],
     "ramsesVersion": [
         27,

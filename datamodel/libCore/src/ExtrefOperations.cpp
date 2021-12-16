@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>
+#include <string>
 
 namespace raco::core {
 
@@ -145,17 +147,19 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	auto extProjectMapCopy = project->externalProjectsMap();
 
 	// local = collect all extref objects in current project
-	SEditorObjectSet localObjects;
-	std::copy_if(project->instances().begin(), project->instances().end(), std::inserter(localObjects, localObjects.end()), [](SEditorObject object) -> bool {
-		return object->query<ExternalReferenceAnnotation>() != nullptr;
-	});
+	std::map<std::string, SEditorObject> localObjects;
+	for (const auto& object : project->instances()) {
+		if (object->query<ExternalReferenceAnnotation>()) {
+			localObjects[object->objectID()] = object;
+		}
+	}
 
 	// remote = collect current state of extref objects in external projects
 	// walk tree following all references but use objects from correct external project when following references.
 	std::map<std::string, ExternalObjectDescriptor> externalObjects;
 
 	try {
-		for (auto object : localObjects) {
+		for (const auto& [id, object] : localObjects) {
 			if (object->getParent() == nullptr) {
 				collectExternalObjects(project, ExternalObjectDescriptor{object, project}, externalProjectsStore, externalObjects, pathStack, true);
 			}
@@ -174,11 +178,9 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 
 	auto translateToLocal = [&localObjects](SEditorObject extObj) -> SEditorObject {
 		if (extObj) {
-			auto it = std::find_if(localObjects.begin(), localObjects.end(), [extObj](SEditorObject obj) {
-				return obj->objectID() == extObj->objectID();
-			});
+			auto it = localObjects.find(extObj->objectID());
 			if (it != localObjects.end()) {
-				return *it;
+				return it->second;
 			}
 		}
 		return nullptr;
@@ -191,8 +193,8 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	{
 		auto it = localObjects.begin();
 		while (it != localObjects.end()) {
-			if (externalObjects.find((*it)->objectID()) == externalObjects.end()) {
-				toRemove.emplace_back(*it);
+			if (externalObjects.find(it->second->objectID()) == externalObjects.end()) {
+				toRemove.emplace_back(it->second);
 				it = localObjects.erase(it);
 			} else {
 				++it;
@@ -236,7 +238,7 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 			localObj->addAnnotation(std::make_shared<ExternalReferenceAnnotation>(item.second.project->projectID()));
 			context.project()->addInstance(localObj);
 			localChanges.recordCreateObject(localObj);
-			localObjects.insert(localObj);
+			localObjects[localObj->objectID()] = localObj;
 		}
 	}
 

@@ -42,8 +42,10 @@ raco_package_add_test_resouces(
     meshes/negativeScaleQuad.gltf
     meshes/ToyCar/ToyCar.gltf
     meshes/ToyCar/ToyCar.bin
+    scripts/compile-error.lua
+    scripts/moduleDefinition.lua
+    scripts/moduleDependency.lua
     scripts/SimpleScript.lua
     scripts/types-scalar.lua
     scripts/runtime-error.lua
-    scripts/compile-error.lua
 )

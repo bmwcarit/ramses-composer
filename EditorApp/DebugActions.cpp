@@ -57,7 +57,7 @@ void configureDebugActions(Ui::MainWindow* ui, QWidget* widget, raco::core::Comm
 
 		auto node = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, Naming::format("DuckNode"));
 		auto meshNode = commandInterface->createObject(raco::user_types::MeshNode::typeDescription.typeName, Naming::format("DuckMeshNode"));
-		commandInterface->moveScenegraphChild(meshNode, node);
+		commandInterface->moveScenegraphChildren({meshNode}, node);
 
 		commandInterface->set(raco::core::ValueHandle{meshNode, &MeshNode::mesh_}, mesh);
 		commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);

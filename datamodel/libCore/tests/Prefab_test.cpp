@@ -22,7 +22,7 @@
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/BaseEngineBackend.h"
 
-
+#include "user_types/LuaScriptModule.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -45,7 +45,7 @@ TEST_F(PrefabTest, move_node_in) {
 	auto node = create<Node>("node");
 	commandInterface.set({inst, {"template"}}, prefab);
 
-	checkUndoRedo([this, node, prefab]() { commandInterface.moveScenegraphChild(node, prefab); },
+	checkUndoRedo([this, node, prefab]() { commandInterface.moveScenegraphChildren({node}, prefab); },
 		[this, inst]() {
 			EXPECT_EQ(inst->children_->size(), 0);
 		},
@@ -59,9 +59,9 @@ TEST_F(PrefabTest, move_node_out) {
 	auto inst = create<PrefabInstance>("inst");
 	auto node = create<Node>("node");
 	commandInterface.set({inst, {"template"}}, prefab);
-	commandInterface.moveScenegraphChild(node, prefab);
+	commandInterface.moveScenegraphChildren({node}, prefab);
 
-	checkUndoRedo([this, node, prefab]() { commandInterface.moveScenegraphChild(node, nullptr); },
+	checkUndoRedo([this, node, prefab]() { commandInterface.moveScenegraphChildren({node}, nullptr); },
 		[this, inst]() {
 			EXPECT_EQ(inst->children_->size(), 1);
 		},
@@ -75,7 +75,7 @@ TEST_F(PrefabTest, del_node) {
 	auto inst = create<PrefabInstance>("inst");
 	auto node = create<Node>("node");
 	commandInterface.set({inst, {"template"}}, prefab);
-	commandInterface.moveScenegraphChild(node, prefab);
+	commandInterface.moveScenegraphChildren({node}, prefab);
 
 	checkUndoRedo([this, node, prefab]() { commandInterface.deleteObjects({node}); },
 		[this, inst]() {
@@ -91,7 +91,7 @@ TEST_F(PrefabTest, set_node_prop) {
 	auto inst = create<PrefabInstance>("inst");
 	auto node = create<Node>("node");
 	commandInterface.set({inst, {"template"}}, prefab);
-	commandInterface.moveScenegraphChild(node, prefab);
+	commandInterface.moveScenegraphChildren({node}, prefab);
 
 	auto instChildren = inst->children_->asVector<SEditorObject>();
 	EXPECT_EQ(instChildren.size(), 1);
@@ -167,13 +167,13 @@ TEST_F(PrefabTest, link_broken_inside_prefab_status_gets_propagated_to_instances
 	commandInterface.set({inst, {"template"}}, prefab);
 
 	auto node = create<Node>("node");
-	commandInterface.moveScenegraphChild(node, prefab);
+	commandInterface.moveScenegraphChildren({node}, prefab);
 
 	auto luaPrefabGlobal = create<LuaScript>("luaPrefab");
-	commandInterface.moveScenegraphChild(luaPrefabGlobal, prefab);
+	commandInterface.moveScenegraphChildren({luaPrefabGlobal}, prefab);
 
 	auto luaPrefabNodeChild = create<LuaScript>("luaPrefabNode");
-	commandInterface.moveScenegraphChild(luaPrefabNodeChild, node);
+	commandInterface.moveScenegraphChildren({luaPrefabNodeChild}, node);
 
 	commandInterface.set({luaPrefabGlobal, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
 	commandInterface.set({luaPrefabNodeChild, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
@@ -290,24 +290,24 @@ end
 
 
 TEST_F(PrefabTest, nesting_move_node_in) {
-	auto prefab_1 = create<Prefab>("prefab 1");
-	auto prefab_2 = create<Prefab>("prefab 2");
+	auto prefab1 = create<Prefab>("prefab 1");
+	auto prefab2 = create<Prefab>("prefab 2");
 
-	auto inst_1 = create<PrefabInstance>("inst 1");
-	commandInterface.set({inst_1, {"template"}}, prefab_1);
-	commandInterface.moveScenegraphChild(inst_1, prefab_2);
+	auto inst1 = create<PrefabInstance>("inst 1");
+	commandInterface.set({inst1, {"template"}}, prefab1);
+	commandInterface.moveScenegraphChildren({inst1}, prefab2);
 
-	auto inst_2 = create<PrefabInstance>("inst 2");
-	commandInterface.set({inst_2, {"template"}}, prefab_2);
+	auto inst2 = create<PrefabInstance>("inst 2");
+	commandInterface.set({inst2, {"template"}}, prefab2);
 
-	auto inst_2_children = inst_2->children_->asVector<SEditorObject>();
+	auto inst_2_children = inst2->children_->asVector<SEditorObject>();
 	EXPECT_EQ(inst_2_children.size(), 1);
 	auto inst_2_child = inst_2_children[0]->as<PrefabInstance>();
 	EXPECT_TRUE(inst_2_child);
 
 	auto node = create<Node>("node");
 
-	checkUndoRedo([this, node, prefab_1]() { commandInterface.moveScenegraphChild(node, prefab_1); },
+	checkUndoRedo([this, node, prefab1]() { commandInterface.moveScenegraphChildren({node}, prefab1); },
 		[this, inst_2_child]() {
 			EXPECT_EQ(inst_2_child->children_->size(), 0);
 		},
@@ -318,23 +318,23 @@ TEST_F(PrefabTest, nesting_move_node_in) {
 }
 
 TEST_F(PrefabTest, nesting_set_node_prop) {
-	auto prefab_1 = create<Prefab>("prefab 1");
-	auto prefab_2 = create<Prefab>("prefab 2");
+	auto prefab1 = create<Prefab>("prefab 1");
+	auto prefab2 = create<Prefab>("prefab 2");
 
-	auto inst_1 = create<PrefabInstance>("inst 1");
-	commandInterface.set({inst_1, {"template"}}, prefab_1);
-	commandInterface.moveScenegraphChild(inst_1, prefab_2);
+	auto inst1 = create<PrefabInstance>("inst 1");
+	commandInterface.set({inst1, {"template"}}, prefab1);
+	commandInterface.moveScenegraphChildren({inst1}, prefab2);
 
-	auto inst_2 = create<PrefabInstance>("inst 2");
-	commandInterface.set({inst_2, {"template"}}, prefab_2);
+	auto inst2 = create<PrefabInstance>("inst 2");
+	commandInterface.set({inst2, {"template"}}, prefab2);
 
-	auto inst_2_children = inst_2->children_->asVector<SEditorObject>();
+	auto inst_2_children = inst2->children_->asVector<SEditorObject>();
 	EXPECT_EQ(inst_2_children.size(), 1);
 	auto inst_2_child = inst_2_children[0]->as<PrefabInstance>();
 	EXPECT_TRUE(inst_2_child);
 
 	auto node = create<Node>("node");
-	commandInterface.moveScenegraphChild(node, prefab_1);
+	commandInterface.moveScenegraphChildren({node}, prefab1);
 
 	EXPECT_EQ(inst_2_child->children_->size(), 1);
 	auto instNode = inst_2_child->children_->asVector<SEditorObject>()[0]->as<Node>();
@@ -388,17 +388,17 @@ end
 }
 
 TEST_F(PrefabTest, loop_instance_no_valid_template_check) {
-	auto prefab_1 = create<Prefab>("prefab 1");
-	auto prefab_2 = create<Prefab>("prefab 2");
-	auto inst_1 = create<PrefabInstance>("inst 1");
-	auto inst_2 = create<PrefabInstance>("inst 2");
-	commandInterface.moveScenegraphChild(inst_1, prefab_1);
-	commandInterface.moveScenegraphChild(inst_2, prefab_2);
+	auto prefab1 = create<Prefab>("prefab 1");
+	auto prefab2 = create<Prefab>("prefab 2");
+	auto inst1 = create<PrefabInstance>("inst 1");
+	auto inst2 = create<PrefabInstance>("inst 2");
+	commandInterface.moveScenegraphChildren({inst1}, prefab1);
+	commandInterface.moveScenegraphChildren({inst2}, prefab2);
 
-	commandInterface.set({inst_1, {"template"}}, prefab_2);
-	EXPECT_EQ(*inst_1->template_, prefab_2);
+	commandInterface.set({inst1, {"template"}}, prefab2);
+	EXPECT_EQ(*inst1->template_, prefab2);
 
-	auto valid = Queries::findAllValidReferenceTargets(project, {inst_2, {"template"}});
+	auto valid = Queries::findAllValidReferenceTargets(project, {inst2, {"template"}});
 	EXPECT_EQ(valid.size(), 0);
 }
 
@@ -408,8 +408,8 @@ TEST_F(PrefabTest, delete_prefab_with_node_with_meshnode_while_instance_exists) 
 	auto node = create<Node>("node");
 	auto meshNode = create<Node>("meshNode");
 	commandInterface.set({inst, {"template"}}, prefab);
-	commandInterface.moveScenegraphChild(node, prefab);
-	commandInterface.moveScenegraphChild(meshNode, node);
+	commandInterface.moveScenegraphChildren({node}, prefab);
+	commandInterface.moveScenegraphChildren({meshNode}, node);
 
 	EXPECT_EQ(*inst->template_, prefab);
 
@@ -517,7 +517,7 @@ end
 	ASSERT_EQ(project.links().size(), 2);
 
 	// Use context here to perform prefab update only after both operations are complete
-	context.moveScenegraphChild(meshnode, prefab);
+	context.moveScenegraphChildren({meshnode}, prefab);
 	context.deleteObjects({node});
 	raco::core::PrefabOperations::globalPrefabUpdate(context, context.modelChanges());
 
@@ -536,4 +536,60 @@ end
 		{{inst_lua, {"luaOutputs", "v"}}, {inst_meshnode, {"translation"}}}
 		});
 	ASSERT_EQ(project.links().size(), 2);
+}
+
+TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_no_module) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+
+	auto lua = create<LuaScript>("lua", prefab);
+	commandInterface.set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+	commandInterface.moveScenegraphChildren({lua}, prefab);
+
+	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	ASSERT_NE(inst_lua, nullptr);
+	ASSERT_TRUE(commandInterface.errors().hasError({lua}));
+	ASSERT_TRUE(commandInterface.errors().hasError({inst_lua}));
+}
+
+TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_add_module) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+
+	auto lua = create<LuaScript>("lua", prefab);
+	commandInterface.set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+	commandInterface.moveScenegraphChildren({lua}, prefab);
+
+	auto luaModule = create<LuaScriptModule>("luaModule");
+	commandInterface.set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+
+	commandInterface.set({lua, {"luaModules", "coalas"}}, luaModule);
+
+	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	ASSERT_NE(inst_lua, nullptr);
+	ASSERT_FALSE(commandInterface.errors().hasError({lua}));
+	ASSERT_FALSE(commandInterface.errors().hasError({inst_lua}));
+}
+
+TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_remove_module) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+
+	auto lua = create<LuaScript>("lua", prefab);
+	commandInterface.set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+	commandInterface.moveScenegraphChildren({lua}, prefab);
+
+	auto luaModule = create<LuaScriptModule>("luaModule");
+	commandInterface.set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+
+	commandInterface.set({lua, {"luaModules", "coalas"}}, luaModule);
+	commandInterface.set({lua, {"luaModules", "coalas"}}, SEditorObject{});
+
+	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	ASSERT_NE(inst_lua, nullptr);
+	ASSERT_TRUE(commandInterface.errors().hasError({lua}));
+	ASSERT_TRUE(commandInterface.errors().hasError({inst_lua}));
 }

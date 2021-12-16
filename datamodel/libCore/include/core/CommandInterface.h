@@ -61,10 +61,10 @@ public:
 	// since dependent objects may need to be included.
 	size_t deleteObjects(std::vector<SEditorObject> const& objects);
 
-	// Move scenegraph node to new parent at before the specified index.
+	// Move scenegraph nodes to new parent at before the specified index.
 	// - If ValueHandle is invalid/empty the scenegraph parent is removed.
 	// - If insertionBeforeIndex = -1 the node will be appended at the end of the new parent children.
-	void moveScenegraphChild(SEditorObject const& object, SEditorObject const& newParent, int insertBeforeIndex = -1);
+	void moveScenegraphChildren(std::vector<SEditorObject> const& objects, SEditorObject const& newParent, int insertBeforeIndex = -1);
 
 	// Calls Context::insertAssetScenegraph and generates a composite undo command.
 	void insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);

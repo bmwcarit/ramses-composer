@@ -22,36 +22,20 @@ ObjectTreeViewResourceModel::ObjectTreeViewResourceModel(raco::core::CommandInte
 
 bool ObjectTreeViewResourceModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	// ignore index: resources always get pasted at top level.
-	return ObjectTreeViewDefaultModel::pasteObjectAtIndex(getInvisibleRootIndex(), pasteAsExtref, outError, serializedObjects);
+	return ObjectTreeViewDefaultModel::pasteObjectAtIndex({}, pasteAsExtref, outError, serializedObjects);
 }
 
-bool ObjectTreeViewResourceModel::objectsAreAllowedInModel(const std::vector<core::SEditorObject>& objs, const QModelIndex& parentIndex) const {
-	for (const auto& obj : objs) {
-		if (!obj || std::find(allowedUserCreatableUserTypes_.begin(), allowedUserCreatableUserTypes_.end(), obj->getTypeDescription().typeName) == allowedUserCreatableUserTypes_.end()) {
-			return false;
-		}
-	}
-	return true;
+bool ObjectTreeViewResourceModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
+	// Only allow root level pasting here, thus only invalid indices are ok.
+	return !index.isValid() && ObjectTreeViewDefaultModel::isObjectAllowedIntoIndex(index, obj);
 }
 
-bool ObjectTreeViewResourceModel::canInsertMeshAssets(const QModelIndex& index) const {
-	return false;
+std::vector<std::string> ObjectTreeViewResourceModel::typesAllowedIntoIndex(const QModelIndex& index) const {
+	auto topLevel = QModelIndex();
+	// Always assume user wants to create item on top level.
+	return ObjectTreeViewDefaultModel::typesAllowedIntoIndex(topLevel);
 }
 
-bool ObjectTreeViewResourceModel::canPasteInto(const QModelIndex& index, const std::string& serializedObjs, bool asExtRef) const {
-	auto deserialization{raco::serialization::deserializeObjects(serializedObjs,
-		raco::user_types::UserObjectFactoryInterface::deserializationFactory(commandInterface_->objectFactory()))};
-	auto topLevelObjects = core::BaseContext::getTopLevelObjectsFromDeserializedObjects(deserialization, commandInterface_->objectFactory(), project());
 
-	if (asExtRef) {
-		for (const auto& topLevelObj : topLevelObjects) {
-			if (!core::Queries::canPasteObjectAsExternalReference(topLevelObj, deserialization.rootObjectIDs.find(topLevelObj->objectID()) != deserialization.rootObjectIDs.end())) {
-				return false;
-			}
-		}
-	}
-
-	return objectsAreAllowedInModel(topLevelObjects, index);
-}
 
 }  // namespace raco::object_tree::model

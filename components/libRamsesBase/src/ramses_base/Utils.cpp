@@ -9,9 +9,12 @@
  */
 #include "ramses_base/Utils.h"
 
+#include "user_types/LuaScriptModule.h"
+#include "data_storage/Table.h"
 #include "ramses_base/LogicEngine.h"
 #include <ramses-logic/Logger.h>
 #include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/LuaModule.h>
 #include <ramses-logic/LuaScript.h>
 #include <ramses-logic/Property.h>
 #include <sstream>
@@ -152,9 +155,21 @@ void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface> &interfac
 }
 }  // namespace
 
-bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, raco::core::PropertyInterfaceList &outInputs, raco::core::PropertyInterfaceList &outOutputs, std::string &outError) {
-	rlogic::LuaConfig luaConfig;
-	luaConfig.addStandardModuleDependency(rlogic::EStandardModule::All);
+
+bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, const raco::data_storage::Table &modules, raco::core::PropertyInterfaceList &outInputs, raco::core::PropertyInterfaceList &outOutputs, std::string &outError) {
+	rlogic::LuaConfig luaConfig = defaultLuaConfig();
+	std::vector<rlogic::LuaModule *> tempModules;
+
+	for (auto i = 0; i < modules.size(); ++i) {
+		if (auto moduleRef = modules.get(i)->asRef()) {
+			rlogic::LuaConfig tempConfig = defaultLuaConfig();
+			auto tempModule = tempModules.emplace_back(engine.createLuaModule(moduleRef->as<raco::user_types::LuaScriptModule>()->currentScriptContents_, tempConfig, "Stage::PreprocessModule::" + moduleRef->objectName()));
+			if (tempModule) {
+				luaConfig.addDependency(modules.name(i), *tempModule);
+			}
+		}
+	}
+
 	auto script = engine.createLuaScript(luaScript, luaConfig, "Stage::PreprocessScript");
 	if (script) {
 		if (auto inputs = script->getInputs()) {
@@ -164,11 +179,38 @@ bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, raco::cor
 			fillLuaScriptInterface(outOutputs, outputs);
 		}
 		engine.destroy(*script);
+		for (auto module : tempModules) {
+			if (module) {
+				engine.destroy(*module);
+			}
+		}
+		return true;
+	} else {
+		outError = engine.getErrors().at(0).message;
+		for (auto module : tempModules) {
+			if (module) {
+				engine.destroy(*module);
+			}
+		}
+		return false;
+	}
+}
+
+bool parseLuaScriptModule(LogicEngine &engine, const std::string &luaScriptModule, std::string &outError) {
+	rlogic::LuaConfig tempConfig = defaultLuaConfig();
+	if (auto tempModule = engine.createLuaModule(luaScriptModule, tempConfig, "Stage::PreprocessModule")) {
+		engine.destroy(*tempModule);
 		return true;
 	} else {
 		outError = engine.getErrors().at(0).message;
 		return false;
 	}
+}
+
+rlogic::LuaConfig defaultLuaConfig() {
+	rlogic::LuaConfig config;
+	config.addStandardModuleDependency(rlogic::EStandardModule::All);
+	return config;
 }
 
 ramses::RamsesVersion getRamsesVersion() {

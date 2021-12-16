@@ -53,6 +53,7 @@
 #include "user_types/AnimationChannel.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/OrthographicCamera.h"
@@ -198,6 +199,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 	static const std::vector<std::string> allowedCreateableUserTypes{
 		AnimationChannel::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
+		LuaScriptModule::typeDescription.typeName,
 		Material::typeDescription.typeName,
 		Mesh::typeDescription.typeName,
 		Texture::typeDescription.typeName,

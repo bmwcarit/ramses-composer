@@ -9,6 +9,7 @@
  */
 #include "testing/TestEnvironmentCore.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
 #include "utils/FileUtils.h"
 #include <gtest/gtest.h>
 
@@ -247,4 +248,313 @@ end
 	commandInterface.set(s.get("uri"), scriptFile2);
 	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
 	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+}
+
+TEST_F(LuaScriptTest, modules_in_uri_are_rejected) {
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle uri{s.get("uri")};
+
+	commandInterface.set(s.get("uri"), cwd_path().append("scripts/moduleDependency.lua").string());
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+}
+
+
+TEST_F(LuaScriptTest, module_loaded_without_assigned_module_objects) {
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle uri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("coalas", "module", "anothermodule")
+
+function interface()
+	IN.zz = INT
+	IN.aa = FLOAT
+	IN.abc = INT
+	IN.za = STRING
+	IN.ff = BOOL
+
+	OUT.zz = INT
+	OUT.aa = FLOAT
+	OUT.zzz = FLOAT
+	OUT.e = STRING
+end
+
+function run()
+end
+)");
+	commandInterface.set(s.get("uri"), scriptFile);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
+	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+}
+
+TEST_F(LuaScriptTest, module_loaded_after_assigned_module_objects) {
+	std::array<SLuaScriptModule, 3> modules = { create<LuaScriptModule>("m1"),
+		create<LuaScriptModule>("m2"),
+		create<LuaScriptModule>("m3") };
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle uri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("coalas", "module", "anothermodule")
+
+function interface()
+	IN.zz = INT
+	IN.aa = FLOAT
+	IN.abc = INT
+	IN.za = STRING
+	IN.ff = BOOL
+
+	OUT.zz = INT
+	OUT.aa = FLOAT
+	OUT.zzz = FLOAT
+	OUT.e = STRING
+end
+
+function run()
+end
+)");
+	auto moduleFile1  = makeFile("module1.lua", R"(
+local coalaModule = {}
+
+return coalaModule
+)");
+
+	auto moduleFile2 = makeFile("module2.lua", R"(
+local mymodule = {}
+
+return mymodule
+)");
+
+	auto moduleFile3 = makeFile("module3.lua", R"(
+local anothermodule = {}
+
+return anothermodule
+)");
+
+	commandInterface.set(s.get("uri"), scriptFile);
+	commandInterface.set(s.get("luaModules").get("coalas"), modules[0]);
+	commandInterface.set(s.get("luaModules").get("module"), modules[1]);
+	commandInterface.set(s.get("luaModules").get("anothermodule"), modules[2]);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+
+	commandInterface.set({modules[0], &raco::user_types::LuaScriptModule::uri_}, moduleFile1);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+
+	commandInterface.set({modules[1], &raco::user_types::LuaScriptModule::uri_}, moduleFile2);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+
+	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, moduleFile3);
+
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));		
+	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
+	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
+	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+
+	
+	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, std::string());
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
+	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+}
+
+TEST_F(LuaScriptTest, module_amount_increased) {
+	std::array<SLuaScriptModule, 3> modules = {create<LuaScriptModule>("m1"),
+		create<LuaScriptModule>("m2"),
+		create<LuaScriptModule>("m3")};
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle uri{s.get("uri")};
+
+	auto scriptFile1 = makeFile("script1.lua", R"(
+modules("coalas", "module", "anothermodule")
+
+function interface()
+end
+
+function run()
+end
+)");
+
+	auto scriptFile2 = makeFile("script2.lua", R"(
+modules("coalas")
+
+function interface()
+end
+
+function run()
+end
+)");
+
+	auto scriptFile3 = makeFile("script3.lua", R"(
+modules("coalas", "module", "anothermodule", "fourthmodule")
+
+function interface()
+end
+
+function run()
+end
+)");
+
+	auto moduleFile1 = makeFile("module1.lua", R"(
+local coalaModule = {}
+
+return coalaModule
+)");
+
+	auto moduleFile2 = makeFile("module2.lua", R"(
+local mymodule = {}
+
+return mymodule
+)");
+
+	auto moduleFile3 = makeFile("module3.lua", R"(
+local anothermodule = {}
+
+return anothermodule
+)");
+
+	commandInterface.set(s.get("uri"), scriptFile1);
+	commandInterface.set(s.get("luaModules").get("coalas"), modules[0]);
+	commandInterface.set(s.get("luaModules").get("module"), modules[1]);
+	commandInterface.set(s.get("luaModules").get("anothermodule"), modules[2]);
+	commandInterface.set({modules[0], &raco::user_types::LuaScriptModule::uri_}, moduleFile1);
+	commandInterface.set({modules[1], &raco::user_types::LuaScriptModule::uri_}, moduleFile2);
+	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, moduleFile3);
+
+	commandInterface.set(s.get("uri"), scriptFile2);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas"}));
+	ASSERT_EQ(s.get("luaModules").get("coalas").asRef(), modules[0]);
+
+	commandInterface.set(s.get("uri"), scriptFile3);
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule", "fourthmodule"}));
+	ASSERT_EQ(s.get("luaModules").get("coalas").asRef(), modules[0]);
+	ASSERT_EQ(s.get("luaModules").get("module").asRef(), modules[1]);
+	ASSERT_EQ(s.get("luaModules").get("anothermodule").asRef(), modules[2]);
+	ASSERT_EQ(s.get("luaModules").get("fourthmodule").asRef(), nullptr);
+}
+
+TEST_F(LuaScriptTest, module_loaded_with_redeclaration_of_standard_lua_module) {
+	auto module = create<LuaScriptModule>("m");
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle scriptUri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("math", "coalas")
+
+function interface()
+	IN.zz = INT
+	IN.aa = FLOAT
+	IN.abc = INT
+	IN.za = STRING
+	IN.ff = BOOL
+
+	OUT.zz = INT
+	OUT.aa = FLOAT
+	OUT.zzz = FLOAT
+	OUT.e = STRING
+end
+
+function run()
+end
+)");
+
+	auto scriptFile2 = makeFile("script2.lua", R"(
+modules("coalas")
+
+function interface()
+	IN.zz = INT
+	IN.aa = FLOAT
+	IN.abc = INT
+	IN.za = STRING
+	IN.ff = BOOL
+
+	OUT.zz = INT
+	OUT.aa = FLOAT
+	OUT.zzz = FLOAT
+	OUT.e = STRING
+end
+
+function run()
+end
+)");
+
+	auto moduleFile = makeFile("module.lua", R"(
+local coalaModule = {}
+
+return coalaModule
+)");
+
+	commandInterface.set(raco::core::ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set(scriptUri, scriptFile);
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_TRUE(newScript->luaModules_->propertyNames().empty());
+	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+
+	commandInterface.set(scriptUri, scriptFile2);
+	commandInterface.set(s.get("luaModules").get("coalas"), module);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas"}));
+	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
+	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+
+	commandInterface.set(scriptUri, scriptFile);
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_TRUE(newScript->luaModules_->propertyNames().empty());
+	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+}
+
+TEST_F(LuaScriptTest, module_amount_to_zero) {
+	std::array<SLuaScriptModule, 3> modules = {create<LuaScriptModule>("m1"),
+		create<LuaScriptModule>("m2"),
+		create<LuaScriptModule>("m3")};
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle uri{s.get("uri")};
+
+	auto scriptFile1 = makeFile("script1.lua", R"(
+modules("coalas", "module", "anothermodule")
+
+function interface()
+end
+
+function run()
+end
+)");
+
+	auto scriptFile2 = makeFile("script2.lua", R"(
+function interface()
+end
+
+function run()
+end
+)");
+
+
+	commandInterface.set(uri, scriptFile1);
+
+	commandInterface.set(uri, scriptFile2);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(newScript->luaModules_.asTable().size(), 0);
 }

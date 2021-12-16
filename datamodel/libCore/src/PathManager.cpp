@@ -12,6 +12,7 @@
 #include "user_types/AnimationChannel.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
 #include "user_types/Texture.h"
@@ -131,7 +132,7 @@ PathManager::FolderTypeKeys PathManager::getCachedPathKeyCorrespondingToUserType
 		return raco::core::PathManager::FolderTypeKeys::Mesh;
 	}
 
-	if (&type == &raco::user_types::LuaScript::typeDescription) {
+	if (&type == &raco::user_types::LuaScript::typeDescription || &type == &raco::user_types::LuaScriptModule::typeDescription) {
 		return raco::core::PathManager::FolderTypeKeys::Script;
 	}
 

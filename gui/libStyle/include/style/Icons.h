@@ -52,6 +52,7 @@ enum class Pixmap {
 	typePrefabInternal,
 	typePrefabExternal,
 	typePrefabInstance,
+	typeLuaScriptModule,
 	typeAnimationChannel,
 	typeAnimation
 };

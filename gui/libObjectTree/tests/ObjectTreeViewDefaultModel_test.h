@@ -22,6 +22,7 @@
 #include "user_types/PrefabInstance.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/Texture.h"
+#include "user_types/Animation.h"
 
 
 class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
@@ -37,13 +38,13 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 		return createdNodes;
 	}
 
-	void moveScenegraphChild(raco::core::SEditorObject child, raco::core::SEditorObject parent, int row = -1) {
-		viewModel_->moveScenegraphChild(child, parent, row);
+	void moveScenegraphChildren(std::vector<raco::core::SEditorObject> const &objects, raco::core::SEditorObject parent, int row = -1) {
+		viewModel_->moveScenegraphChildren(objects, parent, row);
 		dataChangeDispatcher_->dispatch(recorder.release());
 	}
 
-	size_t deleteObjectAtIndex(const QModelIndex& index) {
-		auto delObjAmount = viewModel_->deleteObjectAtIndex(index);
+	size_t deleteObjectsAtIndices(const QModelIndexList& index) {
+		auto delObjAmount = viewModel_->deleteObjectsAtIndices({index});
 		dataChangeDispatcher_->dispatch(recorder.release());
 		return delObjAmount;
 	}
@@ -57,13 +58,7 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 	std::vector<std::string> nodeNames_;
 	std::unique_ptr<raco::object_tree::model::ObjectTreeViewDefaultModel> viewModel_;
 
-	ObjectTreeViewDefaultModelTest() : viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dataChangeDispatcher_, nullptr,
-		{raco::user_types::Node::typeDescription.typeName,
-		 raco::user_types::MeshNode::typeDescription.typeName,
-		 raco::user_types::PrefabInstance::typeDescription.typeName,
-		 raco::user_types::OrthographicCamera::typeDescription.typeName,
-		 raco::user_types::PerspectiveCamera::typeDescription.typeName,
-		 raco::user_types::LuaScript::typeDescription.typeName})} {}
+	ObjectTreeViewDefaultModelTest();
 
 	void compareValuesInTree(const raco::core::SEditorObject &obj, const QModelIndex &objIndex, const raco::object_tree::model::ObjectTreeViewDefaultModel &viewModel);
 

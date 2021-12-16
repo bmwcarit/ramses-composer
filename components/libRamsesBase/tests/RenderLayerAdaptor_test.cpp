@@ -112,8 +112,8 @@ TEST_F(RenderLayerAdaptorTest, renderables_meshnode_root_add_layer_renderable) {
 
 TEST_F(RenderLayerAdaptorTest, renderables_meshnode_move_scenegraph_child) {
 	auto root = create<Node>("root", nullptr, {"render_main"});
-	auto meshnode = create<MeshNode>("meshnode", root);
-	auto layer = create_layer("layer", {}, {{"render_main",0}});
+	auto meshNode = create<MeshNode>("meshnode", root);
+	auto layer = create_layer("layer", {}, {{"render_main", 0}});
 
 	dispatch();
 
@@ -122,12 +122,12 @@ TEST_F(RenderLayerAdaptorTest, renderables_meshnode_move_scenegraph_child) {
 
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode));
 
-	context.moveScenegraphChild(meshnode, nullptr);
+	context.moveScenegraphChildren({meshNode}, nullptr);
 
 	dispatch();
 	ASSERT_FALSE(engineGroup->containsMeshNode(*engineMeshNode));
 
-	context.moveScenegraphChild(meshnode, root);
+	context.moveScenegraphChildren({meshNode}, root);
 
 	dispatch();
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode));

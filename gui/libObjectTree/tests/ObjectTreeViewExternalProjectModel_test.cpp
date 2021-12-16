@@ -45,8 +45,6 @@ public:
 
 class ObjectTreeViewExternalProjectModelTest : public ObjectTreeViewDefaultModelTest {
 protected:
-	static inline const char* PROJECT_PATH = "projectPath.rca";
-
 	static inline int NEW_PROJECT_NODE_AMOUNT{0};
 
 	raco::ramses_base::HeadlessEngineBackend backend{};
@@ -55,12 +53,13 @@ protected:
 	raco::application::RaCoApplication otherApplication{otherBackend};
 	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application};
 
-	void generateExternalProject(const std::vector<raco::core::SEditorObject> &instances) {
-		application.externalProjectsStore_.externalProjects_[PROJECT_PATH] = raco::application::RaCoProject::createNew(&otherApplication);
-		NEW_PROJECT_NODE_AMOUNT = raco::core::Queries::filterForVisibleObjects(application.externalProjectsStore_.externalProjects_[PROJECT_PATH]->project()->instances()).size();
+	void generateExternalProject(const std::vector<raco::core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
+		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication);
+		NEW_PROJECT_NODE_AMOUNT = raco::core::Queries::filterForVisibleObjects(application.externalProjectsStore_.externalProjects_[projectPath]->project()->instances()).size();
 
+		auto project = application.externalProjectsStore_.externalProjects_[projectPath]->project();
 		for (const auto &instance : instances) {
-			application.externalProjectsStore_.externalProjects_[PROJECT_PATH]->project()->addInstance(instance);
+			project->addInstance(instance);
 		}
 	}
 };
@@ -73,13 +72,14 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, InstantiationNoLocalInstancesInMo
 }
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectEmpty) {
-	generateExternalProject({});
+	auto projectPath = "projectPath.rca";
+	generateExternalProject({}, projectPath);
 
 	externalProjectModel.triggerObjectTreeRebuilding();
 
 	auto rootNode = externalProjectModel.getInvisibleRootNode();
 	ASSERT_EQ(rootNode->childCount(), 1);
-	ASSERT_EQ(rootNode->getChildren().front()->getRepresentedObject()->objectName(), PROJECT_PATH);
+	ASSERT_EQ(rootNode->getChildren().front()->getRepresentedObject()->objectName(), projectPath);
 	ASSERT_EQ(rootNode->getChildren().front()->childCount(), NEW_PROJECT_NODE_AMOUNT);
 }
 
@@ -108,7 +108,7 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyParentsCre
 	}
 
 	for (size_t i{0}; i < NODE_AMOUNT - 1; ++i) {
-		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChild(instances[i + 1], instances[i]);
+		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChildren({instances[i + 1]}, instances[i]);
 	}
 
 	generateExternalProject(instances);
@@ -133,7 +133,7 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyChildrenCr
 	}
 
 	for (size_t i{1}; i < NODE_AMOUNT; ++i) {
-		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChild(instances[i - 1], instances[i]);
+		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChildren({instances[i - 1]}, instances[i]);
 	}
 	
 	generateExternalProject(instances);
@@ -157,7 +157,7 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyRetainChil
 
 	for (size_t i{0}; i < CHILD_NODE_AMOUNT; ++i) {
 		auto childNode = instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
-		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChild(childNode, rootNode, 0);
+		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChildren({childNode}, rootNode, 0);
 	}
 
 	generateExternalProject(instances);
@@ -169,4 +169,57 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyRetainChil
 	ASSERT_EQ(ourRootNode->getChild(0)->getRepresentedObject()->objectName(), "node_2");
 	ASSERT_EQ(ourRootNode->getChild(1)->getRepresentedObject()->objectName(), "node_1");
 	ASSERT_EQ(ourRootNode->getChild(2)->getRepresentedObject()->objectName(), "node_0");
+}
+
+TEST_F(ObjectTreeViewExternalProjectModelTest, CanCopyAtIndicesMultiSelection) {
+	std::string project1Path = "project1Path.rca";
+	auto project1Node = std::make_shared<raco::user_types::Node>();
+	generateExternalProject({project1Node}, project1Path);
+
+	auto project2Node = std::make_shared<raco::user_types::Node>();
+	std::string project2Path = "project2Path.rca";
+	generateExternalProject({project2Node}, project2Path);
+
+	externalProjectModel.triggerObjectTreeRebuilding();
+
+	auto project1Index = externalProjectModel.indexFromObjectID(project1Path);
+	auto project1NodeIndex = externalProjectModel.indexFromObjectID(project1Node->objectID());
+	auto project2Index = externalProjectModel.indexFromObjectID(project2Path);
+	auto project2NodeIndex = externalProjectModel.indexFromObjectID(project2Node->objectID());
+
+	ASSERT_TRUE(project1Index.isValid());
+	ASSERT_TRUE(project1NodeIndex.isValid());
+	ASSERT_TRUE(project2Index.isValid());
+	ASSERT_TRUE(project2NodeIndex.isValid());
+
+	ASSERT_FALSE(externalProjectModel.canCopyAtIndices({}));
+	ASSERT_FALSE(externalProjectModel.canCopyAtIndices({project1Index}));
+	ASSERT_FALSE(externalProjectModel.canCopyAtIndices({project2Index}));
+	ASSERT_FALSE(externalProjectModel.canCopyAtIndices({project1Index, project2Index}));
+
+	ASSERT_TRUE(externalProjectModel.canCopyAtIndices({project1NodeIndex}));
+	ASSERT_TRUE(externalProjectModel.canCopyAtIndices({project1Index, project1NodeIndex}));
+	ASSERT_TRUE(externalProjectModel.canCopyAtIndices({project1NodeIndex, {}}));
+	ASSERT_TRUE(externalProjectModel.canCopyAtIndices({project2NodeIndex}));
+	ASSERT_TRUE(externalProjectModel.canCopyAtIndices({project2Index, project2NodeIndex}));
+	ASSERT_TRUE(externalProjectModel.canCopyAtIndices({project2NodeIndex, {}}));
+
+	ASSERT_FALSE(externalProjectModel.canCopyAtIndices({project1NodeIndex, project2NodeIndex}));
+}
+
+TEST_F(ObjectTreeViewExternalProjectModelTest, CanDeleteAtIndicesNever) {
+	std::string project1Path = "project1Path.rca";
+	auto project1Node = std::make_shared<raco::user_types::Node>();
+	generateExternalProject({project1Node}, project1Path);
+
+	externalProjectModel.triggerObjectTreeRebuilding();
+
+	auto project1Index = externalProjectModel.indexFromObjectID(project1Path);
+	auto project1NodeIndex = externalProjectModel.indexFromObjectID(project1Node->objectID());
+
+	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({}));
+	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({{}}));
+	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({project1Index}));
+	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({project1NodeIndex}));
+	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({project1Index, project1NodeIndex, {}}));
 }

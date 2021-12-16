@@ -26,30 +26,30 @@ namespace Queries {
 	// which point into the object set.
 	std::vector<ValueHandle> findAllReferencesTo(Project const &project, std::vector<SEditorObject> const& objects);
 
-	bool objectsReferencedByExtrefs(Project const& project, std::vector<SEditorObject> const& objects);
-
 	std::vector<ValueHandle> findAllReferencesFrom(SEditorObjectSet const& objects);
 	std::vector<ValueHandle> findAllReferences(Project const &project);
 	std::vector<ValueHandle> findAllReferences(const SEditorObject& object);
 	std::vector<SEditorObject> findAllUnreferencedObjects(Project const& project, std::function<bool(SEditorObject)> predicate = nullptr);
-
-
 	std::vector<SEditorObject> findAllValidReferenceTargets(Project const& project, const ValueHandle& handle );
+
 	SEditorObject findById(const Project& project, const std::string& id);
 	SEditorObject findById(const std::vector<SEditorObject>& objects, const std::string& id);
 	SEditorObject findByName(const std::vector<SEditorObject>& objects, const std::string& name);
 
 	ValueHandle findByIdAndPath(const Project& project, const std::string& object_id, const std::string& path);
 
-	bool canMoveScenegraphChild(Project const &project, SEditorObject const& object, SEditorObject const& newParent);
-	bool canDeleteObjects(Project const& project, const std::vector<SEditorObject>& objects);
 	bool canPasteIntoObject(Project const& project, SEditorObject const& object);
-	bool canPasteObjectAsExternalReference(SEditorObject editorObject, bool isTopLevelObject);
+	bool canPasteObjectAsExternalReference(const SEditorObject& editorObject, bool wasTopLevelObjectInSourceProject);
 	bool canDeleteUnreferencedResources(const Project& project);
+
+	SEditorObjectSet collectAllChildren(std::vector<SEditorObject> baseObjects);
 
 	std::vector<SEditorObject> filterForVisibleObjects(const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterForNotResource(const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterByTypeName(const std::vector<SEditorObject>& objects, const std::vector<std::string>& typeNames);
+	std::vector<SEditorObject> filterForDeleteableObjects(Project const& project, const std::vector<SEditorObject>& objects);
+	std::vector<SEditorObject> filterForMoveableScenegraphChildren(Project const& project, const std::vector<SEditorObject>& objects, SEditorObject const& newParent);
+
 	template<class UserType>
 	std::vector<std::shared_ptr<UserType>> filterByType(const std::vector<SEditorObject>& objects) {
 		std::vector<std::shared_ptr<UserType>> r;
@@ -65,6 +65,7 @@ namespace Queries {
 	bool isNotResource(const SEditorObject& object);
 	bool isProjectSettings(const SEditorObject& object);
 	bool isChildHandle(const ValueHandle& handle);
+	bool isChildObject(const SEditorObject& child, const SEditorObject& parent);
 
 	// Determines if the property value (for linkState = false) or the link state (for linkState = true)
 	// is changeable in the data model.

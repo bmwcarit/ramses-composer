@@ -45,6 +45,16 @@ inline void clearQEventLoop() {
 	QCoreApplication::processEvents();
 }
 
+
+class TestUndoStack : public raco::core::UndoStack {
+public:
+	using Entry = raco::core::UndoStack::Entry;
+
+	std::vector<std::unique_ptr<Entry>>& stack() {
+		return stack_;
+	}
+};
+
 template <class BaseClass = ::testing::Test>
 struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	using BaseContext = raco::core::BaseContext;
@@ -63,7 +73,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	std::shared_ptr<C> create(std::string name, raco::core::SEditorObject parent = nullptr, const std::vector<std::string>& tags = {}) {
 		auto obj = std::dynamic_pointer_cast<C>(commandInterface.createObject(C::typeDescription.typeName, name));
 		if (parent) {
-			commandInterface.moveScenegraphChild(obj, parent);
+			commandInterface.moveScenegraphChildren({obj}, parent);
 		}
 		if (!tags.empty()) {
 			context.set({obj, {"tags"}}, tags);
@@ -75,7 +85,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	std::shared_ptr<C> create(raco::core::CommandInterface& cmd, std::string name, raco::core::SEditorObject parent = nullptr) {
 		auto obj = std::dynamic_pointer_cast<C>(cmd.createObject(C::typeDescription.typeName, name));
 		if (parent) {
-			cmd.moveScenegraphChild(obj, parent);
+			cmd.moveScenegraphChildren({obj}, parent);
 		}
 		return obj;
 	}
@@ -192,7 +202,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	raco::core::DataChangeRecorder recorder{};
 	Errors errors{&recorder};
 	BaseContext context{&project, backend.coreInterface(), objectFactory(), &recorder, &errors};
-	raco::core::UndoStack undoStack{&context};
+	TestUndoStack undoStack{&context};
 	raco::core::CommandInterface commandInterface{&context, &undoStack};
 };
 

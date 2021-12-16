@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include "ramses_base/Utils.h"
 #include <ramses-logic/LogicEngine.h>
 #include <ramses-logic/LuaScript.h>
 #include <ramses-logic/Property.h>
@@ -394,8 +395,7 @@ function run()
 end
 )"};
 
-	rlogic::LuaConfig luaConfig;
-	luaConfig.addStandardModuleDependency(rlogic::EStandardModule::All);
+	auto luaConfig = raco::ramses_base::defaultLuaConfig();
 	auto* script = logicEngine.createLuaScript(scriptContentFloat, luaConfig);
 
 	const float pi = static_cast<float>(std::acos(-1.0));

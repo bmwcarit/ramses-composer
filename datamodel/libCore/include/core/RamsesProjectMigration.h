@@ -49,7 +49,9 @@ namespace raco::core {
  * 18: Added Animation and AnimationChannel types
  * 19: Changed ProjectSettings::backgroundColor from Vec3f to Vec4f
  *     Links from Vec4f to Node::rotation are now allowed
+ * 20: Added LuaScriptModule type as well as basic Lua module support
+ * 21: Added mipmap flag to textures.
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 19;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 21;
 QJsonDocument migrateProject(const QJsonDocument& doc, std::unordered_map<std::string, std::string>& migrationWarnings);
 }  // namespace raco::core

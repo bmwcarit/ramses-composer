@@ -26,9 +26,12 @@ class PropertyBrowserView final : public QWidget {
 public:
 	explicit PropertyBrowserView(PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent = nullptr);
 
+	std::string getCurrentObjectID() const;
+
 private:
 	QPoint verticalPivot_{0, 0};
 	QWidget* verticalPivotWidget_{nullptr};
+	std::string currentObjectID_;
 };
 
 class PropertyBrowserWidget final : public QWidget {

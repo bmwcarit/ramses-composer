@@ -47,23 +47,6 @@ std::vector<ValueHandle> Queries::findAllReferencesTo(Project const& project, st
 	return refs;
 }
 
-bool Queries::objectsReferencedByExtrefs(Project const& project, std::vector<SEditorObject> const& objects) {
-	for (auto instance : project.instances()) {
-		if (instance->query<ExternalReferenceAnnotation>() && 
-			std::find(objects.begin(), objects.end(), instance) == objects.end()) {
-			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
-				if (prop.type() == PrimitiveType::Ref) {
-					auto refValue = prop.asTypedRef<EditorObject>();
-					if (refValue && (std::find(objects.begin(), objects.end(), refValue) != objects.end())) {
-						return true;
-					}
-				}
-			}
-		}
-	}
-	return false;
-}
-
 std::vector<ValueHandle> Queries::findAllReferencesFrom(SEditorObjectSet const& objects) {
 	std::vector<ValueHandle> refs;
 	for (auto instance : objects) {
@@ -261,61 +244,6 @@ bool wouldObjectInPrefabCauseLoop(SEditorObject object, user_types::SPrefab pref
 	return false;
 }
 
-bool Queries::canMoveScenegraphChild(Project const& project, SEditorObject const& object, SEditorObject const& newParent) {
-	// This query is disallowed for objects not in the project.
-	assert(project.getInstanceByID(object->objectID()) != nullptr);
-
-	using namespace user_types;
-
-	if (object->query<ExternalReferenceAnnotation>() || newParent && newParent->query<ExternalReferenceAnnotation>()) {
-		return false;
-	}
-
-	// An object can't be moved below itself or below one of its children in the scenegraph hierarchy
-	for (auto parent = newParent; parent; parent = parent->getParent()) {
-		if (parent == object) {
-			return false;
-		}
-	}
-
-	// Prefab instance children can't be moved
-	if (PrefabOperations::findContainingPrefabInstance(object->getParent())) {
-		return false;
-	}
-
-	// Prefab instance subtree is locked: can't move anything into it
-	if (PrefabOperations::findContainingPrefabInstance(newParent)) {
-		return false;
-	}
-
-	// Prefab instance loop prevention
-	if (auto newParentPrefab = PrefabOperations::findContainingPrefab(newParent)) {
-		if (wouldObjectInPrefabCauseLoop(object, newParentPrefab)) {
-			return false;
-		}
-	}
-
-	return (object->as<Node>() || object->as<LuaScript>() || object->as<Animation>()) &&
-		(newParent == nullptr || newParent->as<Node>() || newParent->as<Prefab>());
-}
-
-
-bool Queries::canDeleteObjects(Project const& project, const std::vector<SEditorObject>& objects) {
-	for (const auto object : objects) {
-		//  Objects nested inside PrefabInstances can't be deleted
-		if (auto parent = object->getParent()) {
-			if (parent && PrefabOperations::findContainingPrefabInstance(parent)) {
-				return false;
-			}
-		}
-	}
-
-	if (objectsReferencedByExtrefs(project, objects)) {
-		return false;
-	}
-
-	return true;
-}
 
 bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& object) { 
 	// Can always paste into the toplevel:
@@ -343,10 +271,8 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 	return true;
 }
 
-bool Queries::canPasteObjectAsExternalReference(SEditorObject editorObject, bool isTopLevelObject) {
-	return ((editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>())
-		|| editorObject->as<user_types::Prefab>()
-		|| (editorObject->as<user_types::LuaScript>() && isTopLevelObject));
+bool Queries::canPasteObjectAsExternalReference(const SEditorObject& editorObject, bool wasTopLevelObjectInSourceProject) {
+	return (editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>()) || editorObject->as<user_types::Prefab>() || (editorObject->as<user_types::LuaScript>() && wasTopLevelObjectInSourceProject);
 }
 
 bool Queries::isProjectSettings(const SEditorObject& obj) {
@@ -363,6 +289,16 @@ bool Queries::isNotResource(const SEditorObject& object) {
 
 bool Queries::isChildHandle(const ValueHandle& handle) {
 	return handle.type() == PrimitiveType::Ref && handle.depth() == 2 && handle.parent().getPropName() == "children";
+}
+
+bool Queries::isChildObject(const SEditorObject& child, const SEditorObject& parent) {
+	for (auto current = child->getParent(); current; current = current->getParent()) {
+		if (current == parent) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool Queries::isReadOnly(SEditorObject editorObj) {
@@ -594,6 +530,33 @@ std::vector<SLink> Queries::getLinksConnectedToObject(const Project& project, co
 }
 
 
+namespace {
+void getLinksConnectedToObjectsHelper(
+	const std::map<std::string, std::set<raco::core::SLink>>& linkStartPoints, 
+	const std::map<std::string, std::set<raco::core::SLink>>& linkEndPoints,
+	const std::string& propertyObjID, 
+	bool includeStarting, 
+	bool includeEnding, 
+	std::map<std::string, std::set<raco::core::SLink>>& result) {
+
+	if (includeStarting) {
+		auto linkIt = linkStartPoints.find(propertyObjID);
+		if (linkIt != linkStartPoints.end()) {
+			for (const auto& link : linkIt->second) {
+				result[(*link->endObject_)->objectID()].insert(link);
+			}
+		}
+	}
+
+	if (includeEnding) {
+		auto linkIt = linkEndPoints.find(propertyObjID);
+		if (linkIt != linkEndPoints.end()) {
+			result[propertyObjID].insert(linkIt->second.begin(), linkIt->second.end());
+		}
+	}
+}
+}  // namespace
+
 template <typename Container>
 inline std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const Project& project, const Container& objects, bool includeStarting, bool includeEnding) {
 	// use a set to avoid duplicate link entries
@@ -603,22 +566,24 @@ inline std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObject
 
 	for (const auto& object : objects) {
 		const auto& propertyObjID = object->objectID();
+	
+		getLinksConnectedToObjectsHelper(linkStartPoints, linkEndPoints, propertyObjID, includeStarting, includeEnding, result);
+	}
 
-		if (includeStarting) {
-			auto linkIt = linkStartPoints.find(propertyObjID);
-			if (linkIt != linkStartPoints.end()) {
-				for (const auto& link : linkIt->second) {
-					result[(*link->endObject_)->objectID()].insert(link);
-				}
-			}
-		}
+	return result;
+}
 
-		if (includeEnding) {
-			auto linkIt = linkEndPoints.find(propertyObjID);
-			if (linkIt != linkEndPoints.end()) {
-				result[propertyObjID].insert(linkIt->second.begin(), linkIt->second.end());
-			}
-		}
+template<>
+std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObjects(const Project& project, const std::map<std::string, SEditorObject>& objects, bool includeStarting, bool includeEnding) {
+	// use a set to avoid duplicate link entries
+	std::map<std::string, std::set<SLink>> result;
+	const auto& linkStartPoints = project.linkStartPoints();
+	const auto& linkEndPoints = project.linkEndPoints();
+
+	for (const auto& [id, object] : objects) {
+		const auto& propertyObjID = object->objectID();
+
+		getLinksConnectedToObjectsHelper(linkStartPoints, linkEndPoints, propertyObjID, includeStarting, includeEnding, result);
 	}
 
 	return result;
@@ -809,10 +774,114 @@ std::vector<SEditorObject> Queries::filterForNotResource(const std::vector<SEdit
 
 std::vector<SEditorObject> Queries::filterByTypeName(const std::vector<SEditorObject>& objects, const std::vector<std::string>& typeNames) {
 	std::vector<SEditorObject> result{};
-	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result), 
+	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result),
 		[&typeNames](const SEditorObject& object) {
 			return std::find(typeNames.begin(), typeNames.end(), object->getTypeDescription().typeName) != typeNames.end();
 		});
+	return result;
+}
+
+SEditorObjectSet Queries::collectAllChildren(std::vector<SEditorObject> baseObjects) {
+	SEditorObjectSet children;
+	for (auto obj : baseObjects) {
+		std::copy(TreeIteratorAdaptor(obj).begin(), TreeIteratorAdaptor(obj).end(), std::inserter(children, children.end()));
+	}
+	return children;
+}
+
+
+std::vector<SEditorObject> Queries::filterForDeleteableObjects(Project const& project, const std::vector<SEditorObject>& objects) {
+
+	// Since there is no case where a child is deleteable but its parent is not, we can just collect all children first before determining what is deleteable.
+	auto objectsWithChildren = Queries::collectAllChildren(objects);
+	std::vector<SEditorObject> partionedObjects{objectsWithChildren.begin(), objectsWithChildren.end()};
+
+	auto begin = partionedObjects.begin();
+	auto end = partionedObjects.end();
+
+	auto partitionPoint = begin;
+	auto previousPartitionPoint = end;
+
+	// Iteratively partion the list, so that deleteable items are moved to the front and non deleteable items to the back.
+	while (partitionPoint != previousPartitionPoint && partitionPoint != end) {
+
+		previousPartitionPoint = partitionPoint;
+		partitionPoint = std::partition(
+			partitionPoint, end,
+			[project, partitionPoint, begin, end](const SEditorObject& object) {
+
+				// Block deletion if this object is a child of a prefab instance
+				if (auto parent = object->getParent(); parent) {
+					auto instance = PrefabOperations::findContainingPrefabInstance(parent);
+					if (instance && std::find(begin, partitionPoint, instance) == partitionPoint) {
+						return false;
+					}
+				}
+
+				// Block deletion if this object is referenced by external reference objects that are not yet in the deleteable partion.
+				for (const auto& instanceWeak : object->referencesToThis()) {
+					const auto instance = instanceWeak.lock();
+					if (instance->query<ExternalReferenceAnnotation>() && std::find(begin, partitionPoint, instance) == partitionPoint) {
+						return false;
+					}
+				}
+
+				// Block deletion if this object has output properties linked to by external reference objects that are not yet in the deleteable partion.
+				auto links = getLinksConnectedToObject(project, object, true, false);
+				for (const auto& link : links) {
+					auto instance = link->endObject_.asRef();
+					if (instance->query<ExternalReferenceAnnotation>() && std::find(begin, partitionPoint, instance) == partitionPoint) {
+						return false;
+					}
+				}
+
+				return true;
+			});
+	}
+
+	std::vector<SEditorObject> deletableObjects{begin, partitionPoint};
+	assert(deletableObjects.size() == Queries::collectAllChildren(deletableObjects).size());
+	return deletableObjects;
+}
+
+std::vector<SEditorObject> Queries::filterForMoveableScenegraphChildren(Project const& project, const std::vector<SEditorObject>& objects, SEditorObject const& newParent) {	
+	
+	if (newParent && !canPasteIntoObject(project, newParent)) {
+		return {};
+	}
+
+	std::vector<SEditorObject> result;
+	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result),
+		[project, objects, newParent](const SEditorObject& object) {
+			using namespace user_types;
+
+			// This query is disallowed for objects not in the project.
+			assert(project.getInstanceByID(object->objectID()) != nullptr);
+
+			if (object->query<ExternalReferenceAnnotation>()) {
+				return false;
+			}
+
+			// An object can't be moved below itself or below one of its children in the scenegraph hierarchy
+			if (object == newParent || (newParent && isChildObject(newParent, object))) {
+				return false;
+			}
+
+			// Prefab instance children can't be moved
+			if (PrefabOperations::findContainingPrefabInstance(object->getParent())) {
+				return false;
+			}
+
+			// Prefab instance loop prevention
+			if (auto newParentPrefab = PrefabOperations::findContainingPrefab(newParent)) {
+				if (wouldObjectInPrefabCauseLoop(object, newParentPrefab)) {
+					return false;
+				}
+			}
+
+			return (object->as<Node>() || object->as<LuaScript>() || object->as<Animation>());
+		});
+
 	return result;
 }
 

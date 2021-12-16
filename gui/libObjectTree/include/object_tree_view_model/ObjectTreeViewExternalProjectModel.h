@@ -44,20 +44,21 @@ public:
 	QVariant data(const QModelIndex& index, int role) const override;
 
 	void addProject(const QString& projectPath);
-	void removeProject(const QModelIndex& itemIndex);
-	bool canRemoveProject(const QModelIndex& itemIndex);
+	void removeProjectsAtIndices(const QModelIndexList& indices);
+	bool canRemoveProjectsAtIndices(const QModelIndexList& indices);
 
 	Qt::TextElideMode textElideMode() const override;
 
-	bool canCopy(const QModelIndex& index) const override;
-	bool canDelete(const QModelIndex& index) const override;
-	bool canInsertMeshAssets(const QModelIndex& index) const override;
-	bool canPasteInto(const QModelIndex& index, const std::string& deserializedObjs = RaCoClipboard::get(), bool asExtRef = false) const override;
+	bool canCopyAtIndices(const QModelIndexList& indices) const override;
+	bool canDeleteAtIndices(const QModelIndexList& indices) const override;
+
+	bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const override;
+	bool canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef = false) const override;
 
 public Q_SLOTS:
-	size_t deleteObjectAtIndex(const QModelIndex& index) override;
-	void copyObjectAtIndex(const QModelIndex& index, bool deepCopy) override;
-	void cutObjectAtIndex(const QModelIndex& index, bool deepCut) override;
+	size_t deleteObjectsAtIndices(const QModelIndexList& index) override;
+	void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) override;
+	void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut) override;
 	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get()) override;
 
 protected:

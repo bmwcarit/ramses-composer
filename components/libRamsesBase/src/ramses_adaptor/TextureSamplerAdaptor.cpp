@@ -108,7 +108,7 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture() {
 	
 	ramses::MipLevelData mipLevelData(static_cast<uint32_t>(data.size()), data.data());
 
-	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, width, height, 1, &mipLevelData, false, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, width, height, 1, &mipLevelData, *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {

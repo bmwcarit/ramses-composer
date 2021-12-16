@@ -33,13 +33,14 @@ public:
 	bool sync(core::Errors* errors) override;
 	void readDataFromEngine(core::DataChangeRecorder &recorder); 
 
-	rlogic::LuaScript* rlogicLuaScript() const {
-		return luaScript_.get();
-	}
 private:
 	void setupParentSubscription();
 	void setupInputValuesSubscription();
 	std::string generateRamsesObjectName() const;
+
+	rlogic::LuaScript* rlogicLuaScript() const {
+		return luaScript_.get();
+	}
 
 	std::shared_ptr<user_types::LuaScript> editorObject_;
 	std::unique_ptr<rlogic::LuaScript, std::function<void(rlogic::LuaScript*)>> luaScript_{nullptr, [](auto) {}};
@@ -48,6 +49,9 @@ private:
 	components::Subscription inputSubscription_;
 	components::Subscription childrenSubscription_;
 	components::Subscription parentNameSubscription_;
+	components::Subscription moduleSubscription_;
+
+	std::vector<raco::ramses_base::RamsesLuaModule> modules;
 
 	// Flag to keep track if a change needs to recreate the lua script in the logicengine
 	// or if it is sufficient to just update the input properties.

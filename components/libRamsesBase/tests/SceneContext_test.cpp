@@ -83,7 +83,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMesh) {
 	context.set(raco::core::ValueHandle{material, {"uriVertex"}}, (cwd_path() / "shaders/simple_texture.vert").string());
 	context.set(raco::core::ValueHandle{material, {"uriFragment"}}, (cwd_path() / "shaders/simple_texture.frag").string());
 
-	context.moveScenegraphChild(meshNode, node);
+	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
@@ -139,7 +139,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
 
 	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
 
-	context.moveScenegraphChild(meshNode, node);
+	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 	dispatch();
@@ -166,7 +166,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
 TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy) {
 	auto parent = context.createObject(Node::typeDescription.typeName);
 	auto child = context.createObject(MeshNode::typeDescription.typeName);
-	context.moveScenegraphChild({child}, {parent});
+	context.moveScenegraphChildren({child}, {parent});
 	dispatch();
 
 	auto sceneNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Node)};
@@ -180,7 +180,7 @@ TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy) {
 TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy_reverseNodeCreation) {
 	auto child = context.createObject(MeshNode::typeDescription.typeName);
 	auto parent = context.createObject(Node::typeDescription.typeName);
-	context.moveScenegraphChild({child}, {parent});
+	context.moveScenegraphChildren({child}, {parent});
 	dispatch();
 
 	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
@@ -193,10 +193,10 @@ TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy_reverseNode
 
 TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy) {
 	auto root = context.createObject(Node::typeDescription.typeName, "root");
-	auto child_1 = context.createObject(Node::typeDescription.typeName, "child_1");
-	auto child_2 = context.createObject(MeshNode::typeDescription.typeName, "child_2");
-	context.moveScenegraphChild({child_1}, {root});
-	context.moveScenegraphChild({child_2}, {child_1});
+	auto child1 = context.createObject(Node::typeDescription.typeName, "child1");
+	auto child2 = context.createObject(MeshNode::typeDescription.typeName, "child2");
+	context.moveScenegraphChildren({child1}, {root});
+	context.moveScenegraphChildren({child2}, {child1});
 	dispatch();
 
 	auto nodeSceneElements(select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
@@ -206,7 +206,7 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy) {
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
 
 	// Check and retrive proper ramses elements
-	auto ramsesChild1 = select<ramses::Node>(*sceneContext.scene(), "child_1");
+	auto ramsesChild1 = select<ramses::Node>(*sceneContext.scene(), "child1");
 	EXPECT_TRUE(ramsesChild1);
 	auto ramsesRoot = select<ramses::Node>(*sceneContext.scene(), "root");
 	EXPECT_TRUE(ramsesRoot);
@@ -218,11 +218,11 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy) {
 }
 
 TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNodeCreation) {
-	auto child_2 = context.createObject(MeshNode::typeDescription.typeName, "child_2");
-	auto child_1 = context.createObject(Node::typeDescription.typeName, "child_1");
+	auto child2 = context.createObject(MeshNode::typeDescription.typeName, "child2");
+	auto child1 = context.createObject(Node::typeDescription.typeName, "child1");
 	auto root = context.createObject(Node::typeDescription.typeName, "root");
-	context.moveScenegraphChild({child_1}, {root});
-	context.moveScenegraphChild({child_2}, {child_1});
+	context.moveScenegraphChildren({child1}, {root});
+	context.moveScenegraphChildren({child2}, {child1});
 	dispatch();
 
 	auto nodeSceneElements(select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
@@ -232,7 +232,7 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNode
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
 
 	// Check and retrive proper ramses elements
-	auto ramsesChild1 = select<ramses::Node>(*sceneContext.scene(), "child_1");
+	auto ramsesChild1 = select<ramses::Node>(*sceneContext.scene(), "child1");
 	EXPECT_TRUE(ramsesChild1);
 	auto ramsesRoot = select<ramses::Node>(*sceneContext.scene(), "root");
 	EXPECT_TRUE(ramsesRoot);
@@ -256,7 +256,7 @@ TEST_F(SceneContextTest, dataChange_dynamicInsert_childNode) {
 	dispatch();
 
 	auto child = context.createObject(MeshNode::typeDescription.typeName);
-	context.moveScenegraphChild({child}, {root});
+	context.moveScenegraphChildren({child}, {root});
 	dispatch();
 
 	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
@@ -282,10 +282,10 @@ TEST_F(SceneContextTest, dataChange_dynamicReparenting_move) {
 	auto parent_1 = context.createObject(Node::typeDescription.typeName, "Parent 1");
 	auto parent_2 = context.createObject(Node::typeDescription.typeName, "Parent 2");
 	auto child = context.createObject(MeshNode::typeDescription.typeName, "Child");
-	context.moveScenegraphChild({child}, {parent_1});
+	context.moveScenegraphChildren({child}, {parent_1});
 	dispatch();
 
-	context.moveScenegraphChild({child}, {parent_2});
+	context.moveScenegraphChildren({child}, {parent_2});
 	dispatch();
 
 	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
@@ -302,10 +302,10 @@ TEST_F(SceneContextTest, dataChange_dynamicReparenting_move) {
 TEST_F(SceneContextTest, dataChange_dynamicReparenting_noParent) {
 	auto parent_1 = context.createObject(Node::typeDescription.typeName, "Parent 1");
 	auto child = context.createObject(MeshNode::typeDescription.typeName, "Child");
-	context.moveScenegraphChild({child}, {parent_1});
+	context.moveScenegraphChildren({child}, {parent_1});
 	dispatch();
 
-	context.moveScenegraphChild({child}, {});
+	context.moveScenegraphChildren({child}, {});
 	dispatch();
 
 	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
@@ -320,11 +320,11 @@ TEST_F(SceneContextTest, dataChange_dynamicReparenting_noParent) {
 TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNodeCreation2) {
 	auto rootNode = context.createObject(Node::typeDescription.typeName, "Root", "root1");
 	auto childNode = context.createObject(Node::typeDescription.typeName, "Child1", "child1");
-	auto child2Node = context.createObject(Node::typeDescription.typeName, "Child2", "child2");
+	auto childNode2 = context.createObject(Node::typeDescription.typeName, "Child2", "child2");
 	auto child21Node = context.createObject(Node::typeDescription.typeName, "Child2_1", "child2_1");
-	context.moveScenegraphChild({child21Node}, {child2Node});
-	context.moveScenegraphChild({child2Node}, {rootNode});
-	context.moveScenegraphChild({childNode}, {rootNode});
+	context.moveScenegraphChildren({child21Node}, {childNode2});
+	context.moveScenegraphChildren({childNode2}, {rootNode});
+	context.moveScenegraphChildren({childNode}, {rootNode});
 	dispatch();
 }
 
@@ -394,7 +394,7 @@ TEST_P(SceneContextParamTestFixture, contextCreationOrder_init) {
 
 	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
 
-	context.moveScenegraphChild(meshNode, node);
+	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
@@ -417,7 +417,7 @@ TEST_P(SceneContextParamTestFixture, contextCreationOrder_dispatch) {
 
 	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
 
-	context.moveScenegraphChild(meshNode, node);
+	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
