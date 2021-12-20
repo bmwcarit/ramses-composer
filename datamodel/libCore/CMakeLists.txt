@@ -15,7 +15,7 @@ add_library(libCore
 	include/core/Context.h src/Context.cpp
 	include/core/CommandInterface.h src/CommandInterface.cpp
 	include/core/EditorObject.h src/EditorObject.cpp
-    include/core/FileChangeCallback.h
+    include/core/FileChangeCallback.h src/FileChangeCallback.cpp
     include/core/FileChangeMonitor.h 
 	include/core/Handles.h src/Handles.cpp 
 	include/core/Project.h src/Project.cpp

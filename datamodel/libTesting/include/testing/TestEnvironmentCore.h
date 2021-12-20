@@ -183,7 +183,6 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		spdlog::drop_all();
 		raco::log_system::init();
 		clearQEventLoop();
-		context.setFileChangeMonitor(fileChangeMonitor.get());
 		context.setMeshCache(&meshCache);
 	}
 	virtual ~TestEnvironmentCoreT() {

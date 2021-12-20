@@ -15,30 +15,11 @@
 
 namespace raco::user_types {
 
-void AnimationChannel::onBeforeDeleteObject(Errors& errors) const {
-	EditorObject::onBeforeDeleteObject(errors);
-	uriListener_.reset();
-}
-
-void AnimationChannel::onAfterContextActivated(BaseContext& context) {
-	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
-	uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
-	[this, &context]() {
-		onAnimationDataChange(context);
-	}});
-	onAnimationDataChange(context);
-}
-
 void AnimationChannel::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	if (value.isRefToProp(&AnimationChannel::uri_)) {
-		auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
-		uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
-		[this, &context]() {
-			onAnimationDataChange(context);
-		}});
-		onAnimationDataChange(context);
-	} else if (value.isRefToProp(&AnimationChannel::animationIndex_) || value.isRefToProp(&AnimationChannel::samplerIndex_)) {
-		onAnimationDataChange(context);
+	BaseObject::onAfterValueChanged(context, value);
+
+	if (value.isRefToProp(&AnimationChannel::animationIndex_) || value.isRefToProp(&AnimationChannel::samplerIndex_)) {
+		updateFromExternalFile(context);
 	}
 }
 
@@ -56,7 +37,7 @@ raco::core::PropertyInterface AnimationChannel::getOutputProperty() const {
 	return {objectName(), type};
 }
 
-void AnimationChannel::onAnimationDataChange(BaseContext& context) {
+void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError({shared_from_this()});
 	context.errors().removeError({shared_from_this(), &AnimationChannel::uri_});
 	context.errors().removeError({shared_from_this(), &AnimationChannel::animationIndex_});

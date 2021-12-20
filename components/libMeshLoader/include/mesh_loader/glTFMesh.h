@@ -26,7 +26,7 @@ namespace raco::mesh_loader {
 
 class glTFMesh : public raco::core::MeshData {
 public:
-	glTFMesh(const tinygltf::Model &scene, core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor);
+	glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor);
 
 	uint32_t numSubmeshes() const override;
 	uint32_t numTriangles() const override;

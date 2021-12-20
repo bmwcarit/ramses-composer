@@ -41,10 +41,9 @@ public:
 		properties_.emplace_back("samplerIndex", &samplerIndex_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
-
-	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
+
+	void updateFromExternalFile(BaseContext& context) override;
 
 	PropertyInterface getOutputProperty() const;
 
@@ -56,10 +55,7 @@ public:
 	std::shared_ptr<MeshAnimationSamplerData> currentSamplerData_;
 
 private:
-	void onAnimationDataChange(BaseContext& context);
 	void createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount);
-
-	mutable FileChangeMonitor::UniqueListener uriListener_;
 };
 
 using SAnimationChannel = std::shared_ptr<AnimationChannel>;

@@ -65,14 +65,6 @@ void BaseContext::setMeshCache(MeshCache* cache) {
 	meshCache_ = cache;
 }
 
-FileChangeMonitor* BaseContext::fileChangeMonitor() {
-	return fileChangeMonitor_;
-}
-
-void BaseContext::setFileChangeMonitor(FileChangeMonitor* monitor) {
-	fileChangeMonitor_ = monitor;
-}
-
 EngineInterface& BaseContext::engineInterface() {
 	return *engineInterface_;
 }

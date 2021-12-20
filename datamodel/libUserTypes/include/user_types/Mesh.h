@@ -42,11 +42,9 @@ public:
 		properties_.emplace_back("materialNames", &materialNames_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
-	
-	void onAfterContextActivated(BaseContext& context) override;
+	void updateFromExternalFile(BaseContext& context) override;
 	void onAfterValueChanged(BaseContext &context, ValueHandle const& value) override;
-
+		
 	std::vector<std::string> materialNames();
 	
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"All Meshes (*.ctm *.glTF *.glb);;CTM files (*.ctm);;glTF files (*.glTF *.glb);;All Files (*.*)"}, DisplayNameAnnotation("URI")};
@@ -60,8 +58,8 @@ public:
 		return mesh_;
 	}
 
+
 private:
-	void updateMesh(BaseContext& context);
 	
 	SharedMeshData mesh_;
 

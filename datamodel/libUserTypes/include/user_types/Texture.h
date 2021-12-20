@@ -10,7 +10,6 @@
 #pragma once
 
 #include "user_types/BaseObject.h"
-#include "core/FileChangeMonitor.h"
 #include "user_types/BaseTexture.h"
 
 namespace raco::user_types {
@@ -37,18 +36,12 @@ public:
 		properties_.emplace_back("generateMipmaps", &generateMipmaps_);
 	}
 
-    void onBeforeDeleteObject(Errors& errors) const override;
-
-	void onAfterContextActivated(BaseContext& context) override;
-	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
+	void updateFromExternalFile(BaseContext& context) override;
 
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation("URI")};
 	Property<bool, DisplayNameAnnotation> flipTexture_{false, DisplayNameAnnotation("Flip Vertically")};
 	Property<bool, DisplayNameAnnotation> generateMipmaps_{false, DisplayNameAnnotation("Generate Mipmaps")};
-
-private:
-	mutable FileChangeMonitor::UniqueListener uriListener_;
 };
 
 using STexture = std::shared_ptr<Texture>;

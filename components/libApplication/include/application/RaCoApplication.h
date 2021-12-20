@@ -36,6 +36,8 @@ namespace raco::application {
 
 class RaCoApplication {
 public:
+	static const inline QString APPLICATION_NAME{"Ramses Composer"};
+
 	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject = {});
 
 	RaCoProject& activeRaCoProject();
@@ -62,7 +64,6 @@ public:
 
 	raco::core::ExternalProjectsStoreInterface* externalProjects();
 	raco::core::MeshCache* meshCache();
-	raco::core::FileChangeMonitor* fileChangeMonitor();
 
 	const core::SceneBackendInterface* sceneBackend() const;
 
@@ -71,6 +72,8 @@ public:
 	raco::components::SDataChangeDispatcher dataChangeDispatcher();
 
 	raco::core::EngineInterface* engine();
+
+	QString generateApplicationTitle() const;
 
 private:
 	// Needs to access externalProjectsStore_ directly:
@@ -84,7 +87,6 @@ private:
 	std::unique_ptr<raco::ramses_adaptor::SceneBackend> scenesBackend_;
 
 	components::MeshCacheImpl meshCache_;
-	components::FileChangeMonitorImpl fileChangeMonitor_;
 
 	std::unique_ptr<RaCoProject> activeProject_;
 

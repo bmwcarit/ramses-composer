@@ -18,24 +18,7 @@
 
 namespace raco::user_types {
 
-void LuaScriptModule::onBeforeDeleteObject(Errors& errors) const {
-	EditorObject::onBeforeDeleteObject(errors);
-	uriListener_.reset();
-}
-
-void LuaScriptModule::onAfterContextActivated(BaseContext& context) {
-	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), &LuaScriptModule::uri_}, [this, &context]() { this->syncLuaInterface(context); });
-	syncLuaInterface(context);
-}
-
-void LuaScriptModule::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	if (value.isRefToProp(&LuaScriptModule::uri_)) {
-		uriListener_ = registerFileChangedHandler(context, value, [this, &context]() { this->syncLuaInterface(context); });
-		syncLuaInterface(context);
-	}
-}
-
-void LuaScriptModule::syncLuaInterface(BaseContext& context) {
+void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
 	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
 
 	std::string error;

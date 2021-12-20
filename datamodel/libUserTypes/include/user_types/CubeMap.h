@@ -10,7 +10,6 @@
 #pragma once
 
 #include "user_types/BaseTexture.h"
-#include "core/FileChangeMonitor.h"
 
 namespace raco::user_types {
 
@@ -46,12 +45,9 @@ public:
 		properties_.emplace_back("uriBottom", &uriBottom_);
 	}
 
-    void onBeforeDeleteObject(Errors& errors) const override;
+	void updateFromExternalFile(BaseContext& context) override;
 
-	void onAfterContextActivated(BaseContext& context) override;
-	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
-
-    Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFront_{
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFront_{
 		std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation{"URI front"}};
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriBack_{
@@ -69,16 +65,6 @@ public:
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriBottom_{
 		std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation{"URI bottom"}};
 
-private:
-	void afterContextActivatedURI(BaseContext& context, decltype(uriFront_) CubeMap::*ptom, FileChangeMonitor::UniqueListener& listener);
-	void onAfterValueChangedURI(BaseContext& context, ValueHandle const &value, decltype(uriFront_) CubeMap::*ptom, FileChangeMonitor::UniqueListener& listener);
-
-	mutable FileChangeMonitor::UniqueListener frontListener_;
-	mutable FileChangeMonitor::UniqueListener backListener_;
-	mutable FileChangeMonitor::UniqueListener leftListener_;
-	mutable FileChangeMonitor::UniqueListener rightListener_;
-	mutable FileChangeMonitor::UniqueListener topListener_;
-	mutable FileChangeMonitor::UniqueListener bottomListener_;
 };
 
 using SCubeMap = std::shared_ptr<CubeMap>;

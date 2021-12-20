@@ -33,8 +33,6 @@ class UserObjectFactoryInterface;
 class EngineInterface;
 
 class FileChangeCallback;
-template<typename T> class FileChangeMonitorInterface;
-using FileChangeMonitor = FileChangeMonitorInterface<core::FileChangeCallback>;
 
 // Contexts
 // - use context for every operation modifying the data model
@@ -53,10 +51,6 @@ public:
 	MeshCache* meshCache();
 	void setMeshCache(MeshCache* cache);
 	
-	FileChangeMonitor* fileChangeMonitor();
-	void setFileChangeMonitor(FileChangeMonitor* monitor);
-
-
 	MultiplexedDataChangeRecorder& changeMultiplexer();
 	DataChangeRecorder& modelChanges();
 	DataChangeRecorder& uiChanges();
@@ -194,7 +188,6 @@ private:
 	ExternalProjectsStoreInterface* externalProjectsStore_ = nullptr;
 
 	MeshCache* meshCache_ = nullptr;
-	FileChangeMonitor* fileChangeMonitor_ = nullptr;
 	UserObjectFactoryInterface* objectFactory_ = nullptr;
 	Errors* errors_;
 	DataChangeRecorder* uiChanges_ = nullptr;

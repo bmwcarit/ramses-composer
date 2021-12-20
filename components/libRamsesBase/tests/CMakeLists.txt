@@ -49,6 +49,8 @@ raco_package_add_test_resouces(
     shaders/simple_texture.frag
     shaders/simple_texture.vert
     meshes/Duck.glb
+    meshes/meshrefless.gltf
+    meshes/meshless.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
     meshes/InterpolationTest/InterpolationTest.gltf

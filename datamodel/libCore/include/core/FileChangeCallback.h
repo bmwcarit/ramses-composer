@@ -10,12 +10,12 @@
 #pragma once
 
 #include <functional>
-
-#include "core/EditorObject.h"
-#include "core/Context.h"
+#include <memory>
 
 namespace raco::core {
 class BaseContext;
+class EditorObject;
+using SEditorObject = std::shared_ptr<EditorObject>;
 
 class FileChangeCallback {
 public:
@@ -23,18 +23,12 @@ public:
 
 	FileChangeCallback(BaseContext* context, SEditorObject object, Callback callback) : context_(context), object_(object), callback_(callback) {}
 
-	void operator()() const {
-		callback_();
-		if (object_ && context_) {
-			context_->callReferencedObjectChangedHandlers(object_);
-		}
-	}
+	void operator()() const;
 
 private:
 	BaseContext* context_;
 	SEditorObject object_{nullptr};
 	Callback callback_;
 };
-
 
 }  // namespace raco::core

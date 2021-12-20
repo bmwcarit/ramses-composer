@@ -852,9 +852,11 @@ end
 	auto lua = create_lua("lua", luaFile);
 	auto node = create<Node>("node");
 
+	// #1: create link
 	auto [sprop, eprop] = link(lua, {"luaOutputs", "vec"}, node, {"translation"});
 	checkLinks({{sprop, eprop, true}});
 
+	// #2: remove link
 	commandInterface.removeLink(eprop);
 	checkLinks({});
 
@@ -869,14 +871,25 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
 
+	// undo #2
 	commandInterface.undoStack().undo();
 	checkLinks({{sprop, eprop, false}});
 	ASSERT_TRUE(commandInterface.errors().hasError({node}));
 
+	// undo #1
+	commandInterface.undoStack().undo();
+	checkLinks({});
+	ASSERT_FALSE(commandInterface.errors().hasError({node}));
+
+	// redo #1 
+	commandInterface.undoStack().redo();
+	checkLinks({{sprop, eprop, false}});
+	ASSERT_TRUE(commandInterface.errors().hasError({node}));
+
+	// redo #2
 	commandInterface.undoStack().redo();
 	checkLinks({});
-	//The assert fails - needs to be fixed. See RAOS-687
-	//ASSERT_FALSE(commandInterface.errors().hasError({node}));
+	ASSERT_FALSE(commandInterface.errors().hasError({node}));
 }
 
 TEST_F(UndoTest, lua_link_create_inconsistent_undo_stack) {

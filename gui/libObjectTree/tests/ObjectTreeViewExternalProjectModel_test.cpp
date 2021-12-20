@@ -31,7 +31,7 @@ public:
 	}
 
 	ExposedObjectTreeViewExternalProjectModel(raco::application::RaCoApplication &app)
-		: ObjectTreeViewExternalProjectModel(app.activeRaCoProject().commandInterface(), app.activeRaCoProject().fileChangeMonitor(), app.dataChangeDispatcher(), app.externalProjects()) {}
+		: ObjectTreeViewExternalProjectModel(app.activeRaCoProject().commandInterface(), app.dataChangeDispatcher(), app.externalProjects()) {}
 
 	model::ObjectTreeNode *getInvisibleRootNode() {
 		return invisibleRootNode_.get();

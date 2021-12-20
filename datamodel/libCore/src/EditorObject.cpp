@@ -8,43 +8,48 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "core/EditorObject.h"
+
+#include "core/Context.h"
+#include "core/Errors.h"
 #include "core/Handles.h"
 #include "core/Iterators.h"
+#include "core/PathQueries.h"
 #include "core/Queries.h"
-#include "core/Errors.h"
+#include "core/MeshCacheInterface.h"
+
+#include <functional>
+#include <stdexcept>
 
 #include <QUuid>
-#include <stdexcept>
-#include <functional>
 
 namespace raco::core {
 using namespace raco::data_storage;
 
-EditorObject::EditorObject(std::string name, std::string id) :
+EditorObject::EditorObject(std::string name, std::string id) : 
 	ClassWithReflectedMembers(),
 	objectName_{name, DisplayNameAnnotation("Object Name")},
-	objectID_{normalizedObjectID(id), {}}
+	objectID_{normalizedObjectID(id), {}} 
 {
 	fillPropertyDescription();
 }
 
 
-std::string const& EditorObject::objectID() const
+std::string const& EditorObject::objectID() const 
 {
 	return *objectID_;
 }
 
-void EditorObject::setObjectID(std::string const& id)
+void EditorObject::setObjectID(std::string const& id) 
 {
 	objectID_ = normalizedObjectID(id);
 }
 
-std::string const& EditorObject::objectName() const
+std::string const& EditorObject::objectName() const 
 {
 	return *objectName_;
 }
 
-void EditorObject::setObjectName(std::string const& name)
+void EditorObject::setObjectName(std::string const& name) 
 {
 	objectName_ = name;
 }
@@ -59,9 +64,10 @@ EditorObject::ChildIterator EditorObject::end() {
 
 void EditorObject::onBeforeDeleteObject(Errors& errors) const {
 	errors.removeAll(shared_from_this());
+	uriListeners_.clear();
 }
 
-std::string EditorObject::normalizedObjectID(std::string const& id)
+std::string EditorObject::normalizedObjectID(std::string const& id) 
 {
 	if (id.empty()) {
 		return QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
@@ -99,7 +105,7 @@ void EditorObject::onBeforeRemoveReferenceToThis(ValueHandle const& sourceRefere
 }
 
 void EditorObject::onAfterDeserialization() const {
-	// Note: removing the const is necessary since we can't create ValueHandles using a 
+	// Note: removing the const is necessary since we can't create ValueHandles using a
 	// shared_ptr<const EditorObject>
 	// To void the cast we would need to create a ValueHandle class holding a shared_ptr<const EditorObject>
 	// instead and additionally create/adapt all the supporting code.
@@ -117,6 +123,36 @@ void EditorObject::onAfterAddReferenceToThis(ValueHandle const& sourceReferenceP
 		if (ValueHandle(srcRootObject, &EditorObject::children_).contains(sourceReferenceProperty)) {
 			parent_ = srcRootObject;
 		}
+	}
+}
+
+FileChangeMonitor::UniqueListener EditorObject::registerFileChangedHandler(BaseContext& context, const ValueHandle& value, FileChangeCallback::Callback callback) {
+	auto resourceAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), value);
+	return context.meshCache()->registerFileChangedHandler(resourceAbsPath,
+		{&context, shared_from_this(), std::move(callback)});
+}
+
+void EditorObject::onAfterContextActivated(BaseContext& context) {
+	for (size_t i = 0; i < size(); i++) {
+		if (get(i)->query<URIAnnotation>()) {
+			auto propName = name(i);
+			ValueHandle handle{shared_from_this(), {i}};
+			uriListeners_[propName] = registerFileChangedHandler(context, handle, [this, handle, &context]() {
+				this->updateFromExternalFile(context);
+			});
+		}
+	}
+	updateFromExternalFile(context);
+}
+
+void EditorObject::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
+	if (value.query<URIAnnotation>()) {
+		assert(value.depth() == 1);
+		auto propName = value.getPropName();
+		uriListeners_[propName] = registerFileChangedHandler(context, value, [this, value, &context]() {
+			this->updateFromExternalFile(context);
+		});
+		updateFromExternalFile(context);
 	}
 }
 
@@ -172,7 +208,7 @@ TreeIterator& TreeIterator::operator++() {
 	if (*this) {
 		SEditorObject current = operator*();
 		if (current->children_->size() > 0) {
-			stack_.push({ current->begin(), current->end() });
+			stack_.push({current->begin(), current->end()});
 		}
 		else {
 			// Traverse siblings and ascend at end

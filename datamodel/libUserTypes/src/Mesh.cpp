@@ -18,19 +18,7 @@
 
 namespace raco::user_types {
 
-void Mesh::onBeforeDeleteObject(Errors& errors) const {
-	EditorObject::onBeforeDeleteObject(errors);
-	uriListener_.reset();
-}
-
-void Mesh::onAfterContextActivated(BaseContext& context) {
-	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
-	uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
-			[this, &context]() { updateMesh(context); }});
-	updateMesh(context);
-}
-
-void Mesh::updateMesh(BaseContext& context) {
+void Mesh::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
 
 	MeshDescriptor desc;
@@ -87,14 +75,11 @@ std::vector<std::string> Mesh::materialNames() {
 }
 
 void Mesh::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	if (value.isRefToProp(&Mesh::uri_)) {
-		auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
-		uriListener_ = context.meshCache()->registerFileChangedHandler(uriAbsPath, {&context, shared_from_this(),
-			[this, &context]() { updateMesh(context); }});
-		updateMesh(context);
-	} else if (value.isRefToProp(&Mesh::bakeMeshes_) || !bakeMeshes_.asBool() && value.isRefToProp(&Mesh::meshIndex_)) {
+	BaseObject::onAfterValueChanged(context, value);
+
+	if (value.isRefToProp(&Mesh::bakeMeshes_) || !bakeMeshes_.asBool() && value.isRefToProp(&Mesh::meshIndex_)) {
 		context.changeMultiplexer().recordPreviewDirty(shared_from_this());
-		updateMesh(context);
+		updateFromExternalFile(context);
 	}
 }
 

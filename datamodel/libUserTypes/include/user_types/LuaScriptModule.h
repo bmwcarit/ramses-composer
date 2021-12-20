@@ -12,7 +12,6 @@
 #include "user_types/BaseObject.h"
 #include "user_types/SyncTableWithEngineInterface.h"
 
-#include "core/FileChangeMonitor.h"
 #include <map>
 #include <set>
 
@@ -44,19 +43,15 @@ public:
 		properties_.emplace_back("uri", &uri_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
+	void updateFromExternalFile(BaseContext& context) override;
 
-	void onAfterContextActivated(BaseContext& context) override;
-	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
-	
+
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
 	std::string currentScriptContents_;
 private:
 
 	void syncLuaInterface(BaseContext& context);
-
-	mutable FileChangeMonitor::UniqueListener uriListener_;
 };
 
 using SLuaScriptModule = std::shared_ptr<LuaScriptModule>;

@@ -79,11 +79,12 @@ protected Q_SLOTS:
 	bool saveAsActiveProject();
 	void importScene();
 	void resetDockManager();
+	void updateActiveProjectConnection();
+
 Q_SIGNALS:
 	void viewportChanged(const QSize& sceneSize);
 
 private:
-	QString applicationName_;
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;
 	RaCoDockManager* dockManager_;
@@ -92,6 +93,7 @@ private:
 	raco::application::RaCoApplication* racoApplication_;
 	raco::object_tree::view::ObjectTreeDockManager treeDockManager_;
 	raco::common_widgets::TimingsModel timingsModel_{this};
+	QMetaObject::Connection activeProjectFileConnection_;
 
 	int renderTimerId_ = 0;
 };

@@ -10,7 +10,6 @@
 #pragma once
 
 #include "core/EngineInterface.h"
-#include "core/FileChangeMonitor.h"
 #include "user_types/BaseObject.h"
 #include "user_types/DefaultValues.h"
 #include "user_types/SyncTableWithEngineInterface.h"
@@ -131,10 +130,8 @@ public:
 		properties_.emplace_back("uniforms", &uniforms_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
-
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
-	void onAfterContextActivated(BaseContext& context) override;
+	void updateFromExternalFile(BaseContext& context) override;
 
 	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {"Tags"}};
 
@@ -155,11 +152,6 @@ public:
 
 private:
 	void syncUniforms(BaseContext& context);
-
-	mutable FileChangeMonitor::UniqueListener vertexListener_;
-	mutable FileChangeMonitor::UniqueListener geometryListener_;
-	mutable FileChangeMonitor::UniqueListener fragmentListener_;
-	mutable FileChangeMonitor::UniqueListener definesListener_;
 
 	bool isShaderValid_ = false;
 

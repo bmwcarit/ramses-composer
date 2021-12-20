@@ -19,7 +19,6 @@
 #include "core/Queries.h"
 #include "core/Undo.h"
 #include "ramses_base/BaseEngineBackend.h"
-#include "components/FileChangeMonitorImpl.h"
 #include "components/Naming.h"
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
@@ -62,11 +61,9 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 		  callback();
 	  }),
 	  commandInterface_(context_.get(), &undoStack_),
-	  fileChangeMonitor_{app->fileChangeMonitor()},
 	  meshCache_{app->meshCache()} {
 	context_->setMeshCache(meshCache_);
 	context_->setExternalProjectsStore(externalProjectsStore);
-	context_->setFileChangeMonitor(fileChangeMonitor_);
 	
 	// Abort file loading if we encounter external reference RenderPasses or extref cameras outside a Prefab.
 	// A bug in V0.9.0 allowed to create such projects.
@@ -134,6 +131,10 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 
 	undoStack_.reset();
 	context_->changeMultiplexer().reset();
+
+	if (!project_.currentFileName().empty()) {
+		updateActiveFileListener();
+	}
 	dirty_ = false;
 }
 
@@ -151,6 +152,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 		}
 	}
 	project_.rerootExternalProjectPaths(oldPath, newPath);
+	updateActiveFileListener();
 }
 
 void RaCoProject::generateProjectSubfolder(const std::string& subFolderPath) {
@@ -166,6 +168,13 @@ void RaCoProject::generateAllProjectSubfolders() {
 	generateProjectSubfolder(prefs.meshSubdirectory.toStdString());
 	generateProjectSubfolder(prefs.scriptSubdirectory.toStdString());
 	generateProjectSubfolder(prefs.shaderSubdirectory.toStdString());
+}
+
+void RaCoProject::updateActiveFileListener() {
+	activeProjectFileChangeListener_ = activeProjectFileChangeMonitor_.registerFileChangedHandler(project_.currentPath(),
+		[this]() {
+			Q_EMIT activeProjectFileChanged();
+		});
 }
 
 RaCoProject::~RaCoProject() {
@@ -408,10 +417,6 @@ DataChangeRecorder* RaCoProject::recorder() {
 
 CommandInterface* RaCoProject::commandInterface() {
 	return &commandInterface_;
-}
-
-FileChangeMonitor* RaCoProject::fileChangeMonitor() {
-	return fileChangeMonitor_;
 }
 
 UndoStack* RaCoProject::undoStack() {

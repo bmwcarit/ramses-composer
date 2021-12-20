@@ -19,7 +19,7 @@
 
 namespace raco::object_tree::model {
 
-ObjectTreeViewExternalProjectModel::ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, core::FileChangeMonitor* fileChangeMonitor, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore)
+ObjectTreeViewExternalProjectModel::ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore)
 	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore) {
 	// don't rebuild tree when creating/deleting local objects
 	lifeCycleSubscriptions_.clear();

@@ -551,6 +551,49 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyAnimSamp
 	ASSERT_EQ(animSampler, nullptr);
 }
 
+TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshes) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
+
+	raco::core::MeshDescriptor desc;
+	desc.absPath = cwd_path().append("meshes/meshless.gltf").string();
+	desc.bakeAllSubmeshes = false;
+
+	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	
+	ASSERT_NE(scenegraph, nullptr);
+	ASSERT_EQ(scenegraph->nodes.size(), 3);
+}
+
+TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshesAndNoNodes) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
+
+	auto nodeless = makeFile("nodeless.gltf", R"(
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v1.6.16",
+        "version" : "2.0"
+    },
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene"
+        }
+    ]
+}
+
+)");
+
+	raco::core::MeshDescriptor desc;
+	desc.absPath = nodeless;
+	desc.bakeAllSubmeshes = false;
+
+	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+
+	ASSERT_NE(scenegraph, nullptr);
+	ASSERT_TRUE(scenegraph->nodes.empty());
+}
 TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselectedMeshes) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());

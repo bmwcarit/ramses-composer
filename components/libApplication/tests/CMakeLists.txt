@@ -39,6 +39,7 @@ raco_package_add_test_resouces(
     meshes/InterpolationTest/interpolation.bin
     meshes/InterpolationTest/l.jpg
     meshes/Duck.glb
+    meshes/meshless.gltf
     meshes/negativeScaleQuad.gltf
     meshes/ToyCar/ToyCar.gltf
     meshes/ToyCar/ToyCar.bin

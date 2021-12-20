@@ -189,7 +189,7 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 }
 
 ads::CDockAreaWidget* createAndAddProjectBrowser(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* racoApplication, ads::CDockAreaWidget* dockArea) {
-	auto* model = new raco::object_tree::model::ObjectTreeViewExternalProjectModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->activeRaCoProject().fileChangeMonitor(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects());
+	auto* model = new raco::object_tree::model::ObjectTreeViewExternalProjectModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects());
 	return createAndAddObjectTree(MainWindow::DockWidgetTypes::PROJECT_BROWSER, dockObjName, model, new QSortFilterProxyModel, Queries::filterForVisibleObjects, ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
@@ -304,8 +304,7 @@ void createInitialWidgets(MainWindow* mainWindow, raco::ramses_widgets::Renderer
 MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco::ramses_widgets::RendererBackend* rendererBackend, QWidget* parent)
 	: QMainWindow(parent),
 	  rendererBackend_{rendererBackend},
-	  racoApplication_{racoApplication},
-	  applicationName_("Ramses Composer") {
+	  racoApplication_{racoApplication} {
 	// Setup the UI from the QtCreator file mainwindow.ui
 	ui = new Ui::MainWindow();
 	ui->setupUi(this);
@@ -541,6 +540,7 @@ void MainWindow::openProject(const QString& file) {
 	configureDebugActions(ui, this, racoApplication_->activeRaCoProject().commandInterface());
 
 	updateApplicationTitle();
+	updateActiveProjectConnection();
 
 	if (racoApplication_->activeRaCoProject().project()->settings()->enableTimerFlag_.asBool() == true) {
 		ui->menuDebug->addAction(ui->actionEnableRuntimeScriptPreview);
@@ -560,17 +560,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::updateApplicationTitle() {
-	raco::application::RaCoProject& project = racoApplication_->activeRaCoProject();
-	if (racoApplication_->activeProjectPath().empty()) {
-		setWindowTitle(applicationName_ + " - <New project>");
-	} else {
-		auto path = QString::fromStdString(racoApplication_->activeProjectPath());
-		auto windowTitle = applicationName_ + " - " + project.name() + " (" + path + ")";
-		if (!QFileInfo(path).isWritable()) {
-			windowTitle += " <read-only>";
-		}
-		setWindowTitle(windowTitle);
-	}
+	setWindowTitle(racoApplication_->generateApplicationTitle());
 }
 
 bool MainWindow::saveActiveProject() {
@@ -604,11 +594,12 @@ bool MainWindow::saveAsActiveProject() {
 		if (racoApplication_->activeRaCoProject().saveAs(newPath, setProjectName)) {
 			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 
+			updateActiveProjectConnection();
 			updateApplicationTitle();		
 			return true;
 		} else {
 			updateApplicationTitle();
-			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed (detailed error in the log). If you are using source control and the file is read-only: check if the file is in a state where you are allowed to edit it?", applicationName_.toStdString()).c_str(), QMessageBox::Ok);
+			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed (detailed error in the log). If you are using source control and the file is read-only: check if the file is in a state where you are allowed to edit it?", newPath.toStdString()).c_str(), QMessageBox::Ok);
 		}
 	} else {
 		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
@@ -720,6 +711,15 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 void MainWindow::resetDockManager() {
 	delete dockManager_;
 	dockManager_ = createDockManager(this);
+}
+
+void MainWindow::updateActiveProjectConnection() {
+	QObject::disconnect(activeProjectFileConnection_);
+	if (!racoApplication_->activeProjectPath().empty()) {
+		activeProjectFileConnection_ = QObject::connect(&racoApplication_->activeRaCoProject(), &raco::application::RaCoProject::activeProjectFileChanged, [this]() {
+			updateApplicationTitle();
+		});
+	}
 }
 
 void MainWindow::showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError) {

@@ -19,19 +19,12 @@
 
 namespace raco::user_types {
 
-void Material::onBeforeDeleteObject(Errors& errors) const {
-	EditorObject::onBeforeDeleteObject(errors);
-	vertexListener_.reset();
-	geometryListener_.reset();
-	fragmentListener_.reset();
-	definesListener_.reset();
-}
 
 const PropertyInterfaceList& Material::attributes() const {
 	return attributes_;
 }
 
-void Material::syncUniforms(BaseContext& context) {
+void Material::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
 	if (uriGeometry_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), &Material::uriGeometry_})) {
 		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriGeometry_});
@@ -68,39 +61,11 @@ void Material::syncUniforms(BaseContext& context) {
 }
 
 void Material::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	if (value.isRefToProp(&Material::uriVertex_)) {
-		vertexListener_ = registerFileChangedHandler(context, value, [this, &context]() { syncUniforms(context); });
-		syncUniforms(context);
-	}
-	if (value.isRefToProp(&Material::uriFragment_)) {
-		fragmentListener_ = registerFileChangedHandler(context, value, [this, &context]() { syncUniforms(context); });
-		syncUniforms(context);
-	}
-	if (value.isRefToProp(&Material::uriGeometry_)) {
-		geometryListener_ = registerFileChangedHandler(context, value,  [this, &context]() { syncUniforms(context); });
-		syncUniforms(context);
-	}
-	if (value.isRefToProp(&Material::uriDefines_)) {
-			definesListener_ = registerFileChangedHandler(context, value, [this, &context]() { syncUniforms(context); });
-		syncUniforms(context);
-	}
+	BaseObject::onAfterValueChanged(context, value);
 
 	if (value.isRefToProp(&Material::objectName_)) {
 		context.updateBrokenLinkErrors(shared_from_this());
 	}
-}
-
-void Material::onAfterContextActivated(BaseContext& context) {
-	vertexListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriVertex_},  [this, &context]() { syncUniforms(context); });
-
-	fragmentListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriFragment_},  [this, &context]() { syncUniforms(context); });
-
-	geometryListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriGeometry_}, [this, &context]() { syncUniforms(context); });
-
-	definesListener_ = registerFileChangedHandler(context, {shared_from_this(), &Material::uriDefines_}, 
-			[this, &context]() { syncUniforms(context); });
-
-	syncUniforms(context);
 }
 
 }  // namespace raco::user_types

@@ -785,3 +785,37 @@ TEST_F(RaCoProjectFixture, copyPasteDeepLuaScriptReferencingLuaScriptModule) {
 		ASSERT_NO_FATAL_FAILURE(app.doOneLoop());
 	}
 }
+
+#if (!defined(__linux))
+// Skip this test in Linux because TC build on Linux seems to not properly change permissions
+TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
+	std::string clipboard;
+	auto projectPath = (cwd_path() / "project.rca");
+	{
+		RaCoApplication app{backend};
+		app.activeRaCoProject().project()->setCurrentPath((cwd_path() / "project.rca").string());
+		app.activeRaCoProject().saveAs((cwd_path() / "project.rca").string().c_str());
+	}
+
+	std::error_code ec;
+	std::filesystem::permissions(projectPath, std::filesystem::perms::owner_read, ec);
+	ASSERT_TRUE(!ec) << "Failed to set permissons. Error code: " << ec.value() << " Error message: '" << ec.message() << "'";
+
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rca").string().c_str()};
+
+		auto expectedAppTitle = fmt::format("{} -  ({}) <read-only>", RaCoApplication::APPLICATION_NAME.toStdString(), app.activeProjectPath());
+		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);
+	}
+
+	std::filesystem::permissions(projectPath, std::filesystem::perms::all, ec);
+	ASSERT_TRUE(!ec) << "Failed to set permissons. Error code: " << ec.value() << " Error message: '" << ec.message() << "'";
+
+	{
+		RaCoApplication app{backend, (cwd_path() / "project.rca").string().c_str()};
+
+		auto expectedAppTitle = fmt::format("{} -  ({})", RaCoApplication::APPLICATION_NAME.toStdString(), app.activeProjectPath());
+		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);
+	}
+}
+#endif

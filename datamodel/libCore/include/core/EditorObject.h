@@ -14,7 +14,9 @@
 #include "data_storage/Table.h"
 #include "data_storage/BasicAnnotations.h"
 #include "core/CoreAnnotations.h"
+#include "core/FileChangeMonitor.h"
 
+#include <map>
 #include <memory>
 #include <set>
 #include <stack>
@@ -141,20 +143,24 @@ public:
 	// Called
 	// - after a context was created for the Project containg the EditorObject
 	// - after undo/prefab update/external reference update has changed an EditorObject
-	// 	   
-	// must perform sync with external files
-	// - this needs to invalidate any cached data related to external files, .e.g
-	//   script or shader content
-	virtual void onAfterContextActivated(BaseContext& context) {}
+	virtual void onAfterContextActivated(BaseContext& context);
 
 	// Called after changing a value inside this object, possibly nested multiple levels.
-	virtual void onAfterValueChanged(BaseContext& context, ValueHandle const& value) {}
+	virtual void onAfterValueChanged(BaseContext& context, ValueHandle const& value);
 
 	// Called after any property in the changedObject changed and a property inside the current
 	// object contains a reference property to changedObject.
 	// - example: MeshNode update after either the Mesh or Material have changed.
 	virtual void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) {}
 
+	// Called
+	// - after creating the object
+	// - when external files have changed
+	// 
+	// must perform sync with external files
+	// - this needs to invalidate any cached data related to external files, .e.g
+	//   script or shader content
+	virtual void updateFromExternalFile(BaseContext& context) {}
 
 
 	// Data model children (not the same as scenegraph children):
@@ -182,10 +188,14 @@ public:
 private:
 	friend class BaseContext;
 
+	FileChangeMonitor::UniqueListener registerFileChangedHandler(BaseContext& context, const ValueHandle& value, FileChangeCallback::Callback callback);
+
 	mutable WEditorObject parent_;
 	
 	// volatile
 	mutable std::set<WEditorObject, std::owner_less<WEditorObject>> referencesToThis_;
+	
+	mutable std::map<std::string, FileChangeMonitor::UniqueListener> uriListeners_;
 };
 
 class CompareEditorObjectByID {

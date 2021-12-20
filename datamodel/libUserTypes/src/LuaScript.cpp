@@ -20,26 +20,13 @@
 
 namespace raco::user_types {
 
-void LuaScript::onBeforeDeleteObject(Errors& errors) const {
-	EditorObject::onBeforeDeleteObject(errors);
-	uriListener_.reset();
-}
-
-void LuaScript::onAfterContextActivated(BaseContext& context) {
-	uriListener_ = registerFileChangedHandler(context, {shared_from_this(), &LuaScript::uri_}, [this, &context]() { this->syncLuaInterface(context); });
-	syncLuaInterface(context);
-}
 
 void LuaScript::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) {
-	syncLuaInterface(context);
-	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
+	updateFromExternalFile(context);
 }
 
 void LuaScript::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	if (value.isRefToProp(&LuaScript::uri_)) {
-		uriListener_ = registerFileChangedHandler(context, value, [this, &context]() { this->syncLuaInterface(context); });
-		syncLuaInterface(context);
-	}
+	BaseObject::onAfterValueChanged(context, value);
 
 	if (ValueHandle(shared_from_this(), &LuaScript::objectName_) == value) {
 		context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
@@ -48,13 +35,13 @@ void LuaScript::onAfterValueChanged(BaseContext& context, ValueHandle const& val
 	const auto& moduleTable = luaModules_.asTable();
 	for (auto i = 0; i < moduleTable.size(); ++i) {
 		if (value == ValueHandle{shared_from_this(), {"luaModules", moduleTable.name(i)}}) {
-			syncLuaInterface(context);
+			updateFromExternalFile(context);
 			return;
 		}
 	}
 }
 
-void LuaScript::syncLuaInterface(BaseContext& context) {
+void LuaScript::updateFromExternalFile(BaseContext& context) {
 	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScript::uri_}));	
 
 	PropertyInterfaceList inputs{};

@@ -17,6 +17,7 @@ set(RESOURCE_FILES
 	images/text-right.png
 	images/DuckCM.png
 	meshes/Duck.glb
+	meshes/meshless.gltf
 	meshes/README.md
 	meshes/ToyCar/Fabric_baseColor.png
 	meshes/ToyCar/Fabric_normal.png

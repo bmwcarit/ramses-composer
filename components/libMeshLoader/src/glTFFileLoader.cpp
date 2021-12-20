@@ -167,15 +167,14 @@ bool glTFFileLoader::importglTFScene(const std::string& absPath) {
 		}
 		if (!err.empty()) {
 			error_ = err;
-		}
-
-		if (!error_.empty() || scene_->meshes.empty()) {
 			LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", absPath, error_);
+			importer_.reset();
 			return false;
 		}
 
 		if (!buildglTFScenegraph()) {
 			LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", absPath, error_);
+			importer_.reset();
 			sceneGraph_.reset();
 			return false;
 		}
@@ -323,8 +322,18 @@ raco::core::SharedMeshData glTFFileLoader::loadMesh(const core::MeshDescriptor& 
 	if (!importglTFScene(descriptor.absPath)) {
 		return raco::core::SharedMeshData();
 	}
-	if (!descriptor.bakeAllSubmeshes && (descriptor.submeshIndex < 0 || descriptor.submeshIndex >= getTotalMeshCount())) {
-		error_ = "Selected submesh index is out of valid submesh index range [0," + std::to_string(getTotalMeshCount() - 1) + "]";
+	auto meshCount = getTotalMeshCount();
+	if (meshCount == 0) {
+		error_ = "Mesh file contains no valid submeshes to select";
+		return raco::core::SharedMeshData();
+	} else if (descriptor.bakeAllSubmeshes) {
+		if (std::all_of(sceneGraph_->nodes.begin(), sceneGraph_->nodes.end(), [](const auto& node) { return node->subMeshIndeces.empty(); })) {
+			error_ = "Mesh file contains no bakeable submeshes.\nSubmeshes should be referenced by nodes to be bakeable.";
+			return raco::core::SharedMeshData();
+		}
+	}
+	if (!descriptor.bakeAllSubmeshes && (descriptor.submeshIndex < 0 || descriptor.submeshIndex >= meshCount)) {
+		error_ = "Selected submesh index is out of valid submesh index range [0," + std::to_string(meshCount - 1) + "]";
 		return raco::core::SharedMeshData();
 	}
 

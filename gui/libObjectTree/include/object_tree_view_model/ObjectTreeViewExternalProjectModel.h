@@ -39,7 +39,7 @@ public:
 		}
 	};
 
-	ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, core::FileChangeMonitor* fileChangeMonitor, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStoreInterface);
+	ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStoreInterface);
 
 	QVariant data(const QModelIndex& index, int role) const override;
 

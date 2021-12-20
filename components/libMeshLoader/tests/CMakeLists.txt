@@ -26,6 +26,8 @@ raco_package_add_headless_test(
 )
 raco_package_add_test_resouces(
     libMeshLoader_test "${CMAKE_SOURCE_DIR}/resources"
+    meshes/AnimatedMorphCube/AnimatedMorphCube.bin
+    meshes/AnimatedMorphCube/AnimatedMorphCube.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck.png
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin

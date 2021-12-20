@@ -12,7 +12,6 @@
 #include "user_types/BaseObject.h"
 #include "user_types/SyncTableWithEngineInterface.h"
 
-#include "core/FileChangeMonitor.h"
 #include <map>
 
 namespace raco::user_types {
@@ -40,12 +39,12 @@ public:
 		properties_.emplace_back("luaOutputs", &luaOutputs_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
-
-	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	
+	void updateFromExternalFile(BaseContext& context) override;
+
+
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
 	Property<Table, DisplayNameAnnotation> luaModules_{{}, DisplayNameAnnotation("Modules")};
@@ -53,11 +52,8 @@ public:
 	Property<Table, DisplayNameAnnotation> luaOutputs_{{}, DisplayNameAnnotation("Outputs")};
 
 private:
-
-	void syncLuaInterface(BaseContext& context);
 	void syncLuaModules(BaseContext& context, const std::string& fileContents, std::string &outError);
 
-	mutable FileChangeMonitor::UniqueListener uriListener_;
 	OutdatedPropertiesStore cachedLuaInputValues_;
 	std::map<std::string, SEditorObject> cachedModuleRefs_;
 };

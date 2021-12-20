@@ -67,9 +67,9 @@ private:
 
 	std::map<std::string, std::unique_ptr<RaCoProject>> externalProjects_;
 
-	components::ExternalProjectFileChangeMonitor externalProjectFileChangeMonitor_;
+	components::ProjectFileChangeMonitor externalProjectFileChangeMonitor_;
 
-	std::unordered_map<std::string, raco::components::ExternalProjectFileChangeMonitor::UniqueListener> externalProjectFileChangeListeners_;
+	std::unordered_map<std::string, raco::components::ProjectFileChangeMonitor::UniqueListener> externalProjectFileChangeListeners_;
 };
 
 }  // namespace raco::application

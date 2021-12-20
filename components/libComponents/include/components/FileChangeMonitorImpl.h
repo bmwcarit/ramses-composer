@@ -74,7 +74,7 @@ protected:
 
 using FileChangeMonitorImpl = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitor>;
 
-using ExternalProjectFileChangeMonitor = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void(void)>>>;
+using ProjectFileChangeMonitor = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void(void)>>>;
 
 
 }  // namespace raco::core

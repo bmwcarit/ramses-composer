@@ -9,7 +9,6 @@
  */
 #pragma once
 
-#include "components/FileChangeMonitorImpl.h"
 #include "components/MeshCacheImpl.h"
 #include "components/Naming.h"
 #include "core/CommandInterface.h"
@@ -35,8 +34,8 @@ struct FutureFileVersion : public std::exception {
 	}
 };
 
-class RaCoProject {
-
+class RaCoProject : public QObject {
+	Q_OBJECT
 public:
 	Q_DISABLE_COPY(RaCoProject);
 	~RaCoProject();
@@ -62,11 +61,13 @@ public:
 	raco::core::Errors* errors();
 	raco::core::DataChangeRecorder* recorder();
 	raco::core::CommandInterface* commandInterface();
-	raco::core::FileChangeMonitor* fileChangeMonitor();
 	raco::core::UndoStack* undoStack();
 	raco::core::MeshCache* meshCache();
 
 	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
+
+Q_SIGNALS:
+	void activeProjectFileChanged();
 
 private:
 	// @exception ExtrefError
@@ -75,6 +76,7 @@ private:
 	void onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath);
 	void generateProjectSubfolder(const std::string& subFolderPath);
 	void generateAllProjectSubfolders();
+	void updateActiveFileListener();
 
 	raco::core::DataChangeRecorder recorder_;
 	raco::core::Errors errors_;
@@ -83,7 +85,9 @@ private:
 	std::shared_ptr<raco::core::BaseContext> context_;
 	bool dirty_{false};
 
-	raco::core::FileChangeMonitor* fileChangeMonitor_;
+	components::ProjectFileChangeMonitor activeProjectFileChangeMonitor_;
+	raco::components::ProjectFileChangeMonitor::UniqueListener activeProjectFileChangeListener_;
+
 	raco::core::MeshCache* meshCache_;
 	raco::core::UndoStack undoStack_;
 	raco::core::CommandInterface commandInterface_;

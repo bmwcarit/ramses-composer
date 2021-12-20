@@ -414,3 +414,37 @@ TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_cor
 
 	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::INFORMATION);
 }
+
+TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_valid_file_with_no_meshes_unbaked_submesh_error) {
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
+	dispatch();
+	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
+	dispatch();
+	context.set(ValueHandle{meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
+	dispatch();
+	context.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
+	dispatch();
+	context.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshless.gltf").string());
+	dispatch();
+
+	ASSERT_TRUE(context.errors().hasError({mesh}));
+	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
+}
+
+TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_valid_file_with_no_meshes_baked_no_submesh_error) {
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
+	dispatch();
+	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
+	dispatch();
+	context.set(ValueHandle{meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
+	dispatch();
+	context.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
+	dispatch();
+	context.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshless.gltf").string());
+	dispatch();
+	context.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, true);
+	dispatch();
+
+	ASSERT_TRUE(context.errors().hasError({mesh}));
+	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
+}

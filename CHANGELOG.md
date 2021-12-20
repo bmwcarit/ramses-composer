@@ -23,6 +23,20 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Issues
 -->
 
+## [0.11.1] Interim Release - The Tangent Fix
+
+### Added
+* Added real-time update of file read-only status in the application title bar.
+
+### Fixes
+* Fixed tangents and bitangents being thrown away after glTF import.
+* Assets in glTF files that do not specify meshes but are otherwise valid can be imported now.
+    * A Mesh that loads a meshless glTF file will still show an error.
+    * A baked Mesh that loads a glTF file with no nodes referencing meshes will show an error.
+* Fixed Mesh not being properly displayed after getting baked, unbaked, then baked again.
+* Fixed missing update of broken link errors by undo/redo in some cases.
+
+
 ## [0.11.0] Lua Modules
 * **File version number has changed. Files saved with RaCo 0.11.0 cannot be opened by previous versions.**
 * **Export file format has changed. Scenes exported with RaCo 0.11.0 / ramses-logic 0.13.0 cannot be opened by previous ramses-logic versions.**
@@ -51,6 +65,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * The INT64 type introduced in ramses-logic 0.13.0 is not supported yet.
 * The property "timeRange" in Animations introduced in ramses-logic 0.13.0 is not supported yet.
 * The new "TimerNode" introduced in ramses-logic 0.13.0 cannot be created in RaCo yet.
+
 
 ## [0.10.0] Animations
 * **File version number has changed. Files saved with RaCo 0.10.0 cannot be opened by previous versions.**

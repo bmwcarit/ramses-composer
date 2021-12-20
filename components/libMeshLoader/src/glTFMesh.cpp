@@ -25,7 +25,7 @@ namespace raco::mesh_loader {
 using namespace raco::core;
 
 
-glTFMesh::glTFMesh(const tinygltf::Model &scene, core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor) : numTriangles_(0), numVertices_(0) {
+glTFMesh::glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor) : numTriangles_(0), numVertices_(0) {
 	// Not included: Bones, textures, materials, node structure, etc.
 
 	// set up buffers we are going to fill in the loop
@@ -74,10 +74,6 @@ glTFMesh::glTFMesh(const tinygltf::Model &scene, core::MeshScenegraph &sceneGrap
 		for (auto i = 0; i < sceneGraph.nodes.size(); ++i) {
 			auto &node = sceneGraph.nodes[i].value();
 			nodeTrafos[i] = generateTrafoMatrix(node);
-			// Cleaning out the extracted transformation for easier debugging 
-			node.transformations.translation = {0, 0, 0};
-			node.transformations.rotation = {0, 0, 0};
-			node.transformations.scale = {1, 1, 1};
 		}
 
 
@@ -260,19 +256,29 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 
 			if (tangentData) {
 				auto tangent = tangentData->getDataAt<float>(vertexIndex);
-				assert(tangent.size() == 4);
+				auto tangentSize = tangent.size();
 
-				tangentBuffer.insert(tangentBuffer.end(), tangent.begin(), tangent.end());
-				auto tangentW = tangent[3];
+				if (tangentSize >= 3) {
+					tangentBuffer.insert(tangentBuffer.end(), tangent.begin(), tangent.begin() + 3);
 
-				// cross tangent with normal and multiply with tangent.W to get bitangent
-				auto bitangentXYZ = {tangentW * (currentNormal[1] * tangent[2] - currentNormal[2] * tangent[1]),
-					tangentW * (currentNormal[2] * tangent[0] - currentNormal[0] * tangent[2]),
-					tangentW * (currentNormal[0] * tangent[1] - currentNormal[1] * tangent[0])};
-				bitangentBuffer.insert(bitangentBuffer.end(), bitangentXYZ.begin(), bitangentXYZ.end());
+					if (tangentSize == 4) {
+						const auto &tangentX = tangent[0];
+						const auto &tangentY = tangent[1];
+						const auto &tangentZ = tangent[2];
+						const auto &tangentW = tangent[3];
 
+						auto bitangent = glm::cross(glm::vec3{currentNormal[0], currentNormal[1], currentNormal[2]}, glm::vec3{tangentX, tangentY, tangentZ}) * tangentW;
+						bitangentBuffer.insert(bitangentBuffer.end(), {bitangent.x, bitangent.y, bitangent.z});
+					} else {
+						LOG_ERROR(log_system::MESH_LOADER, "glTF tangent data is not in XYZW format - bitangent at vertexIndex {} will not be imported", vertexIndex);
+						bitangentBuffer.insert(bitangentBuffer.end(), {0, 0, 0});
+					}
+
+				} else {
+					LOG_ERROR(log_system::MESH_LOADER, "glTF tangent data is not in XYZ format - tangent at vertexIndex {} will not be imported", vertexIndex);
+					tangentBuffer.insert(tangentBuffer.end(), {0, 0, 0});
+				}
 			}
-
 		}
 
 		for (auto uvChannel = 0; uvChannel < MAX_NUMBER_TEXTURECOORDS; ++uvChannel) {

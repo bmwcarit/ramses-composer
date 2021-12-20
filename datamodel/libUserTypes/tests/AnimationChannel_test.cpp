@@ -9,8 +9,10 @@
  */
 #include "testing/TestEnvironmentCore.h"
 
+#include "testing/TestUtil.h"
 #include "user_types/AnimationChannel.h"
 #include "utils/FileUtils.h"
+
 #include <gtest/gtest.h>
 
 using namespace raco::core;
@@ -129,7 +131,6 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidSamplerIndex_noError) {
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 }
 
-
 TEST_F(AnimationChannelTest, invalidAnim_weights_supported) {
 	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
 	ValueHandle uriHandle{animChannel, {"uri"}};
@@ -142,3 +143,23 @@ TEST_F(AnimationChannelTest, invalidAnim_weights_supported) {
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 }
+
+#if (!defined(__linux__))
+// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
+
+TEST_F(AnimationChannelTest, validAnim_madeInvalid) {
+	auto animChannel = create<AnimationChannel>("anim_channel");
+	ValueHandle uriHandle{animChannel, &raco::user_types::AnimationChannel::uri_};
+	
+	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	commandInterface.set(uriHandle, animChannelPath);
+	ASSERT_FALSE(commandInterface.errors().hasError(uriHandle));
+
+	recorder.reset();
+	raco::utils::file::write(animChannelPath, "");
+	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, animChannel));
+
+	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));
+}
+
+#endif

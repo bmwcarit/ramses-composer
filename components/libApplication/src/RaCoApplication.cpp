@@ -23,6 +23,11 @@
 
 #include <ramses_base/LogicEngineFormatter.h>
 
+#ifdef OS_WINDOWS
+// see: https://doc.qt.io/qt-5/qfileinfo.html#ntfs-permissions
+extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
+#endif
+
 namespace raco::application {
 
 RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject)
@@ -188,16 +193,38 @@ raco::core::EngineInterface* RaCoApplication::engine() {
 	return engine_->coreInterface();
 }
 
+QString RaCoApplication::generateApplicationTitle() const {
+	const auto& project = activeRaCoProject();
+	if (activeProjectPath().empty()) {
+		return APPLICATION_NAME + " - <New project>";
+	}
+
+	auto path = QString::fromStdString(activeProjectPath());
+	auto windowTitle = APPLICATION_NAME + " - " + project.name() + " (" + path + ")";
+	auto fileInfo = QFileInfo(path);
+	if (fileInfo.exists() && !fileInfo.isWritable()) {
+		windowTitle += " <read-only>";
+	} else {
+#ifdef OS_WINDOWS
+		// check NTFS permissions under Win, only after simple read-only check returns false
+		// (the permissions may still forbid writing)
+		qt_ntfs_permission_lookup++;
+		fileInfo = QFileInfo(path);
+		if (fileInfo.exists() && !fileInfo.isWritable()) {
+			windowTitle += " <read-only>";
+		}
+		qt_ntfs_permission_lookup--;
+#endif
+	}
+	return windowTitle;
+}
+
 core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {
 	return &externalProjectsStore_;
 }
 
 raco::core::MeshCache* RaCoApplication::meshCache() {
 	return &meshCache_;
-}
-
-raco::core::FileChangeMonitor* RaCoApplication::fileChangeMonitor() {
-	return &fileChangeMonitor_;
 }
 
 }  // namespace raco::application
