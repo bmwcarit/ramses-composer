@@ -36,13 +36,10 @@ Traversal through the entire tree is guaranteed by the iterateThroughTree() meth
 
 namespace raco::object_tree::model {
 
-using ObjectFilterFunc = std::function<std::vector<core::SEditorObject>(const std::vector<core::SEditorObject>&)>;
-using ObjectTreeBuildFunc = std::function<void(ObjectTreeNode*, const std::vector<core::SEditorObject>&)>;
-
 class ObjectTreeViewDefaultModel : public QAbstractItemModel {
 	DEBUG_INSTANCE_COUNTER(ObjectTreeViewDefaultModel);
 	Q_OBJECT
-
+		
 public:
 	enum ColumnIndex {
 		COLUMNINDEX_NAME,
@@ -51,7 +48,8 @@ public:
 		COLUMNINDEX_COLUMN_COUNT
 	};
 
-	ObjectTreeViewDefaultModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string> &allowedCreatableUserTypes = {});
+	ObjectTreeViewDefaultModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string> &allowedCreatableUserTypes,
+		bool groupExternalReferences = false);
 	
 	int columnCount(const QModelIndex& parent = QModelIndex()) const override;
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -71,16 +69,12 @@ public:
 	Qt::DropActions supportedDropActions() const override;
 	
 	virtual void buildObjectTree();
-	virtual void setUpTreeModificationFunctions();
 
 	void iterateThroughTree(std::function<void(QModelIndex&)> nodeFunc, QModelIndex& currentIndex);
 	ObjectTreeNode* indexToTreeNode(const QModelIndex& index) const;
 	core::SEditorObject indexToSEditorObject(const QModelIndex& index) const;
 	std::vector<core::SEditorObject> indicesToSEditorObjects(const QModelIndexList& indices) const;
-	QModelIndex indexFromObjectID(const std::string& id) const;
-
-	void setProjectObjectFilterFunction(const ObjectFilterFunc& func);
-	void setTreeBuildingFunction(const ObjectTreeBuildFunc& func);
+	QModelIndex indexFromTreeNodeID(const std::string& id) const;
 
 	core::UserObjectFactoryInterface* objectFactory();
 	core::Project* project() const;
@@ -128,12 +122,14 @@ protected:
 	std::unordered_map<std::string, std::vector<components::Subscription>> lifeCycleSubscriptions_;
 	components::Subscription afterDispatchSubscription_;
 	components::Subscription extProjectChangedSubscription_;
+	bool groupExternalReferences_;
 
 	// The dirty flag is set if the tree needs to be rebuilt. See afterDispatchSubscription_ member variable usage.
 	bool dirty_ = false;
 
-	ObjectFilterFunc objectFilterFunc_;
-	ObjectTreeBuildFunc treeBuildFunc_;
+	virtual std::vector<core::SEditorObject> filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const;
+	virtual void setNodeExternalProjectInfo(ObjectTreeNode* node) const;
+	void constructTreeUnderNode(ObjectTreeNode* rootNode, const std::vector<core::SEditorObject>& children, bool groupExternalReferences);
 
 	void resetInvisibleRootNode();
 	void updateTreeIndexes();

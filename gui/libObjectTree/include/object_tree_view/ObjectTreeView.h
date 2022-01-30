@@ -45,6 +45,7 @@ public:
 
 	QModelIndexList getSelectedIndices(bool sorted = false) const;
 	QModelIndex getSelectedInsertionTargetIndex() const;
+	void collapseRecusively(const QModelIndex &index);
 
 Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
@@ -60,6 +61,8 @@ public Q_SLOTS:
 	void shortcutDelete();
 	void selectObject(const QString &objectID);
 	void expandAllParentsOfObject(const QString &objectID);
+	void expanded(const QModelIndex &index);
+	void collapsed(const QModelIndex &index);
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;
@@ -75,8 +78,9 @@ protected:
 	void dragMoveEvent(QDragMoveEvent *event) override;
 	void mousePressEvent(QMouseEvent *event) override;
 
-	SEditorObject indexToSEditorObject(const QModelIndex &index) const;
-	QModelIndex indexFromObjectID(const std::string &id) const;
+	std::vector<SEditorObject> indicesToSEditorObjects(const QModelIndexList &index) const;
+	std::string indexToTreeNodeID(const QModelIndex &index) const;
+	QModelIndex indexFromTreeNodeID(const std::string &id) const;
 
 protected Q_SLOTS:
 	void restoreItemExpansionStates();

@@ -34,7 +34,7 @@ inline std::shared_ptr<T> select(const std::vector<I>& vec) {
 }
 
 template <typename ContextOrCommandInterface>
-inline auto createLinkedScene(ContextOrCommandInterface& context, const std::filesystem::path& path) {
+inline auto createLinkedScene(ContextOrCommandInterface& context, const raco::utils::u8path& path) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 	raco::utils::file::write((path / "lua_script.lua").string(), R"(
@@ -53,11 +53,11 @@ end
 }
 
 inline auto createLinkedScene(TestEnvironmentCore& env) {
-	return createLinkedScene(env.commandInterface, env.cwd_path_relative());
+	return createLinkedScene(env.commandInterface, env.test_relative_path());
 }
 
 template <typename ContextOrCommandInterface>
-inline auto createAnimatedScene(ContextOrCommandInterface& context, const std::filesystem::path& path) {
+inline auto createAnimatedScene(ContextOrCommandInterface& context, const raco::utils::u8path& path) {
 	const auto anim{context.createObject(raco::user_types::Animation::typeDescription.typeName, "anim", "anim_id")};
 	const auto animChannel{context.createObject(raco::user_types::AnimationChannel::typeDescription.typeName, "anim_ch", "anim_ch_id")};
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};

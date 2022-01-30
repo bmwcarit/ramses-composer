@@ -46,6 +46,7 @@ RendererBackend::RendererBackend(const std::string& frameworkArgs)
 }
 
 RendererBackend::~RendererBackend() {
+	framework().disconnect();
 }
 
 ramses::RamsesRenderer& RendererBackend::renderer() const {

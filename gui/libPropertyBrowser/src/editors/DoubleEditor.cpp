@@ -24,7 +24,7 @@ namespace raco::property_browser {
 
 DoubleEditor::DoubleEditor(
 	PropertyBrowserItem* item,
-	QWidget* parent) : QWidget{parent} {
+	QWidget* parent) : PropertyEditor(item, parent) {
 	auto* layout = new PropertyBrowserGridLayout{this};
 	stack_ = new QStackedWidget{this};
 

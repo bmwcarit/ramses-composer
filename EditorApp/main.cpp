@@ -18,7 +18,7 @@
 #include "ramses_widgets/RendererBackend.h"
 #include "style/RaCoStyle.h"
 #include "utils/CrashDump.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -43,6 +43,9 @@ void createStdOutConsole() { /* NOOP */
 int main(int argc, char *argv[]) {
 	QCoreApplication::setApplicationName("Ramses Composer");
 	QCoreApplication::setApplicationVersion(RACO_OSS_VERSION);
+
+	// QDialogs will show a "?"-Button by default. While it is possible to disable this for every single dialog, we never need this and thus, disabling it globally is easier.
+	QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
 
 	QCommandLineParser parser;
 	parser.addHelpOption();
@@ -92,9 +95,9 @@ int main(int argc, char *argv[]) {
 		createStdOutConsole();
 	}
 
-	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString());
-
-	raco::log_system::init(raco::core::PathManager::logFilePath().c_str());
+	auto appDataPath = raco::utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
+	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
+	raco::log_system::init(raco::core::PathManager::logFileEditorName().internalPath().native());
 
 	const QStringList args = parser.positionalArguments();
 
@@ -111,7 +114,7 @@ int main(int argc, char *argv[]) {
 		if (projectFileCandidate) {
 			if (projectFileCandidate->suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) == 0) {
 				if (projectFileCandidate->exists()) {
-					if (raco::utils::path::userHasReadAccess(projectFileCandidate->filePath().toStdString())) {
+					if (raco::utils::u8path(projectFileCandidate->filePath().toStdString()).userHasReadAccess()) {
 						projectFile = projectFileCandidate->absoluteFilePath();
 						LOG_INFO(raco::log_system::COMMON, "starting Ramses Composer with project file {}", projectFile.toStdString());
 					} else {

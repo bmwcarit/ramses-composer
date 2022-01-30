@@ -24,7 +24,9 @@ BaseEngineBackend::BaseEngineBackend(
 }
 
 BaseEngineBackend::~BaseEngineBackend() {
-	framework_.disconnect();
+	if (framework_.isConnected()) {
+		framework_.disconnect();
+	}
 }
 
 bool BaseEngineBackend::connect() {

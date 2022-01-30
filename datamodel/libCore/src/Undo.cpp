@@ -13,6 +13,7 @@
 #include "core/Context.h"
 #include "core/EditorObject.h"
 #include "core/ExternalReferenceAnnotation.h"
+#include "core/Iterators.h"
 #include "core/Project.h"
 #include "core/UserObjectFactoryInterface.h"
 #include "core/Link.h"
@@ -26,10 +27,7 @@ namespace raco::core {
 
 using namespace raco::data_storage;
 
-void updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
-void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
-
-void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
+void UndoHelpers::updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
 	PrimitiveType type = src->type();
 	bool changed = false;
 	if (type == PrimitiveType::Ref) {
@@ -54,10 +52,12 @@ void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHa
 		} else {
 			updateTableByName(&src->asTable(), &dest->asTable(), destHandle, translateRef, outChanges, invokeHandler);
 		}
+	} else if (type == PrimitiveType::Struct) {
+		assert(ValueBase::classesEqual(*src, *dest));
+		updateStruct(&src->asStruct(), &dest->asStruct(), destHandle, translateRef, outChanges, invokeHandler);
+		// Assume annotation data doesn't contain Ref type properties.
+		dest->copyAnnotationData(*src);
 	} else {
-		// TODO: there seems to be a loophole here:
-		// for PrimitiveType::Struct properties the references inside the struct are not translated;
-		// we currently don't use classes with reference properties in PrimitiveType::Struct properties
 		changed = dest->assign(*src);
 		// Assume annotation data doesn't contain Ref type properties.
 		dest->copyAnnotationData(*src);
@@ -67,23 +67,28 @@ void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHa
 	}
 }
 
+void UndoHelpers::callOnBeforeRemoveReferenceHandler(raco::data_storage::Table *dest, const size_t &index, raco::core::ValueHandle &destHandle) {
+	auto oldValue = dest->get(index);
+	if (oldValue->type() == PrimitiveType::Ref) {
+		if (auto oldObj = oldValue->asRef()) {
+			oldObj->onBeforeRemoveReferenceToThis(destHandle[index]);
+		}
+	} else if (hasTypeSubstructure(oldValue->type())) {
+		BaseContext::callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(destHandle);
+	}
+}
+
 // Update of Tables with ArraySemanticAnnotation
 // - replace entire Table contents
-void updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
+void UndoHelpers::updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
 	bool changed = false;
 	if (ReflectionInterface::compare(*src, *dest, translateRef)) {
 		return;
 	}
 
-	if (invokeHandler) {
+	if (invokeHandler && destHandle) {
 		for (size_t index{0}; index < dest->size(); index++) {
-			auto oldValue = dest->get(index);
-			if (oldValue->type() == PrimitiveType::Ref) {
-				auto oldObj = oldValue->asRef();
-				if (oldObj && destHandle) {
-					oldObj->onBeforeRemoveReferenceToThis(destHandle[index]);
-				}
-			}
+			UndoHelpers::callOnBeforeRemoveReferenceHandler(dest, index, destHandle);
 		}
 	}
 	if (dest->size() > 0) {
@@ -101,9 +106,31 @@ void updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, t
 	}
 }
 
+void UndoHelpers::updateStruct(const ClassWithReflectedMembers *src, ClassWithReflectedMembers *dest, ValueHandle destHandle,  translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
+	for (size_t index{0}; index < src->size(); index++) {
+		std::string name = src->name(index);
+		assert(dest->hasProperty(name));
+		UndoHelpers::updateSingleValue(src->get(name), dest->get(name), destHandle ? destHandle[index] : ValueHandle(), translateRef, outChanges, invokeHandler);
+	}
+}
+
+void UndoHelpers::updateMissingTableProperties(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
+	bool changed = false;
+	for (size_t index{0}; index < src->size(); index++) {
+		std::string name = src->name(index);
+		if (!dest->hasProperty(name)) {
+			dest->addProperty(name, src->get(name)->clone(&translateRef), index);
+			changed = true;
+		}
+	}
+	if (changed && outChanges && destHandle) {
+		outChanges->recordValueChanged(destHandle);
+	}
+}
+
 // Update of Tables without ArraySemanticAnnotation
 // - match properties by name and type and remove/add properties as necessary 
-void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
+void UndoHelpers::updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
 	// Remove dest properties not present in src
 	size_t index = 0;
 	bool changed = false;
@@ -111,13 +138,8 @@ void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, tr
 		std::string name = dest->name(index);
 		if (!src->hasProperty(name) || !ValueBase::classesEqual(*src->get(name), *dest->get(name))) {
 
-			auto oldValue = dest->get(index);
-			if (oldValue->type() == PrimitiveType::Ref) {
-				if (auto oldObj = oldValue->asRef()) {
-					if (invokeHandler && destHandle) {
-						oldObj->onBeforeRemoveReferenceToThis(destHandle[index]);
-					}
-				}
+			if (invokeHandler && destHandle) {
+				UndoHelpers::callOnBeforeRemoveReferenceHandler(dest, index, destHandle);
 			}
 
 			dest->removeProperty(index);
@@ -131,9 +153,14 @@ void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, tr
 	for (size_t index{0}; index < src->size(); index++) {
 		std::string name = src->name(index);
 		if (dest->hasProperty(name)) {
-			updateSingleValue(src->get(name), dest->get(name), destHandle ? destHandle[index] : ValueHandle(), translateRef, outChanges, invokeHandler);
+			auto destIndex = dest->index(name);
+			if (destIndex != index) {
+				dest->swapProperties(index, destIndex);
+				changed = true;
+			}
+			UndoHelpers::updateSingleValue(src->get(name), dest->get(name), destHandle ? destHandle[index] : ValueHandle(), translateRef, outChanges, invokeHandler);
 		} else {
-			dest->addProperty(name, src->get(name)->clone(&translateRef));
+			dest->addProperty(name, src->get(name)->clone(&translateRef), index);
 			changed = true;
 		}
 	}
@@ -142,7 +169,7 @@ void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, tr
 	}
 }
 
-void updateEditorObject(const EditorObject *src, SEditorObject dest, translateRefFunc translateRef, excludePropertyPredicateFunc excludeIf, UserObjectFactoryInterface &factory, DataChangeRecorder *outChanges, bool invokeHandler, bool updateObjectAnnotations) {
+void UndoHelpers::updateEditorObject(const EditorObject *src, SEditorObject dest, translateRefFunc translateRef, excludePropertyPredicateFunc excludeIf, UserObjectFactoryInterface &factory, DataChangeRecorder *outChanges, bool invokeHandler, bool updateObjectAnnotations) {
 	if (updateObjectAnnotations) {
 		auto destAnnoCopy{dest->annotations()};
 		for (const auto &destAnno : destAnnoCopy) {
@@ -164,7 +191,7 @@ void updateEditorObject(const EditorObject *src, SEditorObject dest, translateRe
 				assert(destAnno->hasProperty(name));
 				assert(ValueBase::classesEqual(*destAnno->get(name), *srcAnno->get(name)));
 
-				updateSingleValue(srcAnno->get(name), destAnno->get(name), ValueHandle(), translateRef, outChanges, invokeHandler);
+				UndoHelpers::updateSingleValue(srcAnno->get(name), destAnno->get(name), ValueHandle(), translateRef, outChanges, invokeHandler);
 			}
 		}
 	}
@@ -175,7 +202,7 @@ void updateEditorObject(const EditorObject *src, SEditorObject dest, translateRe
 		if (!excludeIf(name)) {
 			assert(ValueBase::classesEqual(*dest->get(name), *src->get(name)));
 			
-			updateSingleValue(src->get(name), dest->get(name), ValueHandle(dest, {index}), translateRef, outChanges, invokeHandler);
+			UndoHelpers::updateSingleValue(src->get(name), dest->get(name), ValueHandle(dest, {index}), translateRef, outChanges, invokeHandler);
 		}
 	}
 }
@@ -214,7 +241,7 @@ void UndoStack::saveProjectState(const Project *src, Project *dest, Project *ref
 
 	for (const auto &srcObj : dirtyObjects) {
 		auto destObj = dest->getInstanceByID(srcObj->objectID());
-		updateEditorObject(
+		UndoHelpers::updateEditorObject(
 			srcObj.get(), destObj, translateRef, [](const std::string &) { return false; }, factory, nullptr, false);
 	}
 
@@ -242,7 +269,8 @@ void UndoStack::updateProjectState(const Project *src, Project *dest, const Data
 
 	for (const auto &srcObj : dirtyObjects) {
 		auto destObj = dest->getInstanceByID(srcObj->objectID());
-		updateEditorObject(srcObj.get(), destObj, translateRef, [](const std::string &) { return false; }, factory, nullptr, false);
+		UndoHelpers::updateEditorObject(
+			srcObj.get(), destObj, translateRef, [](const std::string &) { return false; }, factory, nullptr, false);
 	}
 
 	// Update external project name map
@@ -296,7 +324,8 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 	// Update objects
 	for (const auto &destObj : dest->instances()) {
 		auto srcObj = src->getInstanceByID(destObj->objectID());
-		updateEditorObject(srcObj.get(), destObj, translateRef, [](const std::string &) { return false; }, factory, &changes, true);
+		UndoHelpers::updateEditorObject(
+			srcObj.get(), destObj, translateRef, [](const std::string &) { return false; }, factory, &changes, true);
 	}
 
 	auto findExtref = [](const std::map<std::string, std::set<ValueHandle>>& changes) {

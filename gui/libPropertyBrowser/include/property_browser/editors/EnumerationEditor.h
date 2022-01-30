@@ -9,14 +9,14 @@
  */
 #pragma once
 
-#include <QWidget>
+#include "PropertyEditor.h"
 
 class QComboBox;
 
 namespace raco::property_browser {
 class PropertyBrowserItem;
 
-class EnumerationEditor final : public QWidget {
+class EnumerationEditor final : public PropertyEditor {
 public:
 	explicit EnumerationEditor(PropertyBrowserItem* item, QWidget* parent);
 

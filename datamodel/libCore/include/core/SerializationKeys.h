@@ -32,5 +32,7 @@ constexpr const char* EXTERNAL_PROJECT_PATH{"path"};
 constexpr const char* EXTERNAL_PROJECT_NAME{"name"};
 constexpr const char* ROOT_OBJECT_IDS{"rootObjectIDs"};
 constexpr const char* OBJECT_ORIGIN_FOLDERS{"objectOriginFolders"};
+constexpr const char* USER_TYPE_PROP_MAP{"userTypePropMap"};
+constexpr const char* STRUCT_PROP_MAP{"structPropMap"};
 
 }	// namespace raco::serialization::keys

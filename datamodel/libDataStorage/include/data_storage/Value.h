@@ -209,6 +209,7 @@ public:
 
 	// Get reference to generic base class for Struct type values.
 	// Will not work for vector (Vec2f etc) types or Tables.
+	virtual ClassWithReflectedMembers& asStruct() = 0;
 	virtual const ClassWithReflectedMembers& asStruct() const = 0;
 
 	// Set Struct type values.
@@ -459,6 +460,12 @@ public:
 			}
 			value_ = std::static_pointer_cast<typename T::element_type>(v);
 		}
+	}
+	virtual ClassWithReflectedMembers& asStruct() override {
+		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			return value_;
+		}
+		throw std::runtime_error("type mismatch");
 	}
 	virtual const ClassWithReflectedMembers& asStruct() const override {
 		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {

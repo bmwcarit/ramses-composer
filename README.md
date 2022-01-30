@@ -192,3 +192,5 @@ Some icons originate from the [Google Material Design](https://material.io/resou
 
 There are some example files included in ```resources/```. For Meshes taken from the Khronos glTF library, their individual licenses [are listed here](resources/meshes/README.md). All other meshes, Lua scripts, shaders and textures are also under MPL 2.0.
 
+There are no obligations on the projects you create with Ramses Composer. They are your property and you may use and license them in any way you wish. This applies to the .rca scene file, everything referenced by it and all files exported from Ramses Composer.
+

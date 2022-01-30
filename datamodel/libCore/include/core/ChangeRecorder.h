@@ -107,7 +107,7 @@ private:
 		bool eraseLink(const LinkDescriptor& link);
 
 		// Iterate through the saved links and insert the link end point objects, depending on which should be included, in the "objects" set.
-		void insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, SEditorObjectSet& objects) const;
+		void insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, SEditorObjectSet& objects, const SEditorObjectSet& excludeObjects) const;
 
 		// Inserts a link or updates it when it is already contained in the linkMap_.
 		void insertOrUpdateLink(const LinkDescriptor& link);

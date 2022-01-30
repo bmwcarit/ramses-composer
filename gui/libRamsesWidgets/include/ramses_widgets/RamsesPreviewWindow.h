@@ -38,6 +38,7 @@ public:
 		QSize targetSize{0, 0};
 		QSize virtualSize{0, 0};
 		QColor backgroundColor{};
+		PreviewFilteringMode filteringMode{PreviewFilteringMode::NearestNeighbor};
 	};
 
 	explicit RamsesPreviewWindow(

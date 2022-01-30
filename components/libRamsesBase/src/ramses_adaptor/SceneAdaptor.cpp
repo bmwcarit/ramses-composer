@@ -118,6 +118,7 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 	adaptorStatusDirty_ = true; 
 		  })),
 	  linksLifecycle_{dispatcher->registerOnLinksLifeCycle(
+		  nullptr,
 		  [this](const core::LinkDescriptor& link) { createLink(link); },
 		  [this](const core::LinkDescriptor& link) { removeLink(link); })},
 	  linkValidityChangeSub_{dispatcher->registerOnLinkValidityChange(
@@ -132,13 +133,14 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 	dispatcher_->registerBulkChangeCallback([this](const core::SEditorObjectSet& changedObjects) {
 		performBulkEngineUpdate(changedObjects);
 	});
-	const auto& instances{project_->instances()};
-	core::SEditorObjectSet initialBulkUpdate(instances.begin(), instances.end());
-	performBulkEngineUpdate(initialBulkUpdate);
 
 	for (const SLink& link : project_->links()) {
 		createLink(link->descriptor());
 	}
+
+	const auto& instances{project_->instances()};
+	core::SEditorObjectSet initialBulkUpdate(instances.begin(), instances.end());
+	performBulkEngineUpdate(initialBulkUpdate);
 
 	scene_->flush();
 	scene_->publish();

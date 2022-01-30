@@ -23,6 +23,47 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Issues
 -->
 
+## [0.12.0] Bug Fixes and Usability Improvements
+* **File version number has changed. Files saved with RaCo 0.12.0 cannot be opened by previous versions.**
+
+### Added
+* Whenever a private Material is created, it will now always be created with the same Options as the shared Material.
+* New collapsable list entry "External References" serves to group all external references together in the resources and prefab views.
+* Added command line argument "--loglevel" to headless Ramses Composer for adjusting log verbosity.
+* Added color picker for vector properties in the property browser.
+* In the scene graph, prefab, project browser and property browser views, shift click on the arrow symbols will now recursively expand or collapse items.
+* A new filtering options menu for the ramses preview widget now allows changing from nearest neighbor sampling to linear sampling.
+* Added a ramses-logic-viewer build to RaCo binary folder.
+* It is now possible to do simple calculations (like "1920/1080" as aspect ratio) directly in the number inputs of the property browser.
+    * Currently allowed operations: addition (+), substraction (-), multiplication (*), division (/), integer division (//), modulo (%), exponentiation (^) and changing precedence using parentheses.
+    * Results are calculated immediately and the mathematical expression is not stored.
+
+### Changes
+* Update from ramses-logic 0.13.0 to ramses-logic 0.14.2
+* Update from ramses 27.0.114 to 27.0.115
+* The default resource directories can now be set in the per-project in the project settings instead of the Ramses Composer preferences.
+* The button to open the underlying file for LuaScripts and other objects is now enabled in cases where the object itself cannot be edited (due to being an ExtRef or part of a PrefabInstance).
+* Log file size is now limited to 10 MB, with new log files being created once this is exceeded. A maximum of 250 MB of log files can be created before old files get deleted.
+* Opening the link editor no longer has the search field pre-filled with the name of the current link, if one exists.
+* More details for LuaScriptModule errors in LuaScripts - invalid LuaScriptModule assignments are now also shown as individual errors.
+* Removed "Debug">"Add dummy scene" menu element.
+* Config and log files moved from program folder to user folder (e.g. %APPDATA%/RamsesComposer on Windows).
+* Log file for headless Ramses Composer is now named "RaCoHeadless.log".
+* The values of new lua input properties for LuaScripts which are direct children of PrefabInstances are now propagated from the corresponding Prefab LuaScript during external reference updates making it possible to set default values in the external project.
+* Optimize simultaneous deletion of many links in scenes with many objects.
+* Object IDs of the PrefabInstance children objects are now deterministically determined from the corresponding Prefab child and the PrefabInstance itself.
+
+### Fixes
+* The application now handles scenarios where saving configfiles is not possible more gracefully.
+* Fixed problems loading projects from paths that contain non-latin characters.
+* For empty LuaScript files the correct error message is now shown.
+* Fixed Ramses API errors appearing in the log window during new project creation.
+* Properties "Flip Vertically" and "Generate Mipmaps" in a texture are now updating the Ramses texture immediately.
+* The ramses preview toolbar can no longer be hidden with right click, since this was an unintended feature.
+* Removed non-functional "?"-Button from all dialog windows.
+* Fixed MeshNodes in PrefabInstances having a different private Material uniform order than their Prefab counterparts after changing Material reference.
+* Fixed RaCoHeadless not exporting links.
+
 ## [0.11.1] Interim Release - The Tangent Fix
 
 ### Added

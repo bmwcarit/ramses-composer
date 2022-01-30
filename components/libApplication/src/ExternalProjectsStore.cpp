@@ -11,7 +11,7 @@
 
 #include "application/RaCoApplication.h"
 
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 namespace raco::application {
 
@@ -137,7 +137,7 @@ std::string ExternalProjectsStore::activeProjectPath() const {
 bool ExternalProjectsStore::loadExternalProject(const std::string& projectPath, std::vector<std::string>& pathStack) {
 	std::unique_ptr<RaCoProject> project;
 	bool success = false;
-	if (utils::path::isExistingFile(projectPath)) {
+	if (utils::u8path(projectPath).existsFile()) {
 		if (projectPath != activeProjectPath()) {
 			try {
 				project = RaCoProject::loadFromFile(QString::fromStdString(projectPath), application_, pathStack);

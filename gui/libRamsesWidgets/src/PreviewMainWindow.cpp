@@ -70,6 +70,11 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		sizeMenu->addAction(ui_->actionSetSizeModeHorizontalFit);
 		sizeMenu->addAction(ui_->actionSetSizeModeBestFit);
 		sizeMenu->addAction(ui_->actionSetSizeModeOriginalFit);
+		ui_->actionSetSizeModeOff->setCheckable(true);
+		ui_->actionSetSizeModeVerticalFit->setCheckable(true);
+		ui_->actionSetSizeModeHorizontalFit->setCheckable(true);
+		ui_->actionSetSizeModeBestFit->setCheckable(true);
+		ui_->actionSetSizeModeOriginalFit->setCheckable(true);
 		connect(ui_->actionSetSizeModeOff, &QAction::triggered, scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingOff);
 		connect(ui_->actionSetSizeModeVerticalFit, &QAction::triggered, scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingVerticalFit);
 		connect(ui_->actionSetSizeModeHorizontalFit, &QAction::triggered, scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingHorizontalFit);
@@ -78,26 +83,61 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		auto* sizeMenuButton = new QToolButton{this};
 		sizeMenuButton->setMenu(sizeMenu);
 		sizeMenuButton->setPopupMode(QToolButton::InstantPopup);
-		connect(scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingChanged, [=](PreviewScrollAreaWidget::AutoSizing mode) {
+		connect(scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingChanged, [this, sizeMenuButton](PreviewScrollAreaWidget::AutoSizing mode) {
+			auto action = ui_->actionSetSizeModeOff;
 			switch (mode) {
-				case PreviewScrollAreaWidget::AutoSizing::OFF:
-					sizeMenuButton->setDefaultAction(ui_->actionSetSizeModeOff);
-					break;
 				case PreviewScrollAreaWidget::AutoSizing::VERTICAL_FIT:
-					sizeMenuButton->setDefaultAction(ui_->actionSetSizeModeVerticalFit);
+					action = ui_->actionSetSizeModeVerticalFit;
 					break;
 				case PreviewScrollAreaWidget::AutoSizing::HORIZONTAL_FIT:
-					sizeMenuButton->setDefaultAction(ui_->actionSetSizeModeHorizontalFit);
+					action = ui_->actionSetSizeModeHorizontalFit;
 					break;
 				case PreviewScrollAreaWidget::AutoSizing::BEST_FIT:
-					sizeMenuButton->setDefaultAction(ui_->actionSetSizeModeBestFit);
+					action = ui_->actionSetSizeModeBestFit;
 					break;
 				case PreviewScrollAreaWidget::AutoSizing::ORIGINAL_FIT:
-					sizeMenuButton->setDefaultAction(ui_->actionSetSizeModeOriginalFit);
+					action = ui_->actionSetSizeModeOriginalFit;
 					break;
 			};
+			sizeMenuButton->setText(action->text());
+			ui_->actionSetSizeModeOff->setChecked(false);
+			ui_->actionSetSizeModeVerticalFit->setChecked(false);
+			ui_->actionSetSizeModeHorizontalFit->setChecked(false);
+			ui_->actionSetSizeModeBestFit->setChecked(false);
+			ui_->actionSetSizeModeOriginalFit->setChecked(false);
+			action->setChecked(true);
 		});
 		ui_->toolBar->insertWidget(ui_->actionSelectSizeMode, sizeMenuButton);
+	}
+	// Filtering mode tool button
+	{
+		auto* filteringMenu = new QMenu{this};
+		filteringMenu->addAction(ui_->actionSetFilteringModeNearestNeighbor);
+		filteringMenu->addAction(ui_->actionSetFilteringModeLinear);
+		ui_->actionSetFilteringModeNearestNeighbor->setCheckable(true);
+		ui_->actionSetFilteringModeNearestNeighbor->setChecked(true);
+
+
+		auto* filteringMenuButton = new QToolButton{this};
+		filteringMenuButton->setMenu(filteringMenu);
+		filteringMenuButton->setPopupMode(QToolButton::InstantPopup);
+
+		ui_->actionSetFilteringModeLinear->setCheckable(true);
+		filteringMenuButton->setText(ui_->actionSetFilteringModeNearestNeighbor->text());
+
+		connect(ui_->actionSetFilteringModeNearestNeighbor, &QAction::triggered, this, [this, filteringMenuButton]() {
+			previewWidget_->setFilteringMode(PreviewFilteringMode::NearestNeighbor);
+			filteringMenuButton->setText(ui_->actionSetFilteringModeNearestNeighbor->text());
+			ui_->actionSetFilteringModeNearestNeighbor->setChecked(true);
+			ui_->actionSetFilteringModeLinear->setChecked(false);
+		});
+		connect(ui_->actionSetFilteringModeLinear, &QAction::triggered, this, [this, filteringMenuButton]() {
+			previewWidget_->setFilteringMode(PreviewFilteringMode::Linear);
+			filteringMenuButton->setText(ui_->actionSetFilteringModeLinear->text());
+			ui_->actionSetFilteringModeNearestNeighbor->setChecked(false);
+			ui_->actionSetFilteringModeLinear->setChecked(true);
+		});
+		ui_->toolBar->insertWidget(ui_->actionSelectFilteringMode, filteringMenuButton);
 	}
 }
 

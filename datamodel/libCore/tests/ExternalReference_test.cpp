@@ -72,20 +72,20 @@ public:
 
 	SAnimationChannel create_animationchannel(const std::string& name, const std::string& relpath) {
 		auto channel = create<AnimationChannel>(name);
-		cmd->set({channel, {"uri"}}, (cwd_path() / relpath).string());
+		cmd->set({channel, {"uri"}}, (test_path() / relpath).string());
 		return channel;
 	}
 
 	SMesh create_mesh(const std::string &name, const std::string &relpath) {
 		auto mesh = create<Mesh>(name);
-		cmd->set({mesh, {"uri"}}, (cwd_path() / relpath).string());
+		cmd->set({mesh, {"uri"}}, (test_path() / relpath).string());
 		return mesh;
 	}
 
 	SMaterial create_material(const std::string &name, const std::string &relpathVertex, const std::string &relpathFragment) {
 		auto material = create<Material>(name);
-		cmd->set({material, {"uriVertex"}}, (cwd_path() / relpathVertex).string());
-		cmd->set({material, {"uriFragment"}}, (cwd_path() / relpathFragment).string());
+		cmd->set({material, {"uriVertex"}}, (test_path() / relpathVertex).string());
+		cmd->set({material, {"uriFragment"}}, (test_path() / relpathFragment).string());
 		return material;
 	}
 
@@ -97,7 +97,7 @@ public:
 	}
 
 	void change_uri(SEditorObject obj, const std::string &newvalue) {
-		cmd->set({obj, {"uri"}}, (cwd_path() / newvalue).string());
+		cmd->set({obj, {"uri"}}, (test_path() / newvalue).string());
 	}
 
 	void rename_project(const std::string &newProjectName) {
@@ -246,7 +246,7 @@ public:
 };
 
 TEST_F(ExtrefTest, normal_paste) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -263,7 +263,7 @@ TEST_F(ExtrefTest, normal_paste) {
 }
 
 TEST_F(ExtrefTest, duplicate_normal_paste) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -287,7 +287,7 @@ TEST_F(ExtrefTest, duplicate_normal_paste) {
 
 
 TEST_F(ExtrefTest, extref_paste_empty_projectname) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	auto base_id = setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -302,7 +302,7 @@ TEST_F(ExtrefTest, extref_paste_empty_projectname) {
 
 
 TEST_F(ExtrefTest, extref_paste_fail_renderpass) {
-	auto basePathName{(cwd_path() / "base.rca").string()};
+	auto basePathName{(test_path() / "base.rca").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<RenderPass>("renderpass");
@@ -316,7 +316,7 @@ TEST_F(ExtrefTest, extref_paste_fail_renderpass) {
 }
 
 TEST_F(ExtrefTest, extref_paste_fail_existing_object_from_same_project) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -328,7 +328,7 @@ TEST_F(ExtrefTest, extref_paste_fail_existing_object_from_same_project) {
 }
 
 TEST_F(ExtrefTest, extref_paste_fail_deleted_object_from_same_project) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -344,7 +344,7 @@ TEST_F(ExtrefTest, extref_paste_fail_deleted_object_from_same_project) {
 }
 
 TEST_F(ExtrefTest, extref_paste_fail_existing_object_from_same_project_path) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -357,7 +357,7 @@ TEST_F(ExtrefTest, extref_paste_fail_existing_object_from_same_project_path) {
 }
 
 TEST_F(ExtrefTest, extref_paste_fail_deleted_object_from_same_project_path) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -375,8 +375,8 @@ TEST_F(ExtrefTest, extref_paste_fail_deleted_object_from_same_project_path) {
 }
 
 TEST_F(ExtrefTest, extref_paste_fail_from_filecopy) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -406,7 +406,7 @@ TEST_F(ExtrefTest, extref_paste_fail_from_filecopy) {
 
 
 TEST_F(ExtrefTest, extref_paste) {
-	auto basePathName{(cwd_path() / "base.rcp").generic_string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	auto base_id = setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -423,8 +423,8 @@ TEST_F(ExtrefTest, extref_paste) {
 }
 
 TEST_F(ExtrefTest, extref_paste_duplicate_projname) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	auto base1_id = setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -443,8 +443,8 @@ TEST_F(ExtrefTest, extref_paste_duplicate_projname) {
 }
 
 TEST_F(ExtrefTest, filecopy_paste_fail_same_object) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -462,9 +462,9 @@ TEST_F(ExtrefTest, filecopy_paste_fail_same_object) {
 }
 
 TEST_F(ExtrefTest, filecopy_paste_fail_different_object) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -484,8 +484,8 @@ TEST_F(ExtrefTest, filecopy_paste_fail_different_object) {
 }
 
 TEST_F(ExtrefTest, filecopy_paste_fail_new_object) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -505,8 +505,8 @@ TEST_F(ExtrefTest, filecopy_paste_fail_new_object) {
 
 
 TEST_F(ExtrefTest, extref_paste_same_project_name_after_delete_with_undo) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	auto base_id1 = setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -550,7 +550,7 @@ TEST_F(ExtrefTest, extref_paste_same_project_name_after_delete_with_undo) {
 }
 
 TEST_F(ExtrefTest, duplicate_extref_paste_discard_all) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("Prefab");
@@ -575,7 +575,7 @@ TEST_F(ExtrefTest, duplicate_extref_paste_discard_all) {
 }
 
 TEST_F(ExtrefTest, duplicate_extref_paste_discard_some) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto mesh = create<Mesh>("Mesh");
@@ -611,8 +611,8 @@ TEST_F(ExtrefTest, duplicate_extref_paste_discard_some) {
 }
 
 TEST_F(ExtrefTest, extref_projname_change_update) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -637,8 +637,8 @@ TEST_F(ExtrefTest, extref_projname_change_update) {
 }
 
 TEST_F(ExtrefTest, extref_projname_change_paste_more) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -668,8 +668,8 @@ TEST_F(ExtrefTest, extref_projname_change_paste_more) {
 }
 
 TEST_F(ExtrefTest, extref_can_delete_only_unused) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -704,8 +704,8 @@ TEST_F(ExtrefTest, extref_can_delete_only_unused) {
 }
 
 TEST_F(ExtrefTest, extref_can_delete_only_unused_with_links) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto luaSource = create<LuaScript>("luaSource");
@@ -739,8 +739,8 @@ end
 }
 
 TEST_F(ExtrefTest, extref_cant_move) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -765,8 +765,8 @@ TEST_F(ExtrefTest, extref_cant_move) {
 }
 
 TEST_F(ExtrefTest, extref_cant_paste_into) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto material = create<Material>("material");
@@ -789,8 +789,8 @@ TEST_F(ExtrefTest, extref_cant_paste_into) {
 }
 
 TEST_F(ExtrefTest, prefab_update_create_child) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this](){
 		auto prefab = create<Prefab>("prefab");
@@ -817,8 +817,8 @@ TEST_F(ExtrefTest, prefab_update_create_child) {
 }
 
 TEST_F(ExtrefTest, prefab_update_delete_child) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -844,8 +844,8 @@ TEST_F(ExtrefTest, prefab_update_delete_child) {
 
 
 TEST_F(ExtrefTest, prefab_update_stop_using_child) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto left = create<Prefab>("prefab_left");
@@ -872,8 +872,8 @@ TEST_F(ExtrefTest, prefab_update_stop_using_child) {
 	});
 }
 TEST_F(ExtrefTest, prefab_update_inter_prefab_scenegraph_move) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto left = create<Prefab>("prefab_left");
@@ -906,8 +906,8 @@ TEST_F(ExtrefTest, prefab_update_inter_prefab_scenegraph_move) {
 }
 
 TEST_F(ExtrefTest, prefab_update_move_and_delete_parent) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -939,8 +939,8 @@ TEST_F(ExtrefTest, prefab_update_move_and_delete_parent) {
 }
 
 TEST_F(ExtrefTest, prefab_update_move_and_delete_parent_linked) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -988,8 +988,8 @@ end
 	});
 }
 TEST_F(ExtrefTest, update_losing_uniforms) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto mesh = create_mesh("mesh", "meshes/Duck.glb");
@@ -1024,7 +1024,7 @@ TEST_F(ExtrefTest, update_losing_uniforms) {
 
 	updateBase(basePathName, [this]() {
 		auto material = find("material");
-		cmd->set({material, {"uriVertex"}}, (cwd_path() / "shaders/nosuchfile.vert").string());
+		cmd->set({material, {"uriVertex"}}, (test_path() / "shaders/nosuchfile.vert").string());
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -1045,8 +1045,8 @@ TEST_F(ExtrefTest, update_losing_uniforms) {
 }
 
 TEST_F(ExtrefTest, prefab_instance_update) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -1090,9 +1090,65 @@ TEST_F(ExtrefTest, prefab_instance_update) {
 	});
 }
 
+TEST_F(ExtrefTest, prefab_instance_update_lua_new_property) {
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
+
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.i = INT
+end
+function run()
+end
+)");
+
+	setupBase(basePathName, [this, &scriptFile]() {
+		auto prefab = create<Prefab>("prefab");
+		auto lua = create<LuaScript>("prefab_lua", prefab);
+		cmd->set({lua, {"uri"}}, scriptFile);
+		cmd->set({lua, {"luaInputs", "i"}}, 7);
+	});
+
+	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
+		auto prefab = findExt("prefab");
+		auto lua = findExt<LuaScript>("prefab_lua");
+		ASSERT_EQ(prefab->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({lua}));
+
+		auto inst = create<PrefabInstance>("inst");
+		cmd->set({inst, {"template"}}, prefab);
+		auto inst_children = inst->children_->asVector<SEditorObject>();
+		ASSERT_EQ(inst_children.size(), 1);
+		auto inst_lua = inst_children[0]->as<LuaScript>();
+		ASSERT_EQ(lua->luaInputs_->get("i")->asInt(), inst_lua->luaInputs_->get("i")->asInt());
+
+		cmd->set({inst_lua, {"luaInputs", "i"}}, 11);
+	});
+
+	raco::utils::file::write(scriptFile.path.string(), R"(
+function interface()
+	IN.i = INT
+	IN.f = FLOAT
+end
+function run()
+end
+)");
+
+	updateBase(basePathName, [this]() {
+		auto lua = find("prefab_lua");
+		cmd->set({lua, {"luaInputs", "f"}}, 13.0);
+	});
+
+	updateComposite(compositePathName, [this]() {
+		auto inst = find("inst");
+		auto inst_lua = inst->children_->get(0)->asRef()->as<LuaScript>();
+		ASSERT_EQ(inst_lua->luaInputs_->get("i")->asInt(), 11);
+		ASSERT_EQ(inst_lua->luaInputs_->get("f")->asDouble(), 13.0);
+	});
+}
+
 TEST_F(ExtrefTest, prefab_instance_lua_update_link) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -1135,8 +1191,8 @@ end
 }
 
 TEST_F(ExtrefTest, duplicate_link_paste_prefab) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -1164,7 +1220,7 @@ end
 }
 
 TEST_F(ExtrefTest, duplicate_link_paste_lua) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto start = create<LuaScript>("start");
@@ -1194,7 +1250,7 @@ end
 }
 
 TEST_F(ExtrefTest, duplicate_link_paste_chained_lua) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto start = create<LuaScript>("start");
@@ -1231,9 +1287,9 @@ end
 }
 
 TEST_F(ExtrefTest, nesting_create) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto midPathName((cwd_path() / "mid.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto midPathName((test_path() / "mid.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	std::string base_id;
 	std::string mid_id;
@@ -1262,10 +1318,10 @@ TEST_F(ExtrefTest, nesting_create) {
 }
 
 TEST_F(ExtrefTest, filecopy_update_fail_nested_same_object) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
-	auto midPathName((cwd_path() / "mid.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto midPathName((test_path() / "mid.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -1300,10 +1356,10 @@ TEST_F(ExtrefTest, filecopy_update_fail_nested_same_object) {
 }
 
 TEST_F(ExtrefTest, filecopy_update_fail_nested_different_object) {
-	auto basePathName1{(cwd_path() / "base1.rcp").generic_string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").generic_string()};
-	auto midPathName((cwd_path() / "mid.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").generic_string()};
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto midPathName((test_path() / "mid.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto mesh = create<Mesh>("mesh");
@@ -1340,8 +1396,8 @@ TEST_F(ExtrefTest, filecopy_update_fail_nested_different_object) {
 
 
 TEST_F(ExtrefTest, nesting_create_loop_fail) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -1358,9 +1414,9 @@ TEST_F(ExtrefTest, nesting_create_loop_fail) {
 }
 
 TEST_F(ExtrefTest, nested_shared_material_update) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto duckPathName((cwd_path() / "duck.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto duckPathName((test_path() / "duck.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
@@ -1391,8 +1447,8 @@ TEST_F(ExtrefTest, nested_shared_material_update) {
 }
 
 TEST_F(ExtrefTest, meshnode_uniform_refs_private_material) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto mesh = create_mesh("mesh", "meshes/Duck.glb");
@@ -1412,8 +1468,8 @@ TEST_F(ExtrefTest, meshnode_uniform_refs_private_material) {
 }
 
 TEST_F(ExtrefTest, meshnode_uniform_refs_shared_material) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto mesh = create_mesh("mesh", "meshes/Duck.glb");
@@ -1441,9 +1497,9 @@ TEST_F(ExtrefTest, meshnode_uniform_refs_shared_material) {
 
 
 TEST_F(ExtrefTest, nested_shared_material_linked_update) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto duckPathName((cwd_path() / "duck.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto duckPathName((test_path() / "duck.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
@@ -1489,8 +1545,8 @@ end
 }
 
 TEST_F(ExtrefTest, shared_material_stacked_lua_linked_update) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
@@ -1539,10 +1595,10 @@ end
 }
 
 TEST_F(ExtrefTest, diamond_shared_material_linked_update) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto duckPathName((cwd_path() / "duck.rcp").string());
-	auto quadPathName((cwd_path() / "quad.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto duckPathName((test_path() / "duck.rcp").string());
+	auto quadPathName((test_path() / "quad.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
@@ -1607,10 +1663,10 @@ end
 }
 
 TEST_F(ExtrefTest, diamond_shared_material_linked_move_lua) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto duckPathName((cwd_path() / "duck.rcp").string());
-	auto quadPathName((cwd_path() / "quad.rcp").string());
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto duckPathName((test_path() / "duck.rcp").string());
+	auto quadPathName((test_path() / "quad.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 		auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
@@ -1679,17 +1735,19 @@ end
 }
 
 TEST_F(ExtrefTest, saveas_reroot_uri_lua) {
-	auto basePathName{(cwd_path() / "base.rcp").generic_string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
-	auto base_id = setupBase(basePathName, [this]() {
+	auto base_id = setupBase(basePathName, [this, basePathName]() {
+		project->setCurrentPath(basePathName);
+
 		auto prefab = create<Prefab>("prefab");
 		auto lua = create<LuaScript>("lua", prefab);
 		cmd->set({lua, {"uri"}}, std::string("relativeURI"));
 	});
 	
-	std::filesystem::create_directory((cwd_path() / "subdir"));
+	std::filesystem::create_directory((test_path() / "subdir"));
 	setupGeneric([this, basePathName, base_id]() {
-		project->setCurrentPath((cwd_path() / "project.file").string());
+		project->setCurrentPath((test_path() / "project.file").string());
 
 		pasteFromExt(basePathName, {"prefab"}, true);
 		auto prefab = findExt("prefab");
@@ -1712,7 +1770,7 @@ TEST_F(ExtrefTest, saveas_reroot_uri_lua) {
 
 		ASSERT_EQ(project->externalProjectsMap().at(base_id).path, "base.rcp");
 
-		ASSERT_TRUE(app->activeRaCoProject().saveAs((cwd_path() / "subdir" / "project.file").string().c_str()));
+		ASSERT_TRUE(app->activeRaCoProject().saveAs((test_path() / "subdir" / "project.file").string().c_str()));
 
 		EXPECT_EQ(*lua_prefab->uri_, std::string("relativeURI"));
 		EXPECT_EQ(*lua_inst->uri_, std::string("relativeURI"));
@@ -1723,16 +1781,18 @@ TEST_F(ExtrefTest, saveas_reroot_uri_lua) {
 }
 
 TEST_F(ExtrefTest, paste_reroot_lua_uri_dir_up) {
-	auto basePathName{(cwd_path() / "base.rcp").generic_string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
 
-	auto base_id = setupBase(basePathName, [this]() {
+	auto base_id = setupBase(basePathName, [this, basePathName]() {
+		project->setCurrentPath(basePathName);
+
 		auto prefab = create<Prefab>("prefab");
 		auto lua = create<LuaScript>("lua", prefab);
 		cmd->set({lua, {"uri"}}, std::string("relativeURI"));
 	});
 
 	setupGeneric([this, basePathName, base_id]() {
-		project->setCurrentPath((cwd_path() / "subdir" / "project.file").string());
+		project->setCurrentPath((test_path() / "subdir" / "project.file").string());
 
 		pasteFromExt(basePathName, {"prefab"}, true);
 		auto prefab = findExt("prefab");
@@ -1760,17 +1820,19 @@ TEST_F(ExtrefTest, paste_reroot_lua_uri_dir_up) {
 }
 
 TEST_F(ExtrefTest, paste_reroot_lua_uri_dir_down) {
-	std::filesystem::create_directory((cwd_path() / "subdir"));
-	auto basePathName{(cwd_path() / "subdir" / "base.rcp").generic_string()};
+	std::filesystem::create_directory((test_path() / "subdir"));
+	auto basePathName{(test_path() / "subdir" / "base.rcp").string()};
 
-	auto base_id = setupBase(basePathName, [this]() {
+	auto base_id = setupBase(basePathName, [this, basePathName]() {
+		project->setCurrentPath(basePathName);
+
 		auto prefab = create<Prefab>("prefab");
 		auto lua = create<LuaScript>("lua", prefab);
 		cmd->set({lua, {"uri"}}, std::string("relativeURI"));
 	});
 
 	setupGeneric([this, basePathName, base_id]() {
-		project->setCurrentPath((cwd_path() / "project.file").string());
+		project->setCurrentPath((test_path() / "project.file").string());
 
 		pasteFromExt(basePathName, {"prefab"}, true);
 		auto prefab = findExt("prefab");
@@ -1798,9 +1860,9 @@ TEST_F(ExtrefTest, paste_reroot_lua_uri_dir_down) {
 }
 
 TEST_F(ExtrefTest, paste_reroot_lua_uri_with_link_down) {
-	std::filesystem::create_directory((cwd_path() / "subdir"));
-	auto basePathName{(cwd_path() / "subdir" / "base.rcp").generic_string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	std::filesystem::create_directory((test_path() / "subdir"));
+	auto basePathName{(test_path() / "subdir" / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this, basePathName]() {
 		project->setCurrentPath(basePathName);
@@ -1809,7 +1871,7 @@ TEST_F(ExtrefTest, paste_reroot_lua_uri_with_link_down) {
 		auto node = create<Node>("prefab_node", prefab);
 		auto lua = create<LuaScript>("prefab_lua", prefab);
 		
-		raco::utils::file::write((cwd_path() / "subdir/script.lua").string(), R"(
+		raco::utils::file::write((test_path() / "subdir/script.lua").string(), R"(
 function interface()
 	IN.v = VEC3F
 	OUT.v = VEC3F
@@ -1822,7 +1884,7 @@ end
 	});
 
 	setupGeneric([this, basePathName]() {
-		project->setCurrentPath((cwd_path() / "project.file").string());
+		project->setCurrentPath((test_path() / "project.file").string());
 
 		pasteFromExt(basePathName, {"prefab"}, true);
 		auto prefab = findExt("prefab");
@@ -1853,8 +1915,8 @@ end
 }
 
 TEST_F(ExtrefTest, prefab_link_quaternion_in_prefab) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this, basePathName1]() {
 		project->setCurrentPath(basePathName1);
@@ -1863,7 +1925,7 @@ TEST_F(ExtrefTest, prefab_link_quaternion_in_prefab) {
 		auto node = create<Node>("prefab_node", prefab);
 		auto lua = create<LuaScript>("prefab_lua", prefab);
 
-		raco::utils::file::write((cwd_path() / "script.lua").string(), R"(
+		raco::utils::file::write((test_path() / "script.lua").string(), R"(
 function interface()
 	IN.v = VEC4F
 	OUT.v = VEC4F
@@ -1898,12 +1960,12 @@ end
 }
 
 TEST_F(ExtrefTest, animation_channel_data_gets_propagated) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
-		auto animChannel = create_animationchannel("animCh", "meshse/InterpolationTest/InterpolationTest.gltf");
+		auto animChannel = create_animationchannel("animCh", "meshes/InterpolationTest/InterpolationTest.gltf");
 	});
 
 	setupBase(basePathName2, [this, basePathName1]() {
@@ -1919,8 +1981,8 @@ TEST_F(ExtrefTest, animation_channel_data_gets_propagated) {
 }
 
 TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto anim = create_animation("anim");
@@ -1930,7 +1992,7 @@ TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 		auto prefab = create<Prefab>("prefab");
 		cmd->moveScenegraphChildren({animNode}, prefab);
 
-		auto animChannel = create_animationchannel("animCh", "meshse/InterpolationTest/InterpolationTest.gltf");
+		auto animChannel = create_animationchannel("animCh", "meshes/InterpolationTest/InterpolationTest.gltf");
 		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	});
 
@@ -1947,8 +2009,8 @@ TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 }
 
 TEST_F(ExtrefTest, prefab_cut_deep_linked_does_not_delete_shared) {
-	auto basePathName{(cwd_path() / "base.rcp").string()};
-	auto compositePathName{(cwd_path() / "composite.rcp").string()};
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
 
 	setupBase(basePathName, [this]() {
 
@@ -1981,18 +2043,18 @@ TEST_F(ExtrefTest, prefab_cut_deep_linked_does_not_delete_shared) {
 }
 
 TEST_F(ExtrefTest, module_gets_propagated) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto module = create<LuaScriptModule>("module");
-		cmd->set({module, &LuaScriptModule::uri_}, (cwd_path() / "scripts" / "moduleDefinition.lua").string());
+		cmd->set({module, &LuaScriptModule::uri_}, (test_path() / "scripts" / "moduleDefinition.lua").string());
 	});
 
 	setupBase(basePathName2, [this, basePathName1]() {
 		ASSERT_TRUE(pasteFromExt(basePathName1, {"module"}, true));
 		auto lua = create<LuaScript>("script");
-		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts" / "moduleDependency.lua").string());
+		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts" / "moduleDependency.lua").string());
 
 		auto module = findExt<LuaScriptModule>("module");
 		cmd->set({lua, {"luaModules", "coalas"}}, module);
@@ -2003,8 +2065,8 @@ TEST_F(ExtrefTest, module_gets_propagated) {
 }
 
 TEST_F(ExtrefTest, prefab_instance_with_lua_and_module) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -2012,11 +2074,11 @@ TEST_F(ExtrefTest, prefab_instance_with_lua_and_module) {
 		cmd->set({inst, &PrefabInstance::template_}, prefab);
 
 		auto lua = create<LuaScript>("lua", prefab);
-		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
 		cmd->moveScenegraphChildren({lua}, prefab);
 
 		auto luaModule = create<LuaScriptModule>("luaModule");
-		cmd->set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+		cmd->set({luaModule, &LuaScriptModule::uri_}, (test_path() / "scripts/moduleDefinition.lua").string());
 
 		cmd->set({lua, {"luaModules", "coalas"}}, luaModule);
 	});
@@ -2032,8 +2094,8 @@ TEST_F(ExtrefTest, prefab_instance_with_lua_and_module) {
 	});
 }
 TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -2041,11 +2103,11 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
 		cmd->set({inst, &PrefabInstance::template_}, prefab);
 
 		auto lua = create<LuaScript>("lua", prefab);
-		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
 		cmd->moveScenegraphChildren({lua}, prefab);
 
 		auto luaModule = create<LuaScriptModule>("luaModule");
-		cmd->set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+		cmd->set({luaModule, &LuaScriptModule::uri_}, (test_path() / "scripts/moduleDefinition.lua").string());
 
 		cmd->set({lua, {"luaModules", "coalas"}}, luaModule);
 	});
@@ -2076,8 +2138,8 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
 }
 
 TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
-	auto basePathName1{(cwd_path() / "base.rcp").string()};
-	auto basePathName2{(cwd_path() / "base2.rcp").string()};
+	auto basePathName1{(test_path() / "base.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
 
 	setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("prefab");
@@ -2085,11 +2147,11 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
 		cmd->set({inst, &PrefabInstance::template_}, prefab);
 
 		auto lua = create<LuaScript>("lua", prefab);
-		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
 		cmd->moveScenegraphChildren({lua}, prefab);
 
 		auto luaModule = create<LuaScriptModule>("luaModule");
-		cmd->set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+		cmd->set({luaModule, &LuaScriptModule::uri_}, (test_path() / "scripts/moduleDefinition.lua").string());
 
 		cmd->set({lua, {"luaModules", "coalas"}}, luaModule);
 	});
@@ -2106,7 +2168,7 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
 
 	updateBase(basePathName1, [this]() {
 		auto lua = find("lua");
-		cmd->set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/types-scalar.lua").string());
+		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/types-scalar.lua").string());
 	});
 
 	updateBase(basePathName2, [this]() {

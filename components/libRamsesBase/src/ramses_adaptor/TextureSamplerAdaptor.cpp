@@ -17,6 +17,7 @@
 #include <QDataStream>
 #include <QFile>
 #include "lodepng.h"
+#include "utils/FileUtils.h"
 
 namespace raco::ramses_adaptor {
 
@@ -37,6 +38,12 @@ TextureSamplerAdaptor::TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::sh
 			  tagDirty();
 		  }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::anisotropy_}, [this]() {
+			  tagDirty();
+		  }),
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::flipTexture_}, [this]() {
+			  tagDirty();
+		  }),
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::generateMipmaps_}, [this]() {
 			  tagDirty();
 		  }),
 		  sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject, [this]() {
@@ -96,7 +103,8 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture() {
 	unsigned int height = 0;
 	std::vector<unsigned char> data;
 
-	const unsigned int ret = lodepng::decode(data, width, height, pngPath.c_str());
+	auto pngData = raco::utils::file::readBinary(pngPath);
+	const unsigned int ret = lodepng::decode(data, width, height, pngData);
 	if (ret != 0) {
 		return nullptr;
 	}

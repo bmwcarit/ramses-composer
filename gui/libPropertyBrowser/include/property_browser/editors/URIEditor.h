@@ -38,7 +38,6 @@ protected:
 	void updateFileEditButton();
 	void updateURILineEditString();
 	
-	PropertyBrowserItem* currentItem_;
 	QPushButton* editButton_;
 };
 

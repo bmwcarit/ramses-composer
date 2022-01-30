@@ -82,10 +82,6 @@ public:
 		QObject::connect(&list_, &LinkStartSearchView::clicked, this, [this, item](const QModelIndex& index) { item->setLink(list_.handleFromIndex(index)); close(); });
 		QObject::connect(&list_, &LinkStartSearchView::activated, this, [this, item](const QModelIndex& index) { item->setLink(list_.handleFromIndex(index)); close(); });
 
-		if (isLinked) {
-			search_.setText(item->linkText().c_str());
-		}
-
 		// center horizontally on link button and keep on screen
 		search_.setMinimumWidth(500);
 		updateGeometry();
@@ -192,7 +188,7 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 	linkButton_->setDisabled(linkstate.readonly || !linkstate.validLinkTarget);
 
 	if (linkstate.current == CurrentLinkState::PARENT_LINKED) {
-		linkButton_->setIcon(Icons::icon(Pixmap::parent_is_linked));
+		linkButton_->setIcon(Icons::icon(Pixmap::parentIsLinked));
 	} else {
 		if (linkstate.validLinkTarget) {
 			switch (linkstate.current) {
@@ -205,7 +201,7 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 					break;
 
 				case CurrentLinkState::BROKEN:
-					linkButton_->setIcon(Icons::icon(Pixmap::link_broken));
+					linkButton_->setIcon(Icons::icon(Pixmap::linkBroken));
 					break;
 
 			}

@@ -38,7 +38,7 @@ public:
 		prefabInstance_ = commandInterface.createObject(PrefabInstance::typeDescription.typeName)->as<PrefabInstance>();
 		meshnodeInPrefab_ = commandInterface.createObject(MeshNode::typeDescription.typeName)->as<MeshNode>();
 
-		commandInterface.set({mesh_, {"uri"}}, (cwd_path() / "meshes" / "Duck.glb").string());
+		commandInterface.set({mesh_, {"uri"}}, (test_path() / "meshes" / "Duck.glb").string());
 		commandInterface.set({meshnode_, {"mesh"}}, mesh_);
 		commandInterface.set({meshnodeInPrefab_, {"mesh"}}, mesh_);
 

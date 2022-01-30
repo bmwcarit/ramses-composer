@@ -26,7 +26,6 @@
 #include "core/CoreFormatter.h"
 #include "log_system/log.h"
 #include "core/Serialization.h"
-#include "core/SerializationFunctions.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/Mesh.h"
@@ -179,6 +178,23 @@ void BaseContext::setT<Table>(ValueHandle const& handle, Table const& value) {
 	changeMultiplexer_.recordValueChanged(handle);
 }
 
+template <>
+void BaseContext::setT<ClassWithReflectedMembers>(ValueHandle const& handle, ClassWithReflectedMembers const& value) {
+	ValueBase* v = handle.valueRef();
+
+	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
+
+	v->setStruct(value);
+
+	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onAfterAddReferenceToThis>(handle);
+
+	handle.object_->onAfterValueChanged(*this, handle);
+
+	callReferencedObjectChangedHandlers(handle.object_);
+
+	changeMultiplexer_.recordValueChanged(handle);
+}
+
 void BaseContext::set(ValueHandle const& handle, bool const& value) {
 	setT(handle, value);
 }
@@ -208,6 +224,34 @@ void BaseContext::set(ValueHandle const& handle, SEditorObject const& value) {
 }
 
 void BaseContext::set(ValueHandle const& handle, Table const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, std::array<double, 2> const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, std::array<double, 3> const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, std::array<double, 4> const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, std::array<int, 2> const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, std::array<int, 3> const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, std::array<int, 4> const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, ClassWithReflectedMembers const& value) {
 	setT(handle, value);
 }
 
@@ -316,6 +360,16 @@ void BaseContext::removeAllProperties(const ValueHandle& handle) {
 	}
 }
 
+void BaseContext::swapProperties(const ValueHandle& handle, size_t index_1, size_t index_2) {
+	Table& table{handle.valueRef()->asTable()};
+	table.swapProperties(index_1, index_2);
+
+	callReferencedObjectChangedHandlers(handle.object_);
+
+	changeMultiplexer_.recordValueChanged(handle);
+}
+
+
 namespace {
 std::vector<SEditorObject> collectObjectsForCopyOrCutOperations(const std::vector<SEditorObject>& objects, bool deep) {
 	SEditorObjectSet toCheck{objects.begin(), objects.end()};
@@ -368,7 +422,7 @@ std::string BaseContext::copyObjects(const std::vector<SEditorObject>& objects, 
 	auto allObjects{collectObjectsForCopyOrCutOperations(objects, deepCopy)};
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
-	return raco::serialization::serialize(allObjects, rootObjectIDs, collectLinksForCopyOrCutOperation(*project_, allObjects), project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str();
+	return raco::serialization::serializeObjects(allObjects, rootObjectIDs, collectLinksForCopyOrCutOperation(*project_, allObjects), project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str();
 }
 
 std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, bool deepCut) {
@@ -376,7 +430,7 @@ std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, b
 	auto allLinks{collectLinksForCopyOrCutOperation(*project_, allObjects)};
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
-	std::string serialization{raco::serialization::serialize(allObjects, rootObjectIDs, allLinks, project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str()};
+	std::string serialization{raco::serialization::serializeObjects(allObjects, rootObjectIDs, allLinks, project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str()};
 	deleteObjects(Queries::filterForDeleteableObjects(*project_, allObjects));
 	return serialization;
 }
@@ -394,11 +448,11 @@ void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, ra
 					} else {
 						originFolder = deserialization.originFolder;
 					}
-					if (!originFolder.empty() && !uriPath.empty() && std::filesystem::path{uriPath}.is_relative()) {
-						if (PathManager::pathsShareSameRoot(originFolder, this->project()->currentPath())) {
-							property.valueRef()->set(PathManager::rerootRelativePath(uriPath, originFolder, this->project()->currentFolder()));
+					if (!originFolder.empty() && !uriPath.empty() && raco::utils::u8path(uriPath).is_relative()) {
+						if (raco::utils::u8path::areSharingSameRoot(originFolder, this->project()->currentPath())) {
+							property.valueRef()->set(raco::utils::u8path(uriPath).rerootRelativePath(originFolder, this->project()->currentFolder()).string());
 						} else {
-							property.valueRef()->set(PathManager::constructAbsolutePath(originFolder, uriPath));
+							property.valueRef()->set(raco::utils::u8path(uriPath).normalizedAbsolutePath(originFolder).string());
 						}
 					}
 				}
@@ -434,7 +488,7 @@ bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::ser
 		originProjectID = *anno->projectID_;
 		auto it = deserialization.externalProjectsMap.find(originProjectID);
 		if (it != deserialization.externalProjectsMap.end()) {
-			originProjectPath = PathManager::constructAbsolutePath(deserialization.originFolder, it->second.path);
+			originProjectPath = raco::utils::u8path(it->second.path).normalizedAbsolutePath(deserialization.originFolder).string();
 		} else {
 			throw ExtrefError("Paste: can't resolve external project path");
 		}
@@ -466,7 +520,7 @@ void BaseContext::adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& ne
 
 				auto it = deserialization.externalProjectsMap.find(extProjID);
 				if (it != deserialization.externalProjectsMap.end()) {
-					project_->addExternalProjectMapping(extProjID, PathManager::constructAbsolutePath(deserialization.originFolder, it->second.path), it->second.name);
+					project_->addExternalProjectMapping(extProjID, raco::utils::u8path(it->second.path).normalizedAbsolutePath(deserialization.originFolder).string(), it->second.name);
 				} else {
 					throw ExtrefError("Paste: can't resolve external project path");
 				}
@@ -481,8 +535,7 @@ void BaseContext::adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& ne
 
 void BaseContext::restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization) {
 	std::map<std::string, SEditorObject> oldIdToEditorObject{};
-	for (auto& object : newObjects) {
-		auto editorObject{std::dynamic_pointer_cast<core::EditorObject>(object)};
+	for (auto& editorObject : newObjects) {
 		oldIdToEditorObject[editorObject->objectID()] = editorObject;
 	}
 
@@ -498,8 +551,7 @@ void BaseContext::restoreReferences(const Project& project, std::vector<SEditorO
 }
 
 std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralizedObjects, const SEditorObject& target, bool pasteAsExtref) {
-	auto deserialization{raco::serialization::deserializeObjects(seralizedObjects, 
-		raco::user_types::UserObjectFactoryInterface::deserializationFactory(objectFactory_))};
+	auto deserialization{raco::serialization::deserializeObjects(seralizedObjects)};
 
 	if (deserialization.objects.size() == 0) {
 		return {};
@@ -520,9 +572,7 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	std::set<std::string> discardedObjects{};
 
 	// Filter out objects that need to be discarded in paste
-	for (auto& object : deserialization.objects) {
-		auto editorObject{std::dynamic_pointer_cast<core::EditorObject>(object)};
-
+	for (auto& editorObject : deserialization.objects) {
 		if (pasteAsExtref && extrefPasteDiscardObject(editorObject, deserialization)) {
 			discardedObjects.insert(editorObject->objectID());
 		} else {
@@ -592,8 +642,7 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		}
 	}
 
-	for (auto& i : deserialization.links) {
-		auto link{std::dynamic_pointer_cast<raco::core::Link>(i)};
+	for (auto& link : deserialization.links) {
 		// Drop links if the start/end object doesn't exist, it violates prefab constraints or creates a loop.
 		// Keep links if the property doesn't exist or the types don't match: these links are only (temporarily) invalid.
 		if (*link->startObject_ && *link->endObject_ &&
@@ -851,7 +900,7 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 }
 
 void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
-	auto relativeFilePath = PathManager::constructRelativePath(absPath, project()->currentFolder());
+	auto relativeFilePath = raco::utils::u8path(absPath).normalizedRelativePath(project()->currentFolder());
 	std::vector<SEditorObject> meshScenegraphMeshes;
 	std::vector<SEditorObject> meshScenegraphNodes;
 
@@ -875,7 +924,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			continue;
 		}
 
-		auto meshWithSameProperties = propertiesToMeshMap.find({false, static_cast<int>(i), relativeFilePath});
+		auto meshWithSameProperties = propertiesToMeshMap.find({false, static_cast<int>(i), relativeFilePath.string()});
 		if (meshWithSameProperties == propertiesToMeshMap.end()) {
 			LOG_DEBUG(log_system::CONTEXT, "Did not find existing local Mesh with same properties as asset mesh, creating one instead...");
 			auto &currentSubmesh = meshScenegraphMeshes.emplace_back(createObject(raco::user_types::Mesh::typeDescription.typeName, *scenegraph.meshes[i]));
@@ -883,7 +932,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 
 			set(currentSubmeshHandle.get("bakeMeshes"), false);
 			set(currentSubmeshHandle.get("meshIndex"), static_cast<int>(i));
-			set(currentSubmeshHandle.get("uri"), relativeFilePath);
+			set(currentSubmeshHandle.get("uri"), relativeFilePath.string());
 		} else {
 			LOG_DEBUG(log_system::CONTEXT, "Found existing local Mesh {} with same properties as asset mesh, using this Mesh...", *scenegraph.meshes[i]);
 			meshScenegraphMeshes.emplace_back(meshWithSameProperties->second);
@@ -897,7 +946,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		return object->getParent() == nullptr;
 	});
 
-	auto meshPath = std::filesystem::path(relativeFilePath).filename().string();
+	auto meshPath = relativeFilePath.filename().string();
 	meshPath = project_->findAvailableUniqueName(topLevelObjects.begin(), topLevelObjects.end(), nullptr, meshPath);
 	auto sceneRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshPath);
 	if (parent) {
@@ -1006,7 +1055,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		for (auto samplerIndex = 0; samplerIndex < samplers.size(); ++samplerIndex) {
 			auto& meshAnimSampler = scenegraph.animationSamplers.at(animIndex)[samplerIndex];
 			if (!meshAnimSampler.has_value()) {
-				LOG_DEBUG(log_system::CONTEXT, "Found disabled mesh animation sampler at index {}.{}, ignoring AnimationChannel creatíon...", animIndex, samplerIndex);
+				LOG_DEBUG(log_system::CONTEXT, "Found disabled mesh animation sampler at index {}.{}, ignoring AnimationChannel creatï¿½on...", animIndex, samplerIndex);
 				sceneChannels[animIndex].emplace_back(nullptr);
 				continue;
 			}
@@ -1123,28 +1172,22 @@ void BaseContext::removeLink(const PropertyDescriptor& end) {
 
 void BaseContext::updateExternalReferences(std::vector<std::string>& pathStack) {
 	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), pathStack);
-	PrefabOperations::globalPrefabUpdate(*this, modelChanges());
+	PrefabOperations::globalPrefabUpdate(*this, modelChanges(), true);
 }
 
-std::vector<SEditorObject> BaseContext::getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, UserObjectFactoryInterface* objectFactory, Project* project) {
-	std::vector<SEditorObject> newObjects;
+std::vector<SEditorObject> BaseContext::getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, Project* project) {
 	SEditorObjectSet childrenSet;
 
-	for (auto& object : deserialization.objects) {
-		auto editorObject{std::dynamic_pointer_cast<core::EditorObject>(object)};
-		newObjects.emplace_back(editorObject);
-	}
+	restoreReferences(*project, deserialization.objects, deserialization);
 
-	restoreReferences(*project, newObjects, deserialization);
-
-	for (const auto& obj : newObjects) {
+	for (const auto& obj : deserialization.objects) {
 		for (const auto& objChild : obj->children_->asVector<SEditorObject>()) {
 			childrenSet.emplace(objChild);
 		}
 	}
 
 	std::vector<SEditorObject> topLevelObjects;
-	for (const auto& obj : newObjects) {
+	for (const auto& obj : deserialization.objects) {
 		if (childrenSet.find(obj) == childrenSet.end()) {
 			topLevelObjects.emplace_back(obj);
 		}

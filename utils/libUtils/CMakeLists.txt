@@ -12,7 +12,8 @@ add_library(libUtils
     include/utils/CrashDump.h src/CrashDump.cpp
     include/utils/FileUtils.h src/FileUtils.cpp
     include/utils/MathUtils.h src/MathUtils.cpp
-    include/utils/PathUtils.h src/PathUtils.cpp
+    include/utils/u8path.h src/u8path.cpp
+    include/utils/stdfilesystem.h
 )
 target_include_directories(libUtils PUBLIC include/)
 enable_warnings_as_errors(libUtils)
@@ -29,3 +30,7 @@ PUBLIC
     raco::LogSystem
 )
 add_library(raco::Utils ALIAS libUtils)
+
+if(PACKAGE_TESTS)
+	add_subdirectory(tests)
+endif()

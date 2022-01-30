@@ -29,20 +29,20 @@
 namespace raco::property_browser {
 
 StringEditor::StringEditor(PropertyBrowserItem* item, QWidget* parent)
-	: QWidget{parent} {
+	: PropertyEditor(item, parent) {
 	this->setLayout(new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(this));
 	lineEdit_ = new StringEditorLineEdit(this);
 	layout()->addWidget(lineEdit_);
 	
 	// connect item to QLineEdit
-	QObject::connect(lineEdit_, &QLineEdit::editingFinished, item, [this, item]() { item->set(lineEdit_->text().toStdString()); });
-	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this, item](core::ValueHandle & handle) {
+	QObject::connect(lineEdit_, &QLineEdit::editingFinished, item, [this]() { item_->set(lineEdit_->text().toStdString()); });
+	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this](core::ValueHandle & handle) {
 		lineEdit_->setText(handle.asString().c_str());
-		this->updateErrorState(item);
+		this->updateErrorState();
 		lineEdit_->update();
 	});
-	QObject::connect(item, &PropertyBrowserItem::errorChanged, this, [this, item](core::ValueHandle& handle) {
-		this->updateErrorState(item);
+	QObject::connect(item, &PropertyBrowserItem::errorChanged, this, [this](core::ValueHandle& handle) {
+		this->updateErrorState();
 	});
 	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
 		lineEdit_->setFocus();
@@ -62,10 +62,10 @@ StringEditor::StringEditor(PropertyBrowserItem* item, QWidget* parent)
 	});
 }
 
-void StringEditor::updateErrorState(raco::property_browser::PropertyBrowserItem* item) {
-	if (item->hasError()) {
-		errorLevel_ = item->error().level();
-		lineEdit_->setToolTip(item->error().message().c_str());
+void StringEditor::updateErrorState() {
+	if (item_->hasError()) {
+		errorLevel_ = item_->error().level();
+		lineEdit_->setToolTip(item_->error().message().c_str());
 	} else {
 		errorLevel_ = core::ErrorLevel::NONE;
 		lineEdit_->setToolTip({});

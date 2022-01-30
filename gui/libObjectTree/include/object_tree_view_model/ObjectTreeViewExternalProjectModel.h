@@ -18,27 +18,6 @@ class ObjectTreeViewExternalProjectModel : public ObjectTreeViewDefaultModel {
 	Q_OBJECT
 
 public:
-	class ProjectNode : public raco::core::EditorObject {
-	public:
-		static inline const TypeDescriptor typeDescription{"Project", false};
-		TypeDescriptor const& getTypeDescription() const override {
-			return typeDescription;
-		}
-
-		ProjectNode(ProjectNode const& other) : EditorObject(other) {
-			fillPropertyDescription();
-		}
-
-		ProjectNode(const std::string& name, const std::string& id = std::string()) : EditorObject(name, id) {
-			fillPropertyDescription();
-		}
-
-		ProjectNode() : ProjectNode("Main") {}
-
-		void fillPropertyDescription() {
-		}
-	};
-
 	ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStoreInterface);
 
 	QVariant data(const QModelIndex& index, int role) const override;
@@ -54,7 +33,7 @@ public:
 
 	bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const override;
 	bool canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef = false) const override;
-
+	
 public Q_SLOTS:
 	size_t deleteObjectsAtIndices(const QModelIndexList& index) override;
 	void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) override;
@@ -62,13 +41,13 @@ public Q_SLOTS:
 	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get()) override;
 
 protected:
+	void setNodeExternalProjectInfo(ObjectTreeNode* node) const override;
 	void buildObjectTree() override;
+
+	std::vector<core::SEditorObject> filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const override;
 
 	Qt::ItemFlags flags(const QModelIndex& index) const override;
 	QMimeData* mimeData(const QModelIndexList& indexes) const override;
-
-
-	std::string getOriginProjectPathOfSelectedIndex(const QModelIndex& index) const;
 
 	components::Subscription projectChangedSubscription_;
 };

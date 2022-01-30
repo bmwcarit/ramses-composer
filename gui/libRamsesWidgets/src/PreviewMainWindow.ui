@@ -1,95 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
-	<class>PreviewMainWindow</class>
-	<widget class="QMainWindow" name="PreviewMainWindow">
-		<property name="geometry">
-			<rect>
-				<x>0</x>
-				<y>0</y>
-				<width>800</width>
-				<height>600</height>
-			</rect>
-		</property>
-		<widget class="QWidget" name="centralwidget"/>
-		<widget class="QStatusBar" name="statusbar"/>
-		<widget class="QToolBar" name="toolBar">
-			<property name="movable">
-				<bool>false</bool>
-			</property>
-		</widget>
-		<action name="actionSelectScene"/>
-		<action name="actionClearScene">
-			<property name="text">
-				<string>None</string>
-			</property>
-			<property name="toolTip">
-				<string>None</string>
-			</property>
-		</action>
-		<action name="actionLoadScene1">
-			<property name="text">
-				<string>Scene 1</string>
-			</property>
-			<property name="toolTip">
-				<string>Scene 1</string>
-			</property>
-		</action>
-		<action name="actionLoadScene2">
-			<property name="text">
-				<string>Scene 2</string>
-			</property>
-			<property name="toolTip">
-				<string>Scene 2</string>
-			</property>
-		</action>
-		<action name="actionLoadSceneTruck">
-			<property name="text">
-				<string>Scene Truck</string>
-			</property>
-			<property name="toolTip">
-				<string>Scene Truck</string>
-			</property>
-		</action>
-		<action name="actionSelectSizeMode"/>
-		<action name="actionSetSizeModeOff">
-			<property name="text">
-				<string>Off</string>
-			</property>
-			<property name="toolTip">
-				<string>Off</string>
-			</property>
-		</action>
-		<action name="actionSetSizeModeVerticalFit">
-			<property name="text">
-				<string>Vertical fit</string>
-			</property>
-			<property name="toolTip">
-				<string>Vertical fit</string>
-			</property>
-		</action>
-		<action name="actionSetSizeModeHorizontalFit">
-			<property name="text">
-				<string>Horizontal fit</string>
-			</property>
-			<property name="toolTip">
-				<string>Horizontal fit</string>
-			</property>
-		</action>
-		<action name="actionSetSizeModeBestFit">
-			<property name="text">
-				<string>Best fit</string>
-			</property>
-			<property name="toolTip">
-				<string>Best fit</string>
-			</property>
-		</action>
-		<action name="actionSetSizeModeOriginalFit">
-			<property name="text">
-				<string>Original fit</string>
-			</property>
-			<property name="toolTip">
-				<string>Original fit</string>
-			</property>
-		</action>
-	</widget>
+ <class>PreviewMainWindow</class>
+ <widget class="QMainWindow" name="PreviewMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::NoContextMenu</enum>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="contextMenuPolicy">
+    <enum>Qt::NoContextMenu</enum>
+   </property>
+  </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="contextMenuPolicy">
+    <enum>Qt::NoContextMenu</enum>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <action name="actionSelectSizeMode"/>
+  <action name="actionSetSizeModeOff">
+   <property name="text">
+    <string>Manual zoom</string>
+   </property>
+   <property name="toolTip">
+    <string>Manual zoom</string>
+   </property>
+  </action>
+  <action name="actionSetSizeModeVerticalFit">
+   <property name="text">
+    <string>Vertical fit</string>
+   </property>
+   <property name="toolTip">
+    <string>Vertical fit</string>
+   </property>
+  </action>
+  <action name="actionSetSizeModeHorizontalFit">
+   <property name="text">
+    <string>Horizontal fit</string>
+   </property>
+   <property name="toolTip">
+    <string>Horizontal fit</string>
+   </property>
+  </action>
+  <action name="actionSetSizeModeBestFit">
+   <property name="text">
+    <string>Best fit</string>
+   </property>
+   <property name="toolTip">
+    <string>Best fit</string>
+   </property>
+  </action>
+  <action name="actionSetSizeModeOriginalFit">
+   <property name="text">
+    <string>Original fit</string>
+   </property>
+   <property name="toolTip">
+    <string>Original fit</string>
+   </property>
+  </action>
+  <action name="actionSelectFilteringMode"/>
+  <action name="actionSetFilteringModeNearestNeighbor">
+   <property name="text">
+    <string>Nearest filtering</string>
+   </property>
+   <property name="toolTip">
+    <string>Nearest filtering</string>
+   </property>
+  </action>
+  <action name="actionSetFilteringModeLinear">
+   <property name="text">
+    <string>Linear filtering</string>
+   </property>
+   <property name="toolTip">
+    <string>Linear filtering</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
 </ui>

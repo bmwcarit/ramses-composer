@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 0.11.1)
+project(RaCoOS VERSION 0.12.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -23,7 +23,11 @@ if(NOT RACO_QT_BASE)
 	# is shared with other products, so please don't randomly change that.
 	set(QT_ROOT $ENV{QTBASEDIR})
 	if(NOT QT_ROOT)
-		set(QT_ROOT "C:/Qt")
+		if(MSVC_IDE)
+			set(QT_ROOT "C:/Qt")
+		else()
+			set(QT_ROOT "/usr/local/opt/Qt")
+		endif()
 		message("Set QT_ROOT to ${QT_ROOT} from value hardcoded into CMakeLists.txt.")
 	else()
 		message("Set QT_ROOT to ${QT_ROOT} from QTBASEDIR environment variable.")
@@ -154,6 +158,9 @@ macro(deploy_gui_shared_dlls tgt)
 	deploy_headless_shared_dlls(${tgt})
 	deploy_dlls_and_strip_symbols(${tgt} qtadvanceddocking)
 endmacro()
+macro(deploy_viewer tgt)
+	deploy_dlls_and_strip_symbols(${tgt} ramses-logic-viewer)
+endmacro()
 
 if(PACKAGE_TESTS)
 	enable_testing()
@@ -272,7 +279,6 @@ set_target_properties (RaCoPrepareReleaseFolder PROPERTIES FOLDER Packaging)
 
 # Create default directories for configuration files and project files.
 add_custom_command(TARGET RaCoPrepareReleaseFolder POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/configfiles"
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/projects"
 )
 

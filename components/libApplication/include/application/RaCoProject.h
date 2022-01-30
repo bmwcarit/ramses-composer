@@ -21,6 +21,7 @@
 #include <QObject>
 #include <exception>
 #include <functional>
+#include "components/DataChangeDispatcher.h"
 
 namespace raco::application {
 
@@ -46,8 +47,7 @@ public:
 	 * @exception ExtrefError
 	 */
 	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack);
-	static std::unique_ptr<RaCoProject> loadFromJson(const QJsonDocument& migratedJson, const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack);
-
+	
 	QString name() const;
 
 	bool dirty() const noexcept;
@@ -66,6 +66,9 @@ public:
 
 	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
+	void applyDefaultCachedPaths();
+	void subscribeDefaultCachedPathChanges(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
+	
 Q_SIGNALS:
 	void activeProjectFileChanged();
 
@@ -81,6 +84,11 @@ private:
 	raco::core::DataChangeRecorder recorder_;
 	raco::core::Errors errors_;
 	raco::core::Project project_;
+
+	raco::components::Subscription imageSubdirectoryUpdateSubscription_;
+	raco::components::Subscription meshSubdirectoryUpdateSubscription_;
+	raco::components::Subscription scriptSubdirectoryUpdateSubscription_;
+	raco::components::Subscription shaderSubdirectoryUpdateSubscription_;
 
 	std::shared_ptr<raco::core::BaseContext> context_;
 	bool dirty_{false};

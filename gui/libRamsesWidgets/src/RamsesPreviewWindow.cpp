@@ -56,7 +56,7 @@ void reduceAndWaitSceneState(
 	const ramses::sceneId_t sceneId) {
 	auto& eventHandler = backend.eventHandler();
 	auto& sceneControlAPI = *backend.renderer().getSceneControlAPI();
-	if (framebufferScene && framebufferScene->getSceneId().isValid()) {
+	if (framebufferScene && framebufferScene->getSceneId().isValid() && eventHandler.sceneState(framebufferScene->getSceneId()) > state) {
 		sceneControlAPI.setSceneState(framebufferScene->getSceneId(), state);
 	}
 	if (sceneId.isValid() && eventHandler.sceneState(sceneId) > state) {
@@ -102,7 +102,7 @@ RamsesPreviewWindow::State& RamsesPreviewWindow::state() {
 }
 
 void RamsesPreviewWindow::commit() {
-	if (!displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize) {
+	if (!displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.filteringMode != current_.filteringMode) {
 		// Unload current scenes
 		reduceAndWaitSceneState(rendererBackend_, (displayId_.isValid()) ? ramses::RendererSceneState::Available : ramses::RendererSceneState::Unavailable, framebufferScene_, current_.sceneId);
 
@@ -157,7 +157,8 @@ void RamsesPreviewWindow::commit() {
 			// but an offscreen render buffer created with RamsesRenderer::createOffscreenBuffer to avoid creating the
 			// offscreen render buffer in the scene we eventually export (and in fact for Ramses this offscreen render buffer is
 			// the framebuffer - that we use it later on to blit it into our preview makes for the Ramses scene no difference).
-			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize);
+			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize, next_.filteringMode);
+			current_.filteringMode = next_.filteringMode;
 			offscreenBufferId_ = rendererBackend_.renderer().createOffscreenBuffer(displayId_, next_.targetSize.width(), next_.targetSize.height());
 			rendererBackend_.renderer().flush();
 			rendererBackend_.eventHandler().waitForOffscreenBufferCreation(offscreenBufferId_);

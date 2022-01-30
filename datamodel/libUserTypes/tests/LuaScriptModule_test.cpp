@@ -22,8 +22,8 @@ TEST_F(LuaScriptModuleTest, URI_setValidURI) {
 	auto module{commandInterface.createObject(LuaScriptModule::typeDescription.typeName)};
 	ValueHandle m{module};
 	ValueHandle m_uri{m.get("uri")};
-	commandInterface.set(m_uri, cwd_path().append("scripts/moduleDefinition.lua").string());
-	ASSERT_EQ(m_uri.asString(), cwd_path().append("scripts/moduleDefinition.lua").generic_string());
+	commandInterface.set(m_uri, test_path().append("scripts/moduleDefinition.lua").string());
+	ASSERT_EQ(m_uri.asString(), test_path().append("scripts/moduleDefinition.lua").string());
 }
 
 TEST_F(LuaScriptModuleTest, URI_emptyURI_error) {
@@ -46,7 +46,7 @@ TEST_F(LuaScriptModuleTest, URI_setInvalidURI_error) {
 TEST_F(LuaScriptModuleTest, URI_setValidURI_noError) {
 	auto module{commandInterface.createObject(LuaScriptModule::typeDescription.typeName)};
 	ValueHandle uriHandle{module, {"uri"}};
-	commandInterface.set(uriHandle, cwd_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(uriHandle, test_path().append("scripts/moduleDefinition.lua").string());
 
 	ASSERT_FALSE(commandInterface.errors().hasError(uriHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(module));
@@ -55,7 +55,21 @@ TEST_F(LuaScriptModuleTest, URI_setValidURI_noError) {
 TEST_F(LuaScriptModuleTest, URI_setValidURI_noModules_error) {
 	auto module{commandInterface.createObject(LuaScriptModule::typeDescription.typeName)};
 	ValueHandle uriHandle{module, {"uri"}};
-	commandInterface.set(uriHandle, cwd_path().append("scripts/struct.lua").string());
+	commandInterface.set(uriHandle, test_path().append("scripts/struct.lua").string());
 
 	ASSERT_TRUE(commandInterface.errors().hasError(module));
+}
+
+TEST_F(LuaScriptModuleTest, table_missing_error) {
+	auto script{commandInterface.createObject(LuaScriptModule::typeDescription.typeName)};
+	TextFile scriptWhitespaceOnlyFile = makeFile("script1.lua", " ");
+	TextFile scriptEmptyFile = makeFile("script2.lua", "");
+
+	ValueHandle uriHandle{ValueHandle{script, {"uri"}}};
+	commandInterface.set(uriHandle, scriptWhitespaceOnlyFile);
+	ASSERT_TRUE(commandInterface.errors().hasError(script));
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessModule] Error while loading module. Module script must return a table!");
+	commandInterface.set(uriHandle, scriptEmptyFile);
+	ASSERT_TRUE(commandInterface.errors().hasError(script));
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessModule] Error while loading module. Module script must return a table!");
 }

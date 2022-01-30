@@ -130,140 +130,6 @@ TEST_F(ContextTest, rendertarget_set_remove_multi_ref) {
 	EXPECT_EQ(buffer->referencesToThis().size(), 0);
 }
 
-TEST_F(ContextTest, add_remove_property_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-		
-	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.addProperty(tableHandle, "ref", std::make_unique<Value<SEditorObject>>(refTarget));
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	context.removeProperty(tableHandle, "ref");
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
-TEST_F(ContextTest, add_remove_multiple_property_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-
-	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.addProperty(tableHandle, "ref1", std::make_unique<Value<SEditorObject>>(refTarget));
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	context.addProperty(tableHandle, "ref2", std::make_unique<Value<SEditorObject>>(refTarget));
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	context.removeProperty(tableHandle, "ref1");
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	context.removeProperty(tableHandle, "ref2");
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
-TEST_F(ContextTest, add_remove_property_table_with_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-
-	Table innerTable;
-	innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
-
-	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.addProperty(tableHandle, "innerTable", std::make_unique<Value<Table>>(innerTable));
-
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	context.removeProperty(tableHandle, "innerTable");
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
-TEST_F(ContextTest, add_remove_property_struct_with_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-
-	Value<StructWithRef>* value{new Value<StructWithRef>()};
-	(*value)->ref = refTarget;
-	
-	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.addProperty(tableHandle, "foo", std::unique_ptr<Value<StructWithRef>>(value));
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	context.removeProperty(tableHandle, "foo");
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
-TEST_F(ContextTest, setTable_with_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-
-	Table newTable;
-	newTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
-
-	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.set(tableHandle, newTable);
-
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	Table emptyTable;
-	context.set(tableHandle, emptyTable);
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
-TEST_F(ContextTest, setTable_nested_table_with_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-
-	Table innerTable;
-	innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
-
-	Table outerTable;
-	outerTable.addProperty("inner", std::make_unique<Value<Table>>(innerTable));
-
-	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.set(tableHandle, outerTable);
-
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	Table emptyTable;
-	context.set(tableHandle, emptyTable);
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
-TEST_F(ContextTest, setTable_nested_struct_with_ref) {
-	const std::shared_ptr<Foo> refTarget{new Foo()};
-	const std::shared_ptr<ObjectWithTableProperty> refSource{new ObjectWithTableProperty()};
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-
-	Value<StructWithRef>* value{new Value<StructWithRef>()};
-	(*value)->ref = refTarget;
-
-	Table newTable;
-	newTable.addProperty("struct", std::unique_ptr<Value<StructWithRef>>(value));
-
-	const ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	context.set(tableHandle, newTable);
-
-	ASSERT_EQ(refTarget->referencesToThis().size(), 1);
-	EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
-
-	Table emptyTable;
-	context.set(tableHandle, emptyTable);
-	EXPECT_EQ(refTarget->referencesToThis().size(), 0);
-}
-
 TEST_F(ContextTest, Prefab) {
 	std::shared_ptr<Prefab> prefab{new Prefab("prefab")};
 	auto inst = std::make_shared<PrefabInstance>("inst");
@@ -379,7 +245,7 @@ TEST_F(ContextTest, Mesh) {
 
 	// Simple test of onAfterValueChanged handler:
 
-	auto duckPath = cwd_path().append("meshes/Duck.glb").generic_string();
+	auto duckPath = test_path().append("meshes/Duck.glb").string();
 	context.set(m_uri, duckPath);
 	EXPECT_EQ(m_uri.asString(), duckPath);
 	EXPECT_EQ(mesh->materialNames(), std::vector<std::string>({"material"}));
@@ -401,7 +267,7 @@ TEST_F(ContextTest, MeshNode) {
 
 	context.set(ValueHandle{meshnode, {"mesh"}}, m.rootObject());
 
-	auto duckPath = cwd_path().append("meshes/Duck.glb").generic_string();
+	auto duckPath = test_path().append("meshes/Duck.glb").string();
 	context.set(ValueHandle{mesh, {"uri"}}, duckPath);
 	EXPECT_EQ(m_uri.asString(), duckPath);
 	EXPECT_EQ(mesh->materialNames(), std::vector<std::string>({ "material" }));
@@ -566,7 +432,7 @@ TEST_F(ContextTest, material_sync_restore_cached_ref_adds_backpointer) {
 	EXPECT_TRUE(ValueHandle(material, {"uniforms"}));
 	EXPECT_FALSE(ValueHandle(material, {"uniforms", "u_Tex"}));
 
-	context.set({material, {"uriFragment"}}, (cwd_path() / "shaders/simple_texture.frag").string());
+	context.set({material, {"uriFragment"}}, (test_path() / "shaders/simple_texture.frag").string());
 	EXPECT_TRUE(ValueHandle(material, {"uniforms", "u_Tex"}));
 
 	context.deleteObjects({texture});
@@ -586,7 +452,7 @@ TEST_F(ContextTest, meshnode_uniform_sync_restore_cached_ref_adds_backpointer) {
 	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms"}));
 	EXPECT_FALSE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
 
-	context.set({material, {"uriFragment"}}, (cwd_path() / "shaders/simple_texture.frag").string());
+	context.set({material, {"uriFragment"}}, (test_path() / "shaders/simple_texture.frag").string());
 	EXPECT_TRUE(ValueHandle(meshnode, {"materials", "material", "uniforms", "u_Tex"}));
 
 	context.deleteObjects({texture});
@@ -697,7 +563,7 @@ TEST_F(ContextTest, cutAndPasteObjectSimple) {
 TEST_F(ContextTest, copyAndPasteShallowSetsReferences) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName);
 	auto mesh = context.createObject(Mesh::typeDescription.typeName);
-	context.set({ mesh, {"uri"}}, (cwd_path() / "meshes" / "Duck.glb").string());
+	context.set({ mesh, {"uri"}}, (test_path() / "meshes" / "Duck.glb").string());
 	context.set({ meshNode, {"mesh"}}, mesh);
 	auto copyResult = context.pasteObjects(context.copyObjects({ meshNode }));
 	auto meshNodeCopy = std::dynamic_pointer_cast<MeshNode>(copyResult.at(0));
@@ -710,11 +576,11 @@ TEST_F(ContextTest, copyAndPasteShallowSetsReferences) {
 TEST_F(ContextTest, copy_paste_loses_uniforms) {
 	auto meshnode = create<MeshNode>("meshnode");
 	auto mesh = create<Mesh>("duck_mesh");
-	context.set({mesh, {"uri"}}, (cwd_path() / "meshes" / "Duck.glb").string());
+	context.set({mesh, {"uri"}}, (test_path() / "meshes" / "Duck.glb").string());
 	context.set({meshnode, {"mesh"}}, mesh);
 	auto material = create<Material>("mat");
-	context.set({material, {"uriVertex"}}, (cwd_path() / "shaders" / "basic.vert").string());
-	context.set({material, {"uriFragment"}}, (cwd_path() / "shaders" / "basic.frag").string());
+	context.set({material, {"uriVertex"}}, (test_path() / "shaders" / "basic.vert").string());
+	context.set({material, {"uriFragment"}}, (test_path() / "shaders" / "basic.frag").string());
 	context.set(ValueHandle{meshnode}.get("materials")[0].get("material"), material);
 	context.set(meshnode->getMaterialPrivateHandle(0), true);
 
@@ -824,7 +690,7 @@ TEST_F(ContextTest, pasteInvalidJsonSchema) {
 }
 
 TEST_F(ContextTest, copyAndPasteKeepAbsolutePath) {
-	auto absoluteDuckPath{(cwd_path() / "testData" / "Duck.glb").generic_string()};
+	auto absoluteDuckPath{(test_path() / "testData" / "Duck.glb").string()};
 	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{absoluteDuckPath};
 	context.set({sMesh, {"uri"}}, uri);
@@ -837,8 +703,8 @@ TEST_F(ContextTest, copyAndPasteKeepAbsolutePath) {
 }
 
 TEST_F(ContextTest, copyAndPasteTurnRelativePathFromDifferentDriveToAbsolute) {
-	context.project()->setCurrentPath((cwd_path() / "proj.file").generic_string());
-	auto absoluteDuckPath{(cwd_path() / "testData" / "Duck.glb").generic_string()};
+	context.project()->setCurrentPath((test_path() / "proj.file").string());
+	auto absoluteDuckPath{(test_path() / "testData" / "Duck.glb").string()};
 	std::string relativeDuckPath{"testData/Duck.glb"};
 	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	context.set({sMesh, {"uri"}}, relativeDuckPath);
@@ -851,31 +717,31 @@ TEST_F(ContextTest, copyAndPasteTurnRelativePathFromDifferentDriveToAbsolute) {
 }
 
 TEST_F(ContextTest, copyAndPasteRerootRelativePathHierarchyDown) {
-        context.project()->setCurrentPath((cwd_path() / "proj.file").string());
-	auto relativeDuckPath{(cwd_path_relative() / "testData" / "Duck.glb").string()};
+    context.project()->setCurrentPath((test_path() / "proj.file").string());
+	auto relativeDuckPath{(test_relative_path() / "testData" / "Duck.glb").string()};
 	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{relativeDuckPath};
 	context.set({sMesh, {"uri"}}, uri);
 
 	auto clipboardContent = context.copyObjects({ sMesh });
-	context.project()->setCurrentPath((cwd_path() / "newProject" / "proj.file").string());
+	context.project()->setCurrentPath((test_path() / "newProject" / "proj.file").string());
 	auto pasteResult = context.pasteObjects(clipboardContent);
-	auto newRelativeDuckPath{std::filesystem::path("..") / std::filesystem::path(relativeDuckPath)};
+	auto newRelativeDuckPath{raco::utils::u8path("..") / relativeDuckPath};
 
 	ASSERT_EQ(pasteResult.front()->get("uri")->asString(), newRelativeDuckPath);
 }
 
 TEST_F(ContextTest, copyAndPasteRerootRelativePathHierarchyUp) {
-        context.project()->setCurrentPath((cwd_path() / "newProject"  / "proj.file").string());
-	auto relativeDuckPath{(cwd_path_relative() / "testData" / "Duck.glb").generic_string()};
+    context.project()->setCurrentPath((test_path() / "newProject"  / "proj.file").string());
+	auto relativeDuckPath{(test_relative_path() / "testData" / "Duck.glb").string()};
 	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{relativeDuckPath};
 	context.set({sMesh, {"uri"}}, uri);
 
 	auto clipboardContent = context.copyObjects({ sMesh });
-	context.project()->setCurrentPath((cwd_path() / "proj.file").string());
+	context.project()->setCurrentPath((test_path() / "proj.file").string());
 	auto pasteResult = context.pasteObjects(clipboardContent);
-	auto newRelativeDuckPath{"newProject" / std::filesystem::path(relativeDuckPath)};
+	auto newRelativeDuckPath{raco::utils::u8path("newProject") / relativeDuckPath};
 
 	ASSERT_EQ(pasteResult.front()->get("uri")->asString(), newRelativeDuckPath);
 }

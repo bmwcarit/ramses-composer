@@ -74,6 +74,8 @@ public:
 	void replaceProperty(size_t index, ValueBase* property);
 	void replaceProperty(const std::string& name, ValueBase* property);
 
+	void swapProperties(size_t index_1, size_t index_2);
+
 	// Remove all properties.
 	void clear();
 	

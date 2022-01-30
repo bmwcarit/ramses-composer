@@ -25,7 +25,7 @@ add_library(libCore
 	include/core/Queries_Tags.h src/Queries_Tags.cpp
 	include/core/Consistency.h src/Consistency.cpp
 	include/core/MeshCacheInterface.h
-	include/core/UserObjectFactoryInterface.h src/UserObjectFactoryInterface.cpp
+	include/core/UserObjectFactoryInterface.h
 	include/core/Iterators.h src/Iterators.cpp 
 	include/core/Undo.h src/Undo.cpp
 	include/core/EngineInterface.h
@@ -38,9 +38,12 @@ add_library(libCore
 	include/core/ExternalReferenceAnnotation.h
 	include/core/ExtrefOperations.h src/ExtrefOperations.cpp
 	include/core/SceneBackendInterface.h
-	include/core/RamsesProjectMigration.h src/RamsesProjectMigration.cpp
+	include/core/ProjectMigrationToV23.h src/ProjectMigrationToV23.cpp
+	include/core/ProjectMigration.h src/ProjectMigration.cpp
+	include/core/DynamicEditorObject.h
+	include/core/ProxyTypes.h src/ProxyTypes.cpp
+	include/core/ProxyObjectFactory.h src/ProxyObjectFactory.cpp
 	include/core/Serialization.h src/Serialization.cpp
-    include/core/SerializationFunctions.h
     include/core/SerializationKeys.h    
 	include/core/CoreAnnotations.h
 
@@ -67,6 +70,10 @@ PRIVATE
 	raco::UserTypes
 )
 
+IF (MSVC)
+    # /bigobj is needed to compile UserObjectFactory.cpp
+    target_compile_options(libCore PRIVATE "/bigobj")
+endif()
 
 add_library(raco::Core ALIAS libCore)
 

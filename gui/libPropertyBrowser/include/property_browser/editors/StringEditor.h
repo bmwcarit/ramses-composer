@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "PropertyEditor.h"
+
 #include <QString>
 #include <QWidget>
 #include <QLineEdit>
@@ -37,7 +39,7 @@ Q_SIGNALS:
 	void focusNextRequested();
 };
 
-class StringEditor : public QWidget {
+class StringEditor : public PropertyEditor {
 	Q_OBJECT
 	Q_PROPERTY(bool updatedInBackground READ updatedInBackground);
 	Q_PROPERTY(int errorLevel READ errorLevel);
@@ -52,7 +54,7 @@ public Q_SLOTS:
 
 protected:
 	bool editingStartedByUser();
-	void updateErrorState(raco::property_browser::PropertyBrowserItem* item);
+	void updateErrorState();
 
 	bool updatedInBackground_ = false;
 	core::ErrorLevel errorLevel_{core::ErrorLevel::NONE};

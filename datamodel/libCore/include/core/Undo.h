@@ -11,8 +11,8 @@
 
 #include "core/Project.h"
 
-#include <string>
 #include <functional>
+#include <string>
 
 namespace raco::core {
 
@@ -22,62 +22,73 @@ class DataChangeRecorder;
 class UserObjectFactoryInterface;
 
 using translateRefFunc = std::function<SEditorObject(SEditorObject)>;
-using excludePropertyPredicateFunc = std::function<bool(const std::string&)>;
+using excludePropertyPredicateFunc = std::function<bool(const std::string &)>;
 
+class UndoHelpers {
+public:
+	static void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
 
-void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
+	static void callOnBeforeRemoveReferenceHandler(raco::data_storage::Table *dest, const size_t &index, raco::core::ValueHandle &destHandle);
 
-void updateEditorObject(const EditorObject *src, SEditorObject dest, translateRefFunc translateRef, excludePropertyPredicateFunc excludeIf, UserObjectFactoryInterface &factory, DataChangeRecorder *outChanges, bool invokeHandler, bool updateObjectAnnotations = true);
+	static void updateEditorObject(const EditorObject *src, SEditorObject dest, translateRefFunc translateRef, excludePropertyPredicateFunc excludeIf, UserObjectFactoryInterface &factory, DataChangeRecorder *outChanges, bool invokeHandler, bool updateObjectAnnotations = true);
+	static void updateMissingTableProperties(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
+
+private:
+	static void updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
+	static void updateStruct(const ClassWithReflectedMembers *src, ClassWithReflectedMembers *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
+	static void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
+};
 
 class UndoStack {
 public:
-    using Callback = std::function<void()>;
+	using Callback = std::function<void()>;
 
-    UndoStack(BaseContext *context, const Callback& onChange = []() {});
+	UndoStack(
+		BaseContext *context, const Callback &onChange = []() {});
 
-    // Add another undo stack entry.
-	void push(const std::string& description, std::string mergeId = std::string());
+	// Add another undo stack entry.
+	void push(const std::string &description, std::string mergeId = std::string());
 
-    // Number of entries on the undo stack
-    size_t size() const;
-    const std::string& description(size_t index) const;
+	// Number of entries on the undo stack
+	size_t size() const;
+	const std::string &description(size_t index) const;
 
-    // Get the current position of the undo stack pointer
-    size_t getIndex() const;
+	// Get the current position of the undo stack pointer
+	size_t getIndex() const;
 
-    // Jump backward or forward to any position in the undo stack.
+	// Jump backward or forward to any position in the undo stack.
 	size_t setIndex(size_t newIndex, bool force = false);
 
-    // Go one entry backwards.
-    void undo();
+	// Go one entry backwards.
+	void undo();
 
-    // Go one entry forward.
+	// Go one entry forward.
 	void redo();
 
-    bool canUndo() const noexcept;
-    bool canRedo() const noexcept;
+	bool canUndo() const noexcept;
+	bool canRedo() const noexcept;
 
 	void reset();
 
 protected:
-    void saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
+	void saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 	void updateProjectState(const Project *src, Project *dest, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 
-    void restoreProjectState(Project *src, Project *dest, BaseContext &context, UserObjectFactoryInterface &factory);
+	void restoreProjectState(Project *src, Project *dest, BaseContext &context, UserObjectFactoryInterface &factory);
 
 	bool canMerge(const DataChangeRecorder &changes);
 
-	BaseContext* context_;
+	BaseContext *context_;
 	Callback onChange_;
 
-    struct Entry {
+	struct Entry {
 		Entry(std::string description = std::string(), std::string mergeId = std::string());
 		std::string description;
 		std::string mergeId;
 		Project state;
-    };
+	};
 
-    std::vector<std::unique_ptr<Entry>> stack_;
+	std::vector<std::unique_ptr<Entry>> stack_;
 	size_t index_ = 0;
 };
 

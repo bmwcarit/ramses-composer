@@ -16,6 +16,7 @@
 #include "core/Queries.h"
 #include "core/Undo.h"
 #include "core/UserObjectFactoryInterface.h"
+#include "utils/u8path.h"
 
 #include <spdlog/fmt/bundled/ranges.h>
 
@@ -78,7 +79,7 @@ void CommandInterface::set(ValueHandle const& handle, double const& value) {
 
 void CommandInterface::set(ValueHandle const& handle, std::string const& value) {
 	if (handle) {
-		auto newValue = handle.query<URIAnnotation>() ? PathManager::sanitizePath(value) : value;
+		auto newValue = handle.query<URIAnnotation>() ? raco::utils::u8path::sanitizePathString(value) : value;
 
 		if (handle.asString() != newValue) {
 			context_->set(handle, newValue);
@@ -112,6 +113,60 @@ void CommandInterface::set(ValueHandle const& handle, Table const& value) {
 		context_->set(handle, value);
 		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
 		undoStack_->push(fmt::format("Set property '{}'", handle.getPropertyPath()),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, std::array<double, 2> const& value) {
+	if (handle && handle.asVec2f() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to ({}, {})", handle.getPropertyPath(), value[0], value[1]),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, std::array<double, 3> const& value) {
+	if (handle && handle.asVec3f() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to ({}, {}, {})", handle.getPropertyPath(), value[0], value[1], value[2]),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, std::array<double, 4> const& value) {
+	if (handle && handle.asVec4f() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to ({}, {}, {}, {})", handle.getPropertyPath(), value[0], value[1], value[2], value[3]),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, std::array<int, 2> const& value) {
+	if (handle && handle.asVec2i() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to ({}, {})", handle.getPropertyPath(), value[0], value[1]),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, std::array<int, 3> const& value) {
+	if (handle && handle.asVec3i() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to ({}, {}, {})", handle.getPropertyPath(), value[0], value[1], value[2]),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(ValueHandle const& handle, std::array<int, 4> const& value) {
+	if (handle && handle.asVec4i() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to ({}, {}, {}, {})", handle.getPropertyPath(), value[0], value[1], value[2], value[3]),
 			fmt::format("{}", handle.getPropertyPath(true)));
 	}
 }
@@ -163,7 +218,7 @@ void CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& s
 	context_->insertAssetScenegraph(scenegraph, absPath, parent);
 	PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
 	undoStack_->push(fmt::format("Inserted assets from {}", absPath));
-	PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, std::filesystem::path(absPath).parent_path().generic_string());
+	PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, raco::utils::u8path(absPath).parent_path().string());
 }
 
 std::string CommandInterface::copyObjects(const std::vector<SEditorObject>& objects, bool deepCopy) {

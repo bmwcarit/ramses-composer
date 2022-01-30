@@ -71,6 +71,7 @@ private:
 	void createMaterialSlot(std::string const& name);
 	void updateMaterialSlots(BaseContext& context, std::vector<std::string> const& materialNames);
 
+	void updatePrivateMaterialOptions(BaseContext& context, const raco::user_types::BlendOptions* src, ValueHandle& destOptions);
 	void updateUniformContainer(BaseContext& context, const std::string& materialName, const Table* src, ValueHandle& destUniforms);
 
 	void checkMeshMaterialAttributMatch(BaseContext& context);

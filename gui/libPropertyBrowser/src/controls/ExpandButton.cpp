@@ -9,6 +9,7 @@
  */
 #include "property_browser/controls/ExpandButton.h"
 
+#include <QGuiApplication>
 #include <QStyle>
 #include <QWidget>
 
@@ -45,7 +46,14 @@ ExpandControlButton::ExpandControlButton(PropertyBrowserItem* item, QWidget* par
 		}
 	});
 
-	QObject::connect(this, &ExpandControlButton::clicked, item, &PropertyBrowserItem::toggleExpanded);
+	QObject::connect(this, &ExpandControlButton::clicked, this, [this, item]() {
+		if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
+			item->setExpandedRecursively(!item->expanded());
+		} else {
+			item->setExpanded(!item->expanded());
+		}
+	});
+
 	QObject::connect(item, &PropertyBrowserItem::expandedChanged, this, &ExpandControlButton::updateIcon);
 	updateIcon(item->expanded());
 }

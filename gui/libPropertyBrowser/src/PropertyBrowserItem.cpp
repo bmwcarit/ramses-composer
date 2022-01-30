@@ -69,7 +69,9 @@ PropertyBrowserItem::PropertyBrowserItem(
 				});
 		}
 
-		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycle([this](const core::LinkDescriptor& link) {
+		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycle(
+			valueHandle_.rootObject(),
+			[this](const core::LinkDescriptor& link) {
 			if (valueHandle_) {
 				auto endHandle = core::ValueHandle(link.end);
 				if (endHandle && endHandle == valueHandle_) {
@@ -207,10 +209,6 @@ bool PropertyBrowserItem::showChildren() const {
 	return expandable() && children_.size() > 0 && expanded_;
 }
 
-bool PropertyBrowserItem::showControl() const {
-	return !expandable() || !expanded_ || children_.size() == 0;
-}
-
 void PropertyBrowserItem::requestNextSiblingFocus() {
 	auto children = &parentItem()->children();
 	int index = children->indexOf(this);
@@ -284,13 +282,25 @@ bool PropertyBrowserItem::expanded() const noexcept {
 	return expanded_;
 }
 
-void PropertyBrowserItem::toggleExpanded() noexcept {
+void PropertyBrowserItem::setExpanded(bool expanded) noexcept {
 	assert(expandable());
-	expanded_ = !expanded_;
-	// notify the view state accordingly
-	Q_EMIT expandedChanged(expanded_);
-	Q_EMIT showChildrenChanged(showChildren());
-	Q_EMIT showControlChanged(showControl());
+
+	if (expanded_ != expanded) {
+		expanded_ = expanded;
+
+		Q_EMIT expandedChanged(expanded_);
+		Q_EMIT showChildrenChanged(showChildren());
+	}
+}
+
+void PropertyBrowserItem::setExpandedRecursively(bool expanded) noexcept {
+	if (expandable()) {
+		setExpanded(expanded);
+
+		for (const auto& child : children_) {
+			child->setExpandedRecursively(expanded);
+		}
+	}
 }
 
 void PropertyBrowserItem::createChildren() {
@@ -345,11 +355,31 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	// notify the view state accordingly
 	if (children_.size() <= 1) {
 		Q_EMIT expandedChanged(expanded());
-		Q_EMIT showControlChanged(showControl());
 		Q_EMIT showChildrenChanged(showChildren());
 	}
 }
 
+bool PropertyBrowserItem::canBeChosenByColorPicker() const {
+
+	if(valueHandle_.isObject() || !(valueHandle_.type() == PrimitiveType::Vec3f || valueHandle_.type() == PrimitiveType::Vec4f)) {		
+		return false;
+	}
+
+	const auto rootTypeRef = &valueHandle_.rootObject()->getTypeDescription();
+	
+	if (!(rootTypeRef == &raco::user_types::ProjectSettings::typeDescription || 
+		rootTypeRef == &raco::user_types::LuaScript::typeDescription || 
+		rootTypeRef == &raco::user_types::MeshNode::typeDescription || 
+		rootTypeRef == &raco::user_types::Material::typeDescription)) {
+		return false;	
+	}
+
+	if(valueHandle_.isRefToProp(&raco::user_types::Node::translation_) || valueHandle_.isRefToProp(&raco::user_types::Node::rotation_) || valueHandle_.isRefToProp(&raco::user_types::Node::scale_)) {		
+		return false;
+	}
+	
+	return true;
+}
 
 bool PropertyBrowserItem::getDefaultExpandedFromValueHandleType() const {
 	if (valueHandle_.isObject()) {

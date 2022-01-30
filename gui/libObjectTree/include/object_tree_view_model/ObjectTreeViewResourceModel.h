@@ -18,6 +18,7 @@ class ObjectTreeViewResourceModel : public ObjectTreeViewDefaultModel {
 	DEBUG_INSTANCE_COUNTER(ObjectTreeViewResourceModel);
 	Q_OBJECT
 
+
 public:
 	ObjectTreeViewResourceModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
 

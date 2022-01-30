@@ -101,16 +101,29 @@ public:
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>>;
 
+	using StructCreationFunction = std::function<std::shared_ptr<ClassWithReflectedMembers>()>;
+
+	struct StructDescriptor {
+		ReflectionInterface::TypeDescriptor description;
+		StructCreationFunction createFunc;
+	};
+
+
 	static UserObjectFactory& getInstance();
 
-	virtual SEditorObject createObject(const std::string& type, const std::string& name = std::string(), const std::string& id = std::string()) override;
-	virtual data_storage::ValueBase* createValue(const std::string& type) override;
+	virtual SEditorObject createObject(const std::string& type, const std::string& name = std::string(), const std::string& id = std::string()) const override;
+	virtual data_storage::ValueBase* createValue(const std::string& type) const override;
 
 	const std::map<std::string, TypeDescriptor>& getTypes() const override;
 	bool isUserCreatable(const std::string& type) const override;
+	
+	const std::map<std::string, ValueCreationFunction>& getProperties() const;
 
-	std::shared_ptr<AnnotationBase> createAnnotation(const std::string& type) override;
+	const std::map<std::string, StructDescriptor>& getStructTypes() const;
 
+	std::shared_ptr<AnnotationBase> createAnnotation(const std::string& type) const override;
+
+	std::shared_ptr<ClassWithReflectedMembers> createStruct(const std::string& type) const;
 
 	template<typename T, class... Args>
 	static ValueBase* staticCreateProperty(T defaultT, Args... params) {
@@ -118,8 +131,15 @@ public:
 		return new Property<T, Args...>(defaultT, params...);
 	}
 
-private:
+protected:
+	template<class T>
+	void addType() {
+		types_[T::typeDescription.typeName] = {T::typeDescription, createObjectInternal<T>, createValueInternal<T>};
+	}
+
 	UserObjectFactory();
+
+private:
 	
 	using AnnotationCreationFunction = std::function<std::shared_ptr<AnnotationBase>()>;
 
@@ -129,23 +149,33 @@ private:
 	};
 
 	template<class T>
-	static SEditorObject createObjectInternal(const std::string& name, const std::string& id);
+	static SEditorObject createObjectInternal(const std::string& name, const std::string& id) {
+		return std::make_shared<T>(name, id);
+	}
+
 	template <class T>
 	static std::shared_ptr<AnnotationBase> createAnnotationInternal();
 	template <class T>
-	static data_storage::ValueBase* createValueInternal();
+	static std::shared_ptr<ClassWithReflectedMembers> createStructInternal();
+	template <class T>
+	static data_storage::ValueBase* createValueInternal() {
+		return new Value<std::shared_ptr<T>>();
+	}
 
 	template<class... Args>
 	std::map<std::string, UserObjectFactory::TypeDescriptor> makeTypeMap();
 	template <class... Args>
-	std::map<std::string, ValueCreationFunction> makePropertyMap();
+	std::map<std::string, ValueCreationFunction> makePropertyMapTuple(std::tuple<Args...>* dummy);
 	template <class... Args>
 	std::map<std::string, UserObjectFactory::AnnotationDescriptor> makeAnnotationMap();
+	template <class... Args>
+	std::map<std::string, UserObjectFactory::StructDescriptor> makeStructTypeMap();
 
 	std::map<std::string, TypeDescriptor> types_;
 	// Annotations that can be dynmically added to / removed from ClassWithReflectedMembers
 	std::map<std::string, AnnotationDescriptor> annotations_;
 	std::map<std::string, ValueCreationFunction> properties_;
+	std::map<std::string, StructDescriptor> structTypes_;
 };
 
 }

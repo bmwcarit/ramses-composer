@@ -24,7 +24,7 @@ TEST_F(AnimationChannelTest, URI_setValidURI) {
 	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
 	ValueHandle m{animChannel};
 	ValueHandle m_uri{m.get("uri")};
-	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(m_uri, animChannelPath);
 	ASSERT_EQ(m_uri.asString(), animChannelPath);
 }
@@ -39,7 +39,7 @@ TEST_F(AnimationChannelTest, URI_setInvalidURI_error) {
 TEST_F(AnimationChannelTest, URI_setValidURI_noError) {
 	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
 	ValueHandle uriHandle{animChannel, {"uri"}};
-	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_FALSE(commandInterface.errors().hasError(uriHandle));
@@ -48,7 +48,7 @@ TEST_F(AnimationChannelTest, URI_setValidURI_noError) {
 TEST_F(AnimationChannelTest, URI_setValidURI_noAnims) {
 	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
 	ValueHandle uriHandle{animChannel, {"uri"}};
-	auto animChannelPath = cwd_path().append("meshes/Duck.glb").generic_string();
+	auto animChannelPath = test_path().append("meshes/Duck.glb").string();
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));
@@ -61,7 +61,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidAnimationIndex_error) {
 	ValueHandle uriHandle{animChannel, {"uri"}};
 	ValueHandle animIndexHandle{animChannel, {"animationIndex"}};
 	ValueHandle samplerIndexHandle{animChannel, {"samplerIndex"}};
-	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
@@ -99,7 +99,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidSamplerIndex_noError) {
 	ValueHandle uriHandle{animChannel, {"uri"}};
 	ValueHandle animIndexHandle{animChannel, {"animationIndex"}};
 	ValueHandle samplerIndexHandle{animChannel, {"samplerIndex"}};
-	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
@@ -135,7 +135,7 @@ TEST_F(AnimationChannelTest, invalidAnim_weights_supported) {
 	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
 	ValueHandle uriHandle{animChannel, {"uri"}};
 
-	std::string uriPath{(cwd_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
 	commandInterface.set({animChannel, {"uri"}}, uriPath);
 
 	ValueHandle samplerIndexHandle{animChannel, {"samplerIndex"}};
@@ -151,7 +151,7 @@ TEST_F(AnimationChannelTest, validAnim_madeInvalid) {
 	auto animChannel = create<AnimationChannel>("anim_channel");
 	ValueHandle uriHandle{animChannel, &raco::user_types::AnimationChannel::uri_};
 	
-	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 	ASSERT_FALSE(commandInterface.errors().hasError(uriHandle));
 

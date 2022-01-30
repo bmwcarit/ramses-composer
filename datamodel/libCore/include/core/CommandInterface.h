@@ -15,10 +15,6 @@
 #include <string>
 #include <vector>
 
-namespace raco::serialization {
-struct DeserializationFactory;
-}
-
 namespace raco::core {
 struct MeshDescriptor;
 struct MeshScenegraph;
@@ -52,6 +48,12 @@ public:
 	void set(ValueHandle const& handle, std::vector<std::string> const& value);
 	void set(ValueHandle const& handle, Table const& value);
 	void set(ValueHandle const& handle, SEditorObject const& value);
+	void set(ValueHandle const& handle, std::array<double, 2> const& value);
+	void set(ValueHandle const& handle, std::array<double, 3> const& value);
+	void set(ValueHandle const& handle, std::array<double, 4> const& value);
+	void set(ValueHandle const& handle, std::array<int, 2> const& value);
+	void set(ValueHandle const& handle, std::array<int, 3> const& value);
+	void set(ValueHandle const& handle, std::array<int, 4> const& value);
 
 	// Object creation/deletion
 	SEditorObject createObject(std::string type, std::string name = std::string(), std::string id = std::string(), SEditorObject parent = nullptr);

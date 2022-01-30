@@ -172,6 +172,8 @@ public:
 
 	static std::string normalizedObjectID(std::string const& id);
 
+	static std::string XorObjectIDs(std::string const& id1, std::string const& id2);
+
 	void fillPropertyDescription() {
 		properties_.emplace_back("objectID", &objectID_);
 		properties_.emplace_back("objectName", &objectName_);

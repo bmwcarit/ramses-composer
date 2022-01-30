@@ -159,6 +159,7 @@ void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface> &interfac
 bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, const raco::data_storage::Table &modules, raco::core::PropertyInterfaceList &outInputs, raco::core::PropertyInterfaceList &outOutputs, std::string &outError) {
 	rlogic::LuaConfig luaConfig = defaultLuaConfig();
 	std::vector<rlogic::LuaModule *> tempModules;
+	bool containsBrokenModules = false;
 
 	for (auto i = 0; i < modules.size(); ++i) {
 		if (auto moduleRef = modules.get(i)->asRef()) {
@@ -166,12 +167,15 @@ bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, const rac
 			auto tempModule = tempModules.emplace_back(engine.createLuaModule(moduleRef->as<raco::user_types::LuaScriptModule>()->currentScriptContents_, tempConfig, "Stage::PreprocessModule::" + moduleRef->objectName()));
 			if (tempModule) {
 				luaConfig.addDependency(modules.name(i), *tempModule);
+			} else if (!containsBrokenModules) {
+				containsBrokenModules = true;
 			}
 		}
 	}
 
-	auto script = engine.createLuaScript(luaScript, luaConfig, "Stage::PreprocessScript");
-	if (script) {
+	const auto scriptName = "Stage::PreprocessScript";
+	auto script = engine.createLuaScript(luaScript, luaConfig, scriptName);
+	if (!containsBrokenModules && script) {
 		if (auto inputs = script->getInputs()) {
 			fillLuaScriptInterface(outInputs, inputs);
 		}
@@ -186,7 +190,11 @@ bool parseLuaScript(LogicEngine &engine, const std::string &luaScript, const rac
 		}
 		return true;
 	} else {
-		outError = engine.getErrors().at(0).message;
+		if (containsBrokenModules) {
+			outError = fmt::format("[{}] LuaScript can not be created because it contains invalid LuaScriptModules.", scriptName);
+		} else if (!script) {
+			outError = engine.getErrors().at(0).message;
+		}
 		for (auto module : tempModules) {
 			if (module) {
 				engine.destroy(*module);
@@ -231,6 +239,41 @@ std::string getLogicEngineVersionString() {
 
 void enableLogicLoggerOutputToStdout(bool enabled) {
 	rlogic::Logger::SetDefaultLogging(enabled);
+}
+
+void setRamsesAndLogicConsoleLogLevel(spdlog::level::level_enum level) {
+	using namespace spdlog::level;
+
+	switch (level) {
+		case level_enum::trace:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Trace);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Trace);
+			return;
+		case level_enum::debug:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Debug);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Debug);
+			return;
+		case level_enum::info:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Info);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Info);
+			return;
+		case level_enum::warn:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Warn);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Warn);
+			return;
+		case level_enum::err:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Error);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Error);
+			return;
+		case level_enum::critical:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Fatal);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Fatal);
+			return;
+		case level_enum::off:
+			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Off);
+			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Off);
+			return;
+	}
 }
 
 }  // namespace raco::ramses_base

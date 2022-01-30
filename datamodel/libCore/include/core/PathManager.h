@@ -11,24 +11,31 @@
 
 #include "utils/stdfilesystem.h"
 #include "data_storage/ReflectionInterface.h"
+#include "utils/u8path.h"
 
 #include <map>
 #include <string>
+#include <QSettings>
 
 namespace raco::components {
 class RaCoPreferences;
 }
 
 namespace raco::core {
+	
 
 struct PathManager {
+	using u8path = raco::utils::u8path;
+
 	static constexpr const char* DEFAULT_FILENAME = "Unnamed.rca";
-	static constexpr const char* LOG_FILE_NAME = "RamsesComposer.log";
 	static constexpr const char* Q_LAYOUT_FILE_NAME = "layout.ini";
 	static constexpr const char* Q_PREFERENCES_FILE_NAME = "preferences.ini";
 	static constexpr const char* Q_RECENT_FILES_STORE_NAME = "recent_files.ini";
-	static constexpr const char* DEFAULT_CONFIG_SUB_DIRECTORY = "configfiles";
+	static constexpr const char* LOG_SUB_DIRECTORY = "logs";
+	static constexpr const char* LEGACY_CONFIG_SUB_DIRECTORY = "configfiles";
 	static constexpr const char* DEFAULT_PROJECT_SUB_DIRECTORY = "projects";
+	static constexpr const char* LOG_FILE_EDITOR_NAME = "RamsesComposer.log";
+	static constexpr const char* LOG_FILE_HEADLESS_NAME = "RaCoHeadless.log";
 	
 	enum class FolderTypeKeys {
 		Invalid = 0,
@@ -39,63 +46,59 @@ struct PathManager {
 		Shader
 	};
 
-	static std::filesystem::path normal_path(const std::string& path);
+	static u8path legacyConfigDirectory();	
 
-	static void init(const std::string& executableDirectory);
+	static void init(const u8path& executableDirectory, const u8path& appDataDirectory);
 
-	static std::filesystem::path defaultBaseDirectory();
+	static u8path defaultBaseDirectory();
 
-	static std::string defaultConfigDirectory();
+	static u8path logFileDirectory();
 
-	static std::filesystem::path defaultResourceDirectory();
+	static u8path defaultConfigDirectory();
 
-	static std::string defaultProjectFallbackPath();
+	static u8path defaultResourceDirectory();
 
-	static std::string logFilePath();
+	static u8path defaultProjectFallbackPath();
 
-	static std::string layoutFilePath();
+	static u8path logFilePath();
 
-	static std::string recentFilesStorePath();
+	static u8path logFileHeadlessName();
 
-	static std::string preferenceFileLocation();
+	static u8path logFileEditorName();
 
-	static std::string constructRelativePath(const std::string& absolutePath, const std::string& basePath);
+	static void migrateLegacyConfigDirectory();
+	
+	static u8path layoutFilePath();
 
-	// Construct absolute paths from base directory and relative  or absolute file path.
-	// Absolute file paths are returned as is.
-	// Relative file paths are interpreted as relative to the dirPath argument.
-	static std::string constructAbsolutePath(const std::string& dirPath, const std::string& filePath);
+	static u8path recentFilesStorePath();
 
-	static std::string rerootRelativePath(const std::string& relativePath, const std::string& oldPath, const std::string& newPath);
+	static u8path preferenceFilePath();
+		
+	static QSettings layoutSettings();
 
-	static std::string sanitizePath(const std::string& path);
+	static QSettings recentFilesStoreSettings();
 
-	static bool pathsShareSameRoot(const std::string& lhd, const std::string& rhd);
+	static QSettings preferenceSettings();
 
-	static const std::string& getCachedPath(FolderTypeKeys Rekey, const std::string& fallbackPath = "");
+	static const u8path& getCachedPath(FolderTypeKeys key, const u8path& fallbackPath = {});
 
-	static void setCachedPath(FolderTypeKeys key, const std::string& path);
-
-	static void setAllCachedPathRoots(const std::string& folder,
-		const std::string& imageSubdirectory,
-		const std::string& MeshSubdirectory,
-		const std::string& ScriptSubdirectory,
-		const std::string& ShaderSubdirectory);
+	static void setCachedPath(FolderTypeKeys key, const u8path& path);
 
 	static FolderTypeKeys getCachedPathKeyCorrespondingToUserType(const raco::data_storage::ReflectionInterface::TypeDescriptor& type);
 
 private:
 	friend class raco::components::RaCoPreferences;
 
-	static std::filesystem::path basePath_;
+	static u8path basePath_;
+	static u8path appDataBasePath_;
 
 	// The default values for the subdirectories are set in RaCoPreferences::load
-	static inline std::map<FolderTypeKeys, std::string> cachedPaths_ = {
-		{FolderTypeKeys::Project, ""},
-		{FolderTypeKeys::Image, ""},
-		{FolderTypeKeys::Mesh, ""},
-		{FolderTypeKeys::Script, ""},
-		{FolderTypeKeys::Shader, ""}
+	static inline std::map<FolderTypeKeys, u8path> cachedPaths_ = {
+		{FolderTypeKeys::Project, {}},
+		{FolderTypeKeys::Image, {}},
+		{FolderTypeKeys::Mesh, {}},
+		{FolderTypeKeys::Script, {}},
+		{FolderTypeKeys::Shader, {}}
 	};
 };
 

@@ -13,6 +13,7 @@
 #define SPDLOG_ACTIVE_LEVEL 0
 #include <spdlog/sinks/sink.h>
 #include <spdlog/spdlog.h>
+#include <string>
 
 namespace raco::log_system {
 
@@ -36,10 +37,14 @@ constexpr const char* DESERIALIZATION{"DESERIALIZATION"};
 constexpr const char* PROJECT{"PROJECT"};
 constexpr const char* MESH_LOADER{"MESH_LOADER"};
 
-void init(const char* fileName = nullptr);
+constexpr size_t MAX_LOG_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+constexpr size_t MAX_LOG_FILE_AMOUNT = 25;
+
+void init(const spdlog::filename_t& logFileName = SPDLOG_FILENAME_T(""));
 void deinit();
 void registerSink(const SinkPtr sink);
 void unregisterSink(const SinkPtr sink);
+void setConsoleLogLevel(spdlog::level::level_enum level);
 LoggerPtr get(const char* category);
 
 }  // namespace raco::log_system

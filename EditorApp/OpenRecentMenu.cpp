@@ -10,7 +10,8 @@
 #include "OpenRecentMenu.h"
 
 #include "core/PathManager.h"
-#include "utils/PathUtils.h"
+#include "log_system/log.h"
+#include "utils/u8path.h"
 #include <QSettings>
 
 OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open Recent", parent} {
@@ -21,7 +22,7 @@ OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open Recent", parent} {
 
 void OpenRecentMenu::addRecentFile(const QString& file) {
 	if (file.size()) {
-		QSettings recentFilesStore(raco::core::PathManager::recentFilesStorePath().c_str(), QSettings::IniFormat);
+		auto recentFilesStore = raco::core::PathManager::recentFilesStoreSettings();
 		QStringList recentFiles{recentFilesStore.value("recent_files").toStringList()};
 		auto it = std::find(recentFiles.begin(), recentFiles.end(), file);
 		if (it != recentFiles.end()) {
@@ -34,11 +35,16 @@ void OpenRecentMenu::addRecentFile(const QString& file) {
 		}
 		recentFilesStore.setValue("recent_files", recentFiles);
 		refreshRecentFileMenu();
+
+		recentFilesStore.sync();
+		if (recentFilesStore.status() != QSettings::NoError) {
+			LOG_ERROR(raco::log_system::COMMON, "Saving recent files list failed: {}", raco::core::PathManager::recentFilesStorePath().string());
+		}
 	}
 }
 
 void OpenRecentMenu::refreshRecentFileMenu() {
-	QSettings recentFilesStore(raco::core::PathManager::recentFilesStorePath().c_str(), QSettings::IniFormat);
+	auto recentFilesStore = raco::core::PathManager::recentFilesStoreSettings();
 	QStringList recentFiles{recentFilesStore.value("recent_files").toStringList()};
 	setDisabled(recentFiles.size() == 0);
 	while (actions().size() > 0) {
@@ -48,10 +54,10 @@ void OpenRecentMenu::refreshRecentFileMenu() {
 		auto* action = addAction(file);
 
 		auto fileString = file.toStdString();
-		if (!raco::utils::path::exists(fileString)) {
+		if (!raco::utils::u8path(fileString).exists()) {
 			action->setEnabled(false);
 			action->setText(file + " (unavailable)");
-		} else if (!raco::utils::path::userHasReadAccess(fileString)) {
+		} else if (!raco::utils::u8path(fileString).userHasReadAccess()) {
 			action->setEnabled(false);
 			action->setText(file + " (no read access)");
 		}

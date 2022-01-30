@@ -46,7 +46,7 @@ TEST_F(AnimationAdaptorTest, animNode_Creation) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -64,7 +64,7 @@ TEST_F(AnimationAdaptorTest, animNode_Deletion) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -85,7 +85,7 @@ TEST_F(AnimationAdaptorTest, animNode_animName) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -106,7 +106,7 @@ TEST_F(AnimationAdaptorTest, prefab_noAnimNode) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -134,7 +134,7 @@ TEST_F(AnimationAdaptorTest, animNode_multiple_channels) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel1, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({animChannel2, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({animChannel3, &raco::user_types::AnimationChannel::uri_}, uriPath);
@@ -168,7 +168,7 @@ TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -197,7 +197,7 @@ TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
 TEST_F(AnimationAdaptorTest, link_with_luascript_output) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = BOOL
@@ -231,7 +231,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
@@ -246,7 +246,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
 	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
 	dispatch();
 
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, (cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string());
+	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, (test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string());
 	dispatch();
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
@@ -260,7 +260,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_submesh_index_changed) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
@@ -289,7 +289,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_data_changed_valid_type)
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
@@ -318,7 +318,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_data_changed_invalid_typ
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
@@ -348,7 +348,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_removed) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
@@ -385,7 +385,7 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_link_inside_prefabins
 	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
@@ -425,7 +425,7 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_gets_propag
 	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -454,7 +454,7 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_pause_gets_
 	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -489,7 +489,7 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_stop_gets_p
 	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 

@@ -110,12 +110,10 @@ public:
 		fillPropertyDescription();
 	}
 
-	Foo() : EditorObject() {
+	Foo(std::string name = {}, std::string id = {}) : EditorObject(name, id) {
 		fillPropertyDescription();
 	}
 
-
-	
 	void fillPropertyDescription() {
 		properties_.emplace_back("flag", &b_);
 		properties_.emplace_back("i", &i_);
@@ -151,23 +149,54 @@ public:
 
 class ObjectWithTableProperty : public EditorObject {
 public:
-	static inline const TypeDescriptor typeDescription = {"Foo", false};
+	static inline const TypeDescriptor typeDescription = {"ObjectWithTableProperty", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
-	ObjectWithTableProperty(ObjectWithTableProperty const& other) : EditorObject(other), t_(other.t_) {
+	ObjectWithTableProperty(ObjectWithTableProperty const& other)
+		: EditorObject(other),
+		  t_(other.t_),
+		  array_(other.array_) {
 		fillPropertyDescription();
 	}
 
-	ObjectWithTableProperty() : EditorObject() {
+	ObjectWithTableProperty(std::string name = {}, std::string id = {}) : EditorObject(name, id) {
 		fillPropertyDescription();
 	}
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("t", &t_);
+		properties_.emplace_back("array", &array_);
 	}
 
 	Value<Table> t_{};
+	Property<Table, ArraySemanticAnnotation> array_{};
+};
+
+class ObjectWithStructProperty : public EditorObject {
+public:
+	static inline const TypeDescriptor typeDescription = {"ObjectWithStructProperty", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	ObjectWithStructProperty(ObjectWithStructProperty const& other) : EditorObject(other), s_(other.s_) {
+		fillPropertyDescription();
+	}
+
+	ObjectWithStructProperty(std::string name = {}, std::string id = {}) : EditorObject(name, id) {
+		fillPropertyDescription();
+	}
+
+	ObjectWithStructProperty() : EditorObject() {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("s", &s_);
+	}
+
+	Value<StructWithRef> s_{};
 };
 }

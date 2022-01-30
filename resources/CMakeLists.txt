@@ -51,6 +51,7 @@ set(RESOURCE_FILES
 	shaders/default.vert
 	shaders/simple_texture.frag
 	shaders/simple_texture.vert
+	example_scene.rca
 )
 
 foreach(relpath ${RESOURCE_FILES})

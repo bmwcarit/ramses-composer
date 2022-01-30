@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <QWidget>
+#include "PropertyEditor.h"
 
 class QCheckBox;
 
@@ -17,7 +17,7 @@ namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
-class BoolEditor final : public QWidget {
+class BoolEditor final : public PropertyEditor {
 public:
 	explicit BoolEditor(
 		PropertyBrowserItem* item,

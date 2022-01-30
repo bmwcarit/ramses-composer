@@ -11,7 +11,11 @@
 
 #include "mesh_loader/CTMMesh.h"
 
+#include "utils/stdfilesystem.h"
+#include "utils/u8path.h"
+
 #include <openctmpp.h>
+#include <fstream>
 
 namespace {
 
@@ -72,8 +76,18 @@ std::shared_ptr<raco::core::MeshAnimationSamplerData> CTMFileLoader::getAnimatio
 bool CTMFileLoader::loadFile() {
 	if (!importer_) {
 		importer_ = std::make_unique<CTMimporter>();
+
 		try {
-			importer_->Load(path_.c_str());
+			// Since we want to work with UTF-8 paths, we need to supply our own stream reading function here.
+			std::ifstream in{raco::utils::u8path(path_).internalPath(), std::ifstream::in | std::ifstream::binary};
+
+			auto readFunction = [](void* aBuf, CTMuint aCount, void* aUserData) -> CTMuint {
+				auto in = static_cast<std::ifstream*>(aUserData);
+				in->read(static_cast<char*>(aBuf), aCount);
+				return in->gcount();
+			};
+
+			importer_->LoadCustom(readFunction, &in);
 			valid_ = true;
 		} catch (ctm_error const& e) {
 			error_ = errorCodeToString(e.error_code());

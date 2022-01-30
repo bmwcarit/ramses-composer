@@ -1,3 +1,4 @@
+set(SPDLOG_WCHAR_FILENAMES ON CACHE BOOL "" FORCE)
 add_subdirectory(spdlog/)
 set_target_properties(spdlog PROPERTIES FOLDER third_party)
 
@@ -110,3 +111,47 @@ endif()
 add_ramses_logic_target(ramses-logic-shared-lib-client-only ramses-shared-lib-client-only)
 add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-client-only)
 add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
+
+
+add_subdirectory(ramses-logic/tools/ramses-logic-viewer)
+folderize_target(ramses-logic-viewer "third_party/ramses-logic")
+target_include_directories(ramses-logic-viewer PRIVATE
+    ramses-logic/lib
+)
+
+# unlink original "rlogic::ramses-logic" targets from ramses-logic-viewer to make it work with our own ramses and ramses-logic .dlls
+get_target_property(VIEWER_LINKED_LIBS ramses-logic-viewer LINK_LIBRARIES)
+list(REMOVE_ITEM VIEWER_LINKED_LIBS rlogic::ramses-logic rlogic::ramses-logic-static)
+set_property(TARGET ramses-logic-viewer PROPERTY LINK_LIBRARIES ${VIEWER_LINKED_LIBS})
+set_property(TARGET ramses-logic-viewer PROPERTY CXX_STANDARD 17)
+
+target_link_libraries(ramses-logic-viewer PRIVATE
+    raco::ramses-lib
+    raco::ramses-logic-lib-client-only
+)
+
+IF (MSVC)
+    # /bigobj is needed to compile LogicViewer.cpp
+    target_compile_options(ramses-logic-viewer PRIVATE "/bigobj")
+endif()
+
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8)
+        target_compile_definitions(ramses-logic-viewer PRIVATE RLOGIC_STD_FILESYSTEM_EXPERIMENTAL)
+    endif()
+
+    find_program(LINUXDEPLOYQT linuxdeployqt)
+		if(EXISTS "${LINUXDEPLOYQT}")
+            add_custom_command(OUTPUT  ${CMAKE_BINARY_DIR}/ramses-logic-viewer
+            COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer.sh"
+            COMMAND ${CMAKE_COMMAND} -D TARGET_FILE=$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer -D ROOT_DIR=${CMAKE_SOURCE_DIR} -P "${CMAKE_SOURCE_DIR}/ubuntustartscript.cmake"
+            COMMAND chmod +x "$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer.sh" 
+            DEPENDS ramses-logic-viewer RaCoEditor
+            )
+        
+            add_custom_target(generate_ramses_logic_viewer_launch_script ALL
+            DEPENDS ${CMAKE_BINARY_DIR}/ramses-logic-viewer
+            )
+        endif()
+endif()
+

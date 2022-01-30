@@ -14,13 +14,15 @@
 
 #include "core/Project.h"
 #include "core/CommandInterface.h"
+#include "core/Queries.h"
+#include "core/ExternalReferenceAnnotation.h"
 
 #include <QFileDialog>
 
 namespace raco::object_tree::model {
 
 ObjectTreeViewExternalProjectModel::ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore)
-	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore) {
+	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, {}, true) {
 	// don't rebuild tree when creating/deleting local objects
 	lifeCycleSubscriptions_.clear();
 
@@ -32,18 +34,21 @@ QVariant ObjectTreeViewExternalProjectModel::data(const QModelIndex& index, int 
 		return QVariant();
 	}
 
-	auto editorObj = indexToSEditorObject(index);
-	if (editorObj->as<ProjectNode>()) {
+	auto treeNode = indexToTreeNode(index);
+	if (treeNode->getType() == ObjectTreeNodeType::ExternalProject) {
 		if (role == Qt::ForegroundRole) {
-			if (commandInterface_->project()->usesExternalProjectByPath(editorObj->objectName())) {
+			if (commandInterface_->project()->usesExternalProjectByPath(indexToTreeNode(index)->getExternalProjectPath())) {
 				return QVariant(raco::style::Colors::color(raco::style::Colormap::externalReference));
+			} else {
+				return QVariant(raco::style::Colors::color(raco::style::Colormap::text));
 			}
+
 		}
 
 		if (role == Qt::ItemDataRole::DecorationRole && index.column() == COLUMNINDEX_NAME) {
 			bool failed = false;
 
-			auto originPath = getOriginProjectPathOfSelectedIndex(index);
+			auto originPath = treeNode->getExternalProjectPath();
 			auto* originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
 			if (originCommandInterface) {
 				failed = originCommandInterface->project()->externalReferenceUpdateFailed();
@@ -57,19 +62,10 @@ QVariant ObjectTreeViewExternalProjectModel::data(const QModelIndex& index, int 
 		}
 	}
 
-	if (role == Qt::ItemDataRole::DisplayRole && index.column() == COLUMNINDEX_PROJECT) {
-		auto originPath = getOriginProjectPathOfSelectedIndex(index);
-		auto* originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
-		if (originCommandInterface) {
-			auto editorObj = indexToSEditorObject(index);
-			return QVariant(QString::fromStdString(originCommandInterface->project()->getProjectNameForObject(editorObj)));
-		}
-		return QVariant(QString());
-	}
 	return ObjectTreeViewDefaultModel::data(index, role);
 }
 
-void raco::object_tree::model::ObjectTreeViewExternalProjectModel::addProject(const QString& projectPath) {
+void ObjectTreeViewExternalProjectModel::addProject(const QString& projectPath) {
 	std::vector<std::string> stack;
 	stack.emplace_back(commandInterface_->project()->currentPath());
 	if (externalProjectStore_->addExternalProject(projectPath.toStdString(), stack)) {
@@ -77,10 +73,10 @@ void raco::object_tree::model::ObjectTreeViewExternalProjectModel::addProject(co
 	}
 }
 
-void raco::object_tree::model::ObjectTreeViewExternalProjectModel::removeProjectsAtIndices(const QModelIndexList& indices) {
+void ObjectTreeViewExternalProjectModel::removeProjectsAtIndices(const QModelIndexList& indices) {
 	std::set<std::string> projectsToRemove;
 	for (const auto& index : indices) {
-		projectsToRemove.emplace(getOriginProjectPathOfSelectedIndex(index));
+		projectsToRemove.emplace(indexToTreeNode(index)->getExternalProjectPath());
 	}
 
 	for (const auto& projectPath : projectsToRemove) {
@@ -88,7 +84,7 @@ void raco::object_tree::model::ObjectTreeViewExternalProjectModel::removeProject
 	}
 }
 
-bool raco::object_tree::model::ObjectTreeViewExternalProjectModel::canRemoveProjectsAtIndices(const QModelIndexList& indices) {
+bool ObjectTreeViewExternalProjectModel::canRemoveProjectsAtIndices(const QModelIndexList& indices) {
 	if (indices.isEmpty()) {
 		return false;	
 	}
@@ -98,7 +94,7 @@ bool raco::object_tree::model::ObjectTreeViewExternalProjectModel::canRemoveProj
 			return false;
 		}		
 
-		auto projectPath = getOriginProjectPathOfSelectedIndex(index);
+		auto projectPath = indexToTreeNode(index)->getExternalProjectPath();
 		if (!externalProjectStore_->canRemoveExternalProject(projectPath)) {
 			return false;
 		}		
@@ -113,15 +109,14 @@ void ObjectTreeViewExternalProjectModel::copyObjectsAtIndices(const QModelIndexL
 	std::vector<raco::core::SEditorObject> objects;
 	for (const auto& index : indices) {
 
-		auto object = indexToSEditorObject(index);
-		if (&object->getTypeDescription() != &ProjectNode::typeDescription) {		
-
-			objects.push_back(indexToSEditorObject(index));
+		auto treeNode = indexToTreeNode(index);
+		auto object = treeNode->getRepresentedObject();
+		if (object) {
+			objects.push_back(object);
 
 			// canCopyAtIndices already enforces that we only copy objects from the same project, so we can just take the project path from the first index
 			if (!commandInterface) {
-				const auto& index = indices.front();
-				auto originPath = getOriginProjectPathOfSelectedIndex(index);
+				auto originPath = treeNode->getExternalProjectPath();
 				commandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
 			}
 		}
@@ -132,17 +127,41 @@ void ObjectTreeViewExternalProjectModel::copyObjectsAtIndices(const QModelIndexL
 	}
 }
 
-void raco::object_tree::model::ObjectTreeViewExternalProjectModel::buildObjectTree() {
+void ObjectTreeViewExternalProjectModel::setNodeExternalProjectInfo(ObjectTreeNode* node) const {
+	auto parent = node;
+
+	while (parent->getRepresentedObject() || parent->getType() == ObjectTreeNodeType::ExtRefGroup) {
+		parent = parent->getParent();
+	}
+
+	assert(parent->getType() == ObjectTreeNodeType::ExternalProject);
+
+	auto projectPath = parent->getExternalProjectPath();
+	auto projectName = parent->getExternalProjectName();
+	if (auto obj = node->getRepresentedObject()) {
+		if (auto extrefAnno = obj->query<raco::core::ExternalReferenceAnnotation>()) {
+			if (auto originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(projectPath)) {
+				auto project = originCommandInterface->project();
+				// Keep the project path from the root project, even in case of extrefs. 
+				// The utility functions in Context ensure proper copy paste behaviour for these.
+				projectName = project->lookupExternalProjectName(*extrefAnno->projectID_);
+			}
+		}
+	}
+	node->setBelongsToExternalProject(projectPath, projectName);
+}
+
+void ObjectTreeViewExternalProjectModel::buildObjectTree() {
 	beginResetModel();
 
 	resetInvisibleRootNode();
 	for (const auto& [projectPath, commandInterface] : externalProjectStore_->allExternalProjects()) {
-		auto projectObj = std::make_shared<ProjectNode>(projectPath, projectPath);
-		auto projectRootNode = new ObjectTreeNode(projectObj);
-		invisibleRootNode_->addChild(projectRootNode);
+		auto projectRootNode = new ObjectTreeNode(ObjectTreeNodeType::ExternalProject, invisibleRootNode_.get());
+		auto projectName = commandInterface->project()->projectName();
+		projectRootNode->setBelongsToExternalProject(projectPath, projectName);
 		if (commandInterface) {
-			auto filteredExternalProjectObjects = objectFilterFunc_(commandInterface->project()->instances());
-			ObjectTreeViewDefaultModel::treeBuildFunc_(projectRootNode, filteredExternalProjectObjects);
+			auto filteredExternalProjectObjects = filterForTopLevelObjects(commandInterface->project()->instances());
+			constructTreeUnderNode(projectRootNode, filteredExternalProjectObjects, groupExternalReferences_);
 		}
 	}
 	updateTreeIndexes();
@@ -151,27 +170,27 @@ void raco::object_tree::model::ObjectTreeViewExternalProjectModel::buildObjectTr
 	dirty_ = false;
 }
 
+std::vector<core::SEditorObject> ObjectTreeViewExternalProjectModel::filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const {
+	return raco::core::Queries::filterForVisibleTopLevelObjects(objects);
+}
+
 Qt::ItemFlags ObjectTreeViewExternalProjectModel::flags(const QModelIndex& index) const {
 	Qt::ItemFlags defaultFlags = QAbstractItemModel::flags(index);
 
-	return Qt::ItemIsDragEnabled | defaultFlags;
+	if (auto obj = indexToSEditorObject(index)) {
+		return Qt::ItemIsDragEnabled | defaultFlags;
+	} else {
+		return defaultFlags;
+	}
 }
 
-QMimeData* ObjectTreeViewExternalProjectModel::mimeData(const QModelIndexList& indexes) const {
-	auto originPath = getOriginProjectPathOfSelectedIndex(indexes.front());
-	return ObjectTreeViewDefaultModel::generateMimeData(indexes, originPath);
-}
-
-std::string ObjectTreeViewExternalProjectModel::getOriginProjectPathOfSelectedIndex(const QModelIndex& index) const {
-	auto obj = indexToTreeNode(index);
-
-	while (obj->getRepresentedObject()->getTypeDescription().typeName != ProjectNode::typeDescription.typeName) {
-		obj = obj->getParent();
+QMimeData* ObjectTreeViewExternalProjectModel::mimeData(const QModelIndexList& indices) const {
+	if (!canCopyAtIndices(indices)) {
+		return nullptr;
 	}
 
-	assert(obj->getRepresentedObject() != invisibleRootNode_->getRepresentedObject());
-
-	return obj->getRepresentedObject()->objectName();
+	auto originPath = indexToTreeNode(indices.front())->getExternalProjectPath();
+	return ObjectTreeViewDefaultModel::generateMimeData(indices, originPath);
 }
 
 Qt::TextElideMode ObjectTreeViewExternalProjectModel::textElideMode() const {
@@ -183,11 +202,11 @@ bool ObjectTreeViewExternalProjectModel::canCopyAtIndices(const QModelIndexList&
 	bool atLeastOneCopyableItem = false;
 	std::string originPath;
 	for (const auto& index : indices) {
-		if (index.isValid() && indexToSEditorObject(index)->as<ProjectNode>() == nullptr) {
+		if (indexToSEditorObject(index)) {
 			atLeastOneCopyableItem = true;
 
-			// Make sure all items belong to the same external project
-			auto indexOriginPath = getOriginProjectPathOfSelectedIndex(index);
+			// Make sure all items are (or are an extref) in the same external project
+			auto indexOriginPath = indexToTreeNode(index)->getParent()->getExternalProjectPath();
 			if (originPath == "") {
 				originPath = indexOriginPath;
 			} else if (indexOriginPath != originPath) {
@@ -207,6 +226,7 @@ bool ObjectTreeViewExternalProjectModel::canDeleteAtIndices(const QModelIndexLis
 bool ObjectTreeViewExternalProjectModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
 	return false;
 }
+
 
 bool ObjectTreeViewExternalProjectModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
 	return false;

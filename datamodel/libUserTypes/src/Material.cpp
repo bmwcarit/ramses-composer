@@ -26,10 +26,12 @@ const PropertyInterfaceList& Material::attributes() const {
 
 void Material::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
-	if (uriGeometry_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), &Material::uriGeometry_})) {
+	bool isUriGeometryValid = false;
+	if (uriGeometry_.asString().empty() || (isUriGeometryValid = validateURI(context, ValueHandle{shared_from_this(), &Material::uriGeometry_}))) {
 		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriGeometry_});
 	}
-	if (uriDefines_.asString().empty() || validateURI(context, ValueHandle{shared_from_this(), &Material::uriDefines_})) {
+	bool isUriDefinesValid = false;
+	if (uriDefines_.asString().empty() || (isUriDefinesValid = validateURI(context, ValueHandle{shared_from_this(), &Material::uriDefines_}))) {
 		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriDefines_});
 	}
 
@@ -38,16 +40,33 @@ void Material::updateFromExternalFile(BaseContext& context) {
 	if (validateURIs<const ValueHandle&, const ValueHandle&>(context, ValueHandle{shared_from_this(), &Material::uriFragment_}, ValueHandle{
 		shared_from_this(), &Material::uriVertex_})) {
 		std::string vertexShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriVertex_}))};
-		std::string geometryShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriGeometry_}))};
 		std::string fragmentShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriFragment_}))};
-		std::string shaderDefines{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriDefines_}))};
-		if (!vertexShader.empty() && !fragmentShader.empty()) {
-			std::string error{};
-			isShaderValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
-			if (error.size() > 0) {
-				context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, error);
+
+		std::string geometryShader = "";
+		if (isUriGeometryValid) {
+			geometryShader = {raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriGeometry_}))};
+			// ramses treats the empty string as no geometry shader should be loaded and only shows errors if the stringcontains at least a single character. 
+			// We want to display errors. We want to display errors when the file load was successful but the file is empty.
+			if (geometryShader == "") {
+				geometryShader = " ";
 			}
 		}
+
+		std::string shaderDefines = "";
+		if (isUriDefinesValid) {
+			shaderDefines = {raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriDefines_}))};
+			// ramses treats the empty string as no shader defines should be loaded and only shows errors if the string contains at least a single charcater. 
+			// We want to display errors when the file load was successful but the file is empty.
+			if (shaderDefines == "") {
+				shaderDefines = " ";
+			}
+		}
+
+		std::string error{};
+		isShaderValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
+		if (error.size() > 0) {
+			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, error);
+		}		
 	}
 	if (!isShaderValid_) {
 		attributes_.clear();

@@ -42,7 +42,7 @@ using namespace raco::user_types;
 class LinkTest : public TestEnvironmentCore {
 public:
 	void change_uri(SEditorObject obj, const std::string& newvalue) {
-		commandInterface.set({obj, {"uri"}}, (cwd_path() / newvalue).string());
+		commandInterface.set({obj, {"uri"}}, (test_path() / newvalue).string());
 	}
 
 };

@@ -65,13 +65,14 @@ public Q_SLOTS:
 protected:
 	void timerEvent(QTimerEvent* event) override;
 	void closeEvent(QCloseEvent* event) override;
-	bool restoreSettings();
+	void restoreSettings();
 	/** @returns if user canceled the dirty resolution */
 	bool resolveDirtiness();
 	QString getActiveProjectFolder();
 	void restoreCachedLayout();
 	void restoreCustomLayout(const QString& layoutName);
 	void regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks);
+	void saveDockManagerCustomLayouts();
 
 protected Q_SLOTS:
 	void openProject(const QString& file = {});

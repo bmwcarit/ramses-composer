@@ -36,10 +36,6 @@ public:
 
 private:
 	QLineEdit* userProjectEdit_;
-	QLineEdit* imageEdit_;
-	QLineEdit* meshEdit_;
-	QLineEdit* scriptEdit_;
-	QLineEdit* shaderEdit_;
 };
 
 }  // namespace raco::common_widgets

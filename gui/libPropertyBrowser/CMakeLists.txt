@@ -25,6 +25,7 @@ add_library(libPropertyBrowser
     include/property_browser/editors/EnumerationEditor.h src/editors/EnumerationEditor.cpp
     include/property_browser/editors/IntEditor.h src/editors/IntEditor.cpp
     include/property_browser/editors/LinkEditor.h src/editors/LinkEditor.cpp
+    include/property_browser/editors/PropertyEditor.h src/editors/PropertyEditor.cpp
     include/property_browser/editors/RefEditor.h src/editors/RefEditor.cpp
     include/property_browser/editors/StringEditor.h src/editors/StringEditor.cpp
     include/property_browser/editors/TagContainerEditor.h src/editors/TagContainerEditor.cpp
@@ -63,6 +64,7 @@ PUBLIC
     Qt5::Widgets
 PRIVATE
     raco::Style
+    lua::lua
 )
 
 add_library(raco::PropertyBrowser ALIAS libPropertyBrowser)

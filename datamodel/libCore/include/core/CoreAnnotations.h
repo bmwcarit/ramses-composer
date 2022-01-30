@@ -17,6 +17,10 @@ namespace raco::core {
 class URIAnnotation : public raco::data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "URIAnnotation", false };
+
+	// Filter for relative directory URIs that stay the same relative to the project (and do not get re-rooted), when the project file path changes.
+	static inline const std::string projectSubdirectoryFilter {"projectSubDir"};
+
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
@@ -38,6 +42,10 @@ public:
 
     virtual const std::string& getFilter() {
 		return *filter_;
+	}
+
+	bool isProjectSubdirectoryURI() const {
+		return filter_.asString() == projectSubdirectoryFilter;
 	}
 
     raco::data_storage::Value<std::string> filter_;

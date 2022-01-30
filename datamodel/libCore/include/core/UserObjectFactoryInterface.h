@@ -15,16 +15,10 @@
 #include <map>
 #include <functional>
 
-namespace raco::serialization {
-struct DeserializationFactory;
-}
-
 namespace raco::core {
 
 class UserObjectFactoryInterface {
 public:
-	static raco::serialization::DeserializationFactory deserializationFactory(UserObjectFactoryInterface* objectFactory);
-
 	using CreationFunction = std::function<SEditorObject(const std::string& name, const std::string& id)>;
 	using ValueCreationFunction = std::function<data_storage::ValueBase*()>;
 
@@ -34,10 +28,10 @@ public:
 		ValueCreationFunction createValueFunc;
 	};
 
-	virtual SEditorObject createObject(const std::string& type, const std::string& name = std::string(), const std::string& id = std::string()) = 0;
-	virtual data_storage::ValueBase* createValue(const std::string& type) = 0;
+	virtual SEditorObject createObject(const std::string& type, const std::string& name = std::string(), const std::string& id = std::string()) const = 0;
+	virtual data_storage::ValueBase* createValue(const std::string& type) const = 0;
 
-	virtual std::shared_ptr<AnnotationBase> createAnnotation(const std::string& type) = 0;
+	virtual std::shared_ptr<AnnotationBase> createAnnotation(const std::string& type) const = 0;
 
 	virtual const std::map<std::string, TypeDescriptor>& getTypes() const = 0;
 	/**

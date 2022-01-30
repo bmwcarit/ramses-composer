@@ -27,6 +27,38 @@
 * Should be used to verify stability of dependency.
 */
 
+
+TEST(ramses_logic, repeat_create_destroy_simple_script) {
+	rlogic::LogicEngine logicEngine;
+
+	std::string scriptText = R"(
+function interface()
+    OUT.out_float = FLOAT
+end
+
+function run()
+end
+)";
+	// logicengine bug: crashes in debug build with 10000 iterations although ok with 100 iterations
+	// TODO: remove the EXPECT_THROW once the logicengine bug has been fixed
+#if (!defined(__linux__) && !defined(NDEBUG))
+	EXPECT_THROW(
+		for (unsigned i = 0; i < 10000; i++) {
+			auto* script = logicEngine.createLuaScript(scriptText);
+			ASSERT_TRUE(script != nullptr);
+			ASSERT_TRUE(logicEngine.destroy(*script));
+		},
+		std::exception);
+#else
+	for (unsigned i = 0; i < 10000; i++) {
+		auto* script = logicEngine.createLuaScript(scriptText);
+		ASSERT_TRUE(script != nullptr);
+		ASSERT_TRUE(logicEngine.destroy(*script));
+	}
+#endif
+}
+
+
 TEST(ramses_logic, relink_scriptToScript) {
 	rlogic::LogicEngine logicEngine;
 	auto* outScript = logicEngine.createLuaScript(R"(

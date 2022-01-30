@@ -20,7 +20,8 @@ namespace raco::property_browser {
 BoolEditor::BoolEditor(
 	PropertyBrowserItem* item,
 	QWidget* parent)
-	: QWidget{parent} {
+	: PropertyEditor(item, parent) {
+
 	auto* layout{new PropertyBrowserHBoxLayout{this}};
 	checkBox_ = new QCheckBox{this};
 	QObject::connect(checkBox_, &QCheckBox::clicked, item, [item](bool checked) { item->set(checked); });

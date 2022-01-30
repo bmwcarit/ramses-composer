@@ -24,24 +24,6 @@ protected:
 	}
 
 	void SetUp() override {
-		viewModel_->setProjectObjectFilterFunction([](const std::vector<raco::core::SEditorObject>& objects) -> std::vector<raco::core::SEditorObject> {
-			return raco::core::Queries::filterByTypeName(objects, {raco::user_types::Node::typeDescription.typeName});
-		});
-
-		prefabModel_.setProjectObjectFilterFunction([](const std::vector<raco::core::SEditorObject>& objects) -> std::vector<raco::core::SEditorObject> {
-			std::vector<raco::core::SEditorObject> result{};
-			std::copy_if(objects.begin(), objects.end(), std::back_inserter(result),
-				[](const raco::core::SEditorObject& object) {
-					for (auto parent = object; parent; parent = parent->getParent()) {
-						if (parent->getTypeDescription().typeName == raco::user_types::Prefab::typeDescription.typeName) {
-							return true;
-						}
-					}
-					return false;
-				});
-			return result;
-		});
-
 		prefab_ = createNodes(raco::user_types::Prefab::typeDescription.typeName, {"Prefab"}).front();
 	}
 };

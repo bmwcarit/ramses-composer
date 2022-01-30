@@ -34,7 +34,7 @@ protected:
 
 TEST_F(MeshLoaderTest, glTFLoadBaked) {
 	core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = true;
 
 	mesh_loader::glTFFileLoader fileloader(desc.absPath);
@@ -49,7 +49,7 @@ TEST_F(MeshLoaderTest, glTFLoadBaked) {
 
 TEST_F(MeshLoaderTest, glTFLoadUnbaked) {
 	core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 	desc.submeshIndex = 1;
 
@@ -63,7 +63,7 @@ TEST_F(MeshLoaderTest, glTFLoadUnbaked) {
 
 TEST_F(MeshLoaderTest, glTFLoadUnbakedThenBaked) {
 	core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 	desc.submeshIndex = 1;
 
@@ -84,7 +84,7 @@ TEST_F(MeshLoaderTest, glTFLoadUnbakedThenBaked) {
 
 TEST_F(MeshLoaderTest, glTFLoadBakedThenUnbakedThenBakedCorrectPositionData) {
 	core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = true;
 	desc.submeshIndex = 0;
 
@@ -104,7 +104,7 @@ TEST_F(MeshLoaderTest, glTFLoadBakedThenUnbakedThenBakedCorrectPositionData) {
 
 TEST_F(MeshLoaderTest, glTFLoadUnbakedThenBakedThenUnbakedCorrectPositionData) {
 	core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 	desc.submeshIndex = 0;
 
@@ -134,14 +134,14 @@ TEST_F(MeshLoaderTest, glTFLoadInvalidThenValid) {
 	auto mesh = fileloader.loadMesh(desc);
 	ASSERT_EQ(mesh, nullptr);
 
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	mesh = fileloader.loadMesh(desc);
 	ASSERT_NE(mesh, nullptr);
 }
 
 TEST_F(MeshLoaderTest, glTFWithTangentsAndBitangents) {
 	core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/AnimatedMorphCube/AnimatedMorphCube.gltf").string();
+	desc.absPath = test_path().append("meshes/AnimatedMorphCube/AnimatedMorphCube.gltf").string();
 	desc.bakeAllSubmeshes = false;
 	desc.submeshIndex = 0;
 

@@ -17,7 +17,7 @@ using namespace raco::object_tree::model;
 using namespace raco::core;
 
 TEST(ObjectTreeNodeTest, StructureChildGetsAdded) {
-	auto parent = new ObjectTreeNode;
+	auto parent = new ObjectTreeNode(ObjectTreeNodeType::Root, nullptr);
 	auto child = new ObjectTreeNode(SEditorObject(), parent);
 
 	ASSERT_EQ(parent->childCount(), 1);
@@ -34,7 +34,7 @@ TEST(ObjectTreeNodeTest, StructureParentGetsDeleted) {
 
 	std::array<ObjectTreeNode*, NODE_AMOUNT> nodes;
 
-	auto *rootNode = nodes[0] = new ObjectTreeNode;
+	auto *rootNode = nodes[0] = new ObjectTreeNode(ObjectTreeNodeType::Root, nullptr);
 	for (auto i = 1; i < NODE_AMOUNT; ++i) {
 		nodes[i] = new ObjectTreeNode(SEditorObject(), nodes[i - 1]);
 	}

@@ -11,8 +11,10 @@
 
 #include "utils/stdfilesystem.h"
 #include "utils/FileUtils.h"
+#include "utils/u8path.h"
 #include "core/Context.h"
 #include "core/CommandInterface.h"
+#include "core/PathManager.h"
 #include "core/Undo.h"
 
 #include <gtest/gtest.h>
@@ -20,11 +22,6 @@
 template <class BaseClass = ::testing::Test>
 class RacoBaseTest : public BaseClass {
 public:
-	virtual std::string cwd() const {
-		return cwd_path().u8string();
-	}
-
-
 	virtual std::string test_case_name() const {
 		return ::testing::UnitTest::GetInstance()->current_test_info()->name();
 	}
@@ -33,12 +30,12 @@ public:
 		return ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
 	}
 
-	virtual std::filesystem::path cwd_path_relative() const {
-		return std::filesystem::path{test_suite_name()} / test_case_name();
+	virtual raco::utils::u8path test_relative_path() const {
+		return raco::utils::u8path{test_suite_name()} / test_case_name();
 	}
 
-	virtual std::filesystem::path cwd_path() const {
-		return (std::filesystem::current_path() / cwd_path_relative());
+	virtual raco::utils::u8path test_path() const {
+		return raco::utils::u8path::current() / test_relative_path();
 	}
 
 	void checkUndoRedo(raco::core::CommandInterface& cmd, std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
@@ -76,11 +73,17 @@ public:
 
 protected:
 	virtual void SetUp() override {
-		if (std::filesystem::exists(cwd())) {
+		if (std::filesystem::exists(test_path())) {
 			// Debugging case: if we debug and kill the test before complition the test directory will not be cleaned by TearDown
-			std::filesystem::remove_all(cwd());
+			std::filesystem::remove_all(test_path());
 		}
-		std::filesystem::create_directories(cwd());
+		std::filesystem::create_directories(test_path());
+
+		// Setup fake directory hierachy to simulate different directories configfiles can live in.
+		auto programPath = test_path() / "App" / "bin";
+		auto appDataPath = test_path() / "AppData";
+		raco::core::PathManager::init(programPath.string(), appDataPath.string());
+
 #ifdef RACO_LOCAL_TEST_RESOURCES_FILE_LIST
 		std::string input{RACO_LOCAL_TEST_RESOURCES_FILE_LIST};
 		std::stringstream ss{input};
@@ -88,9 +91,9 @@ protected:
 
 		// Convention Fileseparator: '!'
 		while (std::getline(ss, fileName, '!')) {
-			const std::filesystem::path from{std::filesystem::path{RACO_LOCAL_TEST_RESOURCES_SOURCE_DIRECTORY}.append(fileName)};
-			const std::filesystem::path to{cwd_path().append(fileName)};
-			std::filesystem::path toWithoutFilename{to};
+			const raco::utils::u8path from{raco::utils::u8path{RACO_LOCAL_TEST_RESOURCES_SOURCE_DIRECTORY}.append(fileName)};
+			const raco::utils::u8path to{test_path().append(fileName)};
+			raco::utils::u8path toWithoutFilename{to};
 			toWithoutFilename.remove_filename();
 			std::filesystem::create_directories(toWithoutFilename);
 			std::filesystem::copy(from, to);
@@ -99,12 +102,12 @@ protected:
 	}
 
 	virtual void TearDown() override {
-		std::filesystem::remove_all(cwd());
+		std::filesystem::remove_all(test_path());
 	}
 
 	struct TextFile {
 		TextFile(RacoBaseTest& test, std::string fileName, std::string contents) {
-			path = test.cwd_path() / fileName;
+			path = test.test_path() / fileName;
 			raco::utils::file::write(path.string(), contents);
 		}
 
@@ -112,7 +115,7 @@ protected:
 			return path.string();
 		}
 
-		std::filesystem::path path;
+		raco::utils::u8path path;
 	};
 
 	TextFile makeFile(std::string fileName, std::string contents) {

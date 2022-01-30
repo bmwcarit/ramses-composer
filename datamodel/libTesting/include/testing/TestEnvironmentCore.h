@@ -32,11 +32,16 @@
 #include "user_types/Material.h"
 #include "user_types/LuaScript.h"
 #include "user_types/RenderLayer.h"
+#include "user_types/UserObjectFactory.h"
+#include "user_types/PrefabInstance.h"
+
+#include "testing/MockUserTypes.h"
 
 #include <QCoreApplication>
 
 #include "utils/stdfilesystem.h"
 
+#include <chrono>
 #include <memory>
 
 inline void clearQEventLoop() {
@@ -55,6 +60,23 @@ public:
 	}
 };
 
+class TestObjectFactory : public raco::user_types::UserObjectFactory {
+public:
+	TestObjectFactory() : UserObjectFactory() {}
+
+	static TestObjectFactory& getInstance() {
+		static TestObjectFactory* instance = nullptr;
+		if (!instance) {
+			instance = new TestObjectFactory();
+			instance->addType<raco::user_types::Foo>();
+			instance->addType<raco::user_types::ObjectWithTableProperty>();
+			instance->addType<raco::user_types::ObjectWithStructProperty>();
+		}
+		return *instance;
+	}
+};
+
+
 template <class BaseClass = ::testing::Test>
 struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	using BaseContext = raco::core::BaseContext;
@@ -66,7 +88,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	using DataChangeRecorderInterface = raco::core::DataChangeRecorderInterface;
 
 	UserObjectFactoryInterface* objectFactory() {
-		return &UserObjectFactory::getInstance();
+		return context.objectFactory();
 	};
 
 	template <class C>
@@ -90,20 +112,20 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return obj;
 	}
 
-	raco::user_types::SMesh create_mesh(const std::string &name, const std::string &relpath) {
+	raco::user_types::SMesh create_mesh(const std::string& name, const std::string& relpath) {
 		auto mesh = create<raco::user_types::Mesh>(name);
-		commandInterface.set({mesh, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
+		commandInterface.set({mesh, {"uri"}}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
 		return mesh;
 	}
 
-	raco::user_types::SMaterial create_material(const std::string &name, const std::string &relpathVertex, const std::string &relpathFragment) {
+	raco::user_types::SMaterial create_material(const std::string& name, const std::string& relpathVertex, const std::string& relpathFragment) {
 		auto material = create<raco::user_types::Material>(name);
-		commandInterface.set({material, {"uriVertex"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpathVertex).string());
-		commandInterface.set({material, {"uriFragment"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpathFragment).string());
+		commandInterface.set({material, {"uriVertex"}}, (RacoBaseTest<BaseClass>::test_path() / relpathVertex).string());
+		commandInterface.set({material, {"uriFragment"}}, (RacoBaseTest<BaseClass>::test_path() / relpathFragment).string());
 		return material;
 	}
 
-	raco::user_types::SMeshNode create_meshnode(const std::string &name, raco::user_types::SMesh mesh, raco::user_types::SMaterial material, raco::user_types::SEditorObject parent = nullptr) {
+	raco::user_types::SMeshNode create_meshnode(const std::string& name, raco::user_types::SMesh mesh, raco::user_types::SMaterial material, raco::user_types::SEditorObject parent = nullptr) {
 		auto meshnode = create<raco::user_types::MeshNode>(name, parent);
 		commandInterface.set({meshnode, {"mesh"}}, mesh);
 		commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
@@ -112,7 +134,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 
 	raco::user_types::SLuaScript create_lua(raco::core::CommandInterface& cmd, const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
 		auto lua = create<raco::user_types::LuaScript>(cmd, name, parent);
-		cmd.set({lua, {"uri"}}, (RacoBaseTest<BaseClass>::cwd_path() / relpath).string());
+		cmd.set({lua, {"uri"}}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
 		return lua;
 	}
 
@@ -132,9 +154,9 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	}
 
 	raco::user_types::SRenderLayer create_layer(const std::string& name,
-		const std::vector<std::string>& tags = {}, 
-		const std::vector<std::pair<std::string, int>>& renderables = {}, 
-		const std::vector<std::string>& matFilterTags = {}, 
+		const std::vector<std::string>& tags = {},
+		const std::vector<std::pair<std::string, int>>& renderables = {},
+		const std::vector<std::string>& matFilterTags = {},
 		bool invertFilter = true) {
 		auto layer = create<raco::user_types::RenderLayer>(name, nullptr, tags);
 		for (int index = 0; index < renderables.size(); index++) {
@@ -148,6 +170,11 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return layer;
 	}
 
+	raco::user_types::SPrefabInstance create_prefabInstance(const std::string& name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {
+		auto inst = create<raco::user_types::PrefabInstance>(name, parent);
+		commandInterface.set({inst, {"template"}}, prefab);
+		return inst;
+	}
 
 
 	void checkUndoRedo(std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
@@ -168,7 +195,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 
 	void checkLinks(Project& project, const std::vector<raco::core::Link>& refLinks) {
 		EXPECT_EQ(refLinks.size(), project.links().size());
-		for (const auto &refLink : refLinks) {
+		for (const auto& refLink : refLinks) {
 			auto projectLink = raco::core::Queries::getLink(project, refLink.endProp());
 			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
 		}
@@ -178,8 +205,24 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		checkLinks(project, refLinks);
 	}
 
+	void assertOperationTimeIsBelow(testing::TimeInMillis maxMs, const std::function<void()>& operation) {
+		auto startTime = std::chrono::steady_clock::now();
+		operation();
+		auto endTime = std::chrono::steady_clock::now();
+		auto opTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+		ASSERT_LE(opTimeMs, maxMs) << "Operation took longer than allowed boundary of " << maxMs << " ms\nActual operation duration: " << opTimeMs << " ms";
+	}
 
-	TestEnvironmentCoreT() : fileChangeMonitor(std::make_unique<FileChangeMonitorImpl>()), meshCache() {
+	TestEnvironmentCoreT(UserObjectFactoryInterface* objectFactory = &UserObjectFactory::getInstance())
+		: backend{},
+		  fileChangeMonitor{std::make_unique<FileChangeMonitorImpl>()},
+		  meshCache{},
+		  project{},
+		  recorder{},
+		  errors{&recorder},
+		  context{&project, backend.coreInterface(), objectFactory, &recorder, &errors},
+		  undoStack{&context},
+		  commandInterface{&context, &undoStack} {
 		spdlog::drop_all();
 		raco::log_system::init();
 		clearQEventLoop();
@@ -193,16 +236,17 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		clearQEventLoop();
 	}
 
-	raco::ramses_base::HeadlessEngineBackend backend{};
+
+	raco::ramses_base::HeadlessEngineBackend backend;
 	// FileChangeMonitor needs to be destroyed after the project (and with them all FileListeners have been cleaned up)
 	std::unique_ptr<FileChangeMonitorImpl> fileChangeMonitor;
 	raco::components::MeshCacheImpl meshCache;
-	Project project{};
-	raco::core::DataChangeRecorder recorder{};
-	Errors errors{&recorder};
-	BaseContext context{&project, backend.coreInterface(), objectFactory(), &recorder, &errors};
-	TestUndoStack undoStack{&context};
-	raco::core::CommandInterface commandInterface{&context, &undoStack};
+	Project project;
+	raco::core::DataChangeRecorder recorder;
+	Errors errors;
+	BaseContext context;
+	TestUndoStack undoStack;
+	raco::core::CommandInterface commandInterface;
 };
 
 using TestEnvironmentCore = TestEnvironmentCoreT<>;

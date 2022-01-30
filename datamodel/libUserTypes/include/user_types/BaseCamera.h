@@ -64,7 +64,6 @@ public:
 };
 
 class BaseCamera : public Node {
-	Property<double> step_;
 
 public:
 	static inline const TypeDescriptor typeDescription = {"BaseCamera", false};

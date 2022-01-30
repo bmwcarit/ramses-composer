@@ -14,17 +14,31 @@
 #include "core/Queries.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "style/Icons.h"
 
 namespace raco::object_tree::model {
 
 ObjectTreeViewPrefabModel::ObjectTreeViewPrefabModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes)
-	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, allowedCreatableUserTypes) {
+	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, allowedCreatableUserTypes, true) {
+}
+
+QVariant ObjectTreeViewPrefabModel::data(const QModelIndex& index, int role) const {
+	auto treeNode = indexToTreeNode(index);
+
+	if (role == Qt::ItemDataRole::DecorationRole && index.column() == COLUMNINDEX_NAME) {
+		auto editorObj = indexToSEditorObject(index);
+		if (editorObj && editorObj->query<raco::core::ExternalReferenceAnnotation>() && editorObj->as<user_types::Prefab>()) {
+			return QVariant(raco::style::Icons::icon(typeIconMap.at("ExtrefPrefab")));
+		}
+	}
+
+	return ObjectTreeViewDefaultModel::data(index, role);
 }
 
 std::vector<std::string> ObjectTreeViewPrefabModel::typesAllowedIntoIndex(const QModelIndex& index) const {
 
 	auto prefabType = raco::user_types::Prefab::typeDescription.typeName;
-	if (index.isValid()) {
+	if (indexToSEditorObject(index)) {
 		auto types = ObjectTreeViewDefaultModel::typesAllowedIntoIndex(index);
 
 		auto prefabIndex = std::find(types.begin(), types.end(), prefabType);
@@ -36,6 +50,10 @@ std::vector<std::string> ObjectTreeViewPrefabModel::typesAllowedIntoIndex(const 
 	} else {
 		return {prefabType};	
 	}
+}
+
+std::vector<core::SEditorObject> ObjectTreeViewPrefabModel::filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const {
+	return raco::core::Queries::filterForTopLevelObjectsByTypeName(objects, {raco::user_types::Prefab::typeDescription.typeName});
 }
 
 bool ObjectTreeViewPrefabModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
@@ -56,7 +74,5 @@ bool ObjectTreeViewPrefabModel::isObjectAllowedIntoIndex(const QModelIndex& inde
 		}
 	}
 }
-
-
 
 }  // namespace raco::object_tree::model

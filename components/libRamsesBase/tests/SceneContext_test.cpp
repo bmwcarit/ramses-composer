@@ -79,9 +79,9 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMesh) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 	auto material = context.createObject(Material::typeDescription.typeName, "Material");
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
-	context.set(raco::core::ValueHandle{material, {"uriVertex"}}, (cwd_path() / "shaders/simple_texture.vert").string());
-	context.set(raco::core::ValueHandle{material, {"uriFragment"}}, (cwd_path() / "shaders/simple_texture.frag").string());
+	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
+	context.set(raco::core::ValueHandle{material, {"uriVertex"}}, (test_path() / "shaders/simple_texture.vert").string());
+	context.set(raco::core::ValueHandle{material, {"uriFragment"}}, (test_path() / "shaders/simple_texture.frag").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
@@ -111,7 +111,7 @@ TEST_F(SceneContextTest, construction_createOneMeshNodeWithMeshAndOneMeshNodeWit
 	auto meshNode2 = context.createObject(MeshNode::typeDescription.typeName, "Mesh Node2");
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
+	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 
@@ -137,7 +137,7 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 	auto material = context.createObject(Material::typeDescription.typeName, "Material");
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
+	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
@@ -369,12 +369,12 @@ struct SceneContextParamTestFixture : public RamsesBaseFixture<::testing::TestWi
 		}
 	};
 
-	std::filesystem::path cwd_path() const override {
+	raco::utils::u8path test_path() const override {
 		std::string testCaseName{::testing::UnitTest::GetInstance()->current_test_info()->name()};
 		testCaseName = testCaseName.substr(0, testCaseName.find("#GetParam()"));
 
 		std::replace(testCaseName.begin(), testCaseName.end(), '/', '\\');
-		auto result(std::filesystem::current_path() / testCaseName);
+		auto result(raco::utils::u8path::current() / testCaseName);
 		return result;
 	}
 };
@@ -392,7 +392,7 @@ TEST_P(SceneContextParamTestFixture, contextCreationOrder_init) {
 	auto mesh = objects.at(Mesh::typeDescription.typeName);
 	auto material = objects.at(Material::typeDescription.typeName);
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
+	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
@@ -415,7 +415,7 @@ TEST_P(SceneContextParamTestFixture, contextCreationOrder_dispatch) {
 	auto mesh = objects.at(Mesh::typeDescription.typeName);
 	auto material = objects.at(Material::typeDescription.typeName);
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (cwd_path() / "meshes/Duck.glb").string());
+	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
 	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);

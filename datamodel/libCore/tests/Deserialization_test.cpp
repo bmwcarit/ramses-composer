@@ -17,6 +17,8 @@
 #include "user_types/Material.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/Texture.h"
+
 #include "utils/FileUtils.h"
 
 #include <gtest/gtest.h>
@@ -24,28 +26,10 @@
 using namespace raco::user_types;
 
 struct DeserializationTest : public TestEnvironmentCore {
-	raco::serialization::DeserializationFactory deserializationFactory() noexcept {
-		return {[this](const std::string& typeName) -> raco::serialization::SReflectionInterface {
-					if (typeName == raco::core::Link::typeDescription.typeName) {
-						return std::make_shared<raco::core::Link>();
-					} else {
-						return objectFactory()->createObject(typeName);
-					}
-				},
-			[this](const std::string& type) {
-				return objectFactory()->createAnnotation(type);
-			},
-			[this](const std::string& valueType) -> raco::data_storage::ValueBase* {
-				if (valueType == "LuaScript::DisplayNameAnnotation") {
-					return new Property<raco::user_types::SLuaScript, raco::data_storage::DisplayNameAnnotation>({}, {});
-				}
-				return objectFactory()->createValue(valueType);
-			}};
-	}
 };
 
 TEST_F(DeserializationTest, deserializeNode) {
-	auto result = raco::serialization::deserializeObject(raco::utils::file::read((cwd_path() / "expectations" / "Node.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(raco::utils::file::read((test_path() / "expectations" / "Node.json").string()));
 
 	ASSERT_EQ(raco::user_types::Node::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SNode sNode{std::dynamic_pointer_cast<Node>(result.object)};
@@ -55,8 +39,8 @@ TEST_F(DeserializationTest, deserializeNode) {
 }
 
 TEST_F(DeserializationTest, deserializeNodeRotated) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "NodeRotated.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "NodeRotated.json").string()));
 	ASSERT_EQ(raco::user_types::Node::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SNode sNode{std::dynamic_pointer_cast<Node>(result.object)};
 	ASSERT_EQ(*sNode->rotation_->x, 90.0);
@@ -65,8 +49,8 @@ TEST_F(DeserializationTest, deserializeNodeRotated) {
 }
 
 TEST_F(DeserializationTest, deserializeNodeWithAnnotations) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "NodeWithAnnotations.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "NodeWithAnnotations.json").string()));
 	ASSERT_EQ(raco::user_types::Node::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SNode sNode{std::dynamic_pointer_cast<Node>(result.object)};
 	auto anno = sNode->query<raco::core::ExternalReferenceAnnotation>();
@@ -75,8 +59,8 @@ TEST_F(DeserializationTest, deserializeNodeWithAnnotations) {
 }
 
 TEST_F(DeserializationTest, deserializeMeshNodeWithMesh) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "MeshNodeWithMesh.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "MeshNodeWithMesh.json").string()));
 	ASSERT_EQ(raco::user_types::MeshNode::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SMeshNode sMeshNode{std::dynamic_pointer_cast<MeshNode>(result.object)};
 	ASSERT_EQ(1, result.references.size());
@@ -85,16 +69,16 @@ TEST_F(DeserializationTest, deserializeMeshNodeWithMesh) {
 }
 
 TEST_F(DeserializationTest, deserializeNodeWithMeshNode) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "NodeWithChildMeshNode.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "NodeWithChildMeshNode.json").string()));
 	ASSERT_EQ(raco::user_types::Node::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SNode sNode{std::dynamic_pointer_cast<Node>(result.object)};
 	ASSERT_EQ(1, result.references.size());
 }
 
 TEST_F(DeserializationTest, deserializeMesh) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "Mesh.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "Mesh.json").string()));
 	ASSERT_EQ(raco::user_types::Mesh::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SMesh sMesh{std::dynamic_pointer_cast<Mesh>(result.object)};
 	ASSERT_EQ(0, result.references.size());
@@ -102,8 +86,8 @@ TEST_F(DeserializationTest, deserializeMesh) {
 }
 
 TEST_F(DeserializationTest, deserializeLuaScript) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScript.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "LuaScript.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 	ASSERT_EQ(0, result.references.size());
@@ -112,8 +96,8 @@ TEST_F(DeserializationTest, deserializeLuaScript) {
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptInStruct) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptInStruct.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptInStruct.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 	ASSERT_EQ(0, result.references.size());
@@ -124,27 +108,27 @@ TEST_F(DeserializationTest, deserializeLuaScriptInStruct) {
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptInSpecificPropNames) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptSpecificPropNames.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptSpecificPropNames.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptWithRefToUserTypeWithAnnotation) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptWithRefToUserTypeWithAnnotation.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptWithRefToUserTypeWithAnnotation.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 	auto* property{sLuaScript->luaInputs_->get(sLuaScript->luaInputs_->index("ref"))};
-	ASSERT_EQ("LuaScript::DisplayNameAnnotation", property->typeName());
+	ASSERT_EQ("Texture::EngineTypeAnnotation", property->typeName());
 	ASSERT_EQ(1, property->baseAnnotationPtrs().size());
-	ASSERT_TRUE(property->dynamicQuery<raco::data_storage::DisplayNameAnnotation>() != nullptr);
-	ASSERT_EQ("BLUBB", *property->query<raco::data_storage::DisplayNameAnnotation>()->name_);
+	ASSERT_TRUE(property->dynamicQuery<raco::user_types::EngineTypeAnnotation>() != nullptr);
+	ASSERT_EQ(static_cast<int>(raco::core::EnginePrimitive::TextureSampler2D), *property->query<raco::user_types::EngineTypeAnnotation>()->engineType_);
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptWithURI) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptWithURI.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptWithURI.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 	auto* property{sLuaScript->luaInputs_->get(sLuaScript->luaInputs_->index("uri"))};
@@ -154,8 +138,8 @@ TEST_F(DeserializationTest, deserializeLuaScriptWithURI) {
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptWithAnnotatedDouble) {
-	auto result = raco::serialization::deserializeObject(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptWithAnnotatedDouble.json").string()), deserializationFactory());
+	auto result = raco::serialization::test_helpers::deserializeObject(
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptWithAnnotatedDouble.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 
@@ -171,15 +155,11 @@ TEST_F(DeserializationTest, deserializeVersionArray) {
 
 	auto compareVersionValues = [this, &fakeProjectJSON](raco::serialization::DeserializedVersion&& expectedRamsesVer, raco::serialization::DeserializedVersion&& expectedLogicEngineVer, raco::serialization::DeserializedVersion&& expectedRaCoVer) {
 		QJsonDocument fakeProjectJSONFile(fakeProjectJSON);
-		auto deserializedProjectJSON = raco::serialization::deserializeProject(fakeProjectJSONFile, deserializationFactory());
+		auto versionInfo = raco::serialization::deserializeProjectVersionInfo(fakeProjectJSONFile);
 
-		auto deserializedVersionsAreEqual = [](const auto& lhVersion, const auto& rhVersion) {
-			return lhVersion.major == rhVersion.major && lhVersion.minor == rhVersion.minor && lhVersion.patch == rhVersion.patch;
-		};
-
-		ASSERT_TRUE(deserializedVersionsAreEqual(deserializedProjectJSON.ramsesVersion, expectedRamsesVer));
-		ASSERT_TRUE(deserializedVersionsAreEqual(deserializedProjectJSON.ramsesLogicEngineVersion, expectedLogicEngineVer));
-		ASSERT_TRUE(deserializedVersionsAreEqual(deserializedProjectJSON.raCoVersion, expectedRaCoVer));
+		ASSERT_TRUE(versionInfo.ramsesVersion == expectedRamsesVer);
+		ASSERT_TRUE(versionInfo.ramsesLogicEngineVersion == expectedLogicEngineVer);
+		ASSERT_TRUE(versionInfo.raCoVersion == expectedRaCoVer);
 	};
 
 	compareVersionValues(
@@ -199,7 +179,7 @@ TEST_F(DeserializationTest, deserializeVersionArray) {
 
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode_outputsAreDeserialized) {
 	auto result = raco::serialization::deserializeObjects(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptLinkedToNode.json").string()), deserializationFactory());
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()));
 
 	raco::user_types::SLuaScript sScript{ raco::select<raco::user_types::LuaScript>(result.objects)};
 	ASSERT_EQ(3, sScript->luaOutputs_->size());
@@ -207,7 +187,7 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode_outputsAreD
 
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	auto result = raco::serialization::deserializeObjects(
-		raco::utils::file::read((cwd_path() / "expectations" / "LuaScriptLinkedToNode.json").string()), deserializationFactory());
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()));
 
 	std::vector<raco::core::SEditorObject> objects{};
 	objects.reserve(result.objects.size());

@@ -8,7 +8,6 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "core/PathManager.h"
-#include "utils/PathUtils.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaScript.h"
@@ -19,83 +18,109 @@
 
 #include <algorithm>
 #include <cctype>
+#include <QStandardPaths>
+
 
 namespace raco::core {
 
-std::filesystem::path PathManager::basePath_;
+using u8path = raco::utils::u8path;
 
-std::filesystem::path PathManager::normal_path(const std::string& path) {
-	return raco_filesystem_compatibility::lexically_normal(std::filesystem::path(path));
+u8path PathManager::basePath_;
+u8path PathManager::appDataBasePath_;
+
+void PathManager::init(const u8path& executableDirectory, const u8path& appDataDirectory) {
+	basePath_ = executableDirectory.normalized().parent_path().parent_path();
+	appDataBasePath_ = appDataDirectory.normalized();
+	migrateLegacyConfigDirectory();
 }
 
-void PathManager::init(const std::string& executableDirectory) {
-	basePath_ = normal_path(executableDirectory).parent_path().parent_path();
-}
-
-std::filesystem::path PathManager::defaultBaseDirectory() {
+u8path PathManager::defaultBaseDirectory() {
 	return basePath_;
 }
 
-std::string PathManager::defaultConfigDirectory() {
-	return (defaultBaseDirectory() / DEFAULT_CONFIG_SUB_DIRECTORY).generic_string();
+u8path PathManager::defaultConfigDirectory() {
+	return appDataBasePath_;
 }
 
-std::filesystem::path PathManager::defaultResourceDirectory() {
+u8path PathManager::legacyConfigDirectory() {
+	return defaultBaseDirectory() / LEGACY_CONFIG_SUB_DIRECTORY;
+}
+
+u8path PathManager::defaultResourceDirectory() {
 	return defaultBaseDirectory() / DEFAULT_PROJECT_SUB_DIRECTORY;
 }
 
-std::string PathManager::logFilePath() {
-	return (std::filesystem::path(defaultConfigDirectory()) / LOG_FILE_NAME).generic_string();
+u8path PathManager::logFileDirectory() {
+	return defaultConfigDirectory() / LOG_SUB_DIRECTORY;
 }
 
-std::string PathManager::layoutFilePath() {
-	return (std::filesystem::path(defaultConfigDirectory()) / Q_LAYOUT_FILE_NAME).generic_string();
+u8path PathManager::logFileHeadlessName() {
+	return logFileDirectory() / LOG_FILE_HEADLESS_NAME;
 }
 
-std::string PathManager::recentFilesStorePath() {
-	return (std::filesystem::path(defaultConfigDirectory()) / Q_RECENT_FILES_STORE_NAME).generic_string();
+u8path PathManager::logFileEditorName() {
+	return logFileDirectory() / LOG_FILE_EDITOR_NAME;
 }
 
-std::string PathManager::preferenceFileLocation() {
-	return (std::filesystem::path(defaultConfigDirectory()) / Q_PREFERENCES_FILE_NAME).generic_string();
+u8path PathManager::layoutFilePath() {
+	return defaultConfigDirectory() / Q_LAYOUT_FILE_NAME;
 }
 
-std::string PathManager::defaultProjectFallbackPath() {
-	return (defaultBaseDirectory() / DEFAULT_PROJECT_SUB_DIRECTORY).generic_string();
+u8path PathManager::recentFilesStorePath() {
+	return defaultConfigDirectory() / Q_RECENT_FILES_STORE_NAME;
 }
 
-std::string PathManager::constructRelativePath(const std::string& absolutePath, const std::string& basePath) {
-	// use std::filesystem::proximate() call with std::error_code to prevent exceptions and return the input path instead.
-	std::error_code ec;
-	return std::filesystem::proximate(absolutePath, basePath, ec).generic_string();
+u8path PathManager::preferenceFilePath() {
+	return defaultConfigDirectory() / Q_PREFERENCES_FILE_NAME;
 }
 
-std::string PathManager::constructAbsolutePath(const std::string& dirPath, const std::string& filePath) {
-	if (std::filesystem::path(filePath).is_absolute()) {
-		return raco_filesystem_compatibility::lexically_normal(std::filesystem::path(filePath)).generic_string();
+void PathManager::migrateLegacyConfigDirectory() {
+	auto configDir = defaultConfigDirectory();
+	auto legacyConfigDir = legacyConfigDirectory();
+	auto logDir = logFileDirectory();
+
+	// Check which config dirs exist and contain files
+	auto legacyConfigExistsAndHasFiles = legacyConfigDir.existsDirectory() && std::filesystem::directory_iterator(legacyConfigDir) != std::filesystem::directory_iterator{};
+	auto newConfigExistsAndHasFiles = configDir.existsDirectory() && std::filesystem::directory_iterator(configDir) != std::filesystem::directory_iterator{};
+
+	if (legacyConfigExistsAndHasFiles && !newConfigExistsAndHasFiles) {
+		if (configDir.existsDirectory()) {
+			std::filesystem::remove(configDir);
+		}
+		std::filesystem::rename(legacyConfigDir, configDir);
+		std::filesystem::create_directories(logDir);	
+		for(const auto& p : std::filesystem::directory_iterator(configDir)){
+			if (u8path(p).existsFile() && p.path().extension().u8string() == ".log") {
+				std::filesystem::rename(p.path(), logDir / p.path().filename());
+			}
+		}
+	} else {		
+		std::filesystem::create_directories(configDir);	
+		std::filesystem::create_directories(logDir);	
 	}
-	return raco_filesystem_compatibility::lexically_normal(std::filesystem::path(dirPath) / filePath).generic_string();
 }
 
-std::string PathManager::rerootRelativePath(const std::string& relativePath, const std::string& oldPath, const std::string& newPath) {
-	auto uriAbsolutePath = PathManager::constructAbsolutePath(oldPath, relativePath);
-	return PathManager::constructRelativePath(uriAbsolutePath, newPath);
+u8path PathManager::defaultProjectFallbackPath() {
+	return defaultBaseDirectory() / DEFAULT_PROJECT_SUB_DIRECTORY;
 }
 
-bool PathManager::pathsShareSameRoot(const std::string& lhd, const std::string& rhd) {
-	auto leftRoot = std::filesystem::path(lhd).root_name().generic_string();
-	auto rightRoot = std::filesystem::path(rhd).root_name().generic_string();
-	std::transform(leftRoot.begin(), leftRoot.end(), leftRoot.begin(), tolower);
-	std::transform(rightRoot.begin(), rightRoot.end(), rightRoot.begin(), tolower);
-
-	return leftRoot == rightRoot;
+QSettings PathManager::layoutSettings() {
+	return QSettings(raco::core::PathManager::layoutFilePath().string().c_str(), QSettings::IniFormat);
 }
 
-const std::string& PathManager::getCachedPath(FolderTypeKeys key, const std::string& fallbackPath) {
+QSettings PathManager::recentFilesStoreSettings() {
+	return QSettings(raco::core::PathManager::recentFilesStorePath().string().c_str(), QSettings::IniFormat);
+}
+
+QSettings PathManager::preferenceSettings() {
+	return QSettings(raco::core::PathManager::preferenceFilePath().string().c_str(), QSettings::IniFormat);
+}
+
+const u8path& PathManager::getCachedPath(FolderTypeKeys key, const u8path& fallbackPath) {
 	auto pathIt = cachedPaths_.find(key);
 	if (pathIt != cachedPaths_.end()) {
 		auto& cachedPath = pathIt->second;
-		if (!raco::utils::path::isExistingDirectory(cachedPath) && !fallbackPath.empty()) {
+		if (!cachedPath.existsDirectory() && !fallbackPath.empty()) {
 			return fallbackPath;
 		}
 		return cachedPath;
@@ -104,23 +129,11 @@ const std::string& PathManager::getCachedPath(FolderTypeKeys key, const std::str
 	return fallbackPath;
 }
 
-void PathManager::setCachedPath(FolderTypeKeys key, const std::string& path) {
+void PathManager::setCachedPath(FolderTypeKeys key, const u8path& path) {
 	auto pathIt = cachedPaths_.find(key);
 	if (pathIt != cachedPaths_.end()) {
 		pathIt->second = path;
 	}
-}
-
-void PathManager::setAllCachedPathRoots(const std::string& folder, 
-	const std::string& imageSubdirectory,
-	const std::string& MeshSubdirectory,
-	const std::string& ScriptSubdirectory,
-	const std::string& ShaderSubdirectory) {
-	setCachedPath(FolderTypeKeys::Project, folder);
-	setCachedPath(FolderTypeKeys::Image, folder + "/" + imageSubdirectory);
-	setCachedPath(FolderTypeKeys::Mesh, folder + "/" + MeshSubdirectory);
-	setCachedPath(FolderTypeKeys::Script, folder + "/" + ScriptSubdirectory);
-	setCachedPath(FolderTypeKeys::Shader, folder + "/" + ShaderSubdirectory);
 }
 
 PathManager::FolderTypeKeys PathManager::getCachedPathKeyCorrespondingToUserType(const raco::data_storage::ReflectionInterface::TypeDescriptor& type) {
@@ -140,21 +153,11 @@ PathManager::FolderTypeKeys PathManager::getCachedPathKeyCorrespondingToUserType
 		return raco::core::PathManager::FolderTypeKeys::Shader;
 	}
 
+	if (&type == &raco::user_types::ProjectSettings::typeDescription) {
+		return raco::core::PathManager::FolderTypeKeys::Project;
+	}
+
 	assert(false && "unknown user type found in URIEditor::getCachedPathKeyCorrespondingToUserType()");
 	return raco::core::PathManager::FolderTypeKeys::Invalid;
 }
-
-std::string PathManager::sanitizePath(const std::string& path) {
-	const auto trimmedStringLeft = std::find_if_not(path.begin(), path.end(), [](auto c) { return std::isspace(c); });
-	const auto trimmedStringRight = std::find_if_not(path.rbegin(), path.rend(), [](auto c) { return std::isspace(c); }).base();
-
-	if (trimmedStringLeft >= trimmedStringRight) {
-		return std::string();
-	}
-
-	auto sanitizedPathString = raco_filesystem_compatibility::lexically_normal(std::filesystem::path(trimmedStringLeft, trimmedStringRight)).generic_string();
-
-	return sanitizedPathString;
-}
-
 }  // namespace raco::core

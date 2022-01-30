@@ -196,6 +196,11 @@ void MeshNode::updateUniformContainer(BaseContext& context, const std::string& m
 						*newValue = *src->get(i);	
 					}
 				}
+			} else {
+				auto destIndex = dest.index(name);
+				if (destIndex != i) {
+					context.swapProperties(destUniforms, i, destIndex);
+				}
 			}
 		}
 	} else {
@@ -342,6 +347,9 @@ void MeshNode::onAfterValueChanged(BaseContext& context, ValueHandle const& valu
 		Table* materialUniforms = nullptr;
 		if (material && value.asBool()) {
 			materialUniforms = &*material->uniforms_;
+
+			auto optionsHandle = value.parent().get("options");
+			context.set(optionsHandle, *material->options_);
 		}
 
 		updateUniformContainer(context, materialName, materialUniforms, uniformsHandle);

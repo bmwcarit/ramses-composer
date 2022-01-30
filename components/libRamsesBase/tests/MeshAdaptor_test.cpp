@@ -17,7 +17,7 @@ class MeshAdaptorTest : public RamsesBaseFixture<> {};
 
 TEST_F(MeshAdaptorTest, context_mesh_name_change) {
 	auto node = context.createObject(raco::user_types::Mesh::typeDescription.typeName, "Mesh Name");
-	context.set({node, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	context.set({node, {"uri"}}, test_path().append("meshes/Duck.glb").string());
 
 	dispatch();
 
@@ -41,7 +41,7 @@ TEST_F(MeshAdaptorTest, context_mesh_name_change) {
 
 TEST_F(MeshAdaptorTest, gltf_without_meshes) {
 	auto mesh = context.createObject(raco::user_types::Mesh::typeDescription.typeName, "Mesh Name");
-	context.set({mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshless.gltf").string());
+	context.set({mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
 
 	dispatch();
 
@@ -53,7 +53,7 @@ TEST_F(MeshAdaptorTest, gltf_without_meshes) {
 TEST_F(MeshAdaptorTest, gltf_with_meshes_but_no_mesh_refs_baked) {
 	auto mesh = context.createObject(raco::user_types::Mesh::typeDescription.typeName, "Mesh Name");
 	context.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, true);
-	context.set({mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshrefless.gltf").string());
+	context.set({mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshrefless.gltf").string());
 
 	dispatch();
 
@@ -65,7 +65,7 @@ TEST_F(MeshAdaptorTest, gltf_with_meshes_but_no_mesh_refs_baked) {
 TEST_F(MeshAdaptorTest, gltf_with_meshes_but_no_mesh_refs_unbaked) {
 	auto mesh = context.createObject(raco::user_types::Mesh::typeDescription.typeName, "Mesh Name");
 	context.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	context.set({mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshrefless.gltf").string());
+	context.set({mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshrefless.gltf").string());
 
 	dispatch();
 

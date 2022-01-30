@@ -11,7 +11,7 @@
 
 #include "components/DataChangeDispatcher.h"
 
-#include <QWidget>
+#include "PropertyEditor.h"
 
 #include <array>
 
@@ -24,7 +24,7 @@ enum class TagType;
 class PropertyBrowserItem;
 class TagDataCache;
 
-class TagContainerEditor final : public QWidget {
+class TagContainerEditor final : public PropertyEditor {
 	Q_OBJECT
 public:
 	explicit TagContainerEditor(PropertyBrowserItem* item, QWidget* parent);
@@ -39,7 +39,6 @@ private:
 	bool showRenderedBy() const;
 
 	TagType tagType_{};
-	PropertyBrowserItem* item_{};
 	QPushButton* editButton_{};
 	QListWidget* tagList_{};
 	QLabel* renderedBy_ {};

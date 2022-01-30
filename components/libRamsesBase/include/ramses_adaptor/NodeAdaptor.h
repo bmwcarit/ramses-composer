@@ -34,6 +34,7 @@ public:
 		  rotationType_{DEFAULT_VEC3_ROTATION_TYPE},
 		  nodeBinding_{},
 		  linksLifecycle_{sceneAdaptor->dispatcher()->registerOnLinksLifeCycle(
+			  this->baseEditorObject(),
 			  [this](const core::LinkDescriptor& link) {
 				  raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
 				  if (link.end == rotation) {

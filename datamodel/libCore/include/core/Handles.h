@@ -10,6 +10,7 @@
 #pragma once
 
 #include "data_storage/Value.h"
+#include "data_storage/BasicTypes.h"
 #include "core/PropertyDescriptor.h"
 
 #include <memory>
@@ -128,7 +129,14 @@ public:
 	int asInt() const;
 	double asDouble() const;
 	std::string asString() const;
-	SEditorObject asRef() const; 
+	SEditorObject asRef() const;
+	const Vec2f& asVec2f() const;
+	const Vec3f& asVec3f() const;
+	const Vec4f& asVec4f() const;
+	const Vec2i& asVec2i() const;
+	const Vec3i& asVec3i() const;
+	const Vec4i& asVec4i() const;
+ 
 
 	template<class C>
 	std::shared_ptr<C> asTypedRef() const {

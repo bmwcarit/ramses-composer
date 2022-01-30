@@ -19,6 +19,7 @@ set(TEST_SOURCES
     Prefab_test.cpp
     ExternalReference_test.cpp
     ValueHandle_test.cpp
+    PathManager_test.cpp
     Queries_Tags_test.cpp
 )
 
@@ -119,6 +120,8 @@ raco_package_add_test_resouces(
     migrationTestData/V14c.rca
     migrationTestData/V16.rca
     migrationTestData/V18.rca
+    migrationTestData/V21.rca
+    migrationTestData/V23.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

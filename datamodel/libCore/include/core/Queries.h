@@ -44,9 +44,11 @@ namespace Queries {
 
 	SEditorObjectSet collectAllChildren(std::vector<SEditorObject> baseObjects);
 
-	std::vector<SEditorObject> filterForVisibleObjects(const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterForNotResource(const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterByTypeName(const std::vector<SEditorObject>& objects, const std::vector<std::string>& typeNames);
+	std::vector<SEditorObject> filterForTopLevelObjectsByTypeName(const std::vector<SEditorObject>& objects, const std::vector<std::string>& typeNames);
+	std::vector<SEditorObject> filterForVisibleTopLevelObjects(const std::vector<SEditorObject>& objects);
+	
 	std::vector<SEditorObject> filterForDeleteableObjects(Project const& project, const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterForMoveableScenegraphChildren(Project const& project, const std::vector<SEditorObject>& objects, SEditorObject const& newParent);
 

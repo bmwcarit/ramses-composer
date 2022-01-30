@@ -22,9 +22,8 @@ void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
 	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
 
 	std::string error;
-	if (!luaScript.empty()) {
-		context.engineInterface().parseLuaScriptModule(luaScript, error);
-	}
+
+	context.engineInterface().parseLuaScriptModule(luaScript, error);
 
 	context.errors().removeError({shared_from_this()});
 	if (validateURI(context, {shared_from_this(), &LuaScriptModule::uri_})) {

@@ -36,8 +36,8 @@ TEST_F(RaCoApplicationFixture, exportNewProject) {
 	std::string error;
 	auto success = application.exportProject(
 		application.activeRaCoProject(),
-		(cwd_path() / "new.ramses").string().c_str(),
-		(cwd_path() / "new.logic").string().c_str(),
+		(test_path() / "new.ramses").string().c_str(),
+		(test_path() / "new.logic").string().c_str(),
 		false,
 		error);
 	ASSERT_TRUE(success);
@@ -47,11 +47,11 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
 	auto mesh = commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName, Naming::format("MeshDuck"));
-	commandInterface->set({mesh, {"uri"}}, std::string{(cwd_path() / "meshes" / "Duck.glb").string()});
+	commandInterface->set({mesh, {"uri"}}, std::string{(test_path() / "meshes" / "Duck.glb").string()});
 
 	auto material = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, Naming::format("MaterialDuck"));
-	commandInterface->set({material, {"uriVertex"}}, (cwd_path() / "shaders" / "basic.vert").string());
-	commandInterface->set({material, {"uriFragment"}}, (cwd_path() / "shaders" / "basic.frag").string());
+	commandInterface->set({material, {"uriVertex"}}, (test_path() / "shaders" / "basic.vert").string());
+	commandInterface->set({material, {"uriFragment"}}, (test_path() / "shaders" / "basic.frag").string());
 
 	auto node = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, Naming::format("NodeDuck"));
 	auto meshNode = commandInterface->createObject(raco::user_types::MeshNode::typeDescription.typeName, Naming::format("MeshNodeDuck"));
@@ -73,8 +73,8 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 	std::string error;
 	auto success = application.exportProject(
 		application.activeRaCoProject(),
-		(cwd_path() / "new.ramses").string().c_str(),
-		(cwd_path() / "new.logic").string().c_str(),
+		(test_path() / "new.ramses").string().c_str(),
+		(test_path() / "new.logic").string().c_str(),
 		true,
 		error);
 	ASSERT_TRUE(success);
@@ -85,7 +85,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectNodeAmount) {
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -123,7 +123,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphVectorsGetLinked) {
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
+	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -138,7 +138,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshWithNegativeScaleWillBeIm
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/negativeScaleQuad.gltf").string();
+	desc.absPath = test_path().append("meshes/negativeScaleQuad.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -155,10 +155,10 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshWithNegativeScaleWillBeIm
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCachedMeshPathGetsChanged) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-	raco::core::PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, "");
+	raco::core::PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, {});
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -166,7 +166,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCachedMeshPathGetsChanged) {
 	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
 	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), (cwd_path() / "meshes/CesiumMilkTruck").generic_string());
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), test_path() / "meshes/CesiumMilkTruck");
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTruck) {
@@ -174,7 +174,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTru
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -221,7 +221,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectRootNodeInsertion) {
 	auto myRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -239,7 +239,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectRootNodeRenaming) {
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/ToyCar/ToyCar.gltf").string();
+	desc.absPath = test_path().append("meshes/ToyCar/ToyCar.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -257,7 +257,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwice) {
 	auto secondRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -276,7 +276,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshe
 	auto secondRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -307,7 +307,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButAnima
 	auto secondRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -330,7 +330,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnbakedMeshesGetTransformed) 
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -371,7 +371,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	auto wheels = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, "wheels");
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -401,7 +401,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnmarkedNodesDoNotGetImported
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -441,7 +441,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportedAnimationDoesNotGetPa
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/RiggedFigure/RiggedFigure.gltf").string();
+	desc.absPath = test_path().append("meshes/RiggedFigure/RiggedFigure.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -461,7 +461,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationsDoNotGetI
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -482,7 +482,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedNodesWillNotCreateL
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -502,7 +502,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationChannelsDo
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 
@@ -534,7 +534,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyScenegra
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("nonexistentFile.gltf").string();
+	desc.absPath = test_path().append("nonexistentFile.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
@@ -546,7 +546,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyAnimSamp
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	auto animSampler = commandInterface->meshCache()->getAnimationSamplerData(cwd_path().append("nonexistentFile.gltf").string(), 0, 0);
+	auto animSampler = commandInterface->meshCache()->getAnimationSamplerData(test_path().append("nonexistentFile.gltf").string(), 0, 0);
 
 	ASSERT_EQ(animSampler, nullptr);
 }
@@ -556,7 +556,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshes) {
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/meshless.gltf").string();
+	desc.absPath = test_path().append("meshes/meshless.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
@@ -599,7 +599,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselec
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
+	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
@@ -636,8 +636,8 @@ TEST_F(RaCoApplicationFixture, LuaScriptRuntimeErrorCausesInformationForAllScrip
 	auto const workingScript{ commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName) };
 	auto const runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{ workingScript, {"uri"} }, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{ workingScript, {"uri"} }, test_path().append("scripts/SimpleScript.lua").string());
 
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(workingScript));
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(runtimeErrorScript));
@@ -658,7 +658,7 @@ TEST_F(RaCoApplicationFixture, LuaScriptFixingRuntimeErrorRemovesLogicError) {
 
 	auto emptyScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 	auto runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
 	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"luaInputs"}}.get("choice"), 1);
 
 	application.doOneLoop();
@@ -676,10 +676,10 @@ TEST_F(RaCoApplicationFixture, LuaScriptFixingRuntimeErrorDoesNotDeleteOtherErro
 	auto compileErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 	auto runtimeErrorScript1{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 	auto runtimeErrorScript2{ commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName) };
-	commandInterface->set(raco::core::ValueHandle{ compileErrorScript, {"uri"} }, cwd_path().append("scripts/compile-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{ compileErrorScript, {"uri"} }, test_path().append("scripts/compile-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
 	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"luaInputs"}}.get("choice"), 1);
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"uri"} }, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
 	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"luaInputs"} }.get("choice"), 0);
 
 	application.doOneLoop();
@@ -704,8 +704,8 @@ TEST_F(RaCoApplicationFixture, LuaScriptNewestRuntimeErrorGetsProperlyUpdated) {
 
 	auto runtimeErrorScript1{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 	auto runtimeErrorScript2{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
 	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"luaInputs"}}.get("choice"), 1);
 	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"luaInputs"}}.get("choice"), 0);
 
@@ -735,7 +735,7 @@ TEST_F(RaCoApplicationFixture, LuaScriptCompileErrorDoesNotCauseErrorForAllScrip
 
 	auto emptyScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 	auto compileErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{compileErrorScript, {"uri"}}, cwd_path().append("scripts/compile-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{compileErrorScript, {"uri"}}, test_path().append("scripts/compile-error.lua").string());
 
 	application.doOneLoop();
 	
@@ -750,7 +750,7 @@ TEST_F(RaCoApplicationFixture, LuaScriptDeletingScriptWithRunTimeErrorUpdatesAll
 	auto runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
 	auto node{commandInterface->createObject(raco::user_types::Node::typeDescription.typeName)};
 	auto mesh{commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, cwd_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
 	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"luaInputs"}}.get("choice"), 1);
 
 	application.doOneLoop();

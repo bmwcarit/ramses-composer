@@ -15,6 +15,11 @@
 
 namespace raco::ramses_widgets {
 
+enum class PreviewFilteringMode {
+	NearestNeighbor,
+	Linear
+};
+
 class PreviewFramebufferScene final {
 	Q_DISABLE_COPY(PreviewFramebufferScene);
 
@@ -22,7 +27,7 @@ public:
 	explicit PreviewFramebufferScene(ramses::RamsesClient& client, ramses::sceneId_t sceneId);
 
 	ramses::sceneId_t getSceneId() const;
-	ramses::dataConsumerId_t setupFramebufferTexture(RendererBackend& backend, const QSize& size);
+	ramses::dataConsumerId_t setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewFilteringMode filteringMode);
 	void setViewport(const QPoint& viewportPosition, const QSize& viewportSize, const QSize& virtualSize);
 
 private:

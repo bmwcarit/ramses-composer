@@ -12,6 +12,7 @@
 #include "core/EngineInterface.h"
 #include "data_storage/Value.h"
 #include "ramses_base/LogicEngine.h"
+#include "log_system/log.h"
 #include <map>
 #include <optional>
 #include <ramses-client-api/EffectInputDataType.h>
@@ -47,5 +48,6 @@ std::string getRamsesVersionString();
 std::string getLogicEngineVersionString();
 
 void enableLogicLoggerOutputToStdout(bool toStdOut);
+void setRamsesAndLogicConsoleLogLevel(spdlog::level::level_enum level);
 
 };	// namespace raco::ramses_base

@@ -13,7 +13,7 @@
 
 #include "components/FileChangeMonitorImpl.h"
 #include "testing/TestEnvironmentCore.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include <fstream>
 
@@ -28,21 +28,21 @@ protected:
 		TestEnvironmentCore::SetUp();
 		std::filesystem::create_directory(testFolderPath_);
 
-		testFileOutputStream_ = std::ofstream(testFilePath_.generic_string(), std::ios_base::out);
+		testFileOutputStream_ = std::ofstream(testFilePath_.string(), std::ios_base::out);
 		testFileOutputStream_.close();
 
-		createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.generic_string(), testCallback_));
+		createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.string(), testCallback_));
 	}
 
 	void TearDown() override {
-		if (raco::utils::path::exists(testFilePath_.generic_string())) {
+		if (testFilePath_.exists()) {
 			std::filesystem::permissions(testFilePath_, std::filesystem::perms::all);
 		}
-		if (raco::utils::path::exists(testFolderPath_.generic_string())) {
+		if (testFolderPath_.exists()) {
 			std::filesystem::permissions(testFolderPath_, std::filesystem::perms::all);
 		}
-		if (raco::utils::path::exists(cwd_path().generic_string())) {
-			std::filesystem::permissions(cwd_path(), std::filesystem::perms::all);
+		if (test_path().exists()) {
+			std::filesystem::permissions(test_path(), std::filesystem::perms::all);
 		}
 		TestEnvironmentCore::TearDown();
 	}
@@ -69,7 +69,7 @@ protected:
 		return fileChangeCounter_;
 	}
 
-	void runRenamingRoutine(std::filesystem::path& originPath, const char* firstRename, const char* secondRename) {
+	void runRenamingRoutine(raco::utils::u8path& originPath, const char* firstRename, const char* secondRename) {
 		auto newFilePath = originPath;
 		newFilePath.replace_filename(firstRename);
 
@@ -91,8 +91,8 @@ protected:
 
 	std::ofstream testFileOutputStream_;
 	int fileChangeCounter_{0};
-	std::filesystem::path testFolderPath_{cwd_path().append(TEST_RESOURCES_FOLDER_NAME)};
-	std::filesystem::path testFilePath_{std::filesystem::path(testFolderPath_).append(TEST_FILE_NAME)};
+	raco::utils::u8path testFolderPath_{test_path().append(TEST_RESOURCES_FOLDER_NAME)};
+	raco::utils::u8path testFilePath_{raco::utils::u8path(testFolderPath_).append(TEST_FILE_NAME)};
 	FileChangeCallback testCallback_ = {&context, nullptr, [this]() { ++fileChangeCounter_; }};
 	std::unique_ptr<FileChangeMonitorImpl> testFileChangeMonitor_ = std::make_unique<FileChangeMonitorImpl>();
 	std::vector<FileChangeMonitor::UniqueListener> createdFileListeners_;
@@ -110,17 +110,17 @@ TEST_F(FileChangeMonitorTest, InstantiationNoFileChange) {
 /*
 TEST_F(FileChangeMonitorTest, DeInstantiationNoCrash) {
 	auto secondFileChangeMonitor = std::make_unique<FileChangeMonitorImpl>(context);
-	auto secondFileListener_ = secondFileChangeMonitor->registerFileChangedHandler(testFilePath_.generic_string(), testCallback_);
+	auto secondFileListener_ = secondFileChangeMonitor->registerFileChangedHandler(testFilePath_.string(), testCallback_);
 	secondFileChangeMonitor.reset();
 }
 */
 
 TEST_F(FileChangeMonitorTest, FileModificationCreation) {
-	testFilePath_ = std::filesystem::path(testFolderPath_).append("differentFile.txt");
-	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.generic_string(), testCallback_));
+	testFilePath_ = raco::utils::u8path(testFolderPath_).append("differentFile.txt");
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.string(), testCallback_));
 	ASSERT_EQ(waitForFileChangeCounterGEq(0), 0);
 
-	testFileOutputStream_ = std::ofstream(testFilePath_.generic_string(), std::ios_base::out);
+	testFileOutputStream_ = std::ofstream(testFilePath_.string(), std::ios_base::out);
 	testFileOutputStream_.close();
 
 	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
@@ -128,7 +128,7 @@ TEST_F(FileChangeMonitorTest, FileModificationCreation) {
 
 
 TEST_F(FileChangeMonitorTest, FileModificationEditing) {
-	testFileOutputStream_.open(testFilePath_.generic_string(), std::ios_base::out);
+	testFileOutputStream_.open(testFilePath_.string(), std::ios_base::out);
 
 	testFileOutputStream_ << "Test";
 	testFileOutputStream_.flush();
@@ -150,10 +150,10 @@ TEST_F(FileChangeMonitorTest, FileModificationRenaming) {
 
 
 TEST_F(FileChangeMonitorTest, FileModificationMultipleModificationsAtTheSameTime) {
-	testFileOutputStream_.open(testFilePath_.generic_string(), std::ios_base::out);
+	testFileOutputStream_.open(testFilePath_.string(), std::ios_base::out);
 	testFileOutputStream_ << "Test";
 
-	std::ofstream otherOutputStream = std::ofstream(testFilePath_.generic_string(), std::ios_base::app);
+	std::ofstream otherOutputStream = std::ofstream(testFilePath_.string(), std::ios_base::app);
 	otherOutputStream << "Other";
 	otherOutputStream.close();
 
@@ -173,7 +173,7 @@ TEST_F(FileChangeMonitorTest, FileModificationSetAndTryToEditReadOnly) {
 	// fileChangeCounter_ will be 0 in WSL, but the proper value in Linux container
 	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
 
-	testFileOutputStream_.open(testFilePath_.generic_string(), std::ios_base::out);
+	testFileOutputStream_.open(testFilePath_.string(), std::ios_base::out);
 	ASSERT_FALSE(testFileOutputStream_.is_open());
 
 	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
@@ -182,7 +182,7 @@ TEST_F(FileChangeMonitorTest, FileModificationSetAndTryToEditReadOnly) {
 
 
 TEST_F(FileChangeMonitorTest, FolderModificationDeletion) {
-	std::filesystem::remove_all(cwd_path().append(TEST_RESOURCES_FOLDER_NAME));
+	std::filesystem::remove_all(test_path().append(TEST_RESOURCES_FOLDER_NAME));
 	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1); 
 }
 

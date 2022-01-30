@@ -1,0 +1,163 @@
+/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This file is part of Ramses Composer
+ * (see https://github.com/GENIVI/ramses-composer).
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+#pragma once
+
+#include "core/DynamicEditorObject.h"
+
+namespace raco::serialization::proxy {
+
+using namespace raco::data_storage;
+
+template <const char* Name, class Base = DynamicEditorObject>
+class Proxy : public Base {
+public:
+	Proxy(std::string name = std::string(), std::string id = std::string())
+		: Base(name, id) {
+	}
+
+	static inline const ReflectionInterface::TypeDescriptor typeDescription = {Name, true};
+	ReflectionInterface::TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+};
+
+extern const char projectSettingsTypeName[];
+using ProjectSettings = Proxy<projectSettingsTypeName>;
+using SProjectSettings = std::shared_ptr<ProjectSettings>;
+
+extern const char meshTypeName[];
+using Mesh = Proxy<meshTypeName>;
+using SMesh = std::shared_ptr<Mesh>;
+
+extern const char nodeTypeName[];
+using Node = Proxy<nodeTypeName>;
+using SNode = std::shared_ptr<Node>;
+
+extern const char meshNodeTypeName[];
+using MeshNode = Proxy<meshNodeTypeName>;
+using SMeshNode = std::shared_ptr<MeshNode>;
+
+extern const char materialTypeName[];
+using Material = Proxy<materialTypeName>;
+using SMaterial = std::shared_ptr<Material>;
+
+extern const char luaScriptTypeName[];
+using LuaScript = Proxy<luaScriptTypeName>;
+using SLuaScript = std::shared_ptr<LuaScript>;
+
+extern const char luaScriptModuleTypeName[];
+using LuaScriptModule = Proxy<luaScriptModuleTypeName>;
+using SLuaScriptModule = std::shared_ptr<LuaScriptModule>;
+
+extern const char animationTypeName[];
+using Animation = Proxy<animationTypeName>;
+using SAnimation = std::shared_ptr<Animation>;
+
+extern const char animationChannelTypeName[];
+using AnimationChannel = Proxy<animationChannelTypeName>;
+using SAnimationChannel = std::shared_ptr<AnimationChannel>;
+
+extern const char textureSampler2DBaseTypeName[];
+using TextureSampler2DBase = Proxy<textureSampler2DBaseTypeName>;
+using STextureSampler2DBase = std::shared_ptr<TextureSampler2DBase>;
+
+extern const char textureTypeName[];
+using Texture = Proxy<textureTypeName, TextureSampler2DBase>;
+using STexture = std::shared_ptr<Texture>;
+
+// BaseTexture -> Texture
+// BaseTexture -> TextureSampler2DBase -> Texture
+//                                     -> RenderBuffer
+
+extern const char cubeMapTypeName[];
+using CubeMap = Proxy<cubeMapTypeName>;
+using SCubeMap = std::shared_ptr<CubeMap>;
+
+extern const char baseCameraTypeName[];
+using BaseCamera = Proxy<baseCameraTypeName>;
+using SBaseCamera = std::shared_ptr<BaseCamera>;
+
+extern const char perspectiveCameraTypeName[];
+using PerspectiveCamera = Proxy<perspectiveCameraTypeName, BaseCamera>;
+using SPerspectiveCamera = std::shared_ptr<PerspectiveCamera>;
+
+extern const char orthographicCameraTypeName[];
+using OrthographicCamera = Proxy<orthographicCameraTypeName, BaseCamera>;
+using SOrthographicCamera = std::shared_ptr<OrthographicCamera>;
+
+extern const char renderBufferTypeName[];
+using RenderBuffer = Proxy<renderBufferTypeName, TextureSampler2DBase>;
+using SRenderBuffer = std::shared_ptr<RenderBuffer>;
+
+extern const char renderLayerTypeName[];
+using RenderLayer = Proxy<renderLayerTypeName>;
+using SRenderLayer = std::shared_ptr<RenderLayer>;
+
+extern const char renderPassTypeName[];
+using RenderPass = Proxy<renderPassTypeName>;
+using SRenderPass = std::shared_ptr<RenderPass>;
+
+extern const char renderTargetTypeName[];
+using RenderTarget = Proxy<renderTargetTypeName>;
+using SRenderTarget = std::shared_ptr<RenderTarget>;
+
+extern const char prefabTypeName[];
+using Prefab = Proxy<prefabTypeName>;
+using SPrefab = std::shared_ptr<Prefab>;
+
+extern const char prefabInstanceTypeName[];
+using PrefabInstance = Proxy<prefabInstanceTypeName>;
+using SPrefabInstance = std::shared_ptr<PrefabInstance>;
+
+template<const char* Name>
+class StructProxy : public DynamicGenericStruct {
+public:
+	static inline const TypeDescriptor typeDescription = {Name, true};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	StructProxy() : DynamicGenericStruct() {}
+
+	StructProxy(const StructProxy& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) {
+
+	}
+
+	StructProxy& operator=(const StructProxy& other) {
+		dynamicProperties_ = other.dynamicProperties_;
+		return *this;
+	}
+
+	void copyAnnotationData(const StructProxy& other) {
+		for (size_t i = 0; i < dynamicProperties_.size(); i++) {
+			get(i)->copyAnnotationData(*other.get(i));
+		}
+	}
+};
+
+extern const char blendmodeOptionsTypeName[];
+using BlendOptions = StructProxy<blendmodeOptionsTypeName>;
+
+extern const char cameraViewportTypeName[];
+using CameraViewport = StructProxy<cameraViewportTypeName>;
+
+extern const char perspectiveFrustumTypeName[];
+using PerspectiveFrustum = StructProxy<perspectiveFrustumTypeName>;
+
+extern const char orthographicFrustumTypeName[];
+using OrthographicFrustum = StructProxy<orthographicFrustumTypeName>;
+
+extern const char defaultResourceDirectoriesTypeName[];
+using DefaultResourceDirectories = StructProxy<defaultResourceDirectoriesTypeName>;
+
+}  // namespace raco::serialization::proxy

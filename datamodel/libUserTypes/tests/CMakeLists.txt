@@ -13,9 +13,13 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 set(TEST_SOURCES
     Animation_test.cpp
     AnimationChannel_test.cpp
+    DefaultValues_test.cpp
+    Material_test.cpp
+    MeshNode_test.cpp
     LuaScript_test.cpp
     LuaScriptModule_test.cpp
-    DefaultValues_test.cpp
+    LuaScript_test.cpp
+    LuaScriptModule_test.cpp
 )
 set(TEST_LIBRARIES
     raco::UserTypes
@@ -35,9 +39,12 @@ raco_package_add_test_resouces(
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
     meshes/Duck.glb
+    meshes/meshless.gltf
     scripts/array.lua
     scripts/compile-error.lua
     scripts/moduleDefinition.lua
     scripts/moduleDependency.lua
     scripts/struct.lua
+    shaders/basic.vert
+    shaders/basic.frag
 )

@@ -30,12 +30,12 @@
 
 namespace raco::property_browser {
 
-TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* parent) : QWidget{parent}, item_{item} {
+TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* parent) : PropertyEditor(item, parent) {
 	auto* layout{new PropertyBrowserGridLayout{this}};
 
-	if (&item_->valueHandle().rootObject()->getTypeDescription() == &user_types::Material::typeDescription) {
+	if (&item->valueHandle().rootObject()->getTypeDescription() == &user_types::Material::typeDescription) {
 		tagType_ = TagType::MaterialTags;
-	} else if (&item_->valueHandle().rootObject()->getTypeDescription() == &user_types::RenderLayer::typeDescription) {
+	} else if (&item->valueHandle().rootObject()->getTypeDescription() == &user_types::RenderLayer::typeDescription) {
 		// TODO: what is a good way of checking if the ValueHandle points to a specific known C++ class member?
 		// Would be nice to be able to write something like if(item->valueHandle().refersTo(&user_types::RenderLayer::renderableTags_))?
 		// Checking the property name hides the dependency of this code to the property?
@@ -57,7 +57,7 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 	editButton_ = new QPushButton{this};
 	editButton_->setFlat(true);
 	editButton_->setProperty("slimButton", true);
-	editButton_->setIcon(style::Icons::icon(style::Pixmap::open_in_new));
+	editButton_->setIcon(style::Icons::icon(style::Pixmap::openInNew));
 
 	layout->addWidget(editButton_, 0, 0, Qt::AlignTop);
 

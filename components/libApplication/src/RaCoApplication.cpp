@@ -11,7 +11,7 @@
 
 #include "components/RaCoPreferences.h"
 
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include "core/PathManager.h"
 #include "core/Project.h"
@@ -22,6 +22,7 @@
 #include "user_types/Animation.h"
 
 #include <ramses_base/LogicEngineFormatter.h>
+#include "core/Handles.h"
 
 #ifdef OS_WINDOWS
 // see: https://doc.qt.io/qt-5/qfileinfo.html#ntfs-permissions
@@ -46,12 +47,8 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const Q
 	logicEngineNeedsUpdate_ = true;
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 
-	const auto& prefs = raco::components::RaCoPreferences::instance();
-	raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder(),
-		prefs.imageSubdirectory.toStdString(),
-		prefs.meshSubdirectory.toStdString(),
-		prefs.scriptSubdirectory.toStdString(),
-		prefs.shaderSubdirectory.toStdString());
+	activeProject_->applyDefaultCachedPaths();
+	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
 
 	startTime_ = std::chrono::high_resolution_clock::now();
 }
@@ -91,18 +88,15 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file) {
 
 	std::vector<std::string> stack;
 	activeProject_ = file.isEmpty() ? RaCoProject::createNew(this) : RaCoProject::loadFromFile(file, this, stack);
+
 	externalProjectsStore_.setActiveProject(activeProject_.get());
 
 	logicEngineNeedsUpdate_ = true;
 
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
+	activeProject_->applyDefaultCachedPaths();
+	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
 
-	const auto& prefs = raco::components::RaCoPreferences::instance();
-	raco::core::PathManager::setAllCachedPathRoots(activeProjectFolder(),
-		prefs.imageSubdirectory.toStdString(),
-		prefs.meshSubdirectory.toStdString(),
-		prefs.scriptSubdirectory.toStdString(),
-		prefs.shaderSubdirectory.toStdString());
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 }
 
 bool RaCoApplication::exportProject(const RaCoProject& project, const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError) const {

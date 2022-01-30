@@ -13,7 +13,6 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
-#include "core/SerializationFunctions.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/LuaScriptModule.h"
 #include "user_types/RenderBuffer.h"
@@ -66,7 +65,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexAnyTypeBehavesLikeE
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto item = createNodes(typeName, {typeName}).front();
-		auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromObjectID(item->objectID()));
+		auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(item->objectID()));
 
 		ASSERT_EQ(allowedTypes.size(), allowedTypesEmptyIndex.size());
 		for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -105,7 +104,7 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedWithResour
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			for (const auto &resourceInScene : allResources) {
-				ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromObjectID(resourceInScene->objectID()), newObj));
+				ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromTreeNodeID(resourceInScene->objectID()), newObj));
 				ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 			}
 		}
@@ -139,11 +138,13 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsSceneGraphObjectsAreNotAllowe
 
 TEST_F(ObjectTreeViewResourceModelTest, PastePastingMaterialsUnderMaterialCreatesMaterialOnTopLevel) {
 	createNodes(Material::typeDescription.typeName, {Material::typeDescription.typeName}).front();
-	auto materialIndex = viewModel_->indexFromObjectID(Material::typeDescription.typeName + Material::typeDescription.typeName);
+	auto materialIndex = viewModel_->indexFromTreeNodeID(Material::typeDescription.typeName + Material::typeDescription.typeName);
 
 	auto resourceChild = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 	auto cutObjs = commandInterface.cutObjects({resourceChild}, false);
 	dataChangeDispatcher_->dispatch(recorder.release());
+
+	materialIndex = viewModel_->indexFromTreeNodeID(Material::typeDescription.typeName + Material::typeDescription.typeName);
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex(materialIndex, parsedObjs, sourceProjectTopLevelObjectIds));
@@ -152,7 +153,7 @@ TEST_F(ObjectTreeViewResourceModelTest, PastePastingMaterialsUnderMaterialCreate
 	viewModel_->pasteObjectAtIndex(materialIndex, false, nullptr, cutObjs);
 	dataChangeDispatcher_->dispatch(recorder.release());
 
-	materialIndex = viewModel_->indexFromObjectID(Material::typeDescription.typeName + Material::typeDescription.typeName);
+	materialIndex = viewModel_->indexFromTreeNodeID(Material::typeDescription.typeName + Material::typeDescription.typeName);
 	ASSERT_TRUE(materialIndex.isValid());
 	ASSERT_EQ(viewModel_->indexToTreeNode(materialIndex)->childCount(), 0);
 	ASSERT_EQ(viewModel_->project()->instances().size(), 2);
@@ -189,12 +190,35 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsDeepCopiedPrefabInstanceWithP
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsNoSceneGraphObjectsAreAllowedUnderExtRef) {
 	auto extRefMesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 	extRefMesh->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
-	auto extRefMeshIndex = viewModel_->indexFromObjectID(Mesh::typeDescription.typeName + Mesh::typeDescription.typeName);
+
+	viewModel_->buildObjectTree();
+	auto extRefMeshIndex = viewModel_->indexFromTreeNodeID(Mesh::typeDescription.typeName + Mesh::typeDescription.typeName);
+	auto extRefGroupIndex = viewModel_->index(0, 0);
+	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
-		if (!raco::core::Queries::isResource(newObj)) {
-			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefMeshIndex, newObj));
-		}
+		ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefMeshIndex, newObj));	
+		ASSERT_EQ(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, newObj), raco::core::Queries::isResource(newObj));	
 	}
+}
+
+TEST_F(ObjectTreeViewResourceModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {
+	auto extRefMesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
+	extRefMesh->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+
+	viewModel_->buildObjectTree();
+	auto extRefGroupIndex = viewModel_->index(0, 0);
+	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
+
+	ASSERT_FALSE(viewModel_->canDeleteAtIndices({extRefGroupIndex}));
+	ASSERT_FALSE(viewModel_->canCopyAtIndices({extRefGroupIndex}));
+
+	dataChangeDispatcher_->dispatch(recorder.release());
+	auto copiedObjs = commandInterface.copyObjects({extRefMesh});
+	dataChangeDispatcher_->dispatch(recorder.release());
+
+	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
+	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
+	ASSERT_TRUE(viewModel_->canPasteIntoIndex(extRefGroupIndex, parsedObjs, sourceProjectTopLevelObjectIds));
 }

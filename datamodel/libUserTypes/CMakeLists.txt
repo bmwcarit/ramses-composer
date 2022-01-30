@@ -59,6 +59,11 @@ PRIVATE
 
 add_library(raco::UserTypes ALIAS libUserTypes)
 
+IF (MSVC)
+	# /bigobj is needed to compile UserObjectFactory.cpp
+	target_compile_options(libUserTypes PRIVATE "/bigobj")
+endif()
+
 if(PACKAGE_TESTS)
 	add_subdirectory(tests)
 endif()

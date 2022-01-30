@@ -9,10 +9,11 @@
  */
 #include "common_widgets/PreferencesView.h"
 
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include "common_widgets/PropertyBrowserButton.h"
 #include "core/PathManager.h"
+#include "log_system/log.h"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -21,6 +22,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -59,26 +61,6 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 		});
 	}
 
-	imageEdit_ = new QLineEdit{this};
-	formLayout->addRow("Image subdirectory", imageEdit_);
-	imageEdit_->setText(RaCoPreferences::instance().imageSubdirectory);
-	QObject::connect(imageEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
-
-	meshEdit_ = new QLineEdit{this};
-	formLayout->addRow("Mesh subdirectory", meshEdit_);
-	meshEdit_->setText(RaCoPreferences::instance().meshSubdirectory);
-	QObject::connect(meshEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
-
-	scriptEdit_ = new QLineEdit{this};
-	formLayout->addRow("Script subdirectory", scriptEdit_);
-	scriptEdit_->setText(RaCoPreferences::instance().scriptSubdirectory);
-	QObject::connect(scriptEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
-
-	shaderEdit_ = new QLineEdit{this};
-	formLayout->addRow("Shader subdirectory", shaderEdit_);
-	shaderEdit_->setText(RaCoPreferences::instance().shaderSubdirectory);
-	QObject::connect(shaderEdit_, &QLineEdit::textChanged, this, [this](auto) { Q_EMIT dirtyChanged(dirty()); });
-
 	auto buttonBox = new QDialogButtonBox{this};
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
 	QObject::connect(cancelButton, &QPushButton::clicked, this, &PreferencesView::close);
@@ -92,23 +74,19 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 }
 
 void PreferencesView::save() {
-	if (raco::utils::path::isExistingDirectory(userProjectEdit_->text().toStdString())) {
+	if (raco::utils::u8path(userProjectEdit_->text().toStdString()).existsDirectory()) {
 			RaCoPreferences::instance().userProjectsDirectory = userProjectEdit_->text();
 	}
-	RaCoPreferences::instance().imageSubdirectory = imageEdit_->text();
-	RaCoPreferences::instance().meshSubdirectory = meshEdit_->text();
-	RaCoPreferences::instance().scriptSubdirectory = scriptEdit_->text();
-	RaCoPreferences::instance().shaderSubdirectory = shaderEdit_->text();
-	RaCoPreferences::instance().save();
+	if (!RaCoPreferences::instance().save()) {
+		LOG_ERROR(raco::log_system::COMMON, "Saving settings failed: {}", raco::core::PathManager::preferenceFilePath().string());
+		QMessageBox::critical(this, "Saving settings failed", QString("Settings could not be saved. Check whether the application can write to its config directory.\nFile: ") 
+			+ QString::fromStdString(raco::core::PathManager::preferenceFilePath().string()));
+	}
 	Q_EMIT dirtyChanged(false);
 }
 
 bool PreferencesView::dirty() {
-	return RaCoPreferences::instance().userProjectsDirectory != userProjectEdit_->text() || 
-		RaCoPreferences::instance().imageSubdirectory != imageEdit_->text() || 
-		RaCoPreferences::instance().meshSubdirectory != meshEdit_->text() ||
-		RaCoPreferences::instance().scriptSubdirectory != scriptEdit_->text() ||
-		RaCoPreferences::instance().shaderSubdirectory != shaderEdit_->text();
+	return RaCoPreferences::instance().userProjectsDirectory != userProjectEdit_->text();
 }
 
 }  // namespace raco::common_widgets

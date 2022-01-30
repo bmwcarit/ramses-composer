@@ -40,9 +40,9 @@ public:
 	ValueHandle propertyHandle{data.valueHandle.get("uri")};
 	PropertyBrowserItem propertyBrowserItem{propertyHandle, dataChangeDispatcher, &commandInterface, &model};
 	ExposedURIEditor uriEditor{&propertyBrowserItem};
-	std::string projectPath{(cwd_path() / "project" / "projectFileName").generic_string()};
-	std::string absoluteMeshPath{(cwd_path() / "meshes" / "Duck.glb").generic_string()};
-	std::string relativeMeshPath{PathManager::constructRelativePath(absoluteMeshPath, std::filesystem::path(projectPath).parent_path().string())};
+	std::string projectPath{(test_path() / "project" / "projectFileName").string()};
+	std::string absoluteMeshPath{(test_path() / "meshes" / "Duck.glb").string()};
+	std::string relativeMeshPath{raco::utils::u8path(absoluteMeshPath).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
 
 	URIEditorTest() {
 		project.setCurrentPath(projectPath);
@@ -85,7 +85,7 @@ TEST_F(URIEditorTest, InstantiationIsDefaultRelative) {
 }
 
 TEST_F(URIEditorTest, ModificationAddNonExistentPath) {
-	propertyBrowserItem.set((cwd_path() / "THISSHOULDNOTEXIST.txt").string());
+	propertyBrowserItem.set((test_path() / "THISSHOULDNOTEXIST.txt").string());
 	
 	ASSERT_TRUE(propertyBrowserItem.hasError());
 	ASSERT_EQ(propertyBrowserItem.error().level(), ErrorLevel::ERROR);
@@ -151,12 +151,12 @@ TEST_F(URIEditorTest, ModificationChangeRelativeToAbsolutePathByUserAction) {
 }
 
 TEST_F(URIEditorTest, ModificationRerootRelativePath) {
-	std::string newProjectPath{(cwd_path() / "project" / "projectSubFolder" / "projectFileName").generic_string()};
-	std::string newRelativeMeshPath{PathManager::constructRelativePath(absoluteMeshPath, std::filesystem::path(newProjectPath).parent_path().string())};
+	auto newProjectPath = test_path() / "project" / "projectSubFolder" / "projectFileName";
+	auto newRelativeMeshPath = raco::utils::u8path(absoluteMeshPath).normalizedRelativePath(newProjectPath.parent_path());
 
 	setLineEditText(relativeMeshPath);
 
-	propertyBrowserItem.set(PathManager::rerootRelativePath(relativeMeshPath, projectPath, newProjectPath));
+	propertyBrowserItem.set(raco::utils::u8path(relativeMeshPath).rerootRelativePath(projectPath, newProjectPath).string());
 	valueChanged();
 
 	ASSERT_EQ(uriEditor.getLineEdit()->text().toStdString(), newRelativeMeshPath);

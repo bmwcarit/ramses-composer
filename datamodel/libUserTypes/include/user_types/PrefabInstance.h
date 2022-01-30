@@ -38,20 +38,12 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("template", &template_);
-		properties_.emplace_back("mapToInstance", &mapToInstance_);
 	}
 
 	Property<SPrefab, DisplayNameAnnotation> template_{nullptr, DisplayNameAnnotation("Prefab Template")};
 
-	static SEditorObject mapToInstance(SEditorObject obj, SPrefab prefab, SPrefabInstance instance);
-	static SEditorObject mapFromInstance(SEditorObject obj, SPrefabInstance instance);
-
-	void removePrefabInstanceChild(BaseContext& context, const SEditorObject& prefabChild);
-
-	void addChildMapping(BaseContext& context, const SEditorObject& prefabChild, const SEditorObject& instanceChild);
-
-	// Maps from Prefab children objects -> PrefabInstance children
-	Property<Table, ArraySemanticAnnotation, HiddenProperty> mapToInstance_;
+	static std::string mapObjectIDToInstance(SEditorObject obj, SPrefab prefab, SPrefabInstance instance);
+	static std::string mapObjectIDFromInstance(SEditorObject obj, SPrefab prefab, SPrefabInstance instance);
 };
 
 }

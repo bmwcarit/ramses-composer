@@ -30,7 +30,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -44,7 +44,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays_rename_obj
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -61,7 +61,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_animAssigned_dataArra
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -82,7 +82,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_noDataArrays) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -97,7 +97,7 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_animAssigned_defaul
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -118,7 +118,7 @@ TEST_F(AnimationChannelAdaptorTest, invalidAnim_invalidSampler_noDataArrays) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -133,7 +133,7 @@ TEST_F(AnimationChannelAdaptorTest, noAnim_noDataArrays) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "Duck.glb").string()};
+	std::string uriPath{(test_path() / "meshes" / "Duck.glb").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -145,7 +145,7 @@ TEST_F(AnimationChannelAdaptorTest, interpolationTest_dynamicDataArrays) {
 
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
@@ -175,7 +175,7 @@ TEST_F(AnimationChannelAdaptorTest, mesh_baked_flag_true_anim_data_gets_imported
 	commandInterface.set({mesh, {"bakeMeshes"}}, true);
 	dispatch();
 
-	std::string uriPath{(cwd_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
+	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 

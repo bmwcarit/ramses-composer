@@ -15,7 +15,7 @@
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "utils/CrashDump.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include <QCoreApplication>
 #include <QTimer>
@@ -58,6 +58,31 @@ Q_SIGNALS:
 
 #include "main.moc"
 
+spdlog::level::level_enum getLevelFromArg(const QString& arg) {
+	bool logLevelValid;
+	int logLevel = arg.toInt(&logLevelValid);
+	spdlog::level::level_enum spdLogLevel;
+	switch (logLevelValid ? logLevel : -1) {
+		case 0:
+			return spdlog::level::level_enum::off;
+		case 1:
+			return spdlog::level::level_enum::critical;
+		case 2:
+			return spdlog::level::level_enum::err;
+		case 3:
+			return spdlog::level::level_enum::warn;
+		case 4:
+			return spdlog::level::level_enum::info;
+		case 5:
+			return spdlog::level::level_enum::debug;
+		case 6:
+			return spdlog::level::level_enum::trace;
+		default:
+			LOG_ERROR(raco::log_system::COMMON, "Invalid Log Level: \"{}\". Continuing with verbose log output.", arg.toStdString().c_str());
+			return spdlog::level::level_enum::trace;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	QCoreApplication::setApplicationName("Ramses Composer Headless");
 	QCoreApplication::setApplicationVersion(RACO_OSS_VERSION);
@@ -85,10 +110,18 @@ int main(int argc, char* argv[]) {
 		QStringList() << "d"
 					  << "nodump",
 		"Don't generate crash dumps on unhandled exceptions.");
+	QCommandLineOption logLevelOption(
+		QStringList() << "l"
+					  << "loglevel",
+		"Maximum information level that should be printed as console log output. Possible options: 0 (off), 1 (critical), 2 (error), 3 (warn), 4 (info), 5 (debug), 6 (trace).",
+		"log-level",
+		"6"
+	);
 	parser.addOption(loadProjectAction);
 	parser.addOption(exportProjectAction);
 	parser.addOption(compressExportAction);
 	parser.addOption(noDumpFileCheckOption);
+	parser.addOption(logLevelOption);
 
 	// application must be instantiated before parsing command line
 	QCoreApplication a(argc, argv);
@@ -101,16 +134,22 @@ int main(int argc, char* argv[]) {
 	bool noDumpFiles = parser.isSet(noDumpFileCheckOption);
 	raco::utils::crashdump::installCrashDumpHandler(noDumpFiles);
 
-	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString());
+	auto appDataPath = raco::utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
+	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
 
-	raco::log_system::init(raco::core::PathManager::logFilePath().c_str());
+	std::filesystem::create_directory(raco::core::PathManager::defaultConfigDirectory());	
+	std::filesystem::create_directory(raco::core::PathManager::logFileDirectory());	
+	raco::log_system::init(raco::core::PathManager::logFileHeadlessName().internalPath().native());
+	auto logLevel = getLevelFromArg(parser.value(logLevelOption));
+	raco::log_system::setConsoleLogLevel(logLevel);
+	raco::ramses_base::setRamsesAndLogicConsoleLogLevel(logLevel);
 
 	QString projectFile{};
 	if (parser.isSet(loadProjectAction)) {
 		QFileInfo path(parser.value(loadProjectAction));
 		if (path.suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) == 0) {
 			if (path.exists()) {
-				if (raco::utils::path::userHasReadAccess(path.filePath().toStdString())) {
+				if (raco::utils::u8path(path.filePath().toStdString()).userHasReadAccess()) {
 					projectFile = path.absoluteFilePath();
 				} else {
 					LOG_ERROR(raco::log_system::COMMON, "project file could not be read {}", path.filePath().toStdString());

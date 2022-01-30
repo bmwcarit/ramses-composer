@@ -9,7 +9,7 @@
  */
 #include "components/FileChangeListenerImpl.h"
 
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include "core/PathManager.h"
 #include "log_system/log.h"
@@ -32,7 +32,7 @@ FileChangeListenerImpl::FileChangeListenerImpl(std::string& absPath, const Callb
 	directoryWatchConnection_ = QObject::connect(&fileWatcher_, &QFileSystemWatcher::directoryChanged, [this](const auto& dirPath) { onDirectoryChanged(dirPath); });
 	delayedLoadTimerConnection_ = QObject::connect(&delayedLoadTimer_, &QTimer::timeout, [this]() { onDelayedLoad(); });
 
-	didFileExistOnLastWatch_ = raco::utils::path::exists(absPath);
+	didFileExistOnLastWatch_ = path_.exists();
 
 	installWatchers();
 }
@@ -45,7 +45,7 @@ FileChangeListenerImpl::~FileChangeListenerImpl() {
 }
 
 std::string FileChangeListenerImpl::getPath() const {
-	return path_.generic_string();
+	return path_.string();
 }
 
 void FileChangeListenerImpl::addPathToWatch(const QString& path) {
@@ -63,8 +63,8 @@ void FileChangeListenerImpl::installWatchers() {
 }
 
 void FileChangeListenerImpl::installFileWatch() {
-	if (raco::utils::path::exists(path_.generic_string())) {
-		auto pathQtString = QString::fromStdString(path_.generic_string());
+	if (path_.exists()) {
+		auto pathQtString = QString::fromStdString(path_.string());
 		auto fileWatcherContainsFilePath = fileWatcher_.files().contains(pathQtString);
 
 		if (!fileWatcherContainsFilePath) {
@@ -75,8 +75,8 @@ void FileChangeListenerImpl::installFileWatch() {
 
 void FileChangeListenerImpl::installDirectoryWatch() {
 	auto previouslyWatchedDirs = fileWatcher_.directories();
-	for (auto parentPath = path_.parent_path(); parentPath != path_.root_path() && raco::utils::path::isExistingDirectory(parentPath.generic_string()); parentPath = parentPath.parent_path()) {
-		auto parentPathQtString = QString::fromStdString(parentPath.generic_string());
+	for (auto parentPath = path_.parent_path(); parentPath != path_.root_path() && parentPath.existsDirectory(); parentPath = parentPath.parent_path()) {
+		auto parentPathQtString = QString::fromStdString(parentPath.string());
 		auto fileWatcherContainsDirectory = fileWatcher_.files().contains(parentPathQtString);
 
 		if (!fileWatcherContainsDirectory) {
@@ -102,7 +102,7 @@ void FileChangeListenerImpl::onFileChanged(const QString& filePath) {
 }
 
 void FileChangeListenerImpl::onDelayedLoad() {
-	didFileExistOnLastWatch_ = raco::utils::path::exists(path_.generic_string());
+	didFileExistOnLastWatch_ = path_.exists();
 
 #if (defined(OS_WINDOWS) || defined(OS_UNIX))
 	if (didFileExistOnLastWatch_) {
@@ -118,7 +118,7 @@ void FileChangeListenerImpl::onDelayedLoad() {
 }
 
 void FileChangeListenerImpl::onDirectoryChanged(const QString& dirPath) {
-	auto fileExists = raco::utils::path::exists(path_.generic_string());
+	auto fileExists = path_.exists();
 	auto directoryOrFileWasRenamed = didFileExistOnLastWatch_ && !fileExists;
 	auto fileWasCreatedOrMovedInPlace = !didFileExistOnLastWatch_ && fileExists;
 
@@ -146,7 +146,7 @@ bool FileChangeListenerImpl::fileCanBeAccessedOnWindows() {
 		return true;
 	}
 
-	LOG_DEBUG(log_system::RAMSES_BACKEND, "Windows could not access file {} - it seems to be opened for writing by another process right now.", path_.generic_string());
+	LOG_DEBUG(log_system::RAMSES_BACKEND, "Windows could not access file {} - it seems to be opened for writing by another process right now.", path_.string());
 
 	return false;
 }
@@ -154,14 +154,14 @@ bool FileChangeListenerImpl::fileCanBeAccessedOnWindows() {
 
 #if (defined(OS_UNIX))
 bool FileChangeListenerImpl::fileCanBeAccessedOnUnix() {
-	auto fileDescriptor = open(path_.generic_string().c_str(), O_RDONLY);
+	auto fileDescriptor = open(path_.string().c_str(), O_RDONLY);
 
 	if (fileDescriptor > 0 && EACCES != errno && EAGAIN != errno) {
 		close(fileDescriptor);
 		return true;
 	}
 
-	LOG_DEBUG(log_system::RAMSES_BACKEND, "Linux could not access file {} - {}", path_.generic_string(), strerror(errno));
+	LOG_DEBUG(log_system::RAMSES_BACKEND, "Linux could not access file {} - {}", path_.string(), strerror(errno));
 
 	return false;
 }

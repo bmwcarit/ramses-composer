@@ -23,7 +23,7 @@ class PerspectiveCameraAdaptorTest : public RamsesBaseFixture<> {};
 TEST_F(PerspectiveCameraAdaptorTest, quaternion_link_camera_still_active) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = VEC4F

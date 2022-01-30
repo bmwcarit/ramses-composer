@@ -37,7 +37,7 @@ std::string baseFolderForRelativePath(const Project& project, SEditorObject obje
 	if (!externalProjectID.empty()) {
 		if (project.hasExternalProjectMapping(externalProjectID)) {
 			auto projectPath = project.lookupExternalProjectPath(externalProjectID);
-			return std::filesystem::path(projectPath).parent_path().generic_string();
+			return raco::utils::u8path(projectPath).parent_path().string();
 		}
 		return std::string();
 	}
@@ -53,13 +53,13 @@ std::string resolveUriPropertyToAbsolutePath(const Project& project, const Value
 	if (!externalProjectID.empty()) {
 		if (project.hasExternalProjectMapping(externalProjectID)) {
 			auto projectPath = project.lookupExternalProjectPath(externalProjectID);
-			auto projectFolder = std::filesystem::path(projectPath).parent_path().generic_string();
-			return PathManager::constructAbsolutePath(projectFolder, uriValue);
+			auto projectFolder = raco::utils::u8path(projectPath).parent_path().string();
+			return raco::utils::u8path(uriValue).normalizedAbsolutePath(projectFolder).string();
 		}
 		return std::string();
 	}
 
-	return PathManager::constructAbsolutePath(project.currentFolder(), uriValue);
+	return raco::utils::u8path(uriValue).normalizedAbsolutePath(project.currentFolder()).string();
 }
 
 bool isPathRelativeToCurrentProject(const SEditorObject& object) {

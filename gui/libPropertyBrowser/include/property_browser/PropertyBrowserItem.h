@@ -72,8 +72,10 @@ public:
 	bool hasCollapsedParent() const noexcept;
 	/** Local expanded flag, doesn't take into account if ancestors are collapsed or not. */
 	bool expanded() const noexcept;
+	void setExpanded(bool expanded) noexcept;
+	void setExpandedRecursively(bool expanded) noexcept;
 	bool showChildren() const;
-	bool showControl() const;
+	
 	void requestNextSiblingFocus();
 
 	const core::ErrorItem& error() const;
@@ -81,12 +83,13 @@ public:
 
 	void markForDeletion();
 
+	bool canBeChosenByColorPicker() const;
+
 Q_SIGNALS:
 	void linkStateChanged(raco::core::Queries::LinkState state);
 	void linkTextChanged(const QString& text);
 	void childrenChangedOrCollapsedChildChanged();
 	void showChildrenChanged(bool show);
-	void showControlChanged(bool show);
 	void valueChanged(raco::core::ValueHandle& v);
 	void errorChanged(raco::core::ValueHandle& v);
 	void displayNameChanged(const QString& string);
@@ -94,9 +97,6 @@ Q_SIGNALS:
 	void childrenChanged(const QList<PropertyBrowserItem*>& children);
 	void editableChanged(bool editable);
 	void widgetRequestFocus();
-
-public Q_SLOTS:
-	void toggleExpanded() noexcept;
 
 protected:
 	Q_SLOT void updateLinkState() noexcept;

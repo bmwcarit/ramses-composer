@@ -15,7 +15,9 @@
 #include <QWidget>
 #include <memory>
 
+
 namespace raco::ramses_widgets {
+
 
 class PreviewContentWidget final : public QWidget {
 	Q_OBJECT
@@ -26,6 +28,7 @@ public:
 	ramses::sceneId_t getSceneId();
 	void setSceneId(ramses::sceneId_t id);
 	void setBackgroundColor(data_storage::Vec4f backgroundColor);
+	void setFilteringMode(PreviewFilteringMode mode);
 	void commit();
 
 public Q_SLOTS:
@@ -36,6 +39,7 @@ public Q_SLOTS:
 		const QSize viewportSize,
 		const QSize virtualSize,
 		const QSize targetSize);
+
 Q_SIGNALS:
 	void newMousePosition(const QPoint globalPosition);
 

@@ -9,16 +9,20 @@
  */
 #pragma once
 
-#include <string>
+#include <QWidget>
 
-namespace raco::utils::path {
+namespace raco::property_browser {
 
-bool exists(const std::string& path);
+class PropertyBrowserItem;
 
-bool userHasReadAccess(const std::string& path);
+class PropertyEditor : public QWidget {
+public:
+	explicit PropertyEditor(
+		PropertyBrowserItem* item,
+		QWidget* parent = nullptr);
 
-bool isExistingDirectory(const std::string& path);
+protected:
+	PropertyBrowserItem* item_;
+};
 
-bool isExistingFile(const std::string& path);
-
-}  // namespace raco::utils::path
+}  // namespace raco::property_browser

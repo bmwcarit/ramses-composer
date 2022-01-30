@@ -9,24 +9,29 @@
  */
 #include "core/Queries.h"
 
-#include "core/RamsesProjectMigration.h"
+#include "core/DynamicEditorObject.h"
+#include "core/ProjectMigration.h"
+#include "core/ProjectMigrationToV23.h"
+#include "core/ProxyObjectFactory.h"
+#include "utils/u8path.h"
 
 #include "application/RaCoApplication.h"
 #include "application/RaCoProject.h"
 
 #include "core/Link.h"
+#include "core/PathManager.h"
 
-#include "ramses_adaptor/SceneBackend.h"
 #include "core/SerializationKeys.h"
+#include "ramses_adaptor/SceneBackend.h"
 
 #include "user_types/Enumerations.h"
+#include "user_types/Material.h"
 #include "user_types/MeshNode.h"
 #include "user_types/OrthographicCamera.h"
 #include "user_types/PerspectiveCamera.h"
-#include "user_types/Material.h"
-#include "user_types/Texture.h"
 #include "user_types/RenderBuffer.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Texture.h"
 
 #include "testing/TestEnvironmentCore.h"
 
@@ -36,9 +41,32 @@ constexpr bool GENERATE_DIFF{false};
 
 using namespace raco::core;
 
+const char testName_old[] = "Test";
+const char testName_new[] = "Test";
+
+static_assert(!std::is_same<raco::serialization::proxy::Proxy<testName_old>, raco::serialization::proxy::Proxy<testName_new>>::value);
+
 struct MigrationTest : public TestEnvironmentCore {
 	raco::ramses_base::HeadlessEngineBackend backend{};
 	raco::application::RaCoApplication application{backend};
+
+	// Check if the property types coming out of the migration code agree with the types
+	// in the current version of the user types.
+	// Failure indicates missing migration code.
+	void checkPropertyTypes(const raco::serialization::ProjectDeserializationInfoIR& deserializedIR) {
+		auto userTypesPropMap = raco::serialization::makeUserTypePropertyMap();
+
+		for (const auto obj : deserializedIR.objects) {
+			const auto& typesMap = userTypesPropMap.at(obj->getTypeDescription().typeName);
+
+			for (size_t i = 0; i < obj->size(); i++) {
+				auto propName = obj->name(i);
+				auto it = typesMap.find(propName);
+				ASSERT_TRUE(it != typesMap.end());
+				EXPECT_EQ(it->second, obj->get(i)->typeName());
+			}
+		}
+	}
 
 	std::unique_ptr<raco::application::RaCoProject> loadAndCheckJson(QString filename, int* outFileVersion = nullptr) {
 		QFile file{filename};
@@ -46,48 +74,33 @@ struct MigrationTest : public TestEnvironmentCore {
 		auto document{QJsonDocument::fromJson(file.readAll())};
 		file.close();
 		auto fileVersion{raco::serialization::deserializeFileVersion(document)};
-		EXPECT_TRUE(fileVersion <= raco::core::RAMSES_PROJECT_FILE_VERSION);
+		EXPECT_TRUE(fileVersion <= raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 		if (outFileVersion) {
 			*outFileVersion = fileVersion;
 		}
-		auto projectInfo = raco::serialization::deserializeProjectVersionInfo(document);
-		std::unordered_map<std::string, std::string> migrationObjWarnings;
-		auto migratedDoc{raco::core::migrateProject(document, migrationObjWarnings)};
-		std::string migratedJson{migratedDoc.toJson().toStdString()};
+
+		// Perform deserialization to IR and migration by hand to check output of migration code:
+		auto deserializedIR{raco::serialization::deserializeProjectToIR(document, filename.toStdString())};
+		raco::serialization::migrateProject(deserializedIR);
+		checkPropertyTypes(deserializedIR);
 
 		std::vector<std::string> pathStack;
-		auto racoproject = raco::application::RaCoProject::loadFromJson(migratedDoc, filename, &application, pathStack);
-
-		std::unordered_map<std::string, std::vector<int>> currentVersions = {
-			{raco::serialization::keys::FILE_VERSION, {fileVersion}},
-			{raco::serialization::keys::RAMSES_VERSION, {projectInfo.ramsesVersion.major, projectInfo.ramsesVersion.minor, projectInfo.ramsesVersion.patch}},
-			{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {projectInfo.ramsesLogicEngineVersion.major, projectInfo.ramsesLogicEngineVersion.minor, projectInfo.ramsesLogicEngineVersion.patch}},
-			{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {projectInfo.raCoVersion.major, projectInfo.raCoVersion.minor, projectInfo.raCoVersion.patch}}};
-
-		auto serialized = racoproject->serializeProject(currentVersions);
-		auto serializedJson = serialized.toJson().toStdString();
-
-		if (GENERATE_DIFF) {
-			// This show a diff but is _very_ slow when run under the visual studio
-			EXPECT_EQ(migratedJson, serializedJson);
-		} else {
-			// alternatively use this to show failure but this doesn't show the diff
-			EXPECT_TRUE(migratedJson == serializedJson);
-		}
+		auto racoproject = raco::application::RaCoProject::loadFromFile(filename, &application, pathStack);
+		EXPECT_TRUE(racoproject != nullptr);
 
 		return racoproject;
 	}
 };
 
 TEST_F(MigrationTest, migrate_from_V1) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V1.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V1.rca").string()));
 
 	ASSERT_EQ(racoproject->project()->settings()->sceneId_.asInt(), 123);
 	ASSERT_NE(racoproject->project()->settings()->objectID(), "b5535e97-4e60-4d72-99a9-b137b2ed52a5");	// this was the magic hardcoded ID originally used by the migration code.
 }
 
 TEST_F(MigrationTest, migrate_from_V9) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V9.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V9.rca").string()));
 
 	auto p = std::dynamic_pointer_cast<raco::user_types::PerspectiveCamera>(raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera"));
 	ASSERT_EQ(p->viewport_->offsetX_.asInt(), 1);
@@ -103,7 +116,7 @@ TEST_F(MigrationTest, migrate_from_V9) {
 }
 
 TEST_F(MigrationTest, migrate_from_V10) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V10.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V10.rca").string()));
 
 	auto meshnode = raco::core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<raco::user_types::MeshNode>();
 
@@ -136,7 +149,7 @@ TEST_F(MigrationTest, migrate_from_V10) {
 }
 
 TEST_F(MigrationTest, migrate_from_V12) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V12.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V12.rca").string()));
 
 	auto pcam = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
 	ASSERT_EQ(*pcam->viewport_->offsetX_, 1);
@@ -144,20 +157,20 @@ TEST_F(MigrationTest, migrate_from_V12) {
 	ASSERT_EQ(*pcam->viewport_->width_, 1441);
 	ASSERT_EQ(*pcam->viewport_->height_, 721);
 
-	ASSERT_EQ(*pcam->frustum_->near_, 4.5); /// linked
+	ASSERT_EQ(*pcam->frustum_->near_, 4.5);	 /// linked
 	ASSERT_EQ(*pcam->frustum_->far_, 1001.0);
 	ASSERT_EQ(*pcam->frustum_->fov_, 36.0);
 	ASSERT_EQ(*pcam->frustum_->aspect_, 3.0);
 
 	auto ocam = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
 	ASSERT_EQ(*ocam->viewport_->offsetX_, 2);
-	ASSERT_EQ(*ocam->viewport_->offsetY_, 3); // linked
+	ASSERT_EQ(*ocam->viewport_->offsetY_, 3);  // linked
 	ASSERT_EQ(*ocam->viewport_->width_, 1442);
 	ASSERT_EQ(*ocam->viewport_->height_, 722);
 
 	ASSERT_EQ(*ocam->frustum_->near_, 2.1);
 	ASSERT_EQ(*ocam->frustum_->far_, 1002.0);
-	ASSERT_EQ(*ocam->frustum_->left_, 4.5); // linked
+	ASSERT_EQ(*ocam->frustum_->left_, 4.5);	 // linked
 	ASSERT_EQ(*ocam->frustum_->right_, 12.0);
 	ASSERT_EQ(*ocam->frustum_->bottom_, -8.0);
 	ASSERT_EQ(*ocam->frustum_->top_, 12.0);
@@ -202,23 +215,19 @@ TEST_F(MigrationTest, migrate_from_V12) {
 
 	auto meshnode_no_mesh = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mesh")->as<raco::user_types::MeshNode>();
 	ASSERT_EQ(meshnode_no_mesh->materials_->size(), 0);
-	
+
 	auto meshnode_mesh_no_mat = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mesh_no_mat")->as<raco::user_types::MeshNode>();
 	ASSERT_EQ(meshnode_mesh_no_mat->materials_->size(), 1);
 
 	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
-	checkLinks(*racoproject->project(), {
-		{{lua, {"luaOutputs", "int"}}, {pcam, {"viewport", "offsetY"}}},
-		{{lua, {"luaOutputs", "float"}}, {pcam, {"frustum", "nearPlane"}}},
-		{{lua, {"luaOutputs", "int"}}, {ocam, {"viewport", "offsetY"}}},
-		{{lua, {"luaOutputs", "float"}}, {ocam, {"frustum", "leftPlane"}}}});
-
+	checkLinks(*racoproject->project(), {{{lua, {"luaOutputs", "int"}}, {pcam, {"viewport", "offsetY"}}},
+											{{lua, {"luaOutputs", "float"}}, {pcam, {"frustum", "nearPlane"}}},
+											{{lua, {"luaOutputs", "int"}}, {ocam, {"viewport", "offsetY"}}},
+											{{lua, {"luaOutputs", "float"}}, {ocam, {"frustum", "leftPlane"}}}});
 }
 
 TEST_F(MigrationTest, migrate_from_V13) {
-	std::vector<std::string> pathStack;
-
-	auto racoproject = raco::application::RaCoProject::loadFromFile(QString::fromStdString((cwd_path() / "migrationTestData" / "V13.rca").string()), &application, pathStack);
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V13.rca").string()));
 
 	auto textureNotFlipped = raco::core::Queries::findByName(racoproject->project()->instances(), "DuckTextureNotFlipped")->as<raco::user_types::Texture>();
 	ASSERT_FALSE(*textureNotFlipped->flipTexture_);
@@ -228,7 +237,7 @@ TEST_F(MigrationTest, migrate_from_V13) {
 }
 
 TEST_F(MigrationTest, migrate_from_V14) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V14.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V14.rca").string()));
 
 	auto camera = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
 	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
@@ -260,7 +269,7 @@ TEST_F(MigrationTest, migrate_from_V14) {
 }
 
 TEST_F(MigrationTest, migrate_from_V14b) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V14b.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V14b.rca").string()));
 
 	auto camera = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
 	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
@@ -292,7 +301,7 @@ TEST_F(MigrationTest, migrate_from_V14b) {
 }
 
 TEST_F(MigrationTest, migrate_from_V14c) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V14c.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V14c.rca").string()));
 
 	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
 	ASSERT_EQ(*renderpass->camera_, nullptr);
@@ -323,7 +332,7 @@ TEST_F(MigrationTest, migrate_from_V14c) {
 }
 
 TEST_F(MigrationTest, migrate_from_V16) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V16.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V16.rca").string()));
 
 	auto renderlayeropt = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerOptimized")->as<raco::user_types::RenderLayer>();
 	ASSERT_EQ(renderlayeropt->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
@@ -334,7 +343,7 @@ TEST_F(MigrationTest, migrate_from_V16) {
 }
 
 TEST_F(MigrationTest, migrate_from_V18) {
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "V18.rca").string()));
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V18.rca").string()));
 
 	auto bgColor = racoproject->project()->settings()->backgroundColor_;
 	ASSERT_EQ(bgColor->typeDescription.typeName, Vec4f::typeDescription.typeName);
@@ -346,20 +355,78 @@ TEST_F(MigrationTest, migrate_from_V18) {
 	ASSERT_EQ(bgColorVec4.w.asDouble(), 1.0);
 }
 
+TEST_F(MigrationTest, migrate_from_V21) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V21.rca").string()));
+
+	auto resourceFolders = racoproject->project()->settings()->defaultResourceDirectories_;
+	ASSERT_EQ(resourceFolders->typeDescription.typeName, ProjectSettings::DefaultResourceDirectories::typeDescription.typeName);
+
+	ASSERT_EQ(resourceFolders->imageSubdirectory_.asString(), "images");
+	ASSERT_EQ(resourceFolders->meshSubdirectory_.asString(), "meshes");
+	ASSERT_EQ(resourceFolders->scriptSubdirectory_.asString(), "scripts");
+	ASSERT_EQ(resourceFolders->shaderSubdirectory_.asString(), "shaders");
+}
+
+TEST_F(MigrationTest, migrate_from_V21_custom_paths) {
+	std::string imageSubdirectory = "imgs";
+	std::string meshSubdirectory = "mshs";
+	std::string scriptSubdirectory = "spts";
+	std::string shaderSubdirectory = "shds";
+
+	auto preferencesFile = raco::core::PathManager::preferenceFilePath();
+	if (preferencesFile.exists()) {
+		std::filesystem::remove(preferencesFile);
+	}
+	
+	{
+		// use scope to force saving QSettings when leaving the scope
+		QSettings settings(preferencesFile.string().c_str(), QSettings::IniFormat);
+		settings.setValue("imageSubdirectory", imageSubdirectory.c_str());
+		settings.setValue("meshSubdirectory", meshSubdirectory.c_str());
+		settings.setValue("scriptSubdirectory", scriptSubdirectory.c_str());
+		settings.setValue("shaderSubdirectory", shaderSubdirectory.c_str());
+	}
+
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V21.rca").string()));
+
+	auto resourceFolders = racoproject->project()->settings()->defaultResourceDirectories_;
+	ASSERT_EQ(resourceFolders->typeDescription.typeName, ProjectSettings::DefaultResourceDirectories::typeDescription.typeName);
+
+	ASSERT_EQ(resourceFolders->imageSubdirectory_.asString(), imageSubdirectory);
+	ASSERT_EQ(resourceFolders->meshSubdirectory_.asString(), meshSubdirectory);
+	ASSERT_EQ(resourceFolders->scriptSubdirectory_.asString(), scriptSubdirectory);
+	ASSERT_EQ(resourceFolders->shaderSubdirectory_.asString(), shaderSubdirectory);
+
+	if (preferencesFile.exists()) {
+		std::filesystem::remove(preferencesFile);
+	}
+}
+
+TEST_F(MigrationTest, migrate_from_V23) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V23.rca").string()));
+
+	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
+	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
+	auto prefab_node = prefab->children_->asVector<SEditorObject>()[0]->as<raco::user_types::Node>();
+	auto inst_node = inst->children_->asVector<SEditorObject>()[0]->as<raco::user_types::Node>();
+
+	EXPECT_EQ(inst_node->objectID(), EditorObject::XorObjectIDs(prefab_node->objectID(), inst->objectID()));
+}
+
 TEST_F(MigrationTest, migrate_from_current) {
-	// Check for changes in serialized JSON in newest version. 
+	// Check for changes in serialized JSON in newest version.
 	// Should detect changes in data model with missing migration code.
 	// Also checks that all object types are present in file.
-	// 
-	// The "version-current.rca" project needs to be updated when the data model has 
+	//
+	// The "version-current.rca" project needs to be updated when the data model has
 	// been changed in a way that changes the serialized JSON, e.g.
 	// - static properties added
 	// - annotations added to static properties
 	// - added new object types
 
 	int fileVersion;
-	auto racoproject = loadAndCheckJson(QString::fromStdString((cwd_path() / "migrationTestData" / "version-current.rca").string()), &fileVersion);
-	ASSERT_EQ(fileVersion, raco::core::RAMSES_PROJECT_FILE_VERSION);
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "version-current.rca").string()), &fileVersion);
+	ASSERT_EQ(fileVersion, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 
 	// check that all user types present in file
 	auto& instances = racoproject->project()->instances();
@@ -370,4 +437,62 @@ TEST_F(MigrationTest, migrate_from_current) {
 		}) != instances.end());
 	}
 }
+TEST_F(MigrationTest, check_proxy_factory_has_all_objects_types) {
+	// Check that all types in the UserObjectFactory constructory via makeTypeMap call
+	// also have the corresponding proxy type added in the ProxyObjectFactory constructor.
+	// If this fails add the type in the ProxyObjectFactory constructor makeTypeMap call.
 
+	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& proxyTypeMap{proxyFactory.getTypes()};
+
+	for (auto& item : objectFactory()->getTypes()) {
+		auto name = item.first;
+		EXPECT_TRUE(proxyTypeMap.find(name) != proxyTypeMap.end());
+	}
+}
+
+TEST_F(MigrationTest, check_proxy_factory_has_all_dynamic_property_types) {
+	// Check that all dynamic properties contained in UserObjectFactory::PropertyTypeMapType
+	// have their corresponding properties added in ProxyObjectFactory::PropertyTypeMapType too.
+	// If this fails add the property in ProxyObjectFactory::PropertyTypeMapType.
+
+	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& userFactory{UserObjectFactory::getInstance()};
+	auto& proxyProperties{proxyFactory.getProperties()};
+
+	for (auto& item : userFactory.getProperties()) {
+		auto name = item.first;
+		EXPECT_TRUE(proxyProperties.find(name) != proxyProperties.end());
+	}
+}
+TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
+	// Check that the ProxyObjectFactory can create all statically known properties.
+	// If this fails add the failing property to the ProxyObjectFactory::PropertyTypeMapType.
+
+	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& userFactory{UserObjectFactory::getInstance()};
+
+	for (auto& item :userFactory.getTypes()) {
+		auto name = item.first;
+		auto object = objectFactory()->createObject(name);
+		ASSERT_TRUE(object != nullptr);
+		for (size_t index = 0; index < object->size(); index++) {
+			auto propTypeName = object->get(index)->typeName();
+			auto proxyProperty = proxyFactory.createValue(propTypeName);
+			ASSERT_TRUE(proxyProperty != nullptr);
+			ASSERT_EQ(proxyProperty->typeName(), propTypeName);
+		}
+	}
+
+	for (auto& item : userFactory.getStructTypes()) {
+		auto name = item.first;
+		auto object = userFactory.createStruct(name);
+		ASSERT_TRUE(object != nullptr);
+		for (size_t index = 0; index < object->size(); index++) {
+			auto propTypeName = object->get(index)->typeName();
+			auto proxyProperty = proxyFactory.createValue(propTypeName);
+			ASSERT_TRUE(proxyProperty != nullptr);
+			ASSERT_EQ(proxyProperty->typeName(), propTypeName);
+		}
+	}
+}

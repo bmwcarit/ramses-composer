@@ -171,8 +171,8 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial
 		meshNodes[i] = create_meshnode(std::to_string(i), mesh, material);
 	}
 
-	context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
-	context.set({material, {"uriFragment"}}, cwd_path().append("shaders/basic.frag").string());
+	context.set({material, {"uriVertex"}}, test_path().append("shaders/basic.vert").string());
+	context.set({material, {"uriFragment"}}, test_path().append("shaders/basic.frag").string());
 	dispatch();
 
 	context.deleteObjects({mesh, material});
@@ -203,8 +203,8 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicMaterial_const
 		EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
 	}
 
-	context.set({material, {"uriVertex"}}, cwd_path().append("shaders/basic.vert").string());
-	context.set({material, {"uriFragment"}}, cwd_path().append("shaders/basic.frag").string());
+	context.set({material, {"uriVertex"}}, test_path().append("shaders/basic.vert").string());
+	context.set({material, {"uriFragment"}}, test_path().append("shaders/basic.frag").string());
 	dispatch();
 
 	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
@@ -325,7 +325,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicCreation_meshB
 	dispatch();
 	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	context.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
 	dispatch();
 
 	// TODO: Need a way to check actual mesh resources in ramses, we only check for no error
@@ -339,7 +339,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicCreation_meshN
 	dispatch();
 	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	context.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
 	dispatch();
 
 	// TODO: Need a way to check actual mesh resources in ramses, we only check for no error
@@ -353,7 +353,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_meshDeletion_meshNod
 	dispatch();
 	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	context.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
 	dispatch();
 
 	context.deleteObjects({mesh});
@@ -371,7 +371,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_wro
   	dispatch();
 	context.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
 	dispatch();
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
+	context.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
 	dispatch();
 	context.set(ValueHandle{mesh, {"meshIndex"}}, 1);
 	dispatch();
@@ -379,72 +379,5 @@ TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_wro
 	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
 }
 
-TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_wrongSubmeshIndexCreatesErrorTooLow) {
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	dispatch();
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	dispatch();
-	context.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
-	dispatch();
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	dispatch();
-	context.set(ValueHandle{mesh, {"meshIndex"}}, -1);
-	dispatch();
 
-	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
-}
 
-TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_correctSubmeshIndexFixesError) {
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	dispatch();
-	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	dispatch();
-	context.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
-	dispatch();
-	context.set(ValueHandle{mesh, {"uri"}}, cwd_path().append("meshes/Duck.glb").string());
-	dispatch();
-	context.set(ValueHandle{mesh, {"meshIndex"}}, 1);
-	dispatch();
-	context.set(ValueHandle{mesh, {"meshIndex"}}, 0);
-	dispatch();
-
-	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::INFORMATION);
-}
-
-TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_valid_file_with_no_meshes_unbaked_submesh_error) {
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	dispatch();
-	context.set(ValueHandle{meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	dispatch();
-	context.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	dispatch();
-	context.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshless.gltf").string());
-	dispatch();
-
-	ASSERT_TRUE(context.errors().hasError({mesh}));
-	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
-}
-
-TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_valid_file_with_no_meshes_baked_no_submesh_error) {
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	dispatch();
-	context.set(ValueHandle{meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	dispatch();
-	context.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	dispatch();
-	context.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, cwd_path().append("meshes/meshless.gltf").string());
-	dispatch();
-	context.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, true);
-	dispatch();
-
-	ASSERT_TRUE(context.errors().hasError({mesh}));
-	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
-}

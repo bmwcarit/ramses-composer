@@ -760,12 +760,6 @@ bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor&
 	return isValidLinkStart(start) && isValidLinkEnd(end) && checkLinkCompatibleTypes(start, end) && linkWouldBeAllowed(project, start, end);
 }
 
-std::vector<SEditorObject> Queries::filterForVisibleObjects(const std::vector<SEditorObject>& objects) {
-	std::vector<SEditorObject> result;
-	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result), [](const auto& obj) { return Queries::isResource(obj) || Queries::isNotResource(obj); });
-	return result;
-}
-
 std::vector<SEditorObject> Queries::filterForNotResource(const std::vector<SEditorObject>& objects) {
 	std::vector<SEditorObject> result{};
 	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result), Queries::isNotResource);
@@ -780,6 +774,22 @@ std::vector<SEditorObject> Queries::filterByTypeName(const std::vector<SEditorOb
 		});
 	return result;
 }
+
+std::vector<SEditorObject> Queries::filterForTopLevelObjectsByTypeName(const std::vector<SEditorObject>& objects, const std::vector<std::string>& typeNames) {
+	std::vector<SEditorObject> result{};
+	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result),
+		[&typeNames](const SEditorObject& object) {
+			return object->getParent() == nullptr && std::find(typeNames.begin(), typeNames.end(), object->getTypeDescription().typeName) != typeNames.end();
+		});
+	return result;
+}
+
+std::vector<SEditorObject> Queries::filterForVisibleTopLevelObjects(const std::vector<SEditorObject>& objects) {
+	std::vector<SEditorObject> result;
+	std::copy_if(objects.begin(), objects.end(), std::back_inserter(result), [](const auto& obj) { return obj->getParent() == nullptr && (Queries::isResource(obj) || Queries::isNotResource(obj)); });
+	return result;
+}
+
 
 SEditorObjectSet Queries::collectAllChildren(std::vector<SEditorObject> baseObjects) {
 	SEditorObjectSet children;

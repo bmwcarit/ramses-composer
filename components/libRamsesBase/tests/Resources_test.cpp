@@ -21,7 +21,7 @@ class ResourcesAdaptorFixture : public RamsesBaseFixture<> {};
 
 TEST_F(ResourcesAdaptorFixture, texture_name_change) {
 	auto texture = create<user_types::Texture>("texture name");
-	context.set({texture, {"uri"}}, (cwd_path() / "images" / "DuckCM.png").string());
+	context.set({texture, {"uri"}}, (test_path() / "images" / "DuckCM.png").string());
 
 	dispatch();
 
@@ -43,7 +43,7 @@ TEST_F(ResourcesAdaptorFixture, texture_name_change) {
 
 TEST_F(ResourcesAdaptorFixture, texture_info_box) {
 	auto texture = create<user_types::Texture>("texture name");
-	context.set({texture, {"uri"}}, (cwd_path() / "images" / "DuckCM.png").string());
+	context.set({texture, {"uri"}}, (test_path() / "images" / "DuckCM.png").string());
 	dispatch();
 
 	auto infoBoxError = context.errors().getError(raco::core::ValueHandle{texture});
@@ -54,12 +54,12 @@ TEST_F(ResourcesAdaptorFixture, texture_info_box) {
 
 TEST_F(ResourcesAdaptorFixture, cube_map_info_box) {
 	auto cubemap = create<user_types::CubeMap>("cube map name");
-	context.set({cubemap, {"uriFront"}}, (cwd_path() / "images" / "DuckCM.png").string());
-	context.set({cubemap, {"uriBack"}}, (cwd_path() / "images" / "DuckCM.png").string());
-	context.set({cubemap, {"uriLeft"}}, (cwd_path() / "images" / "DuckCM.png").string());
-	context.set({cubemap, {"uriRight"}}, (cwd_path() / "images" / "DuckCM.png").string());
-	context.set({cubemap, {"uriTop"}}, (cwd_path() / "images" / "DuckCM.png").string());
-	context.set({cubemap, {"uriBottom"}}, (cwd_path() / "images" / "DuckCM.png").string());
+	context.set({cubemap, {"uriFront"}}, (test_path() / "images" / "DuckCM.png").string());
+	context.set({cubemap, {"uriBack"}}, (test_path() / "images" / "DuckCM.png").string());
+	context.set({cubemap, {"uriLeft"}}, (test_path() / "images" / "DuckCM.png").string());
+	context.set({cubemap, {"uriRight"}}, (test_path() / "images" / "DuckCM.png").string());
+	context.set({cubemap, {"uriTop"}}, (test_path() / "images" / "DuckCM.png").string());
+	context.set({cubemap, {"uriBottom"}}, (test_path() / "images" / "DuckCM.png").string());
 	dispatch();
 
 	auto infoBoxError = context.errors().getError(raco::core::ValueHandle{cubemap});

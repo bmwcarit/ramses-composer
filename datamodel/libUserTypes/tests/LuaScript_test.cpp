@@ -22,7 +22,7 @@ TEST_F(LuaScriptTest, URI_setValidURI) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
 	ValueHandle m{script};
 	ValueHandle m_uri{m.get("uri")};
-	auto scriptPath = cwd_path().append("scripts/struct.lua").generic_string();
+	auto scriptPath = test_path().append("scripts/struct.lua").string();
 	commandInterface.set(m_uri, scriptPath);
 	EXPECT_EQ(m_uri.asString(), scriptPath);
 }
@@ -36,7 +36,7 @@ TEST_F(LuaScriptTest, URI_setInvalidURI_error) {
 TEST_F(LuaScriptTest, URI_setValidURI_noError) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
 	ValueHandle uriHandle{ script, { "uri" }};
-	commandInterface.set(uriHandle, cwd_path().append("scripts/struct.lua").string());
+	commandInterface.set(uriHandle, test_path().append("scripts/struct.lua").string());
 	EXPECT_FALSE(commandInterface.errors().hasError(uriHandle));
 }
 
@@ -44,7 +44,7 @@ TEST_F(LuaScriptTest, URI_setValidURI_compileError) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
 	ValueHandle uriHandle{ script, { "uri" }};
 	
-	commandInterface.set(uriHandle, cwd_path().append("scripts/compile-error.lua").string());
+	commandInterface.set(uriHandle, test_path().append("scripts/compile-error.lua").string());
 
 	EXPECT_TRUE(commandInterface.errors().hasError(script));
 	EXPECT_FALSE(commandInterface.errors().hasError(uriHandle));
@@ -52,7 +52,7 @@ TEST_F(LuaScriptTest, URI_setValidURI_compileError) {
 
 TEST_F(LuaScriptTest, URI_setValidURI_trimFront) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
-	const auto FILE_NAME = cwd_path().append("scripts/compile-error.lua").generic_string();
+	const auto FILE_NAME = test_path().append("scripts/compile-error.lua").string();
 	ValueHandle uriHandle{ValueHandle{script, {"uri"}}};
 	commandInterface.set(uriHandle, "  " + FILE_NAME);
 	EXPECT_EQ(uriHandle.asString(), FILE_NAME);
@@ -61,7 +61,7 @@ TEST_F(LuaScriptTest, URI_setValidURI_trimFront) {
 
 TEST_F(LuaScriptTest, URI_setValidURI_trimBack) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
-	const auto FILE_NAME = cwd_path().append("scripts/compile-error.lua").generic_string();
+	const auto FILE_NAME = test_path().append("scripts/compile-error.lua").string();
 	ValueHandle uriHandle{ValueHandle{script, {"uri"}}};
 	commandInterface.set(uriHandle, FILE_NAME + "    ");
 	EXPECT_EQ(uriHandle.asString(), FILE_NAME);
@@ -100,7 +100,7 @@ TEST_F(LuaScriptTest, inputs_are_correctly_built) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
 	ValueHandle s{script};
 	ValueHandle uri{s.get("uri")};
-	auto scriptPath = cwd_path().append("scripts/struct.lua").string();
+	auto scriptPath = test_path().append("scripts/struct.lua").string();
 	commandInterface.set(uri, scriptPath);
 	
 	ValueHandle luaInputs{s.get("luaInputs")};
@@ -113,6 +113,34 @@ TEST_F(LuaScriptTest, inputs_are_correctly_built) {
 	EXPECT_EQ(PrimitiveType::Double, structInput[0].type());
 	EXPECT_EQ("b", structInput[1].getPropName());
 	EXPECT_EQ(PrimitiveType::Double, structInput[1].type());
+}
+
+TEST_F(LuaScriptTest, errorInterfaceMissing) {
+	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
+	TextFile scriptRunOnlyFile = makeFile("script1.lua", R"(
+function run()
+end
+)");
+	TextFile scriptInterfaceOnlyFile = makeFile("script2.lua", R"(
+function interface()
+end
+)");
+	TextFile scriptWhitespaceOnlyFile = makeFile("script3.lua", " ");
+	TextFile scriptEmptyFile = makeFile("script4.lua", "");
+
+	ValueHandle uriHandle{ValueHandle{script, {"uri"}}};
+	commandInterface.set(uriHandle, scriptRunOnlyFile);
+	ASSERT_TRUE(commandInterface.errors().hasError(script));
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'interface' function defined!");
+	commandInterface.set(uriHandle, scriptInterfaceOnlyFile);
+	ASSERT_TRUE(commandInterface.errors().hasError(script));
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'run' function defined!");
+	commandInterface.set(uriHandle, scriptWhitespaceOnlyFile);
+	ASSERT_TRUE(commandInterface.errors().hasError(script));
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'interface' function defined!");
+	commandInterface.set(uriHandle, scriptEmptyFile);
+	ASSERT_TRUE(commandInterface.errors().hasError(script));
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'interface' function defined!");
 }
 
 TEST_F(LuaScriptTest, arrayIsCorrectlyBuilt) {
@@ -187,15 +215,15 @@ end
 
 TEST_F(LuaScriptTest, restore_cached_struct_member) {
 	auto lua = create<LuaScript>("script");
-	commandInterface.set({lua, {"uri"}}, (cwd_path() / "scripts/struct.lua").string());
+	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/struct.lua").string());
 
 	commandInterface.set({lua, {"luaInputs", "struct", "a"}}, 2.0);
 	ValueHandle inputs{lua, {"luaInputs"}};
 
-	commandInterface.set({lua, {"uri"}}, (cwd_path() / "scripts/nosuchfile.lua").string());
+	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/nosuchfile.lua").string());
 	ASSERT_EQ(inputs.size(), 0);
 
-	commandInterface.set({lua, {"uri"}}, (cwd_path() / "scripts/struct.lua").string());
+	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/struct.lua").string());
 	ASSERT_EQ(inputs.size(), 1);
 	ValueHandle in_struct = inputs.get("struct");
 	ASSERT_TRUE(in_struct);
@@ -255,10 +283,11 @@ TEST_F(LuaScriptTest, modules_in_uri_are_rejected) {
 	ValueHandle s{newScript};
 	ValueHandle uri{s.get("uri")};
 
-	commandInterface.set(s.get("uri"), cwd_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(s.get("uri"), test_path().append("scripts/moduleDefinition.lua").string());
 
 	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
 	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(newScript->luaModules_->size(), 0);
 }
 
 
@@ -557,4 +586,203 @@ end
 	commandInterface.set(uri, scriptFile2);
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_EQ(newScript->luaModules_.asTable().size(), 0);
+}
+
+TEST_F(LuaScriptTest, module_error_messages_invalid_assigned) {
+	auto moduleInvalid = create<LuaScriptModule>("invalid");
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle scriptUri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("test", "coalas")
+
+function interface()	
+end
+
+function run()
+end
+)");
+
+	auto moduleInvalidFile = makeFile("moduleInvalid.lua", R"(
+local what = {}
+error;
+return what
+)");
+
+	commandInterface.set(scriptUri, scriptFile);
+	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).message(), "Invalid LuaScriptModule 'invalid' assigned.");
+
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+}
+
+TEST_F(LuaScriptTest, module_error_messages_two_invalid_assigned) {
+	auto moduleInvalid1 = create<LuaScriptModule>("invalid1");
+	auto moduleInvalid2 = create<LuaScriptModule>("invalid2");
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle scriptUri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("test", "coalas")
+
+function interface()	
+end
+
+function run()
+end
+)");
+
+	auto moduleInvalidFile = makeFile("moduleInvalid.lua", R"(
+local what = {}
+error;
+return what
+)");
+
+	commandInterface.set(scriptUri, scriptFile);
+	commandInterface.set(raco::core::ValueHandle{moduleInvalid1, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(raco::core::ValueHandle{moduleInvalid2, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid1);
+	commandInterface.set(s.get("luaModules").get("test"), moduleInvalid2);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).message(), "Invalid LuaScriptModule 'invalid1' assigned.");
+
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("test")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("test")).message(), "Invalid LuaScriptModule 'invalid2' assigned.");
+}
+
+TEST_F(LuaScriptTest, module_error_messages_invalid_then_valid) {
+	auto moduleValid = create<LuaScriptModule>("valid");
+	auto moduleInvalid = create<LuaScriptModule>("invalid");
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle scriptUri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("test", "coalas")
+
+function interface()	
+end
+
+function run()
+end
+)");
+
+	auto moduleInvalidFile = makeFile("moduleInvalid.lua", R"(
+local what = {}
+error;
+return what
+)");
+
+	auto moduleValidFile = makeFile("moduleValid.lua", R"(
+local coalaModule = {}
+
+return coalaModule
+)");
+
+	commandInterface.set(scriptUri, scriptFile);
+	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleValidFile);
+	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+
+	commandInterface.set(s.get("luaModules").get("coalas"), moduleValid);
+	commandInterface.set(s.get("luaModules").get("test"), moduleValid);
+
+	// make invalid by switching LuaScriptModule
+	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+
+	// make invalid by changing URIs
+	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+}
+
+TEST_F(LuaScriptTest, module_error_messages_invalid_then_empty) {
+	auto moduleValid = create<LuaScriptModule>("valid");
+	auto moduleInvalid = create<LuaScriptModule>("invalid");
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle scriptUri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("test", "coalas")
+
+function interface()	
+end
+
+function run()
+end
+)");
+
+	auto moduleInvalidFile = makeFile("moduleInvalid.lua", R"(
+local what = {}
+error;
+return what
+)");
+
+	auto moduleValidFile = makeFile("moduleValid.lua", R"(
+local coalaModule = {}
+
+return coalaModule
+)");
+
+	commandInterface.set(scriptUri, scriptFile);
+	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleValidFile);
+	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+
+	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
+	commandInterface.set(s.get("luaModules").get("test"), moduleValid);
+
+	commandInterface.set(s.get("luaModules").get("coalas"), SEditorObject());
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_NE(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+}
+
+TEST_F(LuaScriptTest, module_error_messages_no_module_uri) {
+	auto moduleInvalid = create<LuaScriptModule>("invalid");
+	auto newScript = create<LuaScript>("script");
+	ValueHandle s{newScript};
+	ValueHandle scriptUri{s.get("uri")};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("test")
+
+function interface()	
+end
+
+function run()
+end
+)");
+
+	commandInterface.set(scriptUri, scriptFile);
+
+	commandInterface.set(s.get("luaModules").get("test"), moduleInvalid);
+
+	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 }

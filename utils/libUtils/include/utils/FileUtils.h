@@ -11,12 +11,12 @@
 
 #include <string>
 #include <vector>
+#include "u8path.h"
 
 namespace raco::utils::file {
 
-using Path = std::string;
-std::string read(const Path& path);
-std::vector<unsigned char> readBinary(const Path& path);
-void write(const Path& path, const std::string& content);
+std::string read(const u8path& path);
+std::vector<unsigned char> readBinary(const u8path& path);
+void write(const u8path& path, const std::string& content);
 
 }  // namespace raco::utils::file

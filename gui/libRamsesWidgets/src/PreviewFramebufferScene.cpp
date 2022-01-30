@@ -132,8 +132,13 @@ ramses::sceneId_t PreviewFramebufferScene::getSceneId() const {
 	return scene_->getSceneId();
 }
 
-ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(RendererBackend& backend, const QSize& size) {
-	if (framebufferTexture_ && framebufferTexture_->getWidth() == size.width() && framebufferTexture_->getHeight() == size.height()) {
+ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewFilteringMode filteringMode) {
+	ramses::ETextureSamplingMethod samplingMethod = ramses::ETextureSamplingMethod_Nearest;
+	if (filteringMode == PreviewFilteringMode::Linear) {
+		samplingMethod = ramses::ETextureSamplingMethod_Linear;
+	}
+
+	if (framebufferTexture_ && framebufferTexture_->getWidth() == size.width() && framebufferTexture_->getHeight() == size.height() && sampler_->getMagSamplingMethod() == samplingMethod && sampler_->getMinSamplingMethod() == samplingMethod) {
 		return framebufferSampleId_;
 	}
 
@@ -147,7 +152,9 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 	const ramses::TextureSwizzle textureSwizzle{};
 
 	framebufferTexture_ = ramsesTexture2D(scene_.get(), ramses::ETextureFormat::RGBA8, size.width(), size.height(), 1, &mipData, false, textureSwizzle, ramses::ResourceCacheFlag_DoNotCache, "framebuffer texture");
-	sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode_Clamp, ramses::ETextureAddressMode_Clamp, ramses::ETextureSamplingMethod_Nearest, ramses::ETextureSamplingMethod_Nearest, framebufferTexture_.get(), 1, "framebuffer sampler");
+
+
+	sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode_Clamp, ramses::ETextureAddressMode_Clamp, samplingMethod, samplingMethod, framebufferTexture_.get(), 1, "framebuffer sampler");
 	(*appearance_)->setInputTexture(texUniformInput, *sampler_.get());
 	scene_->flush();
 

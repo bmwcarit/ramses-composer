@@ -13,6 +13,7 @@
 #include "core/PathManager.h"
 #include "core/SceneBackendInterface.h"
 #include "utils/stdfilesystem.h"
+#include "utils/u8path.h"
 
 #include <QGroupBox>
 #include <QLabel>
@@ -82,17 +83,16 @@ ExportDialog::ExportDialog(const application::RaCoApplication* application, QWid
 	compressEdit_->setChecked(true);
 
 	if (application_->activeProjectPath().size() > 0) {
-		std::filesystem::path projectPath(application_->activeProjectPath());
-		std::filesystem::path ramsesPath(projectPath);
+		auto projectPath = raco::utils::u8path(application_->activeProjectPath());
+		auto ramsesPath = projectPath;
 		ramsesPath.replace_extension(raco::names::FILE_EXTENSION_RAMSES_EXPORT);
-		std::filesystem::path logicPath(projectPath);
+		auto logicPath = projectPath;
 		logicPath.replace_extension(raco::names::FILE_EXTENSION_LOGIC_EXPORT);
 		pathEdit_->setText(QString::fromStdString(application_->activeProjectFolder()));
-		ramsesEdit_->setText(QString::fromStdString(ramsesPath.generic_string()));
-		logicEdit_->setText(QString::fromStdString(logicPath.generic_string()));
+		ramsesEdit_->setText(QString::fromStdString(ramsesPath.string()));
+		logicEdit_->setText(QString::fromStdString(logicPath.string()));
 	} else {
-		std::error_code ec;
-		pathEdit_->setText(QString::fromStdString(std::filesystem::current_path(ec).generic_string()));
+		pathEdit_->setText(QString::fromStdString(raco::utils::u8path::current().string()));
 		ramsesEdit_->setText(QString("unknown.").append(raco::names::FILE_EXTENSION_RAMSES_EXPORT));
 		logicEdit_->setText(QString("unknown.").append(raco::names::FILE_EXTENSION_LOGIC_EXPORT));
 	}
@@ -149,21 +149,14 @@ ExportDialog::ExportDialog(const application::RaCoApplication* application, QWid
 
 void ExportDialog::exportProject() {
 	std::string error;
-	std::filesystem::path dir{pathEdit_->text().toStdString()};
 
-	std::filesystem::path ramsesFilePath = ramsesEdit_->text().toStdString();
-	if (ramsesFilePath.is_relative()) {
-		ramsesFilePath = raco::core::PathManager::constructAbsolutePath(dir.string(), ramsesFilePath.string());
-	}
-
-	std::filesystem::path rlogicFilePath = logicEdit_->text().toStdString();
-	if (rlogicFilePath.is_relative()) {
-		rlogicFilePath = raco::core::PathManager::constructAbsolutePath(dir.string(), rlogicFilePath.string());
-	}
+	auto dir = pathEdit_->text().toStdString();
+	auto ramsesFilePath = raco::utils::u8path(ramsesEdit_->text().toStdString()).normalizedAbsolutePath(dir);
+	auto rlogicFilePath = raco::utils::u8path(logicEdit_->text().toStdString()).normalizedAbsolutePath(dir);
 
 	if (application_->exportProject(application_->activeRaCoProject(),
-			ramsesFilePath.generic_string(),
-			rlogicFilePath.generic_string(),
+			ramsesFilePath.string(),
+			rlogicFilePath.string(),
 			compressEdit_->isChecked(), error)) {
 		accept();
 	} else {

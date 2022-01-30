@@ -10,7 +10,7 @@
 #include "core/Project.h"
 #include "core/PathManager.h"
 #include "core/ExternalReferenceAnnotation.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 #include "core/CoreFormatter.h"
 #include "log_system/log.h"
 
@@ -67,7 +67,7 @@ std::string Project::currentFolder() const {
 }
 
 std::string Project::currentPath() const {
-	return (std::filesystem::path(currentFolder()) / currentFileName()).generic_string();
+	return (raco::utils::u8path(currentFolder()) / currentFileName()).string();
 }
 
 std::string Project::currentFileName() const {
@@ -75,12 +75,13 @@ std::string Project::currentFileName() const {
 }
 
 void Project::setCurrentPath(const std::string& newPath) {
-	if (utils::path::isExistingDirectory(newPath)) {
+	auto path = utils::u8path(newPath);
+	if (path.existsDirectory()) {
 		folder_ = newPath;
 		filename_.clear();
 	} else {
-		auto path = PathManager::normal_path(newPath);
-		folder_ = path.parent_path().generic_string();
+		path = path.normalized();
+		folder_ = path.parent_path().string();
 		filename_ = path.filename().string();
 	}
 }
@@ -228,7 +229,7 @@ void Project::addExternalProjectMapping(const std::string& projectID, const std:
 		throw ExtrefError("External reference project loop detected (based on project path).");
 	}
 
-	auto relPath = PathManager::constructRelativePath(absPath, currentFolder());
+	auto relPath = raco::utils::u8path(absPath).normalizedRelativePath(currentFolder()).string();
 
 	auto it = externalProjectsMap_.find(projectID);
 	if (it != externalProjectsMap_.end()) {
@@ -269,7 +270,7 @@ bool Project::hasExternalProjectMapping(const std::string& projectID) const {
 std::string Project::lookupExternalProjectPath(const std::string& projectID) const {
 	auto it = externalProjectsMap_.find(projectID);
 	if (it != externalProjectsMap_.end()) {
-		return PathManager::constructAbsolutePath(currentFolder(), it->second.path);
+		return raco::utils::u8path(it->second.path).normalizedAbsolutePath(currentFolder()).string();
 	}
 	return std::string();
 }
@@ -284,13 +285,13 @@ std::string Project::lookupExternalProjectName(const std::string& projectID) con
 
 void Project::rerootExternalProjectPaths(const std::string oldFolder, const std::string newFolder) {
 	for (auto& item : externalProjectsMap_) {
-		item.second.path = PathManager::rerootRelativePath(item.second.path, oldFolder, newFolder);
+		item.second.path = raco::utils::u8path(item.second.path).rerootRelativePath(oldFolder, newFolder).string();
 	}
 }
 
 bool Project::usesExternalProjectByPath(const std::string& absPath) const {
 	for (auto item : externalProjectsMap_) {
-		if (core::PathManager::constructAbsolutePath(currentFolder(), item.second.path) == absPath) {
+		if (raco::utils::u8path(item.second.path).normalizedAbsolutePath(currentFolder()) == absPath) {
 			return true;
 		}
 	}

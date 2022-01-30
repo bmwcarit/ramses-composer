@@ -31,8 +31,7 @@ using namespace raco::style;
 RefEditor::RefEditor(
 	PropertyBrowserItem* item,
 	QWidget* parent)
-	: QWidget{parent},
-      item_{item},
+	: PropertyEditor(item, parent),
 	  ref_{item->refItem()} {
 	auto* layout{new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>{this}};
 	comboBox_ = new QComboBox{this};
@@ -40,7 +39,7 @@ RefEditor::RefEditor(
 	comboBox_->installEventFilter(new MouseWheelGuard());
 	layout->addWidget(comboBox_);
 
-	goToRefObjectButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::icon(raco::style::Pixmap::go_to, this), "", this);
+	goToRefObjectButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::icon(raco::style::Pixmap::goTo, this), "", this);
 
 	QObject::connect(goToRefObjectButton_, &QPushButton::clicked, [this, item]() {
 		item->model()->Q_EMIT objectSelectionRequested(ref_->items().at(ref_->currentIndex()).second);
@@ -59,6 +58,16 @@ RefEditor::RefEditor(
 		comboBox_->setFocus();
 	});
 	updateItems(ref_->items());
+
+	// Override the enabled behaviour of the parent class, so that the goto button can remain enabled even though the rest of the control gets disabled.
+	setEnabled(true);
+	comboBox_->setEnabled(item->editable());
+	goToRefObjectButton_->setEnabled(!emptyReference_);
+	QObject::disconnect(item, &PropertyBrowserItem::editableChanged, this, &QWidget::setEnabled);
+	QObject::connect(item, &PropertyBrowserItem::editableChanged, this, [this]() {
+		comboBox_->setEnabled(item_->editable());
+		goToRefObjectButton_->setEnabled(!emptyReference_);
+	});
 }
 
 void RefEditor::updateItems(const PropertyBrowserRef::ComboBoxItems& items) {
@@ -69,19 +78,6 @@ void RefEditor::updateItems(const PropertyBrowserRef::ComboBoxItems& items) {
 	}
 	comboBox_->setCurrentIndex(ref_->currentIndex());
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), ref_, &PropertyBrowserRef::setIndex);
-}
-
-void RefEditor::changeEvent(QEvent* event) {
-	QWidget::changeEvent(event);
-	if (event->type() == QEvent::EnabledChange) {
-		// retroactively set the RefEditor enabled at all times and only disable/enable the Ref combo box
-		// because QWidgets have to be enabled for their child widgets to be enabled and we want to enable the goto button at all times
-		auto enabled = this->isEnabled();
-		this->setEnabled(true);
-
-		comboBox_->setEnabled(enabled);
-		goToRefObjectButton_->setEnabled(!emptyReference_);
-	}
 }
 
 bool RefEditor::unexpectedEmptyReference() const noexcept {

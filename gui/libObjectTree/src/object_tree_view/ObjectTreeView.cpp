@@ -22,10 +22,11 @@
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include <QContextMenuEvent>
 #include <QFileDialog>
+#include <QGuiApplication>
 #include <QHeaderView>
 #include <QMenu>
 #include <QMessageBox>
@@ -58,15 +59,9 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	setTextElideMode(treeModel_->textElideMode());
 
-	connect(this, &ObjectTreeView::customContextMenuRequested, this, &ObjectTreeView::showContextMenu);
-	connect(this, &ObjectTreeView::expanded, [this](const QModelIndex &index) {
-		auto editorObj = indexToSEditorObject(index);
-		expandedItemIDs_.insert(editorObj->objectID());
-	});
-	connect(this, &ObjectTreeView::collapsed, [this](const QModelIndex &index) {
-		auto editorObj = indexToSEditorObject(index);
-		expandedItemIDs_.erase(editorObj->objectID());
-	});
+	connect(this, &QTreeView::customContextMenuRequested, this, &ObjectTreeView::showContextMenu);
+	connect(this, &QTreeView::expanded, this, &ObjectTreeView::expanded);
+	connect(this, &QTreeView::collapsed, this, &ObjectTreeView::collapsed);
 
 	connect(this->selectionModel(), &QItemSelectionModel::selectionChanged, [this](const auto &selectedItemList, const auto &deselectedItemList) {
 		if (auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_))) {
@@ -74,14 +69,14 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 			return;
 		}
 
-		for (const auto &selectedItemIndex : selectedItemList.indexes()) {
-			auto selObj = indexToSEditorObject(selectedItemIndex);
+		auto selectedObjects = indicesToSEditorObjects(selectedItemList.indexes());		
+		for (const auto &selObj : selectedObjects) {
 			selectedItemIDs_.emplace(selObj->objectID());
 		}
 
-		for (const auto &deselectedItem : deselectedItemList.indexes()) {
-			auto selObj = indexToSEditorObject(deselectedItem);
-			selectedItemIDs_.erase(selObj->objectID());
+		auto deselectedObjects = indicesToSEditorObjects(deselectedItemList.indexes());		
+		for (const auto &deselObj : deselectedObjects) {
+			selectedItemIDs_.erase(deselObj->objectID());
 		}
 
 		Q_EMIT newObjectTreeItemsSelected(getSelectedHandles());
@@ -99,14 +94,9 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 }
 
 std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
-	std::set<ValueHandle> handles;
+	auto selectedObjects = indicesToSEditorObjects(selectionModel()->selectedIndexes());
 
-	for (const auto &selectedItemIndex : selectionModel()->selectedIndexes()) {
-		auto selObj = indexToSEditorObject(selectedItemIndex);
-		handles.emplace(selObj);
-	}
-
-	return handles;
+	return std::set<ValueHandle>(selectedObjects.begin(), selectedObjects.end());
 }
 
 void ObjectTreeView::globalCopyCallback() {
@@ -135,7 +125,7 @@ void ObjectTreeView::selectObject(const QString &objectID) {
 		return;
 	}
 
-	auto objectIndex = indexFromObjectID(objectID.toStdString());
+	auto objectIndex = indexFromTreeNodeID(objectID.toStdString());
 	if (objectIndex.isValid()) {
 		resetSelection();
 		selectionModel()->select(objectIndex, SELECTION_MODE);
@@ -144,9 +134,33 @@ void ObjectTreeView::selectObject(const QString &objectID) {
 }
 
 void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
-	auto objectIndex = indexFromObjectID(objectID.toStdString());
+	auto objectIndex = indexFromTreeNodeID(objectID.toStdString());
 	if (objectIndex.isValid()) {
 		expandAllParentsOfObject(objectIndex);
+	}
+}
+
+void ObjectTreeView::expanded(const QModelIndex &index) {
+	expandedItemIDs_.insert(indexToTreeNodeID(index));
+
+	if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
+		expandRecursively(index);
+	}
+}
+
+void ObjectTreeView::collapsed(const QModelIndex &index) {
+	expandedItemIDs_.erase(indexToTreeNodeID(index));
+
+	if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
+		collapseRecusively(index);
+	}
+}
+
+void ObjectTreeView::collapseRecusively(const QModelIndex& index) {
+	collapse(index);
+	
+	for (int i = 0; i < index.model()->rowCount(index); ++i) {
+		collapseRecusively(index.model()->index(i, 0, index));
 	}
 }
 
@@ -160,6 +174,8 @@ void ObjectTreeView::cut() {
 void ObjectTreeView::globalPasteCallback(const QModelIndex &index, bool asExtRef) {
 	if (canPasteIntoIndex(index, asExtRef)) {
 		treeModel_->pasteObjectAtIndex(index, asExtRef);
+	} else if (canPasteIntoIndex({}, asExtRef)) {
+		treeModel_->pasteObjectAtIndex({}, asExtRef);
 	}
 }
 
@@ -237,7 +253,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 		auto actionImport = treeViewMenu->addAction("Import glTF Assets...", [this, insertionTargetIndex]() {
 			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
-			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
+			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
 			}
@@ -357,16 +373,28 @@ void ObjectTreeView::mousePressEvent(QMouseEvent *event) {
 	}
 }
 
-core::SEditorObject ObjectTreeView::indexToSEditorObject(const QModelIndex &index) const {
+std::vector<core::SEditorObject> ObjectTreeView::indicesToSEditorObjects(const QModelIndexList &indices) const {
+	QModelIndexList itemIndices;
+	if (proxyModel_) {
+		for (const auto &index : indices) {
+			itemIndices.append(proxyModel_->mapToSource(index));
+		}
+	} else {
+		itemIndices = indices;
+	}
+	return treeModel_->indicesToSEditorObjects(itemIndices);
+}
+
+std::string ObjectTreeView::indexToTreeNodeID(const QModelIndex &index) const {
 	auto itemIndex = index;
 	if (proxyModel_) {
 		itemIndex = proxyModel_->mapToSource(index);
 	}
-	return treeModel_->indexToSEditorObject(itemIndex);
+	return treeModel_->indexToTreeNode(itemIndex)->getID();
 }
 
-QModelIndex ObjectTreeView::indexFromObjectID(const std::string &id) const {
-	auto index = treeModel_->indexFromObjectID(id);
+QModelIndex ObjectTreeView::indexFromTreeNodeID(const std::string &id) const {
+	auto index = treeModel_->indexFromTreeNodeID(id);
 	if (proxyModel_) {
 		index = proxyModel_->mapFromSource(index);
 	}
@@ -419,7 +447,7 @@ QModelIndex ObjectTreeView::getSelectedInsertionTargetIndex() const {
 
 void ObjectTreeView::restoreItemExpansionStates() {
 	for (const auto &expandedObjectID : expandedItemIDs_) {
-		auto expandedObjectIndex = indexFromObjectID(expandedObjectID);
+		auto expandedObjectIndex = indexFromTreeNodeID(expandedObjectID);
 		if (expandedObjectIndex.isValid()) {
 			blockSignals(true);
 			expand(expandedObjectIndex);
@@ -435,7 +463,7 @@ void ObjectTreeView::restoreItemSelectionStates() {
 	auto selectionIt = selectedItemIDs_.begin();
 	while (selectionIt != selectedItemIDs_.end()) {
 		const auto &selectionID = *selectionIt;
-		auto selectedObjectIndex = indexFromObjectID(selectionID);
+		auto selectedObjectIndex = indexFromTreeNodeID(selectionID);
 		if (selectedObjectIndex.isValid()) {
 			selectionModel()->select(selectedObjectIndex, SELECTION_MODE);
 			selectedObjects.emplace_back(selectedObjectIndex);

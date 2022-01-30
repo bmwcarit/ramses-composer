@@ -45,7 +45,6 @@ public:
 
 class ObjectTreeViewExternalProjectModelTest : public ObjectTreeViewDefaultModelTest {
 protected:
-	static inline int NEW_PROJECT_NODE_AMOUNT{0};
 
 	raco::ramses_base::HeadlessEngineBackend backend{};
 	raco::ramses_base::HeadlessEngineBackend otherBackend{};
@@ -55,7 +54,6 @@ protected:
 
 	void generateExternalProject(const std::vector<raco::core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
 		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication);
-		NEW_PROJECT_NODE_AMOUNT = raco::core::Queries::filterForVisibleObjects(application.externalProjectsStore_.externalProjects_[projectPath]->project()->instances()).size();
 
 		auto project = application.externalProjectsStore_.externalProjects_[projectPath]->project();
 		for (const auto &instance : instances) {
@@ -79,8 +77,8 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectEmpty) {
 
 	auto rootNode = externalProjectModel.getInvisibleRootNode();
 	ASSERT_EQ(rootNode->childCount(), 1);
-	ASSERT_EQ(rootNode->getChildren().front()->getRepresentedObject()->objectName(), projectPath);
-	ASSERT_EQ(rootNode->getChildren().front()->childCount(), NEW_PROJECT_NODE_AMOUNT);
+	ASSERT_EQ(rootNode->getChildren().front()->getExternalProjectPath(), projectPath);
+	ASSERT_EQ(rootNode->getChildren().front()->childCount(), 4);
 }
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectTenTopLevelNodes) {
@@ -96,7 +94,7 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectTenTopLevelNodes) {
 
 	auto rootNode = externalProjectModel.getInvisibleRootNode();
 	ASSERT_EQ(rootNode->childCount(), 1);
-	ASSERT_EQ(rootNode->getChildren().front()->childCount(), CHILD_NODE_AMOUNT + NEW_PROJECT_NODE_AMOUNT);
+	ASSERT_EQ(rootNode->getChildren().front()->childCount(), CHILD_NODE_AMOUNT + 4);
 }
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyParentsCreatedFirst) {
@@ -182,10 +180,10 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, CanCopyAtIndicesMultiSelection) {
 
 	externalProjectModel.triggerObjectTreeRebuilding();
 
-	auto project1Index = externalProjectModel.indexFromObjectID(project1Path);
-	auto project1NodeIndex = externalProjectModel.indexFromObjectID(project1Node->objectID());
-	auto project2Index = externalProjectModel.indexFromObjectID(project2Path);
-	auto project2NodeIndex = externalProjectModel.indexFromObjectID(project2Node->objectID());
+	auto project1Index = externalProjectModel.indexFromTreeNodeID(project1Path);
+	auto project1NodeIndex = externalProjectModel.indexFromTreeNodeID(project1Node->objectID());
+	auto project2Index = externalProjectModel.indexFromTreeNodeID(project2Path);
+	auto project2NodeIndex = externalProjectModel.indexFromTreeNodeID(project2Node->objectID());
 
 	ASSERT_TRUE(project1Index.isValid());
 	ASSERT_TRUE(project1NodeIndex.isValid());
@@ -214,8 +212,8 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, CanDeleteAtIndicesNever) {
 
 	externalProjectModel.triggerObjectTreeRebuilding();
 
-	auto project1Index = externalProjectModel.indexFromObjectID(project1Path);
-	auto project1NodeIndex = externalProjectModel.indexFromObjectID(project1Node->objectID());
+	auto project1Index = externalProjectModel.indexFromTreeNodeID(project1Path);
+	auto project1NodeIndex = externalProjectModel.indexFromTreeNodeID(project1Node->objectID());
 
 	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({}));
 	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({{}}));

@@ -109,7 +109,7 @@ TEST(PropertyBrowserItem, structuralModification_inCollapsedStructure_emits_chil
 	PropertyBrowserItem itemUnderTest{propertyHandle, data.dispatcher, &data.commandInterface, nullptr};
 	PropertyBrowserItem* childItem{itemUnderTest.children().at(0)};
 
-	itemUnderTest.toggleExpanded();
+	itemUnderTest.setExpanded(false);
 	EXPECT_EQ(itemUnderTest.expanded(), false);
 
 	QSignalSpy spy{&itemUnderTest, &PropertyBrowserItem::childrenChangedOrCollapsedChildChanged};
@@ -129,7 +129,7 @@ TEST(PropertyBrowserItem, setExpanded_influence_showChildren_ifItemHasChildren) 
 	EXPECT_EQ(itemUnderTest.expanded(), true);
 	EXPECT_EQ(itemUnderTest.showChildren(), true);
 
-	itemUnderTest.toggleExpanded();
+	itemUnderTest.setExpanded(false);
 
 	EXPECT_EQ(itemUnderTest.expanded(), false);
 	EXPECT_EQ(itemUnderTest.showChildren(), false);
@@ -144,41 +144,43 @@ TEST(PropertyBrowserItem, setExpanded_doesnt_influence_showChildren_ifItemHasNoC
 	EXPECT_EQ(itemUnderTest.expanded(), true);
 	EXPECT_EQ(itemUnderTest.showChildren(), false);
 
-	itemUnderTest.toggleExpanded();
+	itemUnderTest.setExpanded(false);
 
 	EXPECT_EQ(itemUnderTest.expanded(), false);
 	EXPECT_EQ(itemUnderTest.showChildren(), false);
 }
 
-TEST(PropertyBrowserItem, setExpanded_influence_showControl_ifItemHasChildren) {
+TEST(PropertyBrowserItem, setExpandedRecursively) {
 	PropertyBrowserItemTestHelper<MockMutableTable> data{};
-	const ValueHandle propertyHandle{data.valueHandle.get("table")};
-	data.addPropertyTo("table", PrimitiveType::Double);
+	const ValueHandle tableHandle{data.valueHandle.get("table")};
+	data.addPropertyTo("table", PrimitiveType::Vec3f, "vec");
+	const ValueHandle vecHandle{data.valueHandle.get("table").get("vec")};
 
-	PropertyBrowserItem itemUnderTest{propertyHandle, data.dispatcher, &data.commandInterface, nullptr};
+	PropertyBrowserItem tableItem{tableHandle, data.dispatcher, &data.commandInterface, nullptr};
+	PropertyBrowserItem * vecItem = tableItem.children().front();
 
-	EXPECT_EQ(itemUnderTest.expanded(), true);
-	EXPECT_EQ(itemUnderTest.showControl(), false);
+	EXPECT_EQ(tableItem.expanded(), true);
+	EXPECT_EQ(vecItem->expanded(), true);
 
-	itemUnderTest.toggleExpanded();
+	tableItem.setExpanded(false);
 
-	EXPECT_EQ(itemUnderTest.expanded(), false);
-	EXPECT_EQ(itemUnderTest.showControl(), true);
-}
+	EXPECT_EQ(tableItem.expanded(), false);
+	EXPECT_EQ(vecItem->expanded(), true);
 
-TEST(PropertyBrowserItem, setExpanded_doesnt_influence_showControl_ifItemHasNoChildren) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
-	const ValueHandle propertyHandle{data.valueHandle.get("table")};
+	tableItem.setExpanded(true);
 
-	PropertyBrowserItem itemUnderTest{propertyHandle, data.dispatcher, &data.commandInterface, nullptr};
+	EXPECT_EQ(tableItem.expanded(), true);
+	EXPECT_EQ(vecItem->expanded(), true);
 
-	EXPECT_EQ(itemUnderTest.expanded(), true);
-	EXPECT_EQ(itemUnderTest.showControl(), true);
+	tableItem.setExpandedRecursively(false);
 
-	itemUnderTest.toggleExpanded();
+	EXPECT_EQ(tableItem.expanded(), false);
+	EXPECT_EQ(vecItem->expanded(), false);
 
-	EXPECT_EQ(itemUnderTest.expanded(), false);
-	EXPECT_EQ(itemUnderTest.showControl(), true);
+	tableItem.setExpandedRecursively(true);
+
+	EXPECT_EQ(tableItem.expanded(), true);
+	EXPECT_EQ(vecItem->expanded(), true);
 }
 
 }  // namespace raco::property_browser

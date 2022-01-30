@@ -33,7 +33,7 @@ private:
 	ramses_base::RamsesTexture2D createTexture();
 	ramses_base::RamsesTexture2D getFallbackTexture();
 
-	std::array<components::Subscription, 6> subscriptions_;
+	std::array<components::Subscription, 8> subscriptions_;
 	ramses_base::RamsesTexture2D textureData_;
 
 	static inline std::array<std::vector<unsigned char>, 2> fallbackTextureData_;

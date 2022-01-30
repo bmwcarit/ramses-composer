@@ -16,7 +16,6 @@
 #include "Link.h"
 
 namespace raco::serialization {
-struct DeserializationFactory;
 struct ObjectsDeserialization;
 }  // namespace raco::serialization
 
@@ -68,6 +67,15 @@ public:
 	void set(ValueHandle const& handle, std::vector<std::string> const& value);
 	void set(ValueHandle const& handle, SEditorObject const& value);
 	void set(ValueHandle const& handle, Table const& value);
+	void set(ValueHandle const& handle, std::array<double, 2> const& value);
+	void set(ValueHandle const& handle, std::array<double, 3> const& value);
+	void set(ValueHandle const& handle, std::array<double, 4> const& value);
+	void set(ValueHandle const& handle, std::array<int, 2> const& value);
+	void set(ValueHandle const& handle, std::array<int, 3> const& value);
+	void set(ValueHandle const& handle, std::array<int, 4> const& value);
+	// Set struct property to struct value.
+	// Identical types are dynamically enforced at runtime.
+	void set(ValueHandle const& handle, ClassWithReflectedMembers const& value);
 
 	template <typename AnnoType, typename T>
 	void set(AnnotationValueHandle<AnnoType> const& handle, T const& value);
@@ -81,6 +89,8 @@ public:
 	
 	// Remove all properties from Table
 	void removeAllProperties(const ValueHandle &handle);
+
+	void swapProperties(const ValueHandle& handle, size_t index_1, size_t index_2);
 
 	// Object creation/deletion
 	SEditorObject createObject(std::string type, std::string name = std::string(), std::string id = std::string());
@@ -149,7 +159,7 @@ public:
 
 	// Find and return the objects without parents within the serialized object set.
 	// Note: the objects may still have parents in the origin project they were copied from.
-	static std::vector<SEditorObject> getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, UserObjectFactoryInterface* objectFactory, Project* project);
+	static std::vector<SEditorObject> getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, Project* project);
 
 	// Initialize link validity flag during load. This does not update broken link errors and does not
 	// generated change recorder entries. Use only during load to fix corrupt files.
@@ -157,6 +167,7 @@ public:
 
 private:
 	friend class UndoStack;
+	friend class UndoHelpers;
 	friend class FileChangeCallback;
 	friend class PrefabOperations;
 	friend class ExtrefOperations;
@@ -174,7 +185,7 @@ private:
 	void removeReferencesTo(SEditorObjectSet const& objects);
 
 	template <void (EditorObject::*Handler)(ValueHandle const&) const>
-	void callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh);
+	static void callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh);
 	
 	ValueTreeIterator erase(const ValueTreeIterator& it);
 

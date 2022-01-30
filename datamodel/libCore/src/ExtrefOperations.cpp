@@ -247,7 +247,7 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 		auto extObj = item.second.obj;
 		auto localObj = translateToLocal(extObj);
 
-		updateEditorObject(
+		UndoHelpers::updateEditorObject(
 			extObj.get(), localObj, translateToLocal, [](const std::string&) { return false; }, *context.objectFactory(), &localChanges, true, false);
 	}
 

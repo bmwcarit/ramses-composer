@@ -72,6 +72,7 @@ template<>
 double ValueHandle::as<double>() const {
 	return asDouble();
 }
+
 template <>
 std::string ValueHandle::as<std::string>() const {
 	return asString();
@@ -100,6 +101,36 @@ std::string ValueHandle::asString() const {
 SEditorObject ValueHandle::asRef() const {
 	ValueBase* v = valueRef();
 	return v->asRef();
+}
+
+const Vec2f& ValueHandle::asVec2f() const {
+	ValueBase* v = valueRef();
+	return v->asVec2f();
+}
+
+const Vec3f& ValueHandle::asVec3f() const {
+	ValueBase* v = valueRef();
+	return v->asVec3f();
+}
+
+const Vec4f& ValueHandle::asVec4f() const {
+	ValueBase* v = valueRef();
+	return v->asVec4f();
+}
+
+const Vec2i& ValueHandle::asVec2i() const {
+	ValueBase* v = valueRef();
+	return v->asVec2i();
+}
+
+const Vec3i& ValueHandle::asVec3i() const {
+	ValueBase* v = valueRef();
+	return v->asVec3i();
+}
+
+const Vec4i& ValueHandle::asVec4i() const {
+	ValueBase* v = valueRef();
+	return v->asVec4i();
 }
 
 size_t ValueHandle::size() const {

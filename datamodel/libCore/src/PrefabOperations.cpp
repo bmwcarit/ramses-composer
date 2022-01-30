@@ -80,7 +80,7 @@ SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& de
 // - selective update of single properties according to the changerecorder entries for the prefab subtree
 // - change recorder will be used as input for the dirty parts of the prefab and output for the changes in
 //   the prefab instance and its children
-void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab& prefab, SPrefabInstance instance, bool instanceDirty) {
+void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab& prefab, SPrefabInstance instance, bool instanceDirty, bool propagateMissingInterfaceProperties) {
 	using namespace raco::core;
 	DataChangeRecorder localChanges;
 
@@ -98,10 +98,10 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	std::map<SEditorObject, SEditorObject> mapToPrefab;
 	mapToInstance[prefab] = instance;
 	mapToPrefab[instance] = prefab;
-	for (size_t index = 0; index < instance->mapToInstance_->size(); index++) {
-		const Table& item = instance->mapToInstance_->get(index)->asTable();
-		auto prefabChild = item.get(0)->asRef();
-		auto instChild = item.get(1)->asRef();
+
+	for (auto instChild : instanceChildren) {
+		auto prefabChildID = PrefabInstance::mapObjectIDFromInstance(instChild, prefab, instance);
+		auto prefabChild = context.project()->getInstanceByID(prefabChildID);
 		mapToInstance[prefabChild] = instChild;
 		mapToPrefab[instChild] = prefabChild;
 	}
@@ -133,7 +133,6 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			if (prefabIt == mapToPrefab.end() ||
 				prefabChildren.find(prefabIt->second) == prefabChildren.end()) {
 				toRemove.emplace_back(instChild);
-				instance->removePrefabInstanceChild(context, prefabIt->second);
 				mapToInstance.erase(prefabIt->second);
 				mapToPrefab.erase(instChild);
 				it = instanceChildren.erase(it);
@@ -163,7 +162,8 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 				context.project()->removeLink(instLink);
 				localChanges.recordRemoveLink(instLink->descriptor());
 
-				auto prefabEndObject = PrefabInstance::mapFromInstance(instEndObject, instance);
+				auto prefabEndObject = mapToPrefab[instEndObject];
+
 				ValueHandle prefabEndHandle = ValueHandle::translatedHandle(ValueHandle(instLink->endProp()), prefabEndObject);
 				if (prefabEndHandle) {
 					allChangedValues.insert(prefabEndHandle);
@@ -177,8 +177,8 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	for (auto prefabChild : prefabChildren) {
 		auto it = mapToInstance.find(prefabChild);
 		if (it == mapToInstance.end()) {
-			auto newInstChild = context.objectFactory()->createObject(prefabChild->getTypeDescription().typeName, prefabChild->objectName());
-			instance->addChildMapping(context, prefabChild, newInstChild);
+			auto instChildID = PrefabInstance::mapObjectIDToInstance(prefabChild, prefab, instance);
+			auto newInstChild = context.objectFactory()->createObject(prefabChild->getTypeDescription().typeName, prefabChild->objectName(), instChildID);
 			mapToInstance[prefabChild] = newInstChild;
 			mapToPrefab[newInstChild] = prefabChild;
 			context.project()->addInstance(newInstChild);
@@ -190,7 +190,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	// Complete update of the the newly created objects
 	for (auto [prefabChild, instChild] : createdObjects) {
 		// Object IDs are never updated and the object name for newly created objects is already correct.
-		updateEditorObject(
+		UndoHelpers::updateEditorObject(
 			prefabChild.get(), instChild, translateRefFunc,
 			[](const std::string& propName) {
 				return propName == "objectID" || propName == "mapToInstance";
@@ -202,7 +202,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	// Single property updates from model changes
 	auto const& modelChanges = context.modelChanges().getChangedValues();
 	if (instanceDirty || context.modelChanges().hasValueChanged(ValueHandle(prefab, &EditorObject::children_))) {
-		updateSingleValue(&prefab->children_, &instance->children_, ValueHandle(instance, &EditorObject::children_), translateRefFunc, &localChanges, true);
+		UndoHelpers::updateSingleValue(&prefab->children_, &instance->children_, ValueHandle(instance, &EditorObject::children_), translateRefFunc, &localChanges, true);
 	}
 
 	for (const auto& [id, cont] : modelChanges) {
@@ -213,16 +213,20 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			if (std::find_if(createdObjects.begin(), createdObjects.end(), [prop](auto item) {
 					return prop.rootObject() == item.first;
 				}) == createdObjects.end()) {
-				if (prop.rootObject()->getParent() == prefab &&
-					prop.rootObject()->as<LuaScript>() && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs") {
-					continue;
-				}
 
 				auto it = mapToInstance.find(prop.rootObject());
 				assert(it != mapToInstance.end());
 				auto inst = it->second;
 				ValueHandle instProp = ValueHandle::translatedHandle(prop, inst);
-				updateSingleValue(prop.valueRef(), instProp.valueRef(), instProp, translateRefFunc, &localChanges, true);
+
+				if (prop.rootObject()->getParent() == prefab &&
+					prop.rootObject()->as<LuaScript>() && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs") {
+					if (prop.depth() == 1 && propagateMissingInterfaceProperties) {
+						UndoHelpers::updateMissingTableProperties(&prop.valueRef()->asTable(), &instProp.valueRef()->asTable(), instProp, translateRefFunc, &localChanges, true);
+					}
+				} else {
+					UndoHelpers::updateSingleValue(prop.valueRef(), instProp.valueRef(), instProp, translateRefFunc, &localChanges, true);
+				}
 			}
 		}
 	}
@@ -316,7 +320,7 @@ bool prefabInstanceDirty(const DataChangeRecorder& changes, SPrefabInstance inst
 	return changes.hasValueChanged(templateHandle);
 }
 
-void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes) {
+void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes, bool propagateMissingInterfaceProperties) {
 	// Build prefab update order from dependency graph
 	auto order = prefabUpdateOrder(*context.project());
 
@@ -333,7 +337,6 @@ void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecord
 		if (std::find(context.project()->instances().begin(), context.project()->instances().end(), inst) != context.project()->instances().end()) {
 			auto children = inst->children_->asVector<SEditorObject>();
 			context.deleteObjects(children);
-			context.removeAllProperties({inst, &PrefabInstance::mapToInstance_});
 		}
 	}
 
@@ -345,7 +348,7 @@ void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecord
 				if (!findContainingPrefabInstance(inst->getParent())) {
 					bool inst_dirty = prefabInstanceDirty(changes, inst);
 					if (inst_dirty || prefab_dirty) {
-						updatePrefabInstance(context, prefab, inst, inst_dirty);
+						updatePrefabInstance(context, prefab, inst, inst_dirty, propagateMissingInterfaceProperties);
 					}
 				}
 			}

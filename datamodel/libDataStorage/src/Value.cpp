@@ -13,13 +13,13 @@
 #include "data_storage/BasicTypes.h"
 #include "data_storage/Table.h"
 
-#include <string>
 #include <map>
+#include <string>
 
 namespace raco::data_storage {
 
-static std::map<PrimitiveType, std::string>& primitiveTypeName()  {
-	static std::map<PrimitiveType, std::string> primitiveTypeNameMap {
+static std::map<PrimitiveType, std::string>& primitiveTypeName() {
+	static std::map<PrimitiveType, std::string> primitiveTypeNameMap{
 		{PrimitiveType::Bool, "Bool"},
 		{PrimitiveType::Int, "Int"},
 		{PrimitiveType::Double, "Double"},
@@ -33,8 +33,7 @@ static std::map<PrimitiveType, std::string>& primitiveTypeName()  {
 		{PrimitiveType::Vec4f, "Vec4f"},
 		{PrimitiveType::Vec2i, "Vec2i"},
 		{PrimitiveType::Vec3i, "Vec3i"},
-		{PrimitiveType::Vec4i, "Vec4i"}
-	};
+		{PrimitiveType::Vec4i, "Vec4i"}};
 	return primitiveTypeNameMap;
 };
 
@@ -43,120 +42,118 @@ std::string getTypeName(PrimitiveType type) {
 }
 
 bool isPrimitiveTypeName(const std::string& type) {
-	for (const auto& [ key, value] :  primitiveTypeName()) {
+	for (const auto& [key, value] : primitiveTypeName()) {
 		if (type == value) return true;
 	}
 	return false;
 }
 
 PrimitiveType toPrimitiveType(const std::string& type) {
-	for (const auto& [ key, value] :  primitiveTypeName()) {
+	for (const auto& [key, value] : primitiveTypeName()) {
 		if (type == value) return key;
 	}
 	return PrimitiveType::Bool;
 }
 
-std::unique_ptr<ValueBase> ValueBase::create(PrimitiveType type)
-{
+std::unique_ptr<ValueBase> ValueBase::create(PrimitiveType type) {
 	// The code below forces instantiation of the Value classes with the allowed templated arguments;
 	// Other types as template arguments will lead to linker errors with missing functions.
 
 	switch (type) {
-	case PrimitiveType::Bool:
-		return std::unique_ptr<ValueBase>(new Value<bool>());
-		break;
-	case PrimitiveType::Int:
-		return std::unique_ptr<ValueBase>(new Value<int>());
-		break;
-	case PrimitiveType::Double:
-		return std::unique_ptr<ValueBase>(new Value<double>());
-		break;
-	case PrimitiveType::String:
-		return std::unique_ptr<ValueBase>(new Value<std::string>());
-		break;
+		case PrimitiveType::Bool:
+			return std::unique_ptr<ValueBase>(new Value<bool>());
+			break;
+		case PrimitiveType::Int:
+			return std::unique_ptr<ValueBase>(new Value<int>());
+			break;
+		case PrimitiveType::Double:
+			return std::unique_ptr<ValueBase>(new Value<double>());
+			break;
+		case PrimitiveType::String:
+			return std::unique_ptr<ValueBase>(new Value<std::string>());
+			break;
 
-	case PrimitiveType::Ref:
-		return std::unique_ptr<ValueBase>(new Value<SEditorObject>());
-		break;
+		case PrimitiveType::Ref:
+			return std::unique_ptr<ValueBase>(new Value<SEditorObject>());
+			break;
 
-	case PrimitiveType::Table:
-		return std::unique_ptr<ValueBase>(new Value<Table>());
-		break;
+		case PrimitiveType::Table:
+			return std::unique_ptr<ValueBase>(new Value<Table>());
+			break;
 
-	case PrimitiveType::Vec2f:
-		return std::unique_ptr<ValueBase>(new Value<Vec2f>());
-		break;
-	case PrimitiveType::Vec3f:
-		return std::unique_ptr<ValueBase>(new Value<Vec3f>());
-		break;
-	case PrimitiveType::Vec4f:
-		return std::unique_ptr<ValueBase>(new Value<Vec4f>());
-		break;
+		case PrimitiveType::Vec2f:
+			return std::unique_ptr<ValueBase>(new Value<Vec2f>());
+			break;
+		case PrimitiveType::Vec3f:
+			return std::unique_ptr<ValueBase>(new Value<Vec3f>());
+			break;
+		case PrimitiveType::Vec4f:
+			return std::unique_ptr<ValueBase>(new Value<Vec4f>());
+			break;
 
-	case PrimitiveType::Vec2i:
-		return std::unique_ptr<ValueBase>(new Value<Vec2i>());
-		break;
-	case PrimitiveType::Vec3i:
-		return std::unique_ptr<ValueBase>(new Value<Vec3i>());
-		break;
-	case PrimitiveType::Vec4i:
-		return std::unique_ptr<ValueBase>(new Value<Vec4i>());
-		break;
-	case PrimitiveType::Struct:
-		throw std::runtime_error("ValueBase::create can't create generic Value<Struct>");
-		break;
+		case PrimitiveType::Vec2i:
+			return std::unique_ptr<ValueBase>(new Value<Vec2i>());
+			break;
+		case PrimitiveType::Vec3i:
+			return std::unique_ptr<ValueBase>(new Value<Vec3i>());
+			break;
+		case PrimitiveType::Vec4i:
+			return std::unique_ptr<ValueBase>(new Value<Vec4i>());
+			break;
+		case PrimitiveType::Struct:
+			throw std::runtime_error("ValueBase::create can't create generic Value<Struct>");
+			break;
 	}
 	return std::unique_ptr<ValueBase>();
 }
 
-
-template<>
+template <>
 bool& ValueBase::as<bool>() {
 	return asBool();
 }
 
-template<>
+template <>
 int& ValueBase::as<int>() {
 	return asInt();
 }
 
-template<>
+template <>
 double& ValueBase::as<double>() {
 	return asDouble();
 }
 
-template<>
+template <>
 std::string& ValueBase::as<std::string>() {
 	return asString();
 }
 
-template<>
+template <>
 Table& ValueBase::as<Table>() {
 	return asTable();
 }
 
-template<>
+template <>
 Vec2f& ValueBase::as<Vec2f>() {
 	return asVec2f();
 }
-template<>
+template <>
 Vec3f& ValueBase::as<Vec3f>() {
 	return asVec3f();
 }
-template<>
+template <>
 Vec4f& ValueBase::as<Vec4f>() {
 	return asVec4f();
 }
 
-template<>
+template <>
 Vec2i& ValueBase::as<Vec2i>() {
 	return asVec2i();
 }
-template<>
+template <>
 Vec3i& ValueBase::as<Vec3i>() {
 	return asVec3i();
 }
-template<>
+template <>
 Vec4i& ValueBase::as<Vec4i>() {
 	return asVec4i();
 }
@@ -231,7 +228,7 @@ ValueBase& ValueBase::operator=(double value) {
 	return *this;
 }
 
-ValueBase& ValueBase::operator=(std::string const & value) {
+ValueBase& ValueBase::operator=(std::string const& value) {
 	asString() = value;
 	return *this;
 }
@@ -241,7 +238,7 @@ ValueBase& ValueBase::operator=(SEditorObject value) {
 	return *this;
 }
 
-template<typename T>
+template <typename T>
 ValueBase& ValueBase::set(T const& value) {
 	as<T>() = value;
 	return *this;
@@ -252,8 +249,45 @@ template ValueBase& ValueBase::set<int>(int const& value);
 template ValueBase& ValueBase::set<double>(double const& value);
 template ValueBase& ValueBase::set<std::string>(std::string const& value);
 
-template<> ValueBase& ValueBase::set<std::vector<std::string>>(std::vector<std::string> const& value) {
+template <>
+ValueBase& ValueBase::set<std::vector<std::string>>(std::vector<std::string> const& value) {
 	asTable().set(value);
+	return *this;
+}
+
+template <>
+ValueBase& ValueBase::set<std::array<double, 2>>(std::array<double, 2> const& value) {
+	as<Vec2f>() = value;
+	return *this;
+}
+
+template <>
+ValueBase& ValueBase::set<std::array<double, 3>>(std::array<double, 3> const& value) {
+	as<Vec3f>() = value;
+	return *this;
+}
+
+template <>
+ValueBase& ValueBase::set<std::array<double, 4>>(std::array<double, 4> const& value) {
+	as<Vec4f>() = value;
+	return *this;
+}
+
+template <>
+ValueBase& ValueBase::set<std::array<int, 2>>(std::array<int, 2> const& value) {
+	as<Vec2i>() = value;
+	return *this;
+}
+
+template <>
+ValueBase& ValueBase::set<std::array<int, 3>>(std::array<int, 3> const& value) {
+	as<Vec3i>() = value;
+	return *this;
+}
+
+template <>
+ValueBase& ValueBase::set<std::array<int, 4>>(std::array<int, 4> const& value) {
+	as<Vec4i>() = value;
 	return *this;
 }
 
@@ -271,7 +305,7 @@ std::unique_ptr<ValueBase> ValueBase::from(double value) {
 	return std::make_unique<Value<double>>(value);
 }
 
-template<typename T>
+template <typename T>
 void primitiveCopyAnnotationData(T& dest, const T& src) {
 }
 
@@ -281,7 +315,8 @@ template void primitiveCopyAnnotationData<double>(double& dest, const double& sr
 template void primitiveCopyAnnotationData<std::string>(std::string& dest, const std::string& src);
 template void primitiveCopyAnnotationData<Table>(Table& dest, const Table& src);
 
-template<> void primitiveCopyAnnotationData<Vec2f>(Vec2f& dest, const Vec2f& src) {
+template <>
+void primitiveCopyAnnotationData<Vec2f>(Vec2f& dest, const Vec2f& src) {
 	dest.copyAnnotationData(src);
 }
 
@@ -308,4 +343,4 @@ void primitiveCopyAnnotationData<Vec4i>(Vec4i& dest, const Vec4i& src) {
 	dest.copyAnnotationData(src);
 }
 
-}
+}  // namespace raco::data_storage

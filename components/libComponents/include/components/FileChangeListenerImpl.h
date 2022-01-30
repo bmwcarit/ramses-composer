@@ -13,6 +13,7 @@
 #include "core/FileChangeMonitor.h"
 
 #include "utils/stdfilesystem.h"
+#include "utils/u8path.h"
 #include <string>
 
 #include <QFileSystemWatcher>
@@ -38,7 +39,7 @@ public:
 	static constexpr int DELAYED_FILE_LOAD_TIME_MSEC = 100;
 private:
 	
-	std::filesystem::path path_;
+	raco::utils::u8path path_;
 	Callback fileChangeCallback_;
 	QFileSystemWatcher fileWatcher_;
 	QTimer delayedLoadTimer_;

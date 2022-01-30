@@ -11,7 +11,7 @@
 
 #include "property_browser/PropertyBrowserRef.h"
 
-#include <QWidget>
+#include "PropertyEditor.h"
 
 class QPushButton;
 class QComboBox;
@@ -19,7 +19,7 @@ class QComboBox;
 namespace raco::property_browser {
 class PropertyBrowserItem;
 
-class RefEditor final : public QWidget {
+class RefEditor final : public PropertyEditor {
 	Q_OBJECT
 	Q_PROPERTY(bool unexpectedEmptyReference READ unexpectedEmptyReference);
 
@@ -32,11 +32,8 @@ public:
 protected:
 	Q_SLOT void updateItems(const PropertyBrowserRef::ComboBoxItems& items);
 
-	void changeEvent(QEvent* event) override;
-
 	bool emptyReference_ = false;
 
-	PropertyBrowserItem* item_{};
 	PropertyBrowserRef* ref_{nullptr};
 	QComboBox* comboBox_{nullptr};
 	QPushButton* goToRefObjectButton_{nullptr};

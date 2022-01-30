@@ -183,8 +183,9 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 	}
 
 	for (auto& [endObjId, links] : dataChanges.getRemovedLinks()) {
+		auto copy{linkLifecycleListeners_[endObjId]};
+		std::copy(linkLifecycleListeners_[std::string()].begin(), linkLifecycleListeners_[std::string()].end(), std::inserter(copy, copy.end()));
 		for (auto& link : links) {
-			auto copy{linkLifecycleListeners_};
 			for (const auto& ptr : copy) {
 				if (!ptr.expired()) {
 					auto listener{ptr.lock()};
@@ -226,8 +227,9 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 	}
 
 	for (auto& [endObjId, links] : dataChanges.getAddedLinks()) {
+		auto copy{linkLifecycleListeners_[endObjId]};
+		std::copy(linkLifecycleListeners_[std::string()].begin(), linkLifecycleListeners_[std::string()].end(), std::inserter(copy, copy.end()));
 		for (auto& link : links) {
-			auto copy{linkLifecycleListeners_};
 			for (const auto& ptr : copy) {
 				if (!ptr.expired()) {
 					auto listener{ptr.lock()};
@@ -334,12 +336,22 @@ Subscription DataChangeDispatcher::registerOnObjectsLifeCycle(EditorObjectCallba
 	}};
 }
 
-Subscription DataChangeDispatcher::registerOnLinksLifeCycle(LinkCallback onCreation, LinkCallback onDeletion) noexcept {
+Subscription DataChangeDispatcher::registerOnLinksLifeCycle(SEditorObject endObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept {
 	auto listener{std::make_shared<LinkLifecycleListener>(onCreation, onDeletion)};
-	linkLifecycleListeners_.insert(listener);
-	return Subscription{this, listener, [this, listener]() { 
-		linkLifecycleListeners_.erase(listener); 
-	}};
+	std::string endObjectID;
+	if (endObject) {
+		endObjectID = endObject->objectID();
+	}
+	linkLifecycleListeners_[endObjectID].insert(listener);
+	return Subscription {
+		this, listener, [this, endObjectID, listener]() {
+			auto it = linkLifecycleListeners_.find(endObjectID);
+			it->second.erase(listener);
+			if (it->second.empty()) {
+				linkLifecycleListeners_.erase(endObjectID);
+			}
+		}
+	};
 }
 
 Subscription DataChangeDispatcher::registerOnLinkValidityChange(LinkCallback callback) noexcept {

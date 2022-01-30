@@ -10,6 +10,7 @@
 #include "property_browser/PropertySubtreeView.h"
 
 #include "ErrorBox.h"
+#include "property_browser/editors/PropertyEditor.h"
 #include "core/CoreFormatter.h"
 #include "log_system/log.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -70,16 +71,12 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 
 		auto* linkControl = WidgetFactory::createLinkControl(item, labelContainer);
 
-		propertyControl_ = WidgetFactory::createPropertyControl(item, labelContainer);
-		propertyControl_->setEnabled(item->editable());
-		propertyControl_->setVisible(item->showControl());
-		QObject::connect(item, &PropertyBrowserItem::editableChanged, propertyControl_, &QWidget::setEnabled);
+		propertyControl_ = WidgetFactory::createPropertyEditor(item, labelContainer);
 
 		labelLayout->addWidget(button_, 0);
 		labelLayout->addWidget(label_, 0);
 		labelLayout->addWidget(linkControl, 1);
 
-		QObject::connect(item, &PropertyBrowserItem::showControlChanged, this, [this](bool show) { propertyControl_->setVisible(show); });
 		linkControl->setControl(propertyControl_);
 		label_->setEnabled(item->editable());
 		QObject::connect(item, &PropertyBrowserItem::editableChanged, label_, &QWidget::setEnabled);
@@ -124,12 +121,6 @@ void PropertySubtreeView::updateError() {
 			// The error box does appear later, e. g. when the mouse cursor is moved over the preview or when the left mouse button is clicked in a different widget.
 			update();
 		}
-	}
-}
-
-void PropertySubtreeView::updatePropertyControl() {
-	if (propertyControl_) {
-		propertyControl_->setVisible(!item_->expanded() || item_->size() == 0);
 	}
 }
 

@@ -10,16 +10,19 @@
 #include "log_system/log.h"
 
 #include <iostream>
-#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/dist_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <vector>
+#include <locale>
+#include <codecvt>
 
 namespace raco::log_system {
 
 bool initialized{false};
 
-std::shared_ptr<spdlog::sinks::dist_sink_mt> multiplexSink = std::make_shared<spdlog::sinks::dist_sink_mt>();
+std::shared_ptr<spdlog::sinks::dist_sink_mt> multiplexSink;
+std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> consoleSink;
 std::vector<spdlog::sink_ptr> sinks{};
 
 std::shared_ptr<spdlog::logger> makeLogger(const char* name, spdlog::level::level_enum level = spdlog::level::level_enum::trace) {
@@ -37,21 +40,28 @@ void unregisterSink(const spdlog::sink_ptr sink) {
 	multiplexSink->remove_sink(sink);
 }
 
-void init(const char* logFile) {
+void setConsoleLogLevel(spdlog::level::level_enum level) {
+	consoleSink->set_level(level);
+}
+
+void init(const spdlog::filename_t& logFileName) {
 	if (initialized) {
 		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
 		return;
 	}
-	sinks = {
-		std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
-		multiplexSink};
-	if (logFile) {
+
+	multiplexSink = std::make_shared<spdlog::sinks::dist_sink_mt>();
+	consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	sinks = {consoleSink, multiplexSink};
+
+	if (!logFileName.empty()) {
 		try {
-			sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile));
+			sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFileName, MAX_LOG_FILE_SIZE_BYTES, MAX_LOG_FILE_AMOUNT, false));
 		} catch (const spdlog::spdlog_ex& ex) {
 			LOG_ERROR(LOGGING, "Log file initialization failed: {}\n", ex.what());
 		}
 	}
+
 	// Resize stdout buffer
 	const auto stdoutBufferSize = 50000;
 	setvbuf(stdout, nullptr, _IOFBF, stdoutBufferSize);
@@ -75,9 +85,18 @@ void init(const char* logFile) {
 	spdlog::register_logger(makeLogger(MESH_LOADER));
 	spdlog::set_default_logger(spdlog::get(DEFAULT));
     spdlog::set_pattern("%^[%L] [%D %T:%f] [%n] [%s:%#] [%!] %v");
+
+#if _WIN64
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+
 	initialized = true;
-	LOG_INFO_IF(LOGGING, logFile != nullptr, "log_system initialized logFile: {}", logFile);
-	LOG_INFO_IF(LOGGING, logFile == nullptr, "log_system initialized");
+
+#if defined(_WIN32)
+	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(logFileName));
+#else
+	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", logFileName);
+#endif
 }
 
 void deinit() {

@@ -29,9 +29,9 @@ enum class Pixmap {
 
 	linkable,
 	linked,
-	parent_is_linked,
+	parentIsLinked,
 	unlinkable,
-	link_broken,
+	linkBroken,
 
 	warning,
 	error,
@@ -39,8 +39,8 @@ enum class Pixmap {
 	close,
 	undock,
 	menu,
-	open_in_new,
-	go_to,
+	openInNew,
+	goTo,
 
 	typeNode,
 	typeCamera,

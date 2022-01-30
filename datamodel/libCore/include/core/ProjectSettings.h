@@ -16,6 +16,59 @@ namespace raco::core {
 
 class ProjectSettings : public EditorObject {
 public:
+	class DefaultResourceDirectories : public ClassWithReflectedMembers {
+	public:
+		static inline const TypeDescriptor typeDescription = {"DefaultResourceDirectories", false};
+
+		TypeDescriptor const& getTypeDescription() const override {
+			return typeDescription;
+		}
+
+		bool serializationRequired() const override {
+			return true;
+		}
+
+		 DefaultResourceDirectories(const DefaultResourceDirectories& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(),
+																	  imageSubdirectory_(other.imageSubdirectory_),
+																	  meshSubdirectory_(other.meshSubdirectory_),
+																	  scriptSubdirectory_(other.scriptSubdirectory_),
+																	  shaderSubdirectory_(other.shaderSubdirectory_) {
+			fillPropertyDescription();
+		}
+
+		DefaultResourceDirectories() : ClassWithReflectedMembers() {
+			fillPropertyDescription();
+		}
+
+		void fillPropertyDescription() {
+			properties_.emplace_back("imageSubdirectory", &imageSubdirectory_);
+			properties_.emplace_back("meshSubdirectory", &meshSubdirectory_);
+			properties_.emplace_back("scriptSubdirectory", &scriptSubdirectory_);
+			properties_.emplace_back("shaderSubdirectory", &shaderSubdirectory_);
+		}
+
+		DefaultResourceDirectories& operator=(const DefaultResourceDirectories& other) {
+			imageSubdirectory_ = other.imageSubdirectory_;
+			meshSubdirectory_ = other.meshSubdirectory_;
+			scriptSubdirectory_ = other.scriptSubdirectory_;
+			shaderSubdirectory_ = other.shaderSubdirectory_;
+			return *this;
+		}
+
+		void copyAnnotationData(const DefaultResourceDirectories& other) {
+			imageSubdirectory_.copyAnnotationData(other.imageSubdirectory_);
+			meshSubdirectory_.copyAnnotationData(other.meshSubdirectory_);
+			scriptSubdirectory_.copyAnnotationData(other.scriptSubdirectory_);
+			shaderSubdirectory_.copyAnnotationData(other.shaderSubdirectory_);
+		}
+	public:
+		Property<std::string, DisplayNameAnnotation, URIAnnotation> imageSubdirectory_{{"images"}, {"Images"}, {URIAnnotation::projectSubdirectoryFilter}};
+		Property<std::string, DisplayNameAnnotation, URIAnnotation> meshSubdirectory_{{"meshes"}, {"Meshes"}, {URIAnnotation::projectSubdirectoryFilter}};
+		Property<std::string, DisplayNameAnnotation, URIAnnotation> scriptSubdirectory_{{"scripts"}, {"Scripts"}, {URIAnnotation::projectSubdirectoryFilter}};
+		Property<std::string, DisplayNameAnnotation, URIAnnotation> shaderSubdirectory_{{"shaders"}, {"Shaders"}, {URIAnnotation::projectSubdirectoryFilter}};
+	};
+
+
 	static inline const TypeDescriptor typeDescription{"ProjectSettings", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
@@ -36,6 +89,7 @@ public:
 		properties_.emplace_back("sceneId", &sceneId_);
 		properties_.emplace_back("viewport", &viewport_);
 		properties_.emplace_back("backgroundColor", &backgroundColor_);
+		properties_.emplace_back("defaultResourceFolders", &defaultResourceDirectories_);
 		properties_.emplace_back("enableTimerFlag", &enableTimerFlag_);
 		properties_.emplace_back("runTimer", &runTimer_);
 	}
@@ -43,6 +97,8 @@ public:
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> sceneId_{123u, DisplayNameAnnotation("Scene Id"), {1, 1024}};
 	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Display Size"}};
 	Property<Vec4f, DisplayNameAnnotation> backgroundColor_{{}, {"Display Background Color"}};
+
+	Property<DefaultResourceDirectories, DisplayNameAnnotation> defaultResourceDirectories_{{}, {"Default Resource Folders"}};
 
 	// Properties related to timer running hack - remove these properties and all related code when proper animations have been implemented
 	Property<bool, HiddenProperty> enableTimerFlag_{false, HiddenProperty()};

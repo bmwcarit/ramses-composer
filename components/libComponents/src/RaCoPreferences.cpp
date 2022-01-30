@@ -9,7 +9,7 @@
  */
 #include "components/RaCoPreferences.h"
 
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 #include "core/PathManager.h"
 #include "log_system/log.h"
@@ -21,13 +21,12 @@ RaCoPreferences::RaCoPreferences() {
 	load();
 }
 
-bool RaCoPreferences::init() noexcept {
+void RaCoPreferences::init() noexcept {
 	RaCoPreferences::instance();
-	return true;
 }
 
 bool RaCoPreferences::save() {
-	QSettings settings(raco::core::PathManager::preferenceFileLocation().c_str(), QSettings::IniFormat);
+	auto settings = raco::core::PathManager::preferenceSettings();
 	settings.setValue("userProjectsDirectory", userProjectsDirectory);
 
 	settings.setValue("imageSubdirectory", imageSubdirectory);
@@ -35,25 +34,23 @@ bool RaCoPreferences::save() {
 	settings.setValue("scriptSubdirectory", scriptSubdirectory);
 	settings.setValue("shaderSubdirectory", shaderSubdirectory);
 
-	return true;
+	settings.sync();
+	return settings.status() == QSettings::NoError;
 }
 
-bool RaCoPreferences::load() {
-	LOG_INFO(log_system::COMMON, "{}", raco::core::PathManager::preferenceFileLocation());
-	QSettings settings(raco::core::PathManager::preferenceFileLocation().c_str(), QSettings::IniFormat);
+void RaCoPreferences::load() {
+	auto settings = raco::core::PathManager::preferenceSettings();
 	std::string dir = settings.value("userProjectsDirectory", "").toString().toStdString();
-	if (raco::utils::path::isExistingDirectory(dir)) {
+	if (raco::utils::u8path(dir).existsDirectory()) {
 		userProjectsDirectory = QString::fromStdString(dir);
 	} else {
-		userProjectsDirectory = QString::fromStdString(raco::core::PathManager::defaultProjectFallbackPath());
+		userProjectsDirectory = QString::fromStdString(raco::core::PathManager::defaultProjectFallbackPath().string());
 	}
 
 	imageSubdirectory = settings.value("imageSubdirectory", "images").toString();
 	meshSubdirectory = settings.value("meshSubdirectory", "meshes").toString();
 	scriptSubdirectory = settings.value("scriptSubdirectory", "scripts").toString();
 	shaderSubdirectory = settings.value("shaderSubdirectory", "shaders").toString();
-
-	return true;
 }
 
 RaCoPreferences& RaCoPreferences::instance() noexcept {

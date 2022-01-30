@@ -27,7 +27,7 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
-#include "user_types/PrefabInstance.h"
+#include "user_types/Texture.h"
 
 #include "gtest/gtest.h"
 
@@ -38,6 +38,68 @@ using namespace raco::user_types;
 class PrefabTest : public TestEnvironmentCore {
 public:
 };
+
+TEST_F(PrefabTest, check_id_recreate_same_id) {
+	auto prefab = create<Prefab>("prefab");
+	auto node = create<Node>("node", prefab);
+	auto inst = create_prefabInstance("inst", prefab);
+	
+	EXPECT_EQ(inst->children_->size(), 1);
+	auto inst_node_1 = inst->children_->asVector<SEditorObject>()[0];
+
+	commandInterface.set({inst, {"template"}}, SEditorObject{});
+	EXPECT_EQ(inst->children_->size(), 0);
+
+	commandInterface.set({inst, {"template"}}, prefab);
+	EXPECT_EQ(inst->children_->size(), 1);
+	auto inst_node_2 = inst->children_->asVector<SEditorObject>()[0];
+
+	EXPECT_FALSE(inst_node_1 == inst_node_2);
+	EXPECT_EQ(inst_node_1->objectID(), inst_node_2->objectID());
+}
+
+TEST_F(PrefabTest, check_id_different_inst) {
+	auto prefab = create<Prefab>("prefab");
+	auto node = create<Node>("node", prefab);
+	auto inst_1 = create_prefabInstance("inst", prefab);
+	auto inst_2 = create_prefabInstance("inst", prefab);
+	
+	EXPECT_EQ(inst_1->children_->size(), 1);
+	auto inst_node_1 = inst_1->children_->asVector<SEditorObject>()[0];
+
+	EXPECT_EQ(inst_2->children_->size(), 1);
+	auto inst_node_2 = inst_2->children_->asVector<SEditorObject>()[0];
+
+	EXPECT_NE(inst_node_1->objectID(), inst_node_2->objectID());
+}
+
+TEST_F(PrefabTest, check_id_nesting) {
+	//           prefab_2  inst_2
+	//  prefab   inst_1    inst_3
+	//  node     node_1    node_2
+
+	auto prefab = create<Prefab>("prefab");
+	auto node = create<Node>("node", prefab);
+	
+	auto prefab_2 = create<Prefab>("prefab2");
+	auto inst_1 = create_prefabInstance("inst", prefab, prefab_2);
+
+	EXPECT_EQ(inst_1->children_->size(), 1);
+	auto node_1 = inst_1->children_->asVector<SEditorObject>()[0];
+
+	auto inst_2 = create_prefabInstance("inst", prefab_2);
+	EXPECT_EQ(inst_2->children_->size(), 1);
+	auto inst_3 = inst_2->children_->asVector<SEditorObject>()[0];
+	EXPECT_EQ(inst_3->children_->size(), 1);
+	auto node_2 = inst_3->children_->asVector<SEditorObject>()[0];
+
+	EXPECT_EQ(node_1->objectID(), EditorObject::XorObjectIDs(node->objectID(), inst_1->objectID()));
+
+	EXPECT_EQ(inst_3->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2->objectID()));
+
+	EXPECT_EQ(node_2->objectID(), EditorObject::XorObjectIDs(node_1->objectID(), inst_2->objectID()));
+	EXPECT_EQ(node_2->objectID(), EditorObject::XorObjectIDs(node->objectID(), inst_3->objectID()));
+}
 
 TEST_F(PrefabTest, move_node_in) {
 	auto prefab = create<Prefab>("prefab");
@@ -175,8 +237,8 @@ TEST_F(PrefabTest, link_broken_inside_prefab_status_gets_propagated_to_instances
 	auto luaPrefabNodeChild = create<LuaScript>("luaPrefabNode");
 	commandInterface.moveScenegraphChildren({luaPrefabNodeChild}, node);
 
-	commandInterface.set({luaPrefabGlobal, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
-	commandInterface.set({luaPrefabNodeChild, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set({luaPrefabGlobal, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set({luaPrefabNodeChild, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	commandInterface.addLink({luaPrefabGlobal, {"luaOutputs", "ovector3f"}} , {node, {"translation"}});
 	commandInterface.addLink({luaPrefabNodeChild, {"luaOutputs", "out_float"}}, {luaPrefabGlobal, {"luaInputs", "float"}});
@@ -187,13 +249,13 @@ TEST_F(PrefabTest, link_broken_inside_prefab_status_gets_propagated_to_instances
 		{{inst_lua_prefab, {"luaOutputs", "ovector3f"}}, {inst_node, {"translation"}}}}};
 	checkLinks(refLinks);
 
-	commandInterface.set({luaPrefabNodeChild, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
-	commandInterface.set({luaPrefabGlobal, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set({luaPrefabNodeChild, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set({luaPrefabGlobal, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 	ASSERT_EQ(project.links().size(), 3);
 	ASSERT_FALSE(std::all_of(project.links().begin(), project.links().end(), [](const auto link) { return link->isValid(); }));
 
-	commandInterface.set({luaPrefabGlobal, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
-	commandInterface.set({luaPrefabNodeChild, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set({luaPrefabGlobal, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set({luaPrefabNodeChild, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 	checkLinks(refLinks);
 }
 
@@ -464,7 +526,7 @@ end
 TEST_F(PrefabTest, restore_cached_lua_prop_when_breaking_uri) {
 	auto prefab = create<Prefab>("prefab");
 	auto lua = create<LuaScript>("lua", prefab);
-	commandInterface.set({lua, {"uri"}}, (cwd_path() / "scripts/types-scalar.lua").string());
+	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/types-scalar.lua").string());
 	auto inst = create<PrefabInstance>("inst");
 	commandInterface.set({inst, {"template"}}, prefab);
 
@@ -478,7 +540,7 @@ TEST_F(PrefabTest, restore_cached_lua_prop_when_breaking_uri) {
 	ASSERT_EQ(ValueHandle(lua, {"luaInputs"}).size(), 0);
 	ASSERT_EQ(ValueHandle(inst_lua, {"luaInputs"}).size(), 0);
 
-	commandInterface.set({lua, {"uri"}}, (cwd_path() / "scripts/types-scalar.lua").string());
+	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/types-scalar.lua").string());
 
 	ASSERT_TRUE(ValueHandle(lua, {"luaInputs"}).hasProperty("float"));
 	ASSERT_TRUE(ValueHandle(inst_lua, {"luaInputs"}).hasProperty("float"));
@@ -544,7 +606,7 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_no_module) {
 	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
 
 	auto lua = create<LuaScript>("lua", prefab);
-	commandInterface.set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+	commandInterface.set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
 	commandInterface.moveScenegraphChildren({lua}, prefab);
 
 	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
@@ -559,11 +621,11 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_add_module) {
 	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
 
 	auto lua = create<LuaScript>("lua", prefab);
-	commandInterface.set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+	commandInterface.set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
 	commandInterface.moveScenegraphChildren({lua}, prefab);
 
 	auto luaModule = create<LuaScriptModule>("luaModule");
-	commandInterface.set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+	commandInterface.set({luaModule, &LuaScriptModule::uri_}, (test_path() / "scripts/moduleDefinition.lua").string());
 
 	commandInterface.set({lua, {"luaModules", "coalas"}}, luaModule);
 
@@ -579,11 +641,11 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_remove_module) {
 	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
 
 	auto lua = create<LuaScript>("lua", prefab);
-	commandInterface.set({lua, &LuaScript::uri_}, (cwd_path() / "scripts/moduleDependency.lua").string());
+	commandInterface.set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
 	commandInterface.moveScenegraphChildren({lua}, prefab);
 
 	auto luaModule = create<LuaScriptModule>("luaModule");
-	commandInterface.set({luaModule, &LuaScriptModule::uri_}, (cwd_path() / "scripts/moduleDefinition.lua").string());
+	commandInterface.set({luaModule, &LuaScriptModule::uri_}, (test_path() / "scripts/moduleDefinition.lua").string());
 
 	commandInterface.set({lua, {"luaModules", "coalas"}}, luaModule);
 	commandInterface.set({lua, {"luaModules", "coalas"}}, SEditorObject{});
@@ -593,3 +655,173 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_remove_module) {
 	ASSERT_TRUE(commandInterface.errors().hasError({lua}));
 	ASSERT_TRUE(commandInterface.errors().hasError({inst_lua}));
 }
+
+TEST_F(PrefabTest, update_private_material_ref_change_with_overlapping_property_names) {
+	auto material1 = create<Material>("material1");
+	auto material2 = create<Material>("material2");
+
+
+	auto firstVertFile = makeFile("first.vert", R"(
+#version 300 es
+precision highp float;
+
+uniform mat4 uWorldViewProjectionMatrix;
+uniform vec2 offset;
+uniform vec2 flip;
+
+in vec3 a_Position;
+in vec2 a_TextureCoordinate;
+
+out vec2 v_TextureCoordinate;
+
+void main() {
+	float coordsX = (flip.x == 0.0) ? (a_TextureCoordinate.x) : (1.0 - a_TextureCoordinate.x);
+	float coordsY = (flip.y == 0.0) ? (a_TextureCoordinate.y) : (1.0 - a_TextureCoordinate.y);
+	v_TextureCoordinate = vec2(coordsX + offset.x, coordsY - offset.y);
+
+	gl_Position = uWorldViewProjectionMatrix * vec4(a_Position, 1.0);
+}
+
+)");
+	auto firstFragFile = makeFile("first.frag", R"(
+#version 300 es
+precision highp float;
+
+uniform float u_Opacity;
+uniform sampler2D u_Tex;
+uniform vec4 u_Color;
+uniform float currentTile;
+uniform float numberOfTiles;
+
+
+in vec2 v_TextureCoordinate;
+out vec4 FragColor;
+	
+void main(){
+	vec4 clr0 = texture(u_Tex, vec2(v_TextureCoordinate.x/numberOfTiles+(currentTile-1.0)*1.0/numberOfTiles, v_TextureCoordinate.y));
+	FragColor.rgb = clr0.rgb * u_Color.rgb* u_Opacity;
+	FragColor.a = clr0.a * u_Opacity * u_Color.a;
+
+}
+)");
+	auto secondVertFile = makeFile("second.vert", R"(
+#version 300 es
+precision highp float;
+
+uniform mat4 uWorldViewProjectionMatrix;
+uniform vec2 offset;
+uniform vec2 flip;
+uniform float numberOfTilesX;
+uniform float numberOfTilesY;
+uniform float currentTile;
+uniform sampler2D u_Tex;
+
+in vec3 a_Position;
+in vec2 a_TextureCoordinate;
+
+out vec2 v_TextureCoordinate;
+
+void main() {
+	float coordsX = (flip.x == 0.0) ? (a_TextureCoordinate.x) : (1.0 - a_TextureCoordinate.x);
+	float coordsY = (flip.y == 0.0) ? (1.0 - a_TextureCoordinate.y) : (a_TextureCoordinate.y);
+	float tileX = mod(currentTile-1.0,numberOfTilesX);
+	float tileY = numberOfTilesY-floor((currentTile-1.0)/numberOfTilesX)-1.0;
+	float tilingAppliedU = (tileX+coordsX)/numberOfTilesX;
+	float tilingAppliedV = 1.0 - ((tileY+coordsY)/numberOfTilesY);
+	v_TextureCoordinate = vec2(tilingAppliedU + offset.x, tilingAppliedV - offset.y);
+	
+	highp vec2 tiling = vec2(numberOfTilesX, numberOfTilesY);
+	vec2 texSize = vec2(textureSize(u_Tex,0));
+	vec2 autoScale = texSize/tiling*a_Position.xy;
+	vec2 alignToRaster = vec2(abs(mod(autoScale.x,1.0)), abs(mod(autoScale.y,1.0))); // in case of centered but odd dimensions it will shift half a pixel to align back to the raster
+	vec3 adjustedPosition = vec3(autoScale-alignToRaster, a_Position.z);
+	gl_Position = uWorldViewProjectionMatrix * vec4(adjustedPosition, 1.0);
+}
+)");
+	auto secondFragFile = makeFile("second.frag", R"(
+#version 300 es
+precision highp float;
+
+uniform float u_Opacity;
+uniform sampler2D u_Tex;
+uniform vec4 u_Color;
+
+in vec2 v_TextureCoordinate;
+
+out vec4 FragColor;
+
+void main(){
+	vec4 clr0 = texture(u_Tex, v_TextureCoordinate);
+	if (clr0.a <= 0.0)
+	{discard;}
+	FragColor.rgb = clr0.rgb * u_Color.rgb;
+	FragColor.a = clr0.a * u_Opacity * u_Color.a;
+}
+
+)");
+
+	commandInterface.set({material1, &Material::uriVertex_}, firstVertFile);
+	commandInterface.set({material1, &Material::uriFragment_}, firstFragFile);
+	commandInterface.set({material2, &Material::uriVertex_}, secondVertFile);
+	commandInterface.set({material2, &Material::uriFragment_}, secondFragFile);
+
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+
+	auto mesh = create<Mesh>("mesh");
+	commandInterface.set({mesh, &Mesh::uri_}, (test_path() / "meshes" / "Duck.glb").string());
+
+	auto meshNode = create<MeshNode>("meshNode");
+	commandInterface.set({meshNode, &MeshNode::mesh_}, mesh);
+	commandInterface.set({meshNode, {"materials", "material", "material"}}, material1);
+	commandInterface.set({meshNode, {"materials", "material", "private"}}, true);
+	commandInterface.moveScenegraphChildren({meshNode}, prefab);
+
+	auto texture = create<Texture>("tex");
+	commandInterface.set({meshNode, {"materials", "material", "material"}}, material2);
+	ASSERT_NO_THROW(commandInterface.set({meshNode, {"materials", "material", "uniforms", "u_Tex"}}, texture));
+}
+
+#ifdef NDEBUG
+TEST_F(PrefabTest, prefab_performance_deletion_with_instance_1000_nodes) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+
+	for (auto i = 0; i < 1000; ++i) {
+		auto lua = create<LuaScript>("lua", prefab);
+		commandInterface.set({lua, &LuaScript::uri_}, (test_path() / "scripts/types-scalar.lua").string());
+		commandInterface.moveScenegraphChildren({lua}, prefab);
+	}
+
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+
+	assertOperationTimeIsBelow(700, [this, prefab]() {
+		commandInterface.deleteObjects({prefab});
+	});
+}
+
+
+TEST_F(PrefabTest, prefab_performance_deletion_with_instance_and_10_prefab_instance_children) {
+	auto prefab_to_delete = create<Prefab>("prefab");
+	auto prefab_with_stuff = create<Prefab>("prefab2");
+	auto inst = create<PrefabInstance>("inst");
+
+	for (auto i = 0; i < 500; ++i) {
+		auto lua = create<LuaScript>("lua", prefab_with_stuff);
+		commandInterface.set({lua, &LuaScript::uri_}, (test_path() / "scripts/types-scalar.lua").string());
+	}
+
+	for (auto i = 0; i < 10; ++i) {
+		auto delete_inst = create<PrefabInstance>("inst", prefab_to_delete);
+		commandInterface.set({delete_inst, &PrefabInstance::template_}, prefab_with_stuff);
+	}
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab_to_delete);
+
+
+	assertOperationTimeIsBelow(16000, [this, prefab_to_delete]() {
+		commandInterface.deleteObjects({prefab_to_delete});
+	});
+}
+
+#endif

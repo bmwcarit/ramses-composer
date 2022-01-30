@@ -10,6 +10,7 @@
 #include "user_types/UserObjectFactory.h"
 
 #include "core/ExternalReferenceAnnotation.h"
+#include "core/ProjectSettings.h"
 
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
@@ -36,19 +37,15 @@
 namespace raco::user_types {
 
 template <class T>
-SEditorObject UserObjectFactory::createObjectInternal(const std::string& name, const std::string& id) {
-	return std::make_shared<T>(name, id);
-}
-
-template <class T>
 std::shared_ptr<AnnotationBase> UserObjectFactory::createAnnotationInternal() {
 	return std::make_shared<T>();
 }
 
 template <class T>
-data_storage::ValueBase* UserObjectFactory::createValueInternal() {
-	return new Value<std::shared_ptr<T>>();
+std::shared_ptr<ClassWithReflectedMembers> UserObjectFactory::createStructInternal() {
+	return std::make_shared<T>();
 }
+
 
 template <class... Args>
 std::map<std::string, UserObjectFactory::TypeDescriptor> UserObjectFactory::makeTypeMap() {
@@ -62,7 +59,7 @@ constexpr std::pair<std::string, std::function<TPropertyType*()>> createTypeMapP
 }
 
 template <class... Args>
-std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction> makePropertyMapTuple(std::tuple<Args...> *dummy) {	
+std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction> UserObjectFactory::makePropertyMapTuple(std::tuple<Args...>* dummy) {	
 	return std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction>{ createTypeMapPair<Args>()...};
 }
 
@@ -72,6 +69,11 @@ std::map<std::string, UserObjectFactory::AnnotationDescriptor> UserObjectFactory
 		{Args::typeDescription.typeName, {Args::typeDescription, createAnnotationInternal<Args>}}...};
 }
 
+template <class... Args>
+std::map<std::string, UserObjectFactory::StructDescriptor> UserObjectFactory::makeStructTypeMap() {
+	return std::map<std::string, UserObjectFactory::StructDescriptor>{
+		{Args::typeDescription.typeName, {Args::typeDescription, createStructInternal<Args>}}...};
+}
 
 UserObjectFactory::UserObjectFactory() {
 	properties_ = makePropertyMapTuple(static_cast<PropertyTypeMapType*>(nullptr));
@@ -101,6 +103,12 @@ UserObjectFactory::UserObjectFactory() {
 	annotations_ = makeAnnotationMap<
 		ExternalReferenceAnnotation
 	>();
+
+	structTypes_ = makeStructTypeMap<BlendOptions,
+		ProjectSettings::DefaultResourceDirectories,
+		CameraViewport,
+		PerspectiveFrustum,
+		OrthographicFrustum>();
 }
 
 UserObjectFactory& UserObjectFactory::getInstance() {
@@ -111,7 +119,7 @@ UserObjectFactory& UserObjectFactory::getInstance() {
 	return *instance;
 }
 
-SEditorObject UserObjectFactory::createObject(const std::string& type, const std::string& name, const std::string& id) {
+SEditorObject UserObjectFactory::createObject(const std::string& type, const std::string& name, const std::string& id) const {
 	auto it = types_.find(type);
 	if (it != types_.end()) {
 		return it->second.createFunc(name, id);
@@ -120,7 +128,7 @@ SEditorObject UserObjectFactory::createObject(const std::string& type, const std
 	return SEditorObject();
 }
 
-std::shared_ptr<AnnotationBase> UserObjectFactory::createAnnotation(const std::string& type) {
+std::shared_ptr<AnnotationBase> UserObjectFactory::createAnnotation(const std::string& type) const {
 	auto it = annotations_.find(type);
 	if (it != annotations_.end()) {
 		return it->second.createFunc();
@@ -128,7 +136,15 @@ std::shared_ptr<AnnotationBase> UserObjectFactory::createAnnotation(const std::s
 	return nullptr;
 }
 
-data_storage::ValueBase* UserObjectFactory::createValue(const std::string& type) {
+std::shared_ptr<ClassWithReflectedMembers> UserObjectFactory::createStruct(const std::string& type) const {
+	auto it = structTypes_.find(type);
+	if (it != structTypes_.end()) {
+		return it->second.createFunc();
+	}
+	return {};
+}
+
+data_storage::ValueBase* UserObjectFactory::createValue(const std::string& type) const {
 	{
 		auto it = types_.find(type);
 		if (it != types_.end()) {
@@ -150,6 +166,14 @@ const std::map<std::string, UserObjectFactory::TypeDescriptor>& UserObjectFactor
 
 bool UserObjectFactory::isUserCreatable(const std::string& type) const {
 	return type != core::ProjectSettings::typeDescription.typeName;
+}
+
+const std::map<std::string, UserObjectFactory::StructDescriptor>& UserObjectFactory::getStructTypes() const {
+	return structTypes_;
+}
+
+const std::map<std::string, UserObjectFactory::ValueCreationFunction>& UserObjectFactory::getProperties() const {
+	return properties_;
 }
 
 }  // namespace raco::user_types

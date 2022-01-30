@@ -27,6 +27,8 @@
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderTarget.h"
 
 #include "gtest/gtest.h"
 
@@ -39,6 +41,9 @@ using namespace raco::user_types;
 template <class T = ::testing::Test>
 class UndoTestT : public TestEnvironmentCoreT<T> {
 public:
+	UndoTestT() : TestEnvironmentCoreT<T>(&TestObjectFactory::getInstance()) {
+	}
+
 	template <typename C>
 	void checkSetValue(ValueHandle handle, const C& value) {
 		C oldValue = handle.as<C>();
@@ -406,7 +411,7 @@ TEST_F(UndoTest, copyAndPasteObjectSimple) {
 TEST_F(UndoTest, copyAndPasteShallowSetsReferences) {
 	auto meshNode = create<MeshNode>("meshnode");
 	auto mesh = create<Mesh>("mesh");
-	commandInterface.set({mesh, {"uri"}}, (cwd_path() / "meshes" / "Duck.glb").string());
+	commandInterface.set({mesh, {"uri"}}, (test_path() / "meshes" / "Duck.glb").string());
 	commandInterface.set({meshNode, {"mesh"}}, mesh);
 
 	checkUndoRedo([this, meshNode]() { commandInterface.pasteObjects(context.copyObjects({meshNode})); },
@@ -441,16 +446,33 @@ TEST_F(UndoTest, deepCut) {
 		});
 }
 
+TEST_F(UndoTest, no_change_records_for_deleted_objects) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+
+	auto index = undoStack.getIndex();
+
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "float"}});
+
+	std::vector<Link> refLinks{{{{start, {"luaOutputs", "ofloat"}}, {end, {"luaInputs", "float"}}}}};
+	checkLinks(refLinks);
+
+	undoStack.setIndex(index);
+	
+	auto changedSet = recorder.getAllChangedObjects();
+	EXPECT_TRUE(changedSet.find(end) == changedSet.end());
+}
+
 TEST_F(UndoTest, link_broken_changed_output) {
 	auto linkBase = create<LuaScript>("script1");
-	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	auto linkRecipient = create<LuaScript>("script2");
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
 
 	// link gets broken here
-	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string()); },
+	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_TRUE(project.links()[0]->isValid());
@@ -463,15 +485,15 @@ TEST_F(UndoTest, link_broken_changed_output) {
 
 TEST_F(UndoTest, link_broken_changed_input) {
 	auto linkBase = create<LuaScript>("script1");
-	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 
 	auto linkRecipient = create<LuaScript>("script2");
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
 
 	// link gets broken here
-	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string()); },
+	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_TRUE(project.links()[0]->isValid());
@@ -484,20 +506,20 @@ TEST_F(UndoTest, link_broken_changed_input) {
 
 TEST_F(UndoTest, link_broken_fix_link_with_correct_input) {
 	auto linkBase = create<LuaScript>("script1");
-	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 
 	auto linkRecipient = create<LuaScript>("script2");
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
 
 	// link gets broken here
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 
 	// Simulate user doing stuff after changing URI to prevent undo stack merging when changing URI again.
 	create<Node>("Node");
 
-	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string()); },
+	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_FALSE(project.links()[0]->isValid());
@@ -510,19 +532,19 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_input) {
 
 TEST_F(UndoTest, link_broken_fix_link_with_correct_output) {
 	auto linkBase = create<LuaScript>("script1");
-	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	auto linkRecipient = create<LuaScript>("script2");
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
 
 	// link gets broken here
-	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	// Simulate user doing stuff after changing URI to prevent undo stack merging when changing URI again.
 	create<Node>("Node");
 
-	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string()); },
+	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_FALSE(project.links()[0]->isValid());
@@ -535,15 +557,15 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_output) {
 
 TEST_F(UndoTest, link_input_changed_add_another_link) {
 	auto linkBase = create<LuaScript>("script1");
-	commandInterface.set(ValueHandle{linkBase, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 
 	auto linkRecipient = create<LuaScript>("script2");
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/SimpleScript.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
 	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
 
 	// link gets broken here
-	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, cwd_path().append("scripts/types-scalar.lua").string());
+	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	checkUndoRedo([this, linkBase, linkRecipient]() { commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "float"}}); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
@@ -558,10 +580,10 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 
 TEST_F(UndoTest, lua_module_added) {
 	auto script = create<LuaScript>("script");
-	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
 
 	auto module = create<LuaScriptModule>("module");
-	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, cwd_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
 
 	checkUndoRedo([this, script, module]() {
 		commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
@@ -580,13 +602,13 @@ TEST_F(UndoTest, lua_module_added) {
 
 TEST_F(UndoTest, lua_module_script_uri_changed) {
 	auto script = create<LuaScript>("script");
-	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
 
 	auto module = create<LuaScriptModule>("module");
-	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, cwd_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
 	commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
 
-	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/types-scalar.lua").string()); },
+	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/types-scalar.lua").string()); },
 		[this, script]() {
 			ASSERT_FALSE(commandInterface.errors().hasError({script}));
 			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
@@ -600,10 +622,10 @@ TEST_F(UndoTest, lua_module_script_uri_changed) {
 
 TEST_F(UndoTest, lua_module_script_module_made_invalid) {
 	auto script = create<LuaScript>("script");
-	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, cwd_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
 
 	auto module = create<LuaScriptModule>("module");
-	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, cwd_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
 	commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
 
 	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, std::string()); },
@@ -619,7 +641,7 @@ TEST_F(UndoTest, lua_module_script_module_made_invalid) {
 }
 
 TEST_F(UndoTest, link_quaternion_euler_change) {
-	raco::utils::file::write((cwd_path() / "lua_script_out1.lua").string(), R"(
+	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
 function interface()
 	IN.vec = VEC4F
 	OUT.vec = VEC4F
@@ -629,7 +651,7 @@ function run()
 end
 )");
 
-	raco::utils::file::write((cwd_path() / "lua_script_out2.lua").string(), R"(
+	raco::utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
 function interface()
 	IN.vec = VEC3F
 	OUT.vec = VEC3F
@@ -639,13 +661,13 @@ function run()
 end
 )");
 	auto lua = create<LuaScript>("script1");
-	commandInterface.set(ValueHandle{lua, {"uri"}}, cwd_path().append("lua_script_out1.lua").string());
+	commandInterface.set(ValueHandle{lua, {"uri"}}, test_path().append("lua_script_out1.lua").string());
 
 	auto node = create<Node>("node");
 	commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "vec"}}, ValueHandle{node, {"rotation"}});
 
 	checkUndoRedo([this, lua, node]() { 
-		commandInterface.set(ValueHandle{lua, {"uri"}}, cwd_path().append("lua_script_out2.lua").string());
+		commandInterface.set(ValueHandle{lua, {"uri"}}, test_path().append("lua_script_out2.lua").string());
 	},
 		[this, node, lua]() {
 			ASSERT_EQ(project.links().size(), 1);
@@ -668,7 +690,7 @@ end
 
 TEST_F(UndoTest, mesh_asset_with_anims_import_multiple_undo_redo) {
 	raco::core::MeshDescriptor desc;
-	desc.absPath = cwd_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
+	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto scenegraph = commandInterface.meshCache()->getMeshScenegraph(desc);
@@ -691,7 +713,7 @@ TEST_P(UndoTestWithIDParams, animation_with_animation_channel) {
 	auto channelID = GetParam()[0];
 	auto animID = GetParam()[1];
 
-	auto absPath = cwd_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
+	auto absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 
 	checkJump([this, absPath, channelID, animID]() { 
 		auto channel = commandInterface.createObject(AnimationChannel::typeDescription.typeName, "channel", channelID);
@@ -781,6 +803,59 @@ void main() {
 	undoStack.setIndex(postIndex);
 
 	postCheck("alt_name");
+}
+
+TEST_F(UndoTest, meshnode_uniform_value_update) {
+	TextFile vertShader = makeFile("shader.vert", R"(
+#version 300 es
+precision mediump float;
+in vec3 a_Position;
+uniform mat4 u_MVPMatrix;
+void main() {
+    float offset = float(gl_InstanceID) * 0.2;
+    gl_Position = u_MVPMatrix * vec4(a_Position.x + offset, a_Position.yz, 1.0);
+}
+)");
+
+	TextFile fragShader = makeFile("shader.frag", R"(
+#version 300 es
+precision mediump float;
+out vec4 FragColor;
+uniform float u_color;
+void main() {
+})");
+
+	std::string altFragShader = makeFile("altshader.frag", R"(
+#version 300 es
+precision mediump float;
+out vec4 FragColor;
+uniform float alt_name;
+void main() {
+})");
+
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+
+	auto material = commandInterface.createObject(Material::typeDescription.typeName, "material", "CCC");
+	auto meshnode = commandInterface.createObject(MeshNode::typeDescription.typeName, "meshnode", "BBB")->as<MeshNode>();
+	commandInterface.set({meshnode, {"mesh"}}, mesh);
+	commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
+	commandInterface.set(meshnode->getMaterialPrivateHandle(0), true);
+	commandInterface.set({material, &Material::uriVertex_}, vertShader);
+	commandInterface.set({material, &Material::uriFragment_}, fragShader);
+
+	size_t preIndex = undoStack.getIndex();
+
+	commandInterface.set(raco::core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}, 5.0);
+
+	size_t postIndex = undoStack.getIndex();
+
+	undoStack.setIndex(preIndex);
+	commandInterface.set({material, &Material::uriFragment_}, altFragShader);
+	commandInterface.set({material, &Material::uriFragment_}, fragShader);
+
+	undoStack.setIndex(preIndex);
+	undoStack.setIndex(postIndex);
+	ASSERT_NO_THROW((raco::core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}.asDouble()));	
 }
 
 #if (!defined(__linux__))
@@ -999,3 +1074,347 @@ end
 }
 
 #endif
+
+TEST_F(UndoTest, add_remove_property_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+	
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 context.addProperty(tableHandle, "ref", std::make_unique<Value<SEditorObject>>(refTarget));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "ref");
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, add_remove_multiple_property_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+
+	checkUndoRedoMultiStep<4>(
+		{[this, tableHandle, refTarget]() {
+			 context.addProperty(tableHandle, "ref1", std::make_unique<Value<SEditorObject>>(refTarget));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle, refTarget]() {
+				context.addProperty(tableHandle, "ref2", std::make_unique<Value<SEditorObject>>(refTarget));
+				this->undoStack.push("step 2");
+			},
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "ref1");
+				this->undoStack.push("step 3");
+			},
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "ref2");
+				this->undoStack.push("step 4");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, add_remove_property_table_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Table innerTable;
+			 innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+			 context.addProperty(tableHandle, "innerTable", std::make_unique<Value<Table>>(innerTable));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "innerTable");
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, add_remove_property_struct_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Value<StructWithRef>* value{new Value<StructWithRef>()};
+			 (*value)->ref = refTarget;
+			 context.addProperty(tableHandle, "innerStruct", std::unique_ptr<Value<StructWithRef>>(value));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "innerStruct");
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setTable_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Table newTable;
+			 newTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+			 context.set(tableHandle, newTable);
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				Table emptyTable;
+				context.set(tableHandle, emptyTable);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setArray_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle arrayHandle{refSource, &ObjectWithTableProperty::array_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, arrayHandle, refTarget]() {
+			 Table newTable;
+			 newTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+			 context.set(arrayHandle, newTable);
+			 this->undoStack.push("step 1");
+		 },
+			[this, arrayHandle]() {
+				Table emptyTable;
+				context.set(arrayHandle, emptyTable);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setStruct_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithStructProperty>("sourceObject");
+	const ValueHandle structHandle{refSource, &ObjectWithStructProperty::s_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, structHandle, refTarget]() {
+			 StructWithRef newStruct;
+			 newStruct.ref = refTarget;
+
+			 context.set(structHandle, newStruct);
+			 this->undoStack.push("step 1");
+		 },
+			[this, structHandle]() {
+				StructWithRef emptyStruct;
+				context.set(structHandle, emptyStruct);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setTable_nested_table_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Table innerTable;
+			 innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+
+			 Table outerTable;
+			 outerTable.addProperty("inner", std::make_unique<Value<Table>>(innerTable));
+
+			 context.set(tableHandle, outerTable);
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				Table emptyTable;
+				context.set(tableHandle, emptyTable);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setArray_nested_table_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::array_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Table innerTable;
+			 innerTable.addProperty("ref", std::make_unique<Value<SEditorObject>>(refTarget));
+
+			 Table outerTable;
+			 outerTable.addProperty("inner", std::make_unique<Value<Table>>(innerTable));
+
+			 context.set(tableHandle, outerTable);
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				Table emptyTable;
+				context.set(tableHandle, emptyTable);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setTable_nested_struct_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Value<StructWithRef>* value{new Value<StructWithRef>()};
+			 (*value)->ref = refTarget;
+
+			 Table newTable;
+			 newTable.addProperty("struct", std::unique_ptr<Value<StructWithRef>>(value));
+
+			 context.set(tableHandle, newTable);
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				Table emptyTable;
+				context.set(tableHandle, emptyTable);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, setArray_nested_struct_with_ref) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::array_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, refTarget]() {
+			 Value<StructWithRef>* value{new Value<StructWithRef>()};
+			 (*value)->ref = refTarget;
+
+			 Table newTable;
+			 newTable.addProperty("struct", std::unique_ptr<Value<StructWithRef>>(value));
+
+			 context.set(tableHandle, newTable);
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				Table emptyTable;
+				context.set(tableHandle, emptyTable);
+				this->undoStack.push("step 2");
+			}},
+		{[this, refTarget]() {
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, refTarget, refSource]() {
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), refSource);
+			},
+			[this, refTarget]() {
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}

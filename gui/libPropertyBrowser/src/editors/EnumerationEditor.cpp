@@ -22,7 +22,7 @@
 
 namespace raco::property_browser {
 
-EnumerationEditor::EnumerationEditor(PropertyBrowserItem* item, QWidget* parent) : QWidget{parent} {
+EnumerationEditor::EnumerationEditor(PropertyBrowserItem* item, QWidget* parent) : PropertyEditor(item, parent) {
 	auto* layout{new PropertyBrowserGridLayout{this}};
 	comboBox_ = new QComboBox(this);
 	comboBox_->setFocusPolicy(Qt::StrongFocus);

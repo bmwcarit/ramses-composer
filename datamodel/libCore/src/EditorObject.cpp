@@ -27,7 +27,7 @@ using namespace raco::data_storage;
 
 EditorObject::EditorObject(std::string name, std::string id) : 
 	ClassWithReflectedMembers(),
-	objectName_{name, DisplayNameAnnotation("Object Name")},
+															   objectName_{name, DisplayNameAnnotation("Object Name")},
 	objectID_{normalizedObjectID(id), {}} 
 {
 	fillPropertyDescription();
@@ -75,24 +75,54 @@ std::string EditorObject::normalizedObjectID(std::string const& id)
 	return id;
 }
 
+std::string EditorObject::XorObjectIDs(std::string const& id1, std::string const& id2) {
+	QUuid qid1(QString::fromStdString(id1));
+	QUuid qid2(QString::fromStdString(id2));
+
+	QUuid qid_result(qid1.data1 ^ qid2.data1,
+		qid1.data2 ^ qid2.data2,
+		qid1.data3 ^ qid2.data3,
+		qid1.data4[0] ^ qid2.data4[0],
+		qid1.data4[1] ^ qid2.data4[1],
+		qid1.data4[2] ^ qid2.data4[2], 
+		qid1.data4[3] ^ qid2.data4[3],
+		qid1.data4[4] ^ qid2.data4[4], 
+		qid1.data4[5] ^ qid2.data4[5],
+		qid1.data4[6] ^ qid2.data4[6],
+		qid1.data4[7] ^ qid2.data4[7]);
+
+	return qid_result.toString(QUuid::WithoutBraces).toStdString();
+}
+
 const std::set<WEditorObject, std::owner_less<WEditorObject>>& EditorObject::referencesToThis() const {
 	return referencesToThis_;
 }
 
-void EditorObject::onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const {
-	auto srcRootObject = sourceReferenceProperty.rootObject();
-
-	bool isReferenced = false;
-	for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(srcRootObject))) {
-		if (!(prop == sourceReferenceProperty) && prop.type() == PrimitiveType::Ref) {
-			auto refValue = prop.asTypedRef<EditorObject>();
-			if (refValue && refValue.get() == this) {
-				isReferenced = true;
-				break;
+namespace {
+bool hasReferenceTo(const ReflectionInterface& src, SCEditorObject target, const ValueBase* exceptSourceValueBase) {
+	for (size_t index = 0; index < src.size(); index++) {
+		auto v = src.get(index);
+		if (v != exceptSourceValueBase) {
+			if (v->type() == PrimitiveType::Ref) {
+				auto vref = v->asRef();
+				if (vref && vref == target) {
+					return true;
+				}
+			} else if (hasTypeSubstructure(v->type())) {
+				if (hasReferenceTo(v->getSubstructure(), target, exceptSourceValueBase)) {
+					return true;
+				}
 			}
 		}
 	}
-	if (!isReferenced) {
+	return false;
+}
+}  // namespace
+
+void EditorObject::onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const {
+	auto srcRootObject = sourceReferenceProperty.rootObject();
+
+	if (!hasReferenceTo(*srcRootObject, shared_from_this(), sourceReferenceProperty.constValueRef())) {
 		referencesToThis_.erase(srcRootObject);
 	}
 
@@ -134,7 +164,7 @@ FileChangeMonitor::UniqueListener EditorObject::registerFileChangedHandler(BaseC
 
 void EditorObject::onAfterContextActivated(BaseContext& context) {
 	for (size_t i = 0; i < size(); i++) {
-		if (get(i)->query<URIAnnotation>()) {
+		if (auto anno = get(i)->query<URIAnnotation>(); anno && !anno->isProjectSubdirectoryURI()) {
 			auto propName = name(i);
 			ValueHandle handle{shared_from_this(), {i}};
 			uriListeners_[propName] = registerFileChangedHandler(context, handle, [this, handle, &context]() {
@@ -146,7 +176,7 @@ void EditorObject::onAfterContextActivated(BaseContext& context) {
 }
 
 void EditorObject::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	if (value.query<URIAnnotation>()) {
+	if (auto anno = value.query<URIAnnotation>(); anno && !anno->isProjectSubdirectoryURI()) {
 		assert(value.depth() == 1);
 		auto propName = value.getPropName();
 		uriListeners_[propName] = registerFileChangedHandler(context, value, [this, value, &context]() {

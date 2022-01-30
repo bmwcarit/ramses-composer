@@ -29,7 +29,7 @@ using SEditorObject = std::shared_ptr<EditorObject>;
 
 class PrefabOperations {
 public:
-	static void globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes);
+	static void globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes, bool propagateMissingInterfaceProperties = false);
 
 	static raco::user_types::SPrefabInstance findContainingPrefabInstance(SEditorObject object);
 
@@ -38,7 +38,7 @@ public:
 	static void prefabUpdateOrderDepthFirstSearch(raco::user_types::SPrefab current, std::vector<raco::user_types::SPrefab>& order);
 
 private:
-	static void updatePrefabInstance(BaseContext& context, const raco::user_types::SPrefab& prefab, raco::user_types::SPrefabInstance instance, bool instanceDirty);
+	static void updatePrefabInstance(BaseContext& context, const raco::user_types::SPrefab& prefab, raco::user_types::SPrefabInstance instance, bool instanceDirty, bool propagateMissingInterfaceProperties);
 };
 
 }  // namespace raco::core

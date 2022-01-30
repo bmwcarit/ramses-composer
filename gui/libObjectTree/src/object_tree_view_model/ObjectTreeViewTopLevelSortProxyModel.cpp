@@ -10,11 +10,21 @@
 
 
 #include "object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.h"
+#include "object_tree_view_model/ObjectTreeNode.h"
 
 namespace raco::object_tree::model {
 
 bool ObjectTreeViewTopLevelSortFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const {
-	if (!source_left.parent().isValid() || !source_right.parent().isValid()) {
+
+	// The external reference grouping element should always be on top of the list
+	if (static_cast<ObjectTreeNode*>(source_left.internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup) {
+		return true;	
+	} else if (static_cast<ObjectTreeNode*>(source_right.internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup) {
+		return false;
+	}
+
+	// Only compare items that are on the same level and only sort items that are below the root node or the ExtRefGroup
+	if (source_left.parent() == source_right.parent() && (!source_left.parent().isValid() || static_cast<ObjectTreeNode*>(source_left.parent().internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup)) {
 		return QSortFilterProxyModel::lessThan(source_left, source_right);
 	}
 

@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <QWidget>
+#include "PropertyEditor.h"
 
 class QStackedWidget;
 
@@ -17,7 +17,7 @@ namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
-class IntEditor final : public QWidget {
+class IntEditor final : public PropertyEditor {
 public:
 	explicit IntEditor(
 		PropertyBrowserItem* item,

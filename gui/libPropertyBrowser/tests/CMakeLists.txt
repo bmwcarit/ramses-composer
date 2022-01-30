@@ -15,9 +15,10 @@ set(TEST_SOURCES
     PropertyBrowserItem_test.cpp
 
     EditorTestFixture.h
-    PrimitiveEditorsDataChange_test.cpp
-    URIEditor_test.cpp
     EnumerationEditor_test.cpp
+    PrimitiveEditorsDataChange_test.cpp
+    SpinBox_test.cpp
+    URIEditor_test.cpp
 )
 set(TEST_LIBRARIES
     raco::PropertyBrowser

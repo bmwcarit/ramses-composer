@@ -39,7 +39,7 @@ TEST_F(LuaScriptAdaptorFixture, defaultConstruction) {
 TEST_F(LuaScriptAdaptorFixture, validScript) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 	
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 end
@@ -58,7 +58,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, nameChange) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 end
@@ -89,7 +89,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inInt) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = INT
@@ -110,7 +110,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inFloat) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = FLOAT
@@ -131,7 +131,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inBool) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = BOOL
@@ -152,7 +152,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inVec2f) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = VEC2F
@@ -174,7 +174,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inStruct) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = {
@@ -197,7 +197,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inNestedStruct) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	s = { x = FLOAT, y = FLOAT }
@@ -221,7 +221,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, inVec4f) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = VEC4F
@@ -243,7 +243,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outInt) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = INT
@@ -266,7 +266,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outFloat) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = FLOAT
@@ -289,7 +289,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outBool) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = BOOL
@@ -312,7 +312,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outVec2f) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = VEC2F
@@ -336,7 +336,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outStruct) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = {
@@ -364,7 +364,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outNestedStruct) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	s = { x = FLOAT, y = FLOAT }
@@ -392,7 +392,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, outVec4f) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.in_value = VEC4F
@@ -416,7 +416,7 @@ end
 TEST_F(LuaScriptAdaptorFixture, keep_global_lua_state) {
 	auto luaScript = create<LuaScript>("LuaScript Name");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = FLOAT
@@ -449,7 +449,7 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	auto prefab = create<user_types::Prefab>("Prefab");
 	auto prefabInst = create<user_types::PrefabInstance>("PrefabInstance");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = FLOAT
@@ -512,7 +512,7 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	auto prefab = create<user_types::Prefab>("Prefab");
 	auto prefabInst = create<user_types::PrefabInstance>("PrefabInstance");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = FLOAT
@@ -550,7 +550,7 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	auto prefab = create<user_types::Prefab>("Prefab");
 	auto prefabInst = create<user_types::PrefabInstance>("PrefabInstance");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = FLOAT
@@ -587,7 +587,7 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	auto prefab = create<user_types::Prefab>("Prefab");
 	auto prefabInst = create<user_types::PrefabInstance>("PrefabInstance");
 
-	std::string uriPath{(cwd_path() / "script.lua").string()};
+	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
 	IN.value = FLOAT

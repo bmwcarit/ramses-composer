@@ -9,12 +9,12 @@
                     "annotations": [
                         {
                             "properties": {
-                                "name": "BLUBB"
+                                "engineType": 15
                             },
-                            "typeName": "DisplayNameAnnotation"
+                            "typeName": "EngineTypeAnnotation"
                         }
                     ],
-                    "typeName": "LuaScript::DisplayNameAnnotation",
+                    "typeName": "Texture::EngineTypeAnnotation",
                     "value": null
                 }
             }

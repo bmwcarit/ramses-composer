@@ -16,6 +16,7 @@
 namespace raco::property_browser {
 class PropertyBrowserItem;
 class LinkEditor;
+class PropertyEditor;
 
 /**
  * Helper factory for create property related widgets (e.g. Label Widget, Control Widget, Link Widget).
@@ -23,7 +24,7 @@ class LinkEditor;
  */
 class WidgetFactory {
 public:
-	static QWidget* createPropertyControl(PropertyBrowserItem* item, QWidget* parent = nullptr);
+	static PropertyEditor* createPropertyEditor(PropertyBrowserItem* item, QWidget* parent = nullptr);
 	static QLabel* createPropertyLabel(PropertyBrowserItem* item, QWidget* parent = nullptr);
 	static LinkEditor* createLinkControl(PropertyBrowserItem* item, QWidget* parent = nullptr);
 };

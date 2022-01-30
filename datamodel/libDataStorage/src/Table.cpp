@@ -170,6 +170,12 @@ void Table::replaceProperty(const std::string& name, ValueBase* property) {
 	}
 }
 
+void Table::swapProperties(size_t index_1, size_t index_2) {
+	if (index_1 < properties_.size() && index_2 < properties_.size() && index_1 != index_2) {
+		std::swap(properties_[index_1], properties_[index_2]);
+	}
+}
+
 void Table::clear() {
 	properties_.clear();
 }

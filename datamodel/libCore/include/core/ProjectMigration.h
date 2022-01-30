@@ -9,11 +9,9 @@
  */
 #pragma once
 
-#include <QJsonDocument>
-#include <unordered_map>
-#include <string>
+#include "core/Serialization.h"
 
-namespace raco::core {
+namespace raco::serialization {
 /**
  * History of versions:
  * 1: Initial
@@ -51,7 +49,12 @@ namespace raco::core {
  *     Links from Vec4f to Node::rotation are now allowed
  * 20: Added LuaScriptModule type as well as basic Lua module support
  * 21: Added mipmap flag to textures.
+ * 22: Added support for setting default resource folders per project
+ * 23: Serialization changes to support new-style migration code
+ * 24: Deterministics object IDs for PrefabInstance child objects
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 21;
-QJsonDocument migrateProject(const QJsonDocument& doc, std::unordered_map<std::string, std::string>& migrationWarnings);
-}  // namespace raco::core
+constexpr int RAMSES_PROJECT_FILE_VERSION = 24;
+
+void migrateProject(ProjectDeserializationInfoIR& deserializedIR);
+
+}  // namespace raco::serialization

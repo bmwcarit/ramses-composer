@@ -47,14 +47,18 @@ bool DataChangeRecorder::LinkMap::eraseLink(const LinkDescriptor& link) {
 	return false;
 }
 
-void DataChangeRecorder::LinkMap::insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, SEditorObjectSet& objects) const {
+void DataChangeRecorder::LinkMap::insertLinkEndPointObjects(bool includeLinkStart, bool includeLinkEnd, SEditorObjectSet& objects,
+	const SEditorObjectSet& excludeObjects) const {
 	for (auto const& [linkEndObjId, links] : linkMap_) {
-		if (includeLinkEnd) {
+		if (includeLinkEnd && 
+			excludeObjects.find(links.begin()->end.object()) == excludeObjects.end()) {
 			objects.insert(links.begin()->end.object());
 		}
 		if (includeLinkStart) {
 			for (const auto& link : links) {
-				objects.insert(link.start.object());
+				if (excludeObjects.find(link.start.object()) == excludeObjects.end()) {
+					objects.insert(link.start.object());
+				}
 			}
 		}
 	}
@@ -294,9 +298,9 @@ SEditorObjectSet DataChangeRecorder::getAllChangedObjects(bool includePreviewDir
 	}
 
 	if (includeLinkStart || includeLinkEnd) {
-		addedLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects);
-		changedValidityLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects);
-		removedLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects);
+		addedLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects, {});
+		changedValidityLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects, {});
+		removedLinks_.insertLinkEndPointObjects(includeLinkStart, includeLinkEnd, objects, deletedObjects_);
 	}
 
 	return objects;

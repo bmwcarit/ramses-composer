@@ -45,7 +45,7 @@
 #include "components/Naming.h"
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
-#include "core/RamsesProjectMigration.h"
+#include "core/ProjectMigration.h"
 #include "core/Serialization.h"
 #include "ui_mainwindow.h"
 
@@ -68,7 +68,7 @@
 
 #include "utils/FileUtils.h"
 #include "versiondialog.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 
 
 #include <DockWidget.h>
@@ -108,8 +108,8 @@ RaCoDockManager* createDockManager(MainWindow* parent) {
 	dockManager->iconProvider().registerCustomIcon(ads::DockAreaMenuIcon, parent->style()->standardIcon(QStyle::StandardPixmap::SP_TitleBarMenuButton));
 	dockManager->iconProvider().registerCustomIcon(ads::DockAreaUndockIcon, parent->style()->standardIcon(QStyle::StandardPixmap::SP_TitleBarNormalButton));
 
-	if (QFile{PathManager::layoutFilePath().c_str()}.exists()) {
-		QSettings settings(PathManager::layoutFilePath().c_str(), QSettings::IniFormat);
+	if (PathManager::layoutFilePath().existsFile()) {
+		auto settings = raco::core::PathManager::layoutSettings();
 		dockManager->loadAllLayouts(settings);
 	}
 
@@ -170,10 +170,9 @@ void createAndAddProjectSettings(MainWindow* mainWindow, const char* dockObjName
 	dockManager->addDockWidget(ads::RightDockWidgetArea, dock);
 }
 
-ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel *dockModel, QSortFilterProxyModel* sortFilterModel, const raco::object_tree::model::ObjectFilterFunc& filter, ads::DockWidgetArea area, MainWindow* mainWindow, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, ads::CDockAreaWidget* dockArea) {
+ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel *dockModel, QSortFilterProxyModel* sortFilterModel, ads::DockWidgetArea area, MainWindow* mainWindow, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, ads::CDockAreaWidget* dockArea) {
 	auto* dockObjectView = new raco::object_tree::view::ObjectTreeDock(title, mainWindow);
 	QObject::connect(dockModel, &raco::object_tree::model::ObjectTreeViewDefaultModel::meshImportFailed, mainWindow, &MainWindow::showMeshImportErrorMessage);
-	dockModel->setProjectObjectFilterFunction(filter);
 	dockModel->buildObjectTree();
 	auto newTreeView = new raco::object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
 	if (sortFilterModel) {
@@ -190,7 +189,7 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 
 ads::CDockAreaWidget* createAndAddProjectBrowser(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* racoApplication, ads::CDockAreaWidget* dockArea) {
 	auto* model = new raco::object_tree::model::ObjectTreeViewExternalProjectModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects());
-	return createAndAddObjectTree(MainWindow::DockWidgetTypes::PROJECT_BROWSER, dockObjName, model, new QSortFilterProxyModel, Queries::filterForVisibleObjects, ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
+	return createAndAddObjectTree(MainWindow::DockWidgetTypes::PROJECT_BROWSER, dockObjName, model, new QSortFilterProxyModel,  ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
 ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* racoApplication, ads::CDockAreaWidget* dockArea) {
@@ -212,9 +211,6 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 	auto* model = new raco::object_tree::model::ObjectTreeViewResourceModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(
 		MainWindow::DockWidgetTypes::RESOURCES, dockObjName, model, new QSortFilterProxyModel,
-		[](const std::vector<SEditorObject>& objects) -> std::vector<SEditorObject> {
-			return Queries::filterByTypeName(objects, allowedCreateableUserTypes);
-		},
 		ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
@@ -235,19 +231,6 @@ ads::CDockAreaWidget* createAndAddPrefabTree(MainWindow* mainWindow, const char*
 
 	return createAndAddObjectTree(
 		MainWindow::DockWidgetTypes::PREFABS, dockObjName, model, new raco::object_tree::model::ObjectTreeViewTopLevelSortFilterProxyModel,
-		[](const std::vector<SEditorObject>& objects) -> std::vector<SEditorObject> {
-			std::vector<SEditorObject> result{};
-			std::copy_if(objects.begin(), objects.end(), std::back_inserter(result),
-				[](const SEditorObject& object) {
-					for (auto parent = object; parent; parent = parent->getParent()) {
-						if (parent->getTypeDescription().typeName == raco::user_types::Prefab::typeDescription.typeName) {
-							return true;
-						}
-					}
-					return false;
-				});
-			return result;
-		},
 		ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
@@ -265,9 +248,6 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewDefaultModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, nullptr,
-		[](const std::vector<SEditorObject>& objects) -> std::vector<SEditorObject> {
-			return Queries::filterByTypeName(objects, allowedCreateableUserTypes);
-		},
 		ads::LeftDockWidgetArea, mainWindow, dockManager, treeDockManager, nullptr);
 }
 
@@ -347,7 +327,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	}
 
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {
-		auto file = QFileDialog::getOpenFileName(this, "Open", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project)), "Ramses Composer Assembly (*.rca)");
+		auto file = QFileDialog::getOpenFileName(this, "Open", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
 		if (file.size() > 0) {
 			openProject(file);
 		}
@@ -367,14 +347,6 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		auto dialog = new raco::common_widgets::PreferencesView(this);
 		dialog->resize(500, 500);
 		dialog->exec();
-		if (racoApplication_) {
-			const auto& prefs = raco::components::RaCoPreferences::instance();
-			raco::core::PathManager::setAllCachedPathRoots(racoApplication_->activeProjectFolder(),
-				prefs.imageSubdirectory.toStdString(),
-				prefs.meshSubdirectory.toStdString(),
-				prefs.scriptSubdirectory.toStdString(),
-				prefs.shaderSubdirectory.toStdString());
-		}
 	});
 
 	// View actions
@@ -406,15 +378,13 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 			}
 
 			dockManager_->addCustomLayout(layoutName);
-			QSettings settings(PathManager::layoutFilePath().c_str(), QSettings::IniFormat);
-			dockManager_->saveCustomLayouts(settings);
+			saveDockManagerCustomLayouts();
 		}
 	});
 
 	QObject::connect(ui->actionManageLayouts, &QAction::triggered, [this]() {
 		SavedLayoutsDialog(dockManager_, this).exec();
-		QSettings settings(PathManager::layoutFilePath().c_str(), QSettings::IniFormat);
-		dockManager_->saveCustomLayouts(settings);
+		saveDockManagerCustomLayouts();
 	});
 
 	QObject::connect(ui->actionProjectSettings, &QAction::triggered, [this]() { createAndAddProjectSettings(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, &racoApplication_->activeRaCoProject(), racoApplication_->dataChangeDispatcher(), racoApplication_->activeRaCoProject().commandInterface()); });
@@ -429,9 +399,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		about.exec();
 	});
 
-	if (restoreSettings() == false) {
-		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
-	}
+	restoreSettings();
+	restoreCachedLayout();
 
 	// Setup
 	updateApplicationTitle();
@@ -441,6 +410,17 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	setUnifiedTitleAndToolBarOnMac(true);
 
 	renderTimerId_ = startTimer(timerInterval60Fps);
+}
+
+void MainWindow::saveDockManagerCustomLayouts() {
+	auto settings = PathManager::layoutSettings();
+	dockManager_->saveCustomLayouts(settings);
+	settings.sync();
+	if (settings.status() != QSettings::NoError) {
+		LOG_ERROR(raco::log_system::COMMON, "Saving custom layout failed: {}", raco::core::PathManager::recentFilesStorePath().string());
+		QMessageBox::critical(this, "Saving custom layout failed", QString("Custom layout data could not be saved to disk and will be lost after closing Ramses Composer. Check whether the application can write to its config directory.\nFile: ") 
+			+ QString::fromStdString(PathManager::layoutFilePath().string()));
+	}
 }
 
 void MainWindow::timerEvent(QTimerEvent* event) {
@@ -466,10 +446,15 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 void MainWindow::closeEvent(QCloseEvent* event) {
 	if (resolveDirtiness()) {
 		killTimer(renderTimerId_);
-		QSettings settings(PathManager::layoutFilePath().c_str(), QSettings::IniFormat);
+		auto settings = raco::core::PathManager::layoutSettings();
 		settings.setValue("geometry", saveGeometry());
 		settings.setValue("windowState", saveState());
 		dockManager_->saveCurrentLayoutInCache(settings);
+		
+		settings.sync();		
+		if (settings.status() != QSettings::NoError) {
+			LOG_WARNING(raco::log_system::COMMON, "Saving layout failed: {}", raco::core::PathManager::recentFilesStorePath().string());
+		}
 		QMainWindow::closeEvent(event);
 		event->accept();
 	} else {
@@ -477,27 +462,17 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 	}
 }
 
-bool MainWindow::restoreSettings() {
-	if (QFile{PathManager::layoutFilePath().c_str()}.exists()) {
-		QSettings settings(PathManager::layoutFilePath().c_str(), QSettings::IniFormat);
+void MainWindow::restoreSettings() {
+	if (PathManager::layoutFilePath().existsFile()) {
+		auto settings = raco::core::PathManager::layoutSettings();
 		restoreGeometry(settings.value("geometry").toByteArray());
 		restoreState(settings.value("windowState").toByteArray());
-
-		if (settings.childGroups().contains("cachedLayout")) {
-			restoreCachedLayout();
-		} else {
-			createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
-		}
-
-		return true;
-	} else {
-		return false;
 	}
 }
 
 void MainWindow::openProject(const QString& file) {
 	auto fileString = file.toStdString();
-	if (!fileString.empty() && (!raco::utils::path::exists(fileString) || !raco::utils::path::userHasReadAccess(fileString))) {
+	if (!fileString.empty() && (!raco::utils::u8path(fileString).exists() || !raco::utils::u8path(fileString).userHasReadAccess())) {
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file {} is not available for loading.\n\nCheck whether the file at the specified path still exists and that you have read access to that file.", fileString).c_str(), QMessageBox::Close);
 		return;
 	}
@@ -511,9 +486,12 @@ void MainWindow::openProject(const QString& file) {
 	}
 
 	{
-		QSettings settings(PathManager::layoutFilePath().c_str(), QSettings::IniFormat);
+		auto settings = raco::core::PathManager::layoutSettings();
 		dockManager_->saveCurrentLayoutInCache(settings);
-		// destroying QSettings actually creates and saves settings file
+		settings.sync();
+		if (settings.status() != QSettings::NoError) {
+			LOG_WARNING(raco::log_system::COMMON, "Saving layout failed: {}", raco::core::PathManager::recentFilesStorePath().string());
+		}
 	}
 
 	// Delete all ui widgets (and their listeners) before changing the project
@@ -525,7 +503,7 @@ void MainWindow::openProject(const QString& file) {
 		racoApplication_->switchActiveRaCoProject(file);
 	} catch (const raco::application::FutureFileVersion& error) {
 		racoApplication_->switchActiveRaCoProject({});
-		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", raco::core::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
+		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", raco::serialization::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
 	} catch (const ExtrefError& error) {
 		racoApplication_->switchActiveRaCoProject({});
 		QMessageBox::warning(this, "File Load Error", fmt::format("External reference update failed.\n\n{}", error.what()).c_str(), QMessageBox::Close);
@@ -552,6 +530,7 @@ void MainWindow::openProject(const QString& file) {
 }
 
 MainWindow::~MainWindow() {
+	resetDockManager();
 	// sceneBackend needs to be reset first to unregister all adaptors (and their file listeners)
 	// before the file change monitors and mesh caches get destroyed
 	racoApplication_->resetScene();
@@ -587,7 +566,7 @@ bool MainWindow::saveActiveProject() {
 bool MainWindow::saveAsActiveProject() {
 	if (racoApplication_->canSaveActiveProject()) {
 		bool setProjectName = racoApplication_->activeProjectPath().empty();
-		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project)), "Ramses Composer Assembly (*.rca)");
+		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
 		if (newPath.isEmpty()) {
 			return false;
 		}
@@ -609,7 +588,7 @@ bool MainWindow::saveAsActiveProject() {
 
 void MainWindow::importScene() {
 	auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, racoApplication_->activeProjectFolder());
-	auto filePath = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder), "glTF files (*.gltf *.glb)");
+	auto filePath = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
 	if (!filePath.isEmpty()) {
 		MeshDescriptor meshDesc;
 		meshDesc.absPath = filePath.toStdString();
@@ -659,9 +638,13 @@ QString MainWindow::getActiveProjectFolder() {
 
 void MainWindow::restoreCachedLayout() {
 	auto cachedLayoutInfo = dockManager_->getCachedLayoutInfo();
-	regenerateLayoutDocks(cachedLayoutInfo);
+	if (cachedLayoutInfo.empty()) {
+		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
+	} else {
+		regenerateLayoutDocks(cachedLayoutInfo);
 
-	dockManager_->restoreCachedLayoutState();
+		dockManager_->restoreCachedLayoutState();
+	}
 }
 
 void MainWindow::restoreCustomLayout(const QString& layoutName) {

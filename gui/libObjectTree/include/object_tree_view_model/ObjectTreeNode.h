@@ -13,14 +13,24 @@
 
 namespace raco::object_tree::model {
 
+enum class ObjectTreeNodeType {
+	EditorObject,
+	ExternalProject,
+	ExtRefGroup,
+	Root
+};
+
 class ObjectTreeNode {
 public:
-	explicit ObjectTreeNode(core::SEditorObject obj = core::SEditorObject(), ObjectTreeNode *parent = nullptr);
+	explicit ObjectTreeNode(core::SEditorObject obj, ObjectTreeNode *parent);
+	explicit ObjectTreeNode(ObjectTreeNodeType type, ObjectTreeNode *parent);
+
 	~ObjectTreeNode();
 
     ObjectTreeNode *getParent();
 	size_t childCount() const;
 	void addChild(ObjectTreeNode *child);
+	void addChildFront(ObjectTreeNode *child);
 	ptrdiff_t row() const;
 
 	std::vector<ObjectTreeNode*> getChildren();
@@ -29,8 +39,19 @@ public:
 
 	void setParent(ObjectTreeNode *parent);
 
+	ObjectTreeNodeType getType() const;
+	std::string getID() const;
+	std::string getDisplayName() const;
+	std::string getDisplayType() const;
+	std::string getExternalProjectName() const;
+	std::string getExternalProjectPath() const;
+	void setBelongsToExternalProject(const std::string &path, const std::string &name);
+
 protected:
-    ObjectTreeNode *parent_;
+	ObjectTreeNode *parent_;
+	ObjectTreeNodeType type_;
+	std::string externalProjectPath_ = "";
+	std::string externalProjectName_ = "";
     std::vector<ObjectTreeNode*> children_;
 	core::SEditorObject representedObject_;
 };

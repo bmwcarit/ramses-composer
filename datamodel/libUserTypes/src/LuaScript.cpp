@@ -47,12 +47,24 @@ void LuaScript::updateFromExternalFile(BaseContext& context) {
 	PropertyInterfaceList inputs{};
 	PropertyInterfaceList outputs{};
 	std::string error{};
-	context.errors().removeError({shared_from_this()});
+	context.errors().removeAll({shared_from_this()});
 
 	syncLuaModules(context, luaScript, error);
 
-	if (error.empty() && !luaScript.empty()) {
-		context.engineInterface().parseLuaScript(luaScript, luaModules_.asTable(), inputs, outputs, error);
+	const auto& moduleTable = luaModules_.asTable();
+	if (error.empty()) {
+		context.engineInterface().parseLuaScript(luaScript, moduleTable, inputs, outputs, error);
+	}
+
+	if (!error.empty()) {
+		for (auto i = 0; i < moduleTable.size(); ++i) {
+			const auto& moduleName = moduleTable.name(i);
+			auto module = ValueHandle{shared_from_this(), {"luaModules", moduleName}};
+			auto moduleRef = module.asRef();
+			if (context.errors().hasError(moduleRef) || (moduleRef && moduleRef->get("uri")->asString().empty())) {
+				context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, module, fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
+			}
+		}
 	}
 
 	if (validateURI(context, {shared_from_this(), &LuaScript::uri_})) {

@@ -24,7 +24,6 @@
 #include "user_types/Material.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
-#include <optional>
 
 using raco::core::CommandInterface;
 using raco::core::ValueHandle;
@@ -40,12 +39,12 @@ struct TestParam {
 };
 
 struct PrimitiveEditorDataChangeFixture : public EditorTestFixtureT<::testing::TestWithParam<TestParam>> {
-	std::filesystem::path cwd_path() const override {
+	raco::utils::u8path test_path() const override {
 		std::string testCaseName{::testing::UnitTest::GetInstance()->current_test_info()->name()};
 		testCaseName = testCaseName.substr(0, testCaseName.find("#GetParam()"));
 
 		std::replace(testCaseName.begin(), testCaseName.end(), '/', '\\');
-		auto result(std::filesystem::current_path() / testCaseName);
+		auto result(raco::utils::u8path::current() / testCaseName);
 		return result;
 	}
 	struct PrintToStringParamName {

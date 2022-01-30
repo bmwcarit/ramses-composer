@@ -36,7 +36,7 @@ QLabel* WidgetFactory::createPropertyLabel(PropertyBrowserItem* item, QWidget* p
 	return label;
 }
 
-QWidget* WidgetFactory::createPropertyControl(PropertyBrowserItem* item, QWidget* parent) {
+PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, QWidget* parent) {
 	using PrimitiveType = core::PrimitiveType;
 
 	switch (item->type()) {
@@ -74,10 +74,10 @@ QWidget* WidgetFactory::createPropertyControl(PropertyBrowserItem* item, QWidget
 			if (item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {
 				return new TagContainerEditor{ item, parent };
 			}
-			return new QWidget{ parent };
+			return new PropertyEditor{ item, parent };
 		default:
 			// used for group headlines
-			return new QWidget{parent};
+			return new PropertyEditor{item, parent};
 	};
 }
 

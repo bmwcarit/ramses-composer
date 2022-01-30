@@ -93,6 +93,14 @@ void PreviewContentWidget::setViewportRect(
 	update();
 }
 
+void PreviewContentWidget::setFilteringMode(PreviewFilteringMode filteringMode) {
+	if (ramsesPreview_) {
+		ramsesPreview_->state().filteringMode = filteringMode;
+		update();
+	}
+}
+
+
 void PreviewContentWidget::commit() {
 	ramsesPreview_->commit();
 }

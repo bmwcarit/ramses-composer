@@ -233,12 +233,12 @@ TEST_F(ObjectTreeViewDefaultModelTest, TreeBuildingNastyNesting) {
 TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveCreateTwoNodes) {
 	nodeNames_ = {"rootNode", "childNode"};
 
-	auto wrongItemIndex = viewModel_->indexFromObjectID("nothing");
+	auto wrongItemIndex = viewModel_->indexFromTreeNodeID("nothing");
 	ASSERT_FALSE(wrongItemIndex.isValid());
 
 	auto createdNodes = createNodes(Node::typeDescription.typeName, nodeNames_);
-	auto rootIndex = viewModel_->indexFromObjectID(createdNodes.front()->objectID());
-	auto childIndex = viewModel_->indexFromObjectID(createdNodes.back()->objectID());
+	auto rootIndex = viewModel_->indexFromTreeNodeID(createdNodes.front()->objectID());
+	auto childIndex = viewModel_->indexFromTreeNodeID(createdNodes.back()->objectID());
 
 	ASSERT_EQ(rootIndex.row(), 0);
 	ASSERT_FALSE(rootIndex.parent().isValid());
@@ -257,8 +257,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveCreateParentAndChild) {
 	moveScenegraphChildren({childNode}, rootNode);
 	ASSERT_EQ(childNode->getParent(), rootNode);
 
-	auto rootIndex = viewModel_->indexFromObjectID(rootNode->objectID());
-	auto childIndex = viewModel_->indexFromObjectID(childNode->objectID());
+	auto rootIndex = viewModel_->indexFromTreeNodeID(rootNode->objectID());
+	auto childIndex = viewModel_->indexFromTreeNodeID(childNode->objectID());
 
 	ASSERT_EQ(rootIndex.row(), 0);
 	ASSERT_FALSE(rootIndex.parent().isValid());
@@ -279,7 +279,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveDontAllowMovingObjectIntoIt
 	auto rootNode = createdNodes.front();
 
 	moveScenegraphChildren({rootNode}, rootNode);
-	auto rootIndex = viewModel_->indexFromObjectID(createdNodes.front()->objectID());
+	auto rootIndex = viewModel_->indexFromTreeNodeID(createdNodes.front()->objectID());
 
 	ASSERT_EQ(rootNode->getParent(), nullptr);
 	ASSERT_EQ(rootIndex.row(), 0);
@@ -298,8 +298,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveDontAllowMovingParentIntoCh
 	ASSERT_EQ(childNode->getParent(), rootNode);
 
 	moveScenegraphChildren({rootNode}, childNode);
-	auto rootIndex = viewModel_->indexFromObjectID(createdNodes.front()->objectID());
-	auto childIndex = viewModel_->indexFromObjectID(createdNodes.back()->objectID());
+	auto rootIndex = viewModel_->indexFromTreeNodeID(createdNodes.front()->objectID());
+	auto childIndex = viewModel_->indexFromTreeNodeID(createdNodes.back()->objectID());
 
 	ASSERT_EQ(childNode->getParent(), rootNode);
 	ASSERT_EQ(rootNode->getParent(), nullptr);
@@ -324,8 +324,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveParentMidAndChildProperHier
 	for (size_t i = 1; i < createdNodes.size(); ++i) {
 		ASSERT_EQ(createdNodes[i]->getParent(), createdNodes[i - 1]);
 
-		auto currentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i]->objectID());
-		auto parentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i - 1]->objectID());
+		auto currentNodeIndex = viewModel_->indexFromTreeNodeID(createdNodes[i]->objectID());
+		auto parentNodeIndex = viewModel_->indexFromTreeNodeID(createdNodes[i - 1]->objectID());
 		ASSERT_EQ(currentNodeIndex.parent(), parentNodeIndex);
 	}
 }
@@ -349,8 +349,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveParentMidAndChildDontMovePa
 	for (size_t i = 1; i < createdNodes.size(); ++i) {
 		ASSERT_EQ(createdNodes[i]->getParent(), createdNodes[i - 1]);
 
-		auto currentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i]->objectID());
-		auto parentNodeIndex = viewModel_->indexFromObjectID(createdNodes[i - 1]->objectID());
+		auto currentNodeIndex = viewModel_->indexFromTreeNodeID(createdNodes[i]->objectID());
+		auto parentNodeIndex = viewModel_->indexFromTreeNodeID(createdNodes[i - 1]->objectID());
 		ASSERT_EQ(currentNodeIndex.parent(), parentNodeIndex);
 	}
 }
@@ -404,7 +404,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveParentChildrenDifferentMovi
 	auto rootChildren = rootNode->children_->asVector<SEditorObject>();
 	ASSERT_EQ(rootChildren.size(), childAmount);
 
-	auto rootTreeNode = viewModel_->indexToTreeNode(viewModel_->indexFromObjectID(rootNode->objectID()));
+	auto rootTreeNode = viewModel_->indexToTreeNode(viewModel_->indexFromTreeNodeID(rootNode->objectID()));
 	ASSERT_EQ(rootTreeNode->childCount(), childAmount);
 
 	for (int i = 1; i <= childAmount; ++i) {
@@ -498,12 +498,12 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionJustOneObject) {
 
 	ASSERT_EQ(project.instances().size(), 1);
 
-	auto justAnIndex = viewModel_->indexFromObjectID(justANode->objectID());
+	auto justAnIndex = viewModel_->indexFromTreeNodeID(justANode->objectID());
 
 	ASSERT_EQ(deleteObjectsAtIndices({justAnIndex}), 1);
 	ASSERT_TRUE(project.instances().empty());
 
-	justAnIndex = viewModel_->indexFromObjectID(justANode->objectID());
+	justAnIndex = viewModel_->indexFromTreeNodeID(justANode->objectID());
 	ASSERT_FALSE(justAnIndex.isValid());
 }
 
@@ -516,14 +516,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionChildNode) {
 	auto childNode = createdNodes.back();
 	moveScenegraphChildren({childNode}, parentNode);
 
-	auto childIndex = viewModel_->indexFromObjectID(childNode->objectID());
+	auto childIndex = viewModel_->indexFromTreeNodeID(childNode->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({childIndex}), 1);
 	ASSERT_EQ(project.instances().size(), 1);
 
-	auto parentIndex = viewModel_->indexFromObjectID(parentNode->objectID());
+	auto parentIndex = viewModel_->indexFromTreeNodeID(parentNode->objectID());
 	ASSERT_EQ(viewModel_->indexToTreeNode(parentIndex)->childCount(), 0);
 
-	childIndex = viewModel_->indexFromObjectID(childNode->objectID());
+	childIndex = viewModel_->indexFromTreeNodeID(childNode->objectID());
 	ASSERT_FALSE(childIndex.isValid());
 }
 
@@ -540,13 +540,13 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionParentNode) {
 	moveScenegraphChildren({childNode1}, parentNode);
 	moveScenegraphChildren({childNode2}, parentNode);
 
-	auto parentIndex = viewModel_->indexFromObjectID(parentNode->objectID());
+	auto parentIndex = viewModel_->indexFromTreeNodeID(parentNode->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({parentIndex}), 3);
 	ASSERT_TRUE(project.instances().empty());
 
-	ASSERT_FALSE(viewModel_->indexFromObjectID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode1->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode2->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMidNode) {
@@ -564,14 +564,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMidNode) {
 	moveScenegraphChildren({childNode1}, midNode);
 	moveScenegraphChildren({childNode2}, midNode);
 
-	auto midIndex = viewModel_->indexFromObjectID(midNode->objectID());
+	auto midIndex = viewModel_->indexFromTreeNodeID(midNode->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({midIndex}), 3);
 	ASSERT_EQ(project.instances().size(), 1);
 
-	ASSERT_TRUE(viewModel_->indexFromObjectID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(midNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode1->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode2->objectID()).isValid());
+	ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(midNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
 
 }
 
@@ -587,14 +587,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPare
 	moveScenegraphChildren({childNode1}, parentNode);
 	moveScenegraphChildren({childNode2}, parentNode);
 
-	auto parentIndex = viewModel_->indexFromObjectID(parentNode->objectID());
-	auto child1Index = viewModel_->indexFromObjectID(childNode1->objectID());
+	auto parentIndex = viewModel_->indexFromTreeNodeID(parentNode->objectID());
+	auto child1Index = viewModel_->indexFromTreeNodeID(childNode1->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({parentIndex, child1Index}), 3);
 	ASSERT_TRUE(project.instances().empty());
 
-	ASSERT_FALSE(viewModel_->indexFromObjectID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode1->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode2->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionExcludingParent) {
@@ -609,14 +609,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionExcludingPare
 	moveScenegraphChildren({childNode1}, parentNode);
 	moveScenegraphChildren({childNode2}, parentNode);
 
-	auto child1Index = viewModel_->indexFromObjectID(childNode1->objectID());
-	auto child2Index = viewModel_->indexFromObjectID(childNode2->objectID());
+	auto child1Index = viewModel_->indexFromTreeNodeID(childNode1->objectID());
+	auto child2Index = viewModel_->indexFromTreeNodeID(childNode2->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({child1Index, child2Index}), 2);
 	ASSERT_TRUE(project.instances().size() == 1);
 
-	ASSERT_TRUE(viewModel_->indexFromObjectID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode1->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromObjectID(childNode2->objectID()).isValid());
+	ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPrefabInstanceChild) {
@@ -631,34 +631,34 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 	viewModel_->buildObjectTree();
 	auto prefabInstanceChild = prefabInstance->children_->asVector<SEditorObject>()[0]->as<Node>();
 
-	auto nodeIndex = viewModel_->indexFromObjectID(node->objectID());
-	auto nodeChildIndex = viewModel_->indexFromObjectID(nodeChild->objectID());
-	auto prefabInstanceIndex = viewModel_->indexFromObjectID(prefabInstance->objectID());
-	auto prefabInstanceChildIndex = viewModel_->indexFromObjectID(prefabInstanceChild->objectID());
+	auto nodeIndex = viewModel_->indexFromTreeNodeID(node->objectID());
+	auto nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
+	auto prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
+	auto prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
 			
 	ASSERT_EQ(deleteObjectsAtIndices({prefabInstanceChildIndex}), 0);
-	nodeIndex = viewModel_->indexFromObjectID(node->objectID());
-	nodeChildIndex = viewModel_->indexFromObjectID(nodeChild->objectID());
-	prefabInstanceIndex = viewModel_->indexFromObjectID(prefabInstance->objectID());
-	prefabInstanceChildIndex = viewModel_->indexFromObjectID(prefabInstanceChild->objectID());
+	nodeIndex = viewModel_->indexFromTreeNodeID(node->objectID());
+	nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
+	prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
+	prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
 	ASSERT_TRUE(nodeIndex.isValid());
 	ASSERT_TRUE(nodeChildIndex.isValid());
 	ASSERT_TRUE(prefabInstanceIndex.isValid());
 	ASSERT_TRUE(prefabInstanceChildIndex.isValid());
 
 	ASSERT_EQ(deleteObjectsAtIndices({prefabInstanceChildIndex, nodeIndex}), 2);
-	nodeIndex = viewModel_->indexFromObjectID(node->objectID());
-	nodeChildIndex = viewModel_->indexFromObjectID(nodeChild->objectID());
-	prefabInstanceIndex = viewModel_->indexFromObjectID(prefabInstance->objectID());
-	prefabInstanceChildIndex = viewModel_->indexFromObjectID(prefabInstanceChild->objectID());
+	nodeIndex = viewModel_->indexFromTreeNodeID(node->objectID());
+	nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
+	prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
+	prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
 	ASSERT_FALSE(nodeIndex.isValid());
 	ASSERT_FALSE(nodeChildIndex.isValid());
 	ASSERT_TRUE(prefabInstanceIndex.isValid());
 	ASSERT_TRUE(prefabInstanceChildIndex.isValid());
 		
 	ASSERT_EQ(deleteObjectsAtIndices({prefabInstanceIndex, prefabInstanceChildIndex}), 2);
-	prefabInstanceIndex = viewModel_->indexFromObjectID(prefabInstance->objectID());
-	prefabInstanceChildIndex = viewModel_->indexFromObjectID(prefabInstanceChild->objectID());
+	prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
+	prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
 	ASSERT_FALSE(prefabInstanceIndex.isValid());
 	ASSERT_FALSE(prefabInstanceChildIndex.isValid());
 }
@@ -685,15 +685,15 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexInvalidParent) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {"luaScript"}).front();
 	auto animation = createNodes(Animation::typeDescription.typeName, {"animation"}).front();
 
-	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromObjectID(prefabInstance->objectID())).empty());
-	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromObjectID(luaScript->objectID())).empty());
-	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromObjectID(animation->objectID())).empty());
+	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(prefabInstance->objectID())).empty());
+	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(luaScript->objectID())).empty());
+	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(animation->objectID())).empty());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 	auto node = createNodes(Node::typeDescription.typeName, {"node"}).front();
 
-	auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromObjectID(node->objectID()));
+	auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(node->objectID()));
 	std::vector<std::string> allowedTypesAssert {Animation::typeDescription.typeName,
 		Node::typeDescription.typeName,
 		MeshNode::typeDescription.typeName,
@@ -724,7 +724,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombin
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
 		if (Queries::isNotResource(newObj) && typeName != Prefab::typeDescription.typeName) {
 			for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
-				auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+				auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
 				auto pastingSomethingUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
 				auto pastingSomethingUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
 				auto pastingSomethingUnderAnimaton = sceneGraphNodeInScene->as<Animation>();
@@ -755,7 +755,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedUnderSce
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
 		if (Queries::isResource(newObj)) {
 			for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
-				auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+				auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
 				ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, newObj));
 			}
 		}
@@ -769,7 +769,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsPrefabsAreNotAllowed) {
 
 	ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({}, prefab));
 	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
-		auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
 		ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, prefab));
 	}
 }
@@ -781,7 +781,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckPrefabInstanceCombination
 
 	ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, prefabInstance));
 	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
-		auto sceneObjIndex = viewModel_->indexFromObjectID(sceneGraphNodeInScene->objectID());
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
 		auto pastingPrefabInstanceUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
 		auto pastingPrefabInstanceUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
 		auto pastingPrefabInstanceUnderAnimation = sceneGraphNodeInScene->as<Animation>();
@@ -800,9 +800,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, CanCopyAtIndicesMultiSelection) {
 	auto childNode1 = createdNodes[1];
 	auto parentNode2 = createdNodes[2];
 	moveScenegraphChildren({childNode1}, parentNode1);
-	auto parent1Index = viewModel_->indexFromObjectID(parentNode1->objectID());
-	auto child1Index = viewModel_->indexFromObjectID(childNode1->objectID());
-	auto parent2Index = viewModel_->indexFromObjectID(parentNode2->objectID());
+	auto parent1Index = viewModel_->indexFromTreeNodeID(parentNode1->objectID());
+	auto child1Index = viewModel_->indexFromTreeNodeID(childNode1->objectID());
+	auto parent2Index = viewModel_->indexFromTreeNodeID(parentNode2->objectID());
 
 	ASSERT_FALSE(viewModel_->canCopyAtIndices({}));
 	ASSERT_FALSE(viewModel_->canCopyAtIndices({{}}));
@@ -826,10 +826,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, CanDeleteAtIndicesMultiSelection) {
 	viewModel_->buildObjectTree();
 	auto prefabInstanceChild = prefabInstance->children_->asVector<SEditorObject>()[0]->as<Node>();
 
-	auto nodeIndex = viewModel_->indexFromObjectID(node->objectID());
-	auto nodeChildIndex = viewModel_->indexFromObjectID(nodeChild->objectID());
-	auto prefabInstanceIndex = viewModel_->indexFromObjectID(prefabInstance->objectID());
-	auto prefabInstanceChildIndex = viewModel_->indexFromObjectID(prefabInstanceChild->objectID());
+	auto nodeIndex = viewModel_->indexFromTreeNodeID(node->objectID());
+	auto nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
+	auto prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
+	auto prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
 
 	ASSERT_FALSE(viewModel_->canDeleteAtIndices({}));
 	ASSERT_FALSE(viewModel_->canDeleteAtIndices({{}}));
@@ -899,7 +899,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsEx
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
-	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromObjectID("NodelocalParent"), parsedObjs, sourceProjectTopLevelObjectIds, true));
+	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID("NodelocalParent"), parsedObjs, sourceProjectTopLevelObjectIds, true));
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedAsChild) {
@@ -912,7 +912,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedAsChild) 
 	dataChangeDispatcher_->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
-	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromObjectID("NodelocalParent"), parsedObjs, sourceProjectTopLevelObjectIds, true));
+	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID("NodelocalParent"), parsedObjs, sourceProjectTopLevelObjectIds, true));
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
 }
 

@@ -17,6 +17,7 @@
 #include "mesh_loader/glTFBufferData.h"
 #include "mesh_loader/glTFMesh.h"
 #include "utils/MathUtils.h"
+#include "utils/u8path.h"
 #include "utils/stdfilesystem.h"
 
 #include <log_system/log.h>
@@ -157,7 +158,7 @@ bool glTFFileLoader::importglTFScene(const std::string& absPath) {
 		std::string err;
 		std::string warn;
 
-		if (std::filesystem::path(absPath).extension() == ".glb") {
+		if (raco::utils::u8path(absPath).extension() == ".glb") {
 			importer_->LoadBinaryFromFile(&*scene_, &err, &warn, absPath);
 		} else {
 			importer_->LoadASCIIFromFile(&*scene_, &err, &warn, absPath);

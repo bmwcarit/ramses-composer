@@ -33,6 +33,9 @@ struct SpinBoxTraits<int> {
 };
 
 template <typename T>
+std::optional<T> evaluateLuaExpression(QString expression);
+
+template <typename T>
 class InternalSpinBox : public SpinBoxTraits<T>::BaseType {
 public:
 	InternalSpinBox(QWidget* parent = nullptr) : SpinBoxTraits<T>::BaseType(parent) {
@@ -42,18 +45,12 @@ public:
 
 	virtual ~InternalSpinBox() {}
 	QValidator::State validate(QString& input, int& pos) const override {
-		if (SpinBoxTraits<T>::BaseType::validate(input, pos) != QValidator::Acceptable
-			&& !tryGetValueFromText(input).has_value()) {			
-			return QValidator::Intermediate;
-		} else {
-			return QValidator::Acceptable;
-		}
+		return QValidator::Acceptable;
 	}
 
 	QString textFromValue(T value) const {
 		return SpinBoxTraits<T>::BaseType::textFromValue(value);
 	}
-
 
 	T valueFromText(const QString& text) const {
 		return tryGetValueFromText(text).value_or(SpinBoxTraits<T>::BaseType::value());
@@ -78,39 +75,13 @@ protected:
 	}
 	
 	std::optional<T> tryGetValueFromText(const QString& text) const {
-		return SpinBoxTraits<T>::BaseType::valueFromText(text);
+		return evaluateLuaExpression<T>(text);
 	}
 };
 
 template <>
 inline QString InternalSpinBox<double>::textFromValue(double value) const {
 	return QLocale(QLocale::C).toString(value, 'f', QLocale::FloatingPointShortest);
-};
-
-template <>
-inline std::optional<double> InternalSpinBox<double>::tryGetValueFromText(const QString& text) const {
-	bool ok = false;
-	QString textToInterpret = text;
-
-	if (textToInterpret.size() > 0 && text.at(0) == '.') {
-		textToInterpret.insert(0, '0');
-	}
-	double ret = QLocale::system().toDouble(textToInterpret, &ok);
-	if (!ok) {
-		ret = QLocale(QLocale::C).toDouble(textToInterpret, &ok);
-	}
-	return ok ? ret : std::optional<double>{};
-};
-
-template <>
-inline std::optional<int> InternalSpinBox<int>::tryGetValueFromText(const QString& text) const {
-	bool ok = false;
-
-	int ret = QLocale::system().toInt(text, &ok);
-	if (!ok) {
-		ret = QLocale(QLocale::C).toInt(text, &ok);
-	}
-	return ok ? ret : std::optional<int>{};
 };
 
 template <typename T>

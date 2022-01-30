@@ -24,11 +24,11 @@ private:
 	RaCoPreferences();
 
 public:
-	static bool init() noexcept;
+	static void init() noexcept;
 	static RaCoPreferences& instance() noexcept;
 
 	bool save();
-	bool load();
+	void load();
 
 	QString userProjectsDirectory{};
 

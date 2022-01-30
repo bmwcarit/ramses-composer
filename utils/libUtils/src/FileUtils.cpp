@@ -9,7 +9,7 @@
  */
 #include "utils/FileUtils.h"
 
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 #include "utils/stdfilesystem.h"
 
 #include "log_system/log.h"
@@ -19,41 +19,41 @@
 
 namespace raco::utils::file {
 
-std::string read(const Path& path) {
-	if (raco::utils::path::isExistingFile(path)) {
-		std::ifstream in{path, std::ifstream::in};
+std::string read(const u8path& path) {
+	if (path.existsFile()) {
+		
+		std::ifstream in{path.internalPath(), std::ifstream::in};
 		std::stringstream ss{};
 		ss << in.rdbuf();
 		in.close();
 		return ss.str();
 	} else {
 		if (!path.empty()) {
-			LOG_WARNING("UTILS", "file not found: {}", path);
+			LOG_WARNING("UTILS", "file not found: {}", path.string());
 		}
 		return {};
 	}
 }
 
-std::vector<unsigned char> readBinary(const Path& path) {
-	if (raco::utils::path::isExistingFile(path)) {
-		std::ifstream in{path, std::ifstream::in | std::ifstream::binary};
-		auto buffer = std::vector<unsigned char>{std::istream_iterator<unsigned char>(in), std::istream_iterator<unsigned char>()};
+std::vector<unsigned char> readBinary(const u8path& path) {
+	if (path.existsFile()) {
+		std::ifstream in{path.internalPath(), std::ifstream::in | std::ifstream::binary};
+		std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(in), {});
 		in.close();
-        return buffer;
+		return buffer;
 	} else {
 		if (!path.empty()) {
-			LOG_WARNING("UTILS", "file not found: {}", path);
+			LOG_WARNING("UTILS", "file not found: {}", path.string());
 		}
 		return {};
 	}
 }
 
-void write(const Path& path, const std::string& content) {
-	std::filesystem::path p{path};
-	if (!raco::utils::path::isExistingDirectory(p.parent_path().generic_string())) {
-		std::filesystem::create_directory(p.parent_path());
-	} 
-	std::ofstream out{p, std::ifstream::out};
+void write(const u8path& path, const std::string& content) {
+	if (!path.parent_path().existsDirectory()) {
+		std::filesystem::create_directory(path.parent_path());
+	}
+	std::ofstream out{path.internalPath(), std::ifstream::out};
 	out << content;
 	out.close();
 }

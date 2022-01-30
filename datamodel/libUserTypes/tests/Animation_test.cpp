@@ -40,7 +40,7 @@ TEST_F(AnimationTest, emptyAnimChannelsErrors) {
 	ASSERT_FALSE(commandInterface.errors().hasError({anim, {"animationChannels", "Channel 3"}}));
 
 	ValueHandle uriHandle{animChannel, {"uri"}};
-	auto animChannelPath = cwd_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").generic_string();
+	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({anim, {"animationChannels", "Channel 0"}}));

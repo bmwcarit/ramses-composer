@@ -13,7 +13,7 @@
 #include "core/ErrorItem.h"
 #include "core/Handles.h"
 #include "utils/FileUtils.h"
-#include "utils/PathUtils.h"
+#include "utils/u8path.h"
 #include "core/PathManager.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
@@ -30,7 +30,7 @@ inline bool validateURI(raco::core::BaseContext& context, const raco::core::Valu
 	if (handle.asString().empty()) {
 		context.errors().addError(ErrorCategory::FILESYSTEM_ERROR, ErrorLevel::WARNING, handle, "Empty URI.");
 		return false;
-	} else if (!raco::utils::path::exists(uriPath)) {
+	} else if (!raco::utils::u8path(uriPath).exists()) {
 		context.errors().addError(ErrorCategory::FILESYSTEM_ERROR, ErrorLevel::ERROR, handle, "File not found.");
 		return false;
 	} else {
