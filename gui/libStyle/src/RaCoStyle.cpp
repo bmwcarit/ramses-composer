@@ -149,13 +149,13 @@ QIcon RaCoStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *o
 	QIcon icon;
 	switch (standardIcon) {
 		case SP_TitleBarCloseButton:
-			return Icons::icon(Pixmap::close);
+			return Icons::instance().close;
 			break;
 		case SP_TitleBarNormalButton:
-			return Icons::icon(Pixmap::undock);
+			return Icons::instance().undock;
 			break;
 		case SP_TitleBarMenuButton:
-			return Icons::icon(Pixmap::menu);
+			return Icons::instance().menu;
 			break;
 		default:
 			return QProxyStyle::standardIcon(standardIcon, option, widget);
@@ -509,9 +509,9 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 				aft_v += delta;
 				// draw icons
 				if (option->state & State_Open)
-					p->drawPixmap(bef_h, bef_v, Icons::icon(Pixmap::expanded).pixmap(decoration_size, decoration_size));
+					Icons::instance().expanded.paint(p, {bef_h, bef_v, decoration_size, decoration_size});
 				else
-					p->drawPixmap(bef_h, bef_v, Icons::icon(Pixmap::collapsed).pixmap(decoration_size, decoration_size));
+					Icons::instance().collapsed.paint(p, {bef_h, bef_v, decoration_size, decoration_size});
 			}
 			// draw lines, untouched code
 			QBrush brush(option->palette.dark().color(), Qt::Dense4Pattern);

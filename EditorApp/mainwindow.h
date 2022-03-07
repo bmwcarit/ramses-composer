@@ -13,6 +13,7 @@
 #include "common_widgets/TimingsWidget.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
 #include "ramses_widgets/RendererBackend.h"
+#include "common_widgets/log_model/LogViewModel.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -47,6 +48,7 @@ public:
 		static inline const char* SCENE_GRAPH{"Scene Graph"};
 		static inline const char* UNDO_STACK{"Undo Stack"};
 		static inline const char* ERROR_VIEW{"Error View"};
+		static inline const char* LOG_VIEW{"Log View"};
 	};
 
 	explicit MainWindow(
@@ -95,6 +97,7 @@ private:
 	raco::object_tree::view::ObjectTreeDockManager treeDockManager_;
 	raco::common_widgets::TimingsModel timingsModel_{this};
 	QMetaObject::Connection activeProjectFileConnection_;
+	raco::common_widgets::LogViewModel* logViewModel_;
 
 	int renderTimerId_ = 0;
 };

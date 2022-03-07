@@ -13,7 +13,7 @@
 
 namespace raco::user_types {
 
-class OrthographicFrustum : public ClassWithReflectedMembers {
+class OrthographicFrustum : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"OrthographicFrustum", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -23,10 +23,10 @@ public:
 		return true;
 	}
 
-	OrthographicFrustum() : ClassWithReflectedMembers(getProperties()) {}
+	OrthographicFrustum() : StructBase(getProperties()) {}
 
 	OrthographicFrustum(const OrthographicFrustum& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
-		: ClassWithReflectedMembers(getProperties()),
+		: StructBase(getProperties()),
 		  near_(other.near_),
 		  far_(other.far_),
 		  left_(other.left_),

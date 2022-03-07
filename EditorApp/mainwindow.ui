@@ -73,6 +73,7 @@
     <addaction name="actionNewProjectBrowser"/>
     <addaction name="actionNewUndoView"/>
     <addaction name="actionNewErrorView"/>
+    <addaction name="actionNewLogView"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -225,6 +226,11 @@
   <action name="actionSaveCurrentLayout">
    <property name="text">
     <string>Save Current Layout...</string>
+   </property>
+  </action>
+  <action name="actionNewLogView">
+   <property name="text">
+    <string>New Log View</string>
    </property>
   </action>
  </widget>

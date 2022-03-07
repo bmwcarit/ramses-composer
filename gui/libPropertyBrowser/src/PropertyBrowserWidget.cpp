@@ -157,7 +157,7 @@ PropertyBrowserWidget::PropertyBrowserWidget(
 	lockButton_ = new QPushButton{this};
 	lockButton_->setContentsMargins(0, 0, 0, 0);
 	lockButton_->setFlat(true);
-	lockButton_->setIcon(Icons::icon(Pixmap::unlocked, this));
+	lockButton_->setIcon(Icons::instance().unlocked);
 	lockButton_->connect(lockButton_, &QPushButton::clicked, this, [this]() {
 		setLocked(!locked_);
 	});
@@ -178,7 +178,7 @@ void PropertyBrowserWidget::clear() {
 
 void PropertyBrowserWidget::setLocked(bool locked) {
 	locked_ = locked;
-	lockButton_->setIcon(locked_ ? Icons::icon(Pixmap::locked, this) : Icons::icon(Pixmap::unlocked, this));
+	lockButton_->setIcon(locked_ ? Icons::instance().locked : Icons::instance().unlocked);
 }
 
 void PropertyBrowserWidget::clearValueHandle(bool restorable) {

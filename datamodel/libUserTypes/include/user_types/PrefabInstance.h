@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"

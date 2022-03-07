@@ -36,6 +36,24 @@ Licensed under the SCEA Shared Source License, Version 1.0. You may obtain a cop
 https://spdx.org/licenses/SCEA.html
 
 
+## MosquitoInAmber
+
+https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/MosquitoInAmber
+
+Creative Commons Attribution 4.0 International License
+
+https://creativecommons.org/licenses/by/4.0/
+
+
+## MultipleVCols
+
+Own production
+
+Creative Commons Attribution 4.0 International License
+
+https://creativecommons.org/licenses/by/4.0/
+
+
 ## RiggedFigure
 
 https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/RiggedFigure

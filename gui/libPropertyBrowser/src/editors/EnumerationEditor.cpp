@@ -12,7 +12,7 @@
 
 #include "core/EngineInterface.h"
 #include "core/Queries.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/controls/MouseWheelGuard.h"

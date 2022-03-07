@@ -66,6 +66,8 @@ QJsonValue serializePrimitiveValue(const ValueBase& value) {
 			return QJsonValue{value.asDouble()};
 		case PrimitiveType::Int:
 			return QJsonValue{value.asInt()};
+		case PrimitiveType::Int64:
+			return QJsonValue{QString::number(value.asInt64())};
 		case PrimitiveType::String: {
 			assert(value.asString() == QString::fromStdString(value.asString()).toStdString());
 			assert(value.asString() == QJsonValue{QString::fromStdString(value.asString())}.toString().toStdString());
@@ -93,6 +95,10 @@ void deserializePrimitiveValue(const QJsonValue& jsonValue, ValueBase& value, Re
 			break;
 		case PrimitiveType::Int:
 			value = jsonValue.toInt();
+			break;
+		case PrimitiveType::Int64:
+			// This cast seems to be necessary for the linux compiler to be able to decide which assignment operator to use
+			value = (int64_t)jsonValue.toString().toLongLong();
 			break;
 		case PrimitiveType::String:
 			value = jsonValue.toString().toStdString();
@@ -477,25 +483,6 @@ void deserializeObjectOriginFolderMap(const QVariant& container, std::map<std::s
 	}
 }
 
-std::map<std::string, std::map<std::string, std::string>> makeStructPropertyMap() {
-	auto& userFactory{raco::user_types::UserObjectFactory::getInstance()};
-
-	std::map<std::string, std::map<std::string, std::string>> structPropTypesMap;
-
-	for (const auto& [name, desc] : userFactory.getStructTypes()) {
-		auto obj = userFactory.createStruct(name);
-
-		std::map<std::string, std::string> propTypeMap;
-		for (size_t i = 0; i < obj->size(); i++) {
-			auto propName = obj->name(i);
-			auto propType = obj->get(i)->typeName();
-			propTypeMap[propName] = propType;
-		}
-		structPropTypesMap[name] = propTypeMap;
-	}
-
-	return structPropTypesMap;
-}
 
 QMap<QString, QVariant> serializeUserTypePropertyMap(const std::map<std::string, std::map<std::string, std::string>>& propTypeMap) {
 	QMap<QString, QVariant> typesMap;
@@ -507,20 +494,6 @@ QMap<QString, QVariant> serializeUserTypePropertyMap(const std::map<std::string,
 		typesMap[QString::fromStdString(userTypeName)] = QVariant(map);
 	}
 	return typesMap;
-}
-
-std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePropertyMap(const QVariant& container) {
-	std::map<std::string, std::map<std::string, std::string>> typesPropTypeMap;
-
-	for (auto [name, propMap] : container.toMap().toStdMap()) {
-		auto qPropMap = propMap.toMap();
-		std::map<std::string, std::string> propTypeMap;
-		for (auto& [propName, propType] : qPropMap.toStdMap()) {
-			propTypeMap[propName.toStdString()] = propType.toString().toStdString();
-		}
-		typesPropTypeMap[name.toStdString()] = propTypeMap;
-	}
-	return typesPropTypeMap;
 }
 
 SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, raco::core::UserObjectFactoryInterface& factory, References& references) {
@@ -673,6 +646,39 @@ std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMa
 	return typesPropTypesMap;
 }
 
+std::map<std::string, std::map<std::string, std::string>> makeStructPropertyMap() {
+	auto& userFactory{raco::user_types::UserObjectFactory::getInstance()};
+
+	std::map<std::string, std::map<std::string, std::string>> structPropTypesMap;
+
+	for (const auto& [name, desc] : userFactory.getStructTypes()) {
+		auto obj = userFactory.createStruct(name);
+
+		std::map<std::string, std::string> propTypeMap;
+		for (size_t i = 0; i < obj->size(); i++) {
+			auto propName = obj->name(i);
+			auto propType = obj->get(i)->typeName();
+			propTypeMap[propName] = propType;
+		}
+		structPropTypesMap[name] = propTypeMap;
+	}
+
+	return structPropTypesMap;
+}
+
+std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePropertyMap(const QVariant& container) {
+	std::map<std::string, std::map<std::string, std::string>> typesPropTypeMap;
+
+	for (auto [name, propMap] : container.toMap().toStdMap()) {
+		auto qPropMap = propMap.toMap();
+		std::map<std::string, std::string> propTypeMap;
+		for (auto& [propName, propType] : qPropMap.toStdMap()) {
+			propTypeMap[propName.toStdString()] = propType.toString().toStdString();
+		}
+		typesPropTypeMap[name.toStdString()] = propTypeMap;
+	}
+	return typesPropTypeMap;
+}
 
 std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders) {
 	QJsonObject result{};

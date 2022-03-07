@@ -33,8 +33,8 @@ glTFMesh::glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sce
 	std::vector<float> normalBuffer{};
 	std::vector<float> tangentBuffer{};
 	std::vector<float> bitangentBuffer{};
-	std::vector<std::vector<float>> uvBuffers(MAX_NUMBER_TEXTURECOORDS);
-	std::vector<std::vector<float>> colorBuffers(MAX_NUMBER_COLORS);
+	std::vector<std::vector<float>> uvBuffers;
+	std::vector<std::vector<float>> colorBuffers;
 
 	std::vector<tinygltf::Primitive> flattenedPrimitiveList;
 
@@ -214,8 +214,8 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 
 	std::optional<glTFBufferData> normalData;
 	std::optional<glTFBufferData> tangentData;
-	std::array<std::optional<glTFBufferData>, MAX_NUMBER_TEXTURECOORDS> bufferTexCoordDatas;
-	std::array<std::optional<glTFBufferData>, MAX_NUMBER_COLORS> bufferColorDatas;
+	std::vector<std::optional<glTFBufferData>> bufferTexCoordDatas;
+	std::vector<std::optional<glTFBufferData>> bufferColorDatas;
 
 	if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
 		normalData.emplace(scene, primitive.attributes.at("NORMAL"), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT});
@@ -225,17 +225,21 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 		}
 	}
 
-	for (auto uvChannel = 0; uvChannel < MAX_NUMBER_TEXTURECOORDS; ++uvChannel) {
+	for (auto uvChannel = 0; uvChannel < std::numeric_limits<int>::max(); ++uvChannel) {
 		auto texCoordName = fmt::format("TEXCOORD_{}", uvChannel);
 		if (primitive.attributes.find(texCoordName) != primitive.attributes.end()) {
-			bufferTexCoordDatas[uvChannel].emplace(scene, primitive.attributes.at(texCoordName), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+			bufferTexCoordDatas.emplace_back().emplace(scene, primitive.attributes.at(texCoordName), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+		} else {
+			break;
 		}
 	}
 
-	for (auto colorChannel = 0; colorChannel < MAX_NUMBER_COLORS; ++colorChannel) {
+	for (auto colorChannel = 0; colorChannel < std::numeric_limits<int>::max(); ++colorChannel) {
 		auto colorName = fmt::format("COLOR_{}", colorChannel);
 		if (primitive.attributes.find(colorName) != primitive.attributes.end()) {
-			bufferColorDatas[colorChannel].emplace(scene,primitive.attributes.at(colorName), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+			bufferColorDatas.emplace_back().emplace(scene, primitive.attributes.at(colorName), std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+		} else {
+			break;
 		}
 	}
 
@@ -281,7 +285,8 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 			}
 		}
 
-		for (auto uvChannel = 0; uvChannel < MAX_NUMBER_TEXTURECOORDS; ++uvChannel) {
+		uvBuffers.resize(bufferTexCoordDatas.size());
+		for (auto uvChannel = 0; uvChannel < bufferTexCoordDatas.size(); ++uvChannel) {
 			if (bufferTexCoordDatas[uvChannel]) {
 				std::vector<float> &uvBuffer{uvBuffers[uvChannel]};
 				auto textureData = bufferTexCoordDatas[uvChannel]->getDataAt<float>(vertexIndex);
@@ -291,7 +296,8 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 			}
 		}
 
-		for (auto colorChannel = 0; colorChannel < MAX_NUMBER_COLORS; ++colorChannel) {
+		colorBuffers.resize(bufferColorDatas.size());
+		for (auto colorChannel = 0; colorChannel < bufferColorDatas.size(); ++colorChannel) {
 			if (bufferColorDatas[colorChannel]) {
 				std::vector<float> &colorBuffer{colorBuffers[colorChannel]};
 				std::vector<float> colorData(4, 1.0F);

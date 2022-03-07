@@ -10,12 +10,16 @@
 #include "property_browser/PropertySubtreeView.h"
 
 #include "ErrorBox.h"
-#include "property_browser/editors/PropertyEditor.h"
 #include "core/CoreFormatter.h"
 #include "log_system/log.h"
+#include "property_browser/controls/ExpandButton.h"
+#include "property_browser/editors/LinkEditor.h"
+#include "property_browser/editors/PropertyEditor.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/WidgetFactory.h"
-#include "property_browser/editors/LinkEditor.h"
+#include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
+
 #include <QApplication>
 #include <QDebug>
 #include <QFormLayout>
@@ -61,34 +65,39 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		label_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
 		if (item->expandable()) {
-			button_ = new ExpandControlButton{ item, labelContainer };
+			decorationWidget_ = new ExpandButton(item, labelContainer);
+		} else {
+			// Easier to make a dummy spacer widget than figuring out how to move everything else at the right place without it
+			decorationWidget_ = new QWidget(this);
+			decorationWidget_->setFixedHeight(0);
 		}
-		else {
-			button_ = new QWidget{ this }; // Easier to make a dummy spacer widget than figuring out how to move everything else at the right place without it
-			button_->setFixedHeight(0);
-		}
-		button_->setFixedWidth(28);
+		decorationWidget_->setFixedWidth(28);
 
 		auto* linkControl = WidgetFactory::createLinkControl(item, labelContainer);
 
 		propertyControl_ = WidgetFactory::createPropertyEditor(item, labelContainer);
 
-		labelLayout->addWidget(button_, 0);
+		labelLayout->addWidget(decorationWidget_, 0);
 		labelLayout->addWidget(label_, 0);
 		labelLayout->addWidget(linkControl, 1);
+
+		auto isLuaScriptProperty = !item->valueHandle().isObject() && &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
+		if (isLuaScriptProperty) {
+			label_->setToolTip(QString::fromStdString(item->luaTypeName()));
+		}
 
 		linkControl->setControl(propertyControl_);
 		label_->setEnabled(item->editable());
 		QObject::connect(item, &PropertyBrowserItem::editableChanged, label_, &QWidget::setEnabled);
 	} else {
 		// Dummy label for the case that we are an object.
-		button_ = new QWidget{this};
+		decorationWidget_ = new QWidget{this};
 		label_ = new QLabel{this};
-		button_->setFixedWidth(0);
-		button_->setFixedHeight(0);
+		decorationWidget_->setFixedWidth(0);
+		decorationWidget_->setFixedHeight(0);
 		label_->setFixedWidth(0);
 		label_->setFixedHeight(0);
-		labelLayout->addWidget(button_, 0);
+		labelLayout->addWidget(decorationWidget_, 0);
 		labelLayout->addWidget(label_, 0);
 	}
 
@@ -194,15 +203,15 @@ void PropertySubtreeView::setLabelAreaWidth(int width) {
 
 void PropertySubtreeView::recalculateLabelWidth() { 
 	if (childrenContainer_ != nullptr) {
-		childrenContainer_->setOffset(button_->width());
+		childrenContainer_->setOffset(decorationWidget_->width());
 	}
-	const int labelWidthHint = std::max(labelWidth_, getLabelAreaWidthHint() - button_->width());
+	const int labelWidthHint = std::max(labelWidth_, getLabelAreaWidthHint() - decorationWidget_->width());
 	if (label_->width() != labelWidthHint) {
 		label_->setFixedWidth(labelWidthHint);
 	}
 
 	for (const auto& child : childrenContainer_->findChildren<PropertySubtreeView*>(QString{}, Qt::FindDirectChildrenOnly)) {
-		child->setLabelAreaWidth(labelWidthHint - button_->width());
+		child->setLabelAreaWidth(labelWidthHint - decorationWidget_->width());
 	}
 }
 
@@ -216,7 +225,7 @@ int PropertySubtreeView::getLabelAreaWidthHint() const {
 			}
 		}
 	}
-	return labelWidthHint + button_->width();
+	return labelWidthHint + decorationWidget_->width();
 }
 
 void PropertySubtreeView::paintEvent(QPaintEvent* event) {

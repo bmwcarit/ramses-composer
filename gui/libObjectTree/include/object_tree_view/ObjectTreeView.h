@@ -57,6 +57,7 @@ public Q_SLOTS:
 	void resetSelection();
 	void globalCopyCallback();
 	void cut();
+	void duplicateObjects();
 	void globalPasteCallback(const QModelIndex &index, bool asExtRef = false);
 	void shortcutDelete();
 	void selectObject(const QString &objectID);

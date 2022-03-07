@@ -10,13 +10,13 @@
 #pragma once
 
 #include "core/EditorObject.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicTypes.h"
 
 namespace raco::core {
 
 class ProjectSettings : public EditorObject {
 public:
-	class DefaultResourceDirectories : public ClassWithReflectedMembers {
+	class DefaultResourceDirectories : public StructBase {
 	public:
 		static inline const TypeDescriptor typeDescription = {"DefaultResourceDirectories", false};
 
@@ -28,7 +28,7 @@ public:
 			return true;
 		}
 
-		 DefaultResourceDirectories(const DefaultResourceDirectories& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(),
+		 DefaultResourceDirectories(const DefaultResourceDirectories& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : StructBase(),
 																	  imageSubdirectory_(other.imageSubdirectory_),
 																	  meshSubdirectory_(other.meshSubdirectory_),
 																	  scriptSubdirectory_(other.scriptSubdirectory_),
@@ -36,7 +36,7 @@ public:
 			fillPropertyDescription();
 		}
 
-		DefaultResourceDirectories() : ClassWithReflectedMembers() {
+		DefaultResourceDirectories() : StructBase() {
 			fillPropertyDescription();
 		}
 
@@ -74,13 +74,19 @@ public:
 		return typeDescription;
 	}
 
-	ProjectSettings(ProjectSettings const& other) : EditorObject(other), sceneId_(other.sceneId_), viewport_(other.viewport_), backgroundColor_(other.backgroundColor_), runTimer_(other.runTimer_), enableTimerFlag_(other.enableTimerFlag_) {
+	ProjectSettings(ProjectSettings const& other) : EditorObject(other),
+													sceneId_(other.sceneId_),
+													viewport_(other.viewport_),
+													backgroundColor_(other.backgroundColor_),
+													runTimer_(other.runTimer_),
+													enableTimerFlag_(other.enableTimerFlag_),
+													saveAsZip_(other.saveAsZip_) {
 		fillPropertyDescription();
 	}
 
 	ProjectSettings(const std::string& name, const std::string& id = std::string()) : EditorObject(name, id) {
 		fillPropertyDescription();
-		backgroundColor_.asVec4f().w = 1.0;
+		backgroundColor_->w = 1.0;
 	}
 
 	ProjectSettings() : ProjectSettings("Main") {}
@@ -92,11 +98,13 @@ public:
 		properties_.emplace_back("defaultResourceFolders", &defaultResourceDirectories_);
 		properties_.emplace_back("enableTimerFlag", &enableTimerFlag_);
 		properties_.emplace_back("runTimer", &runTimer_);
+		properties_.emplace_back("saveAsZip", &saveAsZip_);
 	}
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> sceneId_{123u, DisplayNameAnnotation("Scene Id"), {1, 1024}};
 	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Display Size"}};
 	Property<Vec4f, DisplayNameAnnotation> backgroundColor_{{}, {"Display Background Color"}};
+	Property<bool, DisplayNameAnnotation> saveAsZip_{false, {"Save As Zipped File"}};
 
 	Property<DefaultResourceDirectories, DisplayNameAnnotation> defaultResourceDirectories_{{}, {"Default Resource Folders"}};
 

@@ -10,69 +10,56 @@
 #pragma once
 
 #include <QIcon>
-#include <QMap>
 #include <QPixmap>
 
 namespace raco::style {
 
-enum class Pixmap {
-	done,
-	trash,
-
-	unlocked,
-	locked,
-	expanded,
-	collapsed,
-
-	increment,
-	decrement,
-
-	linkable,
-	linked,
-	parentIsLinked,
-	unlinkable,
-	linkBroken,
-
-	warning,
-	error,
-
-	close,
-	undock,
-	menu,
-	openInNew,
-	goTo,
-
-	typeNode,
-	typeCamera,
-	typeMesh,
-	typeMaterial,
-	typeTexture,
-	typeCubemap,
-	typeScript,
-	typePrefabInternal,
-	typePrefabExternal,
-	typePrefabInstance,
-	typeLuaScriptModule,
-	typeAnimationChannel,
-	typeAnimation
-};
+typedef QString IconPath;
 
 class Icons {
 public:
-	static QIcon icon(Pixmap pixmap, const QWidget* widget = nullptr) {
-		return Icons::instance().createIcon(pixmap, widget);
-	}
-	static QPixmap pixmap(Pixmap pixmap) {
-		return Icons::instance().icons_[pixmap];
-	}
+	const QIcon done{":doneIcon"};
+	const QIcon remove{":removeIcon"};
+	const QIcon expanded{":expandedIcon"};
+	const QIcon collapsed{":collapsedIcon"};
+	const QIcon linkable{":linkableIcon"};
+	const QIcon linked{":linkedIcon"};
+	const QIcon parentIsLinked{":parentLinkedIcon"};
+	const QIcon unlinkable{":unlinkableIcon"};
+	const QIcon linkBroken{":linkBrokenIcon"};
+	const QIcon locked{":lockedIcon"};
+	const QIcon unlocked{":unlockedIcon"};
+	const QIcon close{":closeIcon"};
+	const QIcon undock{":undockIcon"};
+	const QIcon menu{":menuIcon"};
+	const QIcon openInNew{":openInNewIcon"};
+	const QIcon goTo{":gotoIcon"};
+	const QIcon increment{":incrementIcon"};
+	const QIcon decrement{":decrementIcon"};
+	const QIcon warning{":warningIcon"};
+	const QIcon error{":errorIcon"};
+	const QIcon typeNode{":typeNodeIcon"};
+	const QIcon typeCamera{":typeCameraIcon"};
+	const QIcon typeMesh{":typeMeshIcon"};
+	const QIcon typeMaterial{":typeMaterialIcon"};
+	const QIcon typeTexture{":typeTextureIcon"};
+	const QIcon typeCubemap{":typeCubemapIcon"};
+	const QIcon typeLuaScript{":typeLuaScriptIcon"};
+	const QIcon typePrefabInternal{":typePrefabInternalIcon"};
+	const QIcon typePrefabExternal{":typePrefabExternalIcon"};
+	const QIcon typePrefabInstance{":typePrefabInstanceIcon"};
+	const QIcon typeLuaScriptModule{":typeLuaScriptModuleIcon"};
+	const QIcon typeAnimationChannel{":typeAnimationChannelIcon"};
+	const QIcon typeAnimation{":typeAnimationIcon"};
+
+	static const Icons& instance();
+
+	Icons(const Icons &) = delete;
+	Icons &operator=(const Icons &) = delete;
 
 private:
-	QIcon createIcon(Pixmap pixmap, const QWidget* widget = nullptr) {
-		return QIcon(QPixmap(icons_[pixmap]));
-	}
-	static Icons& instance();
-	static Icons* instance_;
-	static QMap<Pixmap, QPixmap> icons_;
+	Icons();
+	~Icons();
 };
 
 }  // namespace raco::style

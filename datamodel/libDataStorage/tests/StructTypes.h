@@ -9,14 +9,12 @@
  */
 #pragma once
 
-#include "data_storage/BasicAnnotations.h"
-#include "data_storage/BasicTypes.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
 
 using namespace raco::data_storage;
 
-class SimpleStruct : public ClassWithReflectedMembers {
+class SimpleStruct : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "SimpleStruct", false };
 	TypeDescriptor const& getTypeDescription() const override {
@@ -26,9 +24,9 @@ public:
 		return true;
 	}
 
-	SimpleStruct() : ClassWithReflectedMembers(getProperties()) {}
+	SimpleStruct() : StructBase(getProperties()) {}
 
-	SimpleStruct(const SimpleStruct& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), bb(other.bb), dd(other.dd) {}
+	SimpleStruct(const SimpleStruct& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : StructBase(getProperties()), bb(other.bb), dd(other.dd) {}
 
 	SimpleStruct& operator=(const SimpleStruct& other) {
 		bb = other.bb;
@@ -49,7 +47,7 @@ public:
 	Value<double> dd{1.5};
 };
 
-class AltStruct : public ClassWithReflectedMembers {
+class AltStruct : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "AltStruct", false };
 	TypeDescriptor const& getTypeDescription() const override {
@@ -59,9 +57,9 @@ public:
 		return true;
 	}
 
-	AltStruct() : ClassWithReflectedMembers(getProperties()) {}
+	AltStruct() : StructBase(getProperties()) {}
 
-	AltStruct(const AltStruct& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()), bb(other.bb), dd(other.dd) {}
+	AltStruct(const AltStruct& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : StructBase(getProperties()), bb(other.bb), dd(other.dd) {}
 
 	AltStruct& operator=(const AltStruct& other) {
 		bb = other.bb;

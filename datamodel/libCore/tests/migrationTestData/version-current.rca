@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 24,
+    "fileVersion": 29,
     "instances": [
         {
             "properties": {
@@ -682,6 +682,7 @@
                 "objectID": "71454add-eb56-4288-9057-825539914bed",
                 "objectName": "test-offscreen-tex-uniform-migration-material",
                 "runTimer": false,
+                "saveAsZip": false,
                 "sceneId": {
                     "annotations": [
                         {
@@ -1224,8 +1225,39 @@
                     ],
                     "value": 1
                 },
+                "generateMipmaps": false,
+                "level2uriBack": "",
+                "level2uriBottom": "",
+                "level2uriFront": "",
+                "level2uriLeft": "",
+                "level2uriRight": "",
+                "level2uriTop": "",
+                "level3uriBack": "",
+                "level3uriBottom": "",
+                "level3uriFront": "",
+                "level3uriLeft": "",
+                "level3uriRight": "",
+                "level3uriTop": "",
+                "level4uriBack": "",
+                "level4uriBottom": "",
+                "level4uriFront": "",
+                "level4uriLeft": "",
+                "level4uriRight": "",
+                "level4uriTop": "",
                 "magSamplingMethod": 0,
                 "minSamplingMethod": 0,
+                "mipmapLevel": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 4,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 1
+                },
                 "objectID": "410631d1-cb7f-40c9-88c7-3bb1515d5caa",
                 "objectName": "CubeMap",
                 "uriBack": "",
@@ -1886,18 +1918,18 @@
     ],
     "logicEngineVersion": [
         0,
-        13,
-        0
+        14,
+        2
     ],
     "racoVersion": [
         0,
-        11,
-        1
+        12,
+        0
     ],
     "ramsesVersion": [
         27,
         0,
-        114
+        115
     ],
     "structPropMap": {
         "BlendOptions": {
@@ -1937,6 +1969,36 @@
             "farPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
             "fieldOfView": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
             "nearPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
+        },
+        "Vec2f": {
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec2i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        },
+        "Vec3f": {
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "z": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec3i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i3": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        },
+        "Vec4f": {
+            "w": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "z": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec4i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i3": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i4": "Int::DisplayNameAnnotation::RangeAnnotationInt"
         }
     },
     "userTypePropMap": {
@@ -1961,8 +2023,28 @@
         "CubeMap": {
             "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "generateMipmaps": "Bool::DisplayNameAnnotation",
+            "level2uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriTop": "String::URIAnnotation::DisplayNameAnnotation",
             "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "mipmapLevel": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "uriBack": "String::URIAnnotation::DisplayNameAnnotation",
@@ -2081,6 +2163,7 @@
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "runTimer": "Bool::HiddenProperty",
+            "saveAsZip": "Bool::DisplayNameAnnotation",
             "sceneId": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "viewport": "Vec2i::DisplayNameAnnotation"
         },

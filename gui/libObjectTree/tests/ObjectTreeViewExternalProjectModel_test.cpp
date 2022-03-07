@@ -221,3 +221,20 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, CanDeleteAtIndicesNever) {
 	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({project1NodeIndex}));
 	ASSERT_FALSE(externalProjectModel.canDeleteAtIndices({project1Index, project1NodeIndex, {}}));
 }
+
+TEST_F(ObjectTreeViewExternalProjectModelTest, CanNeverDuplicate) {
+	std::string project1Path = "project1Path.rca";
+	auto project1Node = std::make_shared<raco::user_types::Node>();
+	generateExternalProject({project1Node}, project1Path);
+
+	externalProjectModel.triggerObjectTreeRebuilding();
+
+	auto project1Index = externalProjectModel.indexFromTreeNodeID(project1Path);
+	auto project1NodeIndex = externalProjectModel.indexFromTreeNodeID(project1Node->objectID());
+
+	ASSERT_FALSE(externalProjectModel.canDuplicateAtIndices({}));
+	ASSERT_FALSE(externalProjectModel.canDuplicateAtIndices({{}}));
+	ASSERT_FALSE(externalProjectModel.canDuplicateAtIndices({project1Index}));
+	ASSERT_FALSE(externalProjectModel.canDuplicateAtIndices({project1NodeIndex}));
+	ASSERT_FALSE(externalProjectModel.canDuplicateAtIndices({project1Index, project1NodeIndex, {}}));
+}

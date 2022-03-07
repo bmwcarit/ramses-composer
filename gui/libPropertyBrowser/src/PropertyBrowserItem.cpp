@@ -14,11 +14,12 @@
 #include "core/Project.h"
 #include "core/PropertyDescriptor.h"
 #include "core/Queries.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 #include "log_system/log.h"
 #include "property_browser/PropertyBrowserRef.h"
 #include "user_types/RenderPass.h"
 #include "user_types/MeshNode.h"
+#include "user_types/EngineTypeAnnotation.h"
 
 using raco::log_system::PROPERTY_BROWSER;
 using raco::data_storage::PrimitiveType;
@@ -126,6 +127,13 @@ core::PrimitiveType PropertyBrowserItem::type() const noexcept {
 	return valueHandle_.type();
 }
 
+std::string PropertyBrowserItem::luaTypeName() const noexcept {
+	if (auto anno = valueHandle_.constValueRef()->query<raco::user_types::EngineTypeAnnotation>()) {
+		return commandInterface_->engineInterface().luaNameForPrimitiveType(static_cast<raco::core::EnginePrimitive>(*anno->engineType_));
+	}
+	return {};
+}
+
 PropertyBrowserRef* PropertyBrowserItem::refItem() noexcept {
 	return refItem_;
 }
@@ -134,8 +142,7 @@ PropertyBrowserModel* PropertyBrowserItem::model() const noexcept {
 	return model_;
 }
 
-const QList<PropertyBrowserItem*>& PropertyBrowserItem::children()
-{
+const QList<PropertyBrowserItem*>& PropertyBrowserItem::children() {
 	return children_;
 }
 
@@ -201,8 +208,7 @@ bool PropertyBrowserItem::editable() noexcept {
 }
 
 bool PropertyBrowserItem::expandable() const noexcept {
-	// Currently the only item which could be expanded but is not allowed to do so is the tag container.
-	return valueHandle_.isObject() || !(query<core::TagContainerAnnotation>() || query<core::RenderableTagContainerAnnotation>());
+	return valueHandle_.isObject() || !(query<core::TagContainerAnnotation>() || query<core::RenderableTagContainerAnnotation>());	
 }
 
 bool PropertyBrowserItem::showChildren() const {
@@ -361,7 +367,7 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 
 bool PropertyBrowserItem::canBeChosenByColorPicker() const {
 
-	if(valueHandle_.isObject() || !(valueHandle_.type() == PrimitiveType::Vec3f || valueHandle_.type() == PrimitiveType::Vec4f)) {		
+	if(valueHandle_.isObject() || !(valueHandle_.isVec3f() || valueHandle_.isVec4f())) {		
 		return false;
 	}
 

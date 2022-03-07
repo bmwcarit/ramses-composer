@@ -9,7 +9,9 @@
  */
 #pragma once
 
+#include "data_storage/Value.h"
 #include "property_browser/PropertyBrowserLayouts.h"
+
 #include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QKeyEvent>
@@ -18,128 +20,57 @@
 namespace raco::property_browser {
 
 template <typename T>
-struct SpinBoxTraits {
-	typedef QSpinBox BaseType;
-};
-
-template <>
-struct SpinBoxTraits<double> {
-	typedef QDoubleSpinBox BaseType;
-};
-
-template <>
-struct SpinBoxTraits<int> {
-	typedef QSpinBox BaseType;
-};
+std::optional<T> evaluateLuaExpression(QString expression, T min = raco::data_storage::numericalLimitMin<T>(), T max = raco::data_storage::numericalLimitMax<T>());
 
 template <typename T>
-std::optional<T> evaluateLuaExpression(QString expression);
-
-template <typename T>
-class InternalSpinBox : public SpinBoxTraits<T>::BaseType {
+class InternalSpinBox : public QAbstractSpinBox {
 public:
-	InternalSpinBox(QWidget* parent = nullptr) : SpinBoxTraits<T>::BaseType(parent) {
-		this->setKeyboardTracking(false);
-		this->setCorrectionMode(QAbstractSpinBox::CorrectionMode::CorrectToNearestValue);
-	}
+	InternalSpinBox(QWidget* parent, std::function<void(T)> valueChanged);
 
-	virtual ~InternalSpinBox() {}
-	QValidator::State validate(QString& input, int& pos) const override {
-		return QValidator::Acceptable;
-	}
+	QString textFromValue(T value) const;
+	T valueFromText(const QString& text) const;
 
-	QString textFromValue(T value) const {
-		return SpinBoxTraits<T>::BaseType::textFromValue(value);
-	}
+	T value() const;
+	void setValue(T value);
 
-	T valueFromText(const QString& text) const {
-		return tryGetValueFromText(text).value_or(SpinBoxTraits<T>::BaseType::value());
-	}
+	void setRange(T min, T max);
+
+	void stepBy(int steps) override;
+	QAbstractSpinBox::StepEnabled stepEnabled() const override;
 
 protected:
+	T value_;
+	T min_;
+	T max_;
 	T focusInOldValue_;
+	std::function<void(T)> valueChanged_;
 
-	void focusInEvent(QFocusEvent* event) {
-		this->selectAll();
-		focusInOldValue_ = SpinBoxTraits<T>::BaseType::value();
-		SpinBoxTraits<T>::BaseType::focusInEvent(event);
-	}
-
-	void keyPressEvent(QKeyEvent* event) {
-		SpinBoxTraits<T>::BaseType::keyPressEvent(event);
-
-		if (event->key() == Qt::Key_Escape) {
-			SpinBoxTraits<T>::BaseType::setValue(focusInOldValue_);
-			SpinBoxTraits<T>::BaseType::clearFocus();
-		}
-	}
-	
-	std::optional<T> tryGetValueFromText(const QString& text) const {
-		return evaluateLuaExpression<T>(text);
-	}
-};
-
-template <>
-inline QString InternalSpinBox<double>::textFromValue(double value) const {
-	return QLocale(QLocale::C).toString(value, 'f', QLocale::FloatingPointShortest);
+	void focusInEvent(QFocusEvent* event);
+	void keyPressEvent(QKeyEvent* event);
 };
 
 template <typename T>
 class SpinBox : public QWidget {
 public:
-	SpinBox(QWidget* parent = nullptr) : QWidget{parent} {
-		valueChangedConnection_ = QObject::connect(&widget_, qOverload<T>(&SpinBoxTraits<T>::BaseType::valueChanged), this, [this]() { emitValueChanged(widget_.value()); });
-		QObject::connect(&widget_, &SpinBoxTraits<T>::BaseType::editingFinished, this, [this]() { emitEditingFinished(); });
-		layout_.addWidget(&widget_);
-		widget_.setRange(min_, max_);
-		// Disable QSpinBox sizing based on range
-		widget_.setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-		setFocusPolicy(Qt::FocusPolicy::StrongFocus);
-		setFocusProxy(&widget_);
-	}
+	SpinBox(QWidget* parent = nullptr);
 
-	void setValue(T v) {
-		QObject::disconnect(valueChangedConnection_);
-		widget_.setValue(v);
-		valueChangedConnection_ = QObject::connect(&widget_, qOverload<T>(&SpinBoxTraits<T>::BaseType::valueChanged), this, [this]() { emitValueChanged(widget_.value()); });
-	}
+	void setValue(T v);
+	T value() const noexcept;
 
-	int outOfRange() const noexcept {
-		return false;
-		// todo: disabled range check until we have full range handling
-		//return value() < min_ ? -1 : (value() > max_ ? 1 : 0);
-	}
+	int outOfRange() const noexcept;
+	void setSoftRange(T min, T max);
 
-	T value() const noexcept {
-		return widget_.value();
-	}
-
-	void setRange(T min, T max) {
-		min_ = min;
-		max_ = max;
-	}
-
-	void keyPressEvent(QKeyEvent* event) {
-		QWidget::keyPressEvent(event);
-
-		if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return) {
-			widget_.clearFocus();
-			emitFocusNextRequested();
-		}
-	}
+	void keyPressEvent(QKeyEvent* event);
 
 protected:
 	virtual void emitValueChanged(T value) = 0;
 	virtual void emitEditingFinished() = 0;
 	virtual void emitFocusNextRequested() = 0;
 
-	InternalSpinBox<T> widget_{this};
+	InternalSpinBox<T> widget_;
 
 private:
-	QMetaObject::Connection valueChangedConnection_;
-	PropertyBrowserGridLayout layout_{this};
-	T min_{std::numeric_limits<T>::lowest()};
-	T max_{std::numeric_limits<T>::max()};
+	PropertyBrowserGridLayout layout_;
 };
 
 class DoubleSpinBox final : public SpinBox<double> {
@@ -164,7 +95,9 @@ class IntSpinBox final : public SpinBox<int> {
 public:
 	// Property used in RaCoStyle to draw error colors (careful we depend on hierarchy as the actual element which is drawen is SpinBox->QSpinBox->QLineEdit)
 	Q_PROPERTY(int outOfRange READ outOfRange);
+
 	IntSpinBox(QWidget* parent = nullptr);
+
 Q_SIGNALS:
 	void valueChanged(int val);
 	void editingFinished();
@@ -172,6 +105,24 @@ Q_SIGNALS:
 
 protected:
 	void emitValueChanged(int value) override;
+	void emitEditingFinished() override;
+	void emitFocusNextRequested() override;
+};
+
+class Int64SpinBox final : public SpinBox<int64_t> {
+	Q_OBJECT
+public:
+	// Property used in RaCoStyle to draw error colors (careful we depend on hierarchy as the actual element which is drawen is SpinBox->QSpinBox->QLineEdit)
+	Q_PROPERTY(int outOfRange READ outOfRange);
+	Int64SpinBox(QWidget* parent = nullptr);
+
+Q_SIGNALS:
+	void valueChanged(int64_t val);
+	void editingFinished();
+	void focusNextRequested();
+
+protected:
+	void emitValueChanged(int64_t value) override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };

@@ -9,6 +9,7 @@
  */
 #include "common_widgets/ExportDialog.h"
 
+#include "common_widgets/ErrorView.h"
 #include "components/RaCoNameConstants.h"
 #include "core/PathManager.h"
 #include "core/SceneBackendInterface.h"
@@ -56,7 +57,7 @@ QStandardItemModel* createSummaryModel(const raco::core::SceneBackendInterface* 
 
 namespace raco::common_widgets {
 
-ExportDialog::ExportDialog(const application::RaCoApplication* application, QWidget* parent) : QDialog{parent}, application_{application} {
+ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewModel * logViewModel, QWidget* parent) : QDialog{parent}, application_{application} {
 	setWindowTitle(QString{"Export Project - %1"}.arg(application->activeRaCoProject().name()));
 
 	auto* content = new QGroupBox{"Export Configuration:", this};
@@ -109,6 +110,28 @@ ExportDialog::ExportDialog(const application::RaCoApplication* application, QWid
 	tabWidget->addTab(listView, QString{"Scene ID: %1"}.arg(application->sceneBackend()->currentSceneIdValue()));
 
 	hasErrors_ = false;
+
+	auto* commandInterface = application->activeRaCoProject().commandInterface();
+	if (!commandInterface->errors().getAllErrors().empty()) {
+		bool hasComposerErrors = false;
+		bool hasComposerWarnings = false;
+
+		for (const auto& errorPair : commandInterface->errors().getAllErrors()) {
+			if (errorPair.second.level() == raco::core::ErrorLevel::WARNING) {
+				hasComposerWarnings = true;
+			} else if (errorPair.second.level() == raco::core::ErrorLevel::ERROR) {
+				hasErrors_ = true;
+				hasComposerErrors = true;
+				break;
+			}
+		}
+
+		if (hasComposerErrors || hasComposerWarnings) {
+			auto* errorView = new ErrorView(commandInterface, application->dataChangeDispatcher(), false, logViewModel, this);
+			tabWidget->setCurrentIndex(tabWidget->addTab(errorView, hasComposerErrors ? "Composer Errors" : "Composer Warnings"));
+		}
+	}
+
 	if (!application->sceneBackend()->sceneValid()) {
 		auto* textBox = new QTextEdit(summaryBox);
 		textBox->setAcceptRichText(false);
@@ -116,14 +139,13 @@ ExportDialog::ExportDialog(const application::RaCoApplication* application, QWid
 		QString message(application->sceneBackend()->getValidationReport(core::ErrorLevel::ERROR).c_str());
 		if (!message.isEmpty()) {
 			textBox->setText(message);
-			tabWidget->addTab(textBox, QString{"Errors"});
-			tabWidget->setCurrentIndex(1);
+			tabWidget->setCurrentIndex(tabWidget->addTab(textBox, "Ramses Errors"));
 			hasErrors_ = true;
 		} else {
 			message = QString::fromStdString(application->sceneBackend()->getValidationReport(core::ErrorLevel::WARNING));
 			if (!message.isEmpty()) {
 				textBox->setText(message);
-				tabWidget->addTab(textBox, QString{"Warnings"});
+				tabWidget->setCurrentIndex(tabWidget->addTab(textBox, "Ramses Warnings"));
 			}
 		}
 	}

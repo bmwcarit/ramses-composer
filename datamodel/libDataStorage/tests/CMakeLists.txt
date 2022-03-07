@@ -10,7 +10,6 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 set(TEST_SOURCES
     Value_test.cpp
     Property_test.cpp
-    Annotation_test.cpp
     StructTypes.h
 )
 

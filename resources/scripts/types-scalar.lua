@@ -5,6 +5,7 @@ function interface()
 	IN.vector3f = VEC3F
 	IN.vector4f = VEC4F
 	IN.integer = INT
+	IN.integer64 = INT64
 	IN.vector2i = VEC2I
 	IN.vector3i = VEC3I
 	IN.vector4i = VEC4I
@@ -13,6 +14,7 @@ function interface()
 
 	OUT.ofloat = FLOAT
 	OUT.ointeger = INT
+	OUT.ointeger64 = INT64
 	OUT.ovector3f = VEC3F
 	OUT.ovector4f = VEC4F
 	OUT.obool = BOOL
@@ -31,6 +33,7 @@ function run()
 	OUT.ofloat = test(IN.vector3f)
 	
 	OUT.ointeger = 2*IN.integer
+	OUT.ointeger64 = 2*IN.integer64
 	OUT.ovector3f = {IN.float, 2*IN.float, 3.0}
 	
 	OUT.ovector4f = {v[1], IN.float, IN.vector3f[1], IN.vector3f[2]}

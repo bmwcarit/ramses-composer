@@ -46,6 +46,8 @@ add_library(libCore
 	include/core/Serialization.h src/Serialization.cpp
     include/core/SerializationKeys.h    
 	include/core/CoreAnnotations.h
+	include/core/BasicAnnotations.h
+	include/core/BasicTypes.h
 
     include/core/CoreFormatter.h
     include/core/ProjectSettings.h

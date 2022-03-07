@@ -13,7 +13,7 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 
 #include "core/Handles.h"
 #include "core/PropertyDescriptor.h"

@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 0.12.0)
+project(RaCoOS VERSION 0.13.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -87,10 +87,17 @@ macro(deploy_qt tgt)
 		# Also add the Qt licensing file and our licensing file.
 		# We are making use of the add_custom_command feature for build event commands that "COMMAND" statements with an empty COMMAND string are completely ignored.
 		add_custom_command(TARGET ${tgt} POST_BUILD 
-			COMMAND "$<$<CONFIG:Debug>:${RACO_QT_WINDEPLOY_PATH}/windeployqt.exe>" --debug --no-libraries --no-opengl-sw --no-system-d3d-compiler --no-svg --no-translations --no-compiler-runtime "$<TARGET_FILE:${tgt}>"
-			COMMAND "${RACO_QT_WINDEPLOY_PATH}/windeployqt.exe" "$<$<CONFIG:Debug>:--no-plugins>" --no-opengl-sw --no-system-d3d-compiler --no-svg --no-translations --no-compiler-runtime "$<TARGET_FILE:${tgt}>"
-			# Qt deploys the folder imageformats which we do not need - createReadHandlerHelper in C:\Qt\5.15.2\Src\qtbase\src\gui\image\qimagereader.cpp contains hardcoded support for the extensions png, bmp, dib, xpm, xbm, pbm, pbmraw, pgm, pgmraw, ppm and ppmraw (which is more than we need).
-			COMMAND ${CMAKE_COMMAND} -E rm -fr "$<TARGET_FILE_DIR:${tgt}>/imageformats"
+			COMMAND "$<$<CONFIG:Debug>:${RACO_QT_WINDEPLOY_PATH}/windeployqt.exe>" --debug --no-libraries --no-opengl-sw --no-system-d3d-compiler --svg --no-translations --no-compiler-runtime "$<TARGET_FILE:${tgt}>"
+			COMMAND "${RACO_QT_WINDEPLOY_PATH}/windeployqt.exe" "$<$<CONFIG:Debug>:>" --no-opengl-sw --no-system-d3d-compiler --svg --no-translations --no-compiler-runtime "$<TARGET_FILE:${tgt}>"
+			# Qt deploys the folder imageformats which we do not need except for svg support - createReadHandlerHelper in C:\Qt\5.15.2\Src\qtbase\src\gui\image\qimagereader.cpp contains hardcoded support for the extensions png, bmp, dib, xpm, xbm, pbm, pbmraw, pgm, pgmraw, ppm and ppmraw (which is more than we need).
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qgifd.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qgif.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qicnsd.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qicns.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qicod.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qico.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qjpegd.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qjpeg.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qtiffd.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qtiff.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qtgad.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qtga.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qwbmpd.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qwbmp.dll"
+			COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/imageformats/qwebpd.dll" "$<TARGET_FILE_DIR:${tgt}>/imageformats/qwebp.dll"
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/third_party/qtsharedlibs_license.txt" "$<TARGET_FILE_DIR:${tgt}>/qtsharedlibs_license.txt"
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/LICENSE.txt" "$<TARGET_FILE_DIR:${tgt}>/LICENSE.txt"
 			)

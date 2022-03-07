@@ -36,11 +36,12 @@ constexpr const char* RAMSES_ADAPTOR {"RAMSES_ADAPTOR"};
 constexpr const char* DESERIALIZATION{"DESERIALIZATION"};
 constexpr const char* PROJECT{"PROJECT"};
 constexpr const char* MESH_LOADER{"MESH_LOADER"};
+constexpr const char* RAMSES_LOGIC{"RAMSES_LOGIC"};
 
 constexpr size_t MAX_LOG_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 constexpr size_t MAX_LOG_FILE_AMOUNT = 25;
 
-void init(const spdlog::filename_t& logFileName = SPDLOG_FILENAME_T(""));
+void init(spdlog::filename_t logFileName = SPDLOG_FILENAME_T(""));
 void deinit();
 void registerSink(const SinkPtr sink);
 void unregisterSink(const SinkPtr sink);

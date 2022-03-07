@@ -197,6 +197,23 @@ TEST_F(LinkTest, lua_ortho_camera_struct_viewport_frustum) {
 			}});
 }
 
+TEST_F(LinkTest, lua_lua_compatibility_int64) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/struct-simple.lua");
+
+	auto allowed64 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"luaInputs", "s", "integer64"}));
+	std::set<ValueHandle> refAllowed64{
+		{start, {"luaOutputs", "ointeger64"}}};
+
+	EXPECT_EQ(allowed64, refAllowed64);
+
+	auto allowed32 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"luaInputs", "s", "integer"}));
+	std::set<ValueHandle> refAllowed32{
+		{start, {"luaOutputs", "ointeger"}}};
+
+	EXPECT_EQ(allowed32, refAllowed32);
+}
+
 TEST_F(LinkTest, lua_lua_compatibility_float) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");

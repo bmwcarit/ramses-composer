@@ -26,6 +26,8 @@ class CommandInterface;
 
 namespace raco::common_widgets {
 
+class LogViewModel;
+
 class ErrorView : public QWidget {
 	Q_OBJECT
 
@@ -38,7 +40,7 @@ public:
 		COLUMN_COUNT
 	};
 
-	explicit ErrorView(raco::core::CommandInterface *commandInterface, raco::components::SDataChangeDispatcher dispatcher, QWidget *parent = nullptr);
+	explicit ErrorView(raco::core::CommandInterface *commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool showFilterLayout, LogViewModel *logViewModel, QWidget *parent = nullptr);
 
 Q_SIGNALS:
 	void objectSelectionRequested(const QString &objectID);
@@ -55,16 +57,18 @@ protected:
 	components::Subscription objNameChangeSubscription_;
 	components::Subscription objChildrenChangeSubscription_;
 	QTableView *tableView_;
-	QCheckBox *showWarningsCheckBox_;
-	QCheckBox *showErrorsCheckBox_;
-	QLabel *errorAmountLabel_;
+	QCheckBox *showWarningsCheckBox_ = nullptr;
+	QCheckBox *showErrorsCheckBox_ = nullptr;
+	QLabel *errorAmountLabel_ = nullptr;
 	QStandardItemModel *tableModel_;
 	QSortFilterProxyModel *proxyModel_;
 	std::vector<std::string> indexToObjID_;
 	std::set<std::string> objIDs_;
+	LogViewModel *logViewModel_;
 
 protected Q_SLOTS:
 	void createCustomContextMenu(const QPoint &p);
+	void updateErrorAmountLabel();
 };
 
 }  // namespace raco::common_widgets

@@ -22,7 +22,7 @@ bool CoreInterfaceImpl::parseShader(const std::string& vertexShader, const std::
 	return raco::ramses_base::parseShaderText(backend_->internalScene(), vertexShader, geometryShader, fragmentShader, shaderDefines, outUniforms, outAttributes, outError);
 }
 
-bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const raco::data_storage::Table &modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
+bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
 	return raco::ramses_base::parseLuaScript(backend_->logicEngine(), luaScript, modules, outInputs, outOutputs, outError);
 }
 
@@ -74,6 +74,29 @@ const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco
 			assert(false);
 			return enumerationEmpty;
 	}
+}
+
+std::string CoreInterfaceImpl::luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const {
+	static const std::unordered_map<raco::core::EnginePrimitive, std::string> nameMap =
+		{{raco::core::EnginePrimitive::Bool, "BOOL"},
+			{raco::core::EnginePrimitive::Int32, "INT32"},
+			{raco::core::EnginePrimitive::Int64, "INT64"},
+			{raco::core::EnginePrimitive::Double, "FLOAT"},
+			{raco::core::EnginePrimitive::String, "STRING"},
+			{raco::core::EnginePrimitive::Vec2f, "VEC2F"},
+			{raco::core::EnginePrimitive::Vec3f, "VEC3F"},
+			{raco::core::EnginePrimitive::Vec4f, "VEC4F"},
+			{raco::core::EnginePrimitive::Vec2i, "VEC2I"},
+			{raco::core::EnginePrimitive::Vec3i, "VEC3I"},
+			{raco::core::EnginePrimitive::Vec4i, "VEC4I"},
+			{raco::core::EnginePrimitive::Struct, "STRUCT"},
+			{raco::core::EnginePrimitive::Array, "ARRAY"}};
+
+	auto it = nameMap.find(engineType);
+	if (it != nameMap.end()) {
+		return it->second;
+	}
+	return "Unknown Type";
 }
 
 }  // namespace raco::ramses_base

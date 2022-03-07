@@ -10,7 +10,7 @@
 #pragma once
 
 #include "data_storage/Value.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicTypes.h"
 #include "core/PropertyDescriptor.h"
 
 #include <memory>
@@ -122,11 +122,12 @@ public:
 
 	// Extract scalar values directly
 
-	// Templated accessor; only works for scalar types: bool, int, double, std::string
+	// Templated accessor; only works for scalar types: bool, int, int64_t, double, std::string
 	template<typename T> T as() const;
 
 	bool asBool() const;
 	int asInt() const;
+	int64_t asInt64() const;
 	double asDouble() const;
 	std::string asString() const;
 	SEditorObject asRef() const;
@@ -137,6 +138,8 @@ public:
 	const Vec3i& asVec3i() const;
 	const Vec4i& asVec4i() const;
  
+	bool isVec3f() const;
+	bool isVec4f() const;
 
 	template<class C>
 	std::shared_ptr<C> asTypedRef() const {

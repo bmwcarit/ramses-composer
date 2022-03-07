@@ -31,7 +31,7 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 		std::vector<raco::core::SEditorObject> createdNodes;
 
 		for (const auto &name : nodeNames) {
-			createdNodes.emplace_back(context.createObject(type, name, std::string(type + name)));
+			createdNodes.emplace_back(context.createObject(type, name));
 			dataChangeDispatcher_->dispatch(recorder.release());
 		}
 

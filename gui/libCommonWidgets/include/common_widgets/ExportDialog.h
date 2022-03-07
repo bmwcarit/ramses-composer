@@ -17,10 +17,11 @@
 #include <QLineEdit>
 
 namespace raco::common_widgets {
+class LogViewModel;
 
 class ExportDialog final : public QDialog {
 public:
-	explicit ExportDialog(const application::RaCoApplication* application, QWidget* parent);
+	explicit ExportDialog(application::RaCoApplication* application, LogViewModel* logViewModel, QWidget* parent);
 
 private:
 	Q_SLOT void exportProject();
@@ -35,7 +36,7 @@ private:
 
 	bool hasErrors_;
 
-	const application::RaCoApplication* application_;
+	application::RaCoApplication* application_;
 };
 
 }  // namespace raco::common_widgets

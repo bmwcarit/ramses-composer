@@ -28,7 +28,7 @@ QVariant ObjectTreeViewPrefabModel::data(const QModelIndex& index, int role) con
 	if (role == Qt::ItemDataRole::DecorationRole && index.column() == COLUMNINDEX_NAME) {
 		auto editorObj = indexToSEditorObject(index);
 		if (editorObj && editorObj->query<raco::core::ExternalReferenceAnnotation>() && editorObj->as<user_types::Prefab>()) {
-			return QVariant(raco::style::Icons::icon(typeIconMap.at("ExtrefPrefab")));
+			return QVariant(typeIconMap.at("ExtrefPrefab"));
 		}
 	}
 

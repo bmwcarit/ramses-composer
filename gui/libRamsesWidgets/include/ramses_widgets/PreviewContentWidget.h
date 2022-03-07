@@ -27,7 +27,7 @@ public:
 	virtual QPaintEngine* paintEngine() const override { return nullptr; }
 	ramses::sceneId_t getSceneId();
 	void setSceneId(ramses::sceneId_t id);
-	void setBackgroundColor(data_storage::Vec4f backgroundColor);
+	void setBackgroundColor(core::Vec4f backgroundColor);
 	void setFilteringMode(PreviewFilteringMode mode);
 	void commit();
 
@@ -44,6 +44,7 @@ Q_SIGNALS:
 	void newMousePosition(const QPoint globalPosition);
 
 protected:
+	void paintEvent(QPaintEvent* event) override;
 	bool event(QEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 

@@ -140,12 +140,12 @@ TEST_F(MigrationTest, migrate_from_V10) {
 		ASSERT_TRUE((raco::core::PropertyInterface::primitiveType(engineType) != raco::data_storage::PrimitiveType::Ref) == hasLinkAnno);
 	}
 
-	auto& uniforms = *material->uniforms_;
-	ASSERT_EQ(uniforms.get("scalar")->asDouble(), 42.0);
-	ASSERT_EQ(uniforms.get("count_")->asInt(), 42);
-	ASSERT_EQ(*uniforms.get("vec")->asVec3f().x, 0.1);
-	ASSERT_EQ(*uniforms.get("ambient")->asVec4f().w, 0.4);
-	ASSERT_EQ(*uniforms.get("iv2")->asVec2i().i2_, 2);
+	ValueHandle uniforms{material, &raco::user_types::Material::uniforms_};
+	ASSERT_EQ(uniforms.get("scalar").asDouble(), 42.0);
+	ASSERT_EQ(uniforms.get("count_").asInt(), 42);
+	ASSERT_EQ(*uniforms.get("vec").asVec3f().x, 0.1);
+	ASSERT_EQ(*uniforms.get("ambient").asVec4f().w, 0.4);
+	ASSERT_EQ(*uniforms.get("iv2").asVec2i().i2_, 2);
 }
 
 TEST_F(MigrationTest, migrate_from_V12) {
@@ -348,11 +348,10 @@ TEST_F(MigrationTest, migrate_from_V18) {
 	auto bgColor = racoproject->project()->settings()->backgroundColor_;
 	ASSERT_EQ(bgColor->typeDescription.typeName, Vec4f::typeDescription.typeName);
 
-	auto bgColorVec4 = bgColor.asVec4f();
-	ASSERT_EQ(bgColorVec4.x.asDouble(), 0.3);
-	ASSERT_EQ(bgColorVec4.y.asDouble(), 0.2);
-	ASSERT_EQ(bgColorVec4.z.asDouble(), 0.1);
-	ASSERT_EQ(bgColorVec4.w.asDouble(), 1.0);
+	ASSERT_EQ(bgColor->x.asDouble(), 0.3);
+	ASSERT_EQ(bgColor->y.asDouble(), 0.2);
+	ASSERT_EQ(bgColor->z.asDouble(), 0.1);
+	ASSERT_EQ(bgColor->w.asDouble(), 1.0);
 }
 
 TEST_F(MigrationTest, migrate_from_V21) {
@@ -437,6 +436,30 @@ TEST_F(MigrationTest, migrate_from_current) {
 		}) != instances.end());
 	}
 }
+
+TEST_F(MigrationTest, check_current_type_maps) {
+	// Check that the type maps for user object and structs types in the "version-current.rca" are
+	// identical to the ones generated when saving a project.
+	//
+	// If this fails the file format has changed: we need to increase the file version number
+	// and potentially write migration code.
+
+	QString filename = QString::fromStdString((test_path() / "migrationTestData" / "version-current.rca").string());
+	QFile file{filename};
+	EXPECT_TRUE(file.open(QIODevice::ReadOnly | QIODevice::Text));
+	auto document{QJsonDocument::fromJson(file.readAll())};
+	file.close();
+
+	auto fileUserPropTypeMap = raco::serialization::deserializeUserTypePropertyMap(document[raco::serialization::keys::USER_TYPE_PROP_MAP]);
+	auto fileStructTypeMap = raco::serialization::deserializeUserTypePropertyMap(document[raco::serialization::keys::STRUCT_PROP_MAP]);
+
+	auto currentUserPropTypeMap = raco::serialization::makeUserTypePropertyMap();
+	auto currentStructTypeMap = raco::serialization::makeStructPropertyMap();
+
+	EXPECT_EQ(fileUserPropTypeMap, currentUserPropTypeMap);
+	EXPECT_EQ(fileStructTypeMap, currentStructTypeMap);
+}
+
 TEST_F(MigrationTest, check_proxy_factory_has_all_objects_types) {
 	// Check that all types in the UserObjectFactory constructory via makeTypeMap call
 	// also have the corresponding proxy type added in the ProxyObjectFactory constructor.
@@ -447,7 +470,7 @@ TEST_F(MigrationTest, check_proxy_factory_has_all_objects_types) {
 
 	for (auto& item : objectFactory()->getTypes()) {
 		auto name = item.first;
-		EXPECT_TRUE(proxyTypeMap.find(name) != proxyTypeMap.end());
+		EXPECT_TRUE(proxyTypeMap.find(name) != proxyTypeMap.end()) << fmt::format("type name: '{}'", name);
 	}
 }
 
@@ -462,7 +485,7 @@ TEST_F(MigrationTest, check_proxy_factory_has_all_dynamic_property_types) {
 
 	for (auto& item : userFactory.getProperties()) {
 		auto name = item.first;
-		EXPECT_TRUE(proxyProperties.find(name) != proxyProperties.end());
+		EXPECT_TRUE(proxyProperties.find(name) != proxyProperties.end()) << fmt::format("property name: '{}'", name);
 	}
 }
 TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
@@ -479,8 +502,8 @@ TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
 		for (size_t index = 0; index < object->size(); index++) {
 			auto propTypeName = object->get(index)->typeName();
 			auto proxyProperty = proxyFactory.createValue(propTypeName);
-			ASSERT_TRUE(proxyProperty != nullptr);
-			ASSERT_EQ(proxyProperty->typeName(), propTypeName);
+			ASSERT_TRUE(proxyProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);
+			ASSERT_EQ(proxyProperty->typeName(), propTypeName) << fmt::format("property type name: '{}'", propTypeName);
 		}
 	}
 
@@ -491,8 +514,8 @@ TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
 		for (size_t index = 0; index < object->size(); index++) {
 			auto propTypeName = object->get(index)->typeName();
 			auto proxyProperty = proxyFactory.createValue(propTypeName);
-			ASSERT_TRUE(proxyProperty != nullptr);
-			ASSERT_EQ(proxyProperty->typeName(), propTypeName);
+			ASSERT_TRUE(proxyProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);
+			ASSERT_EQ(proxyProperty->typeName(), propTypeName) << fmt::format("property type name: '{}'", propTypeName);
 		}
 	}
 }

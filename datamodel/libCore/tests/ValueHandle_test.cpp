@@ -8,7 +8,7 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#include <data_storage/BasicTypes.h>
+#include <core/BasicTypes.h>
 #include <core/Handles.h>
 #include "user_types/Node.h"
 #include "user_types/PerspectiveCamera.h"
@@ -64,11 +64,11 @@ TEST(ValueHandle, ValueHandle_comparesByIndex_append) {
 
 	ValueHandle handle{tableObject};
 
-	tableObject->table_.asTable().addProperty(PrimitiveType::Vec2f);
+	tableObject->table_.asTable().addProperty(new Value<Vec2f>());
 
 	ValueHandle child1BeforeAdd = handle.get("table")[0];
 
-	tableObject->table_.asTable().addProperty(PrimitiveType::Vec2f);
+	tableObject->table_.asTable().addProperty(new Value<Vec2f>());
 
 	ValueHandle child1AfterAdd = handle.get("table")[0];
 	ValueHandle child2AfterAdd = handle.get("table")[1];
@@ -84,11 +84,11 @@ TEST(ValueHandle, ValueHandle_comparesByIndex_prepend) {
 
 	ValueHandle handle{tableObject};
 
-	tableObject->table_.asTable().addProperty(PrimitiveType::Vec2f);
+	tableObject->table_.asTable().addProperty(new Value<Vec2f>());
 
 	ValueHandle child1BeforeAdd = handle.get("table")[0];
 
-	tableObject->table_.asTable().addProperty(PrimitiveType::Vec2f, 0);
+	tableObject->table_.asTable().addProperty(new Value<Vec2f>(), 0);
 
 	ValueHandle child1AfterAdd = handle.get("table")[0];
 	ValueHandle child2AfterAdd = handle.get("table")[1];

@@ -7,11 +7,15 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+#include "data_storage/Value.h"
 #include "property_browser/controls/ScalarSlider.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
 #include "style/RaCoStyle.h"
+#include "log_system/log.h"
 
+#include <algorithm>
 #include <QApplication>
 #include <QMouseEvent>
 #include <QPainter>
@@ -25,7 +29,12 @@ using namespace raco::style;
 
 template <typename T>
 ScalarSlider<T>::ScalarSlider(QWidget* parent)
-	: QWidget{parent} {
+	: QWidget{parent},
+	  min_(raco::data_storage::numericalLimitMin<T>()),
+	  max_(raco::data_storage::numericalLimitMax<T>()),
+	  softMin_(static_cast<T>(0.0)),
+	  softMax_(static_cast<T>(1.0)),
+	  value_(static_cast<T>(0.5)) {
 	static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "ScalarSlider requires integral or floating point type");
 
 	// adjust size to LineEdits
@@ -47,18 +56,19 @@ bool ScalarSlider<T>::insideRange() const noexcept {
 }
 
 template <typename T>
-void ScalarSlider<T>::setRange(T min, T max) {
-	min_ = min;
-	max_ = max;
+void ScalarSlider<T>::setSoftRange(T min, T max) {
+	softMin_ = min;
+	softMax_ = max;
 	update();
 }
 
 template <typename T>
-void ScalarSlider<T>::slotSetValue(T v) {
-	if (value_ != v) {
-		value_ = v;
+void ScalarSlider<T>::slotSetValue(T value) {
+	value = std::clamp(value, min_, max_);
+
+	if (value_ != value) {
+		value_ = value;
 		update();
-		signalValueChange(v);
 	}
 }
 
@@ -90,7 +100,7 @@ void ScalarSlider<T>::paintEvent(QPaintEvent* event) {
 		roundStyle->drawRoundedRect(rect(), &painter, backgroundBrush);
 
 		auto valueRect{rect()};
-		valueRect.setWidth(((static_cast<double>(value_) - min_) / (max_ - min_)) * valueRect.width());
+		valueRect.setWidth(((static_cast<double>(value_) - softMin_) / (softMax_ - softMin_)) * valueRect.width());
 
 		painter.setClipRect(valueRect);
 		roundStyle->drawRoundedRect(rect(), &painter, sliderBrush);
@@ -101,8 +111,8 @@ void ScalarSlider<T>::paintEvent(QPaintEvent* event) {
 	painter.drawText(rect(), Qt::AlignHCenter | Qt::AlignVCenter, text);
 
 	if (mouseIsInside_ && !mouseIsDragging_) {
-		painter.drawPixmap(rect().x() - 4, rect().y() - 2, Icons::pixmap(Pixmap::decrement));
-		painter.drawPixmap(rect().width() - rect().height(), rect().y() - 2, Icons::pixmap(Pixmap::increment));
+		Icons::instance().decrement.paint(&painter, {rect().x() - 4, rect().y() - 2, 20, 20});
+		Icons::instance().increment.paint(&painter, {rect().width() - rect().height(), rect().y() - 2, 20, 20});
 	}
 }
 
@@ -135,7 +145,7 @@ template <typename T>
 void ScalarSlider<T>::mousePressEvent(QMouseEvent* event) {
 	if (isEnabled()) {
 		setFocus(Qt::FocusReason::MouseFocusReason);
-		mousePivot_ = event->globalPos();
+		mousePivot_ = event->screenPos();
 		mouseDraggingCurrentOffsetX_ = 0;
 		setCursor(Qt::CursorShape::BlankCursor);
 		update();
@@ -144,9 +154,18 @@ void ScalarSlider<T>::mousePressEvent(QMouseEvent* event) {
 
 template <typename T>
 void ScalarSlider<T>::addValue(T step) {
-	T newValue = value() + step;
+	auto newValue = value();
+
+	// Add step to newValue, clamping if their is an overflow.
+	if (newValue > 0 && step > max_ - newValue) {
+		newValue = max_;
+	} else if (newValue < 0 && step < min_ - newValue) {
+		newValue = min_;
+	} else {
+		newValue += step;
+	}
+	
 	slotSetValue(newValue);
-	signalValueEdited(newValue);
 }
 
 template <typename T>
@@ -154,8 +173,10 @@ void ScalarSlider<T>::mouseReleaseEvent(QMouseEvent* event) {
 	if (!mouseIsDragging_) {
 		if (event->localPos().x() < rect().x() + 24l) {
 			addValue(-1);
+			signalValueEdited(value());
 		} else if (event->localPos().x() > rect().right() - 24l) {
 			addValue(1);
+			signalValueEdited(value());
 		} else {
 			signalSingleClicked();
 		}
@@ -170,20 +191,21 @@ template <typename T>
 void ScalarSlider<T>::mouseMoveEvent(QMouseEvent* event) {
 	if (hasFocus()) {
 		mouseIsDragging_ = true;
-		mouseDraggingCurrentOffsetX_ += event->globalPos().x() - mousePivot_.x();
-		cursor().setPos(mousePivot_.x(), mousePivot_.y());
+		mouseDraggingCurrentOffsetX_ += event->screenPos().x() - mousePivot_.x();
+		cursor().setPos(screen() , mousePivot_.x(), mousePivot_.y());
 		
 		double widgetFraction = (mouseDraggingCurrentOffsetX_ / static_cast<double>(rect().width()));
-		T newValue = value() + static_cast<T>((max_ - min_) * widgetFraction);
-		if (newValue != value()) {
+		T valueChange = static_cast<T>((softMax_ - softMin_) * widgetFraction);
+		if (valueChange != 0) {
 			mouseDraggingCurrentOffsetX_ -= static_cast<int>(widgetFraction * rect().width());
-			slotSetValue(newValue);
-			signalValueEdited(newValue);
+			addValue(valueChange);
+			signalValueEdited(value());
 		}
 	}
 }
 
 template class ScalarSlider<double>;
 template class ScalarSlider<int>;
+template class ScalarSlider<int64_t>;
 
 }  // namespace raco::property_browser

@@ -31,4 +31,7 @@ raco_package_add_test_resouces(
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck.png
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
+    meshes/MosquitoInAmber/MosquitoInAmber.gltf
+    meshes/MosquitoInAmber/MosquitoInAmber.bin
+    meshes/MultipleVCols/multiple_VCols.gltf
 )

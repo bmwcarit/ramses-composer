@@ -41,6 +41,7 @@ public:
 
 	PropertyBrowserItem(raco::core::ValueHandle valueHandle, raco::components::SDataChangeDispatcher dispatcher, raco::core::CommandInterface* commandInterface, PropertyBrowserModel *model, QObject* parent = nullptr);
 	raco::core::PrimitiveType type() const noexcept;
+	std::string luaTypeName() const noexcept;
 	std::string displayName() const noexcept;
 	size_t size() noexcept;
 	raco::core::Queries::LinkState linkState() const noexcept;

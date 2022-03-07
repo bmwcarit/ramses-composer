@@ -12,7 +12,7 @@
 
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 #include "core/ExternalReferenceAnnotation.h"
 #include "user_types/LuaScript.h"
 #include "user_types/Material.h"
@@ -44,7 +44,7 @@ struct SerializationTest : public TestEnvironmentCore {
 
 TEST_F(SerializationTest, serializeNode) {
 	const auto sNode{std::make_shared<raco::user_types::Node>("node", "node_id")};
-	sNode->scale_->z.staticQuery<raco::data_storage::RangeAnnotation<double>>().max_ = 100.0;
+	sNode->scale_->z.staticQuery<raco::core::RangeAnnotation<double>>().max_ = 100.0;
 	auto result = raco::serialization::test_helpers::serializeObject(sNode);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "Node.json").string(), result);
 

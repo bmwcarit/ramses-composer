@@ -65,7 +65,7 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
 	QObject::connect(cancelButton, &QPushButton::clicked, this, &PreferencesView::close);
 	auto saveButton{new QPushButton{"Save", buttonBox}};
-	saveButton->setDisabled(true);
+	saveButton->setDisabled(raco::utils::u8path(RaCoPreferences::instance().userProjectsDirectory.toStdString()).existsDirectory());
 	QObject::connect(this, &PreferencesView::dirtyChanged, saveButton, &QPushButton::setEnabled);
 	QObject::connect(saveButton, &QPushButton::clicked, this, &PreferencesView::save);
 	buttonBox->addButton(cancelButton, QDialogButtonBox::RejectRole);
@@ -74,15 +74,33 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 }
 
 void PreferencesView::save() {
-	if (raco::utils::u8path(userProjectEdit_->text().toStdString()).existsDirectory()) {
-			RaCoPreferences::instance().userProjectsDirectory = userProjectEdit_->text();
-	}
+	auto newUserProjectPath = raco::utils::u8path(userProjectEdit_->text().toStdString());
+	auto newUserProjectPathString = QString::fromStdString(newUserProjectPath.string());
+
+	if (!newUserProjectPath.existsDirectory()) {
+		if(QMessageBox::question(
+			this, "User Projects Directory does not exist",
+				QString("The user projects directory '") + newUserProjectPathString + "' does not exist. Choose OK to create the directory or press cancel to not save the preferences.",
+			QMessageBox::Ok, QMessageBox::Cancel) == QMessageBox::Ok) {
+
+			std::filesystem::create_directories(newUserProjectPath);
+			if (!newUserProjectPath.existsDirectory()) {
+				QMessageBox::critical(this, "Saving settings failed", "Cannot create directory: " + newUserProjectPathString);
+				return;
+			} 
+		} else {
+			return;
+		}		
+	} 
+
+	RaCoPreferences::instance().userProjectsDirectory = newUserProjectPathString;
+		
 	if (!RaCoPreferences::instance().save()) {
 		LOG_ERROR(raco::log_system::COMMON, "Saving settings failed: {}", raco::core::PathManager::preferenceFilePath().string());
-		QMessageBox::critical(this, "Saving settings failed", QString("Settings could not be saved. Check whether the application can write to its config directory.\nFile: ") 
-			+ QString::fromStdString(raco::core::PathManager::preferenceFilePath().string()));
+		QMessageBox::critical(this, "Saving settings failed", QString("Settings could not be saved. Check whether the application can write to its config directory.\nFile: ") + QString::fromStdString(raco::core::PathManager::preferenceFilePath().string()));
 	}
 	Q_EMIT dirtyChanged(false);
+	
 }
 
 bool PreferencesView::dirty() {

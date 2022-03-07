@@ -14,7 +14,7 @@
 namespace raco::user_types {
 
 	
-class CameraViewport : public ClassWithReflectedMembers {
+class CameraViewport : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"CameraViewport", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -24,10 +24,10 @@ public:
 		return true;
 	}
 
-	CameraViewport() : ClassWithReflectedMembers(getProperties()) {}
+	CameraViewport() : StructBase(getProperties()) {}
 
 	CameraViewport(const CameraViewport& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
-		: ClassWithReflectedMembers(getProperties()),
+		: StructBase(getProperties()),
 		  offsetX_(other.offsetX_),
 		  offsetY_(other.offsetY_),
 		  width_(other.width_),

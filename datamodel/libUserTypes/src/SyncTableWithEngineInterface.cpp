@@ -37,6 +37,9 @@ raco::data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
 		case EnginePrimitive::UInt32:
 			return UserObjectFactory::staticCreateProperty<int, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
 			break;
+		case EnginePrimitive::Int64:
+			return UserObjectFactory::staticCreateProperty<int64_t, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
 		case EnginePrimitive::Double:
 			return UserObjectFactory::staticCreateProperty<double, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
 			break;

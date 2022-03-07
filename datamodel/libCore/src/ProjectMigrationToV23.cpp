@@ -1906,6 +1906,39 @@ std::string userTypePropMap_V9 =
         }
     })___";
 
+std::string vectorTypesStructMap = 	R"___({
+        "Vec2f": {
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec2i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        },
+        "Vec3f": {
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "z": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec3i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i3": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        },
+        "Vec4f": {
+            "w": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "z": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec4i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i3": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i4": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        }
+    })___";
+
 
 }  // namespace
 
@@ -1957,6 +1990,18 @@ QJsonDocument migrateProjectToV23(const QJsonDocument& document) {
 			documentObject.insert(keys::USER_TYPE_PROP_MAP, QJsonDocument::fromJson(userTypePropMap_V22.c_str()).object());
 			documentObject.insert(keys::STRUCT_PROP_MAP, QJsonDocument::fromJson(structPropMap_V22.c_str()).object());
 		}
+	}
+
+    // Merge struct type maps for vector types into the struct types from the deserialized document:
+    if (documentVersion < 27) {
+        auto structMap = documentObject[keys::STRUCT_PROP_MAP].toVariant().toMap();
+
+        auto vecStructMap = QJsonDocument::fromJson(vectorTypesStructMap.c_str()).toVariant().toMap();
+		for (auto [name, map] : vecStructMap.toStdMap()) {
+			structMap[name] = map;
+        }
+
+		documentObject.insert(keys::STRUCT_PROP_MAP, QJsonValue::fromVariant(structMap));
 	}
 
 	QJsonDocument newDocument{documentObject};

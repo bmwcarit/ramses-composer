@@ -89,8 +89,11 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	auto cutShortcut = new QShortcut(QKeySequence::Cut, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(cutShortcut, &QShortcut::activated, this, &ObjectTreeView::cut);
-	auto deleteShortcut = new QShortcut(QKeySequence::Delete, this, nullptr, nullptr, Qt::WidgetShortcut);
+	auto deleteShortcut = new QShortcut({"Del"}, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(deleteShortcut, &QShortcut::activated, this, &ObjectTreeView::shortcutDelete);
+
+	auto duplicateShortcut = new QShortcut({"Ctrl+D"}, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
 }
 
 std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
@@ -168,6 +171,13 @@ void ObjectTreeView::cut() {
 	auto selectedIndices = getSelectedIndices(true);
 	if (!selectedIndices.isEmpty()) {
 		treeModel_->cutObjectsAtIndices(selectedIndices, false);
+	}
+}
+
+void raco::object_tree::view::ObjectTreeView::duplicateObjects() {
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.isEmpty() && treeModel_->canDuplicateAtIndices(selectedIndices)) {
+		treeModel_->duplicateObjectsAtIndices(selectedIndices);
 	}
 }
 
@@ -291,6 +301,13 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		actionPaste = treeViewMenu->addAction("Paste", [](){}, QKeySequence::Paste);
 		actionPaste->setEnabled(false);
 	}
+
+	auto actionDuplicate = treeViewMenu->addAction(
+		"Duplicate", [this, selectedItemIndices] {
+			treeModel_->duplicateObjectsAtIndices(selectedItemIndices);
+		},
+		QKeySequence("Ctrl+D"));
+	actionDuplicate->setEnabled(treeModel_->canDuplicateAtIndices(selectedItemIndices));
 
 	auto actionCut = treeViewMenu->addAction(
 		"Cut", [this, selectedItemIndices]() {

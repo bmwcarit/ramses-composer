@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg width="18" height="18" version="1.1" viewBox="0 0 4.7625 4.7625" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none" stroke="#fff">
+  <rect x="1.4552" y=".66146" width=".79375" height=".79375" stroke-width=".26458" style="paint-order:markers fill stroke"/>
+  <g stroke-width=".26458">
+   <rect x="2.7781" y="3.3073" width=".79375" height=".79375" style="paint-order:markers fill stroke"/>
+   <rect x="3.8365" y=".66146" width=".79375" height=".79375" style="paint-order:markers fill stroke"/>
+   <rect x=".13229" y="3.3073" width=".79375" height=".79375" style="paint-order:markers fill stroke"/>
+  </g>
+  <g stroke-width=".39688">
+   <path d="m0.52917 3.3073 1.1906-1.8521"/>
+   <path d="m1.7198 1.4552 1.4552 1.8521"/>
+   <path d="m0.92604 3.7042h1.8521"/>
+   <path d="m2.1167 1.0583h1.8521"/>
+   <path d="m3.175 3.3073 1.0583-1.8521"/>
+  </g>
+ </g>
+</svg>

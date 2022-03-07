@@ -47,7 +47,8 @@ rlogic::RamsesLogicVersion getLogicEngineVersion();
 std::string getRamsesVersionString();
 std::string getLogicEngineVersionString();
 
-void enableLogicLoggerOutputToStdout(bool toStdOut);
-void setRamsesAndLogicConsoleLogLevel(spdlog::level::level_enum level);
+void installLogicLogHandler();
+void setRamsesLogLevel(spdlog::level::level_enum level);
+void setLogicLogLevel(spdlog::level::level_enum level);
 
 };	// namespace raco::ramses_base

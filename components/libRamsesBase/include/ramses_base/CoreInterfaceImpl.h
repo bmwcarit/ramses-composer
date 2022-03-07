@@ -23,6 +23,7 @@ public:
 	bool parseLuaScriptModule(const std::string& luaScriptModule, std::string& outError) override;
 	bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) override;
 	const std::map<int, std::string>& enumerationDescription(raco::core::EngineEnumeration type) const override;
+	std::string luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const override;
 
 private:
 	BaseEngineBackend* backend_;

@@ -78,7 +78,7 @@ URIEditor::URIEditor(PropertyBrowserItem* item, QWidget* parent) : StringEditor(
 	});
 	layout()->addWidget(loadFileButton);
 
-	editButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::icon(raco::style::Pixmap::openInNew, this), "", this);
+	editButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::instance().openInNew, "", this);
 	editButton_->setMaximumWidth(raco::common_widgets::PropertyBrowserButton::MAXIMUM_WIDTH_PX + 5);
 	editButton_->setEnabled(fileExists());
 	connect(editButton_, &QPushButton::clicked, [this]() {

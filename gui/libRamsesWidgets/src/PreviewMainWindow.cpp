@@ -64,7 +64,7 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 
 	// Size mode tool button
 	{
-		auto* sizeMenu = new QMenu{this};
+		auto* sizeMenu = new QMenu{ui_->toolBar};
 		sizeMenu->addAction(ui_->actionSetSizeModeOff);
 		sizeMenu->addAction(ui_->actionSetSizeModeVerticalFit);
 		sizeMenu->addAction(ui_->actionSetSizeModeHorizontalFit);
@@ -80,7 +80,7 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		connect(ui_->actionSetSizeModeHorizontalFit, &QAction::triggered, scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingHorizontalFit);
 		connect(ui_->actionSetSizeModeBestFit, &QAction::triggered, scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingBestFit);
 		connect(ui_->actionSetSizeModeOriginalFit, &QAction::triggered, scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingOriginalFit);
-		auto* sizeMenuButton = new QToolButton{this};
+		auto* sizeMenuButton = new QToolButton{ui_->toolBar};
 		sizeMenuButton->setMenu(sizeMenu);
 		sizeMenuButton->setPopupMode(QToolButton::InstantPopup);
 		connect(scrollAreaWidget_, &PreviewScrollAreaWidget::autoSizingChanged, [this, sizeMenuButton](PreviewScrollAreaWidget::AutoSizing mode) {
@@ -111,14 +111,14 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 	}
 	// Filtering mode tool button
 	{
-		auto* filteringMenu = new QMenu{this};
+		auto* filteringMenu = new QMenu{ui_->toolBar};
 		filteringMenu->addAction(ui_->actionSetFilteringModeNearestNeighbor);
 		filteringMenu->addAction(ui_->actionSetFilteringModeLinear);
 		ui_->actionSetFilteringModeNearestNeighbor->setCheckable(true);
 		ui_->actionSetFilteringModeNearestNeighbor->setChecked(true);
 
 
-		auto* filteringMenuButton = new QToolButton{this};
+		auto* filteringMenuButton = new QToolButton{ui_->toolBar};
 		filteringMenuButton->setMenu(filteringMenu);
 		filteringMenuButton->setPopupMode(QToolButton::InstantPopup);
 
@@ -145,7 +145,7 @@ PreviewMainWindow::~PreviewMainWindow() {
 	delete previewWidget_;
 }
 
-void PreviewMainWindow::displayScene(ramses::sceneId_t sceneId, data_storage::Vec4f const& backgroundColor) {
+void PreviewMainWindow::displayScene(ramses::sceneId_t sceneId, core::Vec4f const& backgroundColor) {
 	previewWidget_->setBackgroundColor(backgroundColor);
 	if (sceneId != previewWidget_->getSceneId()) {
 		sceneIdLabel_->setText(QString{"scene id: %1"}.arg(sceneId.getValue()));

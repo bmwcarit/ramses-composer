@@ -672,18 +672,14 @@ end
 		[this, node, lua]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_TRUE(project.links()[0]->isValid());
-			auto nodeRotType = ValueHandle{node, {"rotation"}}.type();
-			auto luaVecType = ValueHandle{lua, {"luaOutputs", "vec"}}.type();
-			ASSERT_EQ(nodeRotType, raco::core::PrimitiveType::Vec3f);
-			ASSERT_EQ(luaVecType, raco::core::PrimitiveType::Vec4f);
+			ASSERT_TRUE(ValueHandle(node, {"rotation"}).isVec3f());
+			ASSERT_TRUE(ValueHandle(lua, {"luaOutputs", "vec"}).isVec4f());
 		},
 		[this, node, lua]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_TRUE(project.links()[0]->isValid());
-			auto nodeRotType = ValueHandle{node, {"rotation"}}.type();
-			auto luaVecType = ValueHandle{lua, {"luaOutputs", "vec"}}.type();
-			ASSERT_EQ(nodeRotType, raco::core::PrimitiveType::Vec3f);
-			ASSERT_EQ(luaVecType, raco::core::PrimitiveType::Vec3f);
+			ASSERT_TRUE(ValueHandle(node, {"rotation"}).isVec3f());
+			ASSERT_TRUE(ValueHandle(lua, {"luaOutputs", "vec"}).isVec3f());
 		});
 }
 

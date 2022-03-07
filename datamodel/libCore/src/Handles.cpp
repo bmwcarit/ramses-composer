@@ -63,6 +63,11 @@ int ValueHandle::as<int>() const {
 	return asInt();
 }
 
+template <>
+int64_t ValueHandle::as<int64_t>() const {
+	return asInt64();
+}
+
 template<>
 float ValueHandle::as<float>() const {
 	return static_cast<float>(asDouble());
@@ -88,6 +93,11 @@ int ValueHandle::asInt() const {
 	return v->asInt();
 }
 
+int64_t ValueHandle::asInt64() const {
+	ValueBase* v = valueRef();
+	return v->asInt64();
+}
+
 double ValueHandle::asDouble() const {
 	ValueBase* v = valueRef();
 	return v->asDouble();
@@ -105,32 +115,48 @@ SEditorObject ValueHandle::asRef() const {
 
 const Vec2f& ValueHandle::asVec2f() const {
 	ValueBase* v = valueRef();
-	return v->asVec2f();
+	return dynamic_cast<const Vec2f&>(v->asStruct());
 }
 
 const Vec3f& ValueHandle::asVec3f() const {
 	ValueBase* v = valueRef();
-	return v->asVec3f();
+	return dynamic_cast<const Vec3f&>(v->asStruct());
 }
 
 const Vec4f& ValueHandle::asVec4f() const {
 	ValueBase* v = valueRef();
-	return v->asVec4f();
+	return dynamic_cast<const Vec4f&>(v->asStruct());
 }
 
 const Vec2i& ValueHandle::asVec2i() const {
 	ValueBase* v = valueRef();
-	return v->asVec2i();
+	return dynamic_cast<const Vec2i&>(v->asStruct());
 }
 
 const Vec3i& ValueHandle::asVec3i() const {
 	ValueBase* v = valueRef();
-	return v->asVec3i();
+	return dynamic_cast<const Vec3i&>(v->asStruct());
 }
 
 const Vec4i& ValueHandle::asVec4i() const {
 	ValueBase* v = valueRef();
-	return v->asVec4i();
+	return dynamic_cast<const Vec4i&>(v->asStruct());
+}
+
+bool ValueHandle::isVec3f() const {
+	ValueBase* v = valueRef();
+	if (v->type() == PrimitiveType::Struct) {
+		return &v->asStruct().getTypeDescription() == &Vec3f::typeDescription;
+	}
+	return false;
+}
+
+bool ValueHandle::isVec4f() const {
+	ValueBase* v = valueRef();
+	if (v->type() == PrimitiveType::Struct) {
+		return &v->asStruct().getTypeDescription() == &Vec4f::typeDescription;
+	}
+	return false;
 }
 
 size_t ValueHandle::size() const {

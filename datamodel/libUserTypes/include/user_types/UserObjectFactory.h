@@ -55,6 +55,7 @@ public:
 
 		Property<bool, EngineTypeAnnotation>,
 		Property<int, EngineTypeAnnotation>,
+		Property<int64_t, EngineTypeAnnotation>,
 		Property<double, EngineTypeAnnotation>,
 		Property<std::string, EngineTypeAnnotation>,
 		Property<SEditorObject, EngineTypeAnnotation>,
@@ -71,6 +72,7 @@ public:
 
 		Property<bool, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<int, EngineTypeAnnotation, LinkStartAnnotation>,
+		Property<int64_t, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<double, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<std::string, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<SEditorObject, EngineTypeAnnotation, LinkStartAnnotation>,
@@ -87,6 +89,7 @@ public:
 
 		Property<bool, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<int, EngineTypeAnnotation, LinkEndAnnotation>,
+		Property<int64_t, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<double, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<std::string, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<SEditorObject, EngineTypeAnnotation, LinkEndAnnotation>,

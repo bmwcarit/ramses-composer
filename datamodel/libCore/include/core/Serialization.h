@@ -10,8 +10,8 @@
 #pragma once
 
 #include "core/CoreAnnotations.h"
-#include "data_storage/BasicAnnotations.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicAnnotations.h"
+#include "core/BasicTypes.h"
 #include "data_storage/Value.h"
 
 #include <QJsonArray>
@@ -127,6 +127,8 @@ ObjectsDeserialization deserializeObjects(const std::string& json);
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& jsonDocument, const std::string& filename);
 
 std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMap();
+std::map<std::string, std::map<std::string, std::string>> makeStructPropertyMap();
+std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePropertyMap(const QVariant& container);
 
 ProjectDeserializationInfoIR deserializeProjectToIR(const QJsonDocument& document, const std::string& filename);
 

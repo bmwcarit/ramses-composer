@@ -30,6 +30,7 @@ public:
 
 	bool canCopyAtIndices(const QModelIndexList& indices) const override;
 	bool canDeleteAtIndices(const QModelIndexList& indices) const override;
+	bool canDuplicateAtIndices(const QModelIndexList& indices) const override;
 
 	bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const override;
 	bool canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef = false) const override;
@@ -39,6 +40,7 @@ public Q_SLOTS:
 	void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) override;
 	void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut) override;
 	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get()) override;
+	std::vector<core::SEditorObject> duplicateObjectsAtIndices(const QModelIndexList& indices) override;
 
 protected:
 	void setNodeExternalProjectInfo(ObjectTreeNode* node) const override;

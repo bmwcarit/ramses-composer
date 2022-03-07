@@ -130,11 +130,16 @@ public:
 	StructProxy() : DynamicGenericStruct() {}
 
 	StructProxy(const StructProxy& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) {
-
+		for (size_t i = 0; i < other.dynamicProperties_.size(); i++) {
+			addProperty(other.name(i), other.get(i)->clone(translateRef), -1);
+		}
 	}
 
 	StructProxy& operator=(const StructProxy& other) {
-		dynamicProperties_ = other.dynamicProperties_;
+		removeAllProperties();
+		for (size_t i = 0; i < other.dynamicProperties_.size(); i++) {
+			addProperty(other.name(i), other.get(i)->clone(nullptr), -1);
+		}
 		return *this;
 	}
 
@@ -144,6 +149,20 @@ public:
 		}
 	}
 };
+
+extern const char vec2fTypeName[];
+using Vec2f = StructProxy<vec2fTypeName>;
+extern const char vec3fTypeName[];
+using Vec3f = StructProxy<vec3fTypeName>;
+extern const char vec4fTypeName[];
+using Vec4f = StructProxy<vec4fTypeName>;
+
+extern const char vec2iTypeName[];
+using Vec2i = StructProxy<vec2iTypeName>;
+extern const char vec3iTypeName[];
+using Vec3i = StructProxy<vec3iTypeName>;
+extern const char vec4iTypeName[];
+using Vec4i = StructProxy<vec4iTypeName>;
 
 extern const char blendmodeOptionsTypeName[];
 using BlendOptions = StructProxy<blendmodeOptionsTypeName>;

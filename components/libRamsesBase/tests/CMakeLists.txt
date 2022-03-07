@@ -13,6 +13,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 set(TEST_SOURCES
     AnimationAdaptor_test.cpp
     AnimationChannelAdaptor_test.cpp
+    CubeMapAdaptor_test.cpp
     RamsesBaseFixture.h
     LinkAdaptor_test.cpp
     LuaScriptAdaptor_test.cpp
@@ -43,7 +44,11 @@ raco_package_add_headless_test(
 )
 raco_package_add_test_resouces(
     libRamsesBase_test "${CMAKE_SOURCE_DIR}/resources"
+    images/blue_1024.png
     images/DuckCM.png
+    images/green_512.png
+    images/red_128.png
+    images/yellow_256.png
     shaders/basic.frag
     shaders/basic.vert
     shaders/simple_texture.frag

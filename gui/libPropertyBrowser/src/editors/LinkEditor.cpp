@@ -21,6 +21,7 @@
 #include <QDialog>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QLabel>
 #include <QMenu>
 #include <QMimeData>
 #include <QSizeGrip>
@@ -45,19 +46,22 @@ public:
 			currentLink_.setReadOnly(true);
 			currentLink_.setText(item->linkText().c_str());
 			deleteButton_.setFlat(true);
-			deleteButton_.setIcon(Icons::icon(Pixmap::trash));
+			deleteButton_.setIcon(Icons::instance().remove);
 		} else {
 			currentLink_.setVisible(false);
 			deleteButton_.setVisible(false);
 		}
 
 		acceptButton_.setFlat(true);
-		acceptButton_.setIcon(Icons::icon(Pixmap::done));
+		acceptButton_.setIcon(Icons::instance().done);
 		closeButton_.setFlat(true);
-		closeButton_.setIcon(Icons::icon(Pixmap::close));
+		closeButton_.setIcon(Icons::instance().close);
 
 		frame_.setLineWidth(1);
 		frame_.setFrameStyle(QFrame::Panel | QFrame::Raised);
+
+		dataTypeLabel_.setAlignment(Qt::AlignCenter);
+		dataTypeLabel_.setText(QString::fromStdString(item->luaTypeName()));
 
 		outerLayout_.setContentsMargins(0, 0, 0, 0);
 		outerLayout_.addWidget(&frame_, 0, 0, 1, 1);
@@ -66,6 +70,7 @@ public:
 		layout_.addWidget(&search_, 1, 0, 1, 3);
 		layout_.addWidget(&list_, 2, 0, 1, 3);
 		layout_.addWidget(&acceptButton_, 3, 0);
+		layout_.addWidget(&dataTypeLabel_, 3, 1);
 		layout_.addWidget(&closeButton_, 3, 2);
 		layout_.setColumnStretch(1, 1);
 
@@ -140,6 +145,7 @@ private:
 	LinkStartSearchView list_;
 	QPushButton acceptButton_{this};
 	QPushButton closeButton_{this};
+	QLabel dataTypeLabel_{this};
 };
 
 LinkEditor::LinkEditor(
@@ -188,25 +194,25 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 	linkButton_->setDisabled(linkstate.readonly || !linkstate.validLinkTarget);
 
 	if (linkstate.current == CurrentLinkState::PARENT_LINKED) {
-		linkButton_->setIcon(Icons::icon(Pixmap::parentIsLinked));
+		linkButton_->setIcon(Icons::instance().parentIsLinked);
 	} else {
 		if (linkstate.validLinkTarget) {
 			switch (linkstate.current) {
 				case CurrentLinkState::NOT_LINKED:
-					linkButton_->setIcon(Icons::icon(Pixmap::linkable));
+					linkButton_->setIcon(Icons::instance().linkable);
 					break;
 
 				case CurrentLinkState::LINKED:
-					linkButton_->setIcon(Icons::icon(Pixmap::linked));
+					linkButton_->setIcon(Icons::instance().linked);
 					break;
 
 				case CurrentLinkState::BROKEN:
-					linkButton_->setIcon(Icons::icon(Pixmap::linkBroken));
+					linkButton_->setIcon(Icons::instance().linkBroken);
 					break;
 
 			}
 		} else {
-			linkButton_->setIcon(Icons::icon(Pixmap::unlinkable));
+			linkButton_->setIcon(Icons::instance().unlinkable);
 		}
 	}
 }

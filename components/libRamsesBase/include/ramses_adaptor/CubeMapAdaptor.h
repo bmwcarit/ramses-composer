@@ -30,8 +30,10 @@ private:
 	raco::ramses_base::RamsesTextureCube fallbackCube();
 	std::string createDefaultTextureDataName();
 
-	std::array<components::Subscription, 6> subscriptions_;
+	std::array<components::Subscription, 8> subscriptions_;
 	raco::ramses_base::RamsesTextureCube textureData_;
+
+	std::map<std::string, std::vector<unsigned char>> generateMipmapData(core::Errors* errors, int level, int& width, int& height);
 };
 
 };  // namespace raco::ramses_adaptor

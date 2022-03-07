@@ -18,7 +18,7 @@
 
 namespace raco::user_types {
 
-class BlendOptions : public ClassWithReflectedMembers {
+class BlendOptions : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"BlendOptions", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -28,9 +28,9 @@ public:
 		return true;
 	}
 
-	BlendOptions() : ClassWithReflectedMembers(getProperties()) {}
+	BlendOptions() : StructBase(getProperties()) {}
 
-	BlendOptions(const BlendOptions& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()),
+	BlendOptions(const BlendOptions& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : StructBase(getProperties()),
 		blendOperationColor_(other.blendOperationColor_),
 		blendOperationAlpha_(other.blendOperationAlpha_),
 		blendFactorSrcColor_(other.blendFactorSrcColor_),

@@ -31,8 +31,9 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 	availableTreesComboBox_ = new QComboBox(treeDockContent_);
 	availableTreesComboBox_->setVisible(false);
 	treeDockLayout_->addWidget(availableTreesComboBox_);
-	treeDockSettingsLayout_ = new raco::common_widgets::NoContentMarginsLayout<QVBoxLayout>(treeDockContent_);
-	treeDockLayout_->addLayout(treeDockSettingsLayout_);
+	auto treeDockSettingsWidget = new QWidget(treeDockContent_);
+	treeDockSettingsLayout_ = new raco::common_widgets::NoContentMarginsLayout<QVBoxLayout>(treeDockSettingsWidget);
+	treeDockLayout_->addWidget(treeDockSettingsWidget);
 
 	treeViewStack_ = new QStackedWidget(treeDockContent_);
 	treeDockLayout_->addWidget(treeViewStack_);

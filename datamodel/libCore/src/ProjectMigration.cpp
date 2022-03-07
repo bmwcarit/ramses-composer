@@ -140,10 +140,10 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 
 			if (instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera") {
 				auto& oldviewportprop = *dynObj->get("viewport");
-				dynObj->addProperty("viewPortOffsetX", new data_storage::Property<int, RangeAnnotation<int>, data_storage::DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asVec4i().i1_.asInt(), {-7680, 7680}, {"Viewport Offset X"}, {}}, -1);
-				dynObj->addProperty("viewPortOffsetY", new data_storage::Property<int, RangeAnnotation<int>, data_storage::DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asVec4i().i2_.asInt(), {-7680, 7680}, {"Viewport Offset Y"}, {}}, -1);
-				dynObj->addProperty("viewPortWidth", new data_storage::Property<int, RangeAnnotation<int>, data_storage::DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asVec4i().i3_.asInt(), {0, 7680}, {"Viewport Width"}, {}}, -1);
-				dynObj->addProperty("viewPortHeight", new data_storage::Property<int, RangeAnnotation<int>, data_storage::DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asVec4i().i4_.asInt(), {0, 7680}, {"Viewport Height"}, {}}, -1);
+				dynObj->addProperty("viewPortOffsetX", new data_storage::Property<int, RangeAnnotation<int>, DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asStruct().get("i1")->asInt(), {-7680, 7680}, {"Viewport Offset X"}, {}}, -1);
+				dynObj->addProperty("viewPortOffsetY", new data_storage::Property<int, RangeAnnotation<int>, DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asStruct().get("i2")->asInt(), {-7680, 7680}, {"Viewport Offset Y"}, {}}, -1);
+				dynObj->addProperty("viewPortWidth", new data_storage::Property<int, RangeAnnotation<int>, DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asStruct().get("i3")->asInt(), {0, 7680}, {"Viewport Width"}, {}}, -1);
+				dynObj->addProperty("viewPortHeight", new data_storage::Property<int, RangeAnnotation<int>, DisplayNameAnnotation, core::LinkEndAnnotation>{oldviewportprop.asStruct().get("i4")->asInt(), {0, 7680}, {"Viewport Height"}, {}}, -1);
 				dynObj->removeProperty("viewport");
 			}
 		}
@@ -422,14 +422,14 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 				continue;
 			}
 
-			auto& scaleVec = dynObj->get("scale")->asVec3f();
-			auto& rotationVec = dynObj->get("rotation")->asVec3f();
+			auto& scaleVec = dynObj->get("scale")->asStruct();
+			auto& rotationVec = dynObj->get("rotation")->asStruct();
 			auto objID = dynObj->objectID();
 
 			constexpr auto EPSILON = 0.0001;
 
-			auto rotationNotZero = rotationVec.x.asDouble() > EPSILON || rotationVec.y.asDouble() > EPSILON || rotationVec.z.asDouble() > EPSILON;
-			auto scaleNotUniform = std::abs(scaleVec.x.asDouble() - scaleVec.y.asDouble()) > EPSILON || std::abs(scaleVec.x.asDouble() - scaleVec.z.asDouble()) > EPSILON;
+			auto rotationNotZero = rotationVec.get("x")->asDouble() > EPSILON || rotationVec.get("y")->asDouble() > EPSILON || rotationVec.get("z")->asDouble() > EPSILON;
+			auto scaleNotUniform = std::abs(scaleVec.get("x")->asDouble() - scaleVec.get("y")->asDouble()) > EPSILON || std::abs(scaleVec.get("x")->asDouble() - scaleVec.get("z")->asDouble()) > EPSILON;
 			auto rotationLinked = objectsWithAffectedProperties[objID][0];
 			auto scaleLinked = objectsWithAffectedProperties[objID][1];
 
@@ -479,13 +479,19 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 
 			if (instanceType == "ProjectSettings") {
 				auto bgColor3 = dynObj->extractProperty("backgroundColor");
-				auto bgColor3Vec = bgColor3->asVec3f();
-				Vec4f bgColor4Vec;
-				bgColor4Vec.x = bgColor3Vec.x;
-				bgColor4Vec.y = bgColor3Vec.y;
-				bgColor4Vec.z = bgColor3Vec.z;
-				bgColor4Vec.w = 1.0;
-				dynObj->addProperty("backgroundColor", new Property<Vec4f, DisplayNameAnnotation>{bgColor4Vec, {"Display Background Color"}}, -1);
+				auto& bgColor3Vec = bgColor3->asStruct();
+				auto bgColor4Vec = new Property<Vec4f, DisplayNameAnnotation>{{}, {"Display Background Color"}};
+				if (bgColor3Vec.hasProperty("x")) {
+					(*bgColor4Vec)->addProperty("x", bgColor3Vec.get("x")->clone(nullptr), -1);
+				}
+				if (bgColor3Vec.hasProperty("y")) {
+					(*bgColor4Vec)->addProperty("y", bgColor3Vec.get("y")->clone(nullptr), -1);
+				}
+				if (bgColor3Vec.hasProperty("z")) {
+					(*bgColor4Vec)->addProperty("z", bgColor3Vec.get("z")->clone(nullptr), -1);
+				}
+				(*bgColor4Vec)->addProperty("w", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>>{{1.0}, DisplayNameAnnotation{"W"}, RangeAnnotation<double>(0.0, 1.0)}, -1);
+				dynObj->addProperty("backgroundColor", bgColor4Vec, -1);
 			}
 		}
 	}

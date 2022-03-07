@@ -101,6 +101,68 @@ TEST_F(PrefabTest, check_id_nesting) {
 	EXPECT_EQ(node_2->objectID(), EditorObject::XorObjectIDs(node->objectID(), inst_3->objectID()));
 }
 
+TEST_F(PrefabTest, check_id_copy_paste) {
+	auto prefab = create<Prefab>("prefab");
+	auto lua = create_lua("lua", "scripts/types-scalar.lua", prefab);
+
+	auto inst = create_prefabInstance("inst", prefab);
+	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+
+	commandInterface.set({lua, {"luaInputs", "float"}}, 2.0);
+	commandInterface.set({inst_lua, {"luaInputs", "float"}}, 3.0);
+
+	auto pasted = commandInterface.pasteObjects(commandInterface.copyObjects({inst}));
+	auto inst_2 = raco::select<PrefabInstance>(pasted);
+	auto inst_2_lua = inst_2->children_->get(0)->asRef();
+	ASSERT_TRUE(inst_2 != nullptr);
+	ASSERT_TRUE(inst_2_lua != nullptr);
+
+	EXPECT_TRUE(ValueHandle(inst_2_lua, {"luaInputs"}).hasProperty("float"));
+	EXPECT_EQ(ValueHandle(inst_2_lua, {"luaInputs"}).get("float").asDouble(), 3.0);
+	EXPECT_EQ(inst_2_lua->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_2->objectID()));
+}
+
+TEST_F(PrefabTest, check_id_copy_paste_nesting) {
+	//           prefab_2  inst_2
+	//  prefab   inst_1    inst_3
+	//  lua      lua_1     lua_2
+
+	auto prefab = create<Prefab>("prefab");
+	auto lua = create_lua("lua", "scripts/types-scalar.lua", prefab);
+	commandInterface.set({lua, {"luaInputs", "float"}}, 2.0);
+	
+	auto prefab_2 = create<Prefab>("prefab2");
+	auto inst_1 = create_prefabInstance("inst", prefab, prefab_2);
+
+	EXPECT_EQ(inst_1->children_->size(), 1);
+	auto lua_1 = inst_1->children_->asVector<SEditorObject>()[0];
+	commandInterface.set({lua_1, {"luaInputs", "float"}}, 3.0);
+
+	auto inst_2 = create_prefabInstance("inst", prefab_2);
+	EXPECT_EQ(inst_2->children_->size(), 1);
+	auto inst_3 = inst_2->children_->asVector<SEditorObject>()[0];
+	EXPECT_EQ(inst_3->children_->size(), 1);
+	auto lua_2 = inst_3->children_->asVector<SEditorObject>()[0];
+	commandInterface.set({lua_2, {"luaInputs", "float"}}, 4.0);
+
+	EXPECT_EQ(lua_1->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_1->objectID()));
+	EXPECT_EQ(inst_3->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2->objectID()));
+	EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua_1->objectID(), inst_2->objectID()));
+	EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_3->objectID()));
+
+	auto pasted = commandInterface.pasteObjects(commandInterface.copyObjects({inst_2}));
+	auto inst_2_copy = raco::select<PrefabInstance>(pasted);
+	EXPECT_EQ(inst_2_copy->children_->size(), 1);
+	auto inst_3_copy = inst_2_copy->children_->asVector<SEditorObject>()[0];
+	EXPECT_EQ(inst_3_copy->children_->size(), 1);
+	auto lua_2_copy = inst_3_copy->children_->asVector<SEditorObject>()[0];
+
+	EXPECT_EQ(ValueHandle(lua_2_copy, {"luaInputs"}).get("float").asDouble(), 4.0);
+	EXPECT_EQ(inst_3_copy->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2_copy->objectID()));
+	EXPECT_EQ(lua_2_copy->objectID(), EditorObject::XorObjectIDs(lua_1->objectID(), inst_2_copy->objectID()));
+	EXPECT_EQ(lua_2_copy->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_3_copy->objectID()));
+}
+
 TEST_F(PrefabTest, move_node_in) {
 	auto prefab = create<Prefab>("prefab");
 	auto inst = create<PrefabInstance>("inst");
@@ -654,6 +716,19 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_remove_module) {
 	ASSERT_NE(inst_lua, nullptr);
 	ASSERT_TRUE(commandInterface.errors().hasError({lua}));
 	ASSERT_TRUE(commandInterface.errors().hasError({inst_lua}));
+}
+
+TEST_F(PrefabTest, duplication_gets_propagated) {
+	auto prefab = create<Prefab>("prefab");
+	auto inst = create<PrefabInstance>("inst");
+	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+
+	auto node = create<Node>("node", prefab);
+	commandInterface.moveScenegraphChildren({node}, prefab);
+
+	commandInterface.duplicateObjects({node});
+
+	ASSERT_EQ(inst->children_->asVector<SEditorObject>().size(), 2);
 }
 
 TEST_F(PrefabTest, update_private_material_ref_change_with_overlapping_property_names) {

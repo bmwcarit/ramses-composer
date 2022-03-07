@@ -43,6 +43,7 @@ public:
 	// Basic property changes
 	void set(ValueHandle const& handle, bool const& value);
 	void set(ValueHandle const& handle, int const& value);
+	void set(ValueHandle const& handle, int64_t const& value);
 	void set(ValueHandle const& handle, double const& value);
 	void set(ValueHandle const& handle, std::string const& value);
 	void set(ValueHandle const& handle, std::vector<std::string> const& value);
@@ -93,6 +94,14 @@ public:
 	 * @return std::vector of all top level [EditorObject]'s which where created by the paste operation.
 	 */
 	std::vector<SEditorObject> pasteObjects(const std::string& val, SEditorObject const& target = {}, bool pasteAsExtref = false, bool* outSuccess = nullptr, std::string* outError = nullptr);
+
+	/**
+	 * Creates a duplicate of the #objects in the scene.
+	 * The duplicated objects will essentially copy & paste the #objects on the same scenegraph hierarchy level.
+	 * @param objects vector of objects to be duplicated.
+	 * @return std::vector of all successfully duplicated objects
+	 */
+	std::vector<SEditorObject> duplicateObjects(const std::vector<SEditorObject>& objects);
 
 	// Link operations
 	SLink addLink(const ValueHandle& start, const ValueHandle& end);

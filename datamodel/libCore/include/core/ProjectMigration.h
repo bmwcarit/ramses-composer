@@ -52,8 +52,15 @@ namespace raco::serialization {
  * 22: Added support for setting default resource folders per project
  * 23: Serialization changes to support new-style migration code
  * 24: Deterministics object IDs for PrefabInstance child objects
+ * 25: Added mipmap flag to cubemaps
+ * 26: Added support for ramses-logic INT64 type
+ * 27: Removed vector PrimitiveTypes and made them normal structs. 
+ *     Vector types are now included in the serialized struct type map.
+ * 28: Added zipability functionality to projects.
+ *     Added "Save As Zipped File" option to Project Settings.
+ * 29: CubeMap: added custom mipmap functionality (+ 18 URIs, 1 bool, 1 int property)
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 24;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 29;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR);
 

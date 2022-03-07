@@ -52,9 +52,6 @@ private:
 		std::vector<float> data;
 	};
 
-	constexpr static inline auto MAX_NUMBER_TEXTURECOORDS = 2;
-	constexpr static inline auto MAX_NUMBER_COLORS = 2;
-
 	void loadPrimitiveData(const tinygltf::Primitive& primitive, const tinygltf::Model& scene, std::vector<float>& vertexBuffer, std::vector<float>& normalBuffer, std::vector<float>& tangentBuffer, std::vector<float>& bitangentBuffer,
 		std::vector<std::vector<float>>& uvBuffers, std::vector<std::vector<float>>& colorBuffers, glm::dmat4* rootTrafoMatrix = nullptr);
 

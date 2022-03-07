@@ -39,7 +39,7 @@ RefEditor::RefEditor(
 	comboBox_->installEventFilter(new MouseWheelGuard());
 	layout->addWidget(comboBox_);
 
-	goToRefObjectButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::icon(raco::style::Pixmap::goTo, this), "", this);
+	goToRefObjectButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::instance().goTo, "", this);
 
 	QObject::connect(goToRefObjectButton_, &QPushButton::clicked, [this, item]() {
 		item->model()->Q_EMIT objectSelectionRequested(ref_->items().at(ref_->currentIndex()).second);

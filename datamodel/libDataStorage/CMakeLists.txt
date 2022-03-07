@@ -10,8 +10,6 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 add_library(libDataStorage
 	include/data_storage/AnnotationBase.h
-	include/data_storage/BasicAnnotations.h
-	include/data_storage/BasicTypes.h
 	include/data_storage/ReflectionInterface.h src/ReflectionInterface.cpp 
 	include/data_storage/Table.h src/Table.cpp 
 	include/data_storage/Value.h src/Value.cpp 

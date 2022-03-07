@@ -23,6 +23,34 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Issues
 -->
 
+## [0.13.0] Compressed project files, cubemap extensions, log view
+* **File version number has changed. Files saved with RaCo 0.13.0 cannot be opened by previous versions.**
+
+### Added
+* Added custom CubeMap mipmap support.
+* Added optional automatic zipping of project files.
+    * With automatic zipping enabled, projects will be saved as ZIP archives that still use the .rca file extension and contain the project JSON file.
+    * This option can be enabled/disabled in the Project Settings (disabled by default).
+* Added command line argument "--outlogfile" to headless Ramses Composer for changing the log file path.
+* New log view allows observing Ramses Composer log output within the application.
+* The ramses logic datatype INT64 is now supported.
+* Added object duplication feature via context menu or shortcut.
+
+### Changes
+* Removed upper limit for glTF mesh TEXCOORD and COLOR attributes.
+* Export dialog now displays Ramses Composer scene errors if any are present.
+* Ramses Logic log output now appears in Ramses Composer log files.
+* Ramses Composer now begins a new log file every time the application is launched.
+* The "Field of View" property in the perspective camera has been renamed to "Vert. Field of View".
+
+### Fixes
+* Fixed dropping of links from external reference to project local objects when loading a project.
+* Fixed crash when dragging around "Scene Id" property value.
+* Fixed problem with saving preferences if the entered directory does not exist.
+* Improved support for High DPI screens.
+* Fixed losing the property values of PrefabInstance interface scripts when pasting PrefabInstances.
+
+
 ## [0.12.0] Bug Fixes and Usability Improvements
 * **File version number has changed. Files saved with RaCo 0.12.0 cannot be opened by previous versions.**
 
@@ -35,8 +63,9 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * A new filtering options menu for the ramses preview widget now allows changing from nearest neighbor sampling to linear sampling.
 * Added a ramses-logic-viewer build to RaCo binary folder.
 * It is now possible to do simple calculations (like "1920/1080" as aspect ratio) directly in the number inputs of the property browser.
-    * Currently allowed operations: addition (+), substraction (-), multiplication (*), division (/), integer division (//), modulo (%), exponentiation (^) and changing precedence using parentheses.
+    * Currently allowed operations: addition (+), substraction (-), multiplication (*), division (/), modulo (%), exponentiation (^) and changing precedence using parentheses.
     * Results are calculated immediately and the mathematical expression is not stored.
+* The property browser now indicates lua datatypes with tooltips on property labels and with a label in the link editor popup.
 
 ### Changes
 * Update from ramses-logic 0.13.0 to ramses-logic 0.14.2

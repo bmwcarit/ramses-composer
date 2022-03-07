@@ -31,6 +31,13 @@ set_target_properties(glm PROPERTIES
     FOLDER third_party/glm
 )
 
+## zip
+add_subdirectory(zip/)
+set_target_properties(zip uninstall test_append.out test_entry.out test_extract.out test_permissions.out test_read.out test_write.out PROPERTIES
+    FOLDER third_party/zip
+)
+
+
 # Configure ramses-sdk build options
 set(ramses-sdk_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_IVI_TEST_APPS OFF CACHE BOOL "" FORCE)

@@ -245,6 +245,58 @@ public:
 	}
 };
 
+
+class ExtrefTestWithZips : public ExtrefTest {
+public:
+	std::string setupBase(const std::string &basePathName, std::function<void()> func, const std::string &baseProjectName = std::string("base")) {
+		RaCoApplication base{backend};
+		app = &base;
+		project = base.activeRaCoProject().project();
+		cmd = base.activeRaCoProject().commandInterface();
+
+		rename_project(baseProjectName);
+
+		func();
+
+		cmd->set({base.activeRaCoProject().project()->settings(), &raco::user_types::ProjectSettings::saveAsZip_}, true);		
+		base.activeRaCoProject().saveAs(basePathName.c_str());
+		return project->projectID();
+	}
+
+	std::string setupGeneric(std::function<void()> func) {
+		RaCoApplication app_{backend};
+		app = &app_;
+		project = app_.activeRaCoProject().project();
+		cmd = app_.activeRaCoProject().commandInterface();
+
+		func();
+		cmd->set({app_.activeRaCoProject().project()->settings(), &raco::user_types::ProjectSettings::saveAsZip_}, true);
+		return project->projectID();
+	}
+
+	std::string setupComposite(const std::string &basePathName, const std::string &compositePathName, const std::vector<std::string> &externalObjectNames,
+		std::function<void()> func, const std::string &projectName = std::string()) {
+		RaCoApplication app_{backend};
+		app = &app_;
+		project = app->activeRaCoProject().project();
+		cmd = app->activeRaCoProject().commandInterface();
+
+		rename_project(projectName);
+
+		pasteFromExt(basePathName, externalObjectNames, true);
+
+		func();
+
+		cmd->set({app_.activeRaCoProject().project()->settings(), &raco::user_types::ProjectSettings::saveAsZip_}, true);
+		if (!compositePathName.empty()) {
+			app->activeRaCoProject().saveAs(compositePathName.c_str());
+		}
+		return project->projectID();
+	}
+
+};
+
+
 TEST_F(ExtrefTest, normal_paste) {
 	auto basePathName{(test_path() / "base.rcp").string()};
 
@@ -403,7 +455,6 @@ TEST_F(ExtrefTest, extref_paste_fail_from_filecopy) {
 		ASSERT_TRUE(pasteFromExt(basePathName2, {"prefab"}, true));
 	});
 }
-
 
 TEST_F(ExtrefTest, extref_paste) {
 	auto basePathName{(test_path() / "base.rcp").string()};
@@ -2178,5 +2229,262 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
 		ASSERT_NE(lua, nullptr);
 		ASSERT_NE(module, nullptr);
 		ASSERT_FALSE(cmd->errors().hasError({lua}));
+	});
+}
+
+TEST_F(ExtrefTest, link_extref_to_local_reload) {
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
+
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+
+	setupBase(basePathName, [this, &scriptFile]() {
+		auto luaSource = create<LuaScript>("luaSource");
+
+		cmd->set({luaSource, {"uri"}}, scriptFile);
+	});
+
+	setupComposite(basePathName, compositePathName, {"luaSource"}, [this, &scriptFile]() {
+		auto luaSource = findExt("luaSource");
+
+		auto luaSink = create<LuaScript>("luaSink");
+		cmd->set({luaSink, {"uri"}}, scriptFile);
+		cmd->addLink({luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}});
+
+		EXPECT_EQ(project->links().size(), 1);
+	});
+
+	updateComposite(compositePathName, [this]() {
+		EXPECT_EQ(project->links().size(), 1);
+	});
+}
+
+TEST_F(ExtrefTest, link_extref_to_local_update_remove_source) {
+	auto basePathName{(test_path() / "base.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
+
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface()
+	IN.v = VEC3F
+	OUT.v = VEC3F
+end
+function run()
+end
+)");
+
+	setupBase(basePathName, [this, &scriptFile]() {
+		auto luaSource = create<LuaScript>("luaSource");
+
+		cmd->set({luaSource, {"uri"}}, scriptFile);
+	});
+
+	setupComposite(basePathName, compositePathName, {"luaSource"}, [this, &scriptFile]() {
+		auto luaSource = findExt("luaSource");
+
+		auto luaSink = create<LuaScript>("luaSink");
+		cmd->set({luaSink, {"uri"}}, scriptFile);
+		cmd->addLink({luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}});
+
+		EXPECT_EQ(project->links().size(), 1);
+	});
+
+	updateBase(basePathName, [this]() {
+		auto luaSource = find("luaSource");
+		cmd->deleteObjects({luaSource});
+	});
+
+	updateComposite(compositePathName, [this]() {
+		EXPECT_EQ(project->links().size(), 0);
+	});
+}
+
+TEST_F(ExtrefTestWithZips, filecopy_paste_fail_different_object) {
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto compositePathName{(test_path() / "composite.rcp").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+			auto prefab = create<Prefab>("prefab");
+			auto meshnode = create<MeshNode>("meshnode", prefab);
+		},
+		std::string("base"));
+
+	std::filesystem::copy(basePathName1, basePathName2);
+	updateBase(basePathName2, [this]() {
+		rename_project("copy");
+	});
+
+	setupGeneric([this, basePathName1, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"prefab"}, true));
+		ASSERT_FALSE(pasteFromExt(basePathName2, {"mesh"}, true));
+	});
+}
+
+TEST_F(ExtrefTestWithZips, filecopy_paste_fail_new_object) {
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+		},
+		std::string("base"));
+
+	std::filesystem::copy(basePathName1, basePathName2);
+	updateBase(basePathName2, [this]() {
+		auto material = create<Material>("material");
+		rename_project("copy");
+	});
+
+	setupGeneric([this, basePathName1, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"mesh"}, true));
+		ASSERT_FALSE(pasteFromExt(basePathName2, {"material"}, true));
+	});
+}
+
+TEST_F(ExtrefTestWithZips, filecopy_paste_fail_same_object) {
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+		},
+		std::string("base"));
+
+	std::filesystem::copy(basePathName1, basePathName2);
+	updateBase(basePathName2, [this]() {
+		rename_project("copy");
+	});
+
+	setupGeneric([this, basePathName1, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"mesh"}, true));
+		ASSERT_FALSE(pasteFromExt(basePathName2, {"mesh"}, true));
+	});
+}
+
+TEST_F(ExtrefTestWithZips, filecopy_update_fail_nested_same_object) {
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto midPathName((test_path() / "mid.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+		},
+		std::string("base"));
+
+	std::filesystem::copy(basePathName1, basePathName2);
+	updateBase(basePathName2, [this]() {
+		rename_project("copy");
+	});
+
+	setupBase(
+		midPathName, [this]() {
+			auto prefab = create<Prefab>("prefab");
+			auto meshnode = create<MeshNode>("prefab_child", prefab);
+		},
+		"mid");
+
+	setupBase(
+		compositePathName, [this, basePathName1, midPathName]() {
+			ASSERT_TRUE(pasteFromExt(basePathName1, {"mesh"}, true));
+			ASSERT_TRUE(pasteFromExt(midPathName, {"prefab"}, true));
+		},
+		"composite");
+
+	updateBase(midPathName, [this, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName2, {"mesh"}, true));
+
+		auto meshnode = find("prefab_child");
+		auto mesh = findExt("mesh");
+		cmd->set({meshnode, {"mesh"}}, mesh);
+	});
+
+	EXPECT_THROW(updateComposite(compositePathName, [this]() {}), raco::core::ExtrefError);
+}
+
+TEST_F(ExtrefTestWithZips, filecopy_update_fail_nested_different_object) {
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+	auto midPathName((test_path() / "mid.rcp").string());
+	auto compositePathName{(test_path() / "composite.rcp").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+			auto material = create<Material>("material");
+		},
+		std::string("base"));
+
+	std::filesystem::copy(basePathName1, basePathName2);
+	updateBase(basePathName2, [this]() {
+		rename_project("copy");
+	});
+
+	setupBase(
+		midPathName, [this]() {
+			auto prefab = create<Prefab>("prefab");
+			auto meshnode = create<MeshNode>("prefab_child", prefab);
+		},
+		"mid");
+
+	setupBase(
+		compositePathName, [this, basePathName1, midPathName]() {
+			ASSERT_TRUE(pasteFromExt(basePathName1, {"material"}, true));
+			ASSERT_TRUE(pasteFromExt(midPathName, {"prefab"}, true));
+		},
+		"composite");
+
+	updateBase(midPathName, [this, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName2, {"mesh"}, true));
+
+		auto meshnode = find("prefab_child");
+		auto mesh = findExt("mesh");
+		cmd->set({meshnode, {"mesh"}}, mesh);
+	});
+
+	EXPECT_THROW(updateComposite(compositePathName, [this]() {}), raco::core::ExtrefError);
+}
+
+TEST_F(ExtrefTestWithZips, extref_paste_fail_from_filecopy) {
+	auto basePathName1{(test_path() / "base1.rcp").string()};
+	auto basePathName2{(test_path() / "base2.rcp").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+		},
+		std::string("base"));
+
+	std::filesystem::copy(basePathName1, basePathName2);
+	updateBase(basePathName2, [this]() {
+		auto mesh = find("mesh");
+		auto prefab = create<Prefab>("prefab");
+		auto meshnode = create<MeshNode>("meshnode", prefab);
+		cmd->set({meshnode, {"mesh"}}, mesh);
+		auto material = create<Material>("material");
+	});
+
+	updateComposite(basePathName1, [this, basePathName2]() {
+		ASSERT_FALSE(pasteFromExt(basePathName2, {"mesh"}, true));
+		ASSERT_FALSE(pasteFromExt(basePathName2, {"material"}, true));
+		ASSERT_FALSE(pasteFromExt(basePathName2, {"prefab"}, true));
+	});
+
+	setupGeneric([this, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName2, {"mesh"}, true));
+		ASSERT_TRUE(pasteFromExt(basePathName2, {"material"}, true));
+		ASSERT_TRUE(pasteFromExt(basePathName2, {"prefab"}, true));
 	});
 }

@@ -19,7 +19,6 @@
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
 #include "property_browser/PropertySubtreeChildrenContainer.h"
-#include "property_browser/controls/ExpandButton.h"
 
 namespace raco::property_browser {
 class PropertyControl;
@@ -52,7 +51,7 @@ private:
 	PropertyBrowserItem* item_{nullptr};
 	PropertyBrowserModel* model_ {nullptr};
 	PropertyBrowserGridLayout layout_{nullptr};
-	QWidget* button_{nullptr};
+	QWidget* decorationWidget_{nullptr};
 	QLabel* label_{nullptr};
 	QWidget* propertyControl_{nullptr};
 	PropertySubtreeChildrenContainer* childrenContainer_{nullptr};

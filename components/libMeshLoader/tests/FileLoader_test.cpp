@@ -151,3 +151,34 @@ TEST_F(MeshLoaderTest, glTFWithTangentsAndBitangents) {
 	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_TANGENT), -1);
 	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_BITANGENT), -1);
 }
+
+
+TEST_F(MeshLoaderTest, glTFWithMultipleTexCoords) {
+	core::MeshDescriptor desc;
+	desc.absPath = test_path().append("meshes/MosquitoInAmber/MosquitoInAmber.gltf").string();
+	desc.bakeAllSubmeshes = false;
+	desc.submeshIndex = 1;
+
+	mesh_loader::glTFFileLoader fileloader(desc.absPath);
+	auto mesh = fileloader.loadMesh(desc);
+
+	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_UVMAP), -1);
+	ASSERT_EQ(mesh->attribIndex(mesh->ATTRIBUTE_UVMAP + std::to_string(0)), -1);
+	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_UVMAP + std::to_string(1)), -1);
+	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_UVMAP + std::to_string(2)), -1);
+}
+
+TEST_F(MeshLoaderTest, glTFWithMultipleColors) {
+	core::MeshDescriptor desc;
+	desc.absPath = test_path().append("meshes/MultipleVCols/multiple_VCols.gltf").string();
+	desc.bakeAllSubmeshes = true;
+	desc.submeshIndex = 1;
+
+	mesh_loader::glTFFileLoader fileloader(desc.absPath);
+	auto mesh = fileloader.loadMesh(desc);
+
+	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_COLOR), -1);
+	ASSERT_EQ(mesh->attribIndex(mesh->ATTRIBUTE_COLOR + std::to_string(0)), -1);
+	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_COLOR + std::to_string(1)), -1);
+	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_COLOR + std::to_string(2)), -1);
+}

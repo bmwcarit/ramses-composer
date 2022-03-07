@@ -148,6 +148,22 @@ bool Queries::canDeleteUnreferencedResources(const Project& project) {
 	return !toRemove.empty();
 }
 
+bool Queries::canDuplicateObjects(const std::vector<SEditorObject>& objects, const Project& project) {
+	if (objects.empty()) {
+		return false;
+	}
+
+	auto parentForAllObjs = objects.front()->getParent();
+
+	for (const auto& obj : objects) {
+		if (obj->query<ExternalReferenceAnnotation>() || !Queries::canPasteIntoObject(project, obj->getParent()) || obj->getParent() != parentForAllObjs) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 std::vector<SEditorObject> Queries::findAllValidReferenceTargets(Project const& project, const ValueHandle& handle) {
 	std::vector<SEditorObject> valid;
 	for (auto obj : project.instances()) {
@@ -643,6 +659,12 @@ bool sameStructure(const ReflectionInterface* left, const ReflectionInterface* r
 }
 
 bool checkLinkCompatibleTypes(const ValueHandle& start, const ValueHandle& end) {
+	// Node rotations can be linked as euler or quaternion values
+	if (end.rootObject()->as<user_types::Node>() && end.isRefToProp(&user_types::Node::rotation_) &&
+		start.isVec4f() && end.isVec3f()) {
+		return true;
+	}
+
 	auto startType = start.type();
 	auto endType = end.type();
 	if ((startType == PrimitiveType::Table || startType == PrimitiveType::Struct) &&
@@ -650,12 +672,6 @@ bool checkLinkCompatibleTypes(const ValueHandle& start, const ValueHandle& end) 
 		return sameStructure(&start.constValueRef()->getSubstructure(), &end.constValueRef()->getSubstructure());
 	}
 
-	// Node rotations can be linked as euler or quaternion values
-	if (end.rootObject()->as<user_types::Node>() && end.isRefToProp(&user_types::Node::rotation_)) {
-		if (startType == PrimitiveType::Vec4f && endType == PrimitiveType::Vec3f) {
-			return true;
-		}
-	}
 	return startType == endType;
 }
 

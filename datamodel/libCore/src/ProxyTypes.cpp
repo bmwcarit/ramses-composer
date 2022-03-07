@@ -33,6 +33,12 @@ const char renderTargetTypeName[] = "RenderTarget";
 const char prefabTypeName[] = "Prefab";
 const char prefabInstanceTypeName[] = "PrefabInstance";
 
+const char vec2fTypeName[] = "Vec2f";
+const char vec3fTypeName[] = "Vec3f";
+const char vec4fTypeName[] = "Vec4f";
+const char vec2iTypeName[] = "Vec2i";
+const char vec3iTypeName[] = "Vec3i";
+const char vec4iTypeName[] = "Vec4i";
 const char blendmodeOptionsTypeName[] = "BlendOptions";
 const char cameraViewportTypeName[] = "CameraViewport";
 const char perspectiveFrustumTypeName[] = "PerspectiveFrustum";

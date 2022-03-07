@@ -52,6 +52,16 @@ SPrefabInstance PrefabOperations::findContainingPrefabInstance(SEditorObject obj
 	return nullptr;
 }
 
+SPrefabInstance PrefabOperations::findOuterContainingPrefabInstance(SEditorObject object) {
+	auto currentInst = PrefabOperations::findContainingPrefabInstance(object);
+	if (currentInst) {
+		while (auto parentInst = PrefabOperations::findContainingPrefabInstance(currentInst->getParent())) {
+			currentInst = parentInst;
+		}
+	}
+	return currentInst;
+}
+
 namespace {
 
 SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& destLinks, translateRefFunc translateRef) {

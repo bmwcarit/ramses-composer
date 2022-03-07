@@ -11,7 +11,7 @@
 
 
 #include "core/Queries.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -36,13 +36,13 @@ DoubleEditor::DoubleEditor(
 	spinBox->setValue(item->valueHandle().as<double>());
 
 	if (auto rangeAnnotation = item->query<core::RangeAnnotation<double>>()) {
-		spinBox->setRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
-		slider->setRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+		spinBox->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+		slider->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 	}
 
 	// connect everything to our item values
 	{
-		QObject::connect(spinBox, qOverload<double>(&DoubleSpinBox::valueChanged), item, [item](double value) {
+		QObject::connect(spinBox, &DoubleSpinBox::valueChanged, item, [item](double value) {
 			item->set(value);
 		});
 		QObject::connect(slider, &DoubleSlider::valueEdited, item, [item](double value) {

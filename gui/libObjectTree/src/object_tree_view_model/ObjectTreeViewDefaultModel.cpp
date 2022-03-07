@@ -95,7 +95,7 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 				auto itr = typeIconMap.find(editorObj->getTypeDescription().typeName);
 				if (itr == typeIconMap.end())
 					return QVariant();
-				return QVariant(Icons::icon(itr->second));
+				return QVariant(itr->second);
 			}
 			return QVariant();
 		}
@@ -459,8 +459,26 @@ bool ObjectTreeViewDefaultModel::canPasteIntoIndex(const QModelIndex& index, con
 	return false;
 }
 
-size_t ObjectTreeViewDefaultModel::deleteObjectsAtIndices(const QModelIndexList& indices) {
+bool ObjectTreeViewDefaultModel::canDuplicateAtIndices(const QModelIndexList& indices) const {
+	if (indices.empty()) {
+		return false;
+	}
 
+	std::vector<SEditorObject> objs;
+
+	for (const auto& index : indices) {
+		auto obj = indexToSEditorObject(index);
+		if (!obj) {
+			return false;
+		}
+
+		objs.emplace_back(obj);
+	}
+
+	return Queries::canDuplicateObjects(objs, *project());
+}
+
+size_t ObjectTreeViewDefaultModel::deleteObjectsAtIndices(const QModelIndexList& indices) {
 	return commandInterface_->deleteObjects(indicesToSEditorObjects(indices));
 }
 
@@ -481,6 +499,11 @@ bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bo
 	bool success = true;
 	commandInterface_->pasteObjects(serializedObjects, indexToSEditorObject(index), pasteAsExtref, &success, outError);
 	return success;
+}
+
+std::vector<SEditorObject> ObjectTreeViewDefaultModel::duplicateObjectsAtIndices(const QModelIndexList& indices) {
+	auto objects = indicesToSEditorObjects(indices);
+	return commandInterface_->duplicateObjects(objects);
 }
 
 void ObjectTreeViewDefaultModel::cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut) {

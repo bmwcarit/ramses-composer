@@ -9,8 +9,8 @@
  */
 #pragma once
 
-#include "data_storage/BasicAnnotations.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicAnnotations.h"
+#include "core/BasicTypes.h"
 #include "core/CoreAnnotations.h"
 #include "core/EditorObject.h"
 #include "core/FileChangeCallback.h"

@@ -208,7 +208,8 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 
 
 	// Remove links
-	std::map<std::string, std::set<SLink>> localLinks = Queries::getLinksConnectedToObjects(*project, localObjects, true, true);
+	// Only remove links ending on extref objects to avoid removing links starting on extref but ending on local objects.
+	std::map<std::string, std::set<SLink>> localLinks = Queries::getLinksConnectedToObjects(*project, localObjects, false, true);
 
 	std::map<std::string, std::set<SLink>> externalLinks;
 	for (const auto& item : externalObjects) {

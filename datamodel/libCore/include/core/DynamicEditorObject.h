@@ -27,6 +27,7 @@ public:
 	virtual ValueBase* addProperty(std::string const& name, std::unique_ptr<ValueBase>&& property, int index_before) = 0;
 
 	virtual void removeProperty(std::string const& propertyName) = 0;
+	virtual void removeAllProperties() = 0;
 	virtual std::unique_ptr<ValueBase> extractProperty(std::string const& propertyName) = 0;
 };
 
@@ -70,6 +71,12 @@ public:
 		}
 	}
 
+	void removeAllProperties() override {
+		T& asT = static_cast<T&>(*this);
+		dynamicProperties_.clear();
+		asT.properties_.clear();
+	}
+
 	std::unique_ptr<ValueBase> extractProperty(std::string const& propertyName) override {
 		T& asT = static_cast<T&>(*this);
 		auto clonedProp = asT.get(propertyName)->clone({});
@@ -92,9 +99,9 @@ public:
 
 using SDynamicEditorObject = std::shared_ptr<DynamicEditorObject>;
 
-class DynamicGenericStruct : public raco::data_storage::ClassWithReflectedMembers, public DynamicPropertyMixin<DynamicGenericStruct> {
+class DynamicGenericStruct : public raco::data_storage::StructBase, public DynamicPropertyMixin<DynamicGenericStruct> {
 public:
-	DynamicGenericStruct() : ClassWithReflectedMembers() {}
+	DynamicGenericStruct() : StructBase() {}
 
 	friend class DynamicPropertyMixin<DynamicGenericStruct>;
 };

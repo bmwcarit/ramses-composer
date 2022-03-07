@@ -8,7 +8,8 @@ This Source Code Form is subject to the terms of the Mozilla Public License, v. 
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ]]
 
-set(TEST_SOURCES 
+set(TEST_SOURCES    
+    Annotation_test.cpp
 	Context_test.cpp
 	Handle_test 
 	Iterator_test.cpp

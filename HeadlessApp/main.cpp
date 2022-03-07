@@ -115,21 +115,24 @@ int main(int argc, char* argv[]) {
 					  << "loglevel",
 		"Maximum information level that should be printed as console log output. Possible options: 0 (off), 1 (critical), 2 (error), 3 (warn), 4 (info), 5 (debug), 6 (trace).",
 		"log-level",
-		"6"
-	);
+		"6");
+	QCommandLineOption logFileOutputOption(
+		QStringList() << "o"
+					  << "outlogfile",
+		"File name to write log file to.",
+		"log-file-name",
+		"");
 	parser.addOption(loadProjectAction);
 	parser.addOption(exportProjectAction);
 	parser.addOption(compressExportAction);
 	parser.addOption(noDumpFileCheckOption);
 	parser.addOption(logLevelOption);
+	parser.addOption(logFileOutputOption);
 
 	// application must be instantiated before parsing command line
 	QCoreApplication a(argc, argv);
 
-	QStringList argList{};
-	for (int i{0}; i < argc; i++)
-		argList << argv[i];
-	parser.process(argList);
+	parser.process(QCoreApplication::arguments());
 
 	bool noDumpFiles = parser.isSet(noDumpFileCheckOption);
 	raco::utils::crashdump::installCrashDumpHandler(noDumpFiles);
@@ -137,12 +140,33 @@ int main(int argc, char* argv[]) {
 	auto appDataPath = raco::utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
 	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
 
-	std::filesystem::create_directory(raco::core::PathManager::defaultConfigDirectory());	
-	std::filesystem::create_directory(raco::core::PathManager::logFileDirectory());	
-	raco::log_system::init(raco::core::PathManager::logFileHeadlessName().internalPath().native());
 	auto logLevel = getLevelFromArg(parser.value(logLevelOption));
+	auto customLogFileName = parser.value(logFileOutputOption).toStdString();
+	auto logFilePath = raco::utils::u8path(customLogFileName);
+	bool customLogFileNameFailed = false;	
+
+	if (!customLogFileName.empty()) {
+		if (!logFilePath.parent_path().empty() && logFilePath.parent_path() != logFilePath && !logFilePath.parent_path().exists()) {
+			std::filesystem::create_directories(logFilePath.parent_path());
+
+			if (!logFilePath.parent_path().exists()) {
+				logFilePath = raco::core::PathManager::logFileHeadlessName();
+				customLogFileNameFailed = true;
+			}
+		}
+	} else {
+		logFilePath = raco::core::PathManager::logFileHeadlessName();
+	}
+
+	raco::log_system::init(logFilePath.internalPath().native());
+
+	if (customLogFileNameFailed) {
+		LOG_ERROR(raco::log_system::LOGGING, "Could not create log file at: " + customLogFileName + ". Using default location instead: " + logFilePath.string());
+	}
+
 	raco::log_system::setConsoleLogLevel(logLevel);
-	raco::ramses_base::setRamsesAndLogicConsoleLogLevel(logLevel);
+	raco::ramses_base::setRamsesLogLevel(logLevel);
+	raco::ramses_base::setLogicLogLevel(logLevel);
 
 	QString projectFile{};
 	if (parser.isSet(loadProjectAction)) {

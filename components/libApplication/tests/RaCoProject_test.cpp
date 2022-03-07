@@ -643,6 +643,29 @@ TEST_F(RaCoProjectFixture, loadingBrokenJSONFileThrowsException) {
 	ASSERT_THROW(app.switchActiveRaCoProject(QString::fromStdString(jsonPath)), std::runtime_error);
 }
 
+TEST_F(RaCoProjectFixture, saveLoadAsZip) {
+	{
+		RaCoApplication app{backend};
+		auto linkedScene = raco::createLinkedScene(*app.activeRaCoProject().commandInterface(), test_path());
+		auto lua = std::get<raco::user_types::SLuaScript>(linkedScene);
+		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul", "node_eul")};
+		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat", "node_quat")};
+
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->set({app.activeRaCoProject().project()->settings(), &raco::user_types::ProjectSettings::saveAsZip_}, true);
+
+		app.activeRaCoProject().saveAs((test_path() / "project.rcp").string().c_str());
+	}
+	{
+		RaCoApplication app{backend, (test_path() / "project.rcp").string().c_str()};
+		ASSERT_EQ(10, app.activeRaCoProject().project()->instances().size());
+		ASSERT_EQ(5, app.activeRaCoProject().project()->links().size());
+	}
+}
+
 TEST_F(RaCoProjectFixture, saveLoadRotationLinksGetReinstated) {
 	{
 		RaCoApplication app{backend};

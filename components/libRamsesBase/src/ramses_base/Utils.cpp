@@ -134,6 +134,7 @@ void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface> &interfac
 		{rlogic::EPropertyType::Vec3f, raco::core::EnginePrimitive::Vec3f},
 		{rlogic::EPropertyType::Vec4f, raco::core::EnginePrimitive::Vec4f},
 		{rlogic::EPropertyType::Int32, raco::core::EnginePrimitive::Int32},
+		{rlogic::EPropertyType::Int64, raco::core::EnginePrimitive::Int64},
 		{rlogic::EPropertyType::Vec2i, raco::core::EnginePrimitive::Vec2i},
 		{rlogic::EPropertyType::Vec3i, raco::core::EnginePrimitive::Vec3i},
 		{rlogic::EPropertyType::Vec4i, raco::core::EnginePrimitive::Vec4i},
@@ -237,43 +238,105 @@ std::string getLogicEngineVersionString() {
 	return std::string(getLogicEngineVersion().string);
 }
 
-void enableLogicLoggerOutputToStdout(bool enabled) {
-	rlogic::Logger::SetDefaultLogging(enabled);
-}
-
-void setRamsesAndLogicConsoleLogLevel(spdlog::level::level_enum level) {
+rlogic::ELogMessageType toLogicLogLevel(spdlog::level::level_enum level) {
 	using namespace spdlog::level;
+	using namespace rlogic;
 
 	switch (level) {
 		case level_enum::trace:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Trace);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Trace);
-			return;
+			return ELogMessageType::Trace;
 		case level_enum::debug:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Debug);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Debug);
-			return;
+			return ELogMessageType::Debug;
 		case level_enum::info:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Info);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Info);
-			return;
+			return ELogMessageType::Info;
 		case level_enum::warn:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Warn);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Warn);
-			return;
+			return ELogMessageType::Warn;
 		case level_enum::err:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Error);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Error);
-			return;
+			return ELogMessageType::Error;
 		case level_enum::critical:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Fatal);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Fatal);
-			return;
-		case level_enum::off:
-			rlogic::Logger::SetLogVerbosityLimit(rlogic::ELogMessageType::Off);
-			ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Off);
-			return;
+			return ELogMessageType::Fatal;
+		default:
+			return ELogMessageType::Off;
 	}
+}
+
+ramses::ELogLevel toRamsesLogLevel(spdlog::level::level_enum level) {
+	using namespace spdlog::level;
+	using namespace ramses;
+
+	switch (level) {
+		case level_enum::trace:
+			return ELogLevel::Trace;
+		case level_enum::debug:
+			return ELogLevel::Debug;
+		case level_enum::info:
+			return ELogLevel::Info;
+		case level_enum::warn:
+			return ELogLevel::Warn;
+		case level_enum::err:
+			return ELogLevel::Error;
+		case level_enum::critical:
+			return ELogLevel::Fatal;
+		default:
+			return ELogLevel::Off;
+	}
+}
+
+spdlog::level::level_enum toSpdLogLevel(ramses::ELogLevel level) {
+	using namespace spdlog::level;
+	using namespace ramses;
+
+	switch (level) {
+		case ELogLevel::Trace:
+			return level_enum::trace;
+		case ELogLevel::Debug:
+			return level_enum::debug;
+		case ELogLevel::Info:
+			return level_enum::info;
+		case ELogLevel::Warn:
+			return level_enum::warn;
+		case ELogLevel::Error:
+			return level_enum::err;
+		case ELogLevel::Fatal:
+			return level_enum::critical;
+		default:
+			return level_enum::off;
+	}
+}
+
+spdlog::level::level_enum toSpdLogLevel(rlogic::ELogMessageType level) {
+	using namespace spdlog::level;
+	using namespace rlogic;
+
+	switch (level) {
+		case ELogMessageType::Trace:
+			return level_enum::trace;
+		case ELogMessageType::Debug:
+			return level_enum::debug;
+		case ELogMessageType::Info:
+			return level_enum::info;
+		case ELogMessageType::Warn:
+			return level_enum::warn;
+		case ELogMessageType::Error:
+			return level_enum::err;
+		case ELogMessageType::Fatal:
+			return level_enum::critical;
+		default:
+			return level_enum::off;
+	}
+}
+
+void installLogicLogHandler() {
+	rlogic::Logger::SetDefaultLogging(false);
+	rlogic::Logger::SetLogHandler([](rlogic::ELogMessageType level, std::string_view message) { SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES_LOGIC), toSpdLogLevel(level), message); });
+}
+
+void setRamsesLogLevel(spdlog::level::level_enum level) {
+	ramses::RamsesFramework::SetConsoleLogLevel(toRamsesLogLevel(level));
+}
+
+void setLogicLogLevel(spdlog::level::level_enum level) {
+	rlogic::Logger::SetLogVerbosityLimit(toLogicLogLevel(level));
 }
 
 }  // namespace raco::ramses_base

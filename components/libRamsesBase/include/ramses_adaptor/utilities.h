@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "components/DataChangeDispatcher.h"
 #include "core/CoreFormatter.h"
 #include "core/EditorObject.h"
 #include "core/Handles.h"
@@ -18,14 +19,13 @@
 #include "log_system/log.h"
 #include "ramses_adaptor/BuildOptions.h"
 #include "ramses_base/RamsesHandles.h"
-#include "components/DataChangeDispatcher.h"
 #include "user_types/Material.h"
 #include "user_types/Node.h"
 #include "utils/MathUtils.h"
 
+#include <memory>
 #include <ramses-logic/Property.h>
 #include <ramses-logic/RamsesNodeBinding.h>
-#include <memory>
 #include <type_traits>
 
 namespace raco::ramses_adaptor {
@@ -41,7 +41,7 @@ static constexpr const char* defaultVertexShader =
 		}";
 
 static constexpr const char* defaultVertexShaderWithNormals =
-R"(
+	R"(
 #version 300 es
 precision mediump float;
 in vec3 a_Position;
@@ -65,7 +65,7 @@ static constexpr const char* defaultFragmentShader =
 		}";
 
 static constexpr const char* defaultFragmentShaderWithNormals =
-R"(
+	R"(
 #version 300 es
 precision mediump float;
 in float lambertian;
@@ -87,7 +87,6 @@ static constexpr const char* defaultAnimationName = "raco::ramses_adaptor::Defau
 static constexpr const char* defaultAnimationChannelName = "raco::ramses_adaptor::DefaultAnimationChannel";
 static constexpr const char* defaultAnimationChannelTimestampsName = "raco::ramses_adaptor::DefaultAnimationTimestamps";
 static constexpr const char* defaultAnimationChannelKeyframesName = "raco::ramses_adaptor::DefaultAnimationKeyframes";
-
 
 struct Vec3f {
 	float x, y, z;
@@ -204,27 +203,29 @@ inline bool setLuaInputInEngine(rlogic::Property* property, const core::ValueHan
 		case PrimitiveType::Int:
 			success = property->set(valueHandle.as<int>());
 			break;
+		case PrimitiveType::Int64:
+			success = property->set(valueHandle.as<int64_t>());
+			break;
 		case PrimitiveType::Bool:
 			success = property->set(valueHandle.as<bool>());
 			break;
-		case PrimitiveType::Vec2f:
-			success = property->set(rlogic::vec2f{valueHandle[0].as<float>(), valueHandle[1].as<float>()});
+		case PrimitiveType::Struct: {
+			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
+			if (typeDesc == &core::Vec2f::typeDescription) {
+				success = property->set(rlogic::vec2f{valueHandle[0].as<float>(), valueHandle[1].as<float>()});
+			} else if (typeDesc == &core::Vec3f::typeDescription) {
+				success = property->set(rlogic::vec3f{valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>()});
+			} else if (typeDesc == &core::Vec4f::typeDescription) {
+				success = property->set(rlogic::vec4f{valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>()});
+			} else if (typeDesc == &core::Vec2i::typeDescription) {
+				success = property->set(rlogic::vec2i{valueHandle[0].as<int>(), valueHandle[1].as<int>()});
+			} else if (typeDesc == &core::Vec3i::typeDescription) {
+				success = property->set(rlogic::vec3i{valueHandle[0].as<int>(), valueHandle[1].as<int>(), valueHandle[2].as<int>()});
+			} else if (typeDesc == &core::Vec4i::typeDescription) {
+				success = property->set(rlogic::vec4i{valueHandle[0].as<int>(), valueHandle[1].as<int>(), valueHandle[2].as<int>(), valueHandle[3].as<int>()});
+			}
 			break;
-		case PrimitiveType::Vec3f:
-			success = property->set(rlogic::vec3f{valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>()});
-			break;
-		case PrimitiveType::Vec4f:
-			success = property->set(rlogic::vec4f{valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>()});
-			break;
-		case PrimitiveType::Vec2i:
-			success = property->set(rlogic::vec2i{valueHandle[0].as<int>(), valueHandle[1].as<int>()});
-			break;
-		case PrimitiveType::Vec3i:
-			success = property->set(rlogic::vec3i{valueHandle[0].as<int>(), valueHandle[1].as<int>(), valueHandle[2].as<int>()});
-			break;
-		case PrimitiveType::Vec4i:
-			success = property->set(rlogic::vec4i{valueHandle[0].as<int>(), valueHandle[1].as<int>(), valueHandle[2].as<int>(), valueHandle[3].as<int>()});
-			break;
+		}
 		case PrimitiveType::String:
 			success = property->set(valueHandle.as<std::string>());
 			break;
@@ -255,7 +256,7 @@ public:
 	}
 
 	static void setVec2f(const core::ValueHandle& handle, double x, double y, core::DataChangeRecorder& recorder) {
-		raco::data_storage::Vec2f& v = handle.valueRef()->asVec2f();
+		raco::core::Vec2f& v = dynamic_cast<raco::core::Vec2f&>(handle.valueRef()->asStruct());
 
 		if (*v.x != x) {
 			v.x = x;
@@ -268,7 +269,7 @@ public:
 	}
 
 	static void setVec3f(const core::ValueHandle& handle, double x, double y, double z, core::DataChangeRecorder& recorder) {
-		raco::data_storage::Vec3f& v = handle.valueRef()->asVec3f();
+		raco::core::Vec3f& v = dynamic_cast<raco::core::Vec3f&>(handle.valueRef()->asStruct());
 
 		if (*v.x != x) {
 			v.x = x;
@@ -285,7 +286,7 @@ public:
 	}
 
 	static void setVec4f(const core::ValueHandle& handle, double x, double y, double z, double w, core::DataChangeRecorder& recorder) {
-		raco::data_storage::Vec4f& v = handle.valueRef()->asVec4f();
+		raco::core::Vec4f& v = dynamic_cast<raco::core::Vec4f&>(handle.valueRef()->asStruct());
 
 		if (*v.x != x) {
 			v.x = x;
@@ -306,7 +307,7 @@ public:
 	}
 
 	static void setVec2i(const core::ValueHandle& handle, int x, int y, core::DataChangeRecorder& recorder) {
-		raco::data_storage::Vec2i& v = handle.valueRef()->asVec2i();
+		raco::core::Vec2i& v = dynamic_cast<raco::core::Vec2i&>(handle.valueRef()->asStruct());
 
 		if (*v.i1_ != x) {
 			v.i1_ = x;
@@ -319,7 +320,7 @@ public:
 	}
 
 	static void setVec3i(const core::ValueHandle& handle, int x, int y, int z, core::DataChangeRecorder& recorder) {
-		raco::data_storage::Vec3i& v = handle.valueRef()->asVec3i();
+		raco::core::Vec3i& v = dynamic_cast<raco::core::Vec3i&>(handle.valueRef()->asStruct());
 
 		if (*v.i1_ != x) {
 			v.i1_ = x;
@@ -336,7 +337,7 @@ public:
 	}
 
 	static void setVec4i(const core::ValueHandle& handle, int x, int y, int z, int w, core::DataChangeRecorder& recorder) {
-		raco::data_storage::Vec4i& v = handle.valueRef()->asVec4i();
+		raco::core::Vec4i& v = dynamic_cast<raco::core::Vec4i&>(handle.valueRef()->asStruct());
 
 		if (*v.i1_ != x) {
 			v.i1_ = x;
@@ -357,13 +358,25 @@ public:
 	}
 };
 
+void getLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
+
+inline void getComplexLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
+	for (size_t i{0}; i < valueHandle.size(); i++) {
+		if (property.getType() == rlogic::EPropertyType::Array) {
+			getLuaOutputFromEngine(*property.getChild(i), valueHandle[i], recorder);
+		} else {
+			getLuaOutputFromEngine(*property.getChild(valueHandle[i].getPropName()), valueHandle[i], recorder);
+		}
+	}
+}
+
 inline void getLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
 	// Don't spam the log with constant messages:
 	//LOG_TRACE(log_system::RAMSES_ADAPTOR, "{} => {}", fmt::ptr(&property), valueHandle);
 	using core::PrimitiveType;
 
 	// read quaternion rotation data
-	if (valueHandle.type() == PrimitiveType::Vec3f && property.getType() == rlogic::EPropertyType::Vec4f) {
+	if (valueHandle.isVec3f() && property.getType() == rlogic::EPropertyType::Vec4f) {
 		auto [x, y, z, w] = property.get<rlogic::vec4f>().value();
 		auto [eulerX, eulerY, eulerZ] = raco::utils::math::quaternionToXYZDegrees(x, y, z, w);
 		ReadFromEngineManager::setVec3f(valueHandle, eulerX, eulerY, eulerZ, recorder);
@@ -379,54 +392,46 @@ inline void getLuaOutputFromEngine(const rlogic::Property& property, const core:
 			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<int>().value(), recorder);
 			break;
 		}
+		case PrimitiveType::Int64: {
+			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<int64_t>().value(), recorder);
+			break;
+		}
 		case PrimitiveType::Bool: {
 			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<bool>().value(), recorder);
-			break;
-		}
-		case PrimitiveType::Vec2f: {
-			auto [x, y] = property.get<rlogic::vec2f>().value();
-			ReadFromEngineManager::setVec2f(valueHandle, x, y, recorder);
-			break;
-		}
-		case PrimitiveType::Vec3f: {
-			auto [x, y, z] = property.get<rlogic::vec3f>().value();
-			ReadFromEngineManager::setVec3f(valueHandle, x, y, z, recorder);
-			break;
-		}
-		case PrimitiveType::Vec4f: {
-			auto [x, y, z, w] = property.get<rlogic::vec4f>().value();
-			ReadFromEngineManager::setVec4f(valueHandle, x, y, z, w, recorder);
-			break;
-		}
-		case PrimitiveType::Vec2i: {
-			auto [i1, i2] = property.get<rlogic::vec2i>().value();
-			ReadFromEngineManager::setVec2i(valueHandle, i1, i2, recorder);
-			break;
-		}
-		case PrimitiveType::Vec3i: {
-			auto [i1, i2, i3] = property.get<rlogic::vec3i>().value();
-			ReadFromEngineManager::setVec3i(valueHandle, i1, i2, i3, recorder);
-			break;
-		}
-		case PrimitiveType::Vec4i: {
-			auto [i1, i2, i3, i4] = property.get<rlogic::vec4i>().value();
-			ReadFromEngineManager::setVec4i(valueHandle, i1, i2, i3, i4, recorder);
 			break;
 		}
 		case PrimitiveType::String: {
 			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<std::string>().value(), recorder);
 			break;
 		}
-		case PrimitiveType::Table: 
-		case PrimitiveType::Struct:	{
-			for (size_t i{0}; i < valueHandle.size(); i++) {
-				if (property.getType() == rlogic::EPropertyType::Array) {
-					getLuaOutputFromEngine(*property.getChild(i), valueHandle[i], recorder);
-				} else {
-					getLuaOutputFromEngine(*property.getChild(valueHandle[i].getPropName()), valueHandle[i], recorder);
-				}
+		case PrimitiveType::Struct: {
+			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
+			if (typeDesc == &core::Vec2f::typeDescription) {
+				auto [x, y] = property.get<rlogic::vec2f>().value();
+				ReadFromEngineManager::setVec2f(valueHandle, x, y, recorder);
+			} else if (typeDesc == &core::Vec3f::typeDescription) {
+				auto [x, y, z] = property.get<rlogic::vec3f>().value();
+				ReadFromEngineManager::setVec3f(valueHandle, x, y, z, recorder);
+			} else if (typeDesc == &core::Vec4f::typeDescription) {
+				auto [x, y, z, w] = property.get<rlogic::vec4f>().value();
+				ReadFromEngineManager::setVec4f(valueHandle, x, y, z, w, recorder);
+			} else if (typeDesc == &core::Vec2i::typeDescription) {
+				auto [i1, i2] = property.get<rlogic::vec2i>().value();
+				ReadFromEngineManager::setVec2i(valueHandle, i1, i2, recorder);
+			} else if (typeDesc == &core::Vec3i::typeDescription) {
+				auto [i1, i2, i3] = property.get<rlogic::vec3i>().value();
+				ReadFromEngineManager::setVec3i(valueHandle, i1, i2, i3, recorder);
+			} else if (typeDesc == &core::Vec4i::typeDescription) {
+				auto [i1, i2, i3, i4] = property.get<rlogic::vec4i>().value();
+				ReadFromEngineManager::setVec4i(valueHandle, i1, i2, i3, i4, recorder);
+			} else {
+				getComplexLuaOutputFromEngine(property, valueHandle, recorder);	
 			}
 			break;
+		}
+		case PrimitiveType::Table: {
+			getComplexLuaOutputFromEngine(property, valueHandle, recorder);
+			break;		
 		}
 	}
 }
@@ -444,24 +449,24 @@ inline void setUniform(ramses::Appearance* appearance, const core::ValueHandle& 
 		case PrimitiveType::Int:
 			appearance->setInputValueInt32(input, static_cast<int32_t>(valueHandle.as<int>()));
 			break;
-		case PrimitiveType::Vec2f:
-			appearance->setInputValueVector2f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>());
+
+		case PrimitiveType::Struct: {
+			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
+			if (typeDesc == &core::Vec2f::typeDescription) {
+				appearance->setInputValueVector2f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>());
+			} else if (typeDesc == &core::Vec3f::typeDescription) {
+				appearance->setInputValueVector3f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>());
+			} else if (typeDesc == &core::Vec4f::typeDescription) {
+				appearance->setInputValueVector4f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>());
+			} else if (typeDesc == &core::Vec2i::typeDescription) {
+				appearance->setInputValueVector2i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()));
+			} else if (typeDesc == &core::Vec3i::typeDescription) {
+				appearance->setInputValueVector3i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()));
+			} else if (typeDesc == &core::Vec4i::typeDescription) {
+				appearance->setInputValueVector4i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()), static_cast<int32_t>(valueHandle[3].as<int>()));
+			}
 			break;
-		case PrimitiveType::Vec3f:
-			appearance->setInputValueVector3f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>());
-			break;
-		case PrimitiveType::Vec4f:
-			appearance->setInputValueVector4f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>());
-			break;
-		case PrimitiveType::Vec2i:
-			appearance->setInputValueVector2i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()));
-			break;
-		case PrimitiveType::Vec3i:
-			appearance->setInputValueVector3i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()));
-			break;
-		case PrimitiveType::Vec4i:
-			appearance->setInputValueVector4i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()), static_cast<int32_t>(valueHandle[3].as<int>()));
-			break;
+		}
 		default:
 			break;
 	}

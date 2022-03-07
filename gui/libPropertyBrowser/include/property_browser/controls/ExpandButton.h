@@ -9,20 +9,19 @@
  */
 #pragma once
 
+
 #include <QPushButton>
-#include <QWidget>
 
 namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
-class ExpandControlButton final : public QPushButton {
+class ExpandButton final : public QPushButton {
 	Q_OBJECT
 public:
-	explicit ExpandControlButton(PropertyBrowserItem* item, QWidget* parent = nullptr);
+	explicit ExpandButton(PropertyBrowserItem* item, QWidget* parent = nullptr);
 
-
-private Q_SLOTS:
+	private Q_SLOTS:
 	void updateIcon(bool expanded);
 };
 

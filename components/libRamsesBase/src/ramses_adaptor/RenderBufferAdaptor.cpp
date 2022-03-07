@@ -10,7 +10,7 @@
 
 #include "ramses_adaptor/RenderBufferAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 
 namespace raco::ramses_adaptor {
 
@@ -64,8 +64,8 @@ bool RenderBufferAdaptor::sync(core::Errors* errors) {
 	ramses::ERenderBufferFormat format = static_cast<ramses::ERenderBufferFormat>(*editorObject()->format_);
 	ramses::ERenderBufferType type = bufferTypeFromFormat.at(format);
 
-	const auto& widthRange = editorObject()->width_.staticQuery<raco::data_storage::RangeAnnotation<int>>();
-	const auto& heightRange = editorObject()->height_.staticQuery<raco::data_storage::RangeAnnotation<int>>();
+	const auto& widthRange = editorObject()->width_.staticQuery<raco::core::RangeAnnotation<int>>();
+	const auto& heightRange = editorObject()->height_.staticQuery<raco::core::RangeAnnotation<int>>();
 
 	buffer_ = raco::ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
 		std::min(std::max(*widthRange.min_, *editorObject()->width_), *widthRange.max_),

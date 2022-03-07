@@ -25,7 +25,7 @@ public:
 	T value() const noexcept;
 	bool insideRange() const noexcept;
 	
-	void setRange(T min, T max);
+	void setSoftRange(T min, T max);
 
 protected:
 	void slotSetValue(T value);
@@ -37,18 +37,19 @@ protected:
 	void mouseReleaseEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 	virtual void signalValueEdited(T value) = 0;
-	virtual void signalValueChange(T value) = 0;
 	virtual void signalSingleClicked() = 0;
 
 private:
 	void addValue(T step);
-	T min_{static_cast<T>(0.0)};
-	T max_{static_cast<T>(1.0)};
-	T value_{static_cast<T>(0.5)};
+	T min_;
+	T max_;
+	T softMin_;
+	T softMax_;
+	T value_;
 	T stepSize_{static_cast<T>(std::is_integral<T>::value ? 1 : 0.1)};
 	bool mouseIsDragging_{false};
 	bool mouseIsInside_{false};
-	QPoint mousePivot_;
+	QPointF mousePivot_;
 	int mouseDraggingCurrentOffsetX_;
 };
 
@@ -59,7 +60,6 @@ public:
 
 Q_SIGNALS:
 	void valueEdited(double value);
-	void valueChanged(double value);
 	void singleClicked();
 public Q_SLOTS:
 	void setValue(double v) { slotSetValue(v); }
@@ -67,9 +67,6 @@ public Q_SLOTS:
 protected:
 	void signalValueEdited(double value) override {
 		Q_EMIT valueEdited(value);
-	}
-	void signalValueChange(double value) override {
-		Q_EMIT valueChanged(value);
 	}
 	void signalSingleClicked() override {
 		Q_EMIT singleClicked();
@@ -82,7 +79,6 @@ public:
 	explicit IntSlider(QWidget* parent) : ScalarSlider{parent} {}
 
 Q_SIGNALS:
-	void valueChanged(int value);
 	void valueEdited(int value);
 	void singleClicked();
 public Q_SLOTS:
@@ -92,8 +88,25 @@ protected:
 	void signalValueEdited(int value) override {
 		Q_EMIT valueEdited(value);
 	}
-	void signalValueChange(int value) override {
-		Q_EMIT valueChanged(value);
+	void signalSingleClicked() override {
+		Q_EMIT singleClicked();
+	}
+};
+
+class Int64Slider final : public ScalarSlider<int64_t> {
+	Q_OBJECT
+public:
+	explicit Int64Slider(QWidget* parent) : ScalarSlider{parent} {}
+
+Q_SIGNALS:
+	void valueEdited(int64_t value);
+	void singleClicked();
+public Q_SLOTS:
+	void setValue(int64_t v) { slotSetValue(v); }
+
+protected:
+	void signalValueEdited(int64_t value) override {
+		Q_EMIT valueEdited(value);
 	}
 	void signalSingleClicked() override {
 		Q_EMIT singleClicked();

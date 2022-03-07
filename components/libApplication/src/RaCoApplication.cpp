@@ -37,7 +37,7 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const Q
 	  dataChangeDispatcherEngine_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  scenesBackend_{new ramses_adaptor::SceneBackend(&engine, dataChangeDispatcherEngine_)},
 	  externalProjectsStore_(this) {
-	ramses_base::enableLogicLoggerOutputToStdout(false);
+	ramses_base::installLogicLogHandler();
 	// Preferences need to be initalized before we have a fist initial project
 	raco::components::RaCoPreferences::init();
 	std::vector<std::string> stack;

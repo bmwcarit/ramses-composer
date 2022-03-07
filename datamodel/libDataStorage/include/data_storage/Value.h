@@ -31,17 +31,11 @@ class AnnotationBase;
 
 class Table;
 
-class Vec2f;
-class Vec3f;
-class Vec4f;
-class Vec2i;
-class Vec3i;
-class Vec4i;
-
 enum class PrimitiveType {
 	// Simple scalar types:
 	Bool = 0,
 	Int,
+	Int64,
 	Double,
 	String,
 
@@ -51,18 +45,33 @@ enum class PrimitiveType {
 	// Dictionary-like: holds a Table
 	Table,
 
-	// Complex c++ class types
-	Vec2f,
-	Vec3f,
-	Vec4f,
-	Vec2i,
-	Vec3i,
-	Vec4i,
-
-	// Complex C++ class types; must be class derived from ClassWithReflectedMembers
+	// Complex C++ class types; must be class derived from StructBase
 	Struct
 };
 
+// For the datatypes Int, Int64 and Double we define extreme values which are allowed in our data model.
+// For Int 64 this limit is lower then the theoretical machine maximum, since the old Lua version of ramses logic represents 64-bit Integers as 64-Bit Floats.
+template <class T>
+constexpr T numericalLimitMin() {
+	return std::numeric_limits<T>::lowest();
+}
+
+template <class T>
+constexpr T numericalLimitMax() {
+	return std::numeric_limits<T>::max();
+}
+
+template <>
+constexpr int64_t numericalLimitMin<int64_t>() {
+	// The numerical limit here is given by the lowest integer for which all integers between zero and this value can be stored precisely as a double: -(2 ^ 53)
+	return -9007199254740992;
+}
+
+template <>
+constexpr int64_t numericalLimitMax<int64_t>() {
+	// The numerical limit here is given by the highest integer for which all integers between zero and this value can be stored precisely as a double: 2 ^ 53
+	return 9007199254740992;
+}
 
 template<class T> struct AlwaysFalse : std::false_type {};
 
@@ -74,6 +83,8 @@ template <typename T>
 constexpr PrimitiveType primitiveType() {
 	if constexpr (std::is_same<T, int>::value) {
 		return PrimitiveType::Int;
+	} else if constexpr (std::is_same<T, int64_t>::value) {
+		return PrimitiveType::Int64;
 	} else if constexpr (std::is_same<T, double>::value) {
 		return PrimitiveType::Double;
 	} else if constexpr (std::is_same<T, bool>::value) {
@@ -82,19 +93,7 @@ constexpr PrimitiveType primitiveType() {
 		return PrimitiveType::String;
 	} else if constexpr (std::is_same<T, Table>::value) {
 		return PrimitiveType::Table;
-	} else if constexpr (std::is_same<T, Vec2f>::value) {
-		return PrimitiveType::Vec2f;
-	} else if constexpr (std::is_same<T, Vec3f>::value) {
-		return PrimitiveType::Vec3f;
-	} else if constexpr (std::is_same<T, Vec4f>::value) {
-		return PrimitiveType::Vec4f;
-	} else if constexpr (std::is_same<T, Vec2i>::value) {
-		return PrimitiveType::Vec2i;
-	} else if constexpr (std::is_same<T, Vec3i>::value) {
-		return PrimitiveType::Vec3i;
-	} else if constexpr (std::is_same<T, Vec4i>::value) {
-		return PrimitiveType::Vec4i;
-	} else if constexpr (std::is_base_of<ClassWithReflectedMembers, T>::value) {
+	} else if constexpr (std::is_base_of<StructBase, T>::value) {
 		return PrimitiveType::Struct;
 	} else if constexpr (std::is_base_of<EditorObject, typename T::element_type>::value) {
 		return PrimitiveType::Ref;
@@ -106,7 +105,7 @@ std::string getTypeName(PrimitiveType type);
 bool isPrimitiveTypeName(const std::string& type);
 PrimitiveType toPrimitiveType(const std::string& type);
 
-using TypeMapType = std::tuple<bool, int, double, std::string, SEditorObject, Table, Vec2f, Vec3f, Vec4f, Vec2i, Vec3i, Vec4i>;
+using TypeMapType = std::tuple<bool, int, double, std::string, SEditorObject, Table>;
 
 // Variant with annotations
 // - variant types:
@@ -115,7 +114,7 @@ using TypeMapType = std::tuple<bool, int, double, std::string, SEditorObject, Ta
 //   - Table (no pointer, replaces embedded container)
 //   - vec3f, vec4f (embedded container)
 //   - NO EditorObject
-//   - can add further C++ classes derived from ClassWithReflectedMembers as PrimitiveType::Struct
+//   - can add further C++ classes derived from StructBase as PrimitiveType::Struct
 //   - set of types is statically known at compile time; enum for type
 // - type is static, can't be changed after creation; type mismatch in get/set operations will fail
 
@@ -138,11 +137,11 @@ using TypeMapType = std::tuple<bool, int, double, std::string, SEditorObject, Ta
 //   the assignment will fail with an exception and the check will return false.
 
 // On Struct type Values (PrimitiveType::Struct)
-// - Struct type Values store a subclass of ClassWithReflectedMembers as value (not as reference)
+// - Struct type Values store a subclass of StructBase as value (not as reference)
 //   similar to the way the Vec2f etc types work
 // - they are type safe: operations will enforce identical classes at runtime if
 //   multiple PrimitiveType::Struct Values are involved.
-// - for a Value<CC> to be usable the class CC must be derived from ClassWithReflectedMembers
+// - for a Value<CC> to be usable the class CC must be derived from StructBase
 // - CC must implement the following member functions (same as for e.g. Vec2f)
 //   CC(const CC& other, std::function<SEditorObject(SEditorObject)>* translateRef)
 //   CC& operator=(const CC& other) 
@@ -160,30 +159,17 @@ public:
 
 	virtual bool& asBool() = 0;
 	virtual int& asInt() = 0;
+	virtual int64_t& asInt64() = 0;
 	virtual double& asDouble() = 0;
 	virtual std::string& asString() = 0;
 	virtual Table& asTable() = 0;
 
-	virtual Vec2f& asVec2f() = 0;
-	virtual Vec3f& asVec3f() = 0;
-	virtual Vec4f& asVec4f() = 0;
-	virtual Vec2i& asVec2i() = 0;
-	virtual Vec3i& asVec3i() = 0;
-	virtual Vec4i& asVec4i() = 0;
-
 	virtual const bool& asBool() const = 0;
 	virtual const int& asInt() const = 0;
+	virtual const int64_t& asInt64() const = 0;
 	virtual const double& asDouble() const = 0;
 	virtual const std::string& asString() const = 0;
 	virtual const Table& asTable() const = 0;
-
-	virtual const Vec2f& asVec2f() const = 0;
-	virtual const Vec3f& asVec3f() const = 0;
-	virtual const Vec4f& asVec4f() const = 0;
-	virtual const Vec2i& asVec2i() const = 0;
-	virtual const Vec3i& asVec3i() const = 0;
-	virtual const Vec4i& asVec4i() const = 0;
-
 	// Return a reference to the generic interface class for all
 	// PrimitiveTypes that are not scalar types but contain substructure, i.e.
 	// Tables and the Vec2f,... types.
@@ -209,12 +195,12 @@ public:
 
 	// Get reference to generic base class for Struct type values.
 	// Will not work for vector (Vec2f etc) types or Tables.
-	virtual ClassWithReflectedMembers& asStruct() = 0;
-	virtual const ClassWithReflectedMembers& asStruct() const = 0;
+	virtual StructBase& asStruct() = 0;
+	virtual const StructBase& asStruct() const = 0;
 
 	// Set Struct type values.
 	// Identical types are dynamically enforced as runtime.
-	virtual void setStruct(const ClassWithReflectedMembers&) = 0;
+	virtual void setStruct(const StructBase&) = 0;
 
 	// Check for equality of the actual classes of the arguments;
 	// differs from comparing the PrimitiveType by
@@ -246,6 +232,7 @@ public:
 
 	ValueBase& operator=(bool value);
 	ValueBase& operator=(int value);
+	ValueBase& operator=(int64_t value);
 	ValueBase& operator=(double value);
 	ValueBase& operator=(std::string const& value);
 	ValueBase& operator=(SEditorObject value);
@@ -436,6 +423,9 @@ public:
 	virtual int& asInt() override {
 		return asImpl<int>();
 	}
+	virtual int64_t& asInt64() override {
+		return asImpl<int64_t>();
+	}
 	virtual double& asDouble() override {
 		return asImpl<double>();
 	}
@@ -461,19 +451,19 @@ public:
 			value_ = std::static_pointer_cast<typename T::element_type>(v);
 		}
 	}
-	virtual ClassWithReflectedMembers& asStruct() override {
+	virtual StructBase& asStruct() override {
 		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 			return value_;
 		}
 		throw std::runtime_error("type mismatch");
 	}
-	virtual const ClassWithReflectedMembers& asStruct() const override {
+	virtual const StructBase& asStruct() const override {
 		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 			return value_;
 		}
 		throw std::runtime_error("type mismatch");
 	}
-	virtual void setStruct(const ClassWithReflectedMembers& newValue) override {
+	virtual void setStruct(const StructBase& newValue) override {
 		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 			const T* vp = dynamic_cast<const T*>(&newValue);
 			if (!vp) {
@@ -503,30 +493,14 @@ public:
 	virtual Table& asTable() override {
 		return asImpl<Table>();
 	}
-	virtual Vec2f& asVec2f() override {
-		return asImpl<Vec2f>();
-	}
-	virtual Vec3f& asVec3f() override {
-		return asImpl<Vec3f>();
-	}
-	virtual Vec4f& asVec4f() override {
-		return asImpl<Vec4f>();
-	}
-	virtual Vec2i& asVec2i() override {
-		return asImpl<Vec2i>();
-	}
-	virtual Vec3i& asVec3i() override {
-		return asImpl<Vec3i>();
-	}
-	virtual Vec4i& asVec4i() override {
-		return asImpl<Vec4i>();
-	}
-
 	virtual const bool& asBool() const override {
 		return asImplConst<bool>();
 	}
 	virtual const int& asInt() const override {
 		return asImplConst<int>();
+	}
+	virtual const int64_t& asInt64() const override {
+		return asImplConst<int64_t>();
 	}
 	virtual const double& asDouble() const override {
 		return asImplConst<double>();
@@ -539,24 +513,6 @@ public:
 	}
 	virtual const Table& asTable() const override {
 		return asImplConst<Table>();
-	}
-	virtual const Vec2f& asVec2f() const override {
-		return asImplConst<Vec2f>();
-	}
-	virtual const Vec3f& asVec3f() const override {
-		return asImplConst<Vec3f>();
-	}
-	virtual const Vec4f& asVec4f() const override {
-		return asImplConst<Vec4f>();
-	}
-	virtual const Vec2i& asVec2i() const override {
-		return asImplConst<Vec2i>();
-	}
-	virtual const Vec3i& asVec3i() const override {
-		return asImplConst<Vec3i>();
-	}
-	virtual const Vec4i& asVec4i() const override {
-		return asImplConst<Vec4i>();
 	}
 
 	virtual std::unique_ptr<ValueBase> clone(std::function<SEditorObject(SEditorObject)>* translateRef) const {
@@ -706,6 +662,10 @@ inline Value<bool>::Value(const Value& other, std::function<SEditorObject(SEdito
 
 template <>
 inline Value<int>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
+}
+
+template <>
+inline Value<int64_t>::Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other) {
 }
 
 template <>

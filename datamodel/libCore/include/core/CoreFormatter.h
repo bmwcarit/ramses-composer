@@ -32,6 +32,9 @@ struct fmt::formatter<raco::data_storage::PrimitiveType> : formatter<string_view
 			case raco::data_storage::PrimitiveType::Int:
 				name = "Int";
 				break;
+			case raco::data_storage::PrimitiveType::Int64:
+				name = "Int64";
+				break;
 			case raco::data_storage::PrimitiveType::Ref:
 				name = "Ref";
 				break;
@@ -41,23 +44,8 @@ struct fmt::formatter<raco::data_storage::PrimitiveType> : formatter<string_view
 			case raco::data_storage::PrimitiveType::Table:
 				name = "Table";
 				break;
-			case raco::data_storage::PrimitiveType::Vec2f:
-				name = "Vec2f";
-				break;
-			case raco::data_storage::PrimitiveType::Vec2i:
-				name = "Vec2i";
-				break;
-			case raco::data_storage::PrimitiveType::Vec3f:
-				name = "Vec3f";
-				break;
-			case raco::data_storage::PrimitiveType::Vec3i:
-				name = "Vec3i";
-				break;
-			case raco::data_storage::PrimitiveType::Vec4f:
-				name = "Vec4f";
-				break;
-			case raco::data_storage::PrimitiveType::Vec4i:
-				name = "Vec4i";
+			case raco::data_storage::PrimitiveType::Struct:
+				name = "Struct";
 				break;
 		}
 		return formatter<string_view>::format(name, ctx);
@@ -73,6 +61,7 @@ struct fmt::formatter<raco::core::EnginePrimitive> : formatter<string_view> {
 			{raco::core::EnginePrimitive::Undefined, "Undefined"},
 			{raco::core::EnginePrimitive::Bool, "Bool"},
 			{raco::core::EnginePrimitive::Int32, "Int"},
+			{raco::core::EnginePrimitive::Int64, "Int"},
 			{raco::core::EnginePrimitive::UInt16, "Int"},
 			{raco::core::EnginePrimitive::UInt32, "Int"},
 			{raco::core::EnginePrimitive::Double, "Float"},

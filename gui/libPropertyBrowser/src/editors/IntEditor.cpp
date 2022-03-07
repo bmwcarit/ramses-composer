@@ -11,7 +11,7 @@
 
 
 #include "core/Queries.h"
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -37,8 +37,8 @@ IntEditor::IntEditor(
 	spinBox->setValue(item->valueHandle().as<int>());
 
 	if (auto rangeAnnotation = item->query<core::RangeAnnotation<int>>()) {
-		spinBox->setRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
-		slider->setRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+		spinBox->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+		slider->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 	}
 
 	// connect everything to our item values

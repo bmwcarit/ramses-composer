@@ -32,6 +32,7 @@ public:
 	static void globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes, bool propagateMissingInterfaceProperties = false);
 
 	static raco::user_types::SPrefabInstance findContainingPrefabInstance(SEditorObject object);
+	static raco::user_types::SPrefabInstance findOuterContainingPrefabInstance(SEditorObject object);
 
 	static raco::user_types::SPrefab findContainingPrefab(SEditorObject object);
 	

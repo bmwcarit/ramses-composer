@@ -181,6 +181,7 @@ Ramses Composer uses a number of third party libraries:
 * RAMSES logic
 * spdlog
 * tinygltf
+* zip
 
 Their source code and respective licenses can be found in the ```third_party/``` folder.
 	

@@ -23,6 +23,7 @@ public:
 	struct State {
 		ramses::sceneId_t sceneId{ramses::sceneId_t::Invalid()};
 		/**
+		 * The pixel sizes here are given in device pixel sizes, NOT virtualized Qt pixel sizes.
 		 * ----------------------------------------------------
 		 * |\                                                 |
 		 * | \ (x, y) viewportOffset                          |
@@ -39,6 +40,16 @@ public:
 		QSize virtualSize{0, 0};
 		QColor backgroundColor{};
 		PreviewFilteringMode filteringMode{PreviewFilteringMode::NearestNeighbor};
+
+		bool operator!=(const State & other) const {
+			return this->backgroundColor != other.backgroundColor
+				|| this->filteringMode != other.filteringMode
+				|| this->sceneId != other.sceneId
+				|| this->targetSize != other.targetSize
+				|| this->viewportOffset != other.viewportOffset
+				|| this->viewportSize != other.viewportSize
+				|| this->virtualSize != other.virtualSize;
+		}
 	};
 
 	explicit RamsesPreviewWindow(
@@ -46,7 +57,8 @@ public:
 		RendererBackend& rendererBackend);
 	~RamsesPreviewWindow();
 
-	State& state();
+	const State& currentState();
+	State& nextState();
 	void commit();
 
 private:

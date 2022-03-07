@@ -97,7 +97,11 @@ RamsesPreviewWindow::~RamsesPreviewWindow() {
 	}
 }
 
-RamsesPreviewWindow::State& RamsesPreviewWindow::state() {
+const RamsesPreviewWindow::State& RamsesPreviewWindow::currentState() {
+	return current_;
+}
+
+RamsesPreviewWindow::State& RamsesPreviewWindow::nextState() {
 	return next_;
 }
 
@@ -182,6 +186,7 @@ void RamsesPreviewWindow::commit() {
 	if (displayId_.isValid() && offscreenBufferId_.isValid() && next_.backgroundColor != current_.backgroundColor) {
 		rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_, next_.backgroundColor.redF(), next_.backgroundColor.greenF(), next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 		rendererBackend_.renderer().flush();
+		current_.backgroundColor = next_.backgroundColor;
 	}
 
 	current_.viewportOffset = next_.viewportOffset;

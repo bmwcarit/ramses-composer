@@ -10,51 +10,16 @@
 #include "style/Icons.h"
 
 namespace raco::style {
-
-Icons& Icons::instance() {
-	if (Icons::instance_ == nullptr) {
-		Icons::instance_ = new Icons{};
-		Icons::icons_ = {
-			{Pixmap::done, QPixmap{":doneIcon"}},
-			{Pixmap::trash, QPixmap{":trashIcon"}},
-			{Pixmap::expanded, QPixmap{":expandedIcon"}},
-			{Pixmap::collapsed, QPixmap{":collapsedIcon"}},
-			{Pixmap::linkable, QPixmap{":linkableIcon"}},
-			{Pixmap::linked, QPixmap{":linkedIcon"}},
-			{Pixmap::parentIsLinked, QPixmap{":parentLinkedIcon"}},
-			{Pixmap::unlinkable, QPixmap{":unlinkableIcon"}},
-			{Pixmap::linkBroken, QPixmap{":linkBrokenIcon"}},
-			{Pixmap::locked, QPixmap{":lockedIcon"}},
-			{Pixmap::unlocked, QPixmap{":unlockedIcon"}},
-			{Pixmap::close, QPixmap{":closeIcon"}},
-			{Pixmap::undock, QPixmap{":undockIcon"}},
-			{Pixmap::menu, QPixmap{":menuIcon"}},
-			{Pixmap::openInNew, QPixmap{":openInNewIcon"}},
-			{Pixmap::goTo, QPixmap{":gotoIcon"}},
-			{Pixmap::increment, QPixmap{":incrementIcon"}},
-			{Pixmap::decrement, QPixmap{":decrementIcon"}},
-			{Pixmap::warning, QPixmap{":warningIcon"}},
-			{Pixmap::error, QPixmap{":errorIcon"}},
-
-			{Pixmap::typeNode, QPixmap{":typeNodeIcon"}},
-			{Pixmap::typeCamera, QPixmap{":typeCameraIcon"}},
-			{Pixmap::typeMesh, QPixmap{":typeMeshIcon"}},
-			{Pixmap::typeMaterial, QPixmap{":typeMaterialIcon"}},
-			{Pixmap::typeTexture, QPixmap{":typeTextureIcon"}},
-			{Pixmap::typeCubemap, QPixmap{":typeCubemapIcon"}},
-			{Pixmap::typeScript, QPixmap{":typeScriptIcon"}},
-			{Pixmap::typePrefabInternal, QPixmap{":typePrefabInternalIcon"}},
-			{Pixmap::typePrefabExternal, QPixmap{":typePrefabExternalIcon"}},
-			{Pixmap::typePrefabInstance, QPixmap{":typePrefabInstanceIcon"}},
-			{Pixmap::typeLuaScriptModule, QPixmap{":typeLuaScriptModuleIcon"}},
-			{Pixmap::typeAnimationChannel, QPixmap{":typeAnimationChannelIcon"}},
-			{Pixmap::typeAnimation, QPixmap{":typeAnimationIcon"}}
-		};
-	}
-	return *Icons::instance_;
+	
+const Icons& Icons::instance() {
+	static Icons icons;
+	return icons;
 }
 
-QMap<Pixmap, QPixmap> Icons::icons_{};
-Icons* Icons::instance_{nullptr};
+Icons::Icons() {
+}
+
+Icons::~Icons() {
+}
 
 }  // namespace raco::style

@@ -15,6 +15,7 @@
 #include "components/QtFormatter.h"
 #include <QPaintEvent>
 #include <QPlatformSurfaceEvent>
+#include <QScreen>
 
 namespace raco::ramses_widgets {
 
@@ -30,21 +31,21 @@ PreviewContentWidget::PreviewContentWidget(RendererBackend& rendererBackend, QWi
 
 void PreviewContentWidget::setSceneId(ramses::sceneId_t id) {
 	if (ramsesPreview_) {
-		ramsesPreview_->state().sceneId = id;
+		ramsesPreview_->nextState().sceneId = id;
 		update();
 	}
 }
 
-void PreviewContentWidget::setBackgroundColor(data_storage::Vec4f backgroundColor) {
+void PreviewContentWidget::setBackgroundColor(core::Vec4f backgroundColor) {
 	if (ramsesPreview_) {
-		ramsesPreview_->state().backgroundColor = QColor::fromRgbF(backgroundColor.x.asDouble(), backgroundColor.y.asDouble(), backgroundColor.z.asDouble(), backgroundColor.w.asDouble());
+		ramsesPreview_->nextState().backgroundColor = QColor::fromRgbF(backgroundColor.x.asDouble(), backgroundColor.y.asDouble(), backgroundColor.z.asDouble(), backgroundColor.w.asDouble());
 		update();
 	}
 }
 
 ramses::sceneId_t PreviewContentWidget::getSceneId() {
 	if (ramsesPreview_) {
-		return ramsesPreview_->state().sceneId;
+		return ramsesPreview_->nextState().sceneId;
 	} else {
 		return ramses::sceneId_t::Invalid();
 	}
@@ -73,36 +74,51 @@ void PreviewContentWidget::setViewportRect(
 	if (!ramsesPreview_) {
 		return;
 	}
+	auto devicePixelScaleFactor = window()->screen()->devicePixelRatio();
 	if constexpr (BuildOptions::minimalPreviewDisplayArea) {
 		// Minimal resize to size of actual viewport
 		resize(viewportSize);
 		move(viewportPosition);
-		ramsesPreview_->state().viewportOffset = viewportOffset;
-		ramsesPreview_->state().viewportSize = viewportSize;
-		ramsesPreview_->state().virtualSize = virtualSize;
-		ramsesPreview_->state().targetSize = targetSize;
+		ramsesPreview_->nextState().viewportOffset = viewportOffset * devicePixelScaleFactor;
+		ramsesPreview_->nextState().viewportSize = viewportSize * devicePixelScaleFactor;
+		ramsesPreview_->nextState().virtualSize = virtualSize * devicePixelScaleFactor;
+		ramsesPreview_->nextState().targetSize = targetSize;
 	} else {
 		// resize to entire area
 		resize(areaSize);
+		move(0, 0);
 		setMask({viewportPosition.x(), viewportPosition.y(), viewportSize.width(), viewportSize.height()});
-		ramsesPreview_->state().viewportOffset = (-1 * viewportPosition) + viewportOffset;
-		ramsesPreview_->state().viewportSize = areaSize;
-		ramsesPreview_->state().virtualSize = virtualSize;
-		ramsesPreview_->state().targetSize = targetSize;
+		ramsesPreview_->nextState().viewportOffset = ((-1 * viewportPosition) + viewportOffset) * devicePixelScaleFactor;
+		ramsesPreview_->nextState().viewportSize = areaSize * devicePixelScaleFactor;
+		ramsesPreview_->nextState().virtualSize = virtualSize * devicePixelScaleFactor;
+		ramsesPreview_->nextState().targetSize = targetSize;
 	}
 	update();
 }
 
+void PreviewContentWidget::paintEvent(QPaintEvent* e) {
+	// time scene id changes to paint event instead of our mainWindow timer
+	// because the mainWindow timer interval is actually too high for RaCo
+	// to register all scene id changes in the UI (?)
+	if (ramsesPreview_->currentState().sceneId != ramsesPreview_->nextState().sceneId) {
+		ramsesPreview_->commit();
+	}
+}
+
 void PreviewContentWidget::setFilteringMode(PreviewFilteringMode filteringMode) {
 	if (ramsesPreview_) {
-		ramsesPreview_->state().filteringMode = filteringMode;
+		ramsesPreview_->nextState().filteringMode = filteringMode;
 		update();
 	}
 }
 
 
 void PreviewContentWidget::commit() {
-	ramsesPreview_->commit();
+	const auto& currentState = ramsesPreview_->currentState();
+	auto& nextState = ramsesPreview_->nextState();
+	if (nextState != currentState && nextState.sceneId == currentState.sceneId) {
+		ramsesPreview_->commit();
+	}
 }
 
 void PreviewContentWidget::mouseMoveEvent(QMouseEvent* event) {

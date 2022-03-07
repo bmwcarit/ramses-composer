@@ -104,7 +104,14 @@ UserObjectFactory::UserObjectFactory() {
 		ExternalReferenceAnnotation
 	>();
 
-	structTypes_ = makeStructTypeMap<BlendOptions,
+	structTypes_ = makeStructTypeMap<
+		raco::core::Vec2f,
+		raco::core::Vec3f,
+		raco::core::Vec4f,
+		raco::core::Vec2i,
+		raco::core::Vec3i,
+		raco::core::Vec4i,
+		BlendOptions,
 		ProjectSettings::DefaultResourceDirectories,
 		CameraViewport,
 		PerspectiveFrustum,

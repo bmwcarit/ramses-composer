@@ -17,3 +17,6 @@
 [submodule "third_party/tinygltf"]
 	path = third_party/tinygltf
 	url = https://github.com/syoyo/tinygltf.git
+[submodule "third_party/zip"]
+	path = third_party/zip
+	url = https://github.com/kuba--/zip

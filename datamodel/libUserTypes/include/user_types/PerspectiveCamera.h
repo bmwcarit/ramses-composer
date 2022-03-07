@@ -13,7 +13,7 @@
 
 namespace raco::user_types {
 
-class PerspectiveFrustum : public ClassWithReflectedMembers {
+class PerspectiveFrustum : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"PerspectiveFrustum", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -23,10 +23,10 @@ public:
 		return true;
 	}
 
-	PerspectiveFrustum() : ClassWithReflectedMembers(getProperties()) {}
+	PerspectiveFrustum() : StructBase(getProperties()) {}
 
 	PerspectiveFrustum(const PerspectiveFrustum& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
-		: ClassWithReflectedMembers(getProperties()),
+		: StructBase(getProperties()),
 		  near_(other.near_),
 		  far_(other.far_),
 		  fov_(other.fov_),
@@ -58,7 +58,7 @@ public:
 
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> near_{0.1, DisplayNameAnnotation("Near Plane"), RangeAnnotation<double>(0.1, 1.0), {}};
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> far_{1000.0, DisplayNameAnnotation("Far Plane"), RangeAnnotation<double>(100.0, 10000.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> fov_{35.0, DisplayNameAnnotation("Field of View"), RangeAnnotation<double>(10.0, 120.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> fov_{35.0, DisplayNameAnnotation("Vert. Field of View"), RangeAnnotation<double>(10.0, 120.0), {}};
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> aspect_{1440.0 / 720.0, DisplayNameAnnotation("Aspect"), RangeAnnotation<double>(0.5, 4.0), {}};
 };
 

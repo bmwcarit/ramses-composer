@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "data_storage/BasicTypes.h"
+#include "core/BasicTypes.h"
 #include <map>
 #include <string>
 #include <cassert>
@@ -51,7 +51,9 @@ enum class EnginePrimitive {
 	Array,
 	TextureSampler2D,
 	TextureSampler3D,
-	TextureSamplerCube
+	TextureSamplerCube,
+	// Types added later, in the bottom of the enum to avoid file format changing
+	Int64
 };
 
 struct PropertyInterface;
@@ -67,16 +69,17 @@ struct PropertyInterface {
 		static std::map<EnginePrimitive, data_storage::PrimitiveType> typeMap = {
 			{EnginePrimitive::Bool, data_storage::PrimitiveType::Bool},
 			{EnginePrimitive::Int32, data_storage::PrimitiveType::Int},
+			{EnginePrimitive::Int64, data_storage::PrimitiveType::Int64},
 			{EnginePrimitive::UInt16, data_storage::PrimitiveType::Int},
 			{EnginePrimitive::UInt32, data_storage::PrimitiveType::Int},
 			{EnginePrimitive::Double, data_storage::PrimitiveType::Double},
 			{EnginePrimitive::String, data_storage::PrimitiveType::String},
-			{EnginePrimitive::Vec2f, data_storage::PrimitiveType::Vec2f},
-			{EnginePrimitive::Vec3f, data_storage::PrimitiveType::Vec3f},
-			{EnginePrimitive::Vec4f, data_storage::PrimitiveType::Vec4f},
-			{EnginePrimitive::Vec2i, data_storage::PrimitiveType::Vec2i},
-			{EnginePrimitive::Vec3i, data_storage::PrimitiveType::Vec3i},
-			{EnginePrimitive::Vec4i, data_storage::PrimitiveType::Vec4i},
+			{EnginePrimitive::Vec2f, data_storage::PrimitiveType::Struct},
+			{EnginePrimitive::Vec3f, data_storage::PrimitiveType::Struct},
+			{EnginePrimitive::Vec4f, data_storage::PrimitiveType::Struct},
+			{EnginePrimitive::Vec2i, data_storage::PrimitiveType::Struct},
+			{EnginePrimitive::Vec3i, data_storage::PrimitiveType::Struct},
+			{EnginePrimitive::Vec4i, data_storage::PrimitiveType::Struct},
 			{EnginePrimitive::Array, data_storage::PrimitiveType::Table},
 			{EnginePrimitive::Struct, data_storage::PrimitiveType::Table},
 			{EnginePrimitive::TextureSampler2D, data_storage::PrimitiveType::Ref},
@@ -101,6 +104,8 @@ public:
 	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, std::string& outError) = 0;
 	virtual bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string &outError) = 0;
 	virtual const std::map<int, std::string>& enumerationDescription(EngineEnumeration type) const = 0;
+
+	virtual std::string luaNameForPrimitiveType(EnginePrimitive engineType) const = 0;
 };
 
 }  // namespace raco::core

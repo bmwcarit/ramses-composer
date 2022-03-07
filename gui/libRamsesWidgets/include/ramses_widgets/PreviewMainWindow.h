@@ -55,7 +55,7 @@ public:
 		raco::components::SDataChangeDispatcher dispatcher,
 		QWidget* parent = nullptr);
 	~PreviewMainWindow();
-	void displayScene(ramses::sceneId_t sceneId, data_storage::Vec4f const& backgroundColor);
+	void displayScene(ramses::sceneId_t sceneId, core::Vec4f const& backgroundColor);
 
 public Q_SLOTS:
 	void setViewport(const QSize& sceneSize);

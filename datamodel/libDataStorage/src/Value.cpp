@@ -10,7 +10,6 @@
 
 #include "data_storage/Value.h"
 
-#include "data_storage/BasicTypes.h"
 #include "data_storage/Table.h"
 
 #include <map>
@@ -22,18 +21,12 @@ static std::map<PrimitiveType, std::string>& primitiveTypeName() {
 	static std::map<PrimitiveType, std::string> primitiveTypeNameMap{
 		{PrimitiveType::Bool, "Bool"},
 		{PrimitiveType::Int, "Int"},
+		{PrimitiveType::Int64, "Int64"},
 		{PrimitiveType::Double, "Double"},
 		{PrimitiveType::String, "String"},
 
 		{PrimitiveType::Ref, "Ref"},
-		{PrimitiveType::Table, "Table"},
-
-		{PrimitiveType::Vec2f, "Vec2f"},
-		{PrimitiveType::Vec3f, "Vec3f"},
-		{PrimitiveType::Vec4f, "Vec4f"},
-		{PrimitiveType::Vec2i, "Vec2i"},
-		{PrimitiveType::Vec3i, "Vec3i"},
-		{PrimitiveType::Vec4i, "Vec4i"}};
+		{PrimitiveType::Table, "Table"}};
 	return primitiveTypeNameMap;
 };
 
@@ -66,6 +59,9 @@ std::unique_ptr<ValueBase> ValueBase::create(PrimitiveType type) {
 		case PrimitiveType::Int:
 			return std::unique_ptr<ValueBase>(new Value<int>());
 			break;
+		case PrimitiveType::Int64:
+			return std::unique_ptr<ValueBase>(new Value<int64_t>());
+			break;
 		case PrimitiveType::Double:
 			return std::unique_ptr<ValueBase>(new Value<double>());
 			break;
@@ -81,25 +77,6 @@ std::unique_ptr<ValueBase> ValueBase::create(PrimitiveType type) {
 			return std::unique_ptr<ValueBase>(new Value<Table>());
 			break;
 
-		case PrimitiveType::Vec2f:
-			return std::unique_ptr<ValueBase>(new Value<Vec2f>());
-			break;
-		case PrimitiveType::Vec3f:
-			return std::unique_ptr<ValueBase>(new Value<Vec3f>());
-			break;
-		case PrimitiveType::Vec4f:
-			return std::unique_ptr<ValueBase>(new Value<Vec4f>());
-			break;
-
-		case PrimitiveType::Vec2i:
-			return std::unique_ptr<ValueBase>(new Value<Vec2i>());
-			break;
-		case PrimitiveType::Vec3i:
-			return std::unique_ptr<ValueBase>(new Value<Vec3i>());
-			break;
-		case PrimitiveType::Vec4i:
-			return std::unique_ptr<ValueBase>(new Value<Vec4i>());
-			break;
 		case PrimitiveType::Struct:
 			throw std::runtime_error("ValueBase::create can't create generic Value<Struct>");
 			break;
@@ -118,6 +95,11 @@ int& ValueBase::as<int>() {
 }
 
 template <>
+int64_t& ValueBase::as<int64_t>() {
+	return asInt64();
+}
+
+template <>
 double& ValueBase::as<double>() {
 	return asDouble();
 }
@@ -133,32 +115,6 @@ Table& ValueBase::as<Table>() {
 }
 
 template <>
-Vec2f& ValueBase::as<Vec2f>() {
-	return asVec2f();
-}
-template <>
-Vec3f& ValueBase::as<Vec3f>() {
-	return asVec3f();
-}
-template <>
-Vec4f& ValueBase::as<Vec4f>() {
-	return asVec4f();
-}
-
-template <>
-Vec2i& ValueBase::as<Vec2i>() {
-	return asVec2i();
-}
-template <>
-Vec3i& ValueBase::as<Vec3i>() {
-	return asVec3i();
-}
-template <>
-Vec4i& ValueBase::as<Vec4i>() {
-	return asVec4i();
-}
-
-template <>
 const bool& ValueBase::as<bool>() const {
 	return asBool();
 }
@@ -166,6 +122,11 @@ const bool& ValueBase::as<bool>() const {
 template <>
 const int& ValueBase::as<int>() const {
 	return asInt();
+}
+
+template <>
+const int64_t& ValueBase::as<int64_t>() const {
+	return asInt64();
 }
 
 template <>
@@ -183,32 +144,6 @@ const Table& ValueBase::as<Table>() const {
 	return asTable();
 }
 
-template <>
-const Vec2f& ValueBase::as<Vec2f>() const {
-	return asVec2f();
-}
-template <>
-const Vec3f& ValueBase::as<Vec3f>() const {
-	return asVec3f();
-}
-template <>
-const Vec4f& ValueBase::as<Vec4f>() const {
-	return asVec4f();
-}
-
-template <>
-const Vec2i& ValueBase::as<Vec2i>() const {
-	return asVec2i();
-}
-template <>
-const Vec3i& ValueBase::as<Vec3i>() const {
-	return asVec3i();
-}
-template <>
-const Vec4i& ValueBase::as<Vec4i>() const {
-	return asVec4i();
-}
-
 bool ValueBase::classesEqual(const ValueBase& left, const ValueBase& right) {
 	return typeid(left) == typeid(right);
 }
@@ -220,6 +155,11 @@ ValueBase& ValueBase::operator=(bool value) {
 
 ValueBase& ValueBase::operator=(int value) {
 	asInt() = value;
+	return *this;
+}
+
+ValueBase& ValueBase::operator=(int64_t value) {
+	asInt64() = value;
 	return *this;
 }
 
@@ -246,48 +186,13 @@ ValueBase& ValueBase::set(T const& value) {
 
 template ValueBase& ValueBase::set<bool>(bool const& value);
 template ValueBase& ValueBase::set<int>(int const& value);
+template ValueBase& ValueBase::set<int64_t>(int64_t const& value);
 template ValueBase& ValueBase::set<double>(double const& value);
 template ValueBase& ValueBase::set<std::string>(std::string const& value);
 
 template <>
 ValueBase& ValueBase::set<std::vector<std::string>>(std::vector<std::string> const& value) {
 	asTable().set(value);
-	return *this;
-}
-
-template <>
-ValueBase& ValueBase::set<std::array<double, 2>>(std::array<double, 2> const& value) {
-	as<Vec2f>() = value;
-	return *this;
-}
-
-template <>
-ValueBase& ValueBase::set<std::array<double, 3>>(std::array<double, 3> const& value) {
-	as<Vec3f>() = value;
-	return *this;
-}
-
-template <>
-ValueBase& ValueBase::set<std::array<double, 4>>(std::array<double, 4> const& value) {
-	as<Vec4f>() = value;
-	return *this;
-}
-
-template <>
-ValueBase& ValueBase::set<std::array<int, 2>>(std::array<int, 2> const& value) {
-	as<Vec2i>() = value;
-	return *this;
-}
-
-template <>
-ValueBase& ValueBase::set<std::array<int, 3>>(std::array<int, 3> const& value) {
-	as<Vec3i>() = value;
-	return *this;
-}
-
-template <>
-ValueBase& ValueBase::set<std::array<int, 4>>(std::array<int, 4> const& value) {
-	as<Vec4i>() = value;
 	return *this;
 }
 
@@ -311,36 +216,9 @@ void primitiveCopyAnnotationData(T& dest, const T& src) {
 
 template void primitiveCopyAnnotationData<bool>(bool& dest, const bool& src);
 template void primitiveCopyAnnotationData<int>(int& dest, const int& src);
+template void primitiveCopyAnnotationData<int64_t>(int64_t& dest, const int64_t& src);
 template void primitiveCopyAnnotationData<double>(double& dest, const double& src);
 template void primitiveCopyAnnotationData<std::string>(std::string& dest, const std::string& src);
 template void primitiveCopyAnnotationData<Table>(Table& dest, const Table& src);
-
-template <>
-void primitiveCopyAnnotationData<Vec2f>(Vec2f& dest, const Vec2f& src) {
-	dest.copyAnnotationData(src);
-}
-
-template <>
-void primitiveCopyAnnotationData<Vec3f>(Vec3f& dest, const Vec3f& src) {
-	dest.copyAnnotationData(src);
-}
-template <>
-void primitiveCopyAnnotationData<Vec4f>(Vec4f& dest, const Vec4f& src) {
-	dest.copyAnnotationData(src);
-}
-
-template <>
-void primitiveCopyAnnotationData<Vec2i>(Vec2i& dest, const Vec2i& src) {
-	dest.copyAnnotationData(src);
-}
-
-template <>
-void primitiveCopyAnnotationData<Vec3i>(Vec3i& dest, const Vec3i& src) {
-	dest.copyAnnotationData(src);
-}
-template <>
-void primitiveCopyAnnotationData<Vec4i>(Vec4i& dest, const Vec4i& src) {
-	dest.copyAnnotationData(src);
-}
 
 }  // namespace raco::data_storage

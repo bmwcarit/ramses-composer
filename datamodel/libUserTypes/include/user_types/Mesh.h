@@ -11,7 +11,7 @@
 
 #include "user_types/BaseObject.h"
 
-#include "data_storage/BasicAnnotations.h"
+#include "core/BasicAnnotations.h"
 
 #include "core/MeshCacheInterface.h"
 

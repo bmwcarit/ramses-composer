@@ -107,7 +107,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 
 		auto& item = nodeTreeList_[i] = new QTreeWidgetItem({QString::fromStdString(node.name), QString::fromStdString((node.subMeshIndeces.size() == 1) ? raco::user_types::MeshNode::typeDescription.typeName : raco::user_types::Node::typeDescription.typeName)});
 		widgetItemToSubmeshIndexMap_[item] = &node.subMeshIndeces;
-		item->setIcon(0, node.subMeshIndeces.size() == 1 ? raco::style::Icons::pixmap(raco::style::Pixmap::typeMesh) : raco::style::Icons::pixmap(raco::style::Pixmap::typeNode));
+		item->setIcon(0, node.subMeshIndeces.size() == 1 ? raco::style::Icons::instance().typeMesh : raco::style::Icons::instance().typeNode);
 		item->setCheckState(0, Qt::CheckState::Checked);
 		if (node.parentIndex == raco::core::MeshScenegraphNode::NO_PARENT) {
 			widget_->addTopLevelItem(item);
@@ -117,7 +117,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		// We currently split those into separate MeshNodes under a singular, separate Node
 		if (node.subMeshIndeces.size() > 1) {
 			auto primitiveParent = new QTreeWidgetItem({QString::fromStdString(fmt::format("{}_meshnodes", node.name)), QString::fromStdString(raco::user_types::Node::typeDescription.typeName)});
-			primitiveParent->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeNode));
+			primitiveParent->setIcon(0, raco::style::Icons::instance().typeNode);
 			primitiveParent->setCheckState(0, Qt::CheckState::Checked);
 			item->addChild(primitiveParent);
 			// first element in primitive tree list is the aforementioned singular Node (primitive parent)
@@ -125,7 +125,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 
 			for (auto primitiveIndex = 0; primitiveIndex < node.subMeshIndeces.size(); ++primitiveIndex) {
 				auto* primitive = new QTreeWidgetItem({QString::fromStdString(fmt::format("{}_meshnode_{}", node.name, primitiveIndex)), QString::fromStdString(raco::user_types::MeshNode::typeDescription.typeName)});
-				primitive->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeMesh));
+				primitive->setIcon(0, raco::style::Icons::instance().typeMesh);
 				primitive->setCheckState(0, Qt::CheckState::Checked);
 				nodeToPrimitiveTreeList_[i].emplace_back(primitive);
 				primitiveToMeshIndexMap_[primitive] = *node.subMeshIndeces[primitiveIndex];
@@ -148,7 +148,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	for (auto i = 0; i < sceneGraph_.meshes.size(); ++i) {
 		auto& mesh = sceneGraph_.meshes[i].value();
 		auto item = meshTreeList_[i] = new QTreeWidgetItem({QString::fromStdString(mesh), QString::fromStdString(raco::user_types::Mesh::typeDescription.typeName)});
-		item->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeMesh));
+		item->setIcon(0, raco::style::Icons::instance().typeMesh);
 		item->setCheckState(0, Qt::CheckState::Checked);
 		widget_->addTopLevelItem(item);
 	}
@@ -156,7 +156,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	for (auto animIndex = 0; animIndex < sceneGraph_.animations.size(); ++animIndex) {
 		auto& anim = sceneGraph_.animations[animIndex].value();
 		auto animItem = animTreeList_[animIndex] = new QTreeWidgetItem({QString::fromStdString(anim.name), QString::fromStdString(raco::user_types::Animation::typeDescription.typeName)});
-		animItem->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeAnimation));
+		animItem->setIcon(0, raco::style::Icons::instance().typeAnimation);
 		animItem->setCheckState(0, Qt::CheckState::Checked);
 		widget_->addTopLevelItem(animItem);
 
@@ -164,7 +164,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 			auto& sampler = sceneGraph_.animationSamplers[animIndex][samplerIndex];
 			auto sampItem = new QTreeWidgetItem({QString::fromStdString(*sampler), QString::fromStdString(raco::user_types::AnimationChannel::typeDescription.typeName)});
 			animSamplerItemMap_[animIndex].emplace_back(sampItem);
-			sampItem->setIcon(0, raco::style::Icons::pixmap(raco::style::Pixmap::typeAnimationChannel));
+			sampItem->setIcon(0, raco::style::Icons::instance().typeAnimationChannel);
 			sampItem->setCheckState(0, Qt::CheckState::Checked);
 			widget_->addTopLevelItem(sampItem);
 		}

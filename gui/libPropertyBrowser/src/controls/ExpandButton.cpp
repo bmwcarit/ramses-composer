@@ -17,13 +17,11 @@
 #include "property_browser/PropertyBrowserItem.h"
 
 namespace raco::property_browser {
-
 using namespace ::raco::style;
 
-ExpandControlButton::ExpandControlButton(PropertyBrowserItem* item, QWidget* parent)
+ExpandButton::ExpandButton(PropertyBrowserItem* item, QWidget* parent)
 	: QPushButton{parent} {
-	auto icon = Icons::icon(Pixmap::collapsed, this);
-	setIcon(icon);
+	setIcon(Icons::instance().collapsed);
 	setContentsMargins(0, 0, 0, 0);
 	setFlat(true);
 
@@ -35,7 +33,7 @@ ExpandControlButton::ExpandControlButton(PropertyBrowserItem* item, QWidget* par
 		setVisible(false);
 		setMaximumHeight(0);
 	}
-		
+
 	QObject::connect(item, &PropertyBrowserItem::childrenChanged, this, [this](const auto& children) {
 		if (children.size() > 0) {
 			setMaximumHeight(QWIDGETSIZE_MAX);
@@ -46,7 +44,7 @@ ExpandControlButton::ExpandControlButton(PropertyBrowserItem* item, QWidget* par
 		}
 	});
 
-	QObject::connect(this, &ExpandControlButton::clicked, this, [this, item]() {
+	QObject::connect(this, &ExpandButton::clicked, this, [this, item]() {
 		if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
 			item->setExpandedRecursively(!item->expanded());
 		} else {
@@ -54,15 +52,15 @@ ExpandControlButton::ExpandControlButton(PropertyBrowserItem* item, QWidget* par
 		}
 	});
 
-	QObject::connect(item, &PropertyBrowserItem::expandedChanged, this, &ExpandControlButton::updateIcon);
+	QObject::connect(item, &PropertyBrowserItem::expandedChanged, this, &ExpandButton::updateIcon);
 	updateIcon(item->expanded());
 }
 
-void ExpandControlButton::updateIcon(bool expanded) {
+void ExpandButton::updateIcon(bool expanded) {
 	if (expanded) {
-		setIcon(Icons::icon(Pixmap::expanded, this));
+		setIcon(Icons::instance().expanded);
 	} else {
-		setIcon(Icons::icon(Pixmap::collapsed, this));
+		setIcon(Icons::instance().collapsed);
 	}
 }
 

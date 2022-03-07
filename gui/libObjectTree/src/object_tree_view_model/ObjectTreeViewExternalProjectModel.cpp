@@ -55,7 +55,7 @@ QVariant ObjectTreeViewExternalProjectModel::data(const QModelIndex& index, int 
 			}
 
 			if (failed) {
-				return QVariant(raco::style::Icons::icon(Pixmap::error));
+				return QVariant(raco::style::Icons::instance().error);
 			} else {
 				return QVariant(QIcon());
 			}
@@ -223,10 +223,13 @@ bool ObjectTreeViewExternalProjectModel::canDeleteAtIndices(const QModelIndexLis
 	return false;
 }
 
-bool ObjectTreeViewExternalProjectModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
+bool ObjectTreeViewExternalProjectModel::canDuplicateAtIndices(const QModelIndexList& indices) const {
 	return false;
 }
 
+bool ObjectTreeViewExternalProjectModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
+	return false;
+}
 
 bool ObjectTreeViewExternalProjectModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
 	return false;
@@ -244,6 +247,11 @@ void ObjectTreeViewExternalProjectModel::cutObjectsAtIndices(const QModelIndexLi
 bool ObjectTreeViewExternalProjectModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	// Don't modify external project structure.
 	return true;
+}
+
+std::vector<core::SEditorObject> ObjectTreeViewExternalProjectModel::duplicateObjectsAtIndices(const QModelIndexList& indices) {
+	// Don't modify external project structure.
+	return {};
 }
 
 }  // namespace raco::object_tree::model

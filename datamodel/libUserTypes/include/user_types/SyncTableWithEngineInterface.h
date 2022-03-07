@@ -12,7 +12,7 @@
 #include "core/Context.h"
 #include "core/EngineInterface.h"
 #include "core/Handles.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicTypes.h"
 #include "data_storage/Table.h"
 
 namespace raco::user_types {

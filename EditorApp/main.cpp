@@ -44,6 +44,13 @@ int main(int argc, char *argv[]) {
 	QCoreApplication::setApplicationName("Ramses Composer");
 	QCoreApplication::setApplicationVersion(RACO_OSS_VERSION);
 
+	// Enable Qt's virtualized coordinate system, which makes qt pixel size different from physical pixel size depending on the scale factor set in the operating system.
+	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+	// By default, Qt will round the scale factor to the closest integer in some contexts. Disable rounding, since it produces invalid font sizes for Windows 125%, 150%, 175% etc. scaling mode.
+	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+	// Also, we need support for high resolution icons on scale factors greater than one.
+	QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+	
 	// QDialogs will show a "?"-Button by default. While it is possible to disable this for every single dialog, we never need this and thus, disabling it globally is easier.
 	QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
 
@@ -83,10 +90,7 @@ int main(int argc, char *argv[]) {
 	// force use of style palette, required on Linux
 	a.setPalette(a.style()->standardPalette());
 
-	QStringList argList{};
-	for (int i{0}; i < argc; i++)
-		argList << argv[i];
-	parser.process(argList);
+	parser.process(QCoreApplication::arguments());
 
 	bool noDumpFiles = parser.isSet(noDumpFileCheckOption);
 	raco::utils::crashdump::installCrashDumpHandler(noDumpFiles);
@@ -140,5 +144,6 @@ int main(int argc, char *argv[]) {
 
 	MainWindow w{&app, &rendererBackend};
 	w.show();
+
 	return a.exec();
 }

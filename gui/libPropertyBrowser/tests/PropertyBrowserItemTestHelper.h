@@ -59,6 +59,12 @@ struct PropertyBrowserItemTestHelper {
 		dispatcher->dispatch(recorder.release());
 	}
 
+	void addPropertyTo(const std::string& containerName, const std::string& name, raco::data_storage::ValueBase* property) {
+		editorObject->get(containerName)->asTable().addProperty(name, property);
+		recorder.recordValueChanged(valueHandle.get(containerName));
+		dispatcher->dispatch(recorder.release());
+	}
+
 	void removePropertyFrom(const std::string& containerName) {
 		editorObject->get(containerName)->asTable().removeProperty(0);
 		recorder.recordValueChanged(valueHandle.get(containerName));

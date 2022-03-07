@@ -87,12 +87,12 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedOnTopLeve
 
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedUnderPrefab) {
-	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName});
+	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
-			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromTreeNodeID(Prefab::typeDescription.typeName + Prefab::typeDescription.typeName), newObj));
+			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromTreeNodeID(prefab->objectID()), newObj));
 		}
 	}
 }
@@ -111,8 +111,8 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckSceneGraphObjectsOnTopLeve
 }
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckExternalSceneGraphObjectsUnderPrefab) {
-	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName});
-	auto prefabIndex = viewModel_->indexFromTreeNodeID(Prefab::typeDescription.typeName + Prefab::typeDescription.typeName);
+	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
+	auto prefabIndex = viewModel_->indexFromTreeNodeID(prefab->objectID());
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
@@ -128,7 +128,8 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckExternalSceneGraphObjectsU
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsPrefabInTreeViewIsNotMovable) {
 	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"prefab1", "prefab2"});
-	auto prefabIndex = viewModel_->indexFromTreeNodeID(Prefab::typeDescription.typeName + "prefab1");
+	auto prefabIndex = viewModel_->indexFromTreeNodeID(prefabs[0]->objectID());
+	ASSERT_TRUE(prefabIndex.isValid());
 
 	ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(prefabIndex, prefabs[1]));
 }
@@ -194,7 +195,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsAllowedInEmpt
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
 }
 
-TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsAllowedUnderPrefab) {
+TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsNotAllowedUnderPrefab) {
 	auto meshNode = createNodes(MeshNode::typeDescription.typeName, {MeshNode::typeDescription.typeName}).front();
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"prefab", "prefab2"});
@@ -209,7 +210,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsAllowedUnderP
 	dataChangeDispatcher_->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
-	ASSERT_TRUE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID("prefab2"), parsedObjs, sourceProjectTopLevelObjectIds));
+	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID(prefabs[1]->objectID()), parsedObjs, sourceProjectTopLevelObjectIds));
 }
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsNothingIsAllowedUnderExtRef) {
@@ -217,7 +218,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsNothingIsAllowedUnderExtRef) {
 	extRefPrefab->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
 
 	viewModel_->buildObjectTree();
-	auto extRefPrefabIndex = viewModel_->indexFromTreeNodeID(Prefab::typeDescription.typeName + Prefab::typeDescription.typeName);
+	auto extRefPrefabIndex = viewModel_->indexFromTreeNodeID(extRefPrefab->objectID());
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
@@ -240,6 +241,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {
 
 	ASSERT_FALSE(viewModel_->canDeleteAtIndices({extRefGroupIndex}));
 	ASSERT_FALSE(viewModel_->canCopyAtIndices({extRefGroupIndex}));
+	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({extRefGroupIndex}));
 
 	dataChangeDispatcher_->dispatch(recorder.release());
 	auto copiedObjs = commandInterface.copyObjects({extRefPrefab});
@@ -248,4 +250,80 @@ TEST_F(ObjectTreeViewPrefabModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex(extRefGroupIndex, parsedObjs, sourceProjectTopLevelObjectIds));
+}
+
+
+TEST_F(ObjectTreeViewPrefabModelTest, DuplicationPrefabCanBeDuplicated) {
+	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
+
+	ASSERT_TRUE(viewModel_->canDuplicateAtIndices({viewModel_->indexFromTreeNodeID(prefab->objectID())}));
+}
+
+TEST_F(ObjectTreeViewPrefabModelTest, DuplicationPrefabChildrenCanBeDuplicated) {
+	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	moveScenegraphChildren(allSceneGraphNodes, prefab);
+
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
+		ASSERT_TRUE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewPrefabModelTest, DuplicationExtrefPrefabCanNotBeDuplicated) {
+	auto extRefPrefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	moveScenegraphChildren(allSceneGraphNodes, extRefPrefab);
+
+	extRefPrefab->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	for (auto &node : allSceneGraphNodes) {
+		node->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	}
+
+	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({viewModel_->indexFromTreeNodeID(extRefPrefab->objectID())}));
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
+		ASSERT_FALSE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewPrefabModelTest, DuplicationPrefabInstanceChildrenInPrefabCanNotBeDuplicated) {
+	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"p1", "p2"});
+	auto prefabInstance = createNodes(PrefabInstance::typeDescription.typeName, {PrefabInstance::typeDescription.typeName}).front();
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	moveScenegraphChildren(allSceneGraphNodes, prefabs[0]);
+	moveScenegraphChildren({prefabInstance}, prefabs[1]);
+
+	commandInterface.set({prefabInstance, &PrefabInstance::template_}, prefabs[0]);
+
+	viewModel_->buildObjectTree();
+
+	for (const auto &instChild : prefabs[1]->children_->asVector<SEditorObject>()[0]->children_->asVector<SEditorObject>()) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(instChild->objectID());
+		ASSERT_FALSE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewPrefabModelTest, DuplicationDifferentNodesInDifferentPrefabsCanNotBeDuplicated) {
+	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"p1", "p2"});
+	auto nodes = createNodes(Node::typeDescription.typeName, {"n11", "n12", "n21"});
+
+
+	moveScenegraphChildren({nodes[0]}, prefabs[0]);
+	moveScenegraphChildren({nodes[1]}, nodes[0]);
+	moveScenegraphChildren({nodes[2]}, prefabs[1]);
+
+	viewModel_->buildObjectTree();
+
+	auto prefab1Child = viewModel_->indexFromTreeNodeID(nodes[1]->objectID());
+	auto prefab2Child = viewModel_->indexFromTreeNodeID(nodes[2]->objectID());
+
+	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({prefab1Child, prefab2Child}));
+}
+
+TEST_F(ObjectTreeViewPrefabModelTest, DuplicationCanNotDuplicateNothing) {
+	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({}));
 }

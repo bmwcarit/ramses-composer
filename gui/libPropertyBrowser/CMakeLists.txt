@@ -24,13 +24,14 @@ add_library(libPropertyBrowser
     include/property_browser/editors/DoubleEditor.h src/editors/DoubleEditor.cpp
     include/property_browser/editors/EnumerationEditor.h src/editors/EnumerationEditor.cpp
     include/property_browser/editors/IntEditor.h src/editors/IntEditor.cpp
+    include/property_browser/editors/Int64Editor.h src/editors/Int64Editor.cpp
     include/property_browser/editors/LinkEditor.h src/editors/LinkEditor.cpp
     include/property_browser/editors/PropertyEditor.h src/editors/PropertyEditor.cpp
     include/property_browser/editors/RefEditor.h src/editors/RefEditor.cpp
     include/property_browser/editors/StringEditor.h src/editors/StringEditor.cpp
     include/property_browser/editors/TagContainerEditor.h src/editors/TagContainerEditor.cpp
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
-    include/property_browser/editors/VecNTEditor.h
+    include/property_browser/editors/VecNTEditor.h src/editors/VecNTEditor.cpp
     
     include/property_browser/controls/ExpandButton.h src/controls/ExpandButton.cpp
     include/property_browser/controls/MouseWheelGuard.h src/controls/MouseWheelGuard.cpp

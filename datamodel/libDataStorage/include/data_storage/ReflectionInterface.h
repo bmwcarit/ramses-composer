@@ -147,4 +147,12 @@ protected:
 	std::vector<std::shared_ptr<AnnotationBase>> annotations_;
 };
 
-}
+
+// Base class for all PrimitiveType::Struct classes
+// See Value.h for details on struct types
+class StructBase : public ClassWithReflectedMembers {
+public:
+	StructBase(std::vector<std::pair<std::string, ValueBase*>>&& properties = {}) : ClassWithReflectedMembers(std::move(properties)) {}
+};
+
+} 

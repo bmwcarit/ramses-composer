@@ -7,6 +7,7 @@ function interface()
 		vector3f = VEC3F,
 		vector4f = VEC4F,
 		integer = INT,
+		integer64 = INT64,
 		vector2i = VEC2I,
 		vector3i = VEC3I,
 		vector4i = VEC4I,
@@ -24,6 +25,7 @@ function run()
     OUT.s.vector4f = IN.s.vector4f
     
     OUT.s.integer = IN.s.integer
+    OUT.s.integer64 = IN.s.integer64
     OUT.s.vector2i = IN.s.vector2i
     OUT.s.vector3i = IN.s.vector3i
     OUT.s.vector4i = IN.s.vector4i

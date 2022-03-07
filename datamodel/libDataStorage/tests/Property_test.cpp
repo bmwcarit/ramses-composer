@@ -7,7 +7,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "data_storage/BasicTypes.h"
 #include "data_storage/Value.h"
 
 #include "StructTypes.h"
@@ -41,42 +40,6 @@ TEST(PropertyTest, Scalar)
 	u = 3.0;
 }
 
-TEST(PropertyTest, Vec3f)
-{
-	Property<Vec3f> v { Vec3f { 0.0 } };
-
-	v->x = 2.0;
-	EXPECT_EQ(*(v->x), 2.0);
-
-	double a = *v->x;
-	EXPECT_EQ(a, 2.0);
-
-	ValueBase* vp = &v;
-
-	EXPECT_EQ(*vp->as<Vec3f>().x, 2.0);
-	EXPECT_THROW(vp->as<bool>(), std::runtime_error);
-}
-
-TEST(PropertyTest, clone) {
-	Property<int, DisplayNameAnnotation> p_int_hidden{42, {"Name"}};
-	auto pihc = p_int_hidden.clone(nullptr);
-	EXPECT_EQ(pihc->asInt(), *p_int_hidden);
-
-	Property<double, RangeAnnotation<double>> pfr { 2.0, {1, 3}};
-	auto pfrc = pfr.clone(nullptr);
-	EXPECT_EQ(pfrc->asDouble(), *pfr);
-
-	auto range = pfr.query<RangeAnnotation<double>>();
-	auto range_clone = pfrc->query<RangeAnnotation<double>>();
-
-	EXPECT_TRUE(range);
-	EXPECT_TRUE(range_clone);
-
-	EXPECT_EQ(*range->min_, *range_clone->min_);
-	EXPECT_EQ(*range->max_, *range_clone->max_);
-
-}
-
 
 TEST(PropertyTest, Struct) {
 	SimpleStruct s;
@@ -92,8 +55,8 @@ TEST(PropertyTest, Struct) {
 
 	EXPECT_THROW(vs.asBool(), std::runtime_error);
 	EXPECT_THROW(vs.as<bool>(), std::runtime_error);
-	EXPECT_THROW(vs.asVec3f(), std::runtime_error);
-	EXPECT_THROW(vs.as<Vec3f>(), std::runtime_error);
+	EXPECT_THROW(vs.asTable(), std::runtime_error);
+	EXPECT_THROW(vs.as<Table>(), std::runtime_error);
 
 	ReflectionInterface& intf = vs.getSubstructure();
 	EXPECT_EQ(intf.size(), 2);

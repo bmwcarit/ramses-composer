@@ -10,7 +10,7 @@
 #pragma once
 
 #include "core/EditorObject.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicTypes.h"
 
 #include <vector>
 
@@ -33,7 +33,7 @@ public:
 
 		auto s = luaInputs_->addProperty("in_struct", PrimitiveType::Table);
 		s->asTable().addProperty("foo", PrimitiveType::Double);
-		s->asTable().addProperty("bar", PrimitiveType::Vec3f);
+		s->asTable().addProperty("bar", std::make_unique<Value<Vec3f>>());
 
 		auto a = luaInputs_->addProperty("in_array_double", PrimitiveType::Table);
 		a->asTable().addProperty(std::string(), PrimitiveType::Double);
@@ -41,17 +41,17 @@ public:
 		a->asTable().addProperty(std::string(), PrimitiveType::Double);
 
 		auto av = luaInputs_->addProperty("in_array_vec3f", PrimitiveType::Table);
-		av->asTable().addProperty(std::string(), PrimitiveType::Vec3f);
-		av->asTable().addProperty(std::string(), PrimitiveType::Vec3f);
-		av->asTable().addProperty(std::string(), PrimitiveType::Vec3f);
+		av->asTable().addProperty(std::string(), new Value<Vec3f>());
+		av->asTable().addProperty(std::string(), new Value<Vec3f>());
+		av->asTable().addProperty(std::string(), new Value<Vec3f>());
 
 		auto as = luaInputs_->addProperty("in_array_struct", PrimitiveType::Table);
 		auto as0 = as->asTable().addProperty(std::string(), PrimitiveType::Table);
 		as0->asTable().addProperty("foo", PrimitiveType::Double);
-		as0->asTable().addProperty("bar", PrimitiveType::Vec3f);
+		as0->asTable().addProperty("bar", new Value<Vec3f>());
 		auto as1 = as->asTable().addProperty(std::string(), PrimitiveType::Table);
 		as1->asTable().addProperty("foo", PrimitiveType::Double);
-		as1->asTable().addProperty("bar", PrimitiveType::Vec3f);
+		as1->asTable().addProperty("bar", new Value<Vec3f>());
 	}
 
 	void fillPropertyDescription() {
@@ -64,7 +64,7 @@ public:
 };
 
 
-class StructWithRef : public ClassWithReflectedMembers {
+class StructWithRef : public StructBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"StructWithRef", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -74,9 +74,9 @@ public:
 		return true;
 	}
 
-	StructWithRef() : ClassWithReflectedMembers(getProperties()) {}
+	StructWithRef() : StructBase(getProperties()) {}
 
-	StructWithRef(const StructWithRef& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : ClassWithReflectedMembers(getProperties()) {
+	StructWithRef(const StructWithRef& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : StructBase(getProperties()) {
 		if (translateRef) {
 			ref = (*translateRef)(*other.ref);
 		} else {

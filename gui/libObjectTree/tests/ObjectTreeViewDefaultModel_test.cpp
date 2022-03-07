@@ -739,6 +739,121 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombin
 	}
 }
 
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanDuplicateAllTopLevelItems) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
+		ASSERT_TRUE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanDuplicateAllChildren) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	auto parent = createNodes(Node::typeDescription.typeName, {"Parent"}).front();
+	moveScenegraphChildren(allSceneGraphNodes, parent);
+
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
+		ASSERT_TRUE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationParent) {
+	auto parent = createNodes(Node::typeDescription.typeName, {"Parent"}).front();
+
+	auto duplicatedObjs = viewModel_->duplicateObjectsAtIndices({viewModel_->indexFromTreeNodeID(parent->objectID())});
+
+	ASSERT_EQ(duplicatedObjs.size(), 1);
+	ASSERT_EQ(duplicatedObjs.front()->getParent(), nullptr);
+	ASSERT_NE(duplicatedObjs.front()->objectID(), parent->objectID());
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationChild) {
+	auto hierarchy = createNodes(Node::typeDescription.typeName, {"Parent", "Child"});
+
+	moveScenegraphChildren({hierarchy[1]}, hierarchy[0]);
+
+	auto duplicatedObjs = viewModel_->duplicateObjectsAtIndices({viewModel_->indexFromTreeNodeID(hierarchy[1]->objectID())});
+
+	ASSERT_EQ(duplicatedObjs.size(), 1);
+	ASSERT_EQ(duplicatedObjs.front()->getParent(), hierarchy[0]);
+	ASSERT_NE(duplicatedObjs.front()->objectID(), hierarchy[1]->objectID());
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanNotDuplicateHierarchy) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+
+	auto parent = createNodes(Node::typeDescription.typeName, {"Parent"}).front();
+	moveScenegraphChildren(allSceneGraphNodes, parent);
+
+	for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
+		auto parentIndex = viewModel_->indexFromTreeNodeID(parent->objectID());
+		ASSERT_FALSE(viewModel_->canDuplicateAtIndices({parentIndex, sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanNotDuplicatePrefabInstanceChildren) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+	auto prefab = createNodes(Prefab::typeDescription.typeName, {"Template"}).front();
+	auto prefabInstance = createNodes(PrefabInstance::typeDescription.typeName, {"Instance"}).front();
+
+	commandInterface.set({prefabInstance, &PrefabInstance::template_}, prefab);
+
+	moveScenegraphChildren(allSceneGraphNodes, prefab);
+
+	for (const auto &child : prefabInstance->children_->asVector<SEditorObject>()) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(child->objectID());		
+		ASSERT_FALSE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanNotDuplicateNestedPrefabInstanceChildren) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+	auto prefab1 = createNodes(Prefab::typeDescription.typeName, {"Prefab1"}).front();
+	auto prefabInstance1 = createNodes(PrefabInstance::typeDescription.typeName, {"Instance1"}).front();
+
+	auto prefab2 = createNodes(Prefab::typeDescription.typeName, {"Prefab1"}).front();
+	auto prefabInstance2 = createNodes(PrefabInstance::typeDescription.typeName, {"Instance2"}).front();
+
+	moveScenegraphChildren(allSceneGraphNodes, prefab1);
+	moveScenegraphChildren({prefabInstance1}, prefab2);
+
+	commandInterface.set({prefabInstance1, &PrefabInstance::template_}, prefab1);
+	commandInterface.set({prefabInstance2, &PrefabInstance::template_}, prefab2);
+
+	viewModel_->buildObjectTree();
+
+	for (const auto &child : prefabInstance2->children_->asVector<SEditorObject>()[0]->children_->asVector<SEditorObject>()) {
+		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(child->objectID());
+		ASSERT_FALSE(viewModel_->canDuplicateAtIndices({sceneObjIndex}));
+	}
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanNotDuplicateChildAndUncle) {
+	auto allSceneGraphNodes = createAllSceneGraphObjects();
+	auto nodes = createNodes(Node::typeDescription.typeName, {"Grandparent", "Parent", "Child", "Uncle"});
+	auto grandparent = nodes[0];
+	auto parent = nodes[1];
+	auto child = nodes[2];
+	auto uncle = nodes[3];
+	
+	moveScenegraphChildren({parent}, grandparent);
+	moveScenegraphChildren({uncle}, grandparent);
+	moveScenegraphChildren({child}, parent);
+
+	viewModel_->buildObjectTree();
+	auto childIndex = viewModel_->indexFromTreeNodeID(child->objectID());
+	auto uncleIndex = viewModel_->indexFromTreeNodeID(uncle->objectID());
+	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({childIndex, uncleIndex}));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanNotDuplicateNothing) {
+	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({}));
+}
+
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedOnTopLevel) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = viewModel_->objectFactory()->createObject(typeName);
@@ -886,7 +1001,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsLuaScriptIsAllowedAsExtRefOnTo
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsExtRef) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
 	auto externalParentNode = createNodes(Node::typeDescription.typeName, {Node::typeDescription.typeName}).front();
-	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"});
+	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	moveScenegraphChildren({luaScript}, externalParentNode);
 
 	externalParentNode->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
@@ -899,12 +1014,12 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsEx
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
-	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID("NodelocalParent"), parsedObjs, sourceProjectTopLevelObjectIds, true));
+	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID(localParentNode->objectID()), parsedObjs, sourceProjectTopLevelObjectIds, true));
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedAsChild) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
-	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"});
+	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
 	dataChangeDispatcher_->dispatch(recorder.release());
 
@@ -912,14 +1027,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedAsChild) 
 	dataChangeDispatcher_->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
-	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID("NodelocalParent"), parsedObjs, sourceProjectTopLevelObjectIds, true));
+	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID(localParentNode->objectID()), parsedObjs, sourceProjectTopLevelObjectIds, true));
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedWhenChildInExternalProject) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
 	auto externalParentNode = createNodes(Node::typeDescription.typeName, {"externalParentNode"}).front();
-	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"});
+	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	moveScenegraphChildren({luaScript}, externalParentNode);
 	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
 	dataChangeDispatcher_->dispatch(recorder.release());

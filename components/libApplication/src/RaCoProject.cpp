@@ -36,6 +36,7 @@
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
 #include "utils/FileUtils.h"
+#include "utils/ZipUtils.h"
 #include "utils/u8path.h"
 #include "core/CoreFormatter.h"
 #include "utils/stdfilesystem.h"
@@ -198,7 +199,7 @@ RaCoProject::~RaCoProject() {
 }
 
 std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
-	LOG_INFO(raco::log_system::PROJECT, "");
+	LOG_INFO(raco::log_system::PROJECT, "Creating new project.");
 	Project p{};
 	p.setCurrentPath(components::RaCoPreferences::instance().userProjectsDirectory.toStdString());
 
@@ -229,7 +230,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 	result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Value<int>>(0));
 
 	result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
-	result->context_->set({sCamera, &user_types::Node::translation_, &data_storage::Vec3f::z}, 10.0);
+	result->context_->set({sCamera, &user_types::Node::translation_, &Vec3f::z}, 10.0);
 	result->context_->moveScenegraphChildren({sMeshNode}, sNode);
 	result->undoStack_.reset();
 	result->context_->changeMultiplexer().reset();
@@ -249,15 +250,33 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 	}
 
 	QFile file{filename};
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+	if (!file.open(QIODevice::ReadOnly)) {
 		LOG_WARNING(raco::log_system::PROJECT, "Can't read file {}", filename.toLatin1());
 		return {};
 	}
-	auto document{QJsonDocument::fromJson(file.readAll())};
+
+	auto fileContents = file.readAll();
+	file.close();
+
+	if (fileContents.size() < 4) {
+		LOG_WARNING(raco::log_system::PROJECT, "File {} has invalid content", filename.toLatin1());
+		return {};
+	}
+
+	if (raco::utils::zip::isZipFile({fileContents.begin(), fileContents.begin() + 4})) {
+		auto unzippedProj = raco::utils::zip::zipToProject(fileContents, fileContents.size());
+
+		if (unzippedProj.success) {
+			fileContents = QByteArray(unzippedProj.payload.c_str());
+		} else {
+			throw std::runtime_error(fmt::format("Can't read zipped file {}:\n{}", filename.toLatin1(), unzippedProj.payload));
+		}
+	}
+
+	auto document{QJsonDocument::fromJson(fileContents)};
 	if (document.isNull()) {
 		throw std::runtime_error("Loading JSON file resulted in a null document object");
 	}
-	file.close();
 
 	auto fileVersion{raco::serialization::deserializeFileVersion(document)};
 	if (fileVersion > raco::serialization::RAMSES_PROJECT_FILE_VERSION) {
@@ -322,7 +341,11 @@ bool RaCoProject::save() {
 	const auto path(project_.currentPath());
 	LOG_INFO(raco::log_system::PROJECT, "Saving project to {}", path);
 	QFile file{path.c_str()};
-	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+	auto settings = project_.settings();
+	auto saveAsZip = *settings->saveAsZip_;
+	auto flags = (saveAsZip) ? QIODevice::WriteOnly : QIODevice::WriteOnly | QIODevice::Text;
+
+	if (!file.open(flags)) {
 		LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
 		return false;
 	}
@@ -335,7 +358,21 @@ bool RaCoProject::save() {
 		{raco::serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
 		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
 		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
-	file.write(serializeProject(currentVersions).toJson());
+	auto projectFileData = serializeProject(currentVersions).toJson();
+
+	if (saveAsZip) {
+		auto zippedFile = (raco::utils::zip::projectToZip(projectFileData.constData(), (project_.currentFileName() + ".json").c_str()));
+		if (zippedFile.empty()) {
+			LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Error while zipping project file");
+			return false;
+		}
+
+		projectFileData.resize(zippedFile.size());
+
+		std::memcpy(projectFileData.data(), zippedFile.data(), zippedFile.size());
+	}
+
+	file.write(projectFileData);
 	if (!file.flush() || file.error() != QFile::FileError::NoError) {
 		LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Could not write to disk: FileError {} {}", file.error(), file.errorString().toStdString());
 		file.close();

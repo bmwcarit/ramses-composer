@@ -41,6 +41,7 @@ namespace Queries {
 	bool canPasteIntoObject(Project const& project, SEditorObject const& object);
 	bool canPasteObjectAsExternalReference(const SEditorObject& editorObject, bool wasTopLevelObjectInSourceProject);
 	bool canDeleteUnreferencedResources(const Project& project);
+	bool canDuplicateObjects(const std::vector<SEditorObject>& objects, const Project& project);
 
 	SEditorObjectSet collectAllChildren(std::vector<SEditorObject> baseObjects);
 

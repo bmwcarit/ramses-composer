@@ -32,6 +32,7 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
+#include "user_types/PrefabInstance.h"
 
 #include <core/PathManager.h>
 #include <spdlog/fmt/fmt.h>
@@ -179,7 +180,7 @@ void BaseContext::setT<Table>(ValueHandle const& handle, Table const& value) {
 }
 
 template <>
-void BaseContext::setT<ClassWithReflectedMembers>(ValueHandle const& handle, ClassWithReflectedMembers const& value) {
+void BaseContext::setT<StructBase>(ValueHandle const& handle, StructBase const& value) {
 	ValueBase* v = handle.valueRef();
 
 	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
@@ -200,6 +201,10 @@ void BaseContext::set(ValueHandle const& handle, bool const& value) {
 }
 
 void BaseContext::set(ValueHandle const& handle, int const& value) {
+	setT(handle, value);
+}
+
+void BaseContext::set(ValueHandle const& handle, int64_t const& value) {
 	setT(handle, value);
 }
 
@@ -228,30 +233,42 @@ void BaseContext::set(ValueHandle const& handle, Table const& value) {
 }
 
 void BaseContext::set(ValueHandle const& handle, std::array<double, 2> const& value) {
-	setT(handle, value);
+	Vec2f vecValue;
+	vecValue = value;
+	setT(handle, static_cast<StructBase const&>(vecValue));
 }
 
 void BaseContext::set(ValueHandle const& handle, std::array<double, 3> const& value) {
-	setT(handle, value);
+	Vec3f vecValue;
+	vecValue = value;
+	setT(handle, static_cast<StructBase const&>(vecValue));
 }
 
 void BaseContext::set(ValueHandle const& handle, std::array<double, 4> const& value) {
-	setT(handle, value);
+	Vec4f vecValue;
+	vecValue = value;
+	setT(handle, static_cast<StructBase const&>(vecValue));
 }
 
 void BaseContext::set(ValueHandle const& handle, std::array<int, 2> const& value) {
-	setT(handle, value);
+	Vec2i vecValue;
+	vecValue = value;
+	setT(handle, static_cast<StructBase const&>(vecValue));
 }
 
 void BaseContext::set(ValueHandle const& handle, std::array<int, 3> const& value) {
-	setT(handle, value);
+	Vec3i vecValue;
+	vecValue = value;
+	setT(handle, static_cast<StructBase const&>(vecValue));
 }
 
 void BaseContext::set(ValueHandle const& handle, std::array<int, 4> const& value) {
-	setT(handle, value);
+	Vec4i vecValue;
+	vecValue = value;
+	setT(handle, static_cast<StructBase const&>(vecValue));
 }
 
-void BaseContext::set(ValueHandle const& handle, ClassWithReflectedMembers const& value) {
+void BaseContext::set(ValueHandle const& handle, StructBase const& value) {
 	setT(handle, value);
 }
 
@@ -601,14 +618,32 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		rerootRelativePaths(newObjects, deserialization);
 	}
 	
-	// Generate new ids, reroot relative paths and call appropriate context functions for object creation
+	// Generate new ids:
+	// Pass 1: everything except PrefabInstance children
+	std::map<std::string, std::string> prefabInstanceIDMap;
 	for (auto& editorObject : newObjects) {
-		// change object id and reroot uris of non-extref objects
 		if (!editorObject->query<ExternalReferenceAnnotation>()) {
-			auto newId{EditorObject::normalizedObjectID(std::string())};
-			editorObject->setObjectID(newId);
+			if (!PrefabOperations::findOuterContainingPrefabInstance(editorObject->getParent())) {
+				auto newId{EditorObject::normalizedObjectID(std::string())};
+				prefabInstanceIDMap[newId] = editorObject->objectID();
+				editorObject->setObjectID(newId);
+			}
 		}
+	}
+	// Pass 2: PrefabInstance children
+	// these are calculated from the containing PrefabInstance object id and need to know the old and new PrefabInstance ID
+	for (auto& editorObject : newObjects) {
+		if (!editorObject->query<ExternalReferenceAnnotation>()) {
+			if (auto inst = PrefabOperations::findOuterContainingPrefabInstance(editorObject->getParent())) {
+				auto newInstID = inst->objectID();
+				auto oldInstID = prefabInstanceIDMap[newInstID];
+				auto newID = EditorObject::XorObjectIDs(EditorObject::XorObjectIDs(editorObject->objectID(), oldInstID), newInstID);
+				editorObject->setObjectID(newID);
+			}
+		}
+	}
 
+	for (auto& editorObject : newObjects) {
 		project_->addInstance(editorObject);
 		changeMultiplexer_.recordCreateObject(editorObject);
 	}

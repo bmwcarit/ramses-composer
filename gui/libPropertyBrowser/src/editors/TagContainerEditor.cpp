@@ -57,7 +57,7 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 	editButton_ = new QPushButton{this};
 	editButton_->setFlat(true);
 	editButton_->setProperty("slimButton", true);
-	editButton_->setIcon(style::Icons::icon(style::Pixmap::openInNew));
+	editButton_->setIcon(style::Icons::instance().openInNew);
 
 	layout->addWidget(editButton_, 0, 0, Qt::AlignTop);
 

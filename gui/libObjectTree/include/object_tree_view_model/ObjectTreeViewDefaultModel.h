@@ -90,6 +90,7 @@ public:
 	virtual bool canCopyAtIndices(const QModelIndexList& index) const;
 	virtual bool canDeleteAtIndices(const QModelIndexList& indices) const;
 	virtual bool canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef = false) const;
+	virtual bool canDuplicateAtIndices(const QModelIndexList& indices) const;
 
 	virtual bool canDeleteUnusedResources() const;
 
@@ -106,6 +107,7 @@ public Q_SLOTS:
 	virtual void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy);
 	virtual void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut);
 	virtual bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get());
+	virtual std::vector<core::SEditorObject> duplicateObjectsAtIndices(const QModelIndexList& indices);
 	void moveScenegraphChildren(const std::vector<core::SEditorObject>& objects, core::SEditorObject parent, int row = -1);
 	void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex);
 	void deleteUnusedResources();
@@ -136,24 +138,22 @@ protected:
 
 	static inline constexpr const char* OBJECT_EDITOR_ID_MIME_TYPE = "application/editorobject.id";
 
-	using Pixmap = ::raco::style::Pixmap;
-
-	static inline const std::map<std::string, Pixmap> typeIconMap{
-		{"PerspectiveCamera", Pixmap::typeCamera},
-		{"OrthographicCamera", Pixmap::typeCamera},
-		{"Texture", Pixmap::typeTexture},
-		{"CubeMap", Pixmap::typeCubemap},
-		{"LuaScript", Pixmap::typeScript},
-		{"Material", Pixmap::typeMaterial},
-		{"Mesh", Pixmap::typeMesh},
-		{"MeshNode", Pixmap::typeMesh},
-		{"Node", Pixmap::typeNode},
-		{"Prefab", Pixmap::typePrefabInternal},
-		{"ExtrefPrefab", Pixmap::typePrefabExternal},
-		{"PrefabInstance", Pixmap::typePrefabInstance},
-		{"LuaScriptModule", Pixmap::typeLuaScriptModule},
-		{"AnimationChannel", Pixmap::typeAnimationChannel},
-		{"Animation", Pixmap::typeAnimation}
+	const std::map<std::string, QIcon> typeIconMap{
+		{"PerspectiveCamera", raco::style::Icons::instance().typeCamera},
+		{"OrthographicCamera", raco::style::Icons::instance().typeCamera},
+		{"Texture", raco::style::Icons::instance().typeTexture},
+		{"CubeMap", raco::style::Icons::instance().typeCubemap},
+		{"LuaScript", raco::style::Icons::instance().typeLuaScript},
+		{"Material", raco::style::Icons::instance().typeMaterial},
+		{"Mesh", raco::style::Icons::instance().typeMesh},
+		{"MeshNode", raco::style::Icons::instance().typeMesh},
+		{"Node", raco::style::Icons::instance().typeNode},
+		{"Prefab", raco::style::Icons::instance().typePrefabInternal},
+		{"ExtrefPrefab", raco::style::Icons::instance().typePrefabExternal},
+		{"PrefabInstance", raco::style::Icons::instance().typePrefabInstance},
+		{"LuaScriptModule", raco::style::Icons::instance().typeLuaScriptModule},
+		{"AnimationChannel", raco::style::Icons::instance().typeAnimationChannel},
+		{"Animation", raco::style::Icons::instance().typeAnimation}
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;

@@ -17,6 +17,11 @@
 #include <locale>
 #include <codecvt>
 
+#if defined(_WIN32)
+#include <filesystem>
+#include <processthreadsapi.h>
+#endif
+
 namespace raco::log_system {
 
 bool initialized{false};
@@ -44,7 +49,7 @@ void setConsoleLogLevel(spdlog::level::level_enum level) {
 	consoleSink->set_level(level);
 }
 
-void init(const spdlog::filename_t& logFileName) {
+void init(spdlog::filename_t logFileName) {
 	if (initialized) {
 		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
 		return;
@@ -54,11 +59,27 @@ void init(const spdlog::filename_t& logFileName) {
 	consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	sinks = {consoleSink, multiplexSink};
 
+	std::string logFileSinkError = "";
 	if (!logFileName.empty()) {
+#if defined(_WIN32)
+		// Under Windows, the renaming of the log file that rotating_file_sink_mt perfoms will fail, when another RaCo instance is already opened.
+		// Thus if a log file already exists, we will check whether we can rename it and if not, append the process id to the file name to have a non colliding file name.
+		// Technically, there is a tiny race condition in here, when two new instances launch exactly at the same time and execttue this code block at the same time.
+		// This is very unlikely to happen. If it happens, it will cause the log file of one instance to be lost, but both of them will keep running.
+		// Under Linux, these precautions are not necessary, since renaming files that are being written to works transparently.
+		if (std::filesystem::exists(logFileName)) {
+			try {
+				std::filesystem::rename(logFileName, logFileName);
+			} catch(const std::filesystem::filesystem_error& e) {
+				logFileName = logFileName.substr(0, logFileName.size() - 4) + L"-" + std::to_wstring(GetCurrentProcessId()) + L".log";
+			}
+		}
+#endif
+
 		try {
-			sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFileName, MAX_LOG_FILE_SIZE_BYTES, MAX_LOG_FILE_AMOUNT, false));
+			sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFileName, MAX_LOG_FILE_SIZE_BYTES, MAX_LOG_FILE_AMOUNT, true));
 		} catch (const spdlog::spdlog_ex& ex) {
-			LOG_ERROR(LOGGING, "Log file initialization failed: {}\n", ex.what());
+			logFileSinkError = ex.what();
 		}
 	}
 
@@ -70,10 +91,7 @@ void init(const spdlog::filename_t& logFileName) {
 	spdlog::register_logger(makeLogger(OBJECT_TREE_VIEW, spdlog::level::debug));
 	spdlog::register_logger(makeLogger(USER_TYPES, spdlog::level::debug));
 	spdlog::register_logger(makeLogger(CONTEXT, spdlog::level::debug));
-	// Try catch block above may already have created this, so check first:
-	if (!spdlog::get(LOGGING)) {
-		spdlog::register_logger(makeLogger(LOGGING));
-	}
+	spdlog::register_logger(makeLogger(LOGGING));
 	spdlog::register_logger(makeLogger(PREVIEW_WIDGET, spdlog::level::debug));
 	spdlog::register_logger(makeLogger(RAMSES_BACKEND));
 	spdlog::register_logger(makeLogger(RAMSES_ADAPTOR));
@@ -83,20 +101,22 @@ void init(const spdlog::filename_t& logFileName) {
 	spdlog::register_logger(makeLogger(STYLE, spdlog::level::off));
 	spdlog::register_logger(makeLogger(DEFAULT));
 	spdlog::register_logger(makeLogger(MESH_LOADER));
+	spdlog::register_logger(makeLogger(RAMSES_LOGIC));
 	spdlog::set_default_logger(spdlog::get(DEFAULT));
-    spdlog::set_pattern("%^[%L] [%D %T:%f] [%n] [%s:%#] [%!] %v");
-
-#if _WIN64
-	SetConsoleOutputCP(CP_UTF8);
-#endif
-
-	initialized = true;
+	spdlog::set_pattern("%^[%L] [%D %T:%f] [%n] [%s:%#] [%!] %v");
 
 #if defined(_WIN32)
+	SetConsoleOutputCP(CP_UTF8);
 	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(logFileName));
 #else
 	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", logFileName);
 #endif
+
+	if (!logFileSinkError.empty()) {
+		LOG_ERROR(LOGGING, "Log file initialization failed: {}", logFileSinkError);
+	}
+
+	initialized = true;
 }
 
 void deinit() {

@@ -97,8 +97,8 @@ TEST_F(ContextTest, Complex) {
 
 	EXPECT_EQ(script->size(), 5);
 
-	auto val = &script->luaInputs_->get("in_array_struct")->asTable()[1]->asTable().get("bar")->asVec3f().y;
-	EXPECT_EQ(**val, 0);
+	double val = *ValueHandle(script, &MockLuaScript::luaInputs_).get("in_array_struct")[1].get("bar").asVec3f().y;
+	EXPECT_EQ(val, 0);
 
 	ValueHandle s(script);
 

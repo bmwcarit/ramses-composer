@@ -61,6 +61,7 @@ public:
 	// Basic property changes
 	void set(ValueHandle const& handle, bool const& value);
 	void set(ValueHandle const& handle, int const& value);
+	void set(ValueHandle const& handle, int64_t const& value);
 	void set(ValueHandle const& handle, double const& value);
 	void set(ValueHandle const& handle, std::string const& value);
 	void set(ValueHandle const& handle, char const* value); // avoid cast of char const* to bool
@@ -75,7 +76,7 @@ public:
 	void set(ValueHandle const& handle, std::array<int, 4> const& value);
 	// Set struct property to struct value.
 	// Identical types are dynamically enforced at runtime.
-	void set(ValueHandle const& handle, ClassWithReflectedMembers const& value);
+	void set(ValueHandle const& handle, StructBase const& value);
 
 	template <typename AnnoType, typename T>
 	void set(AnnotationValueHandle<AnnoType> const& handle, T const& value);

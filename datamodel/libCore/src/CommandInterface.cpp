@@ -68,6 +68,15 @@ void CommandInterface::set(ValueHandle const& handle, int const& value) {
 	}
 }
 
+void CommandInterface::set(ValueHandle const& handle, int64_t const& value) {
+	if (handle && handle.asInt64() != value) {
+		context_->set(handle, value);
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
 void CommandInterface::set(ValueHandle const& handle, double const& value) {
 	if (handle && handle.asDouble() != value) {
 		context_->set(handle, value);
@@ -261,6 +270,27 @@ std::vector<SEditorObject> CommandInterface::pasteObjects(const std::string& val
 		*outSuccess = success;
 	}
 	return result;
+}
+
+std::vector<SEditorObject> CommandInterface::duplicateObjects(const std::vector<SEditorObject>& objects) {
+	if (!Queries::canDuplicateObjects(objects, *project())) {
+		return {};
+	}
+
+	std::vector<SEditorObject> duplicatedObjs;
+	for (const auto& obj : objects) {
+		auto target = obj->getParent();
+		auto serializedObj = context_->copyObjects({obj}, false);
+		auto duplicatedObj = context_->pasteObjects(serializedObj, target).front();
+		duplicatedObjs.emplace_back(duplicatedObj);
+	}
+
+	if (!duplicatedObjs.empty()) {
+		PrefabOperations::globalPrefabUpdate(*context_, context_->modelChanges());
+		undoStack_->push(fmt::format("Duplicate {} object{}", duplicatedObjs.size(), duplicatedObjs.size() > 1 ? "s" : ""));
+	}
+
+	return duplicatedObjs;
 }
 
 SLink CommandInterface::addLink(const ValueHandle& start, const ValueHandle& end) {

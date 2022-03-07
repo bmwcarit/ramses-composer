@@ -35,7 +35,7 @@ TEST_F(DeserializationTest, deserializeNode) {
 	SNode sNode{std::dynamic_pointer_cast<Node>(result.object)};
 	ASSERT_EQ(sNode->objectID(), "node_id");
 	ASSERT_EQ(sNode->objectName(), "node");
-	ASSERT_EQ(100.0, *sNode->scale_->z.staticQuery<raco::data_storage::RangeAnnotation<double>>().max_);
+	ASSERT_EQ(100.0, *sNode->scale_->z.staticQuery<raco::core::RangeAnnotation<double>>().max_);
 }
 
 TEST_F(DeserializationTest, deserializeNodeRotated) {

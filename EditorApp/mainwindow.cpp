@@ -16,6 +16,7 @@
 #include "SavedLayoutsDialog.h"
 #include "common_widgets/ErrorView.h"
 #include "common_widgets/ExportDialog.h"
+#include "common_widgets/LogView.h"
 #include "common_widgets/MeshAssetImportDialog.h"
 #include "common_widgets/PreferencesView.h"
 #include "common_widgets/UndoView.h"
@@ -25,7 +26,7 @@
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "core/Queries.h"
-#include "data_storage/BasicTypes.h"
+#include "core/BasicTypes.h"
 #include "data_storage/Value.h"
 #include "log_system/log.h"
 #include "object_tree_view/ObjectTreeDock.h"
@@ -129,7 +130,7 @@ ads::CDockWidget* createDockWidget(const QString& title, QWidget* parent) {
 
 ads::CDockAreaWidget* createAndAddPreview(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::ramses_widgets::RendererBackend& rendererBackend, raco::application::RaCoApplication* application) {
 	const auto& viewport = application->activeRaCoProject().project()->settings()->viewport_;
-	const auto& backgroundColor = application->activeRaCoProject().project()->settings()->backgroundColor_.asVec4f();
+	const auto& backgroundColor = *application->activeRaCoProject().project()->settings()->backgroundColor_;
 	auto* previewWidget = new raco::ramses_widgets::PreviewMainWindow{rendererBackend, application->sceneBackendImpl(), {*viewport->i1_, *viewport->i2_}, application->activeRaCoProject().project(), application->dataChangeDispatcher()};
 	QObject::connect(mainWindow, &MainWindow::viewportChanged, previewWidget, &raco::ramses_widgets::PreviewMainWindow::setViewport);
 	previewWidget->displayScene(application->sceneBackendImpl()->currentSceneId(), backgroundColor);
@@ -258,11 +259,19 @@ ads::CDockAreaWidget* createAndAddUndoView(raco::application::RaCoApplication* a
 	return dockManager->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
 }
 
-ads::CDockAreaWidget* createAndAddErrorView(MainWindow* mainWindow, raco::application::RaCoApplication* application, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, ads::CDockAreaWidget* dockArea = nullptr) {
-	auto* errorView = new raco::common_widgets::ErrorView(application->activeRaCoProject().commandInterface(), application->dataChangeDispatcher());
+ads::CDockAreaWidget* createAndAddErrorView(MainWindow* mainWindow, raco::application::RaCoApplication* application, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::common_widgets::LogViewModel* logViewModel, ads::CDockAreaWidget* dockArea = nullptr) {
+	auto* errorView = new raco::common_widgets::ErrorView(application->activeRaCoProject().commandInterface(), application->dataChangeDispatcher(), true, logViewModel);
 	QObject::connect(errorView, &raco::common_widgets::ErrorView::objectSelectionRequested, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::ERROR_VIEW, mainWindow);
 	dock->setWidget(errorView);
+	dock->setObjectName(dockObjName);
+	return dockManager->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
+}
+
+ads::CDockAreaWidget* createAndAddLogView(MainWindow* mainWindow, raco::application::RaCoApplication* application, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::common_widgets::LogViewModel* logViewModel, ads::CDockAreaWidget* dockArea = nullptr) {
+	auto* logView = new raco::common_widgets::LogView(logViewModel);
+	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::LOG_VIEW, mainWindow);
+	dock->setWidget(logView);
 	dock->setObjectName(dockObjName);
 	return dockManager->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
 }
@@ -283,8 +292,8 @@ void createInitialWidgets(MainWindow* mainWindow, raco::ramses_widgets::Renderer
 
 MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco::ramses_widgets::RendererBackend* rendererBackend, QWidget* parent)
 	: QMainWindow(parent),
-	  rendererBackend_{rendererBackend},
-	  racoApplication_{racoApplication} {
+	  rendererBackend_(rendererBackend),
+	  racoApplication_(racoApplication) {
 	// Setup the UI from the QtCreator file mainwindow.ui
 	ui = new Ui::MainWindow();
 	ui->setupUi(this);
@@ -294,6 +303,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	dockManager_ = createDockManager(this);
 	setWindowIcon(QIcon(":applicationLogo"));
 	resize(QGuiApplication::screenAt(this->pos())->size() * 0.85);
+
+	logViewModel_ = new raco::common_widgets::LogViewModel(this);
 
 	// Shortcuts
 	{
@@ -336,7 +347,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		openProject();
 	});
 	QObject::connect(ui->actionExport, &QAction::triggered, this, [this]() {
-		auto dialog = new raco::common_widgets::ExportDialog(racoApplication_, this);
+		auto dialog = new raco::common_widgets::ExportDialog(racoApplication_, logViewModel_, this);
 		dialog->exec();
 	});
 	QObject::connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
@@ -357,7 +368,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	QObject::connect(ui->actionNewResourcesTree, &QAction::triggered, [this]() { createAndAddResourceTree(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, racoApplication_, nullptr); });
 	QObject::connect(ui->actionNewPrefabTree, &QAction::triggered, [this]() { createAndAddPrefabTree(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, racoApplication_, nullptr); });
 	QObject::connect(ui->actionNewUndoView, &QAction::triggered, [this]() { createAndAddUndoView(racoApplication_, EditorObject::normalizedObjectID("").c_str(), &racoApplication_->activeRaCoProject(), this, dockManager_); });
-	QObject::connect(ui->actionNewErrorView, &QAction::triggered, [this]() { createAndAddErrorView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_); });
+	QObject::connect(ui->actionNewErrorView, &QAction::triggered, [this]() { createAndAddErrorView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, logViewModel_); });
+	QObject::connect(ui->actionNewLogView, &QAction::triggered, [this]() { createAndAddLogView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, logViewModel_); });
 	QObject::connect(ui->actionRestoreDefaultLayout, &QAction::triggered, [this](){
 		resetDockManager();
 		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
@@ -428,7 +440,7 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 	racoApplication_->doOneLoop();
 
 	const auto& viewport = racoApplication_->activeRaCoProject().project()->settings()->viewport_;
-	const auto& backgroundColor = racoApplication_->activeRaCoProject().project()->settings()->backgroundColor_.asVec4f();
+	const auto& backgroundColor = *racoApplication_->activeRaCoProject().project()->settings()->backgroundColor_;
 
 	Q_EMIT viewportChanged({*viewport->i1_, *viewport->i2_});
 
@@ -498,6 +510,7 @@ void MainWindow::openProject(const QString& file) {
 	// Don't create a new DockManager right away - making QMessageBoxes pop up messes up state restoring
 	// (see https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System/issues/315)
 	delete dockManager_;
+	logViewModel_->clear();
 
 	try {
 		racoApplication_->switchActiveRaCoProject(file);
@@ -570,6 +583,7 @@ bool MainWindow::saveAsActiveProject() {
 		if (newPath.isEmpty()) {
 			return false;
 		}
+		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		if (racoApplication_->activeRaCoProject().saveAs(newPath, setProjectName)) {
 			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 
@@ -684,7 +698,9 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 		} else if (savedDockType == DockWidgetTypes::UNDO_STACK) {
 			createAndAddUndoView(racoApplication_, dockNameCString, &racoApplication_->activeRaCoProject(), this, dockManager_);
 		} else if (savedDockType == DockWidgetTypes::ERROR_VIEW) {
-			createAndAddErrorView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_);
+			createAndAddErrorView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
+		} else if (savedDockType == DockWidgetTypes::LOG_VIEW) {
+			createAndAddLogView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
 		} else {
 			assert(false && "Unknown Dock Type detected");
 		}

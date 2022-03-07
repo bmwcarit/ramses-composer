@@ -15,6 +15,7 @@
 #include "property_browser/editors/DoubleEditor.h"
 #include "property_browser/editors/EnumerationEditor.h"
 #include "property_browser/editors/IntEditor.h"
+#include "property_browser/editors/Int64Editor.h"
 #include "property_browser/editors/LinkEditor.h"
 #include "property_browser/editors/RefEditor.h"
 #include "property_browser/editors/StringEditor.h"
@@ -52,24 +53,32 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 			} else {
 				return new IntEditor{item, parent};
 			}
+		case PrimitiveType::Int64:
+			return new Int64Editor{item, parent};
+			
 		case PrimitiveType::Double:
 			return new DoubleEditor{item, parent};
 		case PrimitiveType::String:
 			return (item->query<core::URIAnnotation>()) ? new URIEditor{item, parent} : new StringEditor{item, parent};
-		case PrimitiveType::Vec2f:
-			return new Vec2fEditor{item, parent};
-		case PrimitiveType::Vec3f:
-			return new Vec3fEditor{item, parent};
-		case PrimitiveType::Vec4f:
-			return new Vec4fEditor{item, parent};
-		case PrimitiveType::Vec2i:
-			return new Vec2iEditor{item, parent};
-		case PrimitiveType::Vec3i:
-			return new Vec3iEditor{item, parent};
-		case PrimitiveType::Vec4i:
-			return new Vec4iEditor{item, parent};
 		case PrimitiveType::Ref:
 			return new RefEditor{item, parent};
+		case PrimitiveType::Struct: {
+			auto typeDesc = &item->valueHandle().constValueRef()->asStruct().getTypeDescription();
+			if (typeDesc == &core::Vec2f::typeDescription) {
+				return new Vec2fEditor{item, parent};
+			} else if (typeDesc == &core::Vec3f::typeDescription) {
+				return new Vec3fEditor{item, parent};
+			} else if (typeDesc == &core::Vec4f::typeDescription) {
+				return new Vec4fEditor{item, parent};
+			} else if (typeDesc == &core::Vec2i::typeDescription) {
+				return new Vec2iEditor{item, parent};
+			} else if (typeDesc == &core::Vec3i::typeDescription) {
+				return new Vec3iEditor{item, parent};
+			} else if (typeDesc == &core::Vec4i::typeDescription) {
+				return new Vec4iEditor{item, parent};
+			}
+			return nullptr;
+		}
 		case PrimitiveType::Table:
 			if (item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {
 				return new TagContainerEditor{ item, parent };

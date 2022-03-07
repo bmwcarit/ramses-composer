@@ -9,6 +9,7 @@
  */
 #include "common_widgets/ErrorView.h"
 
+#include "common_widgets/log_model/LogViewModel.h"
 #include "common_widgets/NoContentMarginsLayout.h"
 #include "common_widgets/RaCoClipboard.h"
 #include "core/CommandInterface.h"
@@ -67,7 +68,7 @@ protected:
 
 namespace raco::common_widgets {
 
-ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::components::SDataChangeDispatcher dispatcher, QWidget* parent) : QWidget{parent}, commandInterface_{commandInterface} {
+ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool showFilterLayout, LogViewModel* logViewModel, QWidget* parent) : QWidget{parent}, commandInterface_{commandInterface}, logViewModel_(logViewModel) {
 	auto* errorViewLayout{new NoContentMarginsLayout<QVBoxLayout>{this}};
 
 	tableModel_ = new ErrorViewModel(this);
@@ -97,28 +98,34 @@ ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::compo
 	connect(tableView_, &QTableView::customContextMenuRequested, this, &ErrorView::createCustomContextMenu);
 	errorViewLayout->addWidget(tableView_);
 
-	auto* filterLayout{new QHBoxLayout{this}};
-	filterLayout->setContentsMargins(5, 0, 10, 0);
-	showWarningsCheckBox_ = new QCheckBox("Show Warnings", this);
-	showWarningsCheckBox_->setChecked(true);
-	connect(showWarningsCheckBox_, &QCheckBox::stateChanged, [this]() {
-		filterRows();
-	});
-	filterLayout->addWidget(showWarningsCheckBox_);
+	if (showFilterLayout) {
+		auto filterLayout = new QHBoxLayout{this};
+		filterLayout->setContentsMargins(5, 0, 10, 0);
+		showWarningsCheckBox_ = new QCheckBox("Show Warnings", this);
+		showWarningsCheckBox_->setChecked(true);
+		connect(showWarningsCheckBox_, &QCheckBox::stateChanged, [this]() {
+			filterRows();
+		});
+		filterLayout->addWidget(showWarningsCheckBox_);
 
-	showErrorsCheckBox_ = new QCheckBox("Show Errors", this);
-	showErrorsCheckBox_->setChecked(true);
-	connect(showErrorsCheckBox_, &QCheckBox::stateChanged, [this]() {
-		filterRows();
-	});
-	filterLayout->addWidget(showErrorsCheckBox_);
+		showErrorsCheckBox_ = new QCheckBox("Show Errors", this);
+		showErrorsCheckBox_->setChecked(true);
+		connect(showErrorsCheckBox_, &QCheckBox::stateChanged, [this]() {
+			filterRows();
+		});
+		filterLayout->addWidget(showErrorsCheckBox_);
 
-	filterLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding));
+		filterLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding));
 
-	errorAmountLabel_ = new QLabel(this);
-	filterLayout->addWidget(errorAmountLabel_);
+		errorAmountLabel_ = new QLabel(this);
+		filterLayout->addWidget(errorAmountLabel_);
 
-	errorViewLayout->addLayout(filterLayout);
+		errorViewLayout->addLayout(filterLayout);
+
+		if (logViewModel) {
+			connect(logViewModel, &LogViewModel::entriesChanged, this, &ErrorView::updateErrorAmountLabel);
+		}
+	}
 
 	errorChangeSubscription_ = dispatcher->registerOnErrorChangedInScene([this]() {
 		regenerateTable();
@@ -153,8 +160,8 @@ std::vector<std::string> ErrorView::rowToVector(const QModelIndex& rowIndex) con
 }
 
 void ErrorView::filterRows() {
-	auto warningsVisible = showWarningsCheckBox_->isChecked();
-	auto errorsVisible = showErrorsCheckBox_->isChecked();
+	auto warningsVisible = !showWarningsCheckBox_ || showWarningsCheckBox_->isChecked();
+	auto errorsVisible = !showErrorsCheckBox_ || showErrorsCheckBox_->isChecked();
 	const auto WARNING = errorLevelToString(raco::core::ErrorLevel::WARNING);
 
 	for (auto row = 0; row < tableModel_->rowCount(); ++row) {
@@ -200,12 +207,6 @@ void ErrorView::regenerateTable() {
 			auto errorID = rootObj ? rootObj->objectID() : commandInterface_->project()->currentPath();
 			indexToObjID_.emplace_back(errorID);
 			objIDs_.insert(errorID);
-
-			if (error.level() == core::ErrorLevel::WARNING) {
-				++warningAmount;
-			} else if (error.level() == core::ErrorLevel::ERROR) {
-				++errorAmount;
-			}
 		}
 	}
 
@@ -225,7 +226,7 @@ void ErrorView::regenerateTable() {
 		}
 	}
 
-	errorAmountLabel_->setText(QString::fromStdString(fmt::format("Warnings: {} Errors: {}", warningAmount, errorAmount)));
+	updateErrorAmountLabel();
 
 	filterRows();
 }
@@ -248,5 +249,39 @@ void ErrorView::createCustomContextMenu(const QPoint& p) {
 	treeViewMenu->exec(tableView_->viewport()->mapToGlobal(p));
 }
 
+void ErrorView::updateErrorAmountLabel() {
+	if (errorAmountLabel_) {
+
+		auto warningAmount = 0;
+		auto errorAmount = 0;
+
+		const auto& errors = commandInterface_->errors();
+		for (const auto& [errorValueHandle, error] : errors.getAllErrors()) {
+			if (error.level() <= core::ErrorLevel::INFORMATION) {
+				continue;
+			}
+
+			auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
+
+			if (!rootObj || (rootObj && !raco::core::Queries::isReadOnly(rootObj))) {
+				if (error.level() == core::ErrorLevel::WARNING) {
+					++warningAmount;
+				} else if (error.level() == core::ErrorLevel::ERROR) {
+					++errorAmount;
+				}
+			}
+		}
+
+		std::string logErrorString = "";
+		if (logViewModel_) {
+			auto logErrorAmount = logViewModel_->errorCount();
+			if (logErrorAmount > 0) {
+				logErrorString = fmt::format(" (additional errors in log)");
+			}
+		}
+
+		errorAmountLabel_->setText(QString::fromStdString(fmt::format("Warnings: {} Errors: {}{}", warningAmount, errorAmount, logErrorString)));
+	}
+}
 
 }  // namespace raco::common_widgets

@@ -8,8 +8,6 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "data_storage/Value.h"
-#include "data_storage/BasicAnnotations.h"
-#include "data_storage/BasicTypes.h"
 #include "data_storage/Table.h"
 
 #include "StructTypes.h"
@@ -19,10 +17,6 @@
 using namespace raco::data_storage;
 
 
-TEST(Vec3f, has3Children) {
-	Vec3f underTest{0.0, 0.0, 0.0, 0.0};
-	EXPECT_EQ(underTest.size(), 3);
-}
 
 TEST(ValueTest, Scalar) {
 
@@ -110,28 +104,6 @@ TEST(ValueTest, Table_nested_struct) {
 	EXPECT_EQ((*tu)["struct"]->getSubstructure().get("double")->asDouble(), 2.0);
 }
 
-TEST(ValueTest, Vec3f) {
-	Value<Vec3f> v;
-
-	v->x = 2.0;
-	EXPECT_EQ(*(v->x), 2.0);
-
-	double a = *v->x;
-	EXPECT_EQ(a, 2.0);
-
-	Vec3f u { 3.0 };
-	v = u;
-	EXPECT_EQ(*(v->x), 3.0);
-	EXPECT_EQ(*(v->y), 3.0);
-	EXPECT_EQ(*(v->z), 3.0);
-
-
-	ValueBase* vp = &v;
-
-	EXPECT_EQ(*vp->as<Vec3f>().x, 3.0);
-	EXPECT_THROW(vp->as<bool>(), std::runtime_error);
-
-}
 
 TEST(ValueTest, clone) {
 	Value<int> vint {23};
@@ -161,8 +133,8 @@ TEST(ValueTest, Struct) {
 
 	EXPECT_THROW(vs.asBool(), std::runtime_error);
 	EXPECT_THROW(vs.as<bool>(), std::runtime_error);
-	EXPECT_THROW(vs.asVec3f(), std::runtime_error);
-	EXPECT_THROW(vs.as<Vec3f>(), std::runtime_error);
+	EXPECT_THROW(vs.asTable(), std::runtime_error);
+	EXPECT_THROW(vs.as<Table>(), std::runtime_error);
 
 	ReflectionInterface& intf = vs.getSubstructure();
 	EXPECT_EQ(intf.size(), 2);
@@ -178,7 +150,7 @@ TEST(ValueTest, Struct) {
 	vs = cvs;
 	EXPECT_EQ(*vs->dd, 2.0);
 
-	Value<Vec3f> v;
+	Value<AltStruct> v;
 	EXPECT_THROW(vs = v, std::runtime_error);
 
 	EXPECT_THROW(vs = va, std::runtime_error);

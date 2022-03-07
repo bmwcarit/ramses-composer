@@ -198,7 +198,7 @@ private:
 		if (linkDescriptor.isValid) {
 			auto startHandle = raco::core::ValueHandle{linkDescriptor.start};
 
-			if (startHandle && startHandle.type() == raco::data_storage::PrimitiveType::Vec4f) {
+			if (startHandle && startHandle.isVec4f()) {
 				return rlogic::ERotationType::Quaternion;
 			}
 		}
