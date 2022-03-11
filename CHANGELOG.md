@@ -26,6 +26,12 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ## [0.13.0] Compressed project files, cubemap extensions, log view
 * **File version number has changed. Files saved with RaCo 0.13.0 cannot be opened by previous versions.**
 
+### Known Issues
+* RaCoHeadless will crash when trying to load a scene using external references from scenes which cannot be found.
+	* The crash will be preceded by an error message like this "External reference update failed: Can't load external project '...' with path '....rca'"
+	* If the same scene is opened in the Ramses Composer, the same error message will be displayed in a message box.
+	* When this occurs, the best way forward is to restore the file in the stated location.
+
 ### Added
 * Added custom CubeMap mipmap support.
 * Added optional automatic zipping of project files.
@@ -50,6 +56,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * Improved support for High DPI screens.
 * Fixed losing the property values of PrefabInstance interface scripts when pasting PrefabInstances.
 
+### Regressions discovered and fixed after pre-release
+* Don't reset preview background color to black if the preview is resized or moved.
 
 ## [0.12.0] Bug Fixes and Usability Improvements
 * **File version number has changed. Files saved with RaCo 0.12.0 cannot be opened by previous versions.**

@@ -164,9 +164,12 @@ void RamsesPreviewWindow::commit() {
 			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize, next_.filteringMode);
 			current_.filteringMode = next_.filteringMode;
 			offscreenBufferId_ = rendererBackend_.renderer().createOffscreenBuffer(displayId_, next_.targetSize.width(), next_.targetSize.height());
+			rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_, next_.backgroundColor.redF(), next_.backgroundColor.greenF(), 
+next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 			rendererBackend_.renderer().flush();
 			rendererBackend_.eventHandler().waitForOffscreenBufferCreation(offscreenBufferId_);
 			current_.targetSize = next_.targetSize;
+			current_.backgroundColor = next_.backgroundColor;
 
 			if (next_.sceneId.isValid()) {
 				sceneControlAPI.setSceneDisplayBufferAssignment(next_.sceneId, offscreenBufferId_);
