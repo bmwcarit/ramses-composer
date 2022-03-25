@@ -39,7 +39,7 @@ public:
 	MaterialAdaptor* materialAdaptor(size_t index);
 
 	bool sync(core::Errors* errors) override;
-	void syncMaterials();
+	void syncMaterials(core::Errors* errors);
 	void syncMeshObject();
 
 	RamsesHandle<ramses::Node> sceneObject() override {
@@ -53,7 +53,7 @@ public:
 	const raco::ramses_base::RamsesAppearance& privateAppearance() const;
 
 private:
-	void syncMaterial(size_t index);
+	void syncMaterial(core::Errors* errors, size_t index);
 
 	void setupMaterialSubscription();
 	void setupUniformChildrenSubscription();

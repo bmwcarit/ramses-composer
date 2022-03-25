@@ -14,6 +14,7 @@
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
 #include "core/PathManager.h"
+#include "spdlog/sinks/base_sink.h"
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
 #include "user_types/LuaScript.h"
@@ -884,4 +885,36 @@ TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
 		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);
 	}
 }
+
+TEST_F(RaCoProjectFixture, loadDoubleModuleReferenceWithoutError) {
+	// RAOS-819: If a script references two modules make sure we/ramses-logic does not log an error even though the scripts are all correct.
+	class CaptureLog : public spdlog::sinks::base_sink<std::mutex> {
+	public:
+		virtual void sink_it_(const spdlog::details::log_msg& msg) {
+			msgs_.emplace_back(msg);
+		}
+		virtual void flush_() {}
+
+		bool containsError() {
+			return std::find_if(std::begin(msgs_), std::end(msgs_), [](const spdlog::details::log_msg& msg) {
+				return msg.level >= spdlog::level::err;
+			}) != std::end(msgs_);
+		}
+
+	private:
+		std::vector<spdlog::details::log_msg> msgs_;
+	};
+	spdlog::drop_all();
+	raco::log_system::init();
+	const auto logsink = std::make_shared<CaptureLog>();
+	raco::log_system::registerSink(logsink);
+	std::vector<std::string> pathStack;
+	RaCoApplication app{backend};
+	auto project = app.activeRaCoProject().loadFromFile(QString::fromUtf8((test_path() / "loadDoubleModuleReferenceWithoutError.rca").string().data()), &app, pathStack);
+	ASSERT_TRUE(project != nullptr);
+	ASSERT_FALSE(logsink->containsError());
+	raco::log_system::unregisterSink(logsink);
+}
+
+
 #endif

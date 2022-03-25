@@ -127,7 +127,7 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 		}
 
 		if (hasComposerErrors || hasComposerWarnings) {
-			auto* errorView = new ErrorView(commandInterface, application->dataChangeDispatcher(), false, logViewModel, this);
+			auto* errorView = new ErrorView(commandInterface, application->dataChangeDispatcher(), true, logViewModel, this);
 			tabWidget->setCurrentIndex(tabWidget->addTab(errorView, hasComposerErrors ? "Composer Errors" : "Composer Warnings"));
 		}
 	}
@@ -151,7 +151,6 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	}
 
 	buttonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};
-	buttonBox_->button(QDialogButtonBox::Ok)->setText("Export");
 
 	layout_ = new QGridLayout{this};
 	layout_->setRowStretch(0, 0);
@@ -188,7 +187,9 @@ void ExportDialog::exportProject() {
 }
 
 void ExportDialog::updateButtonStates() {
-	buttonBox_->button(QDialogButtonBox::Ok)->setEnabled(!hasErrors_ && !ramsesEdit_->text().isEmpty() && !logicEdit_->text().isEmpty() && !pathEdit_->text().isEmpty());
+	const bool enableButton = !ramsesEdit_->text().isEmpty() && !logicEdit_->text().isEmpty() && !pathEdit_->text().isEmpty();
+	buttonBox_->button(QDialogButtonBox::Ok)->setEnabled(enableButton);
+	buttonBox_->button(QDialogButtonBox::Ok)->setText(enableButton && hasErrors_ ? "Export (with errors)" : "Export");
 }
 
 }  // namespace raco::common_widgets

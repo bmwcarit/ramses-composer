@@ -72,6 +72,17 @@ public:
 
 
 protected:
+
+	std::vector<std::string> split(const std::string& s, char delim) {
+		std::stringstream sstream{s};
+		std::vector<std::string> result;
+		std::string word;
+		while (std::getline(sstream, word, delim)) {
+			result.emplace_back(word);
+		}
+		return result;
+	}
+
 	virtual void SetUp() override {
 		if (std::filesystem::exists(test_path())) {
 			// Debugging case: if we debug and kill the test before complition the test directory will not be cleaned by TearDown
@@ -85,14 +96,12 @@ protected:
 		raco::core::PathManager::init(programPath.string(), appDataPath.string());
 
 #ifdef RACO_LOCAL_TEST_RESOURCES_FILE_LIST
-		std::string input{RACO_LOCAL_TEST_RESOURCES_FILE_LIST};
-		std::stringstream ss{input};
-		std::string fileName{};
+		auto fileNames{split(RACO_LOCAL_TEST_RESOURCES_FILE_LIST, '!')};
+		auto dirNames{split(RACO_LOCAL_TEST_RESOURCES_DIRECTORY_LIST, '!')};
 
-		// Convention Fileseparator: '!'
-		while (std::getline(ss, fileName, '!')) {
-			const raco::utils::u8path from{raco::utils::u8path{RACO_LOCAL_TEST_RESOURCES_SOURCE_DIRECTORY}.append(fileName)};
-			const raco::utils::u8path to{test_path().append(fileName)};
+		for (size_t index = 0; index < fileNames.size(); index++) {
+			auto from{raco::utils::u8path(dirNames[index]) / fileNames[index]};
+			auto to{test_path() / fileNames[index]};
 			raco::utils::u8path toWithoutFilename{to};
 			toWithoutFilename.remove_filename();
 			std::filesystem::create_directories(toWithoutFilename);

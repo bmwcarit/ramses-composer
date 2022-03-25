@@ -643,7 +643,7 @@ end
 	// Use context here to perform prefab update only after both operations are complete
 	context.moveScenegraphChildren({meshnode}, prefab);
 	context.deleteObjects({node});
-	raco::core::PrefabOperations::globalPrefabUpdate(context, context.modelChanges());
+	raco::core::PrefabOperations::globalPrefabUpdate(context);
 
 	EXPECT_EQ(inst->children_->size(), 2);
 	inst_meshnode = raco::select<MeshNode>(inst->children_->asVector<SEditorObject>());

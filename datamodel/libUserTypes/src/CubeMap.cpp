@@ -9,7 +9,6 @@
  */
 #include "user_types/CubeMap.h"
 
-#include "user_types/SyncTableWithEngineInterface.h"
 #include "Validation.h"
 #include "core/Context.h"
 #include "log_system/log.h"

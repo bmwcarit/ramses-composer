@@ -40,7 +40,7 @@ public:
 		COLUMN_COUNT
 	};
 
-	explicit ErrorView(raco::core::CommandInterface *commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool showFilterLayout, LogViewModel *logViewModel, QWidget *parent = nullptr);
+	ErrorView(raco::core::CommandInterface *commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel *logViewModel, QWidget *parent = nullptr);
 
 Q_SIGNALS:
 	void objectSelectionRequested(const QString &objectID);
@@ -65,6 +65,8 @@ protected:
 	std::vector<std::string> indexToObjID_;
 	std::set<std::string> objIDs_;
 	LogViewModel *logViewModel_;
+	bool showFilterLayout_ = false;
+	bool showExtRefErrors_ = false;
 
 protected Q_SLOTS:
 	void createCustomContextMenu(const QPoint &p);

@@ -403,7 +403,7 @@ return anothermodule
 	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
 }
 
-TEST_F(LuaScriptTest, module_amount_increased) {
+TEST_F(LuaScriptTest, module_caching) {
 	std::array<SLuaScriptModule, 3> modules = {create<LuaScriptModule>("m1"),
 		create<LuaScriptModule>("m2"),
 		create<LuaScriptModule>("m3")};
@@ -785,4 +785,30 @@ end
 	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
 	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+}
+
+TEST_F(LuaScriptTest, module_invalid_module_statement) {
+	auto script = create<LuaScript>("script");
+	ValueHandle uriHandle{script, {"uri"}};
+
+	auto scriptFile = makeFile("script.lua", R"(
+modules("test")
+function interface()	
+end
+function run()
+end
+)");
+	auto scriptFile2 = makeFile("script2.lua", R"(
+modules(123)
+function interface()	
+end
+function run()
+end
+)");
+
+	commandInterface.set(uriHandle, scriptFile);
+	ASSERT_EQ(script->luaModules_->propertyNames(), std::vector<std::string>({"test"}));
+
+	commandInterface.set(uriHandle, scriptFile2);
+	ASSERT_EQ(script->luaModules_->size(), 0);
 }

@@ -111,22 +111,28 @@ const raco::ramses_base::RamsesAppearance& MeshNodeAdaptor::privateAppearance() 
 
 
 bool MeshNodeAdaptor::sync(core::Errors* errors) {
+	errors->removeIf([this](core::ErrorItem const& error) {
+		auto handle = error.valueHandle();
+		auto materialsHandle = raco::core::ValueHandle(editorObject(), &raco::user_types::MeshNode::materials_);
+		return materialsHandle.contains(handle);
+	});
+
 	SpatialAdaptor::sync(errors);
 	if (*editorObject()->instanceCount_ >= 1) {
 		(*ramsesObject()).setInstanceCount(*editorObject()->instanceCount_);
 	}
 
-	syncMaterials();
+	syncMaterials(errors);
 	syncMeshObject();
 	tagDirty(false);
 	return true;
 }
 
-void MeshNodeAdaptor::syncMaterials() {
-	syncMaterial(0);
+void MeshNodeAdaptor::syncMaterials(core::Errors* errors) {
+	syncMaterial(errors, 0);
 }
 
-void MeshNodeAdaptor::syncMaterial(size_t index) {
+void MeshNodeAdaptor::syncMaterial(core::Errors* errors, size_t index) {
 	assert((index == 0) && "We only support one material for now.");
 	// we need to reset the geometry in case of the new appearance not being compatible with the current geometry
 	ramsesObject().removeAppearanceAndGeometry();
@@ -150,7 +156,7 @@ void MeshNodeAdaptor::syncMaterial(size_t index) {
 
 			core::ValueHandle optionsHandle = editorObject()->getMaterialOptionsHandle(index);
 			core::ValueHandle uniformsHandle = editorObject()->getUniformContainerHandle(index);
-			updateAppearance(sceneAdaptor_, privateAppearance_, optionsHandle, uniformsHandle);
+			updateAppearance(errors, sceneAdaptor_, privateAppearance_, optionsHandle, uniformsHandle);
 
 			(*privateAppearance_)->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
 

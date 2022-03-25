@@ -14,6 +14,7 @@
 #include "common_widgets/RaCoClipboard.h"
 #include "core/CommandInterface.h"
 #include "core/Errors.h"
+#include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "user_types/LuaScript.h"
 #include "user_types/PrefabInstance.h"
@@ -68,7 +69,8 @@ protected:
 
 namespace raco::common_widgets {
 
-ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool showFilterLayout, LogViewModel* logViewModel, QWidget* parent) : QWidget{parent}, commandInterface_{commandInterface}, logViewModel_(logViewModel) {
+ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel* logViewModel, QWidget* parent) :
+	QWidget{parent}, commandInterface_{commandInterface}, logViewModel_(logViewModel), showFilterLayout_(!embeddedInExportView), showExtRefErrors_(embeddedInExportView) {
 	auto* errorViewLayout{new NoContentMarginsLayout<QVBoxLayout>{this}};
 
 	tableModel_ = new ErrorViewModel(this);
@@ -98,7 +100,7 @@ ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::compo
 	connect(tableView_, &QTableView::customContextMenuRequested, this, &ErrorView::createCustomContextMenu);
 	errorViewLayout->addWidget(tableView_);
 
-	if (showFilterLayout) {
+	if (showFilterLayout_) {
 		auto filterLayout = new QHBoxLayout{this};
 		filterLayout->setContentsMargins(5, 0, 10, 0);
 		showWarningsCheckBox_ = new QCheckBox("Show Warnings", this);
@@ -191,7 +193,8 @@ void ErrorView::regenerateTable() {
 
 		auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
 
-		if (!rootObj || (rootObj && !raco::core::Queries::isReadOnly(rootObj))) {
+		// TODO: RAOS-815 (there should be no logic in here if errors are displayed or not - confuses things in the export dialog)
+		if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || (showExtRefErrors_ && rootObj->query<core::ExternalReferenceAnnotation>())) {
 			QList<QStandardItem*> items;
 			items.append(new QStandardItem(errorLevelToString(error.level())));
 			items.append(new QStandardItem(QString::fromStdString(rootObj ? rootObj->objectName() : "(This Project)")));
@@ -263,7 +266,8 @@ void ErrorView::updateErrorAmountLabel() {
 
 			auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
 
-			if (!rootObj || (rootObj && !raco::core::Queries::isReadOnly(rootObj))) {
+			// TODO: RAOS-815 (there should be no logic in here if errors are displayed or not - confuses things in the export dialog). Though this code is not used in the export dialog.
+			if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || (showExtRefErrors_ && rootObj->query<core::ExternalReferenceAnnotation>())) {
 				if (error.level() == core::ErrorLevel::WARNING) {
 					++warningAmount;
 				} else if (error.level() == core::ErrorLevel::ERROR) {

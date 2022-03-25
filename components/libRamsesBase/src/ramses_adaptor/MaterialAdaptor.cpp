@@ -58,6 +58,12 @@ bool MaterialAdaptor::isValid() {
 }
 
 bool MaterialAdaptor::sync(core::Errors* errors) {
+	errors->removeIf([this](core::ErrorItem const& error) {
+		auto handle = error.valueHandle();
+		auto uniformsHandle = raco::core::ValueHandle(editorObject(), &raco::user_types::Material::uniforms_);
+		return uniformsHandle.contains(handle);
+	});
+
 	bool status = TypedObjectAdaptor<user_types::Material, ramses::Effect>::sync(errors);
 	LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "valid: {}", isValid());
 
@@ -83,7 +89,7 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 	if (editorObject()->isShaderValid()) {
 		core::ValueHandle optionsHandle = {editorObject(), &user_types::Material::options_};
 		core::ValueHandle uniformsHandle = {editorObject(), &user_types::Material::uniforms_};
-		updateAppearance(sceneAdaptor_, appearance_, optionsHandle, uniformsHandle);
+		updateAppearance(errors, sceneAdaptor_, appearance_, optionsHandle, uniformsHandle);
 
 		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*appearance_->get(), & sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
 	}
@@ -121,7 +127,7 @@ void MaterialAdaptor::onRuntimeError(core::Errors& errors, std::string const& me
 	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
 }
 
-void updateAppearance(SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsHandle, const core::ValueHandle& uniformsHandle) {
+void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsHandle, const core::ValueHandle& uniformsHandle) {
 	setDepthWrite(appearance->get(), optionsHandle.get("depthwrite"));
 	setDepthFunction(appearance->get(), optionsHandle.get("depthFunction"));
 	setBlendMode(appearance->get(), optionsHandle);
@@ -147,12 +153,16 @@ void updateAppearance(SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppea
 					if (auto adaptor = sceneAdaptor->lookup<RenderBufferAdaptor>(buffer)) {
 						sampler = adaptor->getRamsesObjectPointer();
 					}
-				} 
+				} else {
+					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "Texture or RenderBuffer needed for this uniform.");
+				}
 			} else if (engineType == raco::core::EnginePrimitive::TextureSamplerCube) {
 				if (auto texture = uniformsHandle[i].asTypedRef<user_types::CubeMap>()) {
 					if (auto adaptor = sceneAdaptor->lookup<CubeMapAdaptor>(texture)) {
 						sampler = adaptor->getRamsesObjectPointer();
 					}
+				} else {
+					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "CubeMap needed for this uniform.");
 				}
 			}
 

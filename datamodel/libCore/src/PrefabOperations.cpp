@@ -203,7 +203,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		UndoHelpers::updateEditorObject(
 			prefabChild.get(), instChild, translateRefFunc,
 			[](const std::string& propName) {
-				return propName == "objectID" || propName == "mapToInstance";
+				return propName == "objectID";
 			},
 			*context.objectFactory(),
 			&localChanges, true, false);
@@ -330,7 +330,7 @@ bool prefabInstanceDirty(const DataChangeRecorder& changes, SPrefabInstance inst
 	return changes.hasValueChanged(templateHandle);
 }
 
-void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecorder& changes, bool propagateMissingInterfaceProperties) {
+void PrefabOperations::globalPrefabUpdate(BaseContext& context, bool propagateMissingInterfaceProperties) {
 	// Build prefab update order from dependency graph
 	auto order = prefabUpdateOrder(*context.project());
 
@@ -338,7 +338,7 @@ void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecord
 	std::vector<SPrefabInstance> prefabInstances;
 	for (auto obj : context.project()->instances()) {
 		if (auto inst = obj->as<PrefabInstance>()) {
-			if (prefabInstanceDirty(changes, inst) && *inst->template_ == nullptr && !findContainingPrefabInstance(inst->getParent())) {
+			if (prefabInstanceDirty(context.modelChanges(), inst) && *inst->template_ == nullptr && !findContainingPrefabInstance(inst->getParent())) {
 				prefabInstances.emplace_back(inst);
 			}
 		}
@@ -352,11 +352,11 @@ void PrefabOperations::globalPrefabUpdate(BaseContext& context, DataChangeRecord
 
 	for (auto it = order.rbegin(); it != order.rend(); ++it) {
 		auto prefab = (*it)->as<Prefab>();
-		bool prefab_dirty = prefabDirty(changes, prefab);
+		bool prefab_dirty = prefabDirty(context.modelChanges(), prefab);
 		for (auto weak_inst : prefab->instances_) {
 			if (auto inst = weak_inst.lock()->as<PrefabInstance>()) {
 				if (!findContainingPrefabInstance(inst->getParent())) {
-					bool inst_dirty = prefabInstanceDirty(changes, inst);
+					bool inst_dirty = prefabInstanceDirty(context.modelChanges(), inst);
 					if (inst_dirty || prefab_dirty) {
 						updatePrefabInstance(context, prefab, inst, inst_dirty, propagateMissingInterfaceProperties);
 					}

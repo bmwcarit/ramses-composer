@@ -260,7 +260,7 @@ ads::CDockAreaWidget* createAndAddUndoView(raco::application::RaCoApplication* a
 }
 
 ads::CDockAreaWidget* createAndAddErrorView(MainWindow* mainWindow, raco::application::RaCoApplication* application, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::common_widgets::LogViewModel* logViewModel, ads::CDockAreaWidget* dockArea = nullptr) {
-	auto* errorView = new raco::common_widgets::ErrorView(application->activeRaCoProject().commandInterface(), application->dataChangeDispatcher(), true, logViewModel);
+	auto* errorView = new raco::common_widgets::ErrorView(application->activeRaCoProject().commandInterface(), application->dataChangeDispatcher(), false, logViewModel);
 	QObject::connect(errorView, &raco::common_widgets::ErrorView::objectSelectionRequested, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::ERROR_VIEW, mainWindow);
 	dock->setWidget(errorView);
@@ -302,7 +302,6 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	ui->menuFile->insertMenu(ui->actionSave, recentFileMenu_);
 	dockManager_ = createDockManager(this);
 	setWindowIcon(QIcon(":applicationLogo"));
-	resize(QGuiApplication::screenAt(this->pos())->size() * 0.85);
 
 	logViewModel_ = new raco::common_widgets::LogViewModel(this);
 
@@ -654,6 +653,12 @@ void MainWindow::restoreCachedLayout() {
 	auto cachedLayoutInfo = dockManager_->getCachedLayoutInfo();
 	if (cachedLayoutInfo.empty()) {
 		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
+
+#ifdef Q_OS_WIN
+		// explicit maximization of docks needed or else RaCo will not look properly maximized on Windows
+		dockManager_->showMaximized();
+#endif
+		showMaximized();
 	} else {
 		regenerateLayoutDocks(cachedLayoutInfo);
 

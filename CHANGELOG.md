@@ -23,8 +23,33 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Known Issues
 -->
 
+## [0.13.1]
+* **File version number has changed. Files saved with RaCo 0.13.1 cannot be opened by RaCo versions 0.12.x or earlier. **
+
+### Known Issues
+* RaCoHeadless will crash when trying to load a scene using external references from scenes which cannot be found.
+	* The crash will be preceded by an error message like this "External reference update failed: Can't load external project '...' with path '....rca'"
+	* If the same scene is opened in the Ramses Composer, the same error message will be displayed in a message box.
+	* When this occurs, the best way forward is to restore the file in the stated location.
+
+### Fixes
+* Don't reset preview background color to black if the preview is resized or moved.
+* Collapsed vector view for floats does round the displayed number again.
+* Capturing the ramses-logic output revealed a ramses-logic error message during load caused by attempting to initialize scripts using modules which have not been loaded yet.
+* The "Export" button could be disabled without explanation if external references caused entries in the error view.
+* Material uniform textures which are unset now show an error message, since exporting them with ramses does not work.
+* Fix losing input properties of interface LuaScripts in nested PrefabInstances with externally referenced Prefabs during load. This fix breaks the propagation of the values of new LuaScript interface properties in the Prefab update performed as part of external reference update during load. 
+* Fixed Ramses Composer not being able to launch under certain multiple display arrangements on Linux.
+* Fixed internal side-effect handling of LuaScript module property updates. 
+* Under some circumstances RaCo attempted to delete Lua Modules in ramses-logic before the referencing Lua Scripts when the scene was closed, causing an error to be logged.
+
+### Changes
+* The "Export" button in the export dialog is no longer disabled if there are errors in the scene. Instead its label is changed to "Export (with errors)".
+* The error view in the export dialog now shows all errors, including the ones caused by external references.
+
 ## [0.13.0] Compressed project files, cubemap extensions, log view
 * **File version number has changed. Files saved with RaCo 0.13.0 cannot be opened by previous versions.**
+* Version was superseded by 0.13.1 while still being a preliminary release.
 
 ### Known Issues
 * RaCoHeadless will crash when trying to load a scene using external references from scenes which cannot be found.
@@ -55,9 +80,6 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * Fixed problem with saving preferences if the entered directory does not exist.
 * Improved support for High DPI screens.
 * Fixed losing the property values of PrefabInstance interface scripts when pasting PrefabInstances.
-
-### Regressions discovered and fixed after pre-release
-* Don't reset preview background color to black if the preview is resized or moved.
 
 ## [0.12.0] Bug Fixes and Usability Improvements
 * **File version number has changed. Files saved with RaCo 0.12.0 cannot be opened by previous versions.**

@@ -10,7 +10,6 @@
 #pragma once
 
 #include "user_types/BaseObject.h"
-#include "user_types/SyncTableWithEngineInterface.h"
 
 #include <map>
 #include <set>
@@ -45,13 +44,14 @@ public:
 
 	void updateFromExternalFile(BaseContext& context) override;
 
+	bool isValid() const;
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
 	std::string currentScriptContents_;
-private:
 
-	void syncLuaInterface(BaseContext& context);
+private:
+	bool isValid_ = false;
 };
 
 using SLuaScriptModule = std::shared_ptr<LuaScriptModule>;

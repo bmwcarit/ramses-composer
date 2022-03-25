@@ -24,7 +24,3 @@ raco_package_add_gui_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-raco_package_add_test_resouces(
-    libCommonWidgets_test "${CMAKE_SOURCE_DIR}/resources"
-)

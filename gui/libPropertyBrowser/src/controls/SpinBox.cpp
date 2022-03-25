@@ -148,7 +148,8 @@ void SpinBox<T>::keyPressEvent(QKeyEvent* event) {
 
 template <>
 QString InternalSpinBox<double>::textFromValue(double value) const {
-	return QLocale(QLocale::C).toString(value, 'f', QLocale::FloatingPointShortest);
+	auto DECIMALS = 5;
+	return QLocale(QLocale::C).toString(value, 'f', DECIMALS);
 };
 
 DoubleSpinBox::DoubleSpinBox(QWidget* parent) : SpinBox<double>(parent) {

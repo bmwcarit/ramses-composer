@@ -91,10 +91,18 @@ Errors& BaseContext::errors() {
 
 void BaseContext::callReferencedObjectChangedHandlers(SEditorObject const& changedObject) {
 	ValueHandle changedObjHandle(changedObject);
-	for (auto weakObject : changedObject->referencesToThis_) {
-		auto object = weakObject.lock();
-		if (object) {
-			object->onAfterReferencedObjectChanged(*this, changedObjHandle);
+	// Note: object->onAfterReferencedObjectChanged inside the loop may remove obects from changedObject->referencesToThis_
+	// leading to iterator invalidation if we naively iterate over changedObject->referencesToThis_
+	// solution: iterate over copy and check that each object is still in changedObject->referencesToThis_
+	// before calling object->onAfterReferencedObjectChanged.
+	// Avoids iterator invalidation from removing objects from referencesToThis_.
+	auto refCopy = changedObject->referencesToThis_;
+	for (auto weakObject : refCopy) {
+		if (changedObject->referencesToThis_.find(weakObject) != changedObject->referencesToThis_.end()) {
+			auto object = weakObject.lock();
+			if (object) {
+				object->onAfterReferencedObjectChanged(*this, changedObjHandle);
+			}
 		}
 	}
 }
@@ -1207,7 +1215,7 @@ void BaseContext::removeLink(const PropertyDescriptor& end) {
 
 void BaseContext::updateExternalReferences(std::vector<std::string>& pathStack) {
 	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), pathStack);
-	PrefabOperations::globalPrefabUpdate(*this, modelChanges(), true);
+	PrefabOperations::globalPrefabUpdate(*this, true);
 }
 
 std::vector<SEditorObject> BaseContext::getTopLevelObjectsFromDeserializedObjects(serialization::ObjectsDeserialization& deserialization, Project* project) {

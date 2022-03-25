@@ -1141,61 +1141,62 @@ TEST_F(ExtrefTest, prefab_instance_update) {
 	});
 }
 
-TEST_F(ExtrefTest, prefab_instance_update_lua_new_property) {
-	auto basePathName{(test_path() / "base.rcp").string()};
-	auto compositePathName{(test_path() / "composite.rcp").string()};
-
-	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.i = INT
-end
-function run()
-end
-)");
-
-	setupBase(basePathName, [this, &scriptFile]() {
-		auto prefab = create<Prefab>("prefab");
-		auto lua = create<LuaScript>("prefab_lua", prefab);
-		cmd->set({lua, {"uri"}}, scriptFile);
-		cmd->set({lua, {"luaInputs", "i"}}, 7);
-	});
-
-	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
-		auto prefab = findExt("prefab");
-		auto lua = findExt<LuaScript>("prefab_lua");
-		ASSERT_EQ(prefab->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({lua}));
-
-		auto inst = create<PrefabInstance>("inst");
-		cmd->set({inst, {"template"}}, prefab);
-		auto inst_children = inst->children_->asVector<SEditorObject>();
-		ASSERT_EQ(inst_children.size(), 1);
-		auto inst_lua = inst_children[0]->as<LuaScript>();
-		ASSERT_EQ(lua->luaInputs_->get("i")->asInt(), inst_lua->luaInputs_->get("i")->asInt());
-
-		cmd->set({inst_lua, {"luaInputs", "i"}}, 11);
-	});
-
-	raco::utils::file::write(scriptFile.path.string(), R"(
-function interface()
-	IN.i = INT
-	IN.f = FLOAT
-end
-function run()
-end
-)");
-
-	updateBase(basePathName, [this]() {
-		auto lua = find("prefab_lua");
-		cmd->set({lua, {"luaInputs", "f"}}, 13.0);
-	});
-
-	updateComposite(compositePathName, [this]() {
-		auto inst = find("inst");
-		auto inst_lua = inst->children_->get(0)->asRef()->as<LuaScript>();
-		ASSERT_EQ(inst_lua->luaInputs_->get("i")->asInt(), 11);
-		ASSERT_EQ(inst_lua->luaInputs_->get("f")->asDouble(), 13.0);
-	});
-}
+// Temporarily disable test: implementation of the feature was badly broken and the feature was effectively disabled.
+//TEST_F(ExtrefTest, prefab_instance_update_lua_new_property) {
+//	auto basePathName{(test_path() / "base.rcp").string()};
+//	auto compositePathName{(test_path() / "composite.rcp").string()};
+//
+//	TextFile scriptFile = makeFile("script.lua", R"(
+//function interface()
+//	IN.i = INT
+//end
+//function run()
+//end
+//)");
+//
+//	setupBase(basePathName, [this, &scriptFile]() {
+//		auto prefab = create<Prefab>("prefab");
+//		auto lua = create<LuaScript>("prefab_lua", prefab);
+//		cmd->set({lua, {"uri"}}, scriptFile);
+//		cmd->set({lua, {"luaInputs", "i"}}, 7);
+//	});
+//
+//	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
+//		auto prefab = findExt("prefab");
+//		auto lua = findExt<LuaScript>("prefab_lua");
+//		ASSERT_EQ(prefab->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({lua}));
+//
+//		auto inst = create<PrefabInstance>("inst");
+//		cmd->set({inst, {"template"}}, prefab);
+//		auto inst_children = inst->children_->asVector<SEditorObject>();
+//		ASSERT_EQ(inst_children.size(), 1);
+//		auto inst_lua = inst_children[0]->as<LuaScript>();
+//		ASSERT_EQ(lua->luaInputs_->get("i")->asInt(), inst_lua->luaInputs_->get("i")->asInt());
+//
+//		cmd->set({inst_lua, {"luaInputs", "i"}}, 11);
+//	});
+//
+//	raco::utils::file::write(scriptFile.path.string(), R"(
+//function interface()
+//	IN.i = INT
+//	IN.f = FLOAT
+//end
+//function run()
+//end
+//)");
+//
+//	updateBase(basePathName, [this]() {
+//		auto lua = find("prefab_lua");
+//		cmd->set({lua, {"luaInputs", "f"}}, 13.0);
+//	});
+//
+//	updateComposite(compositePathName, [this]() {
+//		auto inst = find("inst");
+//		auto inst_lua = inst->children_->get(0)->asRef()->as<LuaScript>();
+//		ASSERT_EQ(inst_lua->luaInputs_->get("i")->asInt(), 11);
+//		ASSERT_EQ(inst_lua->luaInputs_->get("f")->asDouble(), 13.0);
+//	});
+//}
 
 TEST_F(ExtrefTest, prefab_instance_lua_update_link) {
 	auto basePathName{(test_path() / "base.rcp").string()};

@@ -22,62 +22,77 @@ namespace raco::user_types {
 
 
 void LuaScript::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) {
-	updateFromExternalFile(context);
+	// module changed
+	// -> only script parsing/sync
+	syncLuaScript(context, false);
 }
 
 void LuaScript::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
+	// uri changed -> updateFromExternalFile
+	// -> sync lua modules and parse/sync script
 	BaseObject::onAfterValueChanged(context, value);
 
-	if (ValueHandle(shared_from_this(), &LuaScript::objectName_) == value) {
+	if (value.isRefToProp(&LuaScript::objectName_)) {
 		context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 	}
 
-	const auto& moduleTable = luaModules_.asTable();
-	for (auto i = 0; i < moduleTable.size(); ++i) {
-		if (value == ValueHandle{shared_from_this(), {"luaModules", moduleTable.name(i)}}) {
-			updateFromExternalFile(context);
-			return;
-		}
+	ValueHandle modulesHandle(shared_from_this(), &LuaScript::luaModules_);
+	if (modulesHandle.contains(value)) {
+		// -> only script parsing
+		syncLuaScript(context, false);
 	}
 }
 
 void LuaScript::updateFromExternalFile(BaseContext& context) {
-	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScript::uri_}));	
+	syncLuaScript(context, true);
+}
+
+void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
+	context.errors().removeAll({shared_from_this()});
 
 	PropertyInterfaceList inputs{};
 	PropertyInterfaceList outputs{};
-	std::string error{};
-	context.errors().removeAll({shared_from_this()});
-
-	syncLuaModules(context, luaScript, error);
-
-	const auto& moduleTable = luaModules_.asTable();
-	if (error.empty()) {
-		context.engineInterface().parseLuaScript(luaScript, moduleTable, inputs, outputs, error);
-	}
-
-	if (!error.empty()) {
-		for (auto i = 0; i < moduleTable.size(); ++i) {
-			const auto& moduleName = moduleTable.name(i);
-			auto module = ValueHandle{shared_from_this(), {"luaModules", moduleName}};
-			auto moduleRef = module.asRef();
-			if (context.errors().hasError(moduleRef) || (moduleRef && moduleRef->get("uri")->asString().empty())) {
-				context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, module, fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
-			}
-		}
-	}
 
 	if (validateURI(context, {shared_from_this(), &LuaScript::uri_})) {
-		if (error.size() > 0) {
-			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
-		}
-	}
+		std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScript::uri_}));
 
-	if (std::find_if(inputs.begin(), inputs.end(), [](const PropertyInterface& intf) { return intf.type == EnginePrimitive::Int32 && intf.name == "time_ms"; }) != inputs.end()) {
-		auto infoText = "Dear Animator,\n\n"
-			"this LuaScript uses the 'time_ms'-based runtime hack which will be deprecated in a future version of Ramses Composer.\n"
-			"Please prepare to transfer your timer-based animations to our new user types Animation and AnimationChannel.";
-		context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::WARNING, shared_from_this(), infoText);
+		std::string error{};
+		bool success = true;
+
+		if (syncModules) {
+			success = syncLuaModules(context, luaScript, error);
+		}
+
+		if (success) {
+			success = context.engineInterface().parseLuaScript(luaScript, *luaModules_, inputs, outputs, error);
+		}
+
+		if (success) {
+			if (std::find_if(inputs.begin(), inputs.end(), [](const PropertyInterface& intf) { return intf.type == EnginePrimitive::Int32 && intf.name == "time_ms"; }) != inputs.end()) {
+				auto infoText =
+					"Dear Animator,\n\n"
+					"this LuaScript uses the 'time_ms'-based runtime hack which will be deprecated in a future version of Ramses Composer.\n"
+					"Please prepare to transfer your timer-based animations to our new user types Animation and AnimationChannel.";
+				context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::WARNING, shared_from_this(), infoText);
+			}
+		} else {
+			if (!error.empty()) {
+				const auto& moduleTable = luaModules_.asTable();
+				for (auto i = 0; i < moduleTable.size(); ++i) {
+					const auto& moduleName = moduleTable.name(i);
+					auto moduleHandle = ValueHandle{shared_from_this(), {"luaModules", moduleName}};
+					auto moduleRef = moduleHandle.asRef();
+					if (moduleRef) {
+						auto module = moduleRef->as<LuaScriptModule>();
+						assert(module != nullptr);
+						if (!module->isValid()) {
+							context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleHandle, fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
+						}
+					}
+				}
+				context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
+			}
+		}
 	}
 
 	syncTableWithEngineInterface(context, inputs, ValueHandle(shared_from_this(), &LuaScript::luaInputs_), cachedLuaInputValues_, false, true);
@@ -90,21 +105,12 @@ void LuaScript::updateFromExternalFile(BaseContext& context) {
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 }
 
-void LuaScript::syncLuaModules(BaseContext& context, const std::string& fileContents, std::string& outError) {
+bool LuaScript::syncLuaModules(BaseContext& context, const std::string& fileContents, std::string& outError) {
 	std::vector<std::string> moduleDeps;
-	auto& moduleTable = luaModules_.asTable();
-
-	context.engineInterface().extractLuaDependencies(fileContents, moduleDeps, outError);
-	if (!outError.empty()) {
-		moduleTable.clear();
-		return;
+	bool success = context.engineInterface().extractLuaDependencies(fileContents, moduleDeps, outError);
+	if (!success) {
+		moduleDeps.clear();
 	}
-
-	for (auto i = 0; i < moduleTable.size(); ++i) {
-		cachedModuleRefs_[moduleTable.name(i)] = moduleTable.get(i)->asRef();
-	}
-
-	moduleTable.clear();
 
 	std::vector<std::string> redeclaredStandardModules;
 	for (const auto& dep : moduleDeps) {
@@ -115,18 +121,44 @@ void LuaScript::syncLuaModules(BaseContext& context, const std::string& fileCont
 
 	if (!redeclaredStandardModules.empty()) {
 		outError = fmt::format("Error while parsing Lua script file: Found redeclaration of standard Lua module{} {}", redeclaredStandardModules.size() == 1 ? "" : "s", fmt::join(redeclaredStandardModules, ", "));
-		return;
+		moduleDeps.clear();
+		success = false;
 	}
 
-	for (const auto& dep : moduleDeps) {
-		auto moduleRef = std::unique_ptr<raco::data_storage::ValueBase>(new Value<SLuaScriptModule>());
-		auto newDep = context.addProperty({shared_from_this(), &LuaScript::luaModules_}, dep, std::move(moduleRef));
-
-		auto cachedModuleIt = cachedModuleRefs_.find(dep);
-		if (cachedModuleIt != cachedModuleRefs_.end()) {
-			newDep->setRef(cachedModuleIt->second);
+	// Remove outdated module properties
+	std::vector<std::string> toRemove;
+	for (size_t index = 0; index < luaModules_->size(); index++) {
+		const auto& name = luaModules_->name(index);
+		if (std::find(moduleDeps.begin(), moduleDeps.end(), name) == moduleDeps.end()) {
+			toRemove.emplace_back(name);
 		}
 	}
+	ValueHandle moduleHandle{shared_from_this(), &LuaScript::luaModules_};
+	for (const auto& propName : toRemove) {
+		auto refValue = moduleHandle.get(propName).asRef();
+		if (refValue) {
+			cachedModuleRefs_[propName] = refValue->objectID();
+		}
+		context.removeProperty(moduleHandle, propName);
+	}
+
+	// Add new module properties
+	for (const auto& moduleName : moduleDeps) {
+		if (!luaModules_->hasProperty(moduleName)) {
+			std::unique_ptr<raco::data_storage::ValueBase> newValue = std::make_unique<Value<SLuaScriptModule>>();
+			auto it = cachedModuleRefs_.find(moduleName);			
+			if (it != cachedModuleRefs_.end()) {
+				std::string cachedRefID = it->second;
+				auto cachedObject = context.project()->getInstanceByID(cachedRefID);
+				if (cachedObject) {
+					*newValue = cachedObject;
+				}
+			}
+			context.addProperty(moduleHandle, moduleName, std::move(newValue));
+		}
+	}
+
+	return success;
 }
 
 }  // namespace raco::user_types

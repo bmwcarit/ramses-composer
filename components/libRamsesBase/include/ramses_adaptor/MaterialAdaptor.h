@@ -45,6 +45,6 @@ private:
 	components::Subscription uniformSubscription_;
 };
 
-void updateAppearance(SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle);
+void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle);
 
 };	// namespace raco::ramses_adaptor

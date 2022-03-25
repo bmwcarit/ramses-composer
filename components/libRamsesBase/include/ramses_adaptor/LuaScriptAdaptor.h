@@ -43,6 +43,8 @@ private:
 	}
 
 	std::shared_ptr<user_types::LuaScript> editorObject_;
+	
+	std::vector<raco::ramses_base::RamsesLuaModule> modules;
 	std::unique_ptr<rlogic::LuaScript, std::function<void(rlogic::LuaScript*)>> luaScript_{nullptr, [](auto) {}};
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;
@@ -51,7 +53,6 @@ private:
 	components::Subscription parentNameSubscription_;
 	components::Subscription moduleSubscription_;
 
-	std::vector<raco::ramses_base::RamsesLuaModule> modules;
 
 	// Flag to keep track if a change needs to recreate the lua script in the logicengine
 	// or if it is sufficient to just update the input properties.

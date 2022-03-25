@@ -20,12 +20,14 @@ set(TEST_LIBRARIES
     raco::Testing
     raco::Utils
 )
+
 raco_package_add_headless_test(
     libApplication_test
     "${TEST_SOURCES}"
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
+
 raco_package_add_test_resouces(
     libApplication_test "${CMAKE_SOURCE_DIR}/resources"
     shaders/basic.frag
@@ -50,3 +52,12 @@ raco_package_add_test_resouces(
     scripts/types-scalar.lua
     scripts/runtime-error.lua
 )
+
+raco_package_add_test_resouces(
+    libApplication_test "${CMAKE_CURRENT_SOURCE_DIR}/testData"
+    loadDoubleModuleReferenceWithoutError.rca
+    scripts/m1.lua
+    scripts/m2.lua
+    scripts/s.lua
+ )
+ 

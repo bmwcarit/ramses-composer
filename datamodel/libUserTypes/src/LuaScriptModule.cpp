@@ -10,6 +10,7 @@
 #include "user_types/LuaScriptModule.h"
 #include "Validation.h"
 #include "core/Context.h"
+#include "core/EngineInterface.h"
 #include "core/Handles.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
@@ -19,23 +20,31 @@
 namespace raco::user_types {
 
 void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
-	std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
-
-	std::string error;
-
-	context.engineInterface().parseLuaScriptModule(luaScript, error);
-
 	context.errors().removeError({shared_from_this()});
+
 	if (validateURI(context, {shared_from_this(), &LuaScriptModule::uri_})) {
-		if (error.size() > 0) {
+		std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
+
+		std::string error;
+		bool success = context.engineInterface().parseLuaScriptModule(luaScript, error);
+
+		if (success) {
+			isValid_ = true;
+		} else {
 			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
+			isValid_ = false;
 		}
 		currentScriptContents_ = luaScript;
 	} else {
 		currentScriptContents_.clear();
+		isValid_ = false;
 	}
 
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
+}
+
+bool LuaScriptModule::isValid() const {
+	return isValid_;
 }
 
 }  // namespace raco::user_types

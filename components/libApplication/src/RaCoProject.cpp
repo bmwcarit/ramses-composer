@@ -26,6 +26,8 @@
 #include "core/ProjectMigration.h"
 #include "core/Serialization.h"
 #include "core/SerializationKeys.h"
+#include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/OrthographicCamera.h"
@@ -94,12 +96,12 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 		context_->initLinkValidity();
 	}
 
+	context_->performExternalFileReload(project_.instances());
+
 	// Push currently loading project on the project load stack to enable project loop detection to work.
 	pathStack.emplace_back(file.toStdString());
 	context_->updateExternalReferences(pathStack);
 	pathStack.pop_back();
-
-	context_->performExternalFileReload(project_.instances());
 
 	undoStack_.reset();
 	context_->changeMultiplexer().reset();
@@ -111,7 +113,25 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 }
 
 void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath) {
-	for (auto& object : context_->project()->instances()) {
+	// Somewhat outdated description of a problem here:
+	// We need the LuaScripts to be processed before the LuaScriptModules:
+	// otherwise we will loose the references to the modules in the LuaScript module properties.
+	// Mechanism for losing the module references:
+	// - reroot / set LuaModule uri property
+	// - call LuaScript::onAfterReferencedObjectChanged as side effect of operation above
+	// - LuaScript module sync will now remove the module properties because the lua file can't be loaded because 
+	//   the LuaScript uri property has not been rerooted yet but is resolved using the new project path.
+	// - reroot / set LuaScript uri property
+	//   restores the module properties again but the reference values are now lost (not anymore, caching works again)
+	// Solutions
+	// - get module caching in LuaScript working again (this now works again)
+	// - set all uri properties before calling the side effect handlers; problematic because we would be opening the
+	//   BaseContext::set function and reordering the steps it takes. might be necessary though.
+	// update: we now have module caching in the LuaScript working again;
+	// but: we still potentially call some callback handlers multiple times; 
+	// it would be nice the optimize this but that needs an extension of the second solution above.
+	auto instances{context_->project()->instances()};
+	for (auto& object : instances) {
 		if (PathQueries::isPathRelativeToCurrentProject(object)) {
 			for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
 				if (auto anno = property.query<URIAnnotation>(); anno && !anno->isProjectSubdirectoryURI()) {
@@ -224,7 +244,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, prefs.meshSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, prefs.scriptSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, prefs.shaderSubdirectory.toStdString());
-	
+
 	result->context_->set({sRenderPass, &user_types::RenderPass::camera_}, sCamera);
 	result->context_->set({sRenderPass, &user_types::RenderPass::layer0_}, sRenderLayer);
 	result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Value<int>>(0));
@@ -285,7 +305,7 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 
 	auto result{raco::serialization::deserializeProject(document, filename.toStdString())};
 
-	Project p{ result.objects };
+	Project p{result.objects};
 	p.setCurrentPath(filename.toStdString());
 	for (const auto& instance : result.objects) {
 		instance->onAfterDeserialization();

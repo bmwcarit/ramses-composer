@@ -44,7 +44,6 @@ public:
 	
 	void updateFromExternalFile(BaseContext& context) override;
 
-
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
 	Property<Table, DisplayNameAnnotation> luaModules_{{}, DisplayNameAnnotation("Modules")};
@@ -52,10 +51,13 @@ public:
 	Property<Table, DisplayNameAnnotation> luaOutputs_{{}, DisplayNameAnnotation("Outputs")};
 
 private:
-	void syncLuaModules(BaseContext& context, const std::string& fileContents, std::string &outError);
+	void syncLuaScript(BaseContext& context, bool syncModules);
+	bool syncLuaModules(BaseContext& context, const std::string& fileContents, std::string& outError);
 
 	OutdatedPropertiesStore cachedLuaInputValues_;
-	std::map<std::string, SEditorObject> cachedModuleRefs_;
+
+	// Map module name -> object id
+	std::map<std::string, std::string> cachedModuleRefs_;
 };
 
 using SLuaScript = std::shared_ptr<LuaScript>;
