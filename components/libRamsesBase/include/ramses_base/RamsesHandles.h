@@ -49,6 +49,7 @@
 #include <map>
 #include <stdexcept>
 #include <set>
+#include "ramses-logic/AnimationNodeConfig.h"
 
 namespace raco::ramses_base {
 
@@ -556,7 +557,12 @@ inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance&
 }
 
 inline RamsesAnimationNode ramsesAnimationNode(const rlogic::AnimationChannels& channels, rlogic::LogicEngine* logicEngine, const std::string& name = "") {
-	return {logicEngine->createAnimationNode(channels, name), [logicEngine](rlogic::AnimationNode* node) {
+	rlogic::AnimationNodeConfig config;
+	for (auto c : channels)
+	{
+		config.addChannel(c);
+	}
+	return {logicEngine->createAnimationNode(config, name), [logicEngine](rlogic::AnimationNode* node) {
 				if (node) {
 					logicEngine->destroy(*node);
 				}

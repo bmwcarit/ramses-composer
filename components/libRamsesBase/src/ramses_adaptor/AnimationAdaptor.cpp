@@ -129,7 +129,7 @@ void AnimationAdaptor::updateGlobalAnimationSettings() {
 }
 
 void AnimationAdaptor::updateGlobalAnimationStats(core::Errors* errors) {
-	auto infoText = fmt::format("Total Duration: {:.2f} s", animNode_->getDuration());
+	auto infoText = fmt::format("Total Duration: {:.2f} s", *animNode_->getOutputs()->getChild("duration")->get<float>());
 	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, {editorObject_->shared_from_this(), {"animationOutputs"}}, infoText);
 }
 

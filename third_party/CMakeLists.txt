@@ -120,6 +120,7 @@ add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-cli
 add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
 
 
+add_subdirectory(ramses-logic/tools/ramses-logic-utils)
 add_subdirectory(ramses-logic/tools/ramses-logic-viewer)
 folderize_target(ramses-logic-viewer "third_party/ramses-logic")
 target_include_directories(ramses-logic-viewer PRIVATE
@@ -135,6 +136,7 @@ set_property(TARGET ramses-logic-viewer PROPERTY CXX_STANDARD 17)
 target_link_libraries(ramses-logic-viewer PRIVATE
     raco::ramses-lib
     raco::ramses-logic-lib-client-only
+    rlogic::ramses-logic-utils
 )
 
 IF (MSVC)
