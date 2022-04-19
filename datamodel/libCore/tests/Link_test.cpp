@@ -367,7 +367,7 @@ TEST_F(LinkTest, removal_sync_lua_struct_remove_property_whole) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT }
+	local st = { x = FLOAT, y = FLOAT }
 	IN.s = st
 	OUT.s = st
 end
@@ -380,7 +380,7 @@ end
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
 function interface()
-	st = { x = FLOAT}
+	local st = { x = FLOAT}
 	IN.s = st
 	OUT.s = st
 end
@@ -404,7 +404,7 @@ TEST_F(LinkTest, removal_sync_lua_struct_remove_property_member) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT, z = FLOAT }
+	local st = { x = FLOAT, y = FLOAT, z = FLOAT }
 	IN.s = st
 	OUT.s = st
 end
@@ -417,7 +417,7 @@ end
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, z = INT}
+	local st = { x = FLOAT, z = INT}
 	IN.s = st
 	OUT.s = st
 end
@@ -449,7 +449,7 @@ TEST_F(LinkTest, removal_sync_lua_struct_add_property_whole) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT }
+	local st = { x = FLOAT, y = FLOAT }
 	IN.s = st
 	OUT.s = st
 end
@@ -462,7 +462,7 @@ end
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT, z = INT}
+	local st = { x = FLOAT, y = FLOAT, z = INT}
 	IN.s = st
 	OUT.s = st
 end
@@ -486,7 +486,7 @@ TEST_F(LinkTest, removal_sync_lua_struct_add_property_member) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT }
+	local st = { x = FLOAT, y = FLOAT }
 	IN.s = st
 	OUT.s = st
 end
@@ -499,7 +499,7 @@ end
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = INT, z = INT}
+	local st = { x = FLOAT, y = INT, z = INT}
 	IN.s = st
 	OUT.s = st
 end
@@ -527,7 +527,7 @@ TEST_F(LinkTest, removal_sync_lua_struct_member) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT }
+	local st = { x = FLOAT, y = FLOAT }
 	IN.s = st
 	OUT.s = st
 end
@@ -831,8 +831,8 @@ TEST_F(LinkTest, lua_restore_nested_struct_link_only_when_struct_property_types_
 	TextFile script1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	s = { x = FLOAT}
-	complex = {
+	local s = { x = FLOAT}
+	local complex = {
 		struct = s
     }
 	IN.s = complex
@@ -853,8 +853,8 @@ end
 	TextFile script2 = makeFile("script-2.lua",
 		R"(
 function interface()
-	s = { x = INT}
-	complex = {
+	local s = { x = INT}
+	local complex = {
 		struct = s
     }
 	IN.s = complex
@@ -1236,7 +1236,7 @@ TEST_F(LinkTest, break_link_remove_child_prop_keeps_value_with_undo_redo) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
 function interface()
-	st = { x = FLOAT, y = FLOAT }
+	local st = { x = FLOAT, y = FLOAT }
 	IN.s = st
 	OUT.s = st
 end
@@ -1250,7 +1250,7 @@ end
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
 function interface()
-	st = { x = FLOAT}
+	local st = { x = FLOAT}
 	IN.s = st
 	OUT.s = st
 end

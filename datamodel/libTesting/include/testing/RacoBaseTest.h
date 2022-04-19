@@ -15,6 +15,8 @@
 #include "core/Context.h"
 #include "core/CommandInterface.h"
 #include "core/PathManager.h"
+#include "core/Project.h"
+#include "core/Queries.h"
 #include "core/Undo.h"
 
 #include <gtest/gtest.h>
@@ -70,6 +72,13 @@ public:
 		}
 	}
 
+	static void checkLinks(raco::core::Project& project, const std::vector<raco::core::Link>& refLinks) {
+		EXPECT_EQ(refLinks.size(), project.links().size());
+		for (const auto& refLink : refLinks) {
+			auto projectLink = raco::core::Queries::getLink(project, refLink.endProp());
+			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
+		}
+	}
 
 protected:
 

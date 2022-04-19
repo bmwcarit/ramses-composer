@@ -15,6 +15,8 @@
 #include "lapi.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "style/RaCoStyle.h"
+#include <QApplication>
 #include <QLineEdit>
 
 namespace raco::property_browser {
@@ -32,6 +34,9 @@ InternalSpinBox<T>::InternalSpinBox(QWidget* parent, std::function<void(T)> valu
 	connect(lineEdit(), &QLineEdit::editingFinished, this, [this]() {
 		setValue(valueFromText(lineEdit()->text()));
 	});
+
+	// setting RaCoStyle to set Shift modifier for extended value step
+	this->setStyle(QApplication::style());
 }
 
 template <typename T>

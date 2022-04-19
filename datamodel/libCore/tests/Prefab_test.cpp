@@ -673,8 +673,8 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_no_module) {
 
 	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	ASSERT_NE(inst_lua, nullptr);
-	ASSERT_TRUE(commandInterface.errors().hasError({lua}));
-	ASSERT_TRUE(commandInterface.errors().hasError({inst_lua}));
+	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{lua, {"luaModules", "coalas"}}));
+	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{inst_lua, {"luaModules", "coalas"}}));
 }
 
 TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_add_module) {
@@ -714,8 +714,8 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_remove_module) {
 
 	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	ASSERT_NE(inst_lua, nullptr);
-	ASSERT_TRUE(commandInterface.errors().hasError({lua}));
-	ASSERT_TRUE(commandInterface.errors().hasError({inst_lua}));
+	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{lua, {"luaModules", "coalas"}}));
+	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{inst_lua, {"luaModules", "coalas"}}));
 }
 
 TEST_F(PrefabTest, duplication_gets_propagated) {

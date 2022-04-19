@@ -18,12 +18,9 @@
 
 namespace raco::ramses_adaptor {
 
-class AnimationAdaptor final : public ObjectAdaptor, public ILogicPropertyProvider {
+class AnimationAdaptor final : public UserTypeObjectAdaptor<user_types::Animation>, public ILogicPropertyProvider {
 public:
 	explicit AnimationAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimation animation);
-
-	core::SEditorObject baseEditorObject() noexcept override;
-	const core::SEditorObject baseEditorObject() const noexcept override;
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
@@ -33,8 +30,6 @@ public:
 	void readDataFromEngine(core::DataChangeRecorder& recorder);
 
 private:
-	user_types::SAnimation editorObject_;
-	std::vector<raco::ramses_base::RamsesAnimationChannelHandle> channelHandles_;
 	raco::ramses_base::RamsesAnimationNode animNode_;
 	std::array<raco::components::Subscription, 3> settingsSubscriptions_;
 	raco::components::Subscription dirtySubscription_;

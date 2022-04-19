@@ -36,6 +36,8 @@ struct LinkDescriptor {
 	PropertyDescriptor start;
 	PropertyDescriptor end;
 	bool isValid{true};
+
+	static bool lessThanByObjectID(const LinkDescriptor& lhs, const LinkDescriptor& rhs);
 };
 
 bool operator==(const LinkDescriptor& lhs, const LinkDescriptor& rhs);

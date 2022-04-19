@@ -64,13 +64,13 @@ public:
 			{"topPlane", &top_}};
 	}
 
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> near_{0.1, DisplayNameAnnotation("Near Plane"), RangeAnnotation<double>(0.1, 1.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> far_{1000.0, DisplayNameAnnotation("Far Plane"), RangeAnnotation<double>(100.0, 10000.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> near_{0.1, DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> far_{1000.0, DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), {}};
 
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> left_{-10.0, DisplayNameAnnotation("Left Plane"), RangeAnnotation<double>(-1000.0, 0.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> right_{10.0, DisplayNameAnnotation("Right Plane"), RangeAnnotation<double>(0.0, 1000.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> bottom_{-10.0, DisplayNameAnnotation("Bottom Plane"), RangeAnnotation<double>(-1000.0, 0.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> top_{10.0, DisplayNameAnnotation("Top Plane"), RangeAnnotation<double>(0.0, 1000.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> left_{-10.0, DisplayNameAnnotation("leftPlane"), RangeAnnotation<double>(-1000.0, 0.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> right_{10.0, DisplayNameAnnotation("rightPlane"), RangeAnnotation<double>(0.0, 1000.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> bottom_{-10.0, DisplayNameAnnotation("bottomPlane"), RangeAnnotation<double>(-1000.0, 0.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> top_{10.0, DisplayNameAnnotation("topPlane"), RangeAnnotation<double>(0.0, 1000.0), {}};
 };
 
 class OrthographicCamera : public BaseCamera {

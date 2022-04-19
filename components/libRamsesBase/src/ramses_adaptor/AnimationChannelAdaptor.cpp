@@ -33,9 +33,8 @@ namespace raco::ramses_adaptor {
 
 using namespace raco::ramses_base;
 
-AnimationChannelAdaptor::AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimationChannel mesh)
-	: ObjectAdaptor{sceneAdaptor},
-	  editorObject_{mesh},
+AnimationChannelAdaptor::AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimationChannel channel)
+	: UserTypeObjectAdaptor{sceneAdaptor, channel},
 	  subscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnimationChannel::objectName_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnimationChannel::animationIndex_}, [this]() { tagDirty(); }),
@@ -115,12 +114,8 @@ bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-core::SEditorObject AnimationChannelAdaptor::baseEditorObject() noexcept {
-	return editorObject_;
-}
-
-const core::SEditorObject AnimationChannelAdaptor::baseEditorObject() const noexcept {
-	return editorObject_;
+raco::ramses_base::RamsesAnimationChannelHandle AnimationChannelAdaptor::handle() const {
+	return handle_;
 }
 
 };	// namespace raco::ramses_adaptor

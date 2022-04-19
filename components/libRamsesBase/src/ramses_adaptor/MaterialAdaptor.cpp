@@ -9,7 +9,6 @@
  */
 #include "ramses_adaptor/MaterialAdaptor.h"
 
-#include "log_system/log.h"
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
@@ -65,7 +64,6 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 	});
 
 	bool status = TypedObjectAdaptor<user_types::Material, ramses::Effect>::sync(errors);
-	LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "valid: {}", isValid());
 
 	appearanceBinding_.reset();
 	appearance_.reset();
@@ -120,7 +118,7 @@ const rlogic::Property* MaterialAdaptor::getProperty(const std::vector<std::stri
 }
 
 void MaterialAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {
-	core::ValueHandle const valueHandle{baseEditorObject()};
+	core::ValueHandle const valueHandle{editorObject()};
 	if (errors.hasError(valueHandle)) {
 		return;
 	}

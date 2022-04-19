@@ -13,6 +13,8 @@ namespace raco::common_widgets {
 
 LinkStartViewItem::LinkStartViewItem(const QString& s, const core::ValueHandle& handle) : QStandardItem{s}, handle_{handle} {
 	setDragEnabled(true);
+
+	setToolTip(QString::fromStdString(handle_.getDescriptor().getFullPropertyPath()));
 }
 
 LinkStartItemModel::LinkStartItemModel(QObject* parent) : QStandardItemModel{parent} {}

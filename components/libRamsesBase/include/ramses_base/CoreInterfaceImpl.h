@@ -19,8 +19,8 @@ class CoreInterfaceImpl final : public raco::core::EngineInterface {
 public:
 	explicit CoreInterfaceImpl(BaseEngineBackend* backend);
 	bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, raco::core::PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& error) override;
-	bool parseLuaScript(const std::string& luaScript, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& error) override;
-	bool parseLuaScriptModule(const std::string& luaScriptModule, std::string& outError) override;
+	bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& error) override;
+	bool parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, std::string& outError) override;
 	bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) override;
 	const std::map<int, std::string>& enumerationDescription(raco::core::EngineEnumeration type) const override;
 	std::string luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const override;

@@ -22,7 +22,7 @@ namespace raco::ramses_adaptor {
 
 		bool sync(core::Errors* errors) override;
 
-		ramses_base::RamsesRenderBuffer buffer();
+		ramses_base::RamsesRenderBuffer buffer() const;
 
 	private:
 		ramses_base::RamsesRenderBuffer buffer_;

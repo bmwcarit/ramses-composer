@@ -3,9 +3,11 @@ function interface()
 	OUT.float = FLOAT
 end
 
-test = 0
+function init()
+	GLOBAL.test = 0
+end
 
 function run()
-	test = test + 1
-	OUT.float = IN.float + test
+	GLOBAL.test = GLOBAL.test + 1
+	OUT.float = IN.float + GLOBAL.test
 end

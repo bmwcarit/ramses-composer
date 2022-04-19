@@ -1,8 +1,8 @@
 
 function interface()
-	s = { x = FLOAT, y = FLOAT }
+	local s = { x = FLOAT, y = FLOAT }
 	IN.v = s
-	complex = {
+	local complex = {
 		bool = BOOL,
 		float = FLOAT,
 		vector2f = VEC2F,

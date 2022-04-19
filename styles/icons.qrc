@@ -17,6 +17,8 @@
         <file alias="menuIcon">_Default/icons/menu.svg</file>
         <file alias="openInNewIcon">_Default/icons/openInNew.svg</file>
         <file alias="gotoIcon">_Default/icons/goto.svg</file>
+        <file alias="gotoLeftIcon">_Default/icons/gotoLeft.svg</file>
+        <file alias="gotoLeftRightIcon">_Default/icons/gotoLeftRight.svg</file>
         <file alias="decrementIcon">_Default/icons/arrowLeft.svg</file>
         <file alias="incrementIcon">_Default/icons/arrowRight.svg</file>
         <file alias="warningIcon">_Default/icons/warning.svg</file>

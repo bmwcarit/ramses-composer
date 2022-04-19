@@ -227,6 +227,10 @@ bool ObjectTreeViewExternalProjectModel::canDuplicateAtIndices(const QModelIndex
 	return false;
 }
 
+bool ObjectTreeViewExternalProjectModel::canProgramaticallyGotoObject() const {
+	return false;
+}
+
 bool ObjectTreeViewExternalProjectModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
 	return false;
 }

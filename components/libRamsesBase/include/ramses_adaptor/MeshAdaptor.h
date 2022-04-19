@@ -21,7 +21,7 @@ namespace raco::ramses_adaptor {
 class SceneAdaptor;
 using VertexDataMap = std::unordered_map<std::string, raco::ramses_base::RamsesArrayResource>;
 
-class MeshAdaptor final : public ObjectAdaptor {
+class MeshAdaptor final : public UserTypeObjectAdaptor<user_types::Mesh> {
 public:
 	explicit MeshAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMesh mesh);
 
@@ -29,13 +29,10 @@ public:
 	const VertexDataMap& vertexData() const;
 	bool isValid();
 	
-	core::SEditorObject baseEditorObject() noexcept override;
-	const core::SEditorObject baseEditorObject() const noexcept override;
 
 	bool sync(core::Errors* errors) override;
 
 private:
-	user_types::SMesh editorObject_;
 	VertexDataMap vertexDataMap_;
 	raco::ramses_base::RamsesArrayResource indices_;
 	core::FileChangeMonitor::UniqueListener meshFileChangeListener_;

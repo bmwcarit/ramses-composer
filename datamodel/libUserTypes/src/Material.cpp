@@ -13,7 +13,6 @@
 #include "core/Context.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
-#include "log_system/log.h"
 #include "utils/FileUtils.h"
 #include <algorithm>
 
@@ -73,7 +72,6 @@ void Material::updateFromExternalFile(BaseContext& context) {
 	}
 
 	syncTableWithEngineInterface(context, uniforms, ValueHandle(shared_from_this(), &Material::uniforms_), cachedUniformValues_, false, true);
-	context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &Material::uniforms_));
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 
 	context.updateBrokenLinkErrors(shared_from_this());

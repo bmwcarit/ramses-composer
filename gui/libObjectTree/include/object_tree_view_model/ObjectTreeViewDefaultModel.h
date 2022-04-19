@@ -93,6 +93,7 @@ public:
 	virtual bool canDuplicateAtIndices(const QModelIndexList& indices) const;
 
 	virtual bool canDeleteUnusedResources() const;
+	virtual bool canProgramaticallyGotoObject() const;
 
 	virtual bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const;
 	virtual std::vector<std::string> typesAllowedIntoIndex(const QModelIndex& index) const;

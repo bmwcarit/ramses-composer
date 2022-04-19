@@ -42,7 +42,7 @@ RefEditor::RefEditor(
 	goToRefObjectButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::instance().goTo, "", this);
 
 	QObject::connect(goToRefObjectButton_, &QPushButton::clicked, [this, item]() {
-		item->model()->Q_EMIT objectSelectionRequested(ref_->items().at(ref_->currentIndex()).second);
+		item->model()->Q_EMIT objectSelectionRequested(ref_->items().at(ref_->currentIndex()).objId);
 	});
 
 	layout->addWidget(goToRefObjectButton_);
@@ -53,6 +53,7 @@ RefEditor::RefEditor(
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::currentIndexChanged), [this](auto index) {
 		emptyReference_ = (index == PropertyBrowserRef::EMPTY_REF_INDEX);
 		goToRefObjectButton_->setDisabled(emptyReference_);
+		comboBox_->setToolTip(comboBox_->itemData(index, Qt::ToolTipRole).toString());
 	});
 	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
 		comboBox_->setFocus();
@@ -74,7 +75,8 @@ void RefEditor::updateItems(const PropertyBrowserRef::ComboBoxItems& items) {
 	QObject::disconnect(comboBox_, qOverload<int>(&QComboBox::activated), ref_, &PropertyBrowserRef::setIndex);
 	comboBox_->clear();
 	for (const auto& comboItem : items) {
-		comboBox_->addItem(comboItem.first, comboItem.second);
+		comboBox_->addItem(comboItem.objName, comboItem.objId);
+		comboBox_->setItemData(comboBox_->count() - 1, comboItem.tooltipText, Qt::ToolTipRole);
 	}
 	comboBox_->setCurrentIndex(ref_->currentIndex());
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), ref_, &PropertyBrowserRef::setIndex);

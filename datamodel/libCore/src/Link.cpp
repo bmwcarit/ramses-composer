@@ -87,6 +87,15 @@ bool operator<(const LinkDescriptor& lhs, const LinkDescriptor& rhs) {
 																				 lhs.end.object() == rhs.end.object() && lhs.end.propertyNames() < rhs.end.propertyNames()));
 }
 
+
+bool LinkDescriptor::lessThanByObjectID(const LinkDescriptor& lhs, const LinkDescriptor& rhs) {
+	return lhs.start.object()->objectID() < rhs.start.object()->objectID() ||
+		   lhs.start.object()->objectID() == rhs.start.object()->objectID() &&
+			   (lhs.start.propertyNames() < rhs.start.propertyNames() ||
+				   lhs.start.propertyNames() == rhs.start.propertyNames() && (lhs.end.object()->objectID() < rhs.end.object()->objectID() ||
+																				 lhs.end.object()->objectID() == rhs.end.object()->objectID() && lhs.end.propertyNames() < rhs.end.propertyNames()));
+}
+
 bool compareLinksByObjectID(const Link& left, const Link& right) {
 	return (*left.startObject_)->objectID() == (*right.startObject_)->objectID() &&
 		   (*left.endObject_)->objectID() == (*right.endObject_)->objectID() &&

@@ -39,25 +39,12 @@ end
 function run()
 end
 )";
-	// logicengine bug: crashes in debug build with 10000 iterations although ok with 100 iterations
-	// TODO: remove the EXPECT_THROW once the logicengine bug has been fixed
-#if (!defined(__linux__) && !defined(NDEBUG))
-	EXPECT_THROW(
-		for (unsigned i = 0; i < 10000; i++) {
-			auto* script = logicEngine.createLuaScript(scriptText);
-			ASSERT_TRUE(script != nullptr);
-			ASSERT_TRUE(logicEngine.destroy(*script));
-		},
-		std::exception);
-#else
 	for (unsigned i = 0; i < 10000; i++) {
 		auto* script = logicEngine.createLuaScript(scriptText);
 		ASSERT_TRUE(script != nullptr);
 		ASSERT_TRUE(logicEngine.destroy(*script));
 	}
-#endif
 }
-
 
 TEST(ramses_logic, relink_scriptToScript) {
 	rlogic::LogicEngine logicEngine;
@@ -346,7 +333,7 @@ TEST(ramses_logic, arrayOfStruct_linking) {
 	auto scriptContent{
 		R"(
 function interface()
-	FloatPair = { a = FLOAT, b = FLOAT }
+	local FloatPair = { a = FLOAT, b = FLOAT }
 	IN.arrayOfStruct = ARRAY(2, FloatPair)
 	OUT.arrayOfStruct = ARRAY(2, FloatPair)
 end

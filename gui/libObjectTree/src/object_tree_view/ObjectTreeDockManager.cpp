@@ -52,7 +52,7 @@ void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& object
 		if (auto activeTreeView = dock->getCurrentlyActiveTreeView()) {
 			auto viewTitle = activeTreeView->getViewTitle();
 
-			if (viewTitles.count(viewTitle) == 0) {
+			if (activeTreeView->canProgrammaticallyGoToObject() && viewTitles.count(viewTitle) == 0) {
 				activeTreeView->selectObject(objectID);
 				activeTreeView->expandAllParentsOfObject(objectID);
 				viewTitles.insert(viewTitle);

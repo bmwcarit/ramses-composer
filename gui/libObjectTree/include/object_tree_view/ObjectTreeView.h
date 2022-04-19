@@ -40,6 +40,7 @@ public:
 	void showContextMenu(const QPoint &p);
 	bool canCopyAtIndices(const QModelIndexList &indices);
 	bool canPasteIntoIndex(const QModelIndex &index, bool asExtref);
+	bool canProgrammaticallyGoToObject();
 
 	QSortFilterProxyModel *proxyModel() const;
 

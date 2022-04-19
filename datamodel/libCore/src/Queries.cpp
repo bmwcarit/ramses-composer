@@ -317,6 +317,17 @@ bool Queries::isChildObject(const SEditorObject& child, const SEditorObject& par
 	return false;
 }
 
+std::string Queries::getFullObjectHierarchyPath(SEditorObject obj) {
+	std::vector<std::string> fullHierarchyPath;
+
+	while (obj) {
+		fullHierarchyPath.emplace_back(obj->objectName());
+		obj = obj->getParent();
+	}
+
+	return fmt::format("{}", fmt::join(fullHierarchyPath.rbegin(), fullHierarchyPath.rend(), "/"));
+}
+
 bool Queries::isReadOnly(SEditorObject editorObj) {
 	if (editorObj->query<ExternalReferenceAnnotation>()) {
 		return true;
@@ -485,6 +496,48 @@ std::vector<SLink> Queries::getLinksConnectedToPropertySubtree(const Project& pr
 			for (const auto& link : linkIt->second) {
 				auto endProp = link->endProp();
 				if (desc == endProp || desc.contains(endProp)) {
+					result.emplace_back(link);
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
+std::vector<SLink> Queries::getLinksConnectedToProperty(const Project& project, const ValueHandle& property, bool includeStarting, bool includeEnding) {
+	std::vector<SLink> result;
+	PropertyDescriptor desc{property.getDescriptor()};
+	const auto& propertyObjID = property.rootObject()->objectID();
+	const auto& linkStartPoints = project.linkStartPoints();
+	const auto& linkEndPoints = project.linkEndPoints();
+
+	if (includeStarting) {
+		auto linkIt = linkStartPoints.find(propertyObjID);
+		if (linkIt != linkStartPoints.end()) {
+			for (const auto& link : linkIt->second) {
+				if (!link->isValid()) {
+					continue;
+				}
+
+				auto startProp = link->startProp();
+				if (startProp == desc) {
+					result.emplace_back(link);
+				}
+			}
+		}
+	}
+
+	if (includeEnding) {
+		auto linkIt = linkEndPoints.find(propertyObjID);
+		if (linkIt != linkEndPoints.end()) {
+			for (const auto& link : linkIt->second) {
+				if (!link->isValid()) {
+					continue;
+				}
+
+				auto endProp = link->endProp();
+				if (endProp == desc) {
 					result.emplace_back(link);
 				}
 			}

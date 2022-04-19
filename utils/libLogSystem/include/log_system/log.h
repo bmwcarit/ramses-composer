@@ -27,9 +27,7 @@ constexpr const char* CONTEXT{"CONTEXT"};
 constexpr const char* USER_TYPES{"USER_TYPES"};
 constexpr const char* PROPERTY_BROWSER{"PROPERTY_BROWSER"};
 constexpr const char* OBJECT_TREE_VIEW{"OBJECT_TREE_VIEW"};
-constexpr const char* STYLE {"STYLE"};
 constexpr const char* LOGGING{"LOGGING"};
-constexpr const char* DATA_CHANGE{"DATA_CHANGE"};
 constexpr const char* PREVIEW_WIDGET {"PREVIEW_WIDGET"};
 constexpr const char* RAMSES_BACKEND {"RAMSES_BACKEND"};
 constexpr const char* RAMSES_ADAPTOR {"RAMSES_ADAPTOR"};
@@ -37,6 +35,8 @@ constexpr const char* DESERIALIZATION{"DESERIALIZATION"};
 constexpr const char* PROJECT{"PROJECT"};
 constexpr const char* MESH_LOADER{"MESH_LOADER"};
 constexpr const char* RAMSES_LOGIC{"RAMSES_LOGIC"};
+constexpr const char* UTILS{"UTILS"};
+constexpr const char* DUMP{"DUMP"};
 
 constexpr size_t MAX_LOG_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 constexpr size_t MAX_LOG_FILE_AMOUNT = 25;

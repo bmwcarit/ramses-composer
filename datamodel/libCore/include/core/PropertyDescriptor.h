@@ -38,8 +38,11 @@ public:
 		return propNames_;
 	}
 
-	// Return '.'-separated property path starting at the root object
+	// Return '.'-separated property path starting at the property root object
 	std::string getPropertyPath(bool useObjectID = false) const;
+
+	// Return '/'-separated property path starting at the root object in the scene hierarchy
+	std::string getFullPropertyPath() const;
 	
 	bool operator==(const PropertyDescriptor& rhs) const;
 

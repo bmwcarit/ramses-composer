@@ -92,14 +92,14 @@ private:
 	ramses_base::RamsesEffect defaultEffect_{};
 	ramses_base::RamsesEffect defaultEffectWithNormals_{};
 
-	raco::ramses_base::RamsesAppearance defaultAppearance_;
-	raco::ramses_base::RamsesAppearance defaultAppearanceWithNormals_;
+	ramses_base::RamsesAppearance defaultAppearance_;
+	ramses_base::RamsesAppearance defaultAppearanceWithNormals_;
 
 	ramses_base::RamsesArrayResource defaultIndices_{};
 	ramses_base::RamsesArrayResource defaultVertices_{};
 
+	ramses_base::RamsesAnimationChannelHandle defaultAnimChannel_{};
 	ramses_base::RamsesAnimationNode defaultAnimation_{};
-	raco::ramses_base::RamsesAnimationChannelHandle defaultAnimChannel_{};
 
 	std::map<SEditorObject, std::unique_ptr<ObjectAdaptor>> adaptors_{};
 	

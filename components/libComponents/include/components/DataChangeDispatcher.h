@@ -85,9 +85,36 @@ public:
 	Subscription registerOnChildren(core::ValueHandle valueHandle, ValueHandleCallback callback) noexcept;
 	Subscription registerOnPropertyChange(const std::string& propertyName, ValueHandleCallback callback) noexcept;
 	Subscription registerOnObjectsLifeCycle(EditorObjectCallback onCreation, EditorObjectCallback onDeletion) noexcept;
-	// Lifecycle changes (creation and deletion) to any link ending on endObject.
-	// If endObject == nullptr receive notification of link creation and deletion for any end object.
-	Subscription registerOnLinksLifeCycle(core::SEditorObject endObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept;
+
+	/**
+	 * @brief Subscribe to link lifecycle changes, i.e. link creation and deletion, for all links.
+	 *		
+	 * @param onCreation Callback to be invoked when a link is created.
+	 * @param onDeletion Callback to be invoked when a link is removed.
+	 * @return Subscription object. 
+	*/
+	Subscription registerOnLinksLifeCycle(LinkCallback onCreation, LinkCallback onDeletion) noexcept;
+
+	/**
+	 * @brief Subscribe to link lifecycle changes, i.e. link creation and deletion, for links ending on an object.
+	 *		
+	 * @param endObject  Restrict notifications to links ending on this object. Must not be nullptr.
+	 * @param onCreation Callback to be invoked when a link is created.
+	 * @param onDeletion Callback to be invoked when a link is removed.
+	 * @return Subscription object. 
+	*/
+	Subscription registerOnLinksLifeCycleForEnd(core::SEditorObject endObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept;
+
+	/**
+	 * @brief Subscribe to link lifecycle changes, i.e. link creation and deletion, for links starting on an object. 
+	 *		
+	 * @param startObject Restrict notifications to links starting on this object. Must not be nullptr.
+	 * @param onCreation Callback to be invoked when a link is created.
+	 * @param onDeletion Callback to be invoked when a link is removed.
+	 * @return Subscription object. 
+	*/
+	Subscription registerOnLinksLifeCycleForStart(core::SEditorObject startObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept;
+
 	Subscription registerOnLinkValidityChange(LinkCallback callback) noexcept;
 	Subscription registerOnErrorChanged(core::ValueHandle valueHandle, Callback callback) noexcept;
 	Subscription registerOnErrorChangedInScene(Callback callback) noexcept;
@@ -125,7 +152,9 @@ private:
 	void emitBulkChange(const core::SEditorObjectSet& changedObjects);
 
 	std::set<std::weak_ptr<ObjectLifecycleListener>, std::owner_less<std::weak_ptr<ObjectLifecycleListener>>> objectLifecycleListeners_{};
-	std::map<std::string, std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>>> linkLifecycleListeners_{};
+	std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>> linkLifecycleListeners_{};
+	std::map<std::string, std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>>> linkLifecycleListenersForEnd_{};
+	std::map<std::string, std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>>> linkLifecycleListenersForStart_{};
 	std::set<std::weak_ptr<LinkListener>, std::owner_less<std::weak_ptr<LinkListener>>> linkValidityChangeListeners_{};
 	std::map<std::string, std::set<std::weak_ptr<ValueHandleListener>, std::owner_less<std::weak_ptr<ValueHandleListener>>>> listeners_{};
 	std::map<std::string, std::set<std::weak_ptr<ChildrenListener>, std::owner_less<std::weak_ptr<ChildrenListener>>>> childrenListeners_{};

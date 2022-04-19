@@ -12,6 +12,8 @@
 
 #include "log_system/log.h"
 #include "ramses_base/Utils.h"
+#include "ramses_base/LogicEngineFormatter.h"
+
 #include <ramses-utils.h>
 
 #include <memory>
@@ -41,10 +43,12 @@
 #include <ramses-logic/AnimationNode.h>
 #include <ramses-logic/DataArray.h>
 #include <ramses-logic/LogicEngine.h>
+#include <ramses-logic/LuaScript.h>
 #include <ramses-logic/LuaModule.h>
 #include <ramses-logic/RamsesAppearanceBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>
 #include <ramses-logic/RamsesNodeBinding.h>
+#include <ramses-logic/AnimationNodeConfig.h>
 
 #include <map>
 #include <stdexcept>
@@ -60,6 +64,8 @@ using RamsesScene = RamsesHandle<ramses::Scene>;
 using RamsesRenderBuffer = RamsesHandle<ramses::RenderBuffer>;
 using RamsesRenderTarget = RamsesHandle<ramses::RenderTarget>;
 using RamsesTextureSampler = RamsesHandle<ramses::TextureSampler>;
+using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
+using RamsesLuaScript = RamsesHandle<rlogic::LuaScript>;
 
 /** RESOURCE HANDLES */
 using RamsesEffect = RamsesHandle<ramses::Effect>;
@@ -85,6 +91,19 @@ constexpr RamsesObjectDeleter createRamsesObjectDeleter(OwnerType* owner) {
 		destroyRamsesObject(owner, static_cast<RamsesType*>(obj));
 	};
 }
+
+template <typename LogicType>
+void destroyLogicObject(rlogic::LogicEngine* logicengine, LogicType* obj) {
+	if (obj) {
+		auto status = logicengine->destroy(*obj);
+		if (!status) {
+			LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{*logicengine});
+			assert(false);
+			exit(1);
+		}
+	}
+}
+
 
 struct RamsesAppearanceHandle {
 	RamsesAppearanceHandle(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect)
@@ -545,40 +564,29 @@ using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBi
 using UniqueRamsesDataArray = std::unique_ptr<rlogic::DataArray, std::function<void(rlogic::DataArray*)>>;
 using UniqueRamsesNodeBinding = std::unique_ptr<rlogic::RamsesNodeBinding, std::function<void(rlogic::RamsesNodeBinding*)>>;
 using UniqueRamsesCameraBinding = std::unique_ptr<rlogic::RamsesCameraBinding, std::function<void(rlogic::RamsesCameraBinding*)>>;
-using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
-
-using RamsesAnimationNode = RamsesHandle<rlogic::AnimationNode>;
 
 inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, rlogic::LogicEngine* logicEngine, const std::string& name) {
-	return {logicEngine->createRamsesAppearanceBinding(appearance, name), [logicEngine](rlogic::RamsesAppearanceBinding* ptr) {
-				logicEngine->destroy(*ptr);
-			}};
-}
-
-inline RamsesAnimationNode ramsesAnimationNode(const rlogic::AnimationChannels& channels, rlogic::LogicEngine* logicEngine, const std::string& name = "") {
-	return {logicEngine->createAnimationNode(channels, name), [logicEngine](rlogic::AnimationNode* node) {
-				if (node) {
-					logicEngine->destroy(*node);
-				}
+	return {logicEngine->createRamsesAppearanceBinding(appearance, name), [logicEngine](rlogic::RamsesAppearanceBinding* binding) {
+				destroyLogicObject(logicEngine, binding);
 			}};
 }
 
 inline UniqueRamsesNodeBinding ramsesNodeBinding(ramses::Node& node, rlogic::LogicEngine* logicEngine, rlogic::ERotationType rotationType) {
 	return {logicEngine->createRamsesNodeBinding(node, rotationType), [logicEngine](rlogic::RamsesNodeBinding* binding) {
-				logicEngine->destroy(*binding);
+				destroyLogicObject(logicEngine, binding);
 			}};
 }
 
 template <typename T>
 inline UniqueRamsesDataArray ramsesDataArray(const std::vector<T>& vec, rlogic::LogicEngine* logicEngine, const std::string& name = "") {
 	return {logicEngine->createDataArray(vec, name), [logicEngine](rlogic::DataArray* array) {
-				logicEngine->destroy(*array);
+				destroyLogicObject(logicEngine, array);
 			}};
 }
 
 inline UniqueRamsesCameraBinding ramsesCameraBinding(ramses::Camera& camera, rlogic::LogicEngine* logicEngine) {
 	return {logicEngine->createRamsesCameraBinding(camera), [logicEngine](rlogic::RamsesCameraBinding* binding) {
-				logicEngine->destroy(*binding);
+				destroyLogicObject(logicEngine, binding);
 			}};
 }
 
@@ -586,11 +594,17 @@ inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, rlogic::Lo
 	auto moduleConfig = defaultLuaConfig();
 	return {
 		logicEngine->createLuaModule(luaContent, moduleConfig, name), [logicEngine](rlogic::LuaModule* module) {
-			if (module) {
-				logicEngine->destroy(*module);
-			}
+			destroyLogicObject(logicEngine, module);
 		}};
 
+}
+
+inline RamsesLuaScript ramsesLuaScript(rlogic::LogicEngine* logicEngine, const std::string& scriptText, rlogic::LuaConfig& config, std::vector<raco::ramses_base::RamsesLuaModule> modules, const std::string& name) {
+	return {
+		logicEngine->createLuaScript(scriptText, config, name), 
+		[logicEngine, forceCopy = modules](rlogic::LuaScript* script) {
+			destroyLogicObject(logicEngine, script);
+		}};
 }
 
 struct RamsesAnimationChannelData {
@@ -603,5 +617,58 @@ struct RamsesAnimationChannelData {
 };
 
 using RamsesAnimationChannelHandle = RamsesHandle<RamsesAnimationChannelData>;
+
+struct RamsesAnimationNodeHandle {
+	RamsesAnimationNodeHandle(rlogic::LogicEngine* logicEngine, rlogic::AnimationNode* ramsesAnimationNode, std::vector<RamsesAnimationChannelHandle> channelHandles) 
+	: logicEngine_(logicEngine), animationNode_(ramsesAnimationNode), trackedAnimationChannels_(channelHandles) {
+	}
+
+	~RamsesAnimationNodeHandle() {
+		destroyLogicObject(logicEngine_, animationNode_);
+	}
+
+	rlogic::AnimationNode& operator*() {
+		return *animationNode_;
+	}
+
+	rlogic::AnimationNode* operator->() {
+		return animationNode_;
+	}
+
+	rlogic::AnimationNode* get() {
+		return animationNode_;
+	}
+
+	const std::vector<RamsesAnimationChannelHandle>& channels() const {
+		return trackedAnimationChannels_;
+	}
+
+private:
+	// Kept for reference. Needed to destroy the animation node.
+	rlogic::LogicEngine* logicEngine_;
+
+	// The animation node is owned by this class.
+	rlogic::AnimationNode* animationNode_;
+
+	// AnimationChannels currently used by the animation node. Needed to keep the effect alive in ramses.
+	// May contain nullptrs;
+	std::vector<RamsesAnimationChannelHandle> trackedAnimationChannels_;
+};
+
+using RamsesAnimationNode = std::shared_ptr<RamsesAnimationNodeHandle>;
+
+
+inline RamsesAnimationNode ramsesAnimationNode(rlogic::LogicEngine* logicEngine, const rlogic::AnimationNodeConfig &config, 
+std::vector<RamsesAnimationChannelHandle> channelHandles, const std::string& name = "") {
+	if (channelHandles.empty()) {
+		return {};
+	}
+
+	auto animationNode = logicEngine->createAnimationNode(config, name);
+	if (animationNode) {
+		return std::make_shared<RamsesAnimationNodeHandle>(logicEngine, animationNode, channelHandles);
+	}
+	return {};
+}
 
 };	// namespace raco::ramses_base

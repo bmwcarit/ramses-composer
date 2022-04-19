@@ -45,9 +45,13 @@ protected Q_SLOTS:
 	void setLinkState(const LinkState& linkstate);
 
 private:
+	std::map<std::string, std::string> generateSortedLinkPoints(const std::vector<raco::core::SLink> links);
+
 	bool validDropTarget_ { false };
 	PropertyBrowserItem* item_;
 	QPushButton* linkButton_;
+	QPushButton* goToLinkButton_;
+	QMetaObject::Connection goToLinkButtonConnection_;
 	PropertyBrowserGridLayout* layout_;
 };
 

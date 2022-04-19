@@ -9,7 +9,6 @@
  */
 #include "ramses_widgets/PreviewContentWidget.h"
 
-#include "log_system/log.h"
 #include "ramses_widgets/BuildOptions.h"
 #include "ramses_widgets/RamsesPreviewWindow.h"
 #include "components/QtFormatter.h"
@@ -52,7 +51,6 @@ ramses::sceneId_t PreviewContentWidget::getSceneId() {
 }
 
 bool PreviewContentWidget::event(QEvent* event) {
-	LOG_TRACE(raco::log_system::PREVIEW_WIDGET, "{}", *event);
 	if (event->type() == QEvent::Type::PlatformSurface) {
 		switch (dynamic_cast<QPlatformSurfaceEvent*>(event)->surfaceEventType()) {
 			case QPlatformSurfaceEvent::SurfaceEventType::SurfaceAboutToBeDestroyed:
@@ -70,7 +68,6 @@ void PreviewContentWidget::setViewportRect(
 	const QSize viewportSize,
 	const QSize virtualSize,
 	const QSize targetSize) {
-	LOG_TRACE(raco::log_system::PREVIEW_WIDGET, "");
 	if (!ramsesPreview_) {
 		return;
 	}

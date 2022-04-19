@@ -1,6 +1,6 @@
 
 function interface()
-	struct = {
+	local struct = {
 		bool = BOOL,
 		float = FLOAT,
 		vector2f = VEC2F,

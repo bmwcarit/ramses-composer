@@ -91,7 +91,6 @@ PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrow
 	layout->addWidget(bottomNotificationWidget, 2, 0);
 
 	QObject::connect(model, &PropertyBrowserModel::beforeStructuralChange, this, [this, content](QWidget* toChange) {
-		LOG_TRACE(log_system::PROPERTY_BROWSER, "beforeStructuralChange: {}", QWidgetInfo { toChange });
 		auto focusWidget = QApplication::focusWidget();
 
 		if (!focusWidget || !content->isAncestorOf(focusWidget) || focusWidget->visibleRegion().isEmpty()) {
@@ -105,12 +104,10 @@ PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrow
 				}
 			}
 		}
-		LOG_TRACE(log_system::PROPERTY_BROWSER, "focusWidget: {}", QWidgetInfo { focusWidget });
 
 		// if the focsed widget is inside the widget which will structurally change
 		// then we can only keep that widget focused
 		if (toChange->isAncestorOf(focusWidget)) {
-			LOG_TRACE(log_system::PROPERTY_BROWSER, "beforeStructuralChange: replacing with {}", QWidgetInfo { toChange });
 			focusWidget = toChange;
 		}
 		// if we have more than one changed valueHandle in the property browser we need to find the common widget.

@@ -61,15 +61,15 @@ TEST_F(LuaScriptModuleTest, URI_setValidURI_noModules_error) {
 }
 
 TEST_F(LuaScriptModuleTest, table_missing_error) {
-	auto script{commandInterface.createObject(LuaScriptModule::typeDescription.typeName)};
+	auto script{commandInterface.createObject(LuaScriptModule::typeDescription.typeName, "myModule")};
 	TextFile scriptWhitespaceOnlyFile = makeFile("script1.lua", " ");
 	TextFile scriptEmptyFile = makeFile("script2.lua", "");
 
 	ValueHandle uriHandle{ValueHandle{script, {"uri"}}};
 	commandInterface.set(uriHandle, scriptWhitespaceOnlyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessModule] Error while loading module. Module script must return a table!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myModule] Error while loading module. Module script must return a table!");
 	commandInterface.set(uriHandle, scriptEmptyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessModule] Error while loading module. Module script must return a table!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myModule] Error while loading module. Module script must return a table!");
 }

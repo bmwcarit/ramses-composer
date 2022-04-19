@@ -107,7 +107,7 @@ bool RenderBufferAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-ramses_base::RamsesRenderBuffer RenderBufferAdaptor::buffer() {
+ramses_base::RamsesRenderBuffer RenderBufferAdaptor::buffer() const {
 	return buffer_;
 }
 

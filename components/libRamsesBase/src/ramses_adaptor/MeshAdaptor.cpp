@@ -9,7 +9,6 @@
  */
 #include "ramses_adaptor/MeshAdaptor.h"
 
-#include "log_system/log.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
@@ -22,8 +21,7 @@ namespace raco::ramses_adaptor {
 using namespace raco::ramses_base;
 
 MeshAdaptor::MeshAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMesh mesh)
-	: ObjectAdaptor{sceneAdaptor},
-	  editorObject_{mesh},
+	: UserTypeObjectAdaptor{sceneAdaptor, mesh},
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() {
 		  tagDirty();
 	  })},
@@ -47,7 +45,6 @@ bool MeshAdaptor::isValid() {
 
 bool MeshAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
-	LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "{}", isValid());
 	if (isValid()) {
 		auto mesh = editorObject_->meshData();
 		auto indices = mesh->getIndices();
@@ -69,14 +66,6 @@ bool MeshAdaptor::sync(core::Errors* errors) {
 	}
 	tagDirty(false);
 	return true;
-}
-
-core::SEditorObject MeshAdaptor::baseEditorObject() noexcept {
-	return editorObject_;
-}
-
-const core::SEditorObject MeshAdaptor::baseEditorObject() const noexcept {
-	return editorObject_;
 }
 
 };	// namespace raco::ramses_adaptor

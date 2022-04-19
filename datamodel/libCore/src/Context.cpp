@@ -695,7 +695,7 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 			project_->addLink(link);
 			changeMultiplexer_.recordAddLink(link->descriptor());
 		} else {
-			LOG_INFO(log_system::CONTEXT, "Discard invalid link {}", link);
+			LOG_WARNING(log_system::CONTEXT, "Discard invalid link {}", link);
 		}
 	}
 

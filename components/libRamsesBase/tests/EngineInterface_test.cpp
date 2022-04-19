@@ -8,16 +8,15 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#include "ramses_base/Utils.h"
 #include "RamsesBaseFixture.h"
 #include <gtest/gtest.h>
 
 using namespace raco::ramses_base;
 using raco::core::EnginePrimitive;
 
-class UtilsTest : public RamsesBaseFixture<> {};
+class EngineInterfaceTest : public RamsesBaseFixture<> {};
 
-TEST_F(UtilsTest, parseLuaScript_struct) {
+TEST_F(EngineInterfaceTest, parseLuaScript_struct) {
 	const std::string script = R"(
 function interface()
 	IN.struct = {
@@ -32,7 +31,7 @@ end
 	std::string error;
 	raco::core::PropertyInterfaceList in;
 	raco::core::PropertyInterfaceList out;
-	parseLuaScript(backend.logicEngine(), script, {}, in, out, error);
+	backend.coreInterface()->parseLuaScript(script, "myScript", {}, in, out, error);
 
 	EXPECT_EQ(1, in.size());
 	const auto& structProperty = in.at(0);
@@ -51,7 +50,7 @@ end
 	EXPECT_EQ(0, b.children.size());
 }
 
-TEST_F(UtilsTest, parseLuaScript_arrayNT) {
+TEST_F(EngineInterfaceTest, parseLuaScript_arrayNT) {
 	const std::string script = R"(
 function interface()
 	IN.vec = ARRAY(5, FLOAT)
@@ -63,7 +62,7 @@ end
 	std::string error;
 	raco::core::PropertyInterfaceList in;
 	raco::core::PropertyInterfaceList out;
-	parseLuaScript(backend.logicEngine(), script, {}, in, out, error);
+	backend.coreInterface()->parseLuaScript(script, "myScript", {}, in, out, error);
 
 	EXPECT_EQ(1, in.size());
 	EXPECT_EQ(EnginePrimitive::Array, in.at(0).type);

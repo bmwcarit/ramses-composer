@@ -16,8 +16,7 @@ namespace raco::ramses_adaptor {
 using namespace raco::ramses_base;
 
 AnimationAdaptor::AnimationAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimation animation)
-	: ObjectAdaptor{sceneAdaptor},
-	  editorObject_{animation},
+	: UserTypeObjectAdaptor{sceneAdaptor, animation},
 	  animNode_{sceneAdaptor_->defaultAnimation()},
 	  settingsSubscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::play_}, [this]() { tagDirty(); }),
@@ -27,37 +26,29 @@ AnimationAdaptor::AnimationAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types:
 		  sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })},
 	  nameSubscription_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::objectName_}, [this]() { tagDirty(); })}
- {}
-
-
-core::SEditorObject AnimationAdaptor::baseEditorObject() noexcept {
-	return editorObject_;
-}
-
-const core::SEditorObject AnimationAdaptor::baseEditorObject() const noexcept {
-	return editorObject_;
+ {
 }
 
 void AnimationAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
-	logicNodes.emplace_back(animNode_.get());
+	logicNodes.emplace_back(animNode_->get());
 }
 
 const rlogic::Property* AnimationAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
 	if (propertyNamesVector.size() > 1) {
-		const rlogic::Property* prop{animNode_->getOutputs()};
+		const rlogic::Property* prop{(*animNode_)->getOutputs()};
 		// The first element in the names is the output container
 		for (size_t i = 1; i < propertyNamesVector.size(); i++) {
 			prop = prop->getChild(propertyNamesVector.at(i));
 		}
 		return prop;
 	} else if (propertyNamesVector.size() == 1) {
-		return animNode_->getInputs()->getChild(propertyNamesVector.front());
+		return (*animNode_)->getInputs()->getChild(propertyNamesVector.front());
 	}
 	return nullptr;
 }
 
 void AnimationAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {
-	core::ValueHandle const valueHandle{baseEditorObject()};
+	core::ValueHandle const valueHandle{editorObject_};
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
@@ -69,28 +60,23 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 
 	std::vector<raco::ramses_base::RamsesAnimationChannelHandle> newChannelHandles;
 
-	auto addNewAnimHandle = [this, &newChannelHandles](const SEditorObject& channel) {
+	const auto &channelTable = editorObject_->animationChannels.asTable();
+	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
+		auto channel = channelTable.get(channelIndex)->asRef();
 		auto channelAdaptor = sceneAdaptor_->lookup<raco::ramses_adaptor::AnimationChannelAdaptor>(channel);
-
-		if (channelAdaptor && channelAdaptor->handle_) {
-			newChannelHandles.emplace_back(channelAdaptor->handle_);
+		if (channelAdaptor && channelAdaptor->handle()) {
+			newChannelHandles.emplace_back(channelAdaptor->handle());
 		} else {
 			newChannelHandles.emplace_back(nullptr);
 		}
-	};
-
-	auto &channels = editorObject_->animationChannels.asTable();
-	for (auto channelIndex = 0; channelIndex < channels.size(); ++channelIndex) {
-		auto channelRef = channels[channelIndex]->asRef();
-		addNewAnimHandle(channelRef);
 	}
 
-	if (channelHandles_ != newChannelHandles || animNode_->getName() != editorObject_->objectName()) {
-		rlogic::AnimationChannels channels;
+	if (animNode_->channels() != newChannelHandles || (**animNode_).getName() != editorObject_->objectName()) {
+		rlogic::AnimationNodeConfig config;
 		for (auto i = 0; i < newChannelHandles.size(); i++) {
 			auto& newHandle = newChannelHandles[i];
 			if (newHandle) {
-				channels.push_back({editorObject_->createAnimChannelOutputName(i, newHandle->name),
+				config.addChannel({editorObject_->createAnimChannelOutputName(i, newHandle->name),
 					newHandle->keyframeTimes.get(),
 					newHandle->animOutput.get(),
 					newHandle->interpolationType,
@@ -99,13 +85,11 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 			}
 		}
 
-		animNode_ = raco::ramses_base::ramsesAnimationNode(channels, &sceneAdaptor_->logicEngine(), editorObject_->objectName());
+		animNode_ = raco::ramses_base::ramsesAnimationNode(&sceneAdaptor_->logicEngine(), config, newChannelHandles, editorObject_->objectName());
 		if (!animNode_) {
 			animNode_ = sceneAdaptor_->defaultAnimation();
 		}
 		updateGlobalAnimationStats(errors);
-
-		channelHandles_ = newChannelHandles;
 	}
 
 	updateGlobalAnimationSettings();
@@ -116,20 +100,20 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 
 void AnimationAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	core::ValueHandle animOutputs{editorObject_, &user_types::Animation::animationOutputs};
-	getLuaOutputFromEngine(*animNode_->getOutputs(), animOutputs, recorder);
+	getLuaOutputFromEngine(*(*animNode_)->getOutputs(), animOutputs, recorder);
 }
 
 void AnimationAdaptor::updateGlobalAnimationSettings() {
 	// This rlogic property is currently being set in RaCoApplication::doOneLoop()
 	//animNode_->getInputs()->getChild("timeDelta")->set(static_cast<float>(TIME_DELTA * editorObject_->speed_.asDouble()));
 
-	animNode_->getInputs()->getChild("play")->set(editorObject_->play_.asBool());
-	animNode_->getInputs()->getChild("loop")->set(editorObject_->loop_.asBool());
-	animNode_->getInputs()->getChild("rewindOnStop")->set(editorObject_->rewindOnStop_.asBool());
+	(*animNode_)->getInputs()->getChild("play")->set(editorObject_->play_.asBool());
+	(*animNode_)->getInputs()->getChild("loop")->set(editorObject_->loop_.asBool());
+	(*animNode_)->getInputs()->getChild("rewindOnStop")->set(editorObject_->rewindOnStop_.asBool());
 }
 
 void AnimationAdaptor::updateGlobalAnimationStats(core::Errors* errors) {
-	auto infoText = fmt::format("Total Duration: {:.2f} s", animNode_->getDuration());
+	auto infoText = fmt::format("Total Duration: {:.2f} s", (*animNode_)->getDuration());
 	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, {editorObject_->shared_from_this(), {"animationOutputs"}}, infoText);
 }
 

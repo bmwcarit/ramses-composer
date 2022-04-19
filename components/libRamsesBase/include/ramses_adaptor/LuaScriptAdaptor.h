@@ -21,11 +21,9 @@
 
 namespace raco::ramses_adaptor {
 
-class LuaScriptAdaptor : public ObjectAdaptor, public ILogicPropertyProvider {
+class LuaScriptAdaptor : public UserTypeObjectAdaptor<user_types::LuaScript>, public ILogicPropertyProvider {
 public:
 	explicit LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::LuaScript> editorObject);
-	SEditorObject baseEditorObject() noexcept override;
-	const SEditorObject baseEditorObject() const noexcept override;
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
@@ -42,10 +40,8 @@ private:
 		return luaScript_.get();
 	}
 
-	std::shared_ptr<user_types::LuaScript> editorObject_;
-	
-	std::vector<raco::ramses_base::RamsesLuaModule> modules;
-	std::unique_ptr<rlogic::LuaScript, std::function<void(rlogic::LuaScript*)>> luaScript_{nullptr, [](auto) {}};
+	ramses_base::RamsesLuaScript luaScript_;
+
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;
 	components::Subscription inputSubscription_;

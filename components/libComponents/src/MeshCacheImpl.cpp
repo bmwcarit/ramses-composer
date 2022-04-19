@@ -11,7 +11,6 @@
 
 #include "core/Context.h"
 #include "components/FileChangeListenerImpl.h"
-#include "log_system/log.h"
 #include "components/FileChangeMonitorImpl.h"
 
 #include "mesh_loader/CTMFileLoader.h"

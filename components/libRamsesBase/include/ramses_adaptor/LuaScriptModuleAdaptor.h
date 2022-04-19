@@ -21,18 +21,17 @@
 
 namespace raco::ramses_adaptor {
 
-class LuaScriptModuleAdaptor : public ObjectAdaptor {
+class LuaScriptModuleAdaptor : public UserTypeObjectAdaptor<user_types::LuaScriptModule> {
 public:
 	explicit LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SLuaScriptModule editorObject);
-	SEditorObject baseEditorObject() noexcept override;
-	const SEditorObject baseEditorObject() const noexcept override;
 
 	bool sync(core::Errors* errors) override;
 
-	ramses_base::RamsesLuaModule module_;
-private:
+	ramses_base::RamsesLuaModule module() const;
 
-	raco::user_types::SLuaScriptModule editorObject_;
+private:
+	ramses_base::RamsesLuaModule module_;
+	
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;
 };

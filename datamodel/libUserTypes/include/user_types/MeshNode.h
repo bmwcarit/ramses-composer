@@ -68,7 +68,7 @@ public:
 private:
 	std::vector<std::string> getMaterialNames();
 	
-	void createMaterialSlot(std::string const& name);
+	void createMaterialSlot(BaseContext& context, std::string const& name);
 	void updateMaterialSlots(BaseContext& context, std::vector<std::string> const& materialNames);
 
 	void updatePrivateMaterialOptions(BaseContext& context, const raco::user_types::BlendOptions* src, ValueHandle& destOptions);
@@ -77,8 +77,8 @@ private:
 	void checkMeshMaterialAttributMatch(BaseContext& context);
 	
 	// Cached values of outdated uniforms.
-	// Indexed by <material name, uniform name, uniform type> tuple
-	std::map<std::tuple<std::string, std::string, raco::core::EnginePrimitive>, std::unique_ptr<ValueBase> > cachedUniformValues_;
+	// Indexed by material name.
+	std::map<std::string, OutdatedPropertiesStore> cachedUniformValues_;
 };
 
 using SMeshNode = std::shared_ptr<MeshNode>;

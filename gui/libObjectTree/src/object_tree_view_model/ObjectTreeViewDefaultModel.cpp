@@ -17,7 +17,6 @@
 #include "core/Project.h"
 #include "user_types/Prefab.h"
 #include "core/Queries.h"
-#include "log_system/log.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "components/Naming.h"
 #include "style/Colors.h"
@@ -227,18 +226,15 @@ QMimeData* raco::object_tree::model::ObjectTreeViewDefaultModel::generateMimeDat
 	QByteArray encodedData;
 
 	QDataStream stream(&encodedData, QIODevice::WriteOnly);
-	LOG_TRACE(log_system::OBJECT_TREE_VIEW, "Start - Creating mime data of size {}", indexes.size());
 	stream << QString::fromStdString(originPath);
 	for (const auto& index : indexes) {
 		if (index.column() == COLUMNINDEX_NAME) {
 			if (auto obj = indexToSEditorObject(index)) {
 				// Object ID
 				stream << QString::fromStdString(obj->objectID());
-				LOG_TRACE(log_system::OBJECT_TREE_VIEW, "Add - {}", obj->objectID());
 			}
 		}
 	}
-	LOG_TRACE(log_system::OBJECT_TREE_VIEW, "End - Creating mime data");
 
 	mimeData->setData(OBJECT_EDITOR_ID_MIME_TYPE, encodedData);
 	return mimeData;
@@ -327,7 +323,6 @@ QStringList ObjectTreeViewDefaultModel::mimeTypes() const {
 }
 
 void ObjectTreeViewDefaultModel::buildObjectTree() {
-	LOG_TRACE(raco::log_system::OBJECT_TREE_VIEW, "Rebuilding Object Tree Model");
 	dirty_ = false;
 	if (!commandInterface_) {
 		return;
@@ -484,6 +479,10 @@ size_t ObjectTreeViewDefaultModel::deleteObjectsAtIndices(const QModelIndexList&
 
 bool ObjectTreeViewDefaultModel::canDeleteUnusedResources() const {
 	return core::Queries::canDeleteUnreferencedResources(*commandInterface_->project());
+}
+
+bool ObjectTreeViewDefaultModel::canProgramaticallyGotoObject() const {
+	return true;
 }
 
 void ObjectTreeViewDefaultModel::deleteUnusedResources() {

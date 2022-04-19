@@ -16,7 +16,6 @@
 #include "core/Handles.h"
 #include "core/MeshCacheInterface.h"
 #include "data_storage/Value.h"
-#include "log_system/log.h"
 #include "ramses_adaptor/BuildOptions.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/Material.h"
@@ -191,7 +190,6 @@ inline const rlogic::Property* propertyByNames(const rlogic::Property* property,
 }
 
 inline bool setLuaInputInEngine(rlogic::Property* property, const core::ValueHandle& valueHandle) {
-	LOG_TRACE(log_system::RAMSES_ADAPTOR, "{} <= {}", fmt::ptr(property), valueHandle);
 	assert(property != nullptr);
 	using core::PrimitiveType;
 
@@ -371,8 +369,6 @@ inline void getComplexLuaOutputFromEngine(const rlogic::Property& property, cons
 }
 
 inline void getLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
-	// Don't spam the log with constant messages:
-	//LOG_TRACE(log_system::RAMSES_ADAPTOR, "{} => {}", fmt::ptr(&property), valueHandle);
 	using core::PrimitiveType;
 
 	// read quaternion rotation data
@@ -437,7 +433,6 @@ inline void getLuaOutputFromEngine(const rlogic::Property& property, const core:
 }
 
 inline void setUniform(ramses::Appearance* appearance, const core::ValueHandle& valueHandle) {
-	LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "{}.{} = {}", appearance->getName(), valueHandle.getPropName(), valueHandle);
 	using core::PrimitiveType;
 	ramses::UniformInput input;
 	appearance->getEffect().findUniformInput(valueHandle.getPropName().c_str(), input);

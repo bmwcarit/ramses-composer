@@ -13,8 +13,6 @@
 
 #include "core/EditorObject.h"
 
-#include "log_system/log.h"
-
 #include <algorithm>
 
 namespace raco::components {
@@ -182,14 +180,31 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 		}
 	}
 
-	for (auto& [endObjId, links] : dataChanges.getRemovedLinks()) {
-		auto copy{linkLifecycleListeners_[endObjId]};
-		std::copy(linkLifecycleListeners_[std::string()].begin(), linkLifecycleListeners_[std::string()].end(), std::inserter(copy, copy.end()));
-		for (auto& link : links) {
-			for (const auto& ptr : copy) {
-				if (!ptr.expired()) {
-					auto listener{ptr.lock()};
-					listener->onDeletion_(link);
+	if (!dataChanges.getRemovedLinks().empty()) {
+		auto copy{linkLifecycleListeners_};
+		for (auto& [endObjId, links] : dataChanges.getRemovedLinks()) {
+			auto copyEnd{linkLifecycleListenersForEnd_[endObjId]};
+			for (auto& link : links) {
+				for (const auto& ptr : copy) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						listener->onDeletion_(link);
+					}
+				}
+
+				for (const auto& ptr : copyEnd) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						listener->onDeletion_(link);
+					}
+				}
+
+				auto copyStart{linkLifecycleListenersForStart_[link.start.object()->objectID()]};
+				for (const auto& ptr : copyStart) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						listener->onDeletion_(link);
+					}
 				}
 			}
 		}
@@ -201,7 +216,6 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 
 
 	for (auto& createdObject : dataChanges.getCreatedObjects()) {
-		LOG_TRACE(log_system::DATA_CHANGE, "emit emitCreated {}", createdObject->objectName());
 		emitCreated(createdObject);
 	}
 
@@ -209,31 +223,43 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 
 	auto changedErrors = dataChanges.getChangedErrors();
 	for (auto& changedValueHandle : changedErrors) {
-		LOG_TRACE_IF(log_system::DATA_CHANGE, changedValueHandle  && !changedValueHandle.isObject(), "emit errorChanged for Property {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.getPropName());
-		LOG_TRACE_IF(log_system::DATA_CHANGE, changedValueHandle && changedValueHandle.isObject(), "emit errorChanged for Object {}:{}", changedValueHandle.rootObject()->objectName(), changedValueHandle.rootObject()->objectID());
-		LOG_TRACE_IF(log_system::DATA_CHANGE, !changedValueHandle, "emit errorChanged for project-global ValueHandle");
 		emitErrorChanged(changedValueHandle);
 	}
 
 	if (!changedErrors.empty()) {
-		LOG_TRACE(log_system::DATA_CHANGE, "emit errorChangedInScene");
 		emitErrorChangedInScene();
 	}
 
 
 	for (auto& object : dataChanges.getPreviewDirtyObjects()) {
-		LOG_TRACE(log_system::DATA_CHANGE, "emit emitPreviewDirty {}", object->objectName());
 		emitPreviewDirty(object);
 	}
 
-	for (auto& [endObjId, links] : dataChanges.getAddedLinks()) {
-		auto copy{linkLifecycleListeners_[endObjId]};
-		std::copy(linkLifecycleListeners_[std::string()].begin(), linkLifecycleListeners_[std::string()].end(), std::inserter(copy, copy.end()));
-		for (auto& link : links) {
-			for (const auto& ptr : copy) {
-				if (!ptr.expired()) {
-					auto listener{ptr.lock()};
-					listener->onCreation_(link);
+	if (!dataChanges.getAddedLinks().empty()) {
+		auto copy{linkLifecycleListeners_};
+		for (auto& [endObjId, links] : dataChanges.getAddedLinks()) {
+			auto copyEnd{linkLifecycleListenersForEnd_[endObjId]};
+			for (auto& link : links) {
+				for (const auto& ptr : copy) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						listener->onCreation_(link);
+					}
+				}
+
+				for (const auto& ptr : copyEnd) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						listener->onCreation_(link);
+					}
+				}
+
+				auto copyStart{linkLifecycleListenersForStart_[link.start.object()->objectID()]};
+				for (const auto& ptr : copyStart) {
+					if (!ptr.expired()) {
+						auto listener{ptr.lock()};
+						listener->onCreation_(link);
+					}
 				}
 			}
 		}
@@ -243,7 +269,6 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 	emitBulkChange(dataChanges.getAllChangedObjects(true));
 
 	for (auto& deletedObject : dataChanges.getDeletedObjects()) {
-		LOG_TRACE(log_system::DATA_CHANGE, "emit emitDeleted {}", deletedObject->objectName());
 		emitDeleted(deletedObject);
 	}
 
@@ -336,23 +361,46 @@ Subscription DataChangeDispatcher::registerOnObjectsLifeCycle(EditorObjectCallba
 	}};
 }
 
-Subscription DataChangeDispatcher::registerOnLinksLifeCycle(SEditorObject endObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept {
+Subscription DataChangeDispatcher::registerOnLinksLifeCycle(LinkCallback onCreation, LinkCallback onDeletion) noexcept {
 	auto listener{std::make_shared<LinkLifecycleListener>(onCreation, onDeletion)};
-	std::string endObjectID;
-	if (endObject) {
-		endObjectID = endObject->objectID();
-	}
-	linkLifecycleListeners_[endObjectID].insert(listener);
+	linkLifecycleListeners_.insert(listener);
+	return Subscription{this, listener,
+		[this, listener]() {
+			linkLifecycleListeners_.erase(listener);
+		}};
+}
+
+Subscription DataChangeDispatcher::registerOnLinksLifeCycleForEnd(SEditorObject endObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept {
+	assert(endObject != nullptr);
+	auto listener{std::make_shared<LinkLifecycleListener>(onCreation, onDeletion)};
+	std::string endObjectID = endObject->objectID();
+	linkLifecycleListenersForEnd_[endObjectID].insert(listener);
 	return Subscription {
 		this, listener, [this, endObjectID, listener]() {
-			auto it = linkLifecycleListeners_.find(endObjectID);
+			auto it = linkLifecycleListenersForEnd_.find(endObjectID);
 			it->second.erase(listener);
 			if (it->second.empty()) {
-				linkLifecycleListeners_.erase(endObjectID);
+				linkLifecycleListenersForEnd_.erase(endObjectID);
 			}
 		}
 	};
 }
+
+Subscription DataChangeDispatcher::registerOnLinksLifeCycleForStart(SEditorObject startObject, LinkCallback onCreation, LinkCallback onDeletion) noexcept {
+	assert(startObject != nullptr);
+	auto listener{std::make_shared<LinkLifecycleListener>(onCreation, onDeletion)};
+	std::string startObjectID = startObject->objectID();
+	linkLifecycleListenersForStart_[startObjectID].insert(listener);
+	return Subscription{
+		this, listener, [this, startObjectID, listener]() {
+			auto it = linkLifecycleListenersForStart_.find(startObjectID);
+			it->second.erase(listener);
+			if (it->second.empty()) {
+				linkLifecycleListenersForStart_.erase(startObjectID);
+			}
+		}};
+}
+
 
 Subscription DataChangeDispatcher::registerOnLinkValidityChange(LinkCallback callback) noexcept {
 	auto listener{std::make_shared<LinkListener>(callback)};
@@ -432,10 +480,6 @@ void DataChangeDispatcher::emitUpdateFor(const std::map<std::string, std::set<co
 
 	for (const auto& [objectID, cont] : valueHandles) {
 		for (const auto& valueHandle : cont) {
-			LOG_TRACE_IF(log_system::DATA_CHANGE, valueHandle && !valueHandle.isObject(), "emit changedValueHandle Property {}:{}", valueHandle.rootObject()->objectName(), valueHandle.getPropName());
-			LOG_TRACE_IF(log_system::DATA_CHANGE, valueHandle && valueHandle.isObject(), "emit changedValueHandle Object {}:{}", valueHandle.rootObject()->objectName(), valueHandle.rootObject()->objectID());
-			LOG_TRACE_IF(log_system::DATA_CHANGE, !valueHandle, "emit changedValueHandle project-global");
-
 			auto listenerIt = listeners_.find(objectID);
 			if (listenerIt != listeners_.end()) {
 				for (const auto& ptr : listenerIt->second) {
@@ -529,6 +573,8 @@ void DataChangeDispatcher::emitCreated(SEditorObject obj) {
 void DataChangeDispatcher::assertEmpty() {
 	assert(objectLifecycleListeners_.empty());
 	assert(linkLifecycleListeners_.empty());
+	assert(linkLifecycleListenersForEnd_.empty());
+	assert(linkLifecycleListenersForStart_.empty());
 	assert(linkValidityChangeListeners_.empty());
 	assert(listeners_.empty());
 	assert(childrenListeners_.empty());

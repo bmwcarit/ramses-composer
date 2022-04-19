@@ -10,6 +10,7 @@
 
 #include "core/PropertyDescriptor.h"
 #include "core/EditorObject.h"
+#include "core/Queries.h"
 
 namespace raco::core {
 
@@ -24,6 +25,14 @@ std::string PropertyDescriptor::getPropertyPath(bool useObjectID) const {
 		propPath += "." + name;
 	}
 	return propPath;
+}
+
+std::string PropertyDescriptor::getFullPropertyPath() const {
+	auto hierarchyPath = raco::core::Queries::getFullObjectHierarchyPath(object_->getParent());
+	if (!hierarchyPath.empty()) {
+		hierarchyPath.append("/");
+	}
+	return hierarchyPath + getPropertyPath(false);
 }
 
 bool PropertyDescriptor::operator==(const PropertyDescriptor& rhs) const {

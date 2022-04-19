@@ -15,7 +15,6 @@
 #include "core/PropertyDescriptor.h"
 #include "core/Queries.h"
 #include "core/BasicAnnotations.h"
-#include "log_system/log.h"
 #include "property_browser/PropertyBrowserRef.h"
 #include "user_types/RenderPass.h"
 #include "user_types/MeshNode.h"
@@ -54,7 +53,6 @@ PropertyBrowserItem::PropertyBrowserItem(
 	  dispatcher_{dispatcher},
 	  model_{model},
 	  expanded_{getDefaultExpandedFromValueHandleType()} {
-	LOG_TRACE(PROPERTY_BROWSER, "PropertyBrowserItem() from: {}", valueHandle_);
 	createChildren();
 	if (!valueHandle_.isObject() && valueHandle_.type() == core::PrimitiveType::Ref) {
 		refItem_ = new PropertyBrowserRef(valueHandle_, dispatcher_, commandInterface_, this);
@@ -70,7 +68,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 				});
 		}
 
-		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycle(
+		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycleForEnd(
 			valueHandle_.rootObject(),
 			[this](const core::LinkDescriptor& link) {
 			if (valueHandle_) {
@@ -96,7 +94,34 @@ PropertyBrowserItem::PropertyBrowserItem(
 					}
 				}
 			});
+	} else if (raco::core::Queries::isValidLinkStart(valueHandle_)) {
+		linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(
+			[this](const core::LinkDescriptor& link) {
+				auto startHandle = core::ValueHandle(link.start);
+				if (startHandle && startHandle == valueHandle_) {
+					updateLinkState();
+				}
+			});
+
+		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycleForStart(
+			valueHandle_.rootObject(),
+			[this](const core::LinkDescriptor& link) {
+			if (valueHandle_) {
+				auto startHandle = core::ValueHandle(link.start);
+				if (startHandle && startHandle == valueHandle_) {
+					updateLinkState();
+				}
+			} },
+			[this](const core::LinkDescriptor& link) {
+				if (valueHandle_) {
+					auto startHandle = core::ValueHandle(link.start);
+					if (startHandle && startHandle == valueHandle_) {
+						updateLinkState();
+					}
+				}
+			});
 	}
+
 	// This needs refactoring. There needs to be a way for a user_type to say that some properties are only visible (or enabled?)
 	// when certain conditions depending on another property are fulfilled.
 	static const std::map<data_storage::ReflectionInterface::TypeDescriptor const*, std::string> requiredChildSubscriptions = {
@@ -235,9 +260,10 @@ void PropertyBrowserItem::removeLink() noexcept {
 	commandInterface_->removeLink(valueHandle_.getDescriptor());
 }
 
-std::string PropertyBrowserItem::linkText() const noexcept {
+std::string PropertyBrowserItem::linkText(bool fullLinkPath) const noexcept {
 	if (auto link{raco::core::Queries::getLink(*commandInterface_->project(), valueHandle_.getDescriptor())}) {
-		auto propertyPath = core::PropertyDescriptor(link->startObject_.asRef(), link->startPropertyNamesVector()).getPropertyPath();
+		auto propertyDesc = link->startProp();
+		auto propertyPath = (fullLinkPath) ? propertyDesc.getFullPropertyPath() : propertyDesc.getPropertyPath();
 		if (!link->isValid()) {
 			propertyPath += " (broken)";
 		}

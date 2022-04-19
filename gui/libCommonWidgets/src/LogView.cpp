@@ -78,9 +78,7 @@ LogView::LogView(LogViewModel* model, QWidget* parent) : model_(model) {
 	filterCategoryBox->addItem(raco::log_system::USER_TYPES, raco::log_system::USER_TYPES);
 	filterCategoryBox->addItem(raco::log_system::PROPERTY_BROWSER, raco::log_system::PROPERTY_BROWSER);
 	filterCategoryBox->addItem(raco::log_system::OBJECT_TREE_VIEW, raco::log_system::OBJECT_TREE_VIEW);
-	filterCategoryBox->addItem(raco::log_system::STYLE, raco::log_system::STYLE);
 	filterCategoryBox->addItem(raco::log_system::LOGGING, raco::log_system::LOGGING);
-	filterCategoryBox->addItem(raco::log_system::DATA_CHANGE, raco::log_system::DATA_CHANGE);
 	filterCategoryBox->addItem(raco::log_system::PREVIEW_WIDGET, raco::log_system::PREVIEW_WIDGET);
 	filterCategoryBox->addItem(raco::log_system::RAMSES_BACKEND, raco::log_system::RAMSES_BACKEND);
 	filterCategoryBox->addItem(raco::log_system::RAMSES_ADAPTOR, raco::log_system::RAMSES_ADAPTOR);

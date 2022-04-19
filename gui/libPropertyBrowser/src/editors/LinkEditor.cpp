@@ -10,12 +10,14 @@
 #include "property_browser/editors/LinkEditor.h"
 
 #include "common_widgets/LinkStartSearchView.h"
+#include "common_widgets/RaCoClipboard.h"
 #include "core/Project.h"
 #include "core/Queries.h"
 #include "property_browser/PropertyBrowserLayouts.h"
-#include "common_widgets/RaCoClipboard.h"
+#include "property_browser/PropertyBrowserModel.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
+
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QDialog>
@@ -154,13 +156,19 @@ LinkEditor::LinkEditor(
 	setAcceptDrops(true);
 	layout_ = new PropertyBrowserGridLayout{this};
 	layout_->setColumnStretch(0, 0);
-	layout_->setColumnStretch(1, 1);
+	layout_->setColumnStretch(1, 0);
+	layout_->setColumnStretch(2, 1);
 
 	linkButton_ = new QPushButton{this};
 	linkButton_->setFlat(true);
 	linkButton_->setProperty("slimButton", true);
 
-	layout_->addWidget(linkButton_, 0, 0, Qt::AlignLeft);
+	goToLinkButton_ = new QPushButton{this};
+	goToLinkButton_->setFlat(true);
+	goToLinkButton_->setProperty("slimButton", true);
+
+	layout_->addWidget(goToLinkButton_, 0, 0, Qt::AlignLeft);
+	layout_->addWidget(linkButton_, 0, 1, Qt::AlignLeft);
 
 	setLinkState(item->linkState());
 
@@ -169,7 +177,7 @@ LinkEditor::LinkEditor(
 }
 
 void LinkEditor::setControl(QWidget* widget) {
-	layout_->addWidget(widget, 0, 1);
+	layout_->addWidget(widget, 0, 2);
 }
 
 void LinkEditor::setExpanded(bool expanded) {
@@ -185,7 +193,7 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 	using CurrentLinkState = raco::core::Queries::CurrentLinkState;
 
 	if (linkstate.current == CurrentLinkState::LINKED || linkstate.current == CurrentLinkState::BROKEN) {
-		linkButton_->setToolTip(QString::fromStdString(item_->linkText()));
+		linkButton_->setToolTip(QString::fromStdString(item_->linkText(true)));
 	} else {
 		linkButton_->setToolTip(QString());
 	}
@@ -193,28 +201,117 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 	linkButton_->setVisible(true);
 	linkButton_->setDisabled(linkstate.readonly || !linkstate.validLinkTarget);
 
+	goToLinkButton_->setVisible(true);
+	goToLinkButton_->setDisabled(true);
+	goToLinkButton_->setIcon(Icons::instance().unlinkable);
+	goToLinkButton_->setToolTip("");
+
+	QObject::disconnect(goToLinkButtonConnection_);
+
 	if (linkstate.current == CurrentLinkState::PARENT_LINKED) {
 		linkButton_->setIcon(Icons::instance().parentIsLinked);
 	} else {
 		if (linkstate.validLinkTarget) {
 			switch (linkstate.current) {
-				case CurrentLinkState::NOT_LINKED:
+				case CurrentLinkState::NOT_LINKED: {
 					linkButton_->setIcon(Icons::instance().linkable);
 					break;
-
-				case CurrentLinkState::LINKED:
+				}
+				case CurrentLinkState::LINKED: {
 					linkButton_->setIcon(Icons::instance().linked);
-					break;
+					goToLinkButton_->setDisabled(false);
+					auto link = raco::core::Queries::getLink(*item_->project(), item_->valueHandle().getDescriptor());
+					auto linkStartObj = *link->startObject_;
+					auto linkStartPropName = link->descriptor().start.getFullPropertyPath();
 
-				case CurrentLinkState::BROKEN:
+					auto linkEnds = raco::core::Queries::getLinksConnectedToProperty(*item_->project(), item_->valueHandle(), true, false);
+					if (!linkEnds.empty()) {
+						goToLinkButton_->setIcon(Icons::instance().goToLeftRight);
+						goToLinkButton_->setToolTip("Go to...");
+						goToLinkButtonConnection_ = QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj, linkStartPropName, linkEnds]() {
+							auto* linkMenu = new QMenu(this);
+							QString requestedLinkEndObj;
+
+							auto startAction = linkMenu->addAction(QString("Link start (%1)").arg(QString::fromStdString(linkStartPropName)), [this, linkStartObj, &requestedLinkEndObj]() {
+								requestedLinkEndObj = QString::fromStdString(linkStartObj->objectID());
+							});
+
+							auto endsMenu = linkMenu->addMenu("Link ends...");
+
+							auto sortedLinkEnds = generateSortedLinkPoints(linkEnds);
+
+							for (const auto& linkEnd : sortedLinkEnds) {
+								auto linkEndPath = linkEnd.first;
+								auto linkEndObjID = linkEnd.second;
+								endsMenu->addAction(QString::fromStdString(linkEndPath),
+									[this, linkEndObjID, &requestedLinkEndObj]() {
+										requestedLinkEndObj = QString::fromStdString(linkEndObjID);
+									});
+							}
+
+							linkMenu->exec(mapToGlobal(goToLinkButton_->pos() + QPoint(goToLinkButton_->width(), 0)));
+							if (!requestedLinkEndObj.isEmpty()) {
+								item_->model()->Q_EMIT objectSelectionRequested(requestedLinkEndObj);
+							}
+						});
+
+					} else {
+						goToLinkButton_->setIcon(Icons::instance().goToLeft);
+						goToLinkButton_->setToolTip(QString("Go to link start (%1)").arg(QString::fromStdString(linkStartPropName)));
+						QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj]() {
+							item_->model()->Q_EMIT objectSelectionRequested(QString::fromStdString(linkStartObj->objectID()));
+						});
+					}
+
+					break;
+				}
+
+				case CurrentLinkState::BROKEN: {
 					linkButton_->setIcon(Icons::instance().linkBroken);
 					break;
-
+				}
 			}
 		} else {
 			linkButton_->setIcon(Icons::instance().unlinkable);
+
+			auto linkEnds = raco::core::Queries::getLinksConnectedToProperty(*item_->project(), item_->valueHandle(), true, false);
+			if (!linkEnds.empty()) {
+				goToLinkButton_->setIcon(Icons::instance().goTo);
+				goToLinkButton_->setDisabled(false);
+				goToLinkButton_->setToolTip("Go to link ends...");
+				goToLinkButtonConnection_ = QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkEnds]() {
+					auto* linkEndMenu = new QMenu(this);
+					QString requestedLinkEndObj;
+
+					auto sortedLinkEnds = generateSortedLinkPoints(linkEnds);
+
+					for (const auto& linkEnd : sortedLinkEnds) {
+						auto linkEndPath = linkEnd.first;
+						auto linkEndObjID = linkEnd.second;
+						linkEndMenu->addAction(QString::fromStdString(linkEndPath),
+							[this, &requestedLinkEndObj, linkEndObjID]() {
+								requestedLinkEndObj = QString::fromStdString(linkEndObjID);
+							});
+					}
+
+					linkEndMenu->exec(mapToGlobal(goToLinkButton_->pos() + QPoint(goToLinkButton_->width(), 0)));
+					if (!requestedLinkEndObj.isEmpty()) {
+						item_->model()->Q_EMIT objectSelectionRequested(requestedLinkEndObj);
+					}
+				});
+			}
 		}
 	}
+}
+
+std::map<std::string, std::string> LinkEditor::generateSortedLinkPoints(const std::vector<raco::core::SLink> links) {
+	std::map<std::string, std::string> sortedLinkEnds;
+	for (const auto& linkEnd : links) {
+		auto linkDesc = linkEnd->descriptor();
+		sortedLinkEnds[linkDesc.end.getFullPropertyPath()] = linkDesc.end.object()->objectID();
+	}
+
+	return sortedLinkEnds;
 }
 
 void LinkEditor::dragEnterEvent(QDragEnterEvent* event) {

@@ -34,21 +34,20 @@ std::vector<std::string> MeshNode::getMaterialNames() {
 	return std::vector<std::string>();
 }
 
-void MeshNode::createMaterialSlot(std::string const& name) {
-	auto container = materials_->addProperty(name, PrimitiveType::Table);
-	container->asTable().addProperty("material", new Value<SMaterial>());
-	container->asTable().addProperty("private", UserObjectFactory::staticCreateProperty<bool, DisplayNameAnnotation>({false}, {"Private Material"}));
-	container->asTable().addProperty("options", UserObjectFactory::staticCreateProperty<BlendOptions, DisplayNameAnnotation>({}, {"Options"}));
-	container->asTable().addProperty("uniforms", PrimitiveType::Table);
+void MeshNode::createMaterialSlot(BaseContext& context, std::string const& name) {
+	// TODO ideally we should replace this by a struct property
+	auto container = std::make_unique<Value<Table>>();
+	(*container)->addProperty("material", new Value<SMaterial>());
+	(*container)->addProperty("private", UserObjectFactory::staticCreateProperty<bool, DisplayNameAnnotation>({false}, {"Private Material"}));
+	(*container)->addProperty("options", UserObjectFactory::staticCreateProperty<BlendOptions, DisplayNameAnnotation>({}, {"Options"}));
+	(*container)->addProperty("uniforms", PrimitiveType::Table);
+	context.addProperty({shared_from_this(), &MeshNode::materials_}, name, std::move(container));
 }
 
 void MeshNode::updateMaterialSlots(BaseContext& context, std::vector<std::string> const& materialNames) {
-	bool changed = false;
-
 	for (auto matName : materialNames) {
 		if (!materials_->hasProperty(matName)) {
-			createMaterialSlot(matName);
-			changed = true;
+			createMaterialSlot(context, matName);
 		}
 	}
 	std::vector<std::string> toRemove;
@@ -60,11 +59,6 @@ void MeshNode::updateMaterialSlots(BaseContext& context, std::vector<std::string
 	for (auto name : toRemove) {
 		ValueHandle matHandle{shared_from_this(), &MeshNode::materials_};
 		context.removeProperty(matHandle, materials_.asTable().index(name));
-		changed = true;
-	}
-
-	if (changed) {
-		context.changeMultiplexer().recordValueChanged(ValueHandle(shared_from_this(), &MeshNode::materials_));
 	}
 }
 
@@ -130,91 +124,26 @@ ValueHandle MeshNode::getMaterialOptionsHandle(size_t materialSlot) {
 }
 
 void MeshNode::updateUniformContainer(BaseContext& context, const std::string& materialName, const Table* src, ValueHandle& destUniforms) {
+	raco::core::PropertyInterfaceList uniformDescription;
 	if (src) {
-		const Table &dest = destUniforms.constValueRef()->asTable();
-		std::vector<std::string> toRemove;
-		for (size_t i = 0; i < dest.size(); i++) {
-			std::string name = dest.name(i);
-			if (!src->hasProperty(name)) {
-				toRemove.emplace_back(name);
-			} else {
-				auto srcAnno = src->get(name)->query<EngineTypeAnnotation>();
-				assert(srcAnno != nullptr);
-				auto destAnno = dest.get(i)->query<EngineTypeAnnotation>();
-				assert(destAnno != nullptr);
-
-				if (destAnno->type() != srcAnno->type()) {
-					toRemove.emplace_back(name);
-				}
-			}
-		}
-		for (auto name : toRemove) {
-			const ValueBase* v = dest.get(name);
-			auto anno = v->query<EngineTypeAnnotation>();
-			EnginePrimitive engineType = anno->type();
-			cachedUniformValues_[std::make_tuple(materialName, name, engineType)] = v->clone(nullptr);
-
-			context.removeProperty(destUniforms, dest.index(name));
-		}
-
 		for (size_t i = 0; i < src->size(); i++) {
-			std::string name = src->name(i);
-			if (!dest.hasProperty(name)) {
-				auto engineType = src->get(i)->query<EngineTypeAnnotation>()->type();
-
-				std::unique_ptr<raco::data_storage::ValueBase> uniqueValue;
-				if (PropertyInterface::primitiveType(engineType) == PrimitiveType::Ref) {
-					// References represent the various texture types which can't be linked
-					uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<>(engineType));
-				} else {
-					uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkEndAnnotation>(engineType));
-				}
-				ValueBase* newValue = context.addProperty(destUniforms, name, std::move(uniqueValue), i);
-
-				auto it = cachedUniformValues_.find(std::make_tuple(materialName, name, engineType));
-				if (it != cachedUniformValues_.end()) {
-					// use cached value
-					ValueBase* cachedValue = it->second.get();
-					if (PropertyInterface::primitiveType(engineType) == PrimitiveType::Ref) {
-						// Special case for references: perform lookup in the project by object id
-						// Needed because the object might have been deleted in the meantime and we don't
-						// want to set a pointer to an invalid object here.
-						SEditorObject cachedObject = nullptr;
-						if (cachedValue->asRef()) {
-							cachedObject = context.project()->getInstanceByID(cachedValue->asRef()->objectID());
-						}
-						// Use the context to set reference properties to make sure the onAfterAddReferenceToThis handlers are called.
-						context.set(destUniforms.get(name), cachedObject);
-					} else {
-						*newValue = *cachedValue;
-					}
-				} else {
-					// copy value from material
-					if (PropertyInterface::primitiveType(engineType) == PrimitiveType::Ref) {
-						context.set(destUniforms.get(name), src->get(i)->asRef());
-					} else {
-						*newValue = *src->get(i);	
-					}
-				}
-			} else {
-				auto destIndex = dest.index(name);
-				if (destIndex != i) {
-					context.swapProperties(destUniforms, i, destIndex);
-				}
-			}
+			auto srcAnno = src->get(i)->query<EngineTypeAnnotation>();
+			uniformDescription.emplace_back(src->name(i), srcAnno->type());
 		}
-	} else {
-		const Table& dest = destUniforms.constValueRef()->asTable();
-		for (size_t i = 0; i < dest.size(); i++) {
-			std::string name = dest.name(i);
-			const ValueBase* v = dest.get(name);
-			auto anno = v->query<EngineTypeAnnotation>();
-			EnginePrimitive engineType = anno->type();
-			cachedUniformValues_[std::make_tuple(materialName, name, engineType)] = v->clone(nullptr);
-		}
-
-		context.removeAllProperties(destUniforms);
 	}
+
+	OutdatedPropertiesStore& cache = cachedUniformValues_[materialName];
+	auto lookup = [src, &cache](const std::string& fullPropPath, raco::core::EnginePrimitive engineType) -> const ValueBase* {
+		auto it = cache.find(std::make_pair(fullPropPath, engineType));
+		if (it != cache.end()) {
+			return it->second.get();
+		} 
+		// Copy value from material if not found in cache.
+		// To get the property name we need to remove the leading '/' from the property path.
+		return src->get(fullPropPath.substr(1));
+	};
+	
+	syncTableWithEngineInterface(context, uniformDescription, destUniforms, cache, false, true, lookup);
 }
 
 void MeshNode::checkMeshMaterialAttributMatch(BaseContext& context) {
@@ -305,7 +234,6 @@ void MeshNode::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle 
 					materialUniforms = &*material->uniforms_;
 				}
 				updateUniformContainer(context, materialName(matIndex), materialUniforms, uniformsHandle);
-				context.changeMultiplexer().recordValueChanged(uniformsHandle);
 				changed = true;
 			}
 		}
@@ -335,7 +263,6 @@ void MeshNode::onAfterValueChanged(BaseContext& context, ValueHandle const& valu
 		}
 		updateUniformContainer(context, materialName, materialUniforms, uniformsHandle);
 		checkMeshMaterialAttributMatch(context);
-		context.changeMultiplexer().recordValueChanged(uniformsHandle);
 	}
 
 	if (materialsHandle.contains(value) && value.depth() == 3 && value.getPropName() == "private") {
@@ -353,7 +280,6 @@ void MeshNode::onAfterValueChanged(BaseContext& context, ValueHandle const& valu
 		}
 
 		updateUniformContainer(context, materialName, materialUniforms, uniformsHandle);
-		context.changeMultiplexer().recordValueChanged(uniformsHandle);
 		// Synthetic change record: needed since toggling the 'private' flag will change the hidden status
 		// of the options; see Queries::isHidden
 		context.changeMultiplexer().recordValueChanged(value.parent().get("options"));

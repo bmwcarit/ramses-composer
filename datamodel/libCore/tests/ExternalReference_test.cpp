@@ -107,6 +107,10 @@ public:
 	}
 
 	SEditorObject find(const std::string& name) {
+		EXPECT_EQ(1,
+			std::count_if(project->instances().begin(), project->instances().end(), [name](SEditorObject obj) {
+				return obj->objectName() == name;
+			}));
 		auto obj = Queries::findByName(project->instances(), name);
 		EXPECT_TRUE(obj != nullptr);
 		return obj;
@@ -119,7 +123,13 @@ public:
 
 	template<typename T = EditorObject>
 	std::shared_ptr<T> findExt(const std::string& name, const std::string& projectID = std::string()) {
-		SEditorObject editorObj = Queries::findByName(project->instances(), name);
+		SEditorObject editorObj = nullptr;
+		for (const auto obj : project->instances()) {
+			if (obj->objectName() == name && obj->query<raco::core::ExternalReferenceAnnotation>()) {
+				editorObj = obj;
+			}
+		}
+		EXPECT_TRUE(editorObj != nullptr);
 		auto anno = editorObj->query<raco::core::ExternalReferenceAnnotation>();
 		EXPECT_TRUE(anno != nullptr);
 		if (!projectID.empty()) {
@@ -2027,7 +2037,6 @@ TEST_F(ExtrefTest, animation_channel_data_gets_propagated) {
 		auto animChannel = findExt<AnimationChannel>("animCh");
 		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 
-		ASSERT_NE(animChannel, nullptr);
 		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
 	});
 }
@@ -2054,8 +2063,6 @@ TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 		auto anim = findExt<Animation>("anim");
 		auto animChannel = findExt<AnimationChannel>("animCh");
 
-		ASSERT_NE(anim, nullptr);
-		ASSERT_NE(animChannel, nullptr);
 		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
 	});
 }
@@ -2111,7 +2118,6 @@ TEST_F(ExtrefTest, module_gets_propagated) {
 		auto module = findExt<LuaScriptModule>("module");
 		cmd->set({lua, {"luaModules", "coalas"}}, module);
 
-		ASSERT_NE(module, nullptr);		
 		ASSERT_FALSE(cmd->errors().hasError({lua}));
 	});
 }
@@ -2122,8 +2128,6 @@ TEST_F(ExtrefTest, prefab_instance_with_lua_and_module) {
 
 	setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("prefab");
-		auto inst = create<PrefabInstance>("inst");
-		cmd->set({inst, &PrefabInstance::template_}, prefab);
 
 		auto lua = create<LuaScript>("lua", prefab);
 		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
@@ -2140,8 +2144,6 @@ TEST_F(ExtrefTest, prefab_instance_with_lua_and_module) {
 		auto lua = findExt<LuaScript>("lua");
 		auto module = findExt<LuaScriptModule>("luaModule");
 
-		ASSERT_NE(lua, nullptr);
-		ASSERT_NE(module, nullptr);
 		ASSERT_FALSE(cmd->errors().hasError({lua}));
 	});
 }
@@ -2151,8 +2153,6 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
 
 	setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("prefab");
-		auto inst = create<PrefabInstance>("inst");
-		cmd->set({inst, &PrefabInstance::template_}, prefab);
 
 		auto lua = create<LuaScript>("lua", prefab);
 		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
@@ -2169,9 +2169,7 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
 		auto lua = findExt<LuaScript>("lua");
 		auto module = findExt<LuaScriptModule>("luaModule");
 
-		ASSERT_NE(lua, nullptr);
-		ASSERT_NE(module, nullptr);
-		ASSERT_FALSE(cmd->errors().hasError({lua}));
+		ASSERT_FALSE(cmd->errors().hasError(ValueHandle{lua, {"luaModules", "coalas"}}));
 	});
 
 	updateBase(basePathName1, [this]() {
@@ -2183,9 +2181,7 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_remove_module_ref) {
 		auto lua = findExt<LuaScript>("lua");
 		auto module = findExt<LuaScriptModule>("luaModule");
 
-		ASSERT_NE(lua, nullptr);
-		ASSERT_NE(module, nullptr);
-		ASSERT_TRUE(cmd->errors().hasError({lua}));
+		ASSERT_TRUE(cmd->errors().hasError(ValueHandle{lua, {"luaModules", "coalas"}}));
 	});
 }
 
@@ -2195,8 +2191,6 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
 
 	setupBase(basePathName1, [this]() {
 		auto prefab = create<Prefab>("prefab");
-		auto inst = create<PrefabInstance>("inst");
-		cmd->set({inst, &PrefabInstance::template_}, prefab);
 
 		auto lua = create<LuaScript>("lua", prefab);
 		cmd->set({lua, &LuaScript::uri_}, (test_path() / "scripts/moduleDependency.lua").string());
@@ -2213,8 +2207,6 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
 		auto lua = findExt<LuaScript>("lua");
 		auto module = findExt<LuaScriptModule>("luaModule");
 
-		ASSERT_NE(lua, nullptr);
-		ASSERT_NE(module, nullptr);
 		ASSERT_FALSE(cmd->errors().hasError({lua}));
 	});
 
@@ -2227,8 +2219,6 @@ TEST_F(ExtrefTest, prefab_instance_update_lua_and_module_change_lua_uri) {
 		auto lua = findExt<LuaScript>("lua");
 		auto module = findExt<LuaScriptModule>("luaModule");
 
-		ASSERT_NE(lua, nullptr);
-		ASSERT_NE(module, nullptr);
 		ASSERT_FALSE(cmd->errors().hasError({lua}));
 	});
 }

@@ -140,9 +140,9 @@ end
 		app.activeRaCoProject().commandInterface()->addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
 		app.activeRaCoProject().commandInterface()->addLink({luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}});
 
-		ASSERT_EQ(2, app.activeRaCoProject().project()->links().size());
-		ASSERT_TRUE(app.activeRaCoProject().project()->links()[0]->isValid());
-		ASSERT_TRUE(app.activeRaCoProject().project()->links()[1]->isValid());
+		checkLinks(*app.activeRaCoProject().project(),
+			{{{luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}}, true},
+				{{luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}}, true}});
 
 		ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rcp").string().c_str()));
 	}
@@ -158,10 +158,13 @@ end
 
 	{
 		RaCoApplication app{backend, (test_path() / "project.rcp").string().c_str()};
-		ASSERT_EQ(2, app.activeRaCoProject().project()->links().size());
-		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
-		ASSERT_TRUE(app.activeRaCoProject().project()->links()[1]->isValid());
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
+		auto luaScript = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
+
+		checkLinks(*app.activeRaCoProject().project(),
+			{{{luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}}, false},
+				{{luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}}, true}});
+
 		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
 
@@ -176,10 +179,13 @@ end
 
 	{
 		RaCoApplication app{backend, (test_path() / "project.rcp").string().c_str()};
-		ASSERT_EQ(2, app.activeRaCoProject().project()->links().size());
-		ASSERT_TRUE(app.activeRaCoProject().project()->links()[0]->isValid());
-		ASSERT_TRUE(app.activeRaCoProject().project()->links()[1]->isValid());
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
+		auto luaScript = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
+
+		checkLinks(*app.activeRaCoProject().project(),
+			{{{luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}}, true},
+				{{luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}}, true}});
+
 		ASSERT_FALSE(app.activeRaCoProject().errors()->hasError(node));
 	}
 }
@@ -871,7 +877,7 @@ TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
 	{
 		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
 
-		auto expectedAppTitle = fmt::format("{} -  ({}) <read-only>", RaCoApplication::APPLICATION_NAME.toStdString(), app.activeProjectPath());
+		auto expectedAppTitle = fmt::format("{} -  ({}) <read-only>", QCoreApplication::applicationName().toStdString(), app.activeProjectPath());
 		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);
 	}
 
@@ -881,7 +887,7 @@ TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
 	{
 		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
 
-		auto expectedAppTitle = fmt::format("{} -  ({})", RaCoApplication::APPLICATION_NAME.toStdString(), app.activeProjectPath());
+		auto expectedAppTitle = fmt::format("{} -  ({})", QCoreApplication::applicationName().toStdString(), app.activeProjectPath());
 		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);
 	}
 }

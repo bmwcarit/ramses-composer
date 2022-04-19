@@ -48,9 +48,10 @@ public:
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
-	std::string currentScriptContents_;
+	const std::string& currentScriptContents() const;
 
 private:
+	std::string currentScriptContents_;
 	bool isValid_ = false;
 };
 

@@ -346,9 +346,19 @@ QString RaCoProject::name() const {
 }
 
 QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
-	const auto& instances{context_->project()->instances()};
+	// Sort instances and links serialized to file:
+	// needed for file comparison via diff.
+	auto instances{context_->project()->instances()};
+	std::sort(instances.begin(), instances.end(), [](const SEditorObject& left, const SEditorObject& right) {
+		return left->objectID() < right->objectID();
+	});
+
+	auto links{context_->project()->links()};
+	std::sort(links.begin(), links.end(), [](const SLink& left, const SLink& right) {
+		return LinkDescriptor::lessThanByObjectID(left->descriptor(), right->descriptor());
+	});
+
 	std::vector<std::shared_ptr<ReflectionInterface>> instancesInterface{instances.begin(), instances.end()};
-	const auto& links{context_->project()->links()};
 	std::vector<std::shared_ptr<ReflectionInterface>> linksInterface{links.begin(), links.end()};
 
 	return serialization::serializeProject(

@@ -13,7 +13,6 @@
 #include "style/Colors.h"
 #include "style/Icons.h"
 #include "style/RaCoStyle.h"
-#include "log_system/log.h"
 
 #include <algorithm>
 #include <QApplication>
@@ -156,7 +155,19 @@ template <typename T>
 void ScalarSlider<T>::addValue(T step) {
 	auto newValue = value();
 
-	// Add step to newValue, clamping if their is an overflow.
+	if constexpr (std::is_integral_v<T>) {
+		if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
+			step *= 10;
+		}
+	} else if constexpr (std::is_floating_point_v<T>) {
+		if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
+			step *= 10.0;
+		} else if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::AltModifier)) {
+			step *= 0.1;
+		}
+	}
+
+	// Add step to newValue, clamping if there is an overflow.
 	if (newValue > 0 && step > max_ - newValue) {
 		newValue = max_;
 	} else if (newValue < 0 && step < min_ - newValue) {

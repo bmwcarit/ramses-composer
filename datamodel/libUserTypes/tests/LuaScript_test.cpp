@@ -116,7 +116,7 @@ TEST_F(LuaScriptTest, inputs_are_correctly_built) {
 }
 
 TEST_F(LuaScriptTest, errorInterfaceMissing) {
-	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName)};
+	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName, "myScript")};
 	TextFile scriptRunOnlyFile = makeFile("script1.lua", R"(
 function run()
 end
@@ -131,16 +131,16 @@ end
 	ValueHandle uriHandle{ValueHandle{script, {"uri"}}};
 	commandInterface.set(uriHandle, scriptRunOnlyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'interface' function defined!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'interface' function defined!");
 	commandInterface.set(uriHandle, scriptInterfaceOnlyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'run' function defined!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'run' function defined!");
 	commandInterface.set(uriHandle, scriptWhitespaceOnlyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'interface' function defined!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'interface' function defined!");
 	commandInterface.set(uriHandle, scriptEmptyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[Stage::PreprocessScript] No 'interface' function defined!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'interface' function defined!");
 }
 
 TEST_F(LuaScriptTest, arrayIsCorrectlyBuilt) {
@@ -190,7 +190,7 @@ TEST_F(LuaScriptTest, outArrayOfStructs) {
 
 	TextFile scriptFile = makeFile("script.lua" , R"(
 function interface()
-	FloatPair = { a = FLOAT, b = FLOAT }
+	local FloatPair = { a = FLOAT, b = FLOAT }
 	IN.array = ARRAY(5, FloatPair)
 end
 
@@ -317,8 +317,10 @@ end
 )");
 	commandInterface.set(s.get("uri"), scriptFile);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
 	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
 	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
@@ -374,30 +376,43 @@ return anothermodule
 	commandInterface.set(s.get("luaModules").get("module"), modules[1]);
 	commandInterface.set(s.get("luaModules").get("anothermodule"), modules[2]);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
 	commandInterface.set({modules[0], &raco::user_types::LuaScriptModule::uri_}, moduleFile1);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
 	commandInterface.set({modules[1], &raco::user_types::LuaScriptModule::uri_}, moduleFile2);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
 	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, moduleFile3);
 
-	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));		
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
+
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
 	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
 	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
 
-	
 	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, std::string());
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
+
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
 	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
 	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
@@ -473,7 +488,7 @@ return anothermodule
 	ASSERT_EQ(s.get("luaModules").get("coalas").asRef(), modules[0]);
 
 	commandInterface.set(s.get("uri"), scriptFile3);
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule", "fourthmodule"}));
 	ASSERT_EQ(s.get("luaModules").get("coalas").asRef(), modules[0]);
 	ASSERT_EQ(s.get("luaModules").get("module").asRef(), modules[1]);
@@ -614,14 +629,13 @@ return what
 	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), raco::core::ErrorLevel::ERROR);
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).message(), "Invalid LuaScriptModule 'invalid' assigned.");
 
-	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 }
 
 TEST_F(LuaScriptTest, module_error_messages_two_invalid_assigned) {
@@ -653,9 +667,7 @@ return what
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid1);
 	commandInterface.set(s.get("luaModules").get("test"), moduleInvalid2);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
-
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), raco::core::ErrorLevel::ERROR);
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).message(), "Invalid LuaScriptModule 'invalid1' assigned.");
@@ -701,19 +713,21 @@ return coalaModule
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleValid);
 	commandInterface.set(s.get("luaModules").get("test"), moduleValid);
 
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+
 	// make invalid by switching LuaScriptModule
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 
 	// make invalid by changing URIs
 	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 }
@@ -754,11 +768,14 @@ return coalaModule
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
 	commandInterface.set(s.get("luaModules").get("test"), moduleValid);
 
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
+
 	commandInterface.set(s.get("luaModules").get("coalas"), SEditorObject());
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_NE(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
-	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
+	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 }
 
@@ -782,8 +799,7 @@ end
 
 	commandInterface.set(s.get("luaModules").get("test"), moduleInvalid);
 
-	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).message(), "[Stage::PreprocessScript] LuaScript can not be created because it contains invalid LuaScriptModules.");
+	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 }
 

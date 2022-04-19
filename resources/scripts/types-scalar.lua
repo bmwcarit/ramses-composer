@@ -23,14 +23,16 @@ function interface()
 	OUT.flag = BOOL
 end
 
-function test(v)
-	return v[1]
+function init()
+	GLOBAL.test = function (v)
+		return v[1]
+	end
 end
 
 function run()
 	local v = IN.vector3f
 	-- OUT.ofloat = v[0]
-	OUT.ofloat = test(IN.vector3f)
+	OUT.ofloat = GLOBAL.test(IN.vector3f)
 	
 	OUT.ointeger = 2*IN.integer
 	OUT.ointeger64 = 2*IN.integer64

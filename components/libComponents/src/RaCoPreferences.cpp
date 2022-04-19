@@ -12,7 +12,6 @@
 #include "utils/u8path.h"
 
 #include "core/PathManager.h"
-#include "log_system/log.h"
 #include <QSettings>
 
 namespace raco::components {

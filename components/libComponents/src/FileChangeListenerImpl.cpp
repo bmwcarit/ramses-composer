@@ -155,8 +155,7 @@ bool FileChangeListenerImpl::fileCanBeAccessedOnWindows() {
 #if (defined(OS_UNIX))
 bool FileChangeListenerImpl::fileCanBeAccessedOnUnix() {
 	auto fileDescriptor = open(path_.string().c_str(), O_RDONLY);
-
-	if (fileDescriptor > 0 && EACCES != errno && EAGAIN != errno) {
+	if (fileDescriptor > 0) {
 		close(fileDescriptor);
 		return true;
 	}

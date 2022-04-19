@@ -11,7 +11,6 @@
 
 #include "ErrorBox.h"
 #include "core/CoreFormatter.h"
-#include "log_system/log.h"
 #include "property_browser/controls/ExpandButton.h"
 #include "property_browser/editors/LinkEditor.h"
 #include "property_browser/editors/PropertyEditor.h"
@@ -47,7 +46,6 @@ EmbeddedPropertyBrowserView::EmbeddedPropertyBrowserView(PropertyBrowserItem* it
 
 PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent)
 	: QWidget{parent}, item_{item}, model_{model}, layout_{this} {
-	LOG_TRACE(log_system::PROPERTY_BROWSER, "{}", item->valueHandle());
 	layout_.setAlignment(Qt::AlignTop);
 
 	// .PropertySubtreeView--------------------------------------------------------------.
@@ -163,7 +161,6 @@ void PropertySubtreeView::updateChildrenContainer() {
 			childrenContainer_->addWidget(new EmbeddedPropertyBrowserView{item_, this});
 			layout_.addWidget(childrenContainer_, 2, 0);
 		} else if (item_->valueHandle().isObject() || hasTypeSubstructure(item_->type())) {
-			LOG_TRACE(log_system::PROPERTY_BROWSER, "Adding {} children for {}", item_->children().size(), item_->valueHandle());
 			childrenContainer_ = new PropertySubtreeChildrenContainer{item_, this};
 
 			for (const auto& child : item_->children()) {

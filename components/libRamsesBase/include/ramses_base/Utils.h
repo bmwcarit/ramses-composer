@@ -31,14 +31,6 @@ using PropertyInterfaceList = raco::core::PropertyInterfaceList;
 // Returns true if shader can be successfully parsed.
 bool parseShaderText(ramses::Scene& scene, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& outError);
 
-// Parse luascripts using ramses logic and return set of in and out parameters with name and type.
-// Returns true if script can be successfully parsed.
-bool parseLuaScript(LogicEngine& engine, const std::string& luaScript, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& outError);
-
-// Parse luascript module using ramses logic.
-// Returns true if module can be successfully parsed.
-bool parseLuaScriptModule(LogicEngine& engine, const std::string& luaScriptModule, std::string& outError);
-
 rlogic::LuaConfig defaultLuaConfig();
 
 ramses::RamsesVersion getRamsesVersion();

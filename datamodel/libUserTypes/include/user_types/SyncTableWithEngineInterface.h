@@ -26,6 +26,9 @@ using OutdatedPropertiesStore = std::map<std::pair<std::string, raco::core::Engi
 
 void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const raco::core::ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd);
 
+void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const raco::core::ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd,
+	std::function<const raco::data_storage::ValueBase*(const std::string& fullPropPath, raco::core::EnginePrimitive engineType)> cacheLookupFunc);
+
 template <class... Args>
 raco::data_storage::ValueBase* createDynamicProperty(raco::core::EnginePrimitive type);
 

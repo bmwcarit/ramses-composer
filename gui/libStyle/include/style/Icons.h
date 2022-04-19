@@ -34,6 +34,8 @@ public:
 	const QIcon menu{":menuIcon"};
 	const QIcon openInNew{":openInNewIcon"};
 	const QIcon goTo{":gotoIcon"};
+	const QIcon goToLeft{":gotoLeftIcon"};
+	const QIcon goToLeftRight{":gotoLeftRightIcon"};
 	const QIcon increment{":incrementIcon"};
 	const QIcon decrement{":decrementIcon"};
 	const QIcon warning{":warningIcon"};

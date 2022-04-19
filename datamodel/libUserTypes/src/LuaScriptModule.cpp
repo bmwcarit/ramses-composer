@@ -14,7 +14,6 @@
 #include "core/Handles.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
-#include "log_system/log.h"
 #include "utils/FileUtils.h"
 
 namespace raco::user_types {
@@ -26,13 +25,10 @@ void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
 		std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
 
 		std::string error;
-		bool success = context.engineInterface().parseLuaScriptModule(luaScript, error);
+		isValid_ = context.engineInterface().parseLuaScriptModule(luaScript, objectName(), error);
 
-		if (success) {
-			isValid_ = true;
-		} else {
+		if (!isValid_) {
 			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
-			isValid_ = false;
 		}
 		currentScriptContents_ = luaScript;
 	} else {
@@ -45,6 +41,10 @@ void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
 
 bool LuaScriptModule::isValid() const {
 	return isValid_;
+}
+
+const std::string& LuaScriptModule::currentScriptContents() const {
+	return currentScriptContents_;
 }
 
 }  // namespace raco::user_types

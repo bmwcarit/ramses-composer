@@ -17,18 +17,17 @@
 namespace raco::ramses_adaptor {
 
 
-class AnimationChannelAdaptor final : public ObjectAdaptor {
+class AnimationChannelAdaptor final : public UserTypeObjectAdaptor<user_types::AnimationChannel> {
 public:
-	explicit AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimationChannel mesh);
-
-	core::SEditorObject baseEditorObject() noexcept override;
-	const core::SEditorObject baseEditorObject() const noexcept override;
+	explicit AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimationChannel channel);
 
 	bool sync(core::Errors* errors) override;
-	raco::ramses_base::RamsesAnimationChannelHandle handle_;
+
+	raco::ramses_base::RamsesAnimationChannelHandle handle() const;
 
 private:
-	user_types::SAnimationChannel editorObject_;
+	raco::ramses_base::RamsesAnimationChannelHandle handle_;
+
 	std::array<raco::components::Subscription, 4> subscriptions_;
 	raco::components::Subscription previewDirtySubscription_;
 };

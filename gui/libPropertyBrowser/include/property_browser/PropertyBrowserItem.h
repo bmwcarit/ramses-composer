@@ -45,7 +45,7 @@ public:
 	std::string displayName() const noexcept;
 	size_t size() noexcept;
 	raco::core::Queries::LinkState linkState() const noexcept;
-	std::string linkText() const noexcept;
+	std::string linkText(bool fullLinkPath = false) const noexcept;
 	void setLink(const core::ValueHandle& start) noexcept;
 	void removeLink() noexcept;
 	bool editable() noexcept;

@@ -589,12 +589,14 @@ TEST_F(UndoTest, lua_module_added) {
 		commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
 	},
 		[this, script, module]() {
-			ASSERT_TRUE(commandInterface.errors().hasError({script}));
+			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{script, {"luaModules", "coalas"}}));
 			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
 			ASSERT_EQ(coalasRef, nullptr);
 		},
 		[this, script, module]() {
 			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			ASSERT_FALSE(commandInterface.errors().hasError(ValueHandle{script, {"luaModules", "coalas"}}));
 			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
 			ASSERT_EQ(coalasRef, coalasRef);
 		});
@@ -631,11 +633,13 @@ TEST_F(UndoTest, lua_module_script_module_made_invalid) {
 	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, std::string()); },
 		[this, script]() {
 			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			ASSERT_FALSE(commandInterface.errors().hasError(ValueHandle{script, {"luaModules", "coalas"}}));
 			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
 			ASSERT_EQ(coalasRef, coalasRef);
 		},
 		[this, script, module]() {
-			ASSERT_TRUE(commandInterface.errors().hasError({script}));
+			ASSERT_FALSE(commandInterface.errors().hasError({script}));
+			ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{script, {"luaModules", "coalas"}}));
 			ASSERT_TRUE(commandInterface.errors().hasError({module, &raco::user_types::LuaScriptModule::uri_}));
 		});
 }

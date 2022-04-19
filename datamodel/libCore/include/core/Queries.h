@@ -70,6 +70,13 @@ namespace Queries {
 	bool isChildHandle(const ValueHandle& handle);
 	bool isChildObject(const SEditorObject& child, const SEditorObject& parent);
 
+	/**
+	 * @brief Build path description for an object composed of the object names starting at the scenegraph root and descending the scenegraph to the object. The components are separated by '/' but without a leading separator at the beginning.
+	 * @param obj arbitrary object.
+	 * @return object hierarchy path.
+	*/
+	std::string getFullObjectHierarchyPath(SEditorObject obj);
+
 	// Determines if the property value (for linkState = false) or the link state (for linkState = true)
 	// is changeable in the data model.
 	bool isReadOnly(const Project& project, const ValueHandle& handle, bool linkState = false);
@@ -127,6 +134,8 @@ namespace Queries {
 	// Find all links starting/ending on a given property or any of its child properties.
 	std::vector<SLink> getLinksConnectedToPropertySubtree(const Project& project, const ValueHandle& property, bool includeStarting, bool includeEnding);
 	
+	std::vector<SLink> getLinksConnectedToProperty(const Project& project, const ValueHandle& property, bool includeStarting, bool includeEnding);
+
 	std::vector<SLink> getLinksConnectedToPropertyParents(const Project& project, const ValueHandle& property, bool includeSelf);
 
 	std::vector<SLink> getLinksConnectedToObject(const Project& project, const SEditorObject& object, bool includeStarting, bool includeEnding);

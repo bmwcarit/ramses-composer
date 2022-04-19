@@ -9,12 +9,53 @@
  */
 
 #include "EnumerationDescriptions.h"
+
+#include "data_storage/Table.h"
+
 #include "core/EngineInterface.h"
+
 #include "ramses_base/BaseEngineBackend.h"
+#include "ramses_base/RamsesHandles.h"
 #include "ramses_base/Utils.h"
+
 #include "user_types/Enumerations.h"
+#include "user_types/LuaScriptModule.h"
+
+#include <ramses-logic/LuaModule.h>
+#include <ramses-logic/LuaScript.h>
+#include <ramses-logic/Property.h>
 
 namespace raco::ramses_base {
+
+namespace {
+void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface>& interface, const rlogic::Property* property) {
+	static const std::map<rlogic::EPropertyType, raco::core::EnginePrimitive> typeMap = {
+		{rlogic::EPropertyType::Float, raco::core::EnginePrimitive::Double},
+		{rlogic::EPropertyType::Vec2f, raco::core::EnginePrimitive::Vec2f},
+		{rlogic::EPropertyType::Vec3f, raco::core::EnginePrimitive::Vec3f},
+		{rlogic::EPropertyType::Vec4f, raco::core::EnginePrimitive::Vec4f},
+		{rlogic::EPropertyType::Int32, raco::core::EnginePrimitive::Int32},
+		{rlogic::EPropertyType::Int64, raco::core::EnginePrimitive::Int64},
+		{rlogic::EPropertyType::Vec2i, raco::core::EnginePrimitive::Vec2i},
+		{rlogic::EPropertyType::Vec3i, raco::core::EnginePrimitive::Vec3i},
+		{rlogic::EPropertyType::Vec4i, raco::core::EnginePrimitive::Vec4i},
+		{rlogic::EPropertyType::String, raco::core::EnginePrimitive::String},
+		{rlogic::EPropertyType::Bool, raco::core::EnginePrimitive::Bool},
+		{rlogic::EPropertyType::Struct, raco::core::EnginePrimitive::Struct},
+		{rlogic::EPropertyType::Array, raco::core::EnginePrimitive::Array}};
+	interface.reserve(property->getChildCount());
+	for (int i{0}; i < property->getChildCount(); i++) {
+		auto child{property->getChild(i)};
+		if (typeMap.find(child->getType()) != typeMap.end()) {
+			// has children
+			auto& it = interface.emplace_back(std::string{child->getName()}, typeMap.at(child->getType()));
+			if (child->getChildCount() > 0) {
+				fillLuaScriptInterface(it.children, child);
+			}
+		}
+	}
+}
+}  // namespace
 
 CoreInterfaceImpl::CoreInterfaceImpl(BaseEngineBackend* backend) : backend_{backend} {}
 
@@ -22,12 +63,54 @@ bool CoreInterfaceImpl::parseShader(const std::string& vertexShader, const std::
 	return raco::ramses_base::parseShaderText(backend_->internalScene(), vertexShader, geometryShader, fragmentShader, shaderDefines, outUniforms, outAttributes, outError);
 }
 
-bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
-	return raco::ramses_base::parseLuaScript(backend_->logicEngine(), luaScript, modules, outInputs, outOutputs, outError);
+bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::string& scriptName, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
+	rlogic::LuaConfig luaConfig = defaultLuaConfig();
+	std::vector<RamsesLuaModule> tempModules;
+
+	for (auto i = 0; i < modules.size(); ++i) {
+		if (auto moduleRef = modules.get(i)->asRef()) {
+			const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
+			if (module->isValid()) {
+				const auto tempModule = tempModules.emplace_back(ramsesLuaModule(module->currentScriptContents(), &backend_->logicEngine(), moduleRef->objectName()));
+				assert(tempModule != nullptr);
+				luaConfig.addDependency(modules.name(i), *tempModule);
+			} else {
+				// We already checked the module validity before parsing
+				assert(false);
+				return false;
+			}
+		} else {
+			// We already checked for non-empty module references before parsing
+			assert(false);
+			return false;
+		}
+	}
+
+	const auto script = backend_->logicEngine().createLuaScript(luaScript, luaConfig, scriptName);
+	if (!script) {
+		outError = backend_->logicEngine().getErrors().at(0).message;
+		return false;
+	}
+
+	if (const auto inputs = script->getInputs()) {
+		fillLuaScriptInterface(outInputs, inputs);
+	}
+	if (const auto outputs = script->getOutputs()) {
+		fillLuaScriptInterface(outOutputs, outputs);
+	}
+	backend_->logicEngine().destroy(*script);
+	return true;
 }
 
-bool CoreInterfaceImpl::parseLuaScriptModule(const std::string& luaScriptModule, std::string& error) {
-	return raco::ramses_base::parseLuaScriptModule(backend_->logicEngine(), luaScriptModule, error);
+bool CoreInterfaceImpl::parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, std::string& outError) {
+	rlogic::LuaConfig tempConfig = defaultLuaConfig();
+	if (auto tempModule = backend_->logicEngine().createLuaModule(luaScriptModule, tempConfig, moduleName)) {
+		backend_->logicEngine().destroy(*tempModule);
+		return true;
+	} else {
+		outError = backend_->logicEngine().getErrors().at(0).message;
+		return false;
+	}
 }
 
 bool CoreInterfaceImpl::extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) {

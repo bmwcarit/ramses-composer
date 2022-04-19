@@ -56,10 +56,10 @@ public:
 			{"aspectRatio", &aspect_}};
 	}
 
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> near_{0.1, DisplayNameAnnotation("Near Plane"), RangeAnnotation<double>(0.1, 1.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> far_{1000.0, DisplayNameAnnotation("Far Plane"), RangeAnnotation<double>(100.0, 10000.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> fov_{35.0, DisplayNameAnnotation("Vert. Field of View"), RangeAnnotation<double>(10.0, 120.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> aspect_{1440.0 / 720.0, DisplayNameAnnotation("Aspect"), RangeAnnotation<double>(0.5, 4.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> near_{0.1, DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> far_{1000.0, DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> fov_{35.0, DisplayNameAnnotation("fieldOfView"), RangeAnnotation<double>(10.0, 120.0), {}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> aspect_{1440.0 / 720.0, DisplayNameAnnotation("aspectRatio"), RangeAnnotation<double>(0.5, 4.0), {}};
 };
 
 class PerspectiveCamera : public BaseCamera {

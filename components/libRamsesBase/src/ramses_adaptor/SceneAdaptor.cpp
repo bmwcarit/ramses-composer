@@ -15,7 +15,6 @@
 #include "core/PrefabOperations.h"
 #include "core/Project.h"
 #include "core/Queries.h"
-#include "log_system/log.h"
 #include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/Factories.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
@@ -96,15 +95,15 @@ inline raco::ramses_base::RamsesAnimationChannelHandle createDefaultAnimationCha
 }
 
 inline ramses_base::RamsesAnimationNode createDefaultAnimation(const raco::ramses_base::RamsesAnimationChannelHandle& animChannel, ramses_base::LogicEngine& logicEngine) {
-	rlogic::AnimationChannels channels;
-	channels.push_back({animChannel->name,
+	rlogic::AnimationNodeConfig config;
+	config.addChannel({animChannel->name,
 		animChannel->keyframeTimes.get(),
 		animChannel->animOutput.get(),
 		animChannel->interpolationType,
 		animChannel->tangentIn.get(),
 		animChannel->tangentOut.get()});
 
-	return ramsesAnimationNode(channels, &logicEngine, defaultAnimationName);
+	return ramsesAnimationNode(&logicEngine, config, {animChannel} , defaultAnimationName);
 };
 
 
@@ -118,7 +117,6 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 	adaptorStatusDirty_ = true; 
 		  })),
 	  linksLifecycle_{dispatcher->registerOnLinksLifeCycle(
-		  nullptr,
 		  [this](const core::LinkDescriptor& link) { createLink(link); },
 		  [this](const core::LinkDescriptor& link) { removeLink(link); })},
 	  linkValidityChangeSub_{dispatcher->registerOnLinkValidityChange(

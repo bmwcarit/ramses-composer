@@ -220,6 +220,10 @@ bool ObjectTreeView::canPasteIntoIndex(const QModelIndex &index, bool asExtref) 
 
 }
 
+bool ObjectTreeView::canProgrammaticallyGoToObject() {
+	return treeModel_->canProgramaticallyGotoObject();
+}
+
 QSortFilterProxyModel* ObjectTreeView::proxyModel() const {
 	return proxyModel_;
 }

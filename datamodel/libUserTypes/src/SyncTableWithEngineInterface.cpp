@@ -152,7 +152,7 @@ inline void removeProperties(raco::core::BaseContext& context, const PropertyInt
 	}
 }
 
-inline void addProperties(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, const OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd) {
+inline void addProperties(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, const OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd, std::function<const ValueBase*(const std::string& fullPropPath, raco::core::EnginePrimitive engineType)> cacheLookupFunc) {
 	for (size_t interfaceIndex{0}; interfaceIndex < interface.size(); interfaceIndex++) {
 		const auto& iEntry = interface[interfaceIndex];
 		const std::string name(dataModelNameFromInterface(iEntry, interfaceIndex));
@@ -169,10 +169,8 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue), interfaceIndex);
 			auto fullPropPath = propertyPath + propertyPathSeparator + name;
 
-			auto it = outdatedPropertiesStore.find(std::make_pair(fullPropPath, iEntry.type));
-
-			if (it != outdatedPropertiesStore.end()) {
-				raco::data_storage::ValueBase* cachedValue = it->second.get();
+			const ValueBase* cachedValue = cacheLookupFunc(fullPropPath, iEntry.type);
+			if (cachedValue) {
 				if (iEntry.primitiveType() == PrimitiveType::Ref) {
 					// Special case for references: perform lookup in the project by object id
 					// Needed because the object might have been deleted in the meantime and we don't
@@ -189,15 +187,26 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 			}
 		}
 		if (iEntry.primitiveType() == PrimitiveType::Table) {
-			addProperties(context, iEntry.children, property.get(name), propertyPath + propertyPathSeparator + name, outdatedPropertiesStore, linkStart, linkEnd);
+			addProperties(context, iEntry.children, property.get(name), propertyPath + propertyPathSeparator + name, outdatedPropertiesStore, linkStart, linkEnd, cacheLookupFunc);
 		}
 	}
 }
 }  // namespace
 
-void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd) {
+void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd, std::function<const ValueBase*(const std::string& fullPropPath, raco::core::EnginePrimitive engineType)> cacheLookupFunc) {
 	removeProperties(context, interface, handle, "", outdatedPropertiesStore);
-	addProperties(context, interface, handle, "", outdatedPropertiesStore, linkStart, linkEnd);
+	addProperties(context, interface, handle, "", outdatedPropertiesStore, linkStart, linkEnd, cacheLookupFunc);
 }
+
+void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd) {
+	syncTableWithEngineInterface(context, interface, handle, outdatedPropertiesStore, linkStart, linkEnd, [&outdatedPropertiesStore](const std::string& fullPropPath, raco::core::EnginePrimitive engineType) -> const ValueBase* {
+		auto it = outdatedPropertiesStore.find(std::make_pair(fullPropPath, engineType));
+		if (it != outdatedPropertiesStore.end()) {
+			return it->second.get();
+		}
+		return nullptr;
+	});
+}
+
 
 }  // namespace raco::user_types

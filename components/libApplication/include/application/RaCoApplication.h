@@ -36,8 +36,6 @@ namespace raco::application {
 
 class RaCoApplication {
 public:
-	static const inline QString APPLICATION_NAME{"Ramses Composer"};
-
 	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject = {});
 
 	RaCoProject& activeRaCoProject();

@@ -18,8 +18,7 @@
 namespace raco::ramses_adaptor {
 
 LuaScriptModuleAdaptor::LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SLuaScriptModule editorObject)
-	: ObjectAdaptor{sceneAdaptor},
-	  editorObject_{editorObject},
+	: UserTypeObjectAdaptor{sceneAdaptor, editorObject},
 	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, &user_types::LuaScriptModule::objectName_}, [this]() {
 		  tagDirty();
 	  })},
@@ -28,25 +27,23 @@ LuaScriptModuleAdaptor::LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco:
 	  })} {
 }
 
-raco::user_types::SEditorObject LuaScriptModuleAdaptor::baseEditorObject() noexcept {
-	return editorObject_;
-}
-const raco::user_types::SEditorObject LuaScriptModuleAdaptor::baseEditorObject() const noexcept {
-	return editorObject_;
-}
-
 bool LuaScriptModuleAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 
-	const auto& scriptContents = editorObject_->currentScriptContents_;
-	if (scriptContents.empty()) {
-		module_.reset();
-	} else {
+	if (editorObject_->isValid()) {
+		const auto& scriptContents = editorObject_->currentScriptContents();
 		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), editorObject_->objectName());
+		assert(module_ != nullptr);
+	} else {
+		module_.reset();
 	}
 
 	tagDirty(false);
 	return true;
+}
+
+ramses_base::RamsesLuaModule LuaScriptModuleAdaptor::module() const {
+	return module_;
 }
 
 }  // namespace raco::ramses_adaptor

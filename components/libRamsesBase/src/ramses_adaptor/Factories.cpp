@@ -9,7 +9,6 @@
  */
 #include "ramses_adaptor/Factories.h"
 
-#include "log_system/log.h"
 #include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/AnimationChannelAdaptor.h"
 #include "ramses_adaptor/CubeMapAdaptor.h"

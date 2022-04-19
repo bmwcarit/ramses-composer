@@ -27,7 +27,13 @@ class PropertyBrowserItem;
 class PropertyBrowserRef final : public QObject {
 	Q_OBJECT
 public:
-	using ComboBoxItems = std::vector<std::pair<QString, QString>>;
+	struct ComboBoxItem {
+		QString objName;
+		QString objId;
+		QString tooltipText;
+	};
+
+	using ComboBoxItems = std::vector<ComboBoxItem>;
 
 	static inline auto EMPTY_REF_INDEX{0};
 

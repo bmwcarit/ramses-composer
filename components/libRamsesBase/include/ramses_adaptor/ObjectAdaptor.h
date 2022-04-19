@@ -64,51 +64,71 @@ protected:
 };
 using UniqueObjectAdaptor = std::unique_ptr<ObjectAdaptor>;
 
-/**
- * Dummy adaptor for unknown SEditorObject types
- */
-class DummyAdaptor final : public ObjectAdaptor {
+template<typename EditorType> 
+class UserTypeObjectAdaptor : public ObjectAdaptor {
 public:
-	DummyAdaptor() : ObjectAdaptor { nullptr } {}
-	SEditorObject baseEditorObject() noexcept override {
-		return {};
+	UserTypeObjectAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<EditorType> editorObject) 
+		: ObjectAdaptor(sceneAdaptor), editorObject_(editorObject) {
 	}
+	
+	SEditorObject baseEditorObject() noexcept override {
+		return editorObject_;
+	}
+
 	const SEditorObject baseEditorObject() const noexcept override {
-		return {};
-	} 
+		return editorObject_;
+	}
+
+	
+	std::shared_ptr<EditorType> editorObject() noexcept {
+		return editorObject_;
+	}
+
+	const std::shared_ptr<const EditorType>& editorObject() const noexcept {
+		return editorObject_;
+	}
+
+protected:
+	std::shared_ptr<EditorType> editorObject_;
 };
 
 template <typename EditorType, typename RamsesType>
-class TypedObjectAdaptor : public ObjectAdaptor {
+class TypedObjectAdaptor : public UserTypeObjectAdaptor<EditorType> {
 public:
 	TypedObjectAdaptor(
 		SceneAdaptor* sceneAdaptor,
 		std::shared_ptr<EditorType> editorObject,
-		RamsesHandle<RamsesType>&& ramsesObject) : ObjectAdaptor{sceneAdaptor}, 
-		editorObject_{editorObject}, 
+		RamsesHandle<RamsesType>&& ramsesObject) : UserTypeObjectAdaptor<EditorType>{sceneAdaptor, editorObject}, 
 		ramsesObject_{std::move(ramsesObject)}, 
-		nameSubscription_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("objectName"), [this]() { tagDirty(); })} 
+		nameSubscription_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("objectName"), [this]() { this->tagDirty(); 
+		})} 
 	{
 		syncName();
 	}
-
-	std::shared_ptr<EditorType> editorObject() noexcept { return std::dynamic_pointer_cast<EditorType>(baseEditorObject()); }
-	const std::shared_ptr<const EditorType>& editorObject() const noexcept { return std::dynamic_pointer_cast<EditorType>(baseEditorObject()); }
-	RamsesType& ramsesObject() noexcept { return *ramsesObject_.get(); }
-	const RamsesType& ramsesObject() const noexcept { return *ramsesObject_.get(); }	
-	RamsesHandle<RamsesType> getRamsesObjectPointer() { return ramsesObject_; }
-	void resetRamsesObject() { ramsesObject_.reset(); }
+	
+	RamsesType& ramsesObject() noexcept { 
+		return *ramsesObject_.get(); 
+	}
+	const RamsesType& ramsesObject() const noexcept { 
+		return *ramsesObject_.get(); 
+	}	
+	RamsesHandle<RamsesType> getRamsesObjectPointer() { 
+		return ramsesObject_; 
+	}
+	void resetRamsesObject() { 
+		ramsesObject_.reset(); 
+	}
 
 protected:
 	void syncName() {
-		if (ramsesObject_ && ramsesObject_->getName() != baseEditorObject()->objectName().c_str()) {
-			ramsesObject_->setName(baseEditorObject()->objectName().c_str());
+		if (ramsesObject_ && ramsesObject_->getName() != this->editorObject()->objectName().c_str()) {
+			ramsesObject_->setName(this->editorObject()->objectName().c_str());
 		}
 	}
 	
 	bool sync(core::Errors* errors) override {
 		syncName();
-		tagDirty(false);
+		this->tagDirty(false);
 		return false;
 	}
 
@@ -117,16 +137,7 @@ protected:
 		syncName();
 	}
 
-	SEditorObject baseEditorObject() noexcept override {
-		return editorObject_;
-	}
-
-	const SEditorObject baseEditorObject() const noexcept override {
-		return editorObject_;
-	}
-
 private:
-	std::shared_ptr<EditorType> editorObject_;
 	RamsesHandle<RamsesType> ramsesObject_;
 
 	components::Subscription nameSubscription_;

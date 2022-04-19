@@ -14,6 +14,7 @@ set(TEST_SOURCES
     AnimationAdaptor_test.cpp
     AnimationChannelAdaptor_test.cpp
     CubeMapAdaptor_test.cpp
+    EngineInterface_test.cpp
     RamsesBaseFixture.h
     LinkAdaptor_test.cpp
     LuaScriptAdaptor_test.cpp
@@ -29,7 +30,6 @@ set(TEST_SOURCES
     RenderLayerAdaptor_test.cpp
     Resources_test.cpp
     SceneContext_test.cpp
-    Utils_test.cpp
     utilities_test.cpp
 )
 set(TEST_LIBRARIES

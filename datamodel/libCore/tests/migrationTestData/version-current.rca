@@ -5,6 +5,71 @@
     "instances": [
         {
             "properties": {
+                "objectID": "027c8479-47a5-498b-a39e-8c43b7f709fb",
+                "objectName": "Prefab"
+            },
+            "typeName": "Prefab"
+        },
+        {
+            "properties": {
+                "objectID": "04ada1c4-7e3a-4f9e-983d-4724a073cad8",
+                "objectName": "LuaScriptModule",
+                "uri": ""
+            },
+            "typeName": "LuaScriptModule"
+        },
+        {
+            "properties": {
+                "buffer0": null,
+                "buffer1": null,
+                "buffer2": null,
+                "buffer3": null,
+                "buffer4": null,
+                "buffer5": null,
+                "buffer6": null,
+                "buffer7": null,
+                "objectID": "077b744c-c82d-467d-a406-4fca3603ae8a",
+                "objectName": "RenderTarget"
+            },
+            "typeName": "RenderTarget"
+        },
+        {
+            "properties": {
+                "anisotropy": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 32000,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 1
+                },
+                "flipTexture": false,
+                "generateMipmaps": false,
+                "magSamplingMethod": 0,
+                "minSamplingMethod": 0,
+                "objectID": "0d2c96e3-0ed2-4f95-ac54-03b9fa81e963",
+                "objectName": "Texture",
+                "uri": "",
+                "wrapUMode": 0,
+                "wrapVMode": 0
+            },
+            "typeName": "Texture"
+        },
+        {
+            "properties": {
+                "invertMaterialFilter": false,
+                "objectID": "0e55bd9c-7f72-4afe-bfa8-64cdfd59cb8d",
+                "objectName": "RenderLayerOptimized",
+                "sortOrder": 0
+            },
+            "typeName": "RenderLayer"
+        },
+        {
+            "properties": {
                 "instanceCount": {
                     "annotations": [
                         {
@@ -266,463 +331,51 @@
         },
         {
             "properties": {
-                "children": {
-                    "properties": [
-                        {
-                            "typeName": "Ref",
-                            "value": "122d0f90-2dea-4ddd-95f5-d537f5381a3e"
-                        },
-                        {
-                            "typeName": "Ref",
-                            "value": "3ccf4fe2-660d-40e8-84f9-eb4a932c87ca"
-                        }
-                    ]
-                },
-                "objectID": "8593d288-67a3-4ae1-9c8c-942786ddd1f2",
-                "objectName": "Node",
-                "rotation": {
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 360,
-                                    "min": -360
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 360,
-                                    "min": -360
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 360,
-                                    "min": -360
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    }
-                },
-                "scale": {
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    }
-                },
-                "translation": {
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": -100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": -100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": -100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    }
-                },
-                "visible": true
-            },
-            "typeName": "Node"
-        },
-        {
-            "properties": {
-                "frustum": {
-                    "aspectRatio": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 4,
-                                    "min": 0.5
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 2
-                    },
-                    "farPlane": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 10000,
-                                    "min": 100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1000
-                    },
-                    "fieldOfView": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 120,
-                                    "min": 10
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 35
-                    },
-                    "nearPlane": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 1,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0.1
-                    }
-                },
-                "objectID": "a093b1e1-6dc2-4a15-9628-73476c306782",
-                "objectName": "PerspectiveCamera",
-                "rotation": {
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 360,
-                                    "min": -360
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 360,
-                                    "min": -360
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 360,
-                                    "min": -360
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    }
-                },
-                "scale": {
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": 0.1
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    }
-                },
-                "translation": {
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": -100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": -100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 100,
-                                    "min": -100
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 10
-                    }
-                },
-                "viewport": {
-                    "height": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 7680,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationInt"
-                            }
-                        ],
-                        "value": 720
-                    },
-                    "offsetX": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 7680,
-                                    "min": -7680
-                                },
-                                "typeName": "RangeAnnotationInt"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "offsetY": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 7680,
-                                    "min": -7680
-                                },
-                                "typeName": "RangeAnnotationInt"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "width": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 7680,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationInt"
-                            }
-                        ],
-                        "value": 1440
-                    }
-                },
-                "visible": true
-            },
-            "typeName": "PerspectiveCamera"
-        },
-        {
-            "properties": {
-                "backgroundColor": {
-                    "w": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 1,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 1
-                    },
-                    "x": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 1,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "y": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 1,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    },
-                    "z": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 1,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationDouble"
-                            }
-                        ],
-                        "value": 0
-                    }
-                },
-                "defaultResourceFolders": {
-                    "imageSubdirectory": "images",
-                    "meshSubdirectory": "meshes",
-                    "scriptSubdirectory": "scripts",
-                    "shaderSubdirectory": "shaders"
-                },
-                "enableTimerFlag": false,
-                "objectID": "71454add-eb56-4288-9057-825539914bed",
-                "objectName": "test-offscreen-tex-uniform-migration-material",
-                "runTimer": false,
-                "saveAsZip": false,
-                "sceneId": {
+                "anisotropy": {
                     "annotations": [
                         {
                             "properties": {
-                                "max": 1024,
+                                "max": 32000,
                                 "min": 1
                             },
                             "typeName": "RangeAnnotationInt"
                         }
                     ],
-                    "value": 123
+                    "value": 1
                 },
-                "viewport": {
-                    "i1": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 4096,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationInt"
-                            }
-                        ],
-                        "value": 1440
-                    },
-                    "i2": {
-                        "annotations": [
-                            {
-                                "properties": {
-                                    "max": 4096,
-                                    "min": 0
-                                },
-                                "typeName": "RangeAnnotationInt"
-                            }
-                        ],
-                        "value": 720
-                    }
-                }
+                "format": 4,
+                "height": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 7680,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 256
+                },
+                "magSamplingMethod": 0,
+                "minSamplingMethod": 0,
+                "objectID": "16718bb0-058f-4b13-8105-68d98bf23a9f",
+                "objectName": "RenderBuffer",
+                "width": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 7680,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 256
+                },
+                "wrapUMode": 0,
+                "wrapVMode": 0
             },
-            "typeName": "ProjectSettings"
+            "typeName": "RenderBuffer"
         },
         {
             "properties": {
@@ -814,50 +467,6 @@
                 "uriVertex": "../testData/simple_texture.vert"
             },
             "typeName": "Material"
-        },
-        {
-            "properties": {
-                "bakeMeshes": true,
-                "materialNames": {
-                    "properties": [
-                        {
-                            "typeName": "String",
-                            "value": "material"
-                        }
-                    ]
-                },
-                "meshIndex": 0,
-                "objectID": "a11461f9-239e-4fb5-8a4e-aa55cd177039",
-                "objectName": "Mesh",
-                "uri": "../testData/duck.glb"
-            },
-            "typeName": "Mesh"
-        },
-        {
-            "properties": {
-                "anisotropy": {
-                    "annotations": [
-                        {
-                            "properties": {
-                                "max": 32000,
-                                "min": 1
-                            },
-                            "typeName": "RangeAnnotationInt"
-                        }
-                    ],
-                    "value": 1
-                },
-                "flipTexture": false,
-                "generateMipmaps": false,
-                "magSamplingMethod": 0,
-                "minSamplingMethod": 0,
-                "objectID": "0d2c96e3-0ed2-4f95-ac54-03b9fa81e963",
-                "objectName": "Texture",
-                "uri": "",
-                "wrapUMode": 0,
-                "wrapVMode": 0
-            },
-            "typeName": "Texture"
         },
         {
             "properties": {
@@ -1273,71 +882,102 @@
         },
         {
             "properties": {
-                "anisotropy": {
-                    "annotations": [
-                        {
-                            "properties": {
-                                "max": 32000,
-                                "min": 1
-                            },
-                            "typeName": "RangeAnnotationInt"
-                        }
-                    ],
-                    "value": 1
-                },
-                "format": 4,
-                "height": {
-                    "annotations": [
-                        {
-                            "properties": {
-                                "max": 7680,
-                                "min": 1
-                            },
-                            "typeName": "RangeAnnotationInt"
-                        }
-                    ],
-                    "value": 256
-                },
-                "magSamplingMethod": 0,
-                "minSamplingMethod": 0,
-                "objectID": "16718bb0-058f-4b13-8105-68d98bf23a9f",
-                "objectName": "RenderBuffer",
-                "width": {
-                    "annotations": [
-                        {
-                            "properties": {
-                                "max": 7680,
-                                "min": 1
-                            },
-                            "typeName": "RangeAnnotationInt"
-                        }
-                    ],
-                    "value": 256
-                },
-                "wrapUMode": 0,
-                "wrapVMode": 0
+                "invertMaterialFilter": false,
+                "objectID": "4ba33009-0575-4128-bbbe-48e3ebc6e6ad",
+                "objectName": "RenderLayerManual",
+                "sortOrder": 0
             },
-            "typeName": "RenderBuffer"
+            "typeName": "RenderLayer"
         },
         {
             "properties": {
-                "buffer0": null,
-                "buffer1": null,
-                "buffer2": null,
-                "buffer3": null,
-                "buffer4": null,
-                "buffer5": null,
-                "buffer6": null,
-                "buffer7": null,
-                "objectID": "077b744c-c82d-467d-a406-4fca3603ae8a",
-                "objectName": "RenderTarget"
+                "objectID": "588bfb37-2015-4819-a868-6ed65f986484",
+                "objectName": "LuaScript",
+                "uri": ""
             },
-            "typeName": "RenderTarget"
+            "typeName": "LuaScript"
         },
         {
             "properties": {
-                "camera": null,
-                "clearColor": {
+                "animationChannels": {
+                    "order": [
+                        "Channel 0",
+                        "Channel 1",
+                        "Channel 2",
+                        "Channel 3",
+                        "Channel 4",
+                        "Channel 5",
+                        "Channel 6",
+                        "Channel 7"
+                    ],
+                    "properties": {
+                        "Channel 0": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 1": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 2": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 3": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 4": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 5": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 6": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        },
+                        "Channel 7": {
+                            "typeName": "AnimationChannel",
+                            "value": null
+                        }
+                    }
+                },
+                "animationOutputs": {
+                    "order": [
+                        "progress"
+                    ],
+                    "properties": {
+                        "progress": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation",
+                            "value": 0
+                        }
+                    }
+                },
+                "loop": false,
+                "objectID": "6d1b00fe-912f-4a92-83ce-7d405ac6b989",
+                "objectName": "Animation",
+                "play": false,
+                "rewindOnStop": false
+            },
+            "typeName": "Animation"
+        },
+        {
+            "properties": {
+                "backgroundColor": {
                     "w": {
                         "annotations": [
                             {
@@ -1348,7 +988,7 @@
                                 "typeName": "RangeAnnotationDouble"
                             }
                         ],
-                        "value": 0
+                        "value": 1
                     },
                     "x": {
                         "annotations": [
@@ -1387,24 +1027,57 @@
                         "value": 0
                     }
                 },
-                "enableClearColor": true,
-                "enableClearDepth": true,
-                "enableClearStencil": true,
-                "enabled": true,
-                "layer0": null,
-                "layer1": null,
-                "layer2": null,
-                "layer3": null,
-                "layer4": null,
-                "layer5": null,
-                "layer6": null,
-                "layer7": null,
-                "objectID": "f9550c5f-edd9-431c-8713-5709ef2d625d",
-                "objectName": "RenderPass",
-                "order": 1,
-                "target": null
+                "defaultResourceFolders": {
+                    "imageSubdirectory": "images",
+                    "meshSubdirectory": "meshes",
+                    "scriptSubdirectory": "scripts",
+                    "shaderSubdirectory": "shaders"
+                },
+                "enableTimerFlag": false,
+                "objectID": "71454add-eb56-4288-9057-825539914bed",
+                "objectName": "test-offscreen-tex-uniform-migration-material",
+                "runTimer": false,
+                "saveAsZip": false,
+                "sceneId": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 1024,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 123
+                },
+                "viewport": {
+                    "i1": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 4096,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 1440
+                    },
+                    "i2": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 4096,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 720
+                    }
+                }
             },
-            "typeName": "RenderPass"
+            "typeName": "ProjectSettings"
         },
         {
             "properties": {
@@ -1654,18 +1327,137 @@
         },
         {
             "properties": {
-                "objectID": "588bfb37-2015-4819-a868-6ed65f986484",
-                "objectName": "LuaScript",
-                "uri": ""
+                "children": {
+                    "properties": [
+                        {
+                            "typeName": "Ref",
+                            "value": "122d0f90-2dea-4ddd-95f5-d537f5381a3e"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "3ccf4fe2-660d-40e8-84f9-eb4a932c87ca"
+                        }
+                    ]
+                },
+                "objectID": "8593d288-67a3-4ae1-9c8c-942786ddd1f2",
+                "objectName": "Node",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scale": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "visible": true
             },
-            "typeName": "LuaScript"
-        },
-        {
-            "properties": {
-                "objectID": "027c8479-47a5-498b-a39e-8c43b7f709fb",
-                "objectName": "Prefab"
-            },
-            "typeName": "Prefab"
+            "typeName": "Node"
         },
         {
             "properties": {
@@ -1792,10 +1584,250 @@
         },
         {
             "properties": {
+                "frustum": {
+                    "aspectRatio": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 4,
+                                    "min": 0.5
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 2
+                    },
+                    "farPlane": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 10000,
+                                    "min": 100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1000
+                    },
+                    "fieldOfView": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 120,
+                                    "min": 10
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 35
+                    },
+                    "nearPlane": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0.1
+                    }
+                },
+                "objectID": "a093b1e1-6dc2-4a15-9628-73476c306782",
+                "objectName": "PerspectiveCamera",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scale": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 10
+                    }
+                },
+                "viewport": {
+                    "height": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 720
+                    },
+                    "offsetX": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": -7680
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "offsetY": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": -7680
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "width": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 1440
+                    }
+                },
+                "visible": true
+            },
+            "typeName": "PerspectiveCamera"
+        },
+        {
+            "properties": {
+                "bakeMeshes": true,
+                "materialNames": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "material"
+                        }
+                    ]
+                },
+                "meshIndex": 0,
+                "objectID": "a11461f9-239e-4fb5-8a4e-aa55cd177039",
+                "objectName": "Mesh",
+                "uri": "../testData/duck.glb"
+            },
+            "typeName": "Mesh"
+        },
+        {
+            "properties": {
                 "invertMaterialFilter": false,
-                "objectID": "0e55bd9c-7f72-4afe-bfa8-64cdfd59cb8d",
-                "objectName": "RenderLayerOptimized",
-                "sortOrder": 0
+                "objectID": "b9826309-15d0-425b-8ca7-431dc9b6964e",
+                "objectName": "RenderLayerSceneGraph",
+                "sortOrder": 1
             },
             "typeName": "RenderLayer"
         },
@@ -1811,107 +1843,75 @@
         },
         {
             "properties": {
-                "invertMaterialFilter": false,
-                "objectID": "4ba33009-0575-4128-bbbe-48e3ebc6e6ad",
-                "objectName": "RenderLayerManual",
-                "sortOrder": 0
-            },
-            "typeName": "RenderLayer"
-        },
-        {
-            "properties": {
-                "invertMaterialFilter": false,
-                "objectID": "b9826309-15d0-425b-8ca7-431dc9b6964e",
-                "objectName": "RenderLayerSceneGraph",
-                "sortOrder": 1
-            },
-            "typeName": "RenderLayer"
-        },
-        {
-            "properties": {
-                "animationChannels": {
-                    "order": [
-                        "Channel 0",
-                        "Channel 1",
-                        "Channel 2",
-                        "Channel 3",
-                        "Channel 4",
-                        "Channel 5",
-                        "Channel 6",
-                        "Channel 7"
-                    ],
-                    "properties": {
-                        "Channel 0": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 1": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 2": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 3": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 4": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 5": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 6": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        },
-                        "Channel 7": {
-                            "typeName": "AnimationChannel",
-                            "value": null
-                        }
-                    }
-                },
-                "animationOutputs": {
-                    "order": [
-                        "progress"
-                    ],
-                    "properties": {
-                        "progress": {
-                            "annotations": [
-                                {
-                                    "properties": {
-                                        "engineType": 5
-                                    },
-                                    "typeName": "EngineTypeAnnotation"
+                "camera": null,
+                "clearColor": {
+                    "w": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
                                 },
-                                {
-                                    "typeName": "LinkStartAnnotation"
-                                }
-                            ],
-                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation",
-                            "value": 0
-                        }
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
                     }
                 },
-                "loop": false,
-                "objectID": "6d1b00fe-912f-4a92-83ce-7d405ac6b989",
-                "objectName": "Animation",
-                "play": false,
-                "rewindOnStop": false
+                "enableClearColor": true,
+                "enableClearDepth": true,
+                "enableClearStencil": true,
+                "enabled": true,
+                "layer0": null,
+                "layer1": null,
+                "layer2": null,
+                "layer3": null,
+                "layer4": null,
+                "layer5": null,
+                "layer6": null,
+                "layer7": null,
+                "objectID": "f9550c5f-edd9-431c-8713-5709ef2d625d",
+                "objectName": "RenderPass",
+                "order": 1,
+                "target": null
             },
-            "typeName": "Animation"
-        },
-        {
-            "properties": {
-                "objectID": "04ada1c4-7e3a-4f9e-983d-4724a073cad8",
-                "objectName": "LuaScriptModule",
-                "uri": ""
-            },
-            "typeName": "LuaScriptModule"
+            "typeName": "RenderPass"
         }
     ],
     "links": [
@@ -1923,7 +1923,7 @@
     ],
     "racoVersion": [
         0,
-        12,
+        13,
         0
     ],
     "ramsesVersion": [

@@ -29,7 +29,7 @@ std::string read(const u8path& path) {
 		return ss.str();
 	} else {
 		if (!path.empty()) {
-			LOG_WARNING("UTILS", "file not found: {}", path.string());
+			LOG_WARNING(raco::log_system::UTILS, "file not found: {}", path.string());
 		}
 		return {};
 	}
@@ -43,7 +43,7 @@ std::vector<unsigned char> readBinary(const u8path& path) {
 		return buffer;
 	} else {
 		if (!path.empty()) {
-			LOG_WARNING("UTILS", "file not found: {}", path.string());
+			LOG_WARNING(raco::log_system::UTILS, "file not found: {}", path.string());
 		}
 		return {};
 	}

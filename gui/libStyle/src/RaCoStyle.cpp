@@ -11,7 +11,6 @@
 #include "style/RaCoStyle.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
-#include "log_system/log.h"
 #include "style/QStyleFormatter.h"
 
 #include <QPushButton>
@@ -140,6 +139,8 @@ int RaCoStyle::styleHint(StyleHint hint, const QStyleOption *option,
 			return 200;
 		case SH_ToolTip_FallAsleepDelay:
 			return 5000;
+		case SH_SpinBox_StepModifier:
+			return Qt::ShiftModifier;
 		default:
 			return QProxyStyle::styleHint(hint, option, widget, returnData);
 	}
@@ -194,7 +195,6 @@ QRect RaCoStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex* op
 	}
 
 QRect RaCoStyle::subElementRect(QStyle::SubElement sr, const QStyleOption *opt, const QWidget *widget) const {
-	LOG_TRACE(raco::log_system::STYLE, "{}, {}", *opt, *widget);
 	QRect r;
 	switch (sr) {
 		case SE_LineEditContents:
@@ -236,7 +236,6 @@ QSize RaCoStyle::sizeFromContents(ContentsType ct, const QStyleOption *opt, cons
 
 void RaCoStyle::drawComplexControl(QStyle::ComplexControl control, const QStyleOptionComplex *option,
 	QPainter *p, const QWidget *widget) const {
-		LOG_TRACE(raco::log_system::STYLE, "{}, {}, {}", control, *option, *widget);
 	switch (control) {
 		case CC_ComboBox:
 			if (const QStyleOptionComboBox *cmb = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
@@ -323,7 +322,6 @@ void RaCoStyle::drawComplexControl(QStyle::ComplexControl control, const QStyleO
 }
 
 void RaCoStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter *p, const QWidget *widget) const {
-		LOG_TRACE(raco::log_system::STYLE, "{}, {}, {}", ce, *opt, *widget);
 	switch (ce) {
 		case CE_PushButton:
 		if (const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(opt)) {
@@ -408,7 +406,6 @@ void RaCoStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
 
 void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option,
 	QPainter *p, const QWidget *widget) const {
-		LOG_TRACE(raco::log_system::STYLE, "{}, {}, {}", element, *option, *widget);
 	switch (element) {
 		case PE_PanelLineEdit:
 			if (const QStyleOptionFrame *opt =

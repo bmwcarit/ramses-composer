@@ -33,8 +33,8 @@ public:
 		: TypedObjectAdaptor<EditorType, RamsesType>{sceneAdaptor, editorObject, std::move(ramsesObject)},
 		  rotationType_{DEFAULT_VEC3_ROTATION_TYPE},
 		  nodeBinding_{},
-		  linksLifecycle_{sceneAdaptor->dispatcher()->registerOnLinksLifeCycle(
-			  this->baseEditorObject(),
+		  linksLifecycle_{sceneAdaptor->dispatcher()->registerOnLinksLifeCycleForEnd(
+			  this->editorObject(),
 			  [this](const core::LinkDescriptor& link) {
 				  raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
 				  if (link.end == rotation) {
@@ -114,7 +114,7 @@ public:
 	}
 	
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override {
-		core::ValueHandle const valueHandle{ this->baseEditorObject() };
+		core::ValueHandle const valueHandle{ this->editorObject() };
 		if (errors.hasError(valueHandle)) {
 			return;
 		}

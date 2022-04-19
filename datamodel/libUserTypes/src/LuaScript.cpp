@@ -14,7 +14,6 @@
 #include "core/PathQueries.h"
 #include "core/Project.h"
 #include "core/Queries.h"
-#include "log_system/log.h"
 #include "user_types/LuaScriptModule.h"
 #include "utils/FileUtils.h"
 
@@ -64,7 +63,24 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 		}
 
 		if (success) {
-			success = context.engineInterface().parseLuaScript(luaScript, *luaModules_, inputs, outputs, error);
+			const auto& moduleTable = luaModules_.asTable();
+			ValueHandle moduleTableHandle{shared_from_this(), &LuaScript::luaModules_};
+			for (auto i = 0; i < moduleTable.size(); ++i) {
+				if (auto moduleRef = moduleTable.get(i)->asRef()) {
+					const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
+					if (!module->isValid()) {
+						context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
+						success = false;
+					}
+				} else {
+					context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Required LuaScriptModule '{}' is unassigned.", moduleTable.name(i)));
+					success = false;
+				}
+			}
+		}
+
+		if (success) {
+			success = context.engineInterface().parseLuaScript(luaScript, objectName(), *luaModules_, inputs, outputs, error);
 		}
 
 		if (success) {
@@ -77,19 +93,6 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 			}
 		} else {
 			if (!error.empty()) {
-				const auto& moduleTable = luaModules_.asTable();
-				for (auto i = 0; i < moduleTable.size(); ++i) {
-					const auto& moduleName = moduleTable.name(i);
-					auto moduleHandle = ValueHandle{shared_from_this(), {"luaModules", moduleName}};
-					auto moduleRef = moduleHandle.asRef();
-					if (moduleRef) {
-						auto module = moduleRef->as<LuaScriptModule>();
-						assert(module != nullptr);
-						if (!module->isValid()) {
-							context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleHandle, fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
-						}
-					}
-				}
 				context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
 			}
 		}
@@ -101,7 +104,6 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 
 	context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 
-	context.changeMultiplexer().recordValueChanged({shared_from_this(), &raco::user_types::LuaScript::luaModules_});
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 }
 

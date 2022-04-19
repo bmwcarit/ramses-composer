@@ -97,6 +97,10 @@ QVariant LogViewModel::data(const QModelIndex& index, int role) const {
 			case COLUMNINDEX_MESSAGE:
 				return entries_[index.row()].message_;
 		}
+	} else if (role == Qt::ToolTipRole) {
+		if (index.column() == COLUMNINDEX_MESSAGE) {
+			return entries_[index.row()].message_;
+		}
 	}
 	if (index.column() == COLUMNINDEX_LEVEL) {
 		if (role == Qt::UserRole) {

@@ -99,10 +99,27 @@ struct PropertyInterface {
 class EngineInterface {
 public:
 	virtual ~EngineInterface() = default;
+
+	// Parse shaders using Ramses and return set of uniforms with name and type.
+	// Returns true if shader can be successfully parsed.
 	virtual bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& error) = 0;
-	virtual bool parseLuaScript(const std::string& luaScript, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
-	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, std::string& outError) = 0;
+
+	// Parse luascripts using ramses logic and return set of in and out parameters with name and type.
+	// Returns true if script can be successfully parsed.
+	virtual bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
+
+	// Parse luascript module using ramses logic.
+	// Returns true if module can be successfully parsed.
+	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, std::string& outError) = 0;
+
+	// Extract module dependencies from lua script using ramses logic to parse the script.
+	//
+	// @param luaScript the code of the luascript
+	// @param moduleList will be set by to the names of the modules used by the lua script. is not cleared on success.
+	// @param outError will be set to the error message if parsing was not succesful. is not cleared on success.
+	// @return True indicates success at parsing and extracting the dependencies. If false outError will contain the error message.
 	virtual bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string &outError) = 0;
+
 	virtual const std::map<int, std::string>& enumerationDescription(EngineEnumeration type) const = 0;
 
 	virtual std::string luaNameForPrimitiveType(EnginePrimitive engineType) const = 0;

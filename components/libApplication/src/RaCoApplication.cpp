@@ -20,6 +20,7 @@
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/BaseEngineBackend.h"
 #include "user_types/Animation.h"
+#include "core/ProjectMigration.h"
 
 #include <ramses_base/LogicEngineFormatter.h>
 #include "core/Handles.h"
@@ -107,7 +108,17 @@ bool RaCoApplication::exportProject(const RaCoProject& project, const std::strin
 		outError = scenesBackend_->currentScene()->getStatusMessage(status);
 		return false;
 	}
-	if (!engine_->logicEngine().saveToFile(logicExport.c_str())) {
+	rlogic::SaveFileConfig metadata;
+	// Use JSON format for the metadata string to allow future extensibility
+	// CAREFUL: only include data here which we are certain all users agree to have included in the exported files.
+	metadata.setMetadataString(fmt::format(
+R"___({{
+	"generator" : "{}"
+}})___",
+		QCoreApplication::applicationName().toStdString()));
+	metadata.setExporterVersion(RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+
+	if (!engine_->logicEngine().saveToFile(logicExport.c_str(), metadata)) {
 		if (engine_->logicEngine().getErrors().size() > 0) {
 			outError = engine_->logicEngine().getErrors().at(0).message;
 		} else {
@@ -134,8 +145,8 @@ void RaCoApplication::doOneLoop() {
 	if (activeProjectRunsTimer) {
 		auto loadedScripts = engine_->logicEngine().getCollection<rlogic::LuaScript>();
 		for (auto* loadedScript : loadedScripts) {
-			if (auto* timerInput = loadedScript->getInputs()->getChild("time_ms")) {
-				timerInput->set(static_cast<int32_t>(elapsedMsec));
+			if (loadedScript->getInputs()->hasChild("time_ms")) {
+				loadedScript->getInputs()->getChild("time_ms")->set(static_cast<int32_t>(elapsedMsec));
 			}
 		}
 	}
@@ -190,11 +201,11 @@ raco::core::EngineInterface* RaCoApplication::engine() {
 QString RaCoApplication::generateApplicationTitle() const {
 	const auto& project = activeRaCoProject();
 	if (activeProjectPath().empty()) {
-		return APPLICATION_NAME + " - <New project>";
+		return QCoreApplication::applicationName() + " - <New project>";
 	}
 
 	auto path = QString::fromStdString(activeProjectPath());
-	auto windowTitle = APPLICATION_NAME + " - " + project.name() + " (" + path + ")";
+	auto windowTitle = QCoreApplication::applicationName() + " - " + project.name() + " (" + path + ")";
 	auto fileInfo = QFileInfo(path);
 	if (fileInfo.exists() && !fileInfo.isWritable()) {
 		windowTitle += " <read-only>";

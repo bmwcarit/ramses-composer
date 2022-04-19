@@ -193,12 +193,8 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return {start, end};
 	}
 
-	void checkLinks(Project& project, const std::vector<raco::core::Link>& refLinks) {
-		EXPECT_EQ(refLinks.size(), project.links().size());
-		for (const auto& refLink : refLinks) {
-			auto projectLink = raco::core::Queries::getLink(project, refLink.endProp());
-			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
-		}
+	static void checkLinks(raco::core::Project& project, const std::vector<raco::core::Link>& refLinks) {
+		RacoBaseTest<BaseClass>::checkLinks(project, refLinks);
 	}
 
 	void checkLinks(const std::vector<raco::core::Link>& refLinks) {

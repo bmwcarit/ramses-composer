@@ -14,14 +14,42 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * **File version number has changed. Files saved with RaCo X.Y.Z cannot be opened by previous versions.**
 * **Export file format has changed. Scenes exported with RaCo X.Y.Z / ramses-logic A.B.C cannot be opened by previous ramses-logic versions.**
 
+### Known Issues
+
 ### Added
 
 ### Changes
 
 ### Fixes
+-->
+
+## [0.14.0]
+* **Export file format has changed. Scenes exported with RaCo 0.14.0 / ramses-logic 0.15.0 cannot be opened by previous ramses-logic versions.**
+* **Breaking change: Due to the update to ramses-logic 0.15.0 it is no longer possible to use variables without the "local" keyword or have global functions outside the "init" function. See the ramses-logic [CHANGELOG.md](https://github.com/COVESA/ramses-logic/blob/master/CHANGELOG.md) for details.**
 
 ### Known Issues
--->
+* RaCoHeadless will crash when trying to load a scene using external references from scenes which cannot be found.
+	* The crash will be preceded by an error message like this "External reference update failed: Can't load external project '...' with path '....rca'"
+	* If the same scene is opened in the Ramses Composer, the same error message will be displayed in a message box.
+	* When this occurs, the best way forward is to restore the file in the stated location.
+
+### Added
+* When dragging a property slider, you can now hold Shift to increase the magnitude of steps, and for float properties, you can also hold Alt to decrease the magnitude of steps.
+* Added goto button for link start/end properties.
+* Added tooltip for objects that are part of a PrefabInstance in the Reference drop-down selection.
+* Added tooltip for the link button & link editor that shows the full scenegraph path of link property root objects.
+
+### Changes
+* Update from ramses-logic 0.14.2 to 0.15.0
+* Update from ramses 27.0.115 to 27.0.116
+* Added metadata to the exported .rlogic files. The metadata currently included is the generator application, the RamsesComposer version information, and the RamsesComposer file version number.
+* The log view now displays a tooltip with the full multi-line message if the mouse is hovered over a message.
+* Sort all objects and links in the project file to ensure a stable order when saving repeatedly.
+* Change the displayed name of the member properties of the camera viewport and frustum containers to match the internal property name to make it easier to create matching struct definitions in lua.
+
+### Fixes
+* Clicking the goto button of an Ext Ref object while having a Project Browser will now always lead to the actually referenced Ext Ref object instead of (sometimes) the object in the Project Browser.
+
 
 ## [0.13.1]
 * **File version number has changed. Files saved with RaCo 0.13.1 cannot be opened by RaCo versions 0.12.x or earlier. **
@@ -31,6 +59,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 	* The crash will be preceded by an error message like this "External reference update failed: Can't load external project '...' with path '....rca'"
 	* If the same scene is opened in the Ramses Composer, the same error message will be displayed in a message box.
 	* When this occurs, the best way forward is to restore the file in the stated location.
+
 
 ### Fixes
 * Don't reset preview background color to black if the preview is resized or moved.
@@ -46,6 +75,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Changes
 * The "Export" button in the export dialog is no longer disabled if there are errors in the scene. Instead its label is changed to "Export (with errors)".
 * The error view in the export dialog now shows all errors, including the ones caused by external references.
+
 
 ## [0.13.0] Compressed project files, cubemap extensions, log view
 * **File version number has changed. Files saved with RaCo 0.13.0 cannot be opened by previous versions.**

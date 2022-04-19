@@ -200,7 +200,7 @@ TEST_F(LuaScriptAdaptorFixture, inNestedStruct) {
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
-	s = { x = FLOAT, y = FLOAT }
+	local s = { x = FLOAT, y = FLOAT }
 	IN.value = {
 		a = s
 	}
@@ -367,7 +367,7 @@ TEST_F(LuaScriptAdaptorFixture, outNestedStruct) {
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
-	s = { x = FLOAT, y = FLOAT }
+	local s = { x = FLOAT, y = FLOAT }
 	IN.in_value = {
 		a = s
 	}
@@ -423,11 +423,13 @@ function interface()
 	OUT.value = FLOAT
 end
 
-counter = 0
+function init()
+	GLOBAL.counter = 0
+end
 
 function run()
-	counter = counter + 1	
-	OUT.value = IN.value + counter
+	GLOBAL.counter = GLOBAL.counter + 1
+	OUT.value = IN.value + GLOBAL.counter
 end
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
@@ -452,15 +454,9 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
-	IN.value = FLOAT
-	OUT.value = FLOAT
 end
 
-counter = 0
-
 function run()
-	counter = counter + 1
-	OUT.value = IN.value + counter
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -515,15 +511,9 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
-	IN.value = FLOAT
-	OUT.value = FLOAT
 end
 
-counter = 0
-
 function run()
-	counter = counter + 1
-	OUT.value = IN.value + counter
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -553,15 +543,9 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
-	IN.value = FLOAT
-	OUT.value = FLOAT
 end
 
-counter = 0
-
 function run()
-	counter = counter + 1
-	OUT.value = IN.value + counter
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -590,15 +574,9 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
 function interface()
-	IN.value = FLOAT
-	OUT.value = FLOAT
 end
 
-counter = 0
-
 function run()
-	counter = counter + 1
-	OUT.value = IN.value + counter
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);

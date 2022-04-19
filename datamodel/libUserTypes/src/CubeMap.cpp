@@ -11,7 +11,6 @@
 
 #include "Validation.h"
 #include "core/Context.h"
-#include "log_system/log.h"
 #include "utils/FileUtils.h"
 #include <algorithm>
 

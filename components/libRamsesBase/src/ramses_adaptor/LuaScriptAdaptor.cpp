@@ -20,8 +20,7 @@
 namespace raco::ramses_adaptor {
 
 LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::LuaScript> editorObject)
-	: ObjectAdaptor{sceneAdaptor},
-	  editorObject_{editorObject},
+	: UserTypeObjectAdaptor{sceneAdaptor, editorObject},
 	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, &user_types::LuaScript::objectName_}, [this]() {
 		  tagDirty();
 		  recreateStatus_ = true;
@@ -44,13 +43,6 @@ LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<u
 	  })} {
 	setupParentSubscription();
 	setupInputValuesSubscription();
-}
-
-raco::user_types::SEditorObject LuaScriptAdaptor::baseEditorObject() noexcept {
-	return editorObject_;
-}
-const raco::user_types::SEditorObject LuaScriptAdaptor::baseEditorObject() const noexcept {
-	return editorObject_;
 }
 
 void LuaScriptAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
@@ -95,33 +87,20 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 		auto scriptContent = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaScript::uri_}));
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), scriptContent);
 		luaScript_.reset();
-		modules.clear();
 		if (!scriptContent.empty()) {
+			std::vector<raco::ramses_base::RamsesLuaModule> modules;
 			auto luaConfig = raco::ramses_base::defaultLuaConfig();
-
 			const auto& moduleDeps = editorObject_->luaModules_.asTable();
 			for (auto i = 0; i < moduleDeps.size(); ++i) {
 				if (auto moduleRef = moduleDeps.get(i)->asRef()) {
 					auto moduleAdaptor = sceneAdaptor_->lookup<LuaScriptModuleAdaptor>(moduleRef);
-					if (auto module = moduleAdaptor->module_) {
+					if (auto module = moduleAdaptor->module()) {
 						modules.emplace_back(module);
 						luaConfig.addDependency(moduleDeps.name(i), *module);
 					}
 				}
 			}
-			auto ptr = sceneAdaptor_->logicEngine().createLuaScript(scriptContent, luaConfig, generateRamsesObjectName());
-			LOG_TRACE(log_system::RAMSES_ADAPTOR, "create: {}", fmt::ptr(ptr));
-			if (ptr) {
-				luaScript_ = {
-					ptr,
-					[this](auto* ptr) {
-						auto success = sceneAdaptor_->logicEngine().destroy(*ptr);
-						LOG_TRACE(log_system::RAMSES_ADAPTOR, "destroy: {} ({})", fmt::ptr(ptr), success);
-						assert(success);
-					}};
-			} else {
-				LOG_WARNING_IF(log_system::RAMSES_ADAPTOR, "Script creation failed: {}", LogicEngineErrors{sceneAdaptor_->logicEngine()});
-			}
+			luaScript_ = raco::ramses_base::ramsesLuaScript(&sceneAdaptor_->logicEngine(), scriptContent, luaConfig, modules, generateRamsesObjectName());
 		}
 	}
 
@@ -157,7 +136,7 @@ const rlogic::Property* LuaScriptAdaptor::getProperty(const std::vector<std::str
 }
 
 void LuaScriptAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {
-	core::ValueHandle const valueHandle{ baseEditorObject() };
+	core::ValueHandle const valueHandle{editorObject_};
 	if(errors.hasError(valueHandle)) {
 		return;
 	}
