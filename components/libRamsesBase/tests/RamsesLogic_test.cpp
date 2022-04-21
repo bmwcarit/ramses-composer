@@ -435,3 +435,63 @@ end
 	ASSERT_TRUE(logicEngine.update());
 	ASSERT_EQ(-1.0, script->getOutputs()->getChild("float")->get<float>().value());
 }
+
+TEST(ramses_logic, memory_corruption_crash) {
+	rlogic::LogicEngine logicEngine;
+
+	std::string scriptText = R"(
+function interface(IN,OUT)
+    local craneGimbal = {
+        cam_Translation = Type:Vec3f(),
+        POS_ORIGIN_Translation = Type:Vec3f(),
+        PITCH_Rotation = Type:Vec3f(),
+        YAW_Rotation = Type:Vec3f()
+    }
+    
+    local viewport = {
+        offsetX = Type:Int32(),
+        offsetY = Type:Int32(),
+        width = Type:Int32(),
+        height = Type:Int32()
+    }
+    
+    local frustum_persp = {
+        nearPlane = Type:Float(),
+        farPlane =  Type:Float(),
+        fieldOfView = Type:Float(),
+        aspectRatio = Type:Float()
+    }
+    
+    local frustum_ortho = {
+        nearPlane = Type:Float(),
+        farPlane =  Type:Float(),
+        leftPlane = Type:Float(),
+        rightPlane = Type:Float(),
+        bottomPlane = Type:Float(),
+        topPlane = Type:Float()
+    }
+
+    OUT.CameraSettings = {
+        CraneGimbal = craneGimbal,
+        CraneGimbal_R = craneGimbal,
+		scene_camera = {
+            Viewport = viewport,
+            Frustum = frustum_persp,
+        },
+        ui_camera = {
+            Frustum = frustum_ortho,
+            Viewport = viewport,
+            translation = Type:Vec3f(), 
+        }
+	}
+end
+
+function run(IN,OUT)
+end
+)";
+	for (unsigned i = 0; i < 10000; i++) {
+		auto* script = logicEngine.createLuaScript(scriptText);
+		ASSERT_TRUE(script != nullptr);
+		ASSERT_TRUE(logicEngine.destroy(*script));
+	}
+}
