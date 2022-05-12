@@ -26,6 +26,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 ## [1.0.0] ramses-logic 1.x, Python API, timer, new animations
 * **File version number has changed. Files saved with RaCo 1.0.0 cannot be opened by previous versions.**
+    * rca files saved with this version will be much smaller than files saved with previous versions.
 * **Export file format has changed. Scenes exported with RaCo 1.0.0 / ramses-logic 1.0.2 cannot be opened by ramses-logic versions 0.x.**
 * **Breaking Change: ramses-logic 1.0.2 uses a different lua syntax for the type definitions and the interface() and run() function definitions.**
     * See the ramses-logic [CHANGELOG.md](https://github.com/bmwcarit/ramses-logic/blob/master/CHANGELOG.md) for details. 
@@ -54,6 +55,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * Ramses-logic objects created in RaCo scenes will share the same ramses-logic user ID as the respective RaCo object.
 * Animation objects have been simplified and now only have a 'progress' input property.
 * The Error View in the dock now also shows errors by external references, and is now consistent with the "Composer Errors" tab in the export dialog. 
+* Redundant data has been removed from the rca file - if you are using many prefab instances or external references, expect your files to shrink significantly.
 
 ### Fixes
 * Always perform a logic engine update when loading a file to avoid inconsistent states when exporting with the headless application.
