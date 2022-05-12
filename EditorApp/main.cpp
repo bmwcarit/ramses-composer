@@ -13,6 +13,7 @@
 #include "components/DataChangeDispatcher.h"
 #include "components/RaCoNameConstants.h"
 #include "core/PathManager.h"
+#include "core/ProjectMigration.h"
 #include "log_system/log.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_widgets/RendererBackend.h"
@@ -29,7 +30,7 @@ void createStdOutConsole();
 #include <windows.h>
 void createStdOutConsole() {
 	if (AllocConsole()) {
-		FILE *stream;
+		FILE* stream;
 		freopen_s(&stream, "CONOUT$", "w", stdout);
 		freopen_s(&stream, "CONOUT$", "w", stderr);
 	}
@@ -40,7 +41,7 @@ void createStdOutConsole() { /* NOOP */
 }
 #endif
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 	QCoreApplication::setApplicationName("Ramses Composer");
 	QCoreApplication::setApplicationVersion(RACO_OSS_VERSION);
 
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
 	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 	// Also, we need support for high resolution icons on scale factors greater than one.
 	QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-	
+
 	// QDialogs will show a "?"-Button by default. While it is possible to disable this for every single dialog, we never need this and thus, disabling it globally is easier.
 	QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
 
@@ -108,42 +109,39 @@ int main(int argc, char *argv[]) {
 	// support both loading with named parameter for compatibility with headless version and
 	// loading with positional parameter drag&drop onto desktop icon
 	QString projectFile{};
-	{
-		QFileInfo *projectFileCandidate = nullptr;
-		if (parser.isSet(loadProjectAction)) {
-			projectFileCandidate = new QFileInfo(parser.value(loadProjectAction));
-		} else if (!projectFileCandidate && args.size() > 0 && args.at(0).endsWith(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive)) {
-			projectFileCandidate = new QFileInfo(args.at(0));
-		}
-		if (projectFileCandidate) {
-			if (projectFileCandidate->suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) == 0) {
-				if (projectFileCandidate->exists()) {
-					if (raco::utils::u8path(projectFileCandidate->filePath().toStdString()).userHasReadAccess()) {
-						projectFile = projectFileCandidate->absoluteFilePath();
-						LOG_INFO(raco::log_system::COMMON, "starting Ramses Composer with project file {}", projectFile.toStdString());
-					} else {
-						LOG_ERROR(raco::log_system::COMMON, "project file could not be read {}", projectFileCandidate->filePath().toStdString());
-					}
-				} else {
-					LOG_ERROR(raco::log_system::COMMON, "project file not found {}", projectFileCandidate->filePath().toStdString());
-				}
-			} else {
-				LOG_ERROR(raco::log_system::COMMON, "invalid file type specified as project file {}", projectFileCandidate->filePath().toStdString());
-			}
-			delete projectFileCandidate;
-		}
+	if (parser.isSet(loadProjectAction)) {
+		projectFile = QFileInfo(parser.value(loadProjectAction)).absoluteFilePath();
+	} else if (args.size() > 0) {
+		projectFile = QFileInfo(args.at(0)).absoluteFilePath();
 	}
-
 
 	// set font, must be done after application instance
 	raco::style::RaCoStyle::installFont();
 
 	auto ramsesCommandLineArgs = parser.value(forwardCommandLineArgs).toStdString();
 	raco::ramses_widgets::RendererBackend rendererBackend{parser.isSet(forwardCommandLineArgs) ? ramsesCommandLineArgs : ""};
-	raco::application::RaCoApplication app{rendererBackend, projectFile};
 
-	MainWindow w{&app, &rendererBackend};
-	w.show();
+	std::unique_ptr<raco::application::RaCoApplication> app;
 
-	return a.exec();
+	try {
+		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, projectFile, true);
+	} catch (const raco::application::FutureFileVersion& error) {
+		LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+		app.reset();
+	} catch (const raco::core::ExtrefError& error) {
+		LOG_ERROR(raco::log_system::COMMON, "File Load Error: external reference update failed with error {}.", error.what());
+		app.reset();
+	} catch (const std::exception& error) {
+		LOG_ERROR(raco::log_system::COMMON, "File Load Error: {}", error.what());
+		app.reset();
+	}
+
+	if (app) {
+		MainWindow w{app.get(), &rendererBackend};
+		w.show();
+
+		return a.exec();
+	} else {
+		exit(1);
+	}
 }

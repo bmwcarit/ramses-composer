@@ -20,6 +20,8 @@
 #include "user_types/MeshNode.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/BaseEngineBackend.h"
+#include "testing/TestUtil.h"
+#include "core/ProjectSettings.h"
 
 using raco::application::RaCoApplication;
 using raco::components::Naming;
@@ -31,17 +33,17 @@ public:
 };
 
 TEST_F(RaCoApplicationFixture, exportNewProject) {
-	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
+	application.doOneLoop();
 
 	std::string error;
 	auto success = application.exportProject(
-		application.activeRaCoProject(),
 		(test_path() / "new.ramses").string().c_str(),
 		(test_path() / "new.logic").string().c_str(),
 		false,
 		error);
 	ASSERT_TRUE(success);
 }
+
 
 TEST_F(RaCoApplicationFixture, exportDuckProject) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
@@ -59,6 +61,7 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
+	commandInterface->set({meshNode, {"materials", "material", "private"}}, true);
 
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "uniforms", "u_color", "x"}}, 1.0);
 
@@ -68,16 +71,23 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"scale", "y"}}, 20.0);
 	commandInterface->set(raco::core::ValueHandle{meshNode, {"scale", "z"}}, 20.0);
 
-	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
+	application.doOneLoop();
 
 	std::string error;
 	auto success = application.exportProject(
-		application.activeRaCoProject(),
 		(test_path() / "new.ramses").string().c_str(),
 		(test_path() / "new.logic").string().c_str(),
 		true,
 		error);
 	ASSERT_TRUE(success);
+}
+
+TEST_F(RaCoApplicationFixture, cant_delete_ProjectSettings) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
+
+	ASSERT_EQ(application.activeRaCoProject().project()->instances().size(), 1);
+	EXPECT_TRUE(raco::select<raco::core::ProjectSettings>(application.activeRaCoProject().project()->instances()) != nullptr);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectNodeAmount) {
@@ -113,7 +123,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectNodeAmount) {
 	// * Wheels.ch1
 	// TODO: Multimaterial meshes: This amount will change soon?
 
-	ASSERT_EQ(application.activeRaCoProject().project()->instances().size(), 18);
+	ASSERT_EQ(application.activeRaCoProject().project()->instances().size(), 19);
 
 	ASSERT_EQ(application.activeRaCoProject().project()->links().size(), 2) << "CesiumMilkTruck should have two spinning wheel animations";
 }
@@ -266,7 +276,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwice) {
 	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, secondRoot);
 
 	//double amount of scenegraph nodes (see importglTFScenegraphCorrectNodeAmount) - 4 duplicate meshes - 2 duplicate AnimationChannels + 2 roots
-	ASSERT_EQ(commandInterface->project()->instances().size(), 32);
+	ASSERT_EQ(commandInterface->project()->instances().size(), 33);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshesGetChangedBeforeSecondImport) {
@@ -297,7 +307,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshe
 	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, secondRoot);
 
 	//double amount of scenegraph nodes (see importglTFScenegraphCorrectNodeAmount), 8 meshes - 2 duplicate AnimationChannels + 2 roots
-	ASSERT_EQ(commandInterface->project()->instances().size(), 36);
+	ASSERT_EQ(commandInterface->project()->instances().size(), 37);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButAnimationChannelsGetChangedBeforeSecondImport) {
@@ -322,7 +332,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButAnima
 	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, secondRoot);
 
 	//double amount of scenegraph nodes (see importglTFScenegraphCorrectNodeAmount), 4 meshes + 2 roots
-	ASSERT_EQ(commandInterface->project()->instances().size(), 34);
+	ASSERT_EQ(commandInterface->project()->instances().size(), 35);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphUnbakedMeshesGetTransformed) {
@@ -387,7 +397,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	};
 
 	for (auto instance : application.activeRaCoProject().project()->instances()) {
-		if (instance->getTypeDescription().typeName == raco::user_types::MeshNode::typeDescription.typeName) {
+		if (instance->isType<raco::user_types::MeshNode>()) {
 			auto activeMaterial = raco::core::ValueHandle(instance).get("materials")[0].get("material").asRef();
 			auto expectedMaterial = materialMap[instance->objectName()];
 

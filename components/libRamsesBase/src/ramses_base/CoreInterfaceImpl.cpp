@@ -14,6 +14,8 @@
 
 #include "core/EngineInterface.h"
 
+#include "log_system/log.h"
+
 #include "ramses_base/BaseEngineBackend.h"
 #include "ramses_base/RamsesHandles.h"
 #include "ramses_base/Utils.h"
@@ -71,7 +73,7 @@ bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::
 		if (auto moduleRef = modules.get(i)->asRef()) {
 			const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
 			if (module->isValid()) {
-				const auto tempModule = tempModules.emplace_back(ramsesLuaModule(module->currentScriptContents(), &backend_->logicEngine(), moduleRef->objectName()));
+				const auto tempModule = tempModules.emplace_back(ramsesLuaModule(module->currentScriptContents(), &backend_->logicEngine(), moduleRef->objectName(), moduleRef->objectIDAsRamsesLogicID()));
 				assert(tempModule != nullptr);
 				luaConfig.addDependency(modules.name(i), *tempModule);
 			} else {
@@ -98,14 +100,20 @@ bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::
 	if (const auto outputs = script->getOutputs()) {
 		fillLuaScriptInterface(outOutputs, outputs);
 	}
-	backend_->logicEngine().destroy(*script);
+	auto status = backend_->logicEngine().destroy(*script);
+	if (!status) {
+		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{backend_->logicEngine()});
+	}
 	return true;
 }
 
 bool CoreInterfaceImpl::parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, std::string& outError) {
 	rlogic::LuaConfig tempConfig = defaultLuaConfig();
 	if (auto tempModule = backend_->logicEngine().createLuaModule(luaScriptModule, tempConfig, moduleName)) {
-		backend_->logicEngine().destroy(*tempModule);
+		auto status = backend_->logicEngine().destroy(*tempModule);
+		if (!status) {
+			LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{backend_->logicEngine()});
+		}
 		return true;
 	} else {
 		outError = backend_->logicEngine().getErrors().at(0).message;
@@ -141,17 +149,14 @@ const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco
 		case raco::core::EngineEnumeration::TextureFormat:
 			return enumerationTextureFormat;
 
-		case raco::core::EngineEnumeration::TextureOrigin:
-			return raco::user_types::enumerationTextureOrigin;
-
 		case raco::core::EngineEnumeration::RenderBufferFormat:
 			return enumerationRenderBufferFormat;
 
 		case raco::core::EngineEnumeration::RenderLayerOrder:
 			return raco::user_types::enumerationRenderLayerOrder;
 
-		case raco::core::EngineEnumeration::RenderLayerMaterialFilterFlag:
-			return raco::user_types::enumerationRenderLayerMaterialFilterFlag;
+		case raco::core::EngineEnumeration::RenderLayerMaterialFilterMode:
+			return raco::user_types::enumerationRenderLayerMaterialFilterMode;
 
 		default:
 			assert(false);
@@ -161,19 +166,19 @@ const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco
 
 std::string CoreInterfaceImpl::luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const {
 	static const std::unordered_map<raco::core::EnginePrimitive, std::string> nameMap =
-		{{raco::core::EnginePrimitive::Bool, "BOOL"},
-			{raco::core::EnginePrimitive::Int32, "INT32"},
-			{raco::core::EnginePrimitive::Int64, "INT64"},
-			{raco::core::EnginePrimitive::Double, "FLOAT"},
-			{raco::core::EnginePrimitive::String, "STRING"},
-			{raco::core::EnginePrimitive::Vec2f, "VEC2F"},
-			{raco::core::EnginePrimitive::Vec3f, "VEC3F"},
-			{raco::core::EnginePrimitive::Vec4f, "VEC4F"},
-			{raco::core::EnginePrimitive::Vec2i, "VEC2I"},
-			{raco::core::EnginePrimitive::Vec3i, "VEC3I"},
-			{raco::core::EnginePrimitive::Vec4i, "VEC4I"},
-			{raco::core::EnginePrimitive::Struct, "STRUCT"},
-			{raco::core::EnginePrimitive::Array, "ARRAY"}};
+		{{raco::core::EnginePrimitive::Bool, "Bool"},
+			{raco::core::EnginePrimitive::Int32, "Int32"},
+			{raco::core::EnginePrimitive::Int64, "Int64"},
+			{raco::core::EnginePrimitive::Double, "Float"},
+			{raco::core::EnginePrimitive::String, "String"},
+			{raco::core::EnginePrimitive::Vec2f, "Vec2f"},
+			{raco::core::EnginePrimitive::Vec3f, "Vec3f"},
+			{raco::core::EnginePrimitive::Vec4f, "Vec4f"},
+			{raco::core::EnginePrimitive::Vec2i, "Vec2i"},
+			{raco::core::EnginePrimitive::Vec3i, "Vec3i"},
+			{raco::core::EnginePrimitive::Vec4i, "Vec4i"},
+			{raco::core::EnginePrimitive::Struct, "Struct"},
+			{raco::core::EnginePrimitive::Array, "Array"}};
 
 	auto it = nameMap.find(engineType);
 	if (it != nameMap.end()) {

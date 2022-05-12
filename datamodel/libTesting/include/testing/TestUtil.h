@@ -33,17 +33,16 @@ inline std::shared_ptr<T> select(const std::vector<I>& vec) {
 	return {};
 }
 
-template <typename ContextOrCommandInterface>
-inline auto createLinkedScene(ContextOrCommandInterface& context, const raco::utils::u8path& path) {
-	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
-	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
+inline auto createLinkedScene(raco::core::CommandInterface& context, const raco::utils::u8path& path) {
+	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script")};
+	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node")};
 	raco::utils::file::write((path / "lua_script.lua").string(), R"(
-function interface()
-	OUT.translation = VEC3F
-	OUT.rotation3 = VEC3F
-	OUT.rotation4 = VEC4F
+function interface(IN,OUT)
+	OUT.translation = Type:Vec3f()
+	OUT.rotation3 = Type:Vec3f()
+	OUT.rotation4 = Type:Vec4f()
 end
-function run()
+function run(IN,OUT)
 end
 	)");
 	context.set({luaScript, {"uri"}}, (path / "lua_script.lua").string());
@@ -52,15 +51,30 @@ end
 		std::dynamic_pointer_cast<user_types::LuaScript>(luaScript), std::dynamic_pointer_cast<user_types::Node>(node), link);
 }
 
-inline auto createLinkedScene(TestEnvironmentCore& env) {
-	return createLinkedScene(env.commandInterface, env.test_relative_path());
+
+inline auto createLinkedScene(raco::core::BaseContext& context, const raco::utils::u8path& path) {
+	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
+	raco::utils::file::write((path / "lua_script.lua").string(), R"(
+function interface(IN,OUT)
+	OUT.translation = Type:Vec3f()
+	OUT.rotation3 = Type:Vec3f()
+	OUT.rotation4 = Type:Vec4f()
+end
+function run(IN,OUT)
+end
+	)");
+	context.set({luaScript, {"uri"}}, (path / "lua_script.lua").string());
+	auto link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	return std::make_tuple(
+		std::dynamic_pointer_cast<user_types::LuaScript>(luaScript), std::dynamic_pointer_cast<user_types::Node>(node), link);
 }
 
 template <typename ContextOrCommandInterface>
 inline auto createAnimatedScene(ContextOrCommandInterface& context, const raco::utils::u8path& path) {
-	const auto anim{context.createObject(raco::user_types::Animation::typeDescription.typeName, "anim", "anim_id")};
-	const auto animChannel{context.createObject(raco::user_types::AnimationChannel::typeDescription.typeName, "anim_ch", "anim_ch_id")};
-	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
+	const auto anim{context.createObject(raco::user_types::Animation::typeDescription.typeName, "anim")};
+	const auto animChannel{context.createObject(raco::user_types::AnimationChannel::typeDescription.typeName, "anim_ch")};
+	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node")};
 
 	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	context.set({animChannel, {"uri"}}, (path / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string());

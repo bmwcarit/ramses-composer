@@ -19,8 +19,11 @@ class QLabel;
 class QListWidget;
 class QPushButton;
 
-namespace raco::property_browser {
+namespace raco::core {
 enum class TagType;
+}
+
+namespace raco::property_browser {
 class PropertyBrowserItem;
 class TagDataCache;
 
@@ -38,7 +41,7 @@ private:
 	void updateRenderedBy() const;
 	bool showRenderedBy() const;
 
-	TagType tagType_{};
+	raco::core::TagType tagType_{};
 	QPushButton* editButton_{};
 	QListWidget* tagList_{};
 	QLabel* renderedBy_ {};

@@ -8,10 +8,12 @@ This Source Code Form is subject to the terms of the Mozilla Public License, v. 
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ]]
 
-set(TEST_SOURCES    
+set(TEST_SOURCES 
+    CommandInterface_test.cpp
     Annotation_test.cpp
 	Context_test.cpp
-	Handle_test 
+    Datamodel_test.cpp
+	Handle_test.cpp
 	Iterator_test.cpp
     Node_test.cpp
     Reference_test.cpp
@@ -123,6 +125,10 @@ raco_package_add_test_resouces(
     migrationTestData/V18.rca
     migrationTestData/V21.rca
     migrationTestData/V23.rca
+    migrationTestData/scripts/out-bool.lua
+    migrationTestData/V29.rca
+    migrationTestData/V29_tags.rca
+    migrationTestData/V29_renderlayer.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

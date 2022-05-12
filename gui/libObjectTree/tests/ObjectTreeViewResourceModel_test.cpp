@@ -19,6 +19,7 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Timer.h"
 
 using namespace raco::user_types;
 
@@ -33,6 +34,7 @@ public:
 				Mesh::typeDescription.typeName,
 				LuaScriptModule::typeDescription.typeName,
 				Texture::typeDescription.typeName,
+				Timer::typeDescription.typeName,
 				RenderBuffer::typeDescription.typeName,
 				RenderTarget::typeDescription.typeName,
 				RenderLayer::typeDescription.typeName,
@@ -49,6 +51,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 		Mesh::typeDescription.typeName,
 		LuaScriptModule::typeDescription.typeName,
 		Texture::typeDescription.typeName,
+		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
 		RenderTarget::typeDescription.typeName,
 		RenderLayer::typeDescription.typeName,
@@ -76,7 +79,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexAnyTypeBehavesLikeE
 
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedOnTopLevel) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 		}
@@ -109,7 +112,7 @@ TEST_F(ObjectTreeViewResourceModelTest, DuplicationExtRefResourcesCanNotBeDuplic
 
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedOnTopLevelAsExtRefs) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			newObj->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
 			auto copiedObjs = commandInterface.copyObjects({newObj}, true);
@@ -125,7 +128,7 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedOnTopLevel
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedWithResourceParentSelected) {
 	auto allResources = createAllResources();
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			for (const auto &resourceInScene : allResources) {
 				ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromTreeNodeID(resourceInScene->objectID()), newObj));
@@ -138,7 +141,7 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedWithResour
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedAsExtRef) {
 	auto allResources = createAllResources();
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			newObj->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
 			auto copyObjs = commandInterface.copyObjects({newObj}, true);
@@ -153,7 +156,7 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedAsExtRef) 
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsSceneGraphObjectsAreNotAllowed) {
 	auto allResources = createAllResources();
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (!raco::core::Queries::isResource(newObj)) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 		}
@@ -221,7 +224,7 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsNoSceneGraphObjectsAreAllowed
 	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefMeshIndex, newObj));	
 		ASSERT_EQ(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, newObj), raco::core::Queries::isResource(newObj));	
 	}

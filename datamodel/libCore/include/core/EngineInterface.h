@@ -16,23 +16,29 @@
 
 namespace raco::core {
 
+// !!! Careful: !!!
+// We can't change the numeric value of the EngineEnumeration members since these 
+// are serialized via the EnumerationAnnotation::type_ property.
 enum EngineEnumeration {
 	Undefined = 0,
-	CullMode,
-	BlendOperation,
-	BlendFactor,
-	DepthFunction,
-	TextureAddressMode,
-    TextureMinSamplingMethod,
-	TextureMagSamplingMethod,
-	TextureFormat,
-	TextureOrigin,
-	RenderBufferFormat,
-	RenderLayerOrder,
-	RenderLayerMaterialFilterFlag
+	CullMode = 1,
+	BlendOperation = 2,
+	BlendFactor = 3,
+	DepthFunction = 4,
+	TextureAddressMode = 5,
+    TextureMinSamplingMethod = 6,
+	TextureMagSamplingMethod = 7,
+	TextureFormat = 8,
+	// TextureOrigin = 9, // unused
+	RenderBufferFormat = 10,
+	RenderLayerOrder = 11,
+	RenderLayerMaterialFilterMode = 12
 };
 
-// Collects types of all possible dynamic properties, i.e. lua in/out properties and material uniforms
+// Collects types of all possible dynamic properties, i.e. lua in/out properties and material uniforms.
+// !!! Careful: !!!
+// We can't change the numeric value of the EnginePrimitive members since these are
+// serialized via the EngineTypeAnnotation::engineType_ property.
 enum class EnginePrimitive {
 	Undefined,
 	Bool,

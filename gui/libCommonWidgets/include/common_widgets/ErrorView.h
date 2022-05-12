@@ -66,7 +66,6 @@ protected:
 	std::set<std::string> objIDs_;
 	LogViewModel *logViewModel_;
 	bool showFilterLayout_ = false;
-	bool showExtRefErrors_ = false;
 
 protected Q_SLOTS:
 	void createCustomContextMenu(const QPoint &p);

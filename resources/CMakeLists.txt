@@ -64,5 +64,22 @@ foreach(relpath ${RESOURCE_FILES})
 	LIST(APPEND RESOURCE_FILES_OUTPUT ${RACO_RELEASE_DIRECTORY}/projects/${relpath})
 endforeach(relpath)
 
-ADD_CUSTOM_TARGET(RaCoResources DEPENDS ${RESOURCE_FILES_OUTPUT} SOURCES ${RESOURCE_FILES})
+set(RACO_PYTHON_EXAMPLE_SCRIPTS
+	python/demo.py
+	python/print_objects.py
+	python/print_scenegraph.py
+	python/purge_links.py
+	python/use_pip_to_install_module.py
+	python/use_pip_to_uninstall_module.py
+)
+
+foreach(relpath ${RACO_PYTHON_EXAMPLE_SCRIPTS})
+	add_custom_command(OUTPUT "${RACO_RELEASE_DIRECTORY}/${relpath}"
+					MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}" "${RACO_RELEASE_DIRECTORY}/${relpath}"
+					VERBATIM)
+	LIST(APPEND RESOURCE_FILES_OUTPUT ${RACO_RELEASE_DIRECTORY}/${relpath})
+endforeach(relpath)
+
+ADD_CUSTOM_TARGET(RaCoResources DEPENDS ${RESOURCE_FILES_OUTPUT} SOURCES ${RESOURCE_FILES} ${RACO_PYTHON_EXAMPLE_SCRIPTS})
 set_target_properties (RaCoResources PROPERTIES FOLDER Packaging)

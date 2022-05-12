@@ -16,4 +16,6 @@ namespace raco::utils::math {
 
 std::array<double, 3> quaternionToXYZDegrees(double qX, double qY, double qZ, double qW);
 
+uint16_t twoBytesToHalfFloat(unsigned char firstByte, unsigned char secondByte);
+
 }  // namespace raco::utils::math

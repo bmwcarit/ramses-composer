@@ -50,6 +50,8 @@ public:
 	// Returns false for equal properties.
 	bool contains(const PropertyDescriptor& other) const;
 
+	PropertyDescriptor child(const std::string& name) const;
+
 private:
 	SEditorObject object_;
 	std::vector<std::string> propNames_;

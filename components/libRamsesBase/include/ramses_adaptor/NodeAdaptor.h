@@ -69,7 +69,7 @@ public:
 			setupLinkStartSubscription();
 		}
 
-		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine(), rotationType_);
+		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine(), rotationType_, this->editorObject()->objectIDAsRamsesLogicID());
 	}
 
 	void setupLinkStartSubscription() {
@@ -164,7 +164,7 @@ private:
 	}
 
 	void syncNodeBinding() {
-		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &this->sceneAdaptor_->logicEngine(), rotationType_);
+		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &this->sceneAdaptor_->logicEngine(), rotationType_, this->editorObject()->objectIDAsRamsesLogicID());
 		nodeBinding_->setName(this->editorObject().get()->objectName() + "_NodeBinding");
 	}
 

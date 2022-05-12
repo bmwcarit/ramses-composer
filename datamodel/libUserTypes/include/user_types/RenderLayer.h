@@ -12,6 +12,7 @@
 #include "core/EngineInterface.h"
 #include "user_types/BaseObject.h"
 #include "user_types/DefaultValues.h"
+#include "user_types/Enumerations.h"
 
 namespace raco::user_types {
 
@@ -22,7 +23,7 @@ public:
 		return typeDescription;
 	}
 
-	RenderLayer(RenderLayer const& other) : BaseObject(other), tags_(other.tags_), renderableTags_(other.renderableTags_), materialFilterTags_(other.materialFilterTags_), invertMaterialFilter_(other.invertMaterialFilter_), sortOrder_(other.sortOrder_) {
+	RenderLayer(RenderLayer const& other) : BaseObject(other), tags_(other.tags_), renderableTags_(other.renderableTags_), materialFilterTags_(other.materialFilterTags_), materialFilterMode_(other.materialFilterMode_), sortOrder_(other.sortOrder_) {
 		fillPropertyDescription();
 	}
 
@@ -35,7 +36,7 @@ public:
 		properties_.emplace_back("tags", &tags_);
 		properties_.emplace_back("renderableTags", &renderableTags_);
 		properties_.emplace_back("materialFilterTags", &materialFilterTags_);
-		properties_.emplace_back("invertMaterialFilter", &invertMaterialFilter_);
+		properties_.emplace_back("materialFilterMode", &materialFilterMode_);
 		properties_.emplace_back("sortOrder", &sortOrder_);
 	}
 
@@ -60,17 +61,17 @@ public:
 		return false;
 	}
 
-	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {"Tags"}};
+	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
 	// contains tag name -> order index map as normal Value<int> properties
 	// - property name is the tag name
 	// - property value is the order index 
-	Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation> renderableTags_{{}, {}, {"Renderable Tags"}};
+	Property<Table, RenderableTagContainerAnnotation, HiddenProperty, DisplayNameAnnotation> renderableTags_{{}, {}, {}, {"Renderable Tags"}};
 
-	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> materialFilterTags_{{}, {}, {}, {"Material Filter Tags"}};
-	Property<bool, DisplayNameAnnotation, EnumerationAnnotation> invertMaterialFilter_{true, {"Material Filter Behaviour"}, EngineEnumeration::RenderLayerMaterialFilterFlag};
+	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> materialFilterTags_{{}, {}, {}, {}, {"Material Filter Tags"}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> materialFilterMode_{static_cast<int>(ERenderLayerMaterialFilterMode::Exclusive), {"Material Filter Mode"}, EngineEnumeration::RenderLayerMaterialFilterMode};
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> sortOrder_{DEFAULT_VALUE_RENDER_LAYER_ORDER, {"Render Order"}, EngineEnumeration::RenderLayerOrder};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> sortOrder_{static_cast<int>(ERenderLayerOrder::Manual), {"Render Order"}, EngineEnumeration::RenderLayerOrder};
 };
 
 using SRenderLayer = std::shared_ptr<RenderLayer>;

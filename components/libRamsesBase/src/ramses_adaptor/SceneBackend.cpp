@@ -69,11 +69,17 @@ void SceneBackend::readDataFromEngine(core::DataChangeRecorder& recorder) {
 
 
 bool SceneBackend::sceneValid() const {
-	return currentScene()->validate() == ramses::StatusOK;
+	return currentScene()->validate() == ramses::StatusOK && logicEngine_->validate().empty();
 }
 
 std::string SceneBackend::getValidationReport(core::ErrorLevel minLevel) const {
-	return currentScene()->getValidationReport(minLevel == core::ErrorLevel::ERROR ? ramses::EValidationSeverity_Error : ramses::EValidationSeverity_Warning);
+	auto logicErrors = logicEngine_->validate();
+	std::string logicErrorMessages;
+	for (const auto& logicError : logicErrors) {
+		logicErrorMessages.append(logicError.message).append("\n");
+	}
+
+	return currentScene()->getValidationReport(minLevel == core::ErrorLevel::ERROR ? ramses::EValidationSeverity_Error : ramses::EValidationSeverity_Warning) + logicErrorMessages;
 }
 
 uint64_t SceneBackend::currentSceneIdValue() const {

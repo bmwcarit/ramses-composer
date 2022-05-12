@@ -65,6 +65,7 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Timer.h"
 #include "user_types/Texture.h"
 
 #include "utils/FileUtils.h"
@@ -203,6 +204,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 		Material::typeDescription.typeName,
 		Mesh::typeDescription.typeName,
 		Texture::typeDescription.typeName,
+		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
 		RenderTarget::typeDescription.typeName,
 		RenderLayer::typeDescription.typeName,
@@ -545,7 +547,7 @@ MainWindow::~MainWindow() {
 	resetDockManager();
 	// sceneBackend needs to be reset first to unregister all adaptors (and their file listeners)
 	// before the file change monitors and mesh caches get destroyed
-	racoApplication_->resetScene();
+	racoApplication_->resetSceneBackend();
 	killTimer(renderTimerId_);
 	delete ui;
 }
@@ -559,13 +561,14 @@ bool MainWindow::saveActiveProject() {
 		if (racoApplication_->activeProjectPath().empty()) {
 			return saveAsActiveProject();
 		} else {
-			if (racoApplication_->activeRaCoProject().save()) {
+			std::string errorMsg;
+			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
 				recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 				updateApplicationTitle();	
 				return true;
 			} else {
 				updateApplicationTitle();	
-				QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed (detailed error in the log). If you are using source control and the file is read-only: check if the file is in a state where you are allowed to edit it?", racoApplication_->activeProjectPath()).c_str(), QMessageBox::Ok);
+				QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
 			}
 			
 		}
@@ -583,7 +586,8 @@ bool MainWindow::saveAsActiveProject() {
 			return false;
 		}
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
-		if (racoApplication_->activeRaCoProject().saveAs(newPath, setProjectName)) {
+		std::string errorMsg;
+		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
 			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 
 			updateActiveProjectConnection();
@@ -591,7 +595,7 @@ bool MainWindow::saveAsActiveProject() {
 			return true;
 		} else {
 			updateApplicationTitle();
-			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed (detailed error in the log). If you are using source control and the file is read-only: check if the file is in a state where you are allowed to edit it?", newPath.toStdString()).c_str(), QMessageBox::Ok);
+			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
 		}
 	} else {
 		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);

@@ -155,6 +155,11 @@ public:
 	static std::unique_ptr<ValueBase> create(PrimitiveType type);
 
 	virtual PrimitiveType type() const = 0;
+
+	// Basic typename of the property not including annotation information.
+	virtual std::string baseTypeName() const = 0;
+
+	// Full typename of the property including annotation types.
 	virtual std::string typeName() const = 0;
 
 	virtual bool& asBool() = 0;
@@ -285,6 +290,17 @@ public:
 	Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other, translateRef) {}
 
 	virtual PrimitiveType type() const override;
+	virtual std::string baseTypeName() const override {
+		if constexpr (std::is_same<T, SEditorObject>::value) {
+			return getTypeName(primitiveType<T>());
+		} else if constexpr (std::is_convertible<T, std::shared_ptr<ReflectionInterface>>::value) {
+			return T::element_type::typeDescription.typeName;
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
+			return T::typeDescription.typeName;
+		} else {
+			return getTypeName(primitiveType<T>());
+		}
+	}
 	virtual std::string typeName() const override {
 		if constexpr (std::is_same<T, SEditorObject>::value) {
 			return getTypeName(primitiveType<T>());

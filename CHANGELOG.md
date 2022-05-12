@@ -21,17 +21,52 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Changes
 
 ### Fixes
+
 -->
+
+## [1.0.0] ramses-logic 1.x, Python API, timer, new animations
+* **File version number has changed. Files saved with RaCo 1.0.0 cannot be opened by previous versions.**
+* **Export file format has changed. Scenes exported with RaCo 1.0.0 / ramses-logic 1.0.2 cannot be opened by ramses-logic versions 0.x.**
+* **Breaking Change: ramses-logic 1.0.2 uses a different lua syntax for the type definitions and the interface() and run() function definitions.**
+    * See the ramses-logic [CHANGELOG.md](https://github.com/bmwcarit/ramses-logic/blob/master/CHANGELOG.md) for details. 
+    * A [migration script provided by ramses-logic](https://github.com/bmwcarit/ramses-logic/tree/master/tools/migrate) that converts the lua syntax is included as migrate_to_v1.0.py in the root folder of the RaCo package.
+        * The migration script needs to be run twice - once for adding the  IN,OUT parameter to the interface()/run() functions, and once to update the name of the types.
+        * Example for running the migration script in your root project folder on Windows (adjust paths as required):
+            * `cd MyProjectFolder`
+            * `python \RaCoInstallationFolder\migrate_to_v1.0.py inout .`
+            * `python \RaCoInstallationFolder\migrate_to_v1.0.py types .`
+
+### Added
+* Added Python API and the ability to run python scripts using the RaCoHeadless application.
+    * Added "-r" commandline option to RaCoHeadless application to run python scripts.
+    * For a description of the Python API see the PythonAPI.md file.
+* Added new Resource type Timer as an interface to the ramses-logic timer.
+* Added support for more PNG image formats and Ramses texture formats.
+    * Previously imported .pngs for Textures may need to be reconverted as the texture format detection has become more stringent.
+    * Only supported PNG color types: R, RG, RGB, RGBA
+        * Palette PNGs are loaded and converted for legacy reasons but will always cause a conversion warning.
+    * 8-bit PNGs can only be used 8-bit for Ramses texture formats and vice versa with 16-bit PNGs.
+
+### Changes
+* Update from ramses-logic 0.15.0 to 1.0.2
+* Update from ramses 27.0.116 to 27.0.119
+* Nested arrays in LuaScripts are now supported. See the ramses-logic Changelog for details.
+* Ramses-logic objects created in RaCo scenes will share the same ramses-logic user ID as the respective RaCo object.
+* Animation objects have been simplified and now only have a 'progress' input property.
+* The Error View in the dock now also shows errors by external references, and is now consistent with the "Composer Errors" tab in the export dialog. 
+
+### Fixes
+* Always perform a logic engine update when loading a file to avoid inconsistent states when exporting with the headless application.
+* Export with headless version will not write exported files anymore when the project can't be loaded.
+* The RaCoHeadless application will now return a non-zero exit code if loading a project fails, the export fails or a python script throws an exception.
+* Fixed RaCoHeadless crash when a scene extrefed by a loaded scene cannot be found.
+
+### Known Issues
+* It is currently not reliably possible to use venv/virtualenv with the RaCoHeadless Python API.
 
 ## [0.14.0]
 * **Export file format has changed. Scenes exported with RaCo 0.14.0 / ramses-logic 0.15.0 cannot be opened by previous ramses-logic versions.**
-* **Breaking change: Due to the update to ramses-logic 0.15.0 it is no longer possible to use variables without the "local" keyword or have global functions outside the "init" function. See the ramses-logic [CHANGELOG.md](https://github.com/COVESA/ramses-logic/blob/master/CHANGELOG.md) for details.**
-
-### Known Issues
-* RaCoHeadless will crash when trying to load a scene using external references from scenes which cannot be found.
-	* The crash will be preceded by an error message like this "External reference update failed: Can't load external project '...' with path '....rca'"
-	* If the same scene is opened in the Ramses Composer, the same error message will be displayed in a message box.
-	* When this occurs, the best way forward is to restore the file in the stated location.
+* **Breaking change: Due to the update to ramses-logic 0.15.0 it is no longer possible to use variables without the "local" keyword or have global functions outside the "init" function. See the ramses-logic [CHANGELOG.md](https://github.com/bmwcarit/ramses-logic/blob/master/CHANGELOG.md) for details.**
 
 ### Added
 * When dragging a property slider, you can now hold Shift to increase the magnitude of steps, and for float properties, you can also hold Alt to decrease the magnitude of steps.
@@ -46,10 +81,10 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * The log view now displays a tooltip with the full multi-line message if the mouse is hovered over a message.
 * Sort all objects and links in the project file to ensure a stable order when saving repeatedly.
 * Change the displayed name of the member properties of the camera viewport and frustum containers to match the internal property name to make it easier to create matching struct definitions in lua.
+* Removed redundant information from the .rca files. External projects only indirectly used are removed from the external projects mapping in the saved file.
 
 ### Fixes
 * Clicking the goto button of an Ext Ref object while having a Project Browser will now always lead to the actually referenced Ext Ref object instead of (sometimes) the object in the Project Browser.
-
 
 ## [0.13.1]
 * **File version number has changed. Files saved with RaCo 0.13.1 cannot be opened by RaCo versions 0.12.x or earlier. **
@@ -61,12 +96,14 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 	* When this occurs, the best way forward is to restore the file in the stated location.
 
 
+
 ### Fixes
 * Don't reset preview background color to black if the preview is resized or moved.
 * Collapsed vector view for floats does round the displayed number again.
 * Capturing the ramses-logic output revealed a ramses-logic error message during load caused by attempting to initialize scripts using modules which have not been loaded yet.
 * The "Export" button could be disabled without explanation if external references caused entries in the error view.
 * Material uniform textures which are unset now show an error message, since exporting them with ramses does not work.
+
 * Fix losing input properties of interface LuaScripts in nested PrefabInstances with externally referenced Prefabs during load. This fix breaks the propagation of the values of new LuaScript interface properties in the Prefab update performed as part of external reference update during load. 
 * Fixed Ramses Composer not being able to launch under certain multiple display arrangements on Linux.
 * Fixed internal side-effect handling of LuaScript module property updates. 

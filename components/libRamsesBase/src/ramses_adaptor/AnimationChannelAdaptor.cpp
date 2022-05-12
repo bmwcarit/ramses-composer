@@ -13,17 +13,17 @@
 
 namespace {
 template <typename DataType>
-void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandle& handle, rlogic::LogicEngine *engine, const DataType& tangentInData, const DataType& outputData, const DataType& tangentOutData) {
+void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandle& handle, rlogic::LogicEngine *engine, const DataType& tangentInData, const DataType& outputData, const DataType& tangentOutData, const std::pair<uint64_t, uint64_t> &objectID) {
 	auto outputName = handle->name + ".keyframes";
 	auto tangentInName = handle->name + ".tangentIn";
 	auto tangentOutName = handle->name + ".tangentOut";
 
-	handle->animOutput = raco::ramses_base::ramsesDataArray(outputData, engine, outputName);
+	handle->animOutput = raco::ramses_base::ramsesDataArray(outputData, engine, outputName, objectID);
 	if (!tangentInData.empty()) {
-		handle->tangentIn = raco::ramses_base::ramsesDataArray(tangentInData, engine, tangentInName);
+		handle->tangentIn = raco::ramses_base::ramsesDataArray(tangentInData, engine, tangentInName, objectID);
 	}
 	if (!tangentOutData.empty()) {
-		handle->tangentOut = raco::ramses_base::ramsesDataArray(tangentOutData, engine, tangentOutName);
+		handle->tangentOut = raco::ramses_base::ramsesDataArray(tangentOutData, engine, tangentOutName, objectID);
 	}
 }
 
@@ -49,9 +49,11 @@ bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 	handle_.reset();
 
 	if (auto animSampler = editorObject_->currentSamplerData_) {
+		auto objectID = editorObject_->objectIDAsRamsesLogicID();
+
 		handle_.reset(new raco::ramses_base::RamsesAnimationChannelData);
 		handle_->name = editorObject_->objectName();
-		handle_->keyframeTimes = ramsesDataArray(animSampler->input, &sceneAdaptor_->logicEngine(), handle_->name + ".timestamps");
+		handle_->keyframeTimes = ramsesDataArray(animSampler->input, &sceneAdaptor_->logicEngine(), handle_->name + ".timestamps", objectID);
 		auto componentSize = animSampler->getOutputComponentSize();
 
 		switch (animSampler->interpolation) {
@@ -97,16 +99,16 @@ bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 					}
 				}
 
-				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), singularTangentInData, singularOutputData, singularTangentOutData);
+				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), singularTangentInData, singularOutputData, singularTangentOutData, objectID);
 			} else {
-				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData);
+				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
 			}
 		} else if (componentSize == 3) {
 			const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec3f>();
-			createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData);
+			createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
 		} else if (componentSize == 4) {
 			const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec4f>();
-			createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData);
+			createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
 		}
 	}
 

@@ -39,14 +39,6 @@ struct TestParam {
 };
 
 struct PrimitiveEditorDataChangeFixture : public EditorTestFixtureT<::testing::TestWithParam<TestParam>> {
-	raco::utils::u8path test_path() const override {
-		std::string testCaseName{::testing::UnitTest::GetInstance()->current_test_info()->name()};
-		testCaseName = testCaseName.substr(0, testCaseName.find("#GetParam()"));
-
-		std::replace(testCaseName.begin(), testCaseName.end(), '/', '\\');
-		auto result(raco::utils::u8path::current() / testCaseName);
-		return result;
-	}
 	struct PrintToStringParamName {
 		template <class ParamType>
 		std::string operator()(const testing::TestParamInfo<ParamType>& info) const {

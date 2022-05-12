@@ -74,6 +74,12 @@ provided shell script `./RaCoHeadless.sh` resp. `./RamsesComposer.sh`.
 
 The shell scripts together with the `qt.conf` allow the localization of all required Qt shared libraries.
 
+### The Python environment
+
+Both the Windows and Linux versions of the Ramses Composer Python 3.8 environment can be found in `./bin/python*`. The environment
+is [isolated](https://docs.python.org/3/c-api/init_config.html#init-isolated-conf) from the system and contains [pip](https://pip.pypa.io/) for installing
+custom modules. For more details how to install modules with pip, please refer to the Python documentation found in `./PythonAPI.md'.
+
 ### Locations
 
 The various file locations are determined by the [PathManager.h](datamodel/libCore/include/core/PathManager.h). They are all relative to the executable.
@@ -117,6 +123,11 @@ To build ramses renderer dependent project you also need to install OpenGL depen
 ```console
 sudo apt install libegl1-mesa
 sudo apt install libegl1-mesa-dev
+```
+
+Further Python 3.8.0 needs to be installed to allow building Ramses Composer:
+```console
+sudo apt install python3.8-dev
 ```
 
 ## Development
@@ -173,6 +184,7 @@ The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the 
 
 Ramses Composer uses a number of third party libraries:
 
+* Python
 * glm
 * googletest
 * OpenCTM-1.0.3

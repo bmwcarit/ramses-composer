@@ -55,9 +55,12 @@ public:
 		return valueHandle_.query<T>();
 	}
 	template <typename T>
-	void set(T v) noexcept {
+	void set(T v) {
 		commandInterface_->set(valueHandle_, v);
 	}
+	void setTags(std::vector<std::string> const& tags);
+	void setTags(std::vector<std::pair<std::string, int>> const& prioritizedTags);
+
 	raco::core::Project* project() const;
 	raco::components::SDataChangeDispatcher dispatcher() const;
 	raco::core::EngineInterface& engineInterface() const;

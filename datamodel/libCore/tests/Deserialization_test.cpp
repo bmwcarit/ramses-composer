@@ -180,33 +180,35 @@ TEST_F(DeserializationTest, deserializeVersionArray) {
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode_outputsAreDeserialized) {
 	auto result = raco::serialization::deserializeObjects(
 		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()));
+	ASSERT_TRUE(result.has_value());
 
-	raco::user_types::SLuaScript sScript{ raco::select<raco::user_types::LuaScript>(result.objects)};
+	raco::user_types::SLuaScript sScript{ raco::select<raco::user_types::LuaScript>(result->objects)};
 	ASSERT_EQ(3, sScript->luaOutputs_->size());
 }
 
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	auto result = raco::serialization::deserializeObjects(
 		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()));
+	ASSERT_TRUE(result.has_value());
 
 	std::vector<raco::core::SEditorObject> objects{};
-	objects.reserve(result.objects.size());
-	for (auto& i : result.objects) {
+	objects.reserve(result->objects.size());
+	for (auto& i : result->objects) {
 		objects.push_back(std::dynamic_pointer_cast<raco::core::EditorObject>(i));
 	}
-	for (auto& ref : result.references) {
+	for (auto& ref : result->references) {
 		*ref.first = *std::find_if(objects.begin(), objects.end(), [&ref](const raco::core::SEditorObject& obj) {
 			return obj->objectID() == ref.second;
 		});
 	}
 
-	ASSERT_EQ(2, result.objects.size());
-	ASSERT_EQ(1, result.links.size());
-	ASSERT_EQ(2, result.references.size());
+	ASSERT_EQ(2, result->objects.size());
+	ASSERT_EQ(1, result->links.size());
+	ASSERT_EQ(2, result->references.size());
 
-	auto sLink{std::dynamic_pointer_cast<raco::core::Link>(result.links.at(0))};
-	raco::user_types::SLuaScript sLuaScript{raco::select<raco::user_types::LuaScript>(result.objects)};
-	raco::user_types::SNode sNode{raco::select<raco::user_types::Node>(result.objects)};
+	auto sLink{std::dynamic_pointer_cast<raco::core::Link>(result->links.at(0))};
+	raco::user_types::SLuaScript sLuaScript{raco::select<raco::user_types::LuaScript>(result->objects)};
+	raco::user_types::SNode sNode{raco::select<raco::user_types::Node>(result->objects)};
 
 	raco::core::PropertyDescriptor startProp {sLuaScript, {"luaOutputs", "translation"}};
 	EXPECT_EQ(startProp, sLink->startProp());
@@ -214,5 +216,5 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	EXPECT_EQ(endProp, sLink->endProp());
 
 	std::set<std::string> refRootObjectIDs{"node_id", "lua_script_id"};
-	EXPECT_EQ(result.rootObjectIDs, refRootObjectIDs);
+	EXPECT_EQ(result->rootObjectIDs, refRootObjectIDs);
 }

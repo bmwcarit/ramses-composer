@@ -70,7 +70,7 @@ protected:
 namespace raco::common_widgets {
 
 ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel* logViewModel, QWidget* parent) :
-	QWidget{parent}, commandInterface_{commandInterface}, logViewModel_(logViewModel), showFilterLayout_(!embeddedInExportView), showExtRefErrors_(embeddedInExportView) {
+	QWidget{parent}, commandInterface_{commandInterface}, logViewModel_(logViewModel), showFilterLayout_(!embeddedInExportView) {
 	auto* errorViewLayout{new NoContentMarginsLayout<QVBoxLayout>{this}};
 
 	tableModel_ = new ErrorViewModel(this);
@@ -193,8 +193,8 @@ void ErrorView::regenerateTable() {
 
 		auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
 
-		// TODO: RAOS-815 (there should be no logic in here if errors are displayed or not - confuses things in the export dialog)
-		if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || (showExtRefErrors_ && rootObj->query<core::ExternalReferenceAnnotation>())) {
+		// TODO: RAOS-815 - we need to clarify what we actually want to show/count
+		if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || rootObj->query<core::ExternalReferenceAnnotation>()) {
 			QList<QStandardItem*> items;
 			items.append(new QStandardItem(errorLevelToString(error.level())));
 			items.append(new QStandardItem(QString::fromStdString(rootObj ? rootObj->objectName() : "(This Project)")));
@@ -266,8 +266,8 @@ void ErrorView::updateErrorAmountLabel() {
 
 			auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
 
-			// TODO: RAOS-815 (there should be no logic in here if errors are displayed or not - confuses things in the export dialog). Though this code is not used in the export dialog.
-			if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || (showExtRefErrors_ && rootObj->query<core::ExternalReferenceAnnotation>())) {
+			// TODO: RAOS-815 - we need to clarify what we actually want to show/count
+			if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || rootObj->query<core::ExternalReferenceAnnotation>()) {
 				if (error.level() == core::ErrorLevel::WARNING) {
 					++warningAmount;
 				} else if (error.level() == core::ErrorLevel::ERROR) {

@@ -40,7 +40,6 @@ add_library(libPropertyBrowser
 
     src/ErrorBox.h src/ErrorBox.cpp
     src/editors/TagContainerEditor/TagContainerEditor_Popup.h src/editors/TagContainerEditor/TagContainerEditor_Popup.cpp
-    src/editors/TagContainerEditor/TagContainerEditor_TagDataCache.h src/editors/TagContainerEditor/TagContainerEditor_TagDataCache.cpp
     src/editors/TagContainerEditor/TagContainerEditor_AvailableTagsItemModel.h src/editors/TagContainerEditor/TagContainerEditor_AvailableTagsItemModel.cpp
     src/editors/TagContainerEditor/TagContainerEditor_AppliedTagModel.h src/editors/TagContainerEditor/TagContainerEditor_AppliedTagModel.cpp
     src/editors/TagContainerEditor/TreeViewWithDel.h

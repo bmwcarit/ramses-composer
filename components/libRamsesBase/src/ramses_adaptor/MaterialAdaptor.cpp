@@ -89,7 +89,7 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 		core::ValueHandle uniformsHandle = {editorObject(), &user_types::Material::uniforms_};
 		updateAppearance(errors, sceneAdaptor_, appearance_, optionsHandle, uniformsHandle);
 
-		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*appearance_->get(), & sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding");
+		appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*appearance_->get(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding", editorObject_->objectIDAsRamsesLogicID());
 	}
 
 	tagDirty(false);

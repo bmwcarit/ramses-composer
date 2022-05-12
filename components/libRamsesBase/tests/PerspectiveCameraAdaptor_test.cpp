@@ -25,12 +25,12 @@ TEST_F(PerspectiveCameraAdaptorTest, quaternion_link_camera_still_active) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = VEC4F
-	OUT.out_value = VEC4F
+function interface(IN,OUT)
+	IN.in_value = Type:Vec4f()
+	OUT.out_value = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -51,4 +51,23 @@ end
 	auto cameras{select<ramses::PerspectiveCamera>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_PerspectiveCamera)};
 	ASSERT_EQ(cameras.size(), 1);
 	ASSERT_FLOAT_EQ(cameras.front()->getAspectRatio(), 7.0F);
+}
+
+TEST_F(PerspectiveCameraAdaptorTest, bindingID) {
+	auto camera = commandInterface.createObject(PerspectiveCamera::typeDescription.typeName, "Camera");
+	dispatch();
+
+	auto cameras{select<rlogic::RamsesCameraBinding>(sceneContext.logicEngine(), "Camera_CameraBinding")};
+	ASSERT_EQ(cameras->getUserId(), camera->objectIDAsRamsesLogicID());
+}
+
+TEST_F(PerspectiveCameraAdaptorTest, bindingID_name_change) {
+	auto camera = commandInterface.createObject(PerspectiveCamera::typeDescription.typeName, "Camera");
+	dispatch();
+
+	commandInterface.set({camera, &PerspectiveCamera::objectName_}, std::string("Changed"));
+	dispatch();
+
+	auto cameras{select<rlogic::RamsesCameraBinding>(sceneContext.logicEngine(), "Changed_CameraBinding")};
+	ASSERT_EQ(cameras->getUserId(), camera->objectIDAsRamsesLogicID());
 }

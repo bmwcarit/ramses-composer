@@ -30,12 +30,8 @@ class UndoStack;
 class Project {
 public:
 
-	explicit Project() : instances_{ }, linkGraph_(*this) {	}
-	explicit Project(const std::vector<SEditorObject>& instances) : instances_{ instances }, linkGraph_(*this) {
-		for (auto obj : instances_) {
-			instanceMap_[obj->objectID()] = obj;
-		}
-	}
+	explicit Project();
+	explicit Project(const std::vector<SEditorObject>& instances);
 
 	// Remove a set of objects from the instance pool.
 	bool removeInstances(SEditorObjectSet const& objects, bool gcExternalProjectMap = true);
@@ -80,6 +76,9 @@ public:
 	bool checkLinkDuplicates() const;
 
 	SEditorObject getInstanceByID(const std::string& objectID) const;
+
+	// Check if an object is part of this project.
+	bool isInstance(const SEditorObject& object) const;
 
 	bool createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const;
 

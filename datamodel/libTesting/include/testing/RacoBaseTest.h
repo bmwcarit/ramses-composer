@@ -36,7 +36,7 @@ public:
 		return raco::utils::u8path{test_suite_name()} / test_case_name();
 	}
 
-	virtual raco::utils::u8path test_path() const {
+	raco::utils::u8path test_path() const {
 		return raco::utils::u8path::current() / test_relative_path();
 	}
 
@@ -80,7 +80,6 @@ public:
 		}
 	}
 
-protected:
 
 	std::vector<std::string> split(const std::string& s, char delim) {
 		std::stringstream sstream{s};
@@ -92,7 +91,7 @@ protected:
 		return result;
 	}
 
-	virtual void SetUp() override {
+	RacoBaseTest() {	
 		if (std::filesystem::exists(test_path())) {
 			// Debugging case: if we debug and kill the test before complition the test directory will not be cleaned by TearDown
 			std::filesystem::remove_all(test_path());
@@ -119,10 +118,11 @@ protected:
 #endif
 	}
 
-	virtual void TearDown() override {
+	~RacoBaseTest() {
 		std::filesystem::remove_all(test_path());
 	}
 
+protected:
 	struct TextFile {
 		TextFile(RacoBaseTest& test, std::string fileName, std::string contents) {
 			path = test.test_path() / fileName;

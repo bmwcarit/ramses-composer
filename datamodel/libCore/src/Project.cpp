@@ -18,6 +18,17 @@
 #include "utils/stdfilesystem.h"
 namespace raco::core {
 
+Project::Project() : instances_{}, linkGraph_(*this) {
+	setCurrentPath(utils::u8path::current().string());
+}
+
+Project::Project(const std::vector<SEditorObject>& instances) : instances_{instances}, linkGraph_(*this) {
+	for (auto obj : instances_) {
+		instanceMap_[obj->objectID()] = obj;
+	}
+	setCurrentPath(utils::u8path::current().string());
+}
+
 bool Project::removeInstances(SEditorObjectSet const& objects, bool gcExternalProjectMap) {
 	for (const auto& object : objects) {
 		instances_.erase(std::find(instances_.begin(), instances_.end(), object));
@@ -77,6 +88,7 @@ std::string Project::currentFileName() const {
 
 void Project::setCurrentPath(const std::string& newPath) {
 	auto path = utils::u8path(newPath);
+	assert(path.is_absolute());
 	if (path.existsDirectory()) {
 		folder_ = newPath;
 		filename_.clear();
@@ -192,16 +204,18 @@ void Project::deduplicateLinks() {
 
 std::shared_ptr<const ProjectSettings> Project::settings() const {
 	for (auto& instance : instances_) {
-		if (instance->getTypeDescription().typeName == core::ProjectSettings::typeDescription.typeName)
+		if (instance->isType<core::ProjectSettings>()) {
 			return std::dynamic_pointer_cast<core::ProjectSettings>(instance);
+		}
 	}
 	return {};
 }
 
 std::shared_ptr<ProjectSettings> Project::settings() {
 	for (auto &instance : instances_) {
-		if (instance->getTypeDescription().typeName == core::ProjectSettings::typeDescription.typeName)
+		if (instance->isType<core::ProjectSettings>()) {
 			return std::dynamic_pointer_cast<core::ProjectSettings>(instance);
+		}
 	}
 	return {};
 }
@@ -212,6 +226,11 @@ SEditorObject Project::getInstanceByID(const std::string& objectID) const {
 		return it->second;
 	}
 	return SEditorObject{};
+}
+
+bool Project::isInstance(const SEditorObject& object) const {
+	auto it = instanceMap_.find(object->objectID());
+	return it != instanceMap_.end() && it->second == object;
 }
 
 bool Project::createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const {

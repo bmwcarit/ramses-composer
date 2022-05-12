@@ -24,6 +24,7 @@
 #include "core/SerializationKeys.h"
 #include "ramses_adaptor/SceneBackend.h"
 
+#include "user_types/Animation.h"
 #include "user_types/Enumerations.h"
 #include "user_types/Material.h"
 #include "user_types/MeshNode.h"
@@ -63,7 +64,7 @@ struct MigrationTest : public TestEnvironmentCore {
 				auto propName = obj->name(i);
 				auto it = typesMap.find(propName);
 				ASSERT_TRUE(it != typesMap.end());
-				EXPECT_EQ(it->second, obj->get(i)->typeName());
+				EXPECT_EQ(it->second, obj->get(i)->typeName()) << fmt::format("property name: '{}'", propName);
 			}
 		}
 	}
@@ -411,6 +412,55 @@ TEST_F(MigrationTest, migrate_from_V23) {
 
 	EXPECT_EQ(inst_node->objectID(), EditorObject::XorObjectIDs(prefab_node->objectID(), inst->objectID()));
 }
+
+TEST_F(MigrationTest, migrate_from_V29) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V29.rca").string()));
+
+	auto animation = raco::core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<raco::user_types::Animation>();
+	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
+
+	EXPECT_TRUE(lua->luaOutputs_->hasProperty("flag"));
+	EXPECT_EQ(racoproject->project()->links().size(), 0);
+
+	EXPECT_FALSE(animation->hasProperty("play"));
+	EXPECT_FALSE(animation->hasProperty("loop"));
+	EXPECT_FALSE(animation->hasProperty("rewindOnStop"));
+}
+
+TEST_F(MigrationTest, migrate_V29_to_V33) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V29_tags.rca").string()));
+
+	auto node = raco::core::Queries::findByName(racoproject->project()->instances(), "Node")->as<raco::user_types::Node>();
+	auto mat_front = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_front")->as<raco::user_types::Material>();
+	auto mat_back = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_back")->as<raco::user_types::Material>();
+
+	auto renderlayermanual = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<raco::user_types::RenderLayer>();
+
+	EXPECT_EQ(node->tags_->asVector<std::string>(), std::vector<std::string>({"render_main"}));
+
+	EXPECT_EQ(mat_front->tags_->asVector<std::string>(), std::vector<std::string>({"mat_front"}));
+	EXPECT_EQ(mat_back->tags_->asVector<std::string>(), std::vector<std::string>({"mat_back"}));
+
+	EXPECT_EQ(renderlayermanual->tags_->asVector<std::string>(), std::vector<std::string>({"debug"}));
+	EXPECT_EQ(renderlayermanual->materialFilterTags_->asVector<std::string>(), std::vector<std::string>({"mat_front", "mat_back"}));
+
+	EXPECT_EQ(renderlayermanual->renderableTags_->size(), 1);
+	EXPECT_TRUE(renderlayermanual->renderableTags_->get("render_main") != nullptr);
+	EXPECT_EQ(renderlayermanual->renderableTags_->get("render_main")->asInt(), 2);
+}
+
+TEST_F(MigrationTest, migrate_V30_to_V34) {
+	// We would like a V30 file but we can't produce that after merging V28/V29 from master anymore.
+	// So we use a V29 file instead.
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V29_renderlayer.rca").string()));
+
+	auto layer_excl = raco::core::Queries::findByName(racoproject->project()->instances(), "layer_exclusive")->as<raco::user_types::RenderLayer>();
+	auto layer_incl = raco::core::Queries::findByName(racoproject->project()->instances(), "layer_inclusive")->as<raco::user_types::RenderLayer>();
+
+	EXPECT_EQ(*layer_excl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Exclusive));
+	EXPECT_EQ(*layer_incl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Inclusive));
+}
+
 
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.

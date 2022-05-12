@@ -1,10 +1,10 @@
 
-function interface()
+function interface(IN,OUT)
 	IN.struct = {
-        a = FLOAT,
-        b = FLOAT
+        a = Type:Float(),
+        b = Type:Float()
     }
 end
 
-function run()
+function run(IN,OUT)
 end

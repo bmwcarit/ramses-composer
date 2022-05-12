@@ -24,7 +24,7 @@ public:
 
 private:
 	void buildRenderGroup(core::Errors* errors);
-	void buildRenderableOrder(core::Errors* errors, std::vector<SEditorObject>& objs, const std::string& tag, bool parentActive, const std::set<std::string>& materialFilterTags, bool invertMaterialFilter, int32_t& orderIndex, bool sceneGraphOrder);
+	void buildRenderableOrder(core::Errors* errors, std::vector<SEditorObject>& objs, const std::string& tag, bool parentActive, const std::set<std::string>& materialFilterTags, bool materialFilterExclusive, int32_t& orderIndex, bool sceneGraphOrder);
 	void addNestedLayers(core::Errors* errors, const std::vector<user_types::SRenderLayer>& layers, const std::string& tag, int32_t orderIndex, bool sceneGraphOrder);
 
 	std::array<components::Subscription, 9> subscriptions_;

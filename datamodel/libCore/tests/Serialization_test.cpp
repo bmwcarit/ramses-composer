@@ -52,7 +52,7 @@ TEST_F(SerializationTest, serializeNode) {
 }
 
 TEST_F(SerializationTest, serializeNodeRotated) {
-	const auto sNode{commandInterface.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
+	const auto sNode{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 	commandInterface.set({sNode, {"rotation", "x"}}, 90.0);
 	commandInterface.set({sNode, {"rotation", "y"}}, -90.0);
 	commandInterface.set({sNode, {"rotation", "z"}}, 180.0);
@@ -83,8 +83,8 @@ TEST_F(SerializationTest, serializeMeshNode) {
 }
 
 TEST_F(SerializationTest, serializeMeshNodeWithMesh) {
-	const auto sMeshNode{commandInterface.createObject(raco::user_types::MeshNode::typeDescription.typeName, "mesh_node", "mesh_node_id")};
-	const auto sMesh{commandInterface.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMeshNode{context.createObject(raco::user_types::MeshNode::typeDescription.typeName, "mesh_node", "mesh_node_id")};
+	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{(test_relative_path() / "testData" / "duck.glb").string()};
 	commandInterface.set({sMesh, {"uri"}}, uri);
 	commandInterface.set({sMeshNode, {"mesh"}}, sMesh);
@@ -96,8 +96,8 @@ TEST_F(SerializationTest, serializeMeshNodeWithMesh) {
 }
 
 TEST_F(SerializationTest, serializeNodeWithChildMeshNode) {
-	const auto sMeshNode{commandInterface.createObject(raco::user_types::MeshNode::typeDescription.typeName, "mesh_node", "mesh_node_id")};
-	const auto sNode{commandInterface.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
+	const auto sMeshNode{context.createObject(raco::user_types::MeshNode::typeDescription.typeName, "mesh_node", "mesh_node_id")};
+	const auto sNode{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 	commandInterface.moveScenegraphChildren({sMeshNode}, sNode);
 	auto result = raco::serialization::test_helpers::serializeObject(sNode);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "NodeWithChildMeshNode.json").string(), result);
@@ -106,7 +106,7 @@ TEST_F(SerializationTest, serializeNodeWithChildMeshNode) {
 }
 
 TEST_F(SerializationTest, serializeLuaScript) {
-	const auto sLuaScript{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto sLuaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	auto result = raco::serialization::test_helpers::serializeObject(sLuaScript);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScript.json").string(), result);
 
@@ -114,7 +114,7 @@ TEST_F(SerializationTest, serializeLuaScript) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptInFloat) {
-	const auto sLuaScript{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto sLuaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	auto uri { (test_relative_path() / "testData" / "in-float.lua").string() };
 	commandInterface.set(raco::core::ValueHandle{sLuaScript, {"uri"}}, uri);
 	auto result = raco::serialization::test_helpers::serializeObject(sLuaScript);
@@ -124,7 +124,7 @@ TEST_F(SerializationTest, serializeLuaScriptInFloat) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptInFloatArray) {
-	const auto sLuaScript{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto sLuaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	auto uri{(test_relative_path() / "testData" / "in-float-array.lua").string()};
 	commandInterface.set(raco::core::ValueHandle{sLuaScript, {"uri"}}, uri);
 	auto result = raco::serialization::test_helpers::serializeObject(sLuaScript);
@@ -134,7 +134,7 @@ TEST_F(SerializationTest, serializeLuaScriptInFloatArray) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptInStruct) {
-	const auto sLuaScript{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto sLuaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	auto uri{(test_relative_path() / "testData" / "in-struct.lua").string()};
 	commandInterface.set(raco::core::ValueHandle{sLuaScript, {"uri"}}, uri);
 	auto result = raco::serialization::test_helpers::serializeObject(sLuaScript);
@@ -144,7 +144,7 @@ TEST_F(SerializationTest, serializeLuaScriptInStruct) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptInSpecificPropNames) {
-	const auto sLuaScript{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto sLuaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	auto uri{(test_relative_path() / "testData" / "in-specific-prop-names.lua").string()};
 	commandInterface.set(raco::core::ValueHandle{sLuaScript, {"uri"}}, uri);
 	auto result = raco::serialization::test_helpers::serializeObject(sLuaScript);
@@ -154,7 +154,7 @@ TEST_F(SerializationTest, serializeLuaScriptInSpecificPropNames) {
 }
 
 TEST_F(SerializationTest, serializeMesh) {
-	const auto sMesh{commandInterface.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{(test_relative_path() / "testData" / "duck.glb").string()};
 	commandInterface.set({sMesh, {"uri"}}, uri);
 	auto result = raco::serialization::test_helpers::serializeObject(sMesh);
@@ -164,7 +164,7 @@ TEST_F(SerializationTest, serializeMesh) {
 }
 
 TEST_F(SerializationTest, serializeMeshglTFSubmesh) {
-	const auto sMesh{commandInterface.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{(test_relative_path() / "testData" / "ToyCar.gltf").string()};
 	commandInterface.set({sMesh, {"uri"}}, uri);
 	commandInterface.set({sMesh, {"bakeMeshes"}}, false);
@@ -176,7 +176,7 @@ TEST_F(SerializationTest, serializeMeshglTFSubmesh) {
 }
 
 TEST_F(SerializationTest, serializeMeshglTFBakedSubmeshes) {
-	const auto sMesh{commandInterface.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{(test_relative_path() / "testData" / "ToyCar.gltf").string()};
 	commandInterface.set({sMesh, {"uri"}}, uri);
 	commandInterface.set({sMesh, {"meshIndex"}}, 2);
@@ -188,7 +188,7 @@ TEST_F(SerializationTest, serializeMeshglTFBakedSubmeshes) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptWithRefToUserTypeWithAnnotation) {
-	const auto editorObject{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "mesh", "mesh_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
 	sLuaScript->luaInputs_->addProperty("ref", new raco::data_storage::Property<raco::user_types::STexture, raco::user_types::EngineTypeAnnotation>({}, {raco::core::EnginePrimitive::TextureSampler2D}));
 
@@ -199,7 +199,7 @@ TEST_F(SerializationTest, serializeLuaScriptWithRefToUserTypeWithAnnotation) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptWithURI) {
-	const auto editorObject{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
 	sLuaScript->luaInputs_->addProperty("uri", new raco::data_storage::Property<std::string, raco::user_types::URIAnnotation>("", {}));
 
@@ -210,7 +210,7 @@ TEST_F(SerializationTest, serializeLuaScriptWithURI) {
 }
 
 TEST_F(SerializationTest, serializeLuaScriptWithAnnotatedDouble) {
-	const auto editorObject{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
 	sLuaScript->luaInputs_->addProperty("double", new raco::data_storage::Property<double, raco::user_types::DisplayNameAnnotation, raco::user_types::RangeAnnotation<double>>({}, {"Double"}, {-10.0, 10.0}));
 
@@ -221,7 +221,7 @@ TEST_F(SerializationTest, serializeLuaScriptWithAnnotatedDouble) {
 }
 
 TEST_F(SerializationTest, serializeNodeAndScript_withLink) {
-	const auto editorObject{commandInterface.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
 	sLuaScript->luaInputs_->addProperty("double", new raco::data_storage::Property<double, raco::user_types::DisplayNameAnnotation, raco::user_types::RangeAnnotation<double>>({}, {"Double"}, {-10.0, 10.0}));
 
@@ -232,7 +232,7 @@ TEST_F(SerializationTest, serializeNodeAndScript_withLink) {
 }
 
 TEST_F(SerializationTest, serializeObjects_luaScriptLinkedToNode) {
-	auto objs{raco::createLinkedScene(*this)};
+	auto objs{raco::createLinkedScene(context, test_relative_path())};
 	std::map<std::string, raco::serialization::ExternalProjectInfo> externalProjectsMap;
 	std::map<std::string, std::string> originFolders;
 

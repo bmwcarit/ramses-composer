@@ -36,6 +36,26 @@ public:
 
 	static raco::user_types::SPrefab findContainingPrefab(SEditorObject object);
 	
+	/**
+	 * @brief Check if an objects serves as an interface object in a PrefabInstance.
+	 * 
+	 * Interface objects are only the LuaScripts which are direct children of non-nested PrefabInstances.
+	 * 
+	 * @param object object to check
+	 * @return true if object is identified as interface object.
+	*/
+	static bool isInterfaceObject(SEditorObject object);
+
+	/**
+	 * @brief Check if a property is an interface property of a prefab instance
+	 * 
+	 * Interface properties are the luaInputs property subtree of interface objects.
+	 * 
+	 * @param prop Property to check.
+	 * @return true if property is identified as interface property.
+	*/
+	static bool isInterfaceProperty(const ValueHandle& prop);
+
 	static void prefabUpdateOrderDepthFirstSearch(raco::user_types::SPrefab current, std::vector<raco::user_types::SPrefab>& order);
 
 private:

@@ -23,7 +23,6 @@
 #include "user_types/Node.h"
 #include "user_types/PrefabInstance.h"
 
-
 #include <QApplication>
 #include <core/PrefabOperations.h>
 
@@ -32,13 +31,13 @@ using namespace raco::object_tree::model;
 using namespace raco::user_types;
 
 ObjectTreeViewDefaultModelTest::ObjectTreeViewDefaultModelTest() : viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dataChangeDispatcher_, nullptr,
-									   {raco::user_types::Animation::typeDescription.typeName,
-										   raco::user_types::Node::typeDescription.typeName,
-										   raco::user_types::MeshNode::typeDescription.typeName,
-										   raco::user_types::PrefabInstance::typeDescription.typeName,
-										   raco::user_types::OrthographicCamera::typeDescription.typeName,
-										   raco::user_types::PerspectiveCamera::typeDescription.typeName,
-										   raco::user_types::LuaScript::typeDescription.typeName})} {}
+																	   {raco::user_types::Animation::typeDescription.typeName,
+																		   raco::user_types::Node::typeDescription.typeName,
+																		   raco::user_types::MeshNode::typeDescription.typeName,
+																		   raco::user_types::PrefabInstance::typeDescription.typeName,
+																		   raco::user_types::OrthographicCamera::typeDescription.typeName,
+																		   raco::user_types::PerspectiveCamera::typeDescription.typeName,
+																		   raco::user_types::LuaScript::typeDescription.typeName})} {}
 
 
 void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &obj, const QModelIndex &objIndex, const ObjectTreeViewDefaultModel &viewModel_) {
@@ -440,7 +439,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveWrongIndex) {
 	auto rootNode = createdNodes.front();
 	auto childNode = createdNodes.back();
 
-	ASSERT_DEATH(commandInterface.moveScenegraphChildren({childNode}, {rootNode}, 1), "");
+	ASSERT_THROW(commandInterface.moveScenegraphChildren({childNode}, {rootNode}, 1), std::runtime_error);
 }
 
 
@@ -694,7 +693,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 	auto node = createNodes(Node::typeDescription.typeName, {"node"}).front();
 
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(node->objectID()));
-	std::vector<std::string> allowedTypesAssert {Animation::typeDescription.typeName,
+	std::vector<std::string> allowedTypesAssert{Animation::typeDescription.typeName,
 		Node::typeDescription.typeName,
 		MeshNode::typeDescription.typeName,
 		PrefabInstance::typeDescription.typeName,
@@ -710,7 +709,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsSceneGraphObjectsAreAllowedWithEmptyIndex) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (Queries::isNotResource(newObj) && typeName != Prefab::typeDescription.typeName) {
 			ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 		}
@@ -721,7 +720,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombin
 	auto allSceneGraphNodes = createAllSceneGraphObjects();
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (Queries::isNotResource(newObj) && typeName != Prefab::typeDescription.typeName) {
 			for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
 				auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
@@ -856,7 +855,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, DuplicationCanNotDuplicateNothing) {
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedOnTopLevel) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (Queries::isResource(newObj)) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 		}
@@ -867,7 +866,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedUnderSce
 	auto allSceneGraphNodes = createAllSceneGraphObjects();
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (Queries::isResource(newObj)) {
 			for (const auto &sceneGraphNodeInScene : allSceneGraphNodes) {
 				auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
@@ -878,7 +877,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsResourcesAreNotAllowedUnderSce
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsPrefabsAreNotAllowed) {
-	auto prefab = viewModel_->objectFactory()->createObject(Prefab::typeDescription.typeName);
+	auto prefab = context.createObject(Prefab::typeDescription.typeName);
 
 	auto allSceneGraphNodes = createAllSceneGraphObjects();
 
@@ -890,7 +889,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsPrefabsAreNotAllowed) {
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckPrefabInstanceCombinations) {
-	auto prefabInstance = viewModel_->objectFactory()->createObject(PrefabInstance::typeDescription.typeName);
+	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName);
 
 	auto allSceneGraphNodes = createAllSceneGraphObjects();
 

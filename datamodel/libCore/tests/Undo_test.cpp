@@ -646,21 +646,21 @@ TEST_F(UndoTest, lua_module_script_module_made_invalid) {
 
 TEST_F(UndoTest, link_quaternion_euler_change) {
 	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
-function interface()
-	IN.vec = VEC4F
-	OUT.vec = VEC4F
+function interface(IN,OUT)
+	IN.vec = Type:Vec4f()
+	OUT.vec = Type:Vec4f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 end
 )");
 
 	raco::utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
-function interface()
-	IN.vec = VEC3F
-	OUT.vec = VEC3F
+function interface(IN,OUT)
+	IN.vec = Type:Vec3f()
+	OUT.vec = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 end
 )");
@@ -716,11 +716,14 @@ TEST_P(UndoTestWithIDParams, animation_with_animation_channel) {
 	auto absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 
 	checkJump([this, absPath, channelID, animID]() { 
-		auto channel = commandInterface.createObject(AnimationChannel::typeDescription.typeName, "channel", channelID);
+		auto channel = context.createObject(AnimationChannel::typeDescription.typeName, "channel", channelID);
+		undoStack.push("Create channel object");
 		commandInterface.set({channel, &AnimationChannel::uri_}, absPath);
-		auto anim = commandInterface.createObject(Animation::typeDescription.typeName, "anim", animID);
 
-		EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 1);
+		auto anim = context.createObject(Animation::typeDescription.typeName, "anim", animID);
+		undoStack.push("Create animation object");
+
+		EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 0);
 		commandInterface.set(ValueHandle(anim, &Animation::animationChannels)[0], channel); 
 		},
 
@@ -729,7 +732,7 @@ TEST_P(UndoTestWithIDParams, animation_with_animation_channel) {
 
 		[this]() {
 			auto anim = getInstance<Animation>("anim");
-			EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 2);
+			EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 1);
 		});
 }
 
@@ -775,8 +778,10 @@ void main() {
 
 	size_t preIndex = undoStack.getIndex();
 
-	auto material = commandInterface.createObject(Material::typeDescription.typeName, "material", "CCC");
-	auto meshnode = commandInterface.createObject(MeshNode::typeDescription.typeName, "meshnode", "BBB")->as<MeshNode>();
+	auto material = context.createObject(Material::typeDescription.typeName, "material", "CCC");
+	undoStack.push("Create object");
+	auto meshnode = context.createObject(MeshNode::typeDescription.typeName, "meshnode", "BBB")->as<MeshNode>();
+	undoStack.push("Create object");
 	commandInterface.set({meshnode, {"mesh"}}, mesh);
 	commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
 	commandInterface.set(meshnode->getMaterialPrivateHandle(0), true);
@@ -835,8 +840,10 @@ void main() {
 
 	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
 
-	auto material = commandInterface.createObject(Material::typeDescription.typeName, "material", "CCC");
-	auto meshnode = commandInterface.createObject(MeshNode::typeDescription.typeName, "meshnode", "BBB")->as<MeshNode>();
+	auto material = context.createObject(Material::typeDescription.typeName, "material", "CCC");
+	undoStack.push("Create object");
+	auto meshnode = context.createObject(MeshNode::typeDescription.typeName, "meshnode", "BBB")->as<MeshNode>();
+	undoStack.push("Create object");
 	commandInterface.set({meshnode, {"mesh"}}, mesh);
 	commandInterface.set({meshnode, {"materials", "material", "material"}}, material);
 	commandInterface.set(meshnode->getMaterialPrivateHandle(0), true);
@@ -863,20 +870,20 @@ void main() {
 
 TEST_F(UndoTest, lua_resync_after_undo) {
 	TextFile luaFile = makeFile("test.lua", R"(
-function interface()
-    OUT.vec = VEC3F
+function interface(IN,OUT)
+    OUT.vec = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	std::string altLuaScript = R"(
-function interface()
-    OUT.renamed = VEC3F
+function interface(IN,OUT)
+    OUT.renamed = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 
@@ -907,20 +914,20 @@ end
 
 TEST_F(UndoTest, link_remove_break_on_undo) {
 	TextFile luaFile = makeFile("test.lua", R"(
-function interface()
-    OUT.vec = VEC3F
+function interface(IN,OUT)
+    OUT.vec = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	std::string altLuaScript = R"(
-function interface()
-    OUT.renamed = VEC3F
+function interface(IN,OUT)
+    OUT.renamed = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 
@@ -969,20 +976,20 @@ end
 
 TEST_F(UndoTest, lua_link_create_inconsistent_undo_stack) {
 	TextFile luaFile = makeFile("test.lua", R"(
-function interface()
-    OUT.vec = VEC3F
+function interface(IN,OUT)
+    OUT.vec = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	std::string altLuaScript = R"(
-function interface()
-    OUT.renamed = VEC3F
+function interface(IN,OUT)
+    OUT.renamed = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 
@@ -1022,20 +1029,20 @@ end
 
 TEST_F(UndoTest, link_redo_creates_impossible_link) {
 	std::string origLuaScript = R"(
-function interface()
-    OUT.vec = VEC3F
+function interface(IN,OUT)
+    OUT.vec = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 
 	std::string altLuaScript = R"(
-function interface()
-    OUT.renamed = VEC3F
+function interface(IN,OUT)
+    OUT.renamed = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 

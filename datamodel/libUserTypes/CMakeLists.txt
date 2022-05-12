@@ -32,6 +32,7 @@ add_library(libUserTypes
 	include/user_types/RenderTarget.h
 	include/user_types/RenderPass.h
 	include/user_types/Texture.h src/Texture.cpp
+	include/user_types/Timer.h src/Timer.cpp
 	include/user_types/EngineTypeAnnotation.h
 
 	include/user_types/UserObjectFactory.h src/UserObjectFactory.cpp

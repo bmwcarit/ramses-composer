@@ -24,15 +24,19 @@ namespace raco::property_browser {
 const int EVALUATE_LUA_EXECUTION_LIMIT = 1000;
 
 template <typename T>
-InternalSpinBox<T>::InternalSpinBox(QWidget* parent, std::function<void(T)> valueChanged)
+InternalSpinBox<T>::InternalSpinBox(QWidget* parent, std::function<void(T)> valueEdited)
 	: QAbstractSpinBox(parent),
 	  min_(raco::data_storage::numericalLimitMin<T>()),
 	  max_(raco::data_storage::numericalLimitMax<T>()),
-	  valueChanged_(valueChanged) {
+	  valueEdited_(valueEdited) {
 	this->setKeyboardTracking(false);
 	this->setCorrectionMode(QAbstractSpinBox::CorrectionMode::CorrectToNearestValue);
 	connect(lineEdit(), &QLineEdit::editingFinished, this, [this]() {
-		setValue(valueFromText(lineEdit()->text()));
+		auto newValue = valueFromText(lineEdit()->text());
+		if (value_ != newValue) {
+			setValue(newValue);
+			valueEdited_(newValue);
+		}
 	});
 
 	// setting RaCoStyle to set Shift modifier for extended value step
@@ -55,14 +59,11 @@ T InternalSpinBox<T>::value() const {
 }
 
 template <typename T>
-void InternalSpinBox<T>::setValue(T value) {
-	value = std::clamp(value, min_, max_);
+void InternalSpinBox<T>::setValue(T newValue) {
+	newValue = std::clamp(newValue, min_, max_);
 
-	if (value_ != value) {
-		lineEdit()->setText(textFromValue(value));
-		value_ = value;
-		valueChanged_(value);
-	}
+	lineEdit()->setText(textFromValue(newValue));
+	value_ = newValue;
 }
 
 template <typename T>
@@ -73,7 +74,9 @@ void InternalSpinBox<T>::setRange(T min, T max) {
 
 template <typename T>
 void InternalSpinBox<T>::stepBy(int steps) {
-	setValue(valueFromText(lineEdit()->text()) + steps);
+	auto newValue = valueFromText(lineEdit()->text()) + steps;
+	setValue(newValue);
+	valueEdited_(newValue);
 }
 
 template <typename T>
@@ -101,13 +104,14 @@ void InternalSpinBox<T>::keyPressEvent(QKeyEvent* event) {
 
 	if (event->key() == Qt::Key_Escape) {
 		setValue(focusInOldValue_);
+		valueEdited_(focusInOldValue_);
 		QAbstractSpinBox::clearFocus();
 	}
 }
 template <typename T>
 SpinBox<T>::SpinBox(QWidget* parent)
 	: QWidget(parent),
-	  widget_(this, [this](T newValue) { emitValueChanged(newValue); }),
+	  widget_(this, [this](T newValue) { emitvalueEdited(newValue); }),
 	  layout_(this) {
 	QObject::connect(&widget_, &QAbstractSpinBox::editingFinished, this, [this]() { emitEditingFinished(); });
 	layout_.addWidget(&widget_);
@@ -160,8 +164,8 @@ QString InternalSpinBox<double>::textFromValue(double value) const {
 DoubleSpinBox::DoubleSpinBox(QWidget* parent) : SpinBox<double>(parent) {
 }
 
-void DoubleSpinBox::emitValueChanged(double value) {
-	Q_EMIT valueChanged(value);
+void DoubleSpinBox::emitvalueEdited(double value) {
+	Q_EMIT valueEdited(value);
 }
 
 void DoubleSpinBox::emitEditingFinished() {
@@ -174,8 +178,8 @@ void DoubleSpinBox::emitFocusNextRequested() {
 
 IntSpinBox::IntSpinBox(QWidget* parent) : SpinBox<int>(parent) {}
 
-void IntSpinBox::emitValueChanged(int value) {
-	Q_EMIT valueChanged(value);
+void IntSpinBox::emitvalueEdited(int value) {
+	Q_EMIT valueEdited(value);
 }
 
 void IntSpinBox::emitEditingFinished() {
@@ -187,8 +191,8 @@ void IntSpinBox::emitFocusNextRequested() {
 }
 Int64SpinBox::Int64SpinBox(QWidget* parent) : SpinBox<int64_t>(parent) {}
 
-void Int64SpinBox::emitValueChanged(int64_t value) {
-	Q_EMIT valueChanged(value);
+void Int64SpinBox::emitvalueEdited(int64_t value) {
+	Q_EMIT valueEdited(value);
 }
 
 void Int64SpinBox::emitEditingFinished() {

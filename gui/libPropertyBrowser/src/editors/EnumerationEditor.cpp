@@ -30,27 +30,29 @@ EnumerationEditor::EnumerationEditor(PropertyBrowserItem* item, QWidget* parent)
 	layout->addWidget(comboBox_);
 
 	auto& values = item->engineInterface().enumerationDescription(static_cast<raco::core::EngineEnumeration>(item->query<raco::core::EnumerationAnnotation>()->type_.asInt()));
-	for (const auto& entry : values) {
-		comboBox_->insertItem(entry.first, entry.second.c_str());
+	for (const auto& [entryEnumValue, entryEnumString] : values) {
+		comboBox_->addItem(entryEnumString.c_str());
+		ramsesEnumIndexToComboBoxIndex_[entryEnumValue] = comboBoxIndexToRamsesEnumIndex_.size();
+		comboBoxIndexToRamsesEnumIndex_.emplace_back(entryEnumValue);
 	}
 	if (item->type() == data_storage::PrimitiveType::Bool) {
 		assert(values.size() == 2);
 		comboBox_->setCurrentIndex(item->valueHandle().asBool() ? 1 : 0);		
 	} else {
-		comboBox_->setCurrentIndex(item->valueHandle().asInt());
+		comboBox_->setCurrentIndex(ramsesEnumIndexToComboBoxIndex_[item->valueHandle().asInt()]);
 	}
-	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), item, [item](int index) {
+	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), item, [this, item](int index) {
 		if (item->type() == data_storage::PrimitiveType::Bool) {
 			item->set(index > 0);
 		} else {
-			item->set(index);			
+			item->set(comboBoxIndexToRamsesEnumIndex_[index]);
 		}
 	});
-	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this](raco::core::ValueHandle& handle) {
+	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this] (raco::core::ValueHandle& handle) {
 		if (handle.type() == data_storage::PrimitiveType::Bool) {
 			comboBox_->setCurrentIndex(handle.asBool() ? 1 : 0);
 		} else {
-			comboBox_->setCurrentIndex(handle.asInt());
+			comboBox_->setCurrentIndex(ramsesEnumIndexToComboBoxIndex_[handle.asInt()]);
 		}
 	});
 }

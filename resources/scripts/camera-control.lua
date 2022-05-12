@@ -1,34 +1,34 @@
 
-function interface()
+function interface(IN,OUT)
 	IN.struct = {
-        a = INT,
-        b = INT,
-		f = FLOAT,
-		g = FLOAT
+        a = Type:Int32(),
+        b = Type:Int32(),
+		f = Type:Float(),
+		g = Type:Float()
     }
 	OUT.viewport = {
-		offsetX = INT,
-		offsetY = INT,
-		width = INT,
-		height = INT
+		offsetX = Type:Int32(),
+		offsetY = Type:Int32(),
+		width = Type:Int32(),
+		height = Type:Int32()
 	}
 	OUT.perspFrustum = {
-		nearPlane = FLOAT,
-		farPlane = FLOAT,
-		fieldOfView = FLOAT,
-		aspectRatio = FLOAT
+		nearPlane = Type:Float(),
+		farPlane = Type:Float(),
+		fieldOfView = Type:Float(),
+		aspectRatio = Type:Float()
 	}
 	OUT.orthoFrustum = {
-		nearPlane = FLOAT,
-		farPlane = FLOAT,
-		leftPlane = FLOAT,
-		rightPlane = FLOAT,
-		topPlane = FLOAT,
-		bottomPlane = FLOAT
+		nearPlane = Type:Float(),
+		farPlane = Type:Float(),
+		leftPlane = Type:Float(),
+		rightPlane = Type:Float(),
+		topPlane = Type:Float(),
+		bottomPlane = Type:Float()
 	}
 end
 
-function run()
+function run(IN,OUT)
 	OUT.viewport.offsetX = 0
 	OUT.viewport.offsetY = IN.struct.b
 	OUT.viewport.width = IN.struct.a

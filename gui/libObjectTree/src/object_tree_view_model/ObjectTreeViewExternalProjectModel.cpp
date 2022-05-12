@@ -157,7 +157,7 @@ void ObjectTreeViewExternalProjectModel::buildObjectTree() {
 	resetInvisibleRootNode();
 	for (const auto& [projectPath, commandInterface] : externalProjectStore_->allExternalProjects()) {
 		auto projectRootNode = new ObjectTreeNode(ObjectTreeNodeType::ExternalProject, invisibleRootNode_.get());
-		auto projectName = commandInterface->project()->projectName();
+		std::string projectName = commandInterface ? commandInterface->project()->projectName() : std::string();
 		projectRootNode->setBelongsToExternalProject(projectPath, projectName);
 		if (commandInterface) {
 			auto filteredExternalProjectObjects = filterForTopLevelObjects(commandInterface->project()->instances());

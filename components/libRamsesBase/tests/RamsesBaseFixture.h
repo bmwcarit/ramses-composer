@@ -61,11 +61,6 @@ public:
 	raco::ramses_adaptor::SceneAdaptor sceneContext;
 
 	void dispatch() {
-		for (auto animNode : sceneContext.logicEngine().getCollection<rlogic::AnimationNode>()) {
-			// arbitrary 17 ms update
-			animNode->getInputs()->getChild("timeDelta")->set(0.017f);
-		}
-
 		dataChangeDispatcher->dispatch(this->recorder.release());
 		sceneContext.logicEngine().update();
 	}

@@ -26,10 +26,10 @@ protected:
 			R"(
 modules("neededModule")
 
-function interface()	
+function interface(IN,OUT)	
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	}
@@ -67,6 +67,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule) {
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
 	ASSERT_NE(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module"), nullptr);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_unassign) {
@@ -98,6 +99,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_rename_obj) {
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
 	ASSERT_NE(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Changed"), nullptr);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Changed")->getUserId(), module->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_validLua_moduleAssigned_rename_obj) {
@@ -110,7 +112,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_validLua_moduleAssigned_rename_ob
 
 	auto script = context.createObject(LuaScript::typeDescription.typeName, "Script");
 	auto scriptFile = generateLuaScript("script");
-	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, moduleFile);
+	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, scriptFile);
 	dispatch();
 
 	commandInterface.set({script, {"luaModules", "neededModule"}}, module);
@@ -121,6 +123,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_validLua_moduleAssigned_rename_ob
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
 	ASSERT_NE(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Changed"), nullptr);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Changed")->getUserId(), module->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_validLua_moduleAssigned_delete_uri_noLuaModules) {
@@ -133,7 +136,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_validLua_moduleAssigned_delete_ur
 
 	auto script = context.createObject(LuaScript::typeDescription.typeName, "Script");
 	auto scriptFile = generateLuaScript("script");
-	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, moduleFile);
+	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, scriptFile);
 	dispatch();
 
 	commandInterface.set({script, {"luaModules", "neededModule"}}, module);
@@ -171,6 +174,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_variousLuaScripts_noModuleCopies)
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_invalidLuaScript_syntaxError) {
@@ -187,35 +191,43 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_invalidLuaScript_syntaxError) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
 
 	commandInterface.set({script, {"luaModules", "neededModule"}}, module);
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 1);
 
 	auto errorScriptFile = makeFile("error.lua",
 		R"(
 modules("neededModule")
 
-function interface()
+function interface(IN,OUT)
 error
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, errorScriptFile);
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
 
 	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, std::string());
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
 }
 
@@ -233,24 +245,28 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_invalidLuaScript_runtimeError) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
 
 	commandInterface.set({script, {"luaModules", "neededModule"}}, module);
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 1);
 
 	auto errorScriptFile = makeFile("error.lua",
 		R"(
 modules("neededModule")
 
-function interface()
-IN.val = VEC3F
-OUT.val = INT
+function interface(IN,OUT)
+IN.val = Type:Vec3f()
+OUT.val = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 OUT.val = IN.val
 end
 )");
@@ -258,6 +274,8 @@ end
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 1);
 
 	commandInterface.set({script, &raco::user_types::LuaScript::uri_}, std::string());
@@ -281,24 +299,28 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_invalidLuaScript_thenNoModuleAndV
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
 
 	commandInterface.set({script, {"luaModules", "neededModule"}}, module);
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 1);
 
 	auto errorScriptFile = makeFile("error.lua",
 		R"(
 modules("neededModule")
 
-function interface()
-IN.val = VEC3F
-OUT.val = INT
+function interface(IN,OUT)
+IN.val = Type:Vec3f()
+OUT.val = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 OUT.val = IN.val
 end
 )");
@@ -306,6 +328,8 @@ end
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
+	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 1);
 
 	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, std::string());

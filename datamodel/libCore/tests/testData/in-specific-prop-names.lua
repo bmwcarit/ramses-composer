@@ -1,9 +1,9 @@
-function interface()
-	IN.annotations = FLOAT
-	IN.properties = FLOAT
-	IN.typeName = FLOAT
+function interface(IN,OUT)
+	IN.annotations = Type:Float()
+	IN.properties = Type:Float()
+	IN.typeName = Type:Float()
 end
 
 
-function run()
+function run(IN,OUT)
 end

@@ -129,6 +129,7 @@ public:
 
 		// Node
 		Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation>,
+		Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation>,
 		Property<bool, DisplayNameAnnotation, LinkEndAnnotation>,
 		Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation>,
 
@@ -172,8 +173,8 @@ public:
 		Property<int, DisplayNameAnnotation>,
 
 		// RenderLayer
-		Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation>,
 		Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation>,
+		Property<Table, RenderableTagContainerAnnotation, HiddenProperty, DisplayNameAnnotation>,
 		Property<bool, DisplayNameAnnotation, EnumerationAnnotation>,
 
 		// RenderTarget
@@ -184,7 +185,11 @@ public:
 		Property<std::string, URIAnnotation, DisplayNameAnnotation>,
 
 		// PrefabInstance
-		Property<SPrefab, DisplayNameAnnotation>>;
+		Property<SPrefab, DisplayNameAnnotation>,
+
+		// Timer
+		Property<int64_t, DisplayNameAnnotation, LinkEndAnnotation>,
+		Property<int64_t, DisplayNameAnnotation, LinkStartAnnotation>>;
 
 	static ProxyObjectFactory& getInstance();
 

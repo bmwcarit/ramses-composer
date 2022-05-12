@@ -138,8 +138,12 @@ public:
 	const Vec3i& asVec3i() const;
 	const Vec4i& asVec4i() const;
  
+	bool isVec2f() const;
 	bool isVec3f() const;
 	bool isVec4f() const;
+	bool isVec2i() const;
+	bool isVec3i() const;
+	bool isVec4i() const;
 
 	template<class C>
 	std::shared_ptr<C> asTypedRef() const {
@@ -221,6 +225,15 @@ private:
 
 	ValueBase* valueRef() const;
 	ReflectionInterface* object() const;
+
+	template <class T>
+	bool isStruct() const {
+		ValueBase* v = valueRef();
+		if (v->type() == PrimitiveType::Struct) {
+			return &v->asStruct().getTypeDescription() == &T::typeDescription;
+		}
+		return false;
+	}
 
 	std::shared_ptr<EditorObject> object_;
 	std::vector<size_t> indices_;

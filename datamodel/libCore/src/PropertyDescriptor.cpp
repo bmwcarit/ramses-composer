@@ -44,4 +44,10 @@ bool PropertyDescriptor::contains(const PropertyDescriptor& other) const {
 		   std::equal(propNames_.begin(), propNames_.end(), other.propNames_.begin(), other.propNames_.begin() + propNames_.size());
 }
 
+PropertyDescriptor PropertyDescriptor::child(const std::string& name) const {
+	std::vector<std::string> names{propNames_};
+	names.emplace_back(name);
+	return PropertyDescriptor(object(), names);
+}
+
 }  // namespace raco::core

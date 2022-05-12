@@ -1,8 +1,8 @@
 
-function interface()
-    IN.b = FLOAT
-    IN.a = FLOAT
+function interface(IN,OUT)
+    IN.b = Type:Float()
+    IN.a = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end

@@ -1,6 +1,7 @@
 {
     "externalProjects": {
     },
+    "fileVersion": 35,
     "links": [
         {
             "properties": {
@@ -341,6 +342,11 @@
             },
             "typeName": "Node"
         }
+    ],
+    "racoVersion": [
+        1,
+        0,
+        0
     ],
     "rootObjectIDs": [
         "lua_script_id",

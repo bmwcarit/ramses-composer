@@ -18,7 +18,7 @@ bool Consistency::checkProjectSettings(const Project& project) {
 	int settingsCount{0};
 
 	for (const auto& instance : project.instances()) {
-		if (instance->getTypeDescription().typeName == ProjectSettings::typeDescription.typeName) {
+		if (instance->isType<ProjectSettings>()) {
 			settingsCount++;
 		}
 	}

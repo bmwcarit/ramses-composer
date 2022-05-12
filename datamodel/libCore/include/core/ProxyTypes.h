@@ -116,6 +116,10 @@ extern const char prefabInstanceTypeName[];
 using PrefabInstance = Proxy<prefabInstanceTypeName>;
 using SPrefabInstance = std::shared_ptr<PrefabInstance>;
 
+extern const char timerTypeName[];
+using Timer = Proxy<timerTypeName>;
+using STimer = std::shared_ptr<Timer>;
+
 template<const char* Name>
 class StructProxy : public DynamicGenericStruct {
 public:

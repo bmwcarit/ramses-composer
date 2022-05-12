@@ -10,6 +10,7 @@
 #pragma once
 
 #include "core/EngineInterface.h"
+#include "core/Errors.h"
 #include "data_storage/Value.h"
 #include "ramses_base/LogicEngine.h"
 #include "log_system/log.h"
@@ -43,4 +44,16 @@ void installLogicLogHandler();
 void setRamsesLogLevel(spdlog::level::level_enum level);
 void setLogicLogLevel(spdlog::level::level_enum level);
 
+struct PngCompatibilityInfo {
+	std::string errorMsg;
+	raco::core::ErrorLevel errorLvl;
+	bool conversionNeeded;
+};
+
+PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat selectedTextureFormat, int colorType, int bitdepth);
+int ramsesTextureFormatToPngFormat(ramses::ETextureFormat textureFormat);
+std::string ramsesTextureFormatToString(ramses::ETextureFormat textureFormat);
+int ramsesTextureFormatToChannelAmount(ramses::ETextureFormat textureFormat);
+void normalize16BitColorData(std::vector<unsigned char>& data);
+std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector<unsigned char>& data);
 };	// namespace raco::ramses_base

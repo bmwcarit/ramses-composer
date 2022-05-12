@@ -30,16 +30,16 @@ public:
 	static std::vector<unsigned char>& getFallbackTextureData(bool flipped);
 
 private:
-	ramses_base::RamsesTexture2D createTexture();
+	ramses_base::RamsesTexture2D createTexture(core::Errors* errors);
 	ramses_base::RamsesTexture2D getFallbackTexture();
 
-	std::array<components::Subscription, 8> subscriptions_;
+	std::array<components::Subscription, 9> subscriptions_;
 	ramses_base::RamsesTexture2D textureData_;
 
 	static inline std::array<std::vector<unsigned char>, 2> fallbackTextureData_;
 	std::string createDefaultTextureDataName();
 
-	static void flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int width, unsigned int height);
+	static void flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int availableChannels, unsigned int width, unsigned int height, unsigned int bitdepth);
 };
 
 };  // namespace raco::ramses_adaptor

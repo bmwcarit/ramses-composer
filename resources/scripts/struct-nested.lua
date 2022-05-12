@@ -1,31 +1,31 @@
 
-function interface()
-	local s = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local s = { x = Type:Float(), y = Type:Float() }
 	IN.v = s
 	local complex = {
-		bool = BOOL,
-		float = FLOAT,
-		vector2f = VEC2F,
-		vector3f = VEC3F,
-		vector4f = VEC4F,
-		integer = INT,
-		vector2i = VEC2I,
-		vector3i = VEC3I,
-		vector4i = VEC4I,
-		string = STRING,
+		bool = Type:Bool(),
+		float = Type:Float(),
+		vector2f = Type:Vec2f(),
+		vector3f = Type:Vec3f(),
+		vector4f = Type:Vec4f(),
+		integer = Type:Int32(),
+		vector2i = Type:Vec2i(),
+		vector3i = Type:Vec3i(),
+		vector4i = Type:Vec4i(),
+		string = Type:String(),
 		struct = s
     }
 	IN.s = complex
 	IN.nested = {
-		a = FLOAT,
+		a = Type:Float(),
 		inner = complex
 	}
 	OUT.nested_out = {
-		a = FLOAT,
+		a = Type:Float(),
 		inner = complex
 	}
 end
 
 
-function run()
+function run(IN,OUT)
 end

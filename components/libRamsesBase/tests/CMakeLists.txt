@@ -14,7 +14,6 @@ set(TEST_SOURCES
     AnimationAdaptor_test.cpp
     AnimationChannelAdaptor_test.cpp
     CubeMapAdaptor_test.cpp
-    EngineInterface_test.cpp
     RamsesBaseFixture.h
     LinkAdaptor_test.cpp
     LuaScriptAdaptor_test.cpp
@@ -30,6 +29,8 @@ set(TEST_SOURCES
     RenderLayerAdaptor_test.cpp
     Resources_test.cpp
     SceneContext_test.cpp
+    TimerAdaptor_test.cpp
+    TextureAdaptor_test.cpp
     utilities_test.cpp
 )
 set(TEST_LIBRARIES
@@ -45,10 +46,20 @@ raco_package_add_headless_test(
 raco_package_add_test_resouces(
     libRamsesBase_test "${CMAKE_SOURCE_DIR}/resources"
     images/blue_1024.png
+    images/blue_1024_16i.png
     images/DuckCM.png
     images/green_512.png
+    images/green_512_16f.png
+    images/green_512_16f_no_alpha.png
+    images/green_512_16i.png
+    images/green_512_gray.png
+    images/green_512_gray_16f.png
+    images/green_512_gray_alpha.png
     images/red_128.png
+    images/text-back.png
+    images/text-back-palette.png
     images/yellow_256.png
+    scripts/types-scalar.lua
     shaders/basic.frag
     shaders/basic.vert
     shaders/simple_texture.frag

@@ -1,9 +1,9 @@
 modules("coalas")
 
-function interface()
+function interface(IN,OUT)
     OUT.coala = coalas.getStruct()
 end
 
-function run()
+function run(IN,OUT)
     OUT.coala = coalas.value
 end

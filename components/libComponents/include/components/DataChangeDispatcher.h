@@ -143,13 +143,16 @@ public:
 	}
 
 private:
-	void emitUpdateFor(const std::map<std::string, std::set<core::ValueHandle>>& valueHandles);
-	void emitErrorChanged(const core::ValueHandle& valueHandle);
-	void emitErrorChangedInScene();
-	void emitCreated(core::SEditorObject obj);
-	void emitDeleted(core::SEditorObject obj);
-	void emitPreviewDirty(core::SEditorObject obj);
-	void emitBulkChange(const core::SEditorObjectSet& changedObjects);
+	void emitUpdateFor(const std::map<std::string, std::set<core::ValueHandle>>& valueHandles) const;
+	void emitErrorChanged(const core::ValueHandle& valueHandle) const;
+	void emitErrorChangedInScene() const;
+	void emitCreated(core::SEditorObject obj) const;
+	void emitDeleted(core::SEditorObject obj) const;
+	void emitPreviewDirty(core::SEditorObject obj) const;
+	void emitBulkChange(const core::SEditorObjectSet& changedObjects) const;
+	void emitLinksValidityChanged(std::map<std::string, std::set<core::LinkDescriptor>> const& validityChangedLinks) const;
+	void emitLinksAdded(std::map<std::string, std::set<core::LinkDescriptor>> const& addedLinks) const;
+	void emitLinksRemoved(std::map<std::string, std::set<core::LinkDescriptor>> const& removedLinks) const;
 
 	std::set<std::weak_ptr<ObjectLifecycleListener>, std::owner_less<std::weak_ptr<ObjectLifecycleListener>>> objectLifecycleListeners_{};
 	std::set<std::weak_ptr<LinkLifecycleListener>, std::owner_less<std::weak_ptr<LinkLifecycleListener>>> linkLifecycleListeners_{};

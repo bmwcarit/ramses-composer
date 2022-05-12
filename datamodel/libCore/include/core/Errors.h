@@ -65,6 +65,8 @@ public:
 	 */
 	const std::map<ValueHandle, ErrorItem>& getAllErrors() const;
 
+	bool hasError(ErrorLevel minLevel) const;
+
 private:
 	std::map<ValueHandle, ErrorItem> errors_;
 	DataChangeRecorder* recorder_;

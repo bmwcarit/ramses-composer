@@ -11,9 +11,50 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 0.14.0)
+project(RaCoOS VERSION 1.0.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
+
+# The build and deployment process for Python works differently for Linux and Windows.
+# Windows:
+# * RaCo builds and runs without Python being installed.
+# * RaCo is build using Python 3.8.10 from third_party/python-windows/python-3.8.10-for-build.
+#   This is a normal full Python installation folder, all options except Debug Binaries off.
+# * The build process uses the third_party/python-windows/python-3.8.10-embed-amd64 folder (downloadable from Python as the "embeddable package")
+#   to generate a suitable Python folder in the release folder (containing pip and virtualenv), see third_party\python-windows\CMakeLists.txt
+# * On startup, RaCoHeadless will just use the Python folder "release/bin/python-3.8.10-with-pip-and-virtualenv" generated in the steps above.
+# * Python will be started "in isolation", so all other Python installations/environment variables on the machine will be ignored.
+# Linux:
+# * RaCo requires Python 3.8 to be installed for building.
+# 
+# * In a later version, RaCoHeadless will automatically create a virtualenv on startup, making it easier to install custom modules etc.
+
+set(RequiredPythonVersion 3.8)
+if(WIN32)
+	set(PYTHON_THIRD_PARTY_FOLDER "${CMAKE_SOURCE_DIR}/third_party/python-windows")
+	set(Python_ROOT "${PYTHON_THIRD_PARTY_FOLDER}/python-${RequiredPythonVersion}.10-for-build")
+endif()
+find_package (Python ${RequiredPythonVersion} EXACT REQUIRED COMPONENTS Interpreter Development) # Python version needs to match the one in third_party
+# Check if a Python debug library is available. On Windows Python can be installed with or without debug libraries,
+# and if the debug library is available, pybind11 will link to it, but not properly without a bit of our help.
+# PYTHON_DEBUG_LIBRARY_AVAILABLE is used in all projects including pybind11.
+if(Python_LIBRARY_DEBUG)
+	set(PYTHON_DEBUG_LIBRARY_AVAILABLE ON)	
+else()
+	set(PYTHON_DEBUG_LIBRARY_AVAILABLE OFF)	
+endif()
+if(NOT ${Python_FOUND})
+	message(FATAL_ERROR "Cannot find Python ${RequiredPythonVersion}!")
+endif()
+message(STATUS "Python Version for build: ${Python_VERSION} from ${Python_EXECUTABLE}")
+if(WIN32)
+	if(NOT "${Python_EXECUTABLE}" MATCHES ".*/third_party/.*")
+		message(FATAL_ERROR "Found ${Python_EXECUTABLE} is not the one in the third_party folder!")
+	endif()
+endif()
+set(PYTHON_DEPLOYMENT_FOLDER_NAME "python-${Python_VERSION}-with-pip")
+set(PYTHON_DEPLOYMENT_FOLDER "${RACO_RELEASE_DIRECTORY}/bin/${PYTHON_DEPLOYMENT_FOLDER_NAME}")
+
 
 # Configuration - where is your Qt?
 set(RACO_QT_BASE $ENV{RACO_QT_BASE})
@@ -23,23 +64,23 @@ if(NOT RACO_QT_BASE)
 	# is shared with other products, so please don't randomly change that.
 	set(QT_ROOT $ENV{QTBASEDIR})
 	if(NOT QT_ROOT)
-		if(MSVC_IDE)
+		if(WIN32)
 			set(QT_ROOT "C:/Qt")
 		else()
 			set(QT_ROOT "/usr/local/opt/Qt")
 		endif()
-		message("Set QT_ROOT to ${QT_ROOT} from value hardcoded into CMakeLists.txt.")
+		message(STATUS "Set QT_ROOT to ${QT_ROOT} from value hardcoded into CMakeLists.txt.")
 	else()
-		message("Set QT_ROOT to ${QT_ROOT} from QTBASEDIR environment variable.")
+		message(STATUS "Set QT_ROOT to ${QT_ROOT} from QTBASEDIR environment variable.")
 	endif()
-	if(MSVC_IDE)
+	if(WIN32)
 		set(RACO_QT_BASE "${QT_ROOT}/5.15.2/msvc2019_64")
 	else()
 		set(RACO_QT_BASE "${QT_ROOT}/5.15.2/gcc_64")
 	endif()
-	message("Set RACO_QT_BASE to ${RACO_QT_BASE} using default subdirectory for QT_ROOT.")
+	message(STATUS "Set RACO_QT_BASE to ${RACO_QT_BASE} using default subdirectory for QT_ROOT.")
 else()
-	message("Set RACO_QT_BASE to ${RACO_QT_BASE} from environment variable.")
+	message(STATUS "Set RACO_QT_BASE to ${RACO_QT_BASE} from environment variable.")
 endif()
 
 # Setup more details for Qt5
@@ -168,6 +209,18 @@ endmacro()
 macro(deploy_viewer tgt)
 	deploy_dlls_and_strip_symbols(${tgt} ramses-logic-viewer)
 endmacro()
+macro(deploy_python_dlls tgt)
+	IF(WIN32)
+		add_custom_command(TARGET ${tgt} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${Python_ROOT}/python38$<$<CONFIG:Debug>:_d>.dll" "$<TARGET_FILE_DIR:${tgt}>"
+		)
+	else()
+		# Make sure RaCoHeadless starts if Python is not used and Python is not installed.
+		add_custom_command(TARGET ${tgt} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different "/usr/lib/x86_64-linux-gnu/libpython3.8.so.1.0" "$<TARGET_FILE_DIR:${tgt}>"
+		)
+	ENDIF()
+endmacro()
 
 if(PACKAGE_TESTS)
 	enable_testing()
@@ -246,6 +299,21 @@ if(PACKAGE_TESTS)
 		target_compile_definitions(${TESTNAME} PRIVATE RACO_LOCAL_TEST_RESOURCES_FILE_LIST="${RESOURCES_FILE_LIST}")
 		target_compile_definitions(${TESTNAME} PRIVATE RACO_LOCAL_TEST_RESOURCES_DIRECTORY_LIST="${RESOURCES_DIRECTORY_LIST}")
 	endfunction()
+	macro(add_racocommand_test TESTNAME WORKINGDIR)
+		if(WIN32)
+			add_test(
+				NAME ${TESTNAME}
+				WORKING_DIRECTORY ${WORKINGDIR}
+				COMMAND "$<TARGET_FILE:RaCoCommand>" ${ARGN}
+			)
+		else()
+			add_test(
+				NAME ${TESTNAME}
+				WORKING_DIRECTORY ${WORKINGDIR}
+				COMMAND "$<TARGET_FILE:RaCoCommand>.sh" ${ARGN}
+			)
+		endif()
+	endmacro()
 endif()
 
 macro(enable_warnings_as_errors TARGET_NAME)
@@ -280,8 +348,15 @@ endif()
 #
 set(raco_RELEASE_ROOT_FILES
 	README.md
+	PythonAPI.md
 	CHANGELOG.md
 )
+
+add_custom_command(OUTPUT ${RACO_RELEASE_DIRECTORY}/migrate_to_v1_0.py
+	MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/third_party/ramses-logic/tools/migrate/migrate_to_v1_0.py"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/third_party/ramses-logic/tools/migrate/migrate_to_v1_0.py" "${RACO_RELEASE_DIRECTORY}/migrate_to_v1_0.py"
+	VERBATIM)
+LIST(APPEND ROOT_FILES_OUTPUT "${RACO_RELEASE_DIRECTORY}/migrate_to_v1_0.py")
 
 foreach(relpath ${raco_RELEASE_ROOT_FILES})
 	add_custom_command(OUTPUT "${RACO_RELEASE_DIRECTORY}/${relpath}"
@@ -297,6 +372,7 @@ set_target_properties (RaCoPrepareReleaseFolder PROPERTIES FOLDER Packaging)
 # Create default directories for configuration files and project files.
 add_custom_command(TARGET RaCoPrepareReleaseFolder POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/projects"
+	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/python"
 )
 
 #
@@ -317,3 +393,5 @@ include(cmake/ramsesversions.cmake)
 
 add_subdirectory(EditorApp)
 add_subdirectory(resources)
+
+add_subdirectory(PyAPITests)

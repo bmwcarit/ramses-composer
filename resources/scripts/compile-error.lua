@@ -1,11 +1,11 @@
 BLUBB
 
-function interface()
-	IN.value = INT
-    OUT.value = STRING
+function interface(IN,OUT)
+	IN.value = Type:Int32()
+    OUT.value = Type:String()
 end
 
 
-function run()
+function run(IN,OUT)
     OUT.value = IN.value
 end

@@ -42,11 +42,7 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 
 	switch (item->type()) {
 		case PrimitiveType::Bool:
-			if (item->query<core::EnumerationAnnotation>()) {
-				return new EnumerationEditor{item, parent};
-			} else {
-				return new BoolEditor{item, parent};
-			}
+			return new BoolEditor{item, parent};
 		case PrimitiveType::Int:
 			if (item->query<core::EnumerationAnnotation>()) {
 				return new EnumerationEditor{item, parent};

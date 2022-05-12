@@ -21,6 +21,7 @@
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/OrthographicCameraAdaptor.h"
 #include "ramses_adaptor/PerspectiveCameraAdaptor.h"
+#include "ramses_adaptor/TimerAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/Animation.h"
 #include "user_types/MeshNode.h"
@@ -86,8 +87,8 @@ inline RamsesArrayResource createDefaultVertexDataBuffer(ramses::Scene* scene) {
 
 inline raco::ramses_base::RamsesAnimationChannelHandle createDefaultAnimationChannel(ramses_base::LogicEngine& logicEngine) {
 	auto animHandle = raco::ramses_base::RamsesAnimationChannelHandle(new ramses_base::RamsesAnimationChannelData);
-	animHandle->keyframeTimes = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelTimestampsName);
-	animHandle->animOutput = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelKeyframesName);
+	animHandle->keyframeTimes = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelTimestampsName, {0, 0});
+	animHandle->animOutput = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelKeyframesName, {0, 0});
 	animHandle->name = defaultAnimationChannelName;
 	animHandle->interpolationType = rlogic::EInterpolationType::Linear;
 
@@ -103,7 +104,7 @@ inline ramses_base::RamsesAnimationNode createDefaultAnimation(const raco::ramse
 		animChannel->tangentIn.get(),
 		animChannel->tangentOut.get()});
 
-	return ramsesAnimationNode(&logicEngine, config, {animChannel} , defaultAnimationName);
+	return ramsesAnimationNode(&logicEngine, config, {animChannel}, defaultAnimationName, {0, 0});
 };
 
 
@@ -279,10 +280,12 @@ void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 		}
 	}
 	for (const auto& [editorObject, adaptor] : adaptors_) {
-		if (&editorObject->getTypeDescription() == &user_types::LuaScript::typeDescription) {
+		if (editorObject->isType<user_types::LuaScript>()) {
 			static_cast<LuaScriptAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
-		} else if (&editorObject->getTypeDescription() == &user_types::Animation::typeDescription) {
+		} else if (editorObject->isType<user_types::Animation>()) {
 			static_cast<AnimationAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
+		} else if (editorObject->isType<user_types::Timer>()) {
+			static_cast<TimerAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
 		}
 	}
 }

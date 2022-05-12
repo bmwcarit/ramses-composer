@@ -680,13 +680,11 @@ TEST_F(ContextTest, cutAndPasteDeeperHierarchy) {
 }
 
 TEST_F(ContextTest, pasteInvalidString) {
-	auto copyResult = context.pasteObjects("SomeInvalidString");
-	ASSERT_EQ(0, copyResult.size());
+	EXPECT_THROW(context.pasteObjects("SomeInvalidString"), std::runtime_error);
 }
 
 TEST_F(ContextTest, pasteInvalidJsonSchema) {
-	auto copyResult = context.pasteObjects("{ \"meow\": \"wuff\" }");
-	ASSERT_EQ(0, copyResult.size());
+	EXPECT_THROW(context.pasteObjects("{ \"meow\": \"wuff\" }"), std::runtime_error);
 }
 
 TEST_F(ContextTest, copyAndPasteKeepAbsolutePath) {
@@ -696,12 +694,17 @@ TEST_F(ContextTest, copyAndPasteKeepAbsolutePath) {
 	context.set({sMesh, {"uri"}}, uri);
 
   	auto clipboardContent = context.copyObjects({ sMesh });
+#if defined(_WIN32)
 	context.project()->setCurrentPath("C:/DifferentProject.file");
+#else
+	context.project()->setCurrentPath("/DifferentProject.file");
+#endif
 	auto pasteResult = context.pasteObjects(clipboardContent);
 	
 	ASSERT_EQ(pasteResult.front()->get("uri")->asString(), absoluteDuckPath);
 }
 
+#if defined(_WIN32)
 TEST_F(ContextTest, copyAndPasteTurnRelativePathFromDifferentDriveToAbsolute) {
 	context.project()->setCurrentPath((test_path() / "proj.file").string());
 	auto absoluteDuckPath{(test_path() / "testData" / "Duck.glb").string()};
@@ -715,6 +718,7 @@ TEST_F(ContextTest, copyAndPasteTurnRelativePathFromDifferentDriveToAbsolute) {
 
 	ASSERT_EQ(pasteResult.front()->get("uri")->asString(), absoluteDuckPath);
 }
+#endif
 
 TEST_F(ContextTest, copyAndPasteRerootRelativePathHierarchyDown) {
     context.project()->setCurrentPath((test_path() / "proj.file").string());
@@ -781,7 +785,7 @@ TEST_F(ContextTest, deepCut) {
 }
 
 TEST_F(ContextTest, shallowCopyLink) {
-	auto objs { raco::createLinkedScene(*this) };
+	auto objs { raco::createLinkedScene(context, test_relative_path()) };
 	ASSERT_EQ(1, context.project()->links().size());
 
 	context.pasteObjects(context.copyObjects({ std::get<1>(objs) }));
@@ -790,7 +794,7 @@ TEST_F(ContextTest, shallowCopyLink) {
 }
 
 TEST_F(ContextTest, shallowCutLink) {
-	auto objs { raco::createLinkedScene(*this) };
+	auto objs{raco::createLinkedScene(context, test_relative_path())};
 	ASSERT_EQ(1, context.project()->links().size());
 
 	auto clipboard = context.cutObjects({ std::get<1>(objs) });
@@ -830,7 +834,7 @@ TEST_F(ContextTest, ShallowCopyNodeWithLink_pasteRoot) {
 }
 
 TEST_F(ContextTest, shallowCopyLink_deletedStartObject) {
-	auto objs { raco::createLinkedScene(*this) };
+	auto objs{raco::createLinkedScene(context, test_relative_path())};
 	ASSERT_EQ(1, context.project()->links().size());
 
 	auto clipboard = context.copyObjects({ std::get<1>(objs) });
@@ -925,7 +929,7 @@ TEST_F(ContextTest, cutAndPasteNodeUniqueName) {
 }
 
 TEST_F(ContextTest, queryLinkConnectedToObjectsReturnsNoDuplicateLinks) {
-	auto objs{raco::createLinkedScene(*this)};
+	auto objs{raco::createLinkedScene(context, test_relative_path())};
 
 	auto totalLinks = raco::core::Queries::getLinksConnectedToObjects(
 		*context.project(), SEditorObjectSet{context.project()->instances().begin(), context.project()->instances().end()}, true, true);
@@ -978,6 +982,3 @@ TEST_F(ContextTest, meshnode_shared_mat_modify_material) {
 	context.set({material, {"uniforms", "u_color", "x"}}, 0.5);
 	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
 }
-
-
-

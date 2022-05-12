@@ -28,6 +28,7 @@
 #include "user_types/PrefabInstance.h"
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/OrthographicCamera.h"
+#include "user_types/Timer.h"
 
 #include "utils/FileUtils.h"
 
@@ -51,17 +52,17 @@ TEST_F(LinkTest, fail_create_invalid_handles) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "INVALID"}}));
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}));
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "INVALID"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
 
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, { "INVALID"}}));
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}));
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"INVALID"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
 
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end}));
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start}, ValueHandle{end, {"luaInputs", "float"}}));
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
 
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{}));
-	EXPECT_EQ(nullptr, commandInterface.addLink(ValueHandle{}, ValueHandle{end, {"luaInputs", "float"}}));
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
 }
 
 TEST_F(LinkTest, lua_lua_scalar) {
@@ -83,6 +84,30 @@ TEST_F(LinkTest, lua_lua_scalar) {
 				EXPECT_EQ(project.links().size(), 0);
 			},
 		});
+}
+
+TEST_F(LinkTest, remove_valid) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+
+	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	checkLinks({{sprop, eprop, true}});
+	commandInterface.removeLink(eprop);
+	checkLinks({});
+}
+
+TEST_F(LinkTest, remove_invalid) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+
+	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	checkLinks({{sprop, eprop, true}});
+
+	commandInterface.set({end, {"uri"}}, std::string());
+	checkLinks({{sprop, eprop, false}});
+
+	commandInterface.removeLink(eprop);
+	checkLinks({});
 }
 
 TEST_F(LinkTest, lua_lua_recorder_merge) {
@@ -324,28 +349,28 @@ TEST_F(LinkTest, removal_del_end_obj_invalid_link) {
 TEST_F(LinkTest, removal_sync_lua_simple) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	IN.v = FLOAT
-	IN.flag = BOOL
-	OUT.v = FLOAT
-	OUT.flag = BOOL
+function interface(IN,OUT)
+	IN.v = Type:Float()
+	IN.flag = Type:Bool()
+	OUT.v = Type:Float()
+	OUT.flag = Type:Bool()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	IN.v = INT
-	IN.flag = BOOL
-	OUT.v = INT
-	OUT.flag = BOOL
+function interface(IN,OUT)
+	IN.v = Type:Int32()
+	IN.flag = Type:Bool()
+	OUT.v = Type:Int32()
+	OUT.flag = Type:Bool()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -366,26 +391,26 @@ end
 TEST_F(LinkTest, removal_sync_lua_struct_remove_property_whole) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float() }
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT}
+function interface(IN,OUT)
+	local st = { x = Type:Float()}
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -403,26 +428,26 @@ end
 TEST_F(LinkTest, removal_sync_lua_struct_remove_property_member) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT, z = FLOAT }
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float(), z = Type:Float() }
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, z = INT}
+function interface(IN,OUT)
+	local st = { x = Type:Float(), z = Type:Int32()}
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -448,26 +473,26 @@ end
 TEST_F(LinkTest, removal_sync_lua_struct_add_property_whole) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float() }
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT, z = INT}
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float(), z = Type:Int32()}
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -485,26 +510,26 @@ end
 TEST_F(LinkTest, removal_sync_lua_struct_add_property_member) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float() }
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = INT, z = INT}
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Int32(), z = Type:Int32()}
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -526,25 +551,25 @@ end
 TEST_F(LinkTest, removal_sync_lua_struct_member) {
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float() }
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	IN.s = FLOAT
-	OUT.s = FLOAT
+function interface(IN,OUT)
+	IN.s = Type:Float()
+	OUT.s = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -633,41 +658,41 @@ TEST_F(LinkTest, lua_restore_after_reselecting_output_uri) {
 TEST_F(LinkTest, lua_restore_only_when_property_types_fit) {
 	TextFile leftScript1 = makeFile("leftScript1.lua",
 		R"(
-function interface()
-    OUT.a = FLOAT
+function interface(IN,OUT)
+    OUT.a = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	TextFile leftScript2 = makeFile("leftScript2.lua",
 		R"(
-function interface()
-    OUT.a = INT
+function interface(IN,OUT)
+    OUT.a = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	TextFile rightScript1 = makeFile("rightScript1.lua",
 		R"(
-function interface()
-    IN.b = FLOAT
+function interface(IN,OUT)
+    IN.b = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	TextFile rightScript2 = makeFile("rightScript2.lua",
 		R"(
-function interface()
-    IN.b = INT
+function interface(IN,OUT)
+    IN.b = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -723,45 +748,45 @@ TEST_F(LinkTest, lua_restore_two_scripts_prevent_loop_when_changing_output_uri) 
 TEST_F(LinkTest, lua_restore_three_scripts_prevent_duplicate_links_with_same_property_name) {
 	TextFile rightScript = makeFile("right.lua",
 		R"(
-function interface()
-	IN.a = FLOAT
+function interface(IN,OUT)
+	IN.a = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile leftScript1 = makeFile("left-1.lua",
 		R"(
-function interface()
-	OUT.b = FLOAT
+function interface(IN,OUT)
+	OUT.b = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile leftScript2 = makeFile("left-2.lua",
 		R"(
-function interface()
-	OUT.c = FLOAT
+function interface(IN,OUT)
+	OUT.c = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile leftScript3 = makeFile("left-3.lua",
 		R"(
-function interface()
-	OUT.b = FLOAT
-	OUT.c = FLOAT
+function interface(IN,OUT)
+	OUT.b = Type:Float()
+	OUT.c = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -830,8 +855,8 @@ TEST_F(LinkTest, lua_restore_nested_struct_link_from_empty_uri) {
 TEST_F(LinkTest, lua_restore_nested_struct_link_only_when_struct_property_types_match) {
 	TextFile script1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local s = { x = FLOAT}
+function interface(IN,OUT)
+	local s = { x = Type:Float()}
 	local complex = {
 		struct = s
     }
@@ -845,15 +870,15 @@ function interface()
 end
 
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	local s = { x = INT}
+function interface(IN,OUT)
+	local s = { x = Type:Int32()}
 	local complex = {
 		struct = s
     }
@@ -867,7 +892,7 @@ function interface()
 end
 
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -988,28 +1013,28 @@ TEST_F(LinkTest, lua_restore_single_output_property_multiple_links) {
 TEST_F(LinkTest, lua_restore_from_broken_script) {
 	TextFile script = makeFile("script-1.lua",
 		R"(
-function interface()
-	IN.v = FLOAT
-	IN.flag = BOOL
-	OUT.v = FLOAT
-	OUT.flag = BOOL
+function interface(IN,OUT)
+	IN.v = Type:Float()
+	IN.flag = Type:Bool()
+	OUT.v = Type:Float()
+	OUT.flag = Type:Bool()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile scriptBroken = makeFile("script-2.lua",
 		R"(
-function interface()
-	IN.v = FLOATa
-	IN.flag = BOOL
-	OUT.v = FLOAT
-	OUT.flag = BOOL
+function interface(IN,OUT)
+	IN.v = Type:Float()a
+	IN.flag = Type:Bool()
+	OUT.v = Type:Float()
+	OUT.flag = Type:Bool()
 ed
 
-function run()
+function run(IN,OUT)
 
 )");
 
@@ -1029,46 +1054,46 @@ function run()
 TEST_F(LinkTest, lua_restore_link_chain_from_two_broken_scripts) {
 	TextFile script1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	OUT.f = FLOAT
+function interface(IN,OUT)
+	OUT.f = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script1Broken = makeFile("script-1-broken.lua",
 		R"(
-function interface()
-	OUT.f = FLOATa
+function interface(IN,OUT)
+	OUT.f = Type:Float()a
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	IN.f = FLOAT
-	OUT.vec = VEC3F
+function interface(IN,OUT)
+	IN.f = Type:Float()
+	OUT.vec = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
 
 	TextFile script2Broken = makeFile("script-2-broken.lua",
 		R"(
-function interface()
+function interface(IN,OUT)
 	IN.f = FLOTA
 	OUT.vec = VEC3
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -1235,13 +1260,13 @@ TEST_F(LinkTest, break_link_remove_child_prop_keeps_value_with_undo_redo) {
 
 	TextFile script_1 = makeFile("script-1.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local st = { x = Type:Float(), y = Type:Float() }
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 	OUT.s = IN.s
 end
 
@@ -1249,13 +1274,13 @@ end
 
 	TextFile script_2 = makeFile("script-2.lua",
 		R"(
-function interface()
-	local st = { x = FLOAT}
+function interface(IN,OUT)
+	local st = { x = Type:Float()}
 	IN.s = st
 	OUT.s = st
 end
 
-function run()
+function run(IN,OUT)
 	OUT.s = IN.s
 end
 
@@ -1314,4 +1339,139 @@ TEST_F(LinkTest, dont_crash_when_object_is_deleted_after_property_with_link_was_
 
 	// Delete the object - this caused a crash in RAOS-682
 	commandInterface.deleteObjects({meshNode});
+}
+
+TEST_F(LinkTest, timer_link) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::application::RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+
+	TextFile script = makeFile("script.lua",
+		R"(
+function interface(IN, OUT)
+	IN.integer64 = Type:Int64()
+	OUT.ointeger64 = Type:Int64()
+end
+function run(IN, OUT)
+	OUT.ointeger64 = 2*IN.integer64
+end
+)");
+
+	auto timer = create<Timer>(cmd, "timer");
+	app.doOneLoop();
+
+	auto luaScript = create_lua(cmd, "base", script);
+	app.doOneLoop();
+
+	PropertyDescriptor sprop{timer, {"tickerOutput"}};
+	PropertyDescriptor eprop{luaScript, {"luaInputs", "integer64"}};
+
+	cmd.addLink(sprop, eprop);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+
+	app.doOneLoop();
+
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+	ASSERT_NE(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{0});
+
+	cmd.set({timer, &Timer::tickerInput_}, int64_t{1});
+	app.doOneLoop();
+
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+	ASSERT_EQ(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{1});
+
+	app.doOneLoop();
+	ASSERT_EQ(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{1});
+
+	cmd.set({timer, &Timer::tickerInput_}, int64_t{0});
+	app.doOneLoop();
+
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+	ASSERT_NE(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{0});
+}
+
+TEST_F(LinkTest, timer_link_to_input) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::application::RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+
+	TextFile script = makeFile("script.lua",
+		R"(
+function interface(IN, OUT)
+	IN.integer64 = Type:Int64()
+	OUT.ointeger64 = Type:Int64()
+end
+function run(IN, OUT)
+	OUT.ointeger64 = 2*IN.integer64
+end
+)");
+
+	auto timer = create<Timer>(cmd, "timer");
+	app.doOneLoop();
+
+	auto luaScript = create_lua(cmd, "base", script);
+	app.doOneLoop();
+
+	PropertyDescriptor sprop{luaScript, {"luaOutputs", "ointeger64"}};
+	PropertyDescriptor eprop{timer, {"tickerInput"}};
+
+	cmd.addLink(sprop, eprop);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+
+	cmd.set({luaScript, {"luaInputs", "integer64"}}, int64_t{22});
+	app.doOneLoop();
+
+	ASSERT_EQ(ValueHandle(timer, &Timer::tickerInput_).asInt64(), int64_t{44});
+	ASSERT_EQ(ValueHandle(timer, &Timer::tickerOutput_).asInt64(), int64_t{44});
+}
+
+TEST_F(LinkTest, timer_link_different_type) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::application::RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+
+	TextFile script = makeFile("script.lua",
+		R"(
+function interface(IN, OUT)
+	IN.integer64 = Type:Int64()
+	OUT.ointeger64 = Type:Int64()
+end
+function run(IN, OUT)
+	OUT.ointeger64 = 2*IN.integer64
+end
+)");
+
+	TextFile script2 = makeFile("script2.lua",
+		R"(
+function interface(IN, OUT)
+	IN.integer64 = Type:Float()
+	OUT.ointeger64 = Type:Float()
+end
+function run(IN, OUT)
+	OUT.ointeger64 = 2*IN.integer64
+end
+)");
+
+	auto timer = create<Timer>(cmd, "timer");
+	app.doOneLoop();
+
+	auto luaScript = create_lua(cmd, "base", script);
+	app.doOneLoop();
+
+	PropertyDescriptor sprop{timer, {"tickerOutput"}};
+	PropertyDescriptor eprop{luaScript, {"luaInputs", "integer64"}};
+
+	cmd.addLink(sprop, eprop);
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
+
+	app.doOneLoop();
+
+	cmd.set({luaScript, &LuaScript::uri_}, script2);
+	app.doOneLoop();
+
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, false}});
+
+	cmd.set({luaScript, &LuaScript::uri_}, script);
+	app.doOneLoop();
+	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 }

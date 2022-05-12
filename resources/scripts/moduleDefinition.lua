@@ -3,14 +3,14 @@ local coalaModule = {}
 coalaModule.coalaChief = "Alfred"
 
 coalaModule.coalaStruct = {
-    preferredFood = STRING,
-    weight = INT
+    preferredFood = Type:String(),
+    weight = Type:Int32()
 }
 
 function coalaModule.getStruct()
 	return {
-		preferredFood = STRING,
-		weight = INT
+		preferredFood = Type:String(),
+		weight = Type:Int32()
 	}
 end
 

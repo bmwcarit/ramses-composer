@@ -143,20 +143,28 @@ const Vec4i& ValueHandle::asVec4i() const {
 	return dynamic_cast<const Vec4i&>(v->asStruct());
 }
 
+bool ValueHandle::isVec2f() const {
+	return isStruct<Vec2f>();
+}
+
 bool ValueHandle::isVec3f() const {
-	ValueBase* v = valueRef();
-	if (v->type() == PrimitiveType::Struct) {
-		return &v->asStruct().getTypeDescription() == &Vec3f::typeDescription;
-	}
-	return false;
+	return isStruct<Vec3f>();
 }
 
 bool ValueHandle::isVec4f() const {
-	ValueBase* v = valueRef();
-	if (v->type() == PrimitiveType::Struct) {
-		return &v->asStruct().getTypeDescription() == &Vec4f::typeDescription;
-	}
-	return false;
+	return isStruct<Vec4f>();
+}
+
+bool ValueHandle::isVec2i() const {
+	return isStruct<Vec2i>();
+}
+
+bool ValueHandle::isVec3i() const {
+	return isStruct<Vec3i>();
+}
+
+bool ValueHandle::isVec4i() const {
+	return isStruct<Vec4i>();
 }
 
 size_t ValueHandle::size() const {

@@ -67,8 +67,15 @@ void EditorObject::onBeforeDeleteObject(Errors& errors) const {
 	uriListeners_.clear();
 }
 
-std::string EditorObject::normalizedObjectID(std::string const& id) 
-{
+std::pair<uint64_t, uint64_t> EditorObject::objectIDAsRamsesLogicID() const {
+	auto idBytes = QUuid(objectID().c_str()).toByteArray(QUuid::StringFormat::Id128);
+	uint64_t higher = (idBytes.mid(0, 16)).toULongLong(nullptr, 16);
+	uint64_t lower = (idBytes.mid(16, 16)).toULongLong(nullptr, 16);
+
+	return {higher, lower};
+}
+
+std::string EditorObject::normalizedObjectID(std::string const& id) {
 	if (id.empty()) {
 		return QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
 	}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- To make use of this file copy it to %USERPROFILE%\My Documents\Visual Studio 2013\Visualizers\ -->
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="raco::core::EditorObject">
+    <DisplayString>{{$(Type), {objectName_.value_}, {objectID_.value_} }}</DisplayString>
+  </Type>
+
+  <Type Name="raco::data_storage::Value&lt;*&gt;">
+    <DisplayString>{{ {value_} }}</DisplayString>
+  </Type>
+
+  <Type Name="raco::data_storage::Value&lt;raco::data_storage::Table&gt;">
+    <DisplayString>{{value = {value_} }}</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="index" InitialValue="-1"/>
+        <Size>value_.properties_.size()</Size>
+        <Loop>
+          <Exec>++index</Exec>
+          <Item Name="{value_.properties_[index].first}">*value_.properties_[index].second</Item>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="raco::core::ValueHandle">
+    <DisplayString>{{ {*object_}, {&amp;indices_[0], [indices_.size()] na }}</DisplayString>
+  </Type>
+
+</AutoVisualizer>

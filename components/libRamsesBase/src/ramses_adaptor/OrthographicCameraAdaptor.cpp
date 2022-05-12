@@ -19,7 +19,7 @@
 namespace raco::ramses_adaptor {
 OrthographicCameraAdaptor::OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesOrthographicCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), & sceneAdaptor->logicEngine())},
+	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), & sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID())},
 	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::OrthographicCamera::viewport_}, [this](auto) {
 		  tagDirty();
 	  })},

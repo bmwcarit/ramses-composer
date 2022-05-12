@@ -143,7 +143,6 @@ TEST_F(PrefabTest, check_id_copy_paste_nesting) {
 	auto inst_3 = inst_2->children_->asVector<SEditorObject>()[0];
 	EXPECT_EQ(inst_3->children_->size(), 1);
 	auto lua_2 = inst_3->children_->asVector<SEditorObject>()[0];
-	commandInterface.set({lua_2, {"luaInputs", "float"}}, 4.0);
 
 	EXPECT_EQ(lua_1->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_1->objectID()));
 	EXPECT_EQ(inst_3->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2->objectID()));
@@ -157,7 +156,7 @@ TEST_F(PrefabTest, check_id_copy_paste_nesting) {
 	EXPECT_EQ(inst_3_copy->children_->size(), 1);
 	auto lua_2_copy = inst_3_copy->children_->asVector<SEditorObject>()[0];
 
-	EXPECT_EQ(ValueHandle(lua_2_copy, {"luaInputs"}).get("float").asDouble(), 4.0);
+	EXPECT_EQ(ValueHandle(lua_2_copy, {"luaInputs"}).get("float").asDouble(), 3.0);
 	EXPECT_EQ(inst_3_copy->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2_copy->objectID()));
 	EXPECT_EQ(lua_2_copy->objectID(), EditorObject::XorObjectIDs(lua_1->objectID(), inst_2_copy->objectID()));
 	EXPECT_EQ(lua_2_copy->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_3_copy->objectID()));
@@ -246,11 +245,11 @@ TEST_F(PrefabTest, link_simple) {
 	auto lua = create<LuaScript>("lua", prefab);
 
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC3F
-	OUT.v = VEC3F
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);
@@ -330,11 +329,11 @@ TEST_F(PrefabTest, link_lua_node_delete_lua_in_prefab) {
 	auto lua = create<LuaScript>("lua", prefab);
 
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC3F
-	OUT.v = VEC3F
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);
@@ -361,11 +360,11 @@ TEST_F(PrefabTest, link_lua_lua_delete_lua_in_prefab) {
 	auto lua_end = create<LuaScript>("lua_end", prefab);
 
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC3F
-	OUT.v = VEC3F
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({lua_start, {"uri"}}, scriptFile);
@@ -393,11 +392,11 @@ TEST_F(PrefabTest, link_lua_quaternion_in_prefab) {
 	auto lua = create<LuaScript>("lua", prefab);
 
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC4F
-	OUT.v = VEC4F
+function interface(IN,OUT)
+	IN.v = Type:Vec4f()
+	OUT.v = Type:Vec4f()
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);
@@ -487,11 +486,11 @@ TEST_F(PrefabTest, delete_prefab_w_link_w_nested_instances) {
 	auto node = create<Node>("node", prefab_outer);
 	auto lua = create<LuaScript>("lua", prefab_outer);
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC3F
-	OUT.v = VEC3F
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);
@@ -555,11 +554,11 @@ TEST_F(PrefabTest, update_inst_from_prefab_after_remove_link) {
 	auto lua = create<LuaScript>(cmd, "lua", prefab);
 	
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC3F
-	OUT.v = VEC3F
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
 	OUT.v = IN.v
 end
 )");
@@ -620,11 +619,11 @@ TEST_F(PrefabTest, update_simultaneous_scenegraph_move_and_delete_parent_node_li
 	auto lua = create<LuaScript>("lua", prefab);
 
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.v = VEC3F
-	OUT.v = VEC3F
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);

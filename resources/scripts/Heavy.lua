@@ -1,11 +1,11 @@
 
 
-function interface()
-    IN.in_float = FLOAT
-    OUT.out_float = FLOAT
+function interface(IN,OUT)
+    IN.in_float = Type:Float()
+    OUT.out_float = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
     local i = 1
     local v = 100
     while i < 10000 do

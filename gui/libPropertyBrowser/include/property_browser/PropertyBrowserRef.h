@@ -37,11 +37,7 @@ public:
 
 	static inline auto EMPTY_REF_INDEX{0};
 
-	explicit PropertyBrowserRef(
-		raco::core::ValueHandle valueHandle,
-		raco::components::SDataChangeDispatcher dispatcher,
-		raco::core::CommandInterface* commandInterface,
-		PropertyBrowserItem* parent);
+	explicit PropertyBrowserRef(PropertyBrowserItem* parent);
 
 	const ComboBoxItems& items() const noexcept;
 	int currentIndex() noexcept;
@@ -60,8 +56,6 @@ private:
 	ComboBoxItems items_{};
 	int index_{0};
 	PropertyBrowserItem* parent_;
-	raco::core::CommandInterface* commandInterface_;
-	raco::components::SDataChangeDispatcher dispatcher_;
 	raco::components::Subscription subscription_;
 	raco::components::Subscription lifecycleSub_;
 	std::vector<raco::components::Subscription> objectNames_;

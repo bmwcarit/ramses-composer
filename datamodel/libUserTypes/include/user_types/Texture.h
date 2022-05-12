@@ -22,7 +22,7 @@ public:
 	}
 
 	Texture(Texture const& other)
-		: TextureSampler2DBase(other), uri_(other.uri_), flipTexture_(other.flipTexture_) {
+		: TextureSampler2DBase(other), uri_(other.uri_), flipTexture_(other.flipTexture_), generateMipmaps_(other.generateMipmaps_), textureFormat_(other.textureFormat_) {
 		fillPropertyDescription();
 	}
 
@@ -31,6 +31,7 @@ public:
 	}
 
 	void fillPropertyDescription() {
+		properties_.emplace_back("textureFormat", &textureFormat_);
 		properties_.emplace_back("uri", &uri_);
 		properties_.emplace_back("flipTexture", &flipTexture_);
 		properties_.emplace_back("generateMipmaps", &generateMipmaps_);
@@ -39,6 +40,7 @@ public:
 	void updateFromExternalFile(BaseContext& context) override;
 
 
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> textureFormat_{DEFAULT_VALUE_TEXTURE_FORMAT_RGBA8, {"Format"}, {EngineEnumeration::TextureFormat}};
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation("URI")};
 	Property<bool, DisplayNameAnnotation> flipTexture_{false, DisplayNameAnnotation("Flip Vertically")};
 	Property<bool, DisplayNameAnnotation> generateMipmaps_{false, DisplayNameAnnotation("Generate Mipmaps")};

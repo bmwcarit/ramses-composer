@@ -18,7 +18,6 @@
 
 using namespace raco::user_types;
 
-
 class AnimationAdaptorTest : public RamsesBaseFixture<> {};
 
 TEST_F(AnimationAdaptorTest, defaultConstruction) {
@@ -27,6 +26,9 @@ TEST_F(AnimationAdaptorTest, defaultConstruction) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+
+	auto rlogicID = sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getUserId();
+	ASSERT_EQ(rlogicID, (std::pair<uint64_t, uint64_t>{0, 0}));
 	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
 }
 
@@ -76,6 +78,7 @@ TEST_F(AnimationAdaptorTest, animNode_Deletion) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getUserId(), (std::pair<uint64_t, uint64_t>(0, 0)));
 	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
 }
 
@@ -97,6 +100,7 @@ TEST_F(AnimationAdaptorTest, animNode_animName) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getUserId(), anim->objectIDAsRamsesLogicID());
 	ASSERT_NE(select<rlogic::AnimationNode>(sceneContext.logicEngine(), "Changed"), nullptr);
 }
 
@@ -153,13 +157,21 @@ TEST_F(AnimationAdaptorTest, animNode_multiple_channels) {
 	context.set({anim, {"animationChannels", "Channel 2"}}, animChannel3);
 	dispatch();
 
-	ASSERT_EQ(anim->get("animationOutputs")->asTable().size(), 4);
+	ASSERT_EQ(anim->get("animationOutputs")->asTable().size(), 3);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.keyframes"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.keyframes")->getUserId(), animChannel1->objectIDAsRamsesLogicID());
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.timestamps"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.timestamps")->getUserId(), animChannel1->objectIDAsRamsesLogicID());
+
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 2.keyframes"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 2.keyframes")->getUserId(), animChannel2->objectIDAsRamsesLogicID());
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 2.timestamps"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 2.timestamps")->getUserId(), animChannel2->objectIDAsRamsesLogicID());
+
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 3.keyframes"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 3.keyframes")->getUserId(), animChannel3->objectIDAsRamsesLogicID());
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 3.timestamps"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 3.timestamps")->getUserId(), animChannel3->objectIDAsRamsesLogicID());
 }
 
 TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
@@ -199,12 +211,12 @@ TEST_F(AnimationAdaptorTest, link_with_luascript_output) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = BOOL
-	OUT.out_value = BOOL
+function interface(IN,OUT)
+	IN.in_value = Type:Float()
+	OUT.out_value = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -215,13 +227,13 @@ end
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
 	dispatch();
 
-	commandInterface.addLink({luaScript, {"luaOutputs", "out_value"}}, {anim, &raco::user_types::Animation::play_});
+	commandInterface.addLink({luaScript, {"luaOutputs", "out_value"}}, {anim, &raco::user_types::Animation::progress_});
 	dispatch();
 
-	context.set({luaScript, {"luaInputs", "in_value"}}, true);
+	context.set({luaScript, {"luaInputs", "in_value"}}, 2.0);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getInputs()->getChild("play")->get<bool>(), true);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getInputs()->getChild("progress")->get<float>(), 2.0);
 }
 
 TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
@@ -233,12 +245,10 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
 	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
 	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 	dispatch();
@@ -246,7 +256,7 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
 	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
 	dispatch();
 
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, (test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string());
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, (test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string());
 	dispatch();
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
@@ -262,12 +272,10 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_submesh_index_changed) {
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
 	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
 	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 	dispatch();
@@ -291,12 +299,10 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_data_changed_valid_type)
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
 	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
 	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 	dispatch();
@@ -320,12 +326,10 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_data_changed_invalid_typ
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
 	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
 	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 	dispatch();
@@ -350,12 +354,10 @@ TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_removed) {
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
 	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
 	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 	dispatch();
@@ -387,14 +389,12 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_link_inside_prefabins
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.moveScenegraphChildren({anim}, prefab);
 	commandInterface.moveScenegraphChildren({meshNode}, prefab);
 	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::loop_}, true);
 	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
 	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 
@@ -416,104 +416,4 @@ TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_link_inside_prefabins
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
 	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-}
-
-TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_gets_propagated) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto prefab = context.createObject(Prefab::typeDescription.typeName, "Prefab");
-	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.moveScenegraphChildren({anim}, prefab);
-	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
-	commandInterface.set({prefabInstance, {"template"}}, prefab);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	dispatch();
-	dispatch();
-	dispatch();
-	dispatch();
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
-}
-
-TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_pause_gets_propagated) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto prefab = context.createObject(Prefab::typeDescription.typeName, "Prefab");
-	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.moveScenegraphChildren({anim}, prefab);
-	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
-	commandInterface.set({prefabInstance, {"template"}}, prefab);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	dispatch();
-	dispatch();
-	dispatch();
-	dispatch();
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
-
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, false);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
-}
-
-TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_animation_stop_gets_propagated) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto prefab = context.createObject(Prefab::typeDescription.typeName, "Prefab");
-	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.moveScenegraphChildren({anim}, prefab);
-	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
-	commandInterface.set({prefabInstance, {"template"}}, prefab);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, true);
-	commandInterface.set({anim, &raco::user_types::Animation::rewindOnStop_}, true);
-	dispatch();
-	dispatch();
-	dispatch();
-	dispatch();
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_NE(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
-
-	commandInterface.set({anim, &raco::user_types::Animation::play_}, false);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getOutputs()->getChild("progress")->get<float>().value(), 0.0);
 }

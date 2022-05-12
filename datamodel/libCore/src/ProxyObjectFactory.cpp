@@ -12,6 +12,8 @@
 #include "core/ProxyTypes.h"
 #include "core/ExternalReferenceAnnotation.h"
 
+#include <spdlog/fmt/fmt.h>
+
 namespace raco::serialization::proxy {
 
 	template <class T>
@@ -77,7 +79,8 @@ namespace raco::serialization::proxy {
 			RenderBuffer,
 			RenderLayer,
 			RenderTarget,
-			RenderPass
+			RenderPass,
+			Timer
 		>();
 
 		annotations_ = makeAnnotationMap<
@@ -98,7 +101,7 @@ namespace raco::serialization::proxy {
 		if (it != types_.end()) {
 			return it->second.createFunc(name, id);
 		}
-
+		throw std::runtime_error(fmt::format("ProxyObjectFactory can't create object of unknown type '{}'", type));
 		return SEditorObject();
 	}
 
@@ -107,6 +110,7 @@ namespace raco::serialization::proxy {
 		if (it != annotations_.end()) {
 			return it->second.createFunc();
 		}
+		throw std::runtime_error(fmt::format("ProxyObjectFactory can't create annotation of unknown type '{}'", type));
 		return nullptr;
 	}
 
@@ -123,7 +127,8 @@ namespace raco::serialization::proxy {
 				return it->second();
 			}
 		}
-		return new Value<SEditorObject>();
+		throw std::runtime_error(fmt::format("ProxyObjectFactory can't create value of unknown type '{}'", type));
+		return {};
 	}
 
 	const std::map<std::string, ProxyObjectFactory::TypeDescriptor>& ProxyObjectFactory::getTypes() const {

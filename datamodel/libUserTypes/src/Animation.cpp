@@ -54,8 +54,6 @@ void Animation::onAfterValueChanged(BaseContext& context, ValueHandle const& val
 
 void Animation::syncOutputInterface(BaseContext& context) {
 	PropertyInterfaceList outputs{};
-	PropertyInterface intf("progress", EnginePrimitive::Double);
-	outputs.emplace_back(intf);
 
 	OutdatedPropertiesStore dummyCache{};
 

@@ -66,6 +66,13 @@ public:
 		return std::dynamic_pointer_cast<C>(shared_from_this());
 	}
 
+	// Check the dynamic type of an EditorObject against a statically known class.
+	// This is more efficient than using EditorObject::as<C>() since it doesn't perform dynamic_cast.
+	template<class C>
+	bool isType() const {
+		return &getTypeDescription() == &C::typeDescription;
+	}
+
 	std::string const& objectID() const;
 	void setObjectID(std::string const& id);
 
@@ -169,6 +176,9 @@ public:
 	// - used to model both scenegraph children of nodes and prefab/prefab instance resource 
 	//   contents (offscreen buffers etc)
 	Property<Table, ArraySemanticAnnotation, HiddenProperty> children_{{}, {}, {}};
+
+	// Returns the object ID without braces or hyphens in a pair of separated hexadecimal numbers {id[0,15], id[16-31]}
+	std::pair<uint64_t, uint64_t> objectIDAsRamsesLogicID() const;
 
 	static std::string normalizedObjectID(std::string const& id);
 

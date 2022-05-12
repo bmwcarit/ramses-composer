@@ -1,3 +1,13 @@
+#[[
+SPDX-License-Identifier: MPL-2.0
+
+This file is part of Ramses Composer
+(see https://github.com/GENIVI/ramses-composer).
+
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+]]
+
 set(SPDLOG_WCHAR_FILENAMES ON CACHE BOOL "" FORCE)
 add_subdirectory(spdlog/)
 set_target_properties(spdlog PROPERTIES FOLDER third_party)
@@ -31,12 +41,27 @@ set_target_properties(glm PROPERTIES
     FOLDER third_party/glm
 )
 
+## pybind11
+add_subdirectory(pybind11)
+add_library(raco_pybind11 INTERFACE)
+target_sources(raco_pybind11 PUBLIC raco_pybind11_embed.h)
+target_include_directories(raco_pybind11 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(raco_pybind11 INTERFACE pybind11::embed)
+if(PYTHON_DEBUG_LIBRARY_AVAILABLE AND WIN32)
+    # Needed to avoid pybind11/embed.h to cause linking to the non-debug DLL if the debug DLL is available.
+    # See https://github.com/pybind/pybind11/issues/3403#issuecomment-962878324
+	target_compile_definitions(raco_pybind11 INTERFACE $<$<CONFIG:Debug>:PYTHON_DEBUG_LIBRARY_AVAILABLE>)
+endif()
+set_target_properties(raco_pybind11 PROPERTIES
+    FOLDER third_party/raco_pybind11
+)
+add_library(raco::pybind11 ALIAS raco_pybind11)
+
 ## zip
 add_subdirectory(zip/)
 set_target_properties(zip uninstall test_append.out test_entry.out test_extract.out test_permissions.out test_read.out test_write.out PROPERTIES
     FOLDER third_party/zip
 )
-
 
 # Configure ramses-sdk build options
 set(ramses-sdk_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
@@ -119,11 +144,12 @@ add_ramses_logic_target(ramses-logic-shared-lib-client-only ramses-shared-lib-cl
 add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-client-only)
 add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
 
-
+add_subdirectory(ramses-logic/tools/ramses-logic-utils)
 add_subdirectory(ramses-logic/tools/ramses-logic-viewer)
 folderize_target(ramses-logic-viewer "third_party/ramses-logic")
 target_include_directories(ramses-logic-viewer PRIVATE
     ramses-logic/lib
+    ramses-logic/tools/ramses-logic-utils
 )
 
 # unlink original "rlogic::ramses-logic" targets from ramses-logic-viewer to make it work with our own ramses and ramses-logic .dlls
@@ -162,3 +188,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL Linux)
         endif()
 endif()
 
+if(WIN32)
+    add_subdirectory(python-windows)
+elseif(UNIX)
+    add_subdirectory(python-linux)
+endif()

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "stdfilesystem.h"
+#include <spdlog/fmt/fmt.h>
 #include <string>
 
 namespace raco::utils {
@@ -93,3 +94,12 @@ public:
 };
 
 }  // namespace raco::utils::path
+
+
+template <>
+struct fmt::formatter<raco::utils::u8path> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const raco::utils::u8path& c, FormatContext& ctx) {
+		return formatter<string_view>::format(c.string(), ctx);
+	}
+};

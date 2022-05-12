@@ -44,7 +44,7 @@ SPrefab PrefabOperations::findContainingPrefab(SEditorObject object) {
 SPrefabInstance PrefabOperations::findContainingPrefabInstance(SEditorObject object) {
 	SEditorObject current = object;
 	while (current) {
-		if (&current->getTypeDescription() == &PrefabInstance::typeDescription) {
+		if (current->isType<PrefabInstance>()) {
 			return current->as<PrefabInstance>();
 		}
 		current = current->getParent();
@@ -61,6 +61,19 @@ SPrefabInstance PrefabOperations::findOuterContainingPrefabInstance(SEditorObjec
 	}
 	return currentInst;
 }
+
+bool PrefabOperations::isInterfaceObject(SEditorObject object) {
+	if (!object->as<LuaScript>()) {
+		return false;
+	}
+	auto inst = PrefabOperations::findOuterContainingPrefabInstance(object);
+	return inst && object->getParent() == inst;
+}
+
+bool PrefabOperations::isInterfaceProperty(const ValueHandle& prop) {
+	return isInterfaceObject(prop.rootObject()) && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs";
+}
+
 
 namespace {
 
@@ -138,7 +151,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		auto it = instanceChildren.begin();
 		while (it != instanceChildren.end()) {
 			auto instChild = *it;
-			
+
 			auto prefabIt = mapToPrefab.find(instChild);
 			if (prefabIt == mapToPrefab.end() ||
 				prefabChildren.find(prefabIt->second) == prefabChildren.end()) {
@@ -209,6 +222,29 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			&localChanges, true, false);
 	}
 
+	// Check if a property of a prefab child object is an interface property.
+	auto isInterfaceProperty = [prefab](const ValueHandle& prop) {
+		return prop.rootObject()->getParent() == prefab && prop.rootObject()->as<LuaScript>() && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs";
+	};
+
+	// Update prefab children objects which have creation records in the context model changes but we already have a corresponding 
+	// prefabinstance child object. These have not been created and updated above. They may contain properties without value changed
+	// records which we still need to update.
+	// - Since the prefab instance child object already exists we do not update interface properties here.
+	// - This might lead to duplicate work if the properties we update here also have a value changed entry in the model changes.
+	for (auto object : context.modelChanges().getCreatedObjects()) {
+		if (prefabChildren.find(object) != prefabChildren.end()) {
+			auto instChild = mapToInstance.find(object)->second;
+			UndoHelpers::updateEditorObject(
+				object.get(), instChild, translateRefFunc,
+				[object, &isInterfaceProperty](const std::string& propName) {
+					return propName == "objectID" || isInterfaceProperty({object, {propName}});
+				},
+				*context.objectFactory(),
+				&localChanges, true, false);
+		}
+	}
+
 	// Single property updates from model changes
 	auto const& modelChanges = context.modelChanges().getChangedValues();
 	if (instanceDirty || context.modelChanges().hasValueChanged(ValueHandle(prefab, &EditorObject::children_))) {
@@ -223,18 +259,12 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			if (std::find_if(createdObjects.begin(), createdObjects.end(), [prop](auto item) {
 					return prop.rootObject() == item.first;
 				}) == createdObjects.end()) {
-
 				auto it = mapToInstance.find(prop.rootObject());
 				assert(it != mapToInstance.end());
 				auto inst = it->second;
 				ValueHandle instProp = ValueHandle::translatedHandle(prop, inst);
 
-				if (prop.rootObject()->getParent() == prefab &&
-					prop.rootObject()->as<LuaScript>() && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs") {
-					if (prop.depth() == 1 && propagateMissingInterfaceProperties) {
-						UndoHelpers::updateMissingTableProperties(&prop.valueRef()->asTable(), &instProp.valueRef()->asTable(), instProp, translateRefFunc, &localChanges, true);
-					}
-				} else {
+				if (!isInterfaceProperty(prop)) {
 					UndoHelpers::updateSingleValue(prop.valueRef(), instProp.valueRef(), instProp, translateRefFunc, &localChanges, true);
 				}
 			}

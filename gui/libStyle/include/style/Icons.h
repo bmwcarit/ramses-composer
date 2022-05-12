@@ -53,6 +53,7 @@ public:
 	const QIcon typeLuaScriptModule{":typeLuaScriptModuleIcon"};
 	const QIcon typeAnimationChannel{":typeAnimationChannelIcon"};
 	const QIcon typeAnimation{":typeAnimationIcon"};
+	const QIcon typeTimer{":typeTimerIcon"};
 
 	static const Icons& instance();
 

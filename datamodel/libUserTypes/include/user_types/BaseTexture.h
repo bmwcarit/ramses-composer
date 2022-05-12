@@ -24,11 +24,12 @@ public:
 
     BaseTexture(BaseTexture const& other)
 		: BaseObject(other)
-        , wrapUMode_(other.wrapUMode_)
-        , wrapVMode_(other.wrapVMode_)
-        , minSamplingMethod_(other.minSamplingMethod_)
-        , magSamplingMethod_(other.magSamplingMethod_)
-        , anisotropy_(other.anisotropy_) {
+		, wrapUMode_(other.wrapUMode_)
+		, wrapVMode_(other.wrapVMode_)
+		, minSamplingMethod_(other.minSamplingMethod_)
+		, magSamplingMethod_(other.magSamplingMethod_)
+		, anisotropy_(other.anisotropy_)
+	{
 		fillPropertyDescription();
 	}
 

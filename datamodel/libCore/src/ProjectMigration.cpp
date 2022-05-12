@@ -609,6 +609,74 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 			dynInst->removeProperty("mapToInstance");
 		}
 	}
+
+	// File version 30 : Animation property changes : removed loop, play, rewindOnStop properties and added progress property.
+	if (deserializedIR.fileVersion < 30) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+			if (instanceType == "Animation") {
+				dynObj->removeProperty("play");
+				dynObj->removeProperty("loop");
+				dynObj->removeProperty("rewindOnStop");
+			}
+		}
+
+		auto it = deserializedIR.links.begin();
+		while (it != deserializedIR.links.end()) {
+			auto endObj = *(*it)->endObject_;
+			if (endObj->serializationTypeName() == "Animation") {
+				it = deserializedIR.links.erase(it);
+			} else {
+				++it;
+			}
+		}	
+	}
+
+	// File version 33: Added HiddenProperty annotation to all tag - related properties
+	if (deserializedIR.fileVersion < 33) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			if (instanceType == "Node" || instanceType == "MeshNode" || instanceType == "PrefabInstance" || instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera" || instanceType == "RenderLayer" || instanceType == "Material") {
+				if (dynObj->hasProperty("tags")) {
+					auto oldProp = dynObj->extractProperty("tags");
+					auto newProp = new Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> {oldProp->asTable(), {}, {}, {}, {"Tags"}};
+					dynObj->addProperty("tags", newProp, -1);
+				}
+			}
+
+			if (instanceType == "RenderLayer") {
+				if (dynObj->hasProperty("materialFilterTags")) {
+					auto oldProp = dynObj->extractProperty("materialFilterTags");
+					auto newProp = new Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation>{oldProp->asTable(), {}, {}, {}, {"Material Filter Tags"}};
+					dynObj->addProperty("materialFilterTags", newProp, -1);
+				}
+
+				if (dynObj->hasProperty("renderableTags")) {
+					auto oldProp = dynObj->extractProperty("renderableTags");
+					auto newProp = new Property<Table, RenderableTagContainerAnnotation, HiddenProperty, DisplayNameAnnotation>{oldProp->asTable(), {}, {}, {"Renderable Tags"}};
+					dynObj->addProperty("renderableTags", newProp, -1);
+				}
+			}
+		}
+	}
+
+	// File version 34:  Replaced RenderLayer invertMaterialFilter bool by materialFilterMode int property.
+	if (deserializedIR.fileVersion < 34) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			if (instanceType == "RenderLayer") {
+				if (dynObj->hasProperty("invertMaterialFilter")) {
+					auto oldProp = dynObj->extractProperty("invertMaterialFilter");
+					// 1 -> Exclusive, 0 -> Inclusive
+					int newValue = oldProp->asBool() ? 1 : 0;
+					auto newProp = new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{newValue, {"Material Filter Mode"}, raco::core::EngineEnumeration::RenderLayerMaterialFilterMode};
+					dynObj->addProperty("materialFilterMode", newProp, -1);
+				}
+			}
+		}
+	}
 }
 
 }  // namespace raco::serialization

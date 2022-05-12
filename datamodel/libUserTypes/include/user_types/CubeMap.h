@@ -22,6 +22,7 @@ public:
 
 	CubeMap(CubeMap const& other)
 		: BaseTexture(other)
+		, textureFormat_(other.textureFormat_)
 		, generateMipmaps_(other.generateMipmaps_)
 		, mipmapLevel_(other.mipmapLevel_)
         , uriFront_(other.uriFront_)
@@ -57,6 +58,7 @@ public:
 	}
 
 	void fillPropertyDescription() {
+		properties_.emplace_back("textureFormat", &textureFormat_);
 		properties_.emplace_back("generateMipmaps", &generateMipmaps_);
 		properties_.emplace_back("mipmapLevel", &mipmapLevel_);
 		properties_.emplace_back("uriRight", &uriRight_);
@@ -87,6 +89,8 @@ public:
 
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	void updateFromExternalFile(BaseContext& context) override;
+
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> textureFormat_{DEFAULT_VALUE_TEXTURE_FORMAT_RGBA8, {"Format"}, {EngineEnumeration::TextureFormat}};
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> mipmapLevel_{1, {"Mipmap Level"}, {1, 4}};
 

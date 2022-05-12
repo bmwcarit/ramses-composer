@@ -18,7 +18,7 @@ namespace raco::ramses_adaptor {
 
 PerspectiveCameraAdaptor::PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::PerspectiveCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesPerspectiveCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), & sceneAdaptor->logicEngine())},
+	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID())},
 	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::PerspectiveCamera::viewport_}, [this](auto) {
 		  tagDirty();
 	  })},

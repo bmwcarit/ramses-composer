@@ -14,16 +14,12 @@
 
 namespace raco::user_types {
 
-std::map<int, std::string> enumerationTextureOrigin{
-	{static_cast<int>(user_types::ETextureOrigin::Bottom), "Bottom left (OpenGL)"},
-	{static_cast<int>(user_types::ETextureOrigin::Top), "Top left (Direct 3D)"}};
-
 std::map<int, std::string> enumerationRenderLayerOrder{
 	{static_cast<int>(ERenderLayerOrder::Manual), "Render order value in 'Renderable Tags'"},
 	{static_cast<int>(ERenderLayerOrder::SceneGraph), "Scene graph order"}};
 
-std::map<int, std::string> enumerationRenderLayerMaterialFilterFlag{
-	{static_cast<int>(false), "Include materials with any of the listed tags"},
-	{static_cast<int>(true), "Exclude materials with any of the listed tags"}};
+std::map<int, std::string> enumerationRenderLayerMaterialFilterMode{
+	{static_cast<int>(ERenderLayerMaterialFilterMode::Inclusive), "Include materials with any of the listed tags"},
+	{static_cast<int>(ERenderLayerMaterialFilterMode::Exclusive), "Exclude materials with any of the listed tags"}};
 
 }  // namespace raco::user_types

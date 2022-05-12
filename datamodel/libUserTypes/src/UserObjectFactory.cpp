@@ -33,6 +33,7 @@
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
 #include "user_types/Texture.h"
+#include "user_types/Timer.h"
 
 namespace raco::user_types {
 
@@ -93,7 +94,8 @@ UserObjectFactory::UserObjectFactory() {
 		PerspectiveCamera,
 		LuaScript,
 		LuaScriptModule,
-        Texture,
+		Texture,
+		Timer,
 		RenderBuffer,
 		RenderLayer,
 		RenderTarget,
@@ -172,7 +174,8 @@ const std::map<std::string, UserObjectFactory::TypeDescriptor>& UserObjectFactor
 }
 
 bool UserObjectFactory::isUserCreatable(const std::string& type) const {
-	return type != core::ProjectSettings::typeDescription.typeName;
+	auto it = types_.find(type);
+	return it != types_.end() && type != core::ProjectSettings::typeDescription.typeName;
 }
 
 const std::map<std::string, UserObjectFactory::StructDescriptor>& UserObjectFactory::getStructTypes() const {

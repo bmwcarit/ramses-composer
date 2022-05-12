@@ -155,7 +155,7 @@ TEST_F(RenderLayerAdaptorTest, matfilter_toggle_invert) {
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode_def));
 	ASSERT_FALSE(engineGroup->containsMeshNode(*engineMeshNode_alt));
 
-	context.set({layer, {"invertMaterialFilter"}}, true);
+	context.set({layer, &raco::user_types::RenderLayer::materialFilterMode_}, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Exclusive));
 	dispatch();
 
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode));
@@ -309,7 +309,7 @@ TEST_F(RenderLayerAdaptorTest, matfilter_nested_toggle_invert) {
 	ASSERT_FALSE(engineGroup->containsMeshNode(*engineMeshNode_def));
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode_alt));
 
-	context.set({layer, {"invertMaterialFilter"}}, true);
+	context.set({layer, &raco::user_types::RenderLayer::materialFilterMode_}, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Exclusive));
 	dispatch();
 
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode));

@@ -17,13 +17,16 @@
 #include <optional>
 #include <set>
 
-namespace raco::property_browser {
+namespace raco::core {
 enum class TagType;
+}
+
+namespace raco::property_browser {
 
 class TagContainerEditor_AppliedTagModel : public QStandardItemModel {
 		Q_OBJECT
 	public:
-		TagContainerEditor_AppliedTagModel(QWidget* parent, TagType tagType);
+		TagContainerEditor_AppliedTagModel(QWidget* parent, raco::core::TagType tagType);
 
 		bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
 		bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
@@ -47,7 +50,8 @@ class TagContainerEditor_AppliedTagModel : public QStandardItemModel {
 			}
 			return newTags;
 		}
-		data_storage::Table tagTable() const;
+
+		std::vector<std::pair<std::string, int>> renderableTags() const;
 
 		inline static QString const addItemText_{ "<add tag>" };
 
@@ -63,7 +67,7 @@ class TagContainerEditor_AppliedTagModel : public QStandardItemModel {
 		int orderIndexForRow(int row) const;
 		int orderIndexForLastRow() const;
 
-		TagType const tagType_;
+		raco::core::TagType const tagType_;
 		QStandardItem* addTagWidgetItem_{ nullptr };
 		std::set<std::string> forbiddenTags_;
 	};

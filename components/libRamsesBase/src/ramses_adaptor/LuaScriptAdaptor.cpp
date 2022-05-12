@@ -100,7 +100,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 					}
 				}
 			}
-			luaScript_ = raco::ramses_base::ramsesLuaScript(&sceneAdaptor_->logicEngine(), scriptContent, luaConfig, modules, generateRamsesObjectName());
+			luaScript_ = raco::ramses_base::ramsesLuaScript(&sceneAdaptor_->logicEngine(), scriptContent, luaConfig, modules, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
 		}
 	}
 
@@ -118,7 +118,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 void LuaScriptAdaptor::readDataFromEngine(core::DataChangeRecorder &recorder) {
 	if (luaScript_) {
 		core::ValueHandle luaOutputs{editorObject_, &user_types::LuaScript::luaOutputs_};
-		getLuaOutputFromEngine(*luaScript_->getOutputs(), luaOutputs, recorder);
+		getOutputFromEngine(*luaScript_->getOutputs(), luaOutputs, recorder);
 	}
 }
 

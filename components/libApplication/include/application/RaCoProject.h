@@ -41,7 +41,7 @@ public:
 	Q_DISABLE_COPY(RaCoProject);
 	~RaCoProject();
 
-	static std::unique_ptr<RaCoProject> createNew(RaCoApplication* app);
+	static std::unique_ptr<RaCoProject> createNew(RaCoApplication* app, bool createDefaultScene = true);
 	/**
 	 * @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	 * @exception ExtrefError
@@ -51,13 +51,14 @@ public:
 	QString name() const;
 
 	bool dirty() const noexcept;
-	bool save();
-	bool saveAs(const QString& fileName, bool setProjectName = false);
+	bool save(std::string &outError);
+	bool saveAs(const QString& fileName, std::string& outError, bool setProjectName = false);
 
 	// @exception ExtrefError
 	void updateExternalReferences(std::vector<std::string>& pathStack);
 
 	raco::core::Project* project();
+	raco::core::Errors const* errors() const;
 	raco::core::Errors* errors();
 	raco::core::DataChangeRecorder* recorder();
 	raco::core::CommandInterface* commandInterface();
@@ -75,6 +76,9 @@ Q_SIGNALS:
 private:
 	// @exception ExtrefError
 	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, std::vector<std::string>& pathStack);
+
+	QJsonDocument serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
+
 
 	void onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath);
 	void generateProjectSubfolder(const std::string& subFolderPath);

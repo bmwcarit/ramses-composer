@@ -17,20 +17,14 @@
 
 namespace raco::property_browser {
 
-PropertyBrowserRef::PropertyBrowserRef(
-	raco::core::ValueHandle valueHandle,
-	raco::components::SDataChangeDispatcher dispatcher,
-	raco::core::CommandInterface* commandInterface,
-	PropertyBrowserItem* parent)
+PropertyBrowserRef::PropertyBrowserRef(PropertyBrowserItem* parent)
 	: QObject{parent},
 	  parent_{parent},
-	  commandInterface_{commandInterface},
-	  dispatcher_{dispatcher},
-	  subscription_{dispatcher->registerOn(parent_->valueHandle(), [this]() {
+	  subscription_{parent->dispatcher()->registerOn(parent_->valueHandle(), [this]() {
 		  updateIndex();
 		  Q_EMIT indexChanged(index_);
 	  })},
-	  lifecycleSub_{dispatcher->registerOnObjectsLifeCycle([this](auto) { update(); }, [this](auto) { update(); })} {
+	  lifecycleSub_{parent->dispatcher()->registerOnObjectsLifeCycle([this](auto) { update(); }, [this](auto) { update(); })} {
 	update();
 }
 
@@ -63,11 +57,11 @@ void PropertyBrowserRef::updateItems() noexcept {
 		}
 		items_.push_back({emptyRefDescription, "", ""});
 
-		auto validReferenceTargets = core::Queries::findAllValidReferenceTargets(*commandInterface_->project(), parent_->valueHandle());
+		auto validReferenceTargets = core::Queries::findAllValidReferenceTargets(*parent_->project(), parent_->valueHandle());
 		std::sort(validReferenceTargets.begin(), validReferenceTargets.end(), [](const auto& lhs, const auto& rhs) { return lhs->objectName() < rhs->objectName(); });
 
 		for (const auto& instance : validReferenceTargets) {
-			auto projName = commandInterface_->project()->getProjectNameForObject(instance, false);
+			auto projName = parent_->project()->getProjectNameForObject(instance, false);
 			const auto &objName = instance->objectName();
 			std::string displayObjectName;
 			std::string tooltip;
@@ -84,7 +78,7 @@ void PropertyBrowserRef::updateItems() noexcept {
 
 			items_.push_back({displayObjectName.c_str(), instance->objectID().c_str(), tooltip.c_str()});
 			// This seems a little bit of an overkill
-			objectNames_.push_back(dispatcher_->registerOn({instance, {"objectName"}}, [this]() { update(); }));
+			objectNames_.push_back(parent_->dispatcher()->registerOn({instance, {"objectName"}}, [this]() { update(); }));
 		}
 	}
 }

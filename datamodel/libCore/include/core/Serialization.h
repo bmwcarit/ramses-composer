@@ -122,7 +122,7 @@ using ProjectDeserializationInfoIR = GenericProjectDeserializationInfo<raco::ser
 int deserializeFileVersion(const QJsonDocument& document);
 ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document);
 
-ObjectsDeserialization deserializeObjects(const std::string& json);
+std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json);
 
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& jsonDocument, const std::string& filename);
 

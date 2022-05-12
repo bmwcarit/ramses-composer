@@ -59,8 +59,15 @@ namespace raco::serialization {
  * 28: Added zipability functionality to projects.
  *     Added "Save As Zipped File" option to Project Settings.
  * 29: CubeMap: added custom mipmap functionality (+ 18 URIs, 1 bool, 1 int property)
+ * 30: Animation property changes: removed loop, play, rewindOnStop properties and added progress property.
+ * 31: Added texture format enum property to Texture and CubeMap
+ * 32: Added Timer type
+ * 33: Added HiddenProperty annotation to all tag-related properties
+ * 34: Replaced RenderLayer invertMaterialFilter bool by materialFilterMode int property.
+ * 35: Removed redundant information from .rca file.
+ *     This needed changes in the loading code so the files can't be loaded with older version anymore.
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 29;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 35;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR);
 

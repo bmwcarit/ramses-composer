@@ -683,6 +683,9 @@ std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePro
 std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders) {
 	QJsonObject result{};
 
+	result.insert(keys::FILE_VERSION, RAMSES_PROJECT_FILE_VERSION);
+	result.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH});
+
 	if (!originFolder.empty()) {
 		result.insert(keys::ORIGIN_FOLDER, originFolder.c_str());
 	}
@@ -720,10 +723,22 @@ std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objec
 	return QJsonDocument{result}.toJson().toStdString();
 }
 
-ObjectsDeserialization deserializeObjects(const std::string& json) {
+std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json) {
 	auto& factory{user_types::UserObjectFactory::getInstance()};
 	ObjectsDeserialization result{};
-	auto container{QJsonDocument::fromJson(json.c_str()).object()};
+	auto document{QJsonDocument::fromJson(json.c_str())};
+	if (document.isNull()) {
+		return {};
+	}
+
+	auto container{document.object()};
+	if (container[keys::FILE_VERSION].isUndefined() || container[keys::FILE_VERSION].toInt() != RAMSES_PROJECT_FILE_VERSION) {
+		return {};
+	}
+	if (container[keys::RAMSES_COMPOSER_VERSION].isUndefined() || container[keys::RAMSES_COMPOSER_VERSION].toArray() != QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}) {
+		return {};
+	}
+
 	if (!container[keys::ORIGIN_FOLDER].isUndefined() && !container[keys::ORIGIN_FOLDER].toString().isEmpty()) {
 		result.originFolder = container[keys::ORIGIN_FOLDER].toString().toStdString();
 	}

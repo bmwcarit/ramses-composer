@@ -8,14 +8,14 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "TagContainerEditor_AppliedTagModel.h"
-#include "TagContainerEditor_TagDataCache.h"
+#include "core/TagDataCache.h"
 
 #include <QMimeData>
 #include <QWidget>
 
 namespace raco::property_browser {
 
-	TagContainerEditor_AppliedTagModel::TagContainerEditor_AppliedTagModel(QWidget* parent, TagType tagType) : QStandardItemModel(parent), tagType_(tagType) {
+	TagContainerEditor_AppliedTagModel::TagContainerEditor_AppliedTagModel(QWidget* parent, raco::core::TagType tagType) : QStandardItemModel(parent), tagType_(tagType) {
 		addTreeItemForAddTag();
 
 		QObject::connect(this, &QStandardItemModel::itemChanged, this, &TagContainerEditor_AppliedTagModel::tagChanged);
@@ -111,7 +111,7 @@ namespace raco::property_browser {
 		if (!isTagAllowed(tag)) return nullptr;
 		auto* treeWidgetItem = new QStandardItem(tag);
 		row = row >= 0 ? std::min(row, rowCount()-1) : (rowCount() - 1);
-		if (tagType_ == TagType::NodeTags_Referencing) {
+		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
 			if (!orderIndex.has_value()) {
 				if (row == rowCount() - 1) {
 					orderIndex = orderIndexForLastRow();
@@ -129,7 +129,7 @@ namespace raco::property_browser {
 
 	QStandardItem* TagContainerEditor_AppliedTagModel::addTreeItemForAddTag() {
 		auto* treeWidgetItem = new QStandardItem(addItemText_);
-		if (tagType_ == TagType::NodeTags_Referencing) {
+		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
 			auto* orderIndexItem = new QStandardItem();
 			appendRow({treeWidgetItem, orderIndexItem});
 		} else {
@@ -145,7 +145,7 @@ namespace raco::property_browser {
 
 	void TagContainerEditor_AppliedTagModel::tagChanged(QStandardItem* item) {
 		if (isAddTagItem(item) && item->text() != addItemText_) {
-			if (tagType_ == TagType::NodeTags_Referencing) {				
+			if (tagType_ == raco::core::TagType::NodeTags_Referencing) {				
 				setData(index(rowCount() - 1, 1), QVariant::fromValue(orderIndexForLastRow()), Qt::DisplayRole);
 			}
 			addTreeItemForAddTag();
@@ -162,28 +162,19 @@ namespace raco::property_browser {
 		return !s.isEmpty() && !containsTag(s) && forbiddenTags_.find(s.toStdString()) == forbiddenTags_.end();
 	}
 
-	data_storage::Table TagContainerEditor_AppliedTagModel::tagTable() const {
-		if (tagType_ == TagType::NodeTags_Referencing) {
-			std::vector<std::pair<std::string, int>> sortedTags;
+	std::vector<std::pair<std::string, int>> TagContainerEditor_AppliedTagModel::renderableTags() const {
+		std::vector<std::pair<std::string, int>> sortedTags;
+		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
 			for (int i = 0; i < rowCount(); ++i) {
 				if (isAddTagItem(item(i, 0))) continue;
 				std::string tagName = tagForRow(i).toStdString();
 				int orderIndex = orderIndexForRow(i);
 				sortedTags.insert(
-					std::upper_bound(sortedTags.begin(), sortedTags.end(), orderIndex, 	[](int oi, auto const& p) { return oi < p.second; }),
+					std::upper_bound(sortedTags.begin(), sortedTags.end(), orderIndex, [](int oi, auto const& p) { return oi < p.second; }),
 					{tagName, orderIndex});
 			}
-			data_storage::Table t;
-			for (auto const& p : sortedTags) {
-				t.addProperty(p.first, data_storage::PrimitiveType::Int);
-				t.get(p.first)->asInt() = p.second;
-			}
-			return t;
-		} else {
-			data_storage::Table t;
-			t.set(tags());
-			return t;
 		}
+		return sortedTags;
 	}
 
 }

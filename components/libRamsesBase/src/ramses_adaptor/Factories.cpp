@@ -25,6 +25,7 @@
 #include "ramses_adaptor/RenderPassAdaptor.h"
 #include "ramses_adaptor/RenderLayerAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
+#include "ramses_adaptor/TimerAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "user_types/CubeMap.h"
 #include "user_types/Texture.h"
@@ -62,6 +63,7 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		{user_types::RenderTarget::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderTargetAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderTarget>(obj)); }},
 		{user_types::RenderPass::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderPassAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderPass>(obj)); }},
 		{user_types::RenderLayer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderLayerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderLayer>(obj)); }},
+		{user_types::Timer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TimerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Timer>(obj)); }},
 
 		// LOGIC ENGINE
 		{user_types::LuaScript::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScript>(obj)); }}

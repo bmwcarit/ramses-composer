@@ -141,6 +141,7 @@ public:
 		return *this;
 	}
 
+	// This is really a raco::core::EngineEnumeration
 	raco::data_storage::Value<int> type_;
 };
 

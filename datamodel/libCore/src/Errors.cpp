@@ -77,6 +77,15 @@ bool Errors::hasError(const ValueHandle& handle) const noexcept {
 	return errors_.find(handle) != errors_.end();
 }
 
+bool Errors::hasError(ErrorLevel minLevel) const {
+	for (const auto& [handle, error] : errors_) {
+		if (error.level() >= minLevel) {
+			return true;
+		}
+	}
+	return false;
+}
+
 const ErrorItem& Errors::getError(const ValueHandle& handle) const noexcept {
 	return errors_.find(handle)->second;
 }

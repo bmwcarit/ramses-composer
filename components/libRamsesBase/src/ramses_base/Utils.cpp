@@ -9,11 +9,14 @@
  */
 #include "ramses_base/Utils.h"
 
-#include "user_types/LuaScriptModule.h"
 #include "data_storage/Table.h"
+#include "lodepng.h"
 #include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
+#include "user_types/LuaScriptModule.h"
+#include "utils/MathUtils.h"
 
+#include <ramses-client-api/TextureEnums.h>
 #include <ramses-logic/Logger.h>
 #include <ramses-logic/LogicEngine.h>
 #include <ramses-logic/LuaModule.h>
@@ -250,6 +253,124 @@ void setRamsesLogLevel(spdlog::level::level_enum level) {
 
 void setLogicLogLevel(spdlog::level::level_enum level) {
 	rlogic::Logger::SetLogVerbosityLimit(toLogicLogLevel(level));
+}
+
+PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat selectedTextureFormat, int colorType, int bitdepth) {
+	if (bitdepth != 8 && bitdepth != 16) {
+		return {"Invalid bit depth (only 8 or 16 bits allowed).", raco::core::ErrorLevel::ERROR, false};
+	} else if (bitdepth == 8 && (selectedTextureFormat == ramses::ETextureFormat::RGB16F || selectedTextureFormat == ramses::ETextureFormat::RGBA16F)) {
+		return {"Invalid texture format for bit depth (only 8-bit-based formats allowed).", raco::core::ErrorLevel::ERROR, false};
+	} else if (bitdepth == 16 && (selectedTextureFormat != ramses::ETextureFormat::RGB16F && selectedTextureFormat != ramses::ETextureFormat::RGBA16F)) {
+		return {"Invalid texture format for bit depth (only 16-bit-based formats allowed).", raco::core::ErrorLevel::ERROR, false};
+	}
+
+	static std::map<std::pair<int, int>, std::set<ramses::ETextureFormat>> compatibleTextureFormats = {
+		{{LCT_GREY, 8}, {ramses::ETextureFormat::R8}},
+		{{LCT_GREY_ALPHA, 8}, {ramses::ETextureFormat::RG8}},
+		{{LCT_RGB, 8}, {ramses::ETextureFormat::RGB8, ramses::ETextureFormat::SRGB8}},
+		{{LCT_RGBA, 8}, {ramses::ETextureFormat::RGBA8, ramses::ETextureFormat::SRGB8_ALPHA8}},
+		{{LCT_RGB, 16}, {ramses::ETextureFormat::RGB16F}},
+		{{LCT_RGBA, 16}, {ramses::ETextureFormat::RGBA16F}},
+		// palette format is unsupported but should still be convertable
+		{{LCT_PALETTE, 8}, {}},
+	};
+
+	std::pair<int, int> pngFormat = {colorType, bitdepth};
+	if (compatibleTextureFormats.find(pngFormat) == compatibleTextureFormats.end()) {
+		return {"Invalid PNG color type.", raco::core::ErrorLevel::ERROR, false};
+	}
+
+	auto compatiblePngFormat = compatibleTextureFormats[pngFormat].find(selectedTextureFormat);
+	if (compatiblePngFormat == compatibleTextureFormats[pngFormat].end()) {
+		auto colorTypeToString = [](auto colorType) {
+			switch (colorType) {
+				case (LCT_GREY):
+					return "GREY";
+				case (LCT_GREY_ALPHA):
+					return "GREY_ALPHA";
+				case (LCT_PALETTE):
+					return "PALETTE";
+				case (LCT_RGB):
+					return "RGB";
+				case (LCT_RGBA):
+					return "RGBA";
+				default:
+					return "UNKNOWN";
+			}
+		};
+
+		return {fmt::format("Selected format {} is not equal to PNG color type {} - image will be converted.", ramsesTextureFormatToString(selectedTextureFormat), colorTypeToString(colorType)), raco::core::ErrorLevel::WARNING, true};
+	}
+
+	return {"", raco::core::ErrorLevel::NONE, false};
+}
+
+int ramsesTextureFormatToPngFormat(ramses::ETextureFormat textureFormat) {
+	std::map<ramses::ETextureFormat, int> formats = {
+		{ramses::ETextureFormat::R8, LCT_GREY},
+
+		// no LCT_GREY_ALPHA for RG8 because it would not keep the RG channels as intended
+		{ramses::ETextureFormat::RG8, LCT_RGB},
+
+		{ramses::ETextureFormat::RGB8, LCT_RGB},
+		{ramses::ETextureFormat::RGBA8, LCT_RGBA},
+		{ramses::ETextureFormat::RGB16F, LCT_RGB},
+		{ramses::ETextureFormat::RGBA16F, LCT_RGBA},
+		{ramses::ETextureFormat::SRGB8, LCT_RGB},
+		{ramses::ETextureFormat::SRGB8_ALPHA8, LCT_RGBA}
+	};
+
+	auto foundFormat = formats.find(textureFormat);
+
+	return (foundFormat == formats.end()) ? LCT_RGBA : foundFormat->second;
+}
+
+std::string ramsesTextureFormatToString(ramses::ETextureFormat textureFormat) {
+	return std::string(ramses::getTextureFormatString(textureFormat)).substr(strlen("ETextureFormat_"));
+}
+
+int ramsesTextureFormatToChannelAmount(ramses::ETextureFormat textureFormat) {
+	switch (textureFormat) {
+		case ramses::ETextureFormat::R8:
+			return 1;
+		case ramses::ETextureFormat::RG8:
+			return 2;
+		case ramses::ETextureFormat::RGB8:
+		case ramses::ETextureFormat::RGB16F:
+		case ramses::ETextureFormat::SRGB8:
+			return 3;
+		case ramses::ETextureFormat::RGBA8:
+		case ramses::ETextureFormat::RGBA16F:
+		case ramses::ETextureFormat::SRGB8_ALPHA8:
+			return 4;
+		default:
+			return 0;
+	}
+}
+
+void normalize16BitColorData(std::vector<unsigned char>& data) {
+	// convert 16-bit byte data to 16-bit float data
+	// see ramses/integration/TestContent/src/Texture2DFormatScene.cpp in Ramses repo for example data
+	assert(data.size() % 2 == 0);
+
+	for (auto i = 0; i < data.size(); i += 2) {
+		auto dataHalfFloat = raco::utils::math::twoBytesToHalfFloat(data[i], data[i + 1]);
+		data[i] = dataHalfFloat;
+		data[i + 1] = dataHalfFloat >> 8;
+	}
+}
+
+std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector<unsigned char>& data) {
+	auto rgSize = data.size() - (data.size() / 3);
+	std::vector<unsigned char> dataWithoutBlue(rgSize);
+	auto j = 0;
+	for (auto i = 0; i < data.size(); ++i) {
+		if ((i + 1) % 3 != 0) {
+			dataWithoutBlue[j++] = data[i];
+		}
+	}
+
+	return dataWithoutBlue;
 }
 
 }  // namespace raco::ramses_base

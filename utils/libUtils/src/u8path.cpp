@@ -12,6 +12,7 @@
 #include "utils/stdfilesystem.h"
 #include <fstream>
 #include <algorithm>
+#include <cassert>
 
 namespace raco::utils {
 
@@ -102,6 +103,7 @@ bool operator!=(const u8path& lhs, const u8path& rhs) {
  }
 
  u8path u8path::normalizedRelativePath(const u8path& basePath) const {
+	 assert(basePath.is_absolute());
 	 if (is_relative()) {
 		 return normalized();
 	 } else {
@@ -113,6 +115,7 @@ bool operator!=(const u8path& lhs, const u8path& rhs) {
 }
 
 u8path u8path::normalizedAbsolutePath(const u8path& basePath) const {
+	assert(basePath.is_absolute());
 	if (is_absolute()) {
 		return normalized();
 	} else {

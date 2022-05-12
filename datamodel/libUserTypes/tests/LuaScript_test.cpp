@@ -118,11 +118,11 @@ TEST_F(LuaScriptTest, inputs_are_correctly_built) {
 TEST_F(LuaScriptTest, errorInterfaceMissing) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName, "myScript")};
 	TextFile scriptRunOnlyFile = makeFile("script1.lua", R"(
-function run()
+function run(IN,OUT)
 end
 )");
 	TextFile scriptInterfaceOnlyFile = makeFile("script2.lua", R"(
-function interface()
+function interface(IN,OUT)
 end
 )");
 	TextFile scriptWhitespaceOnlyFile = makeFile("script3.lua", " ");
@@ -146,23 +146,23 @@ end
 TEST_F(LuaScriptTest, arrayIsCorrectlyBuilt) {
 	auto script = create<LuaScript>("foo");
 	TextFile scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.float_array = ARRAY(5, FLOAT)
-	OUT.float_array = ARRAY(5, FLOAT)
+function interface(IN,OUT)
+	IN.float_array = Type:Array(5, Type:Float())
+	OUT.float_array = Type:Array(5, Type:Float())
 end
 
-function run()
+function run(IN,OUT)
 	OUT.float_array = IN.float_array
 end
 )");
 
 	TextFile scriptFile_2 = makeFile("script2.lua", R"(
-function interface()
-	IN.float_array = ARRAY(3, FLOAT)
-	OUT.float_array = ARRAY(3, FLOAT)
+function interface(IN,OUT)
+	IN.float_array = Type:Array(3, Type:Float())
+	OUT.float_array = Type:Array(3, Type:Float())
 end
 
-function run()
+function run(IN,OUT)
 	OUT.float_array = IN.float_array
 end
 )");
@@ -189,12 +189,12 @@ TEST_F(LuaScriptTest, outArrayOfStructs) {
 	ValueHandle uri{s.get("uri")};
 
 	TextFile scriptFile = makeFile("script.lua" , R"(
-function interface()
-	local FloatPair = { a = FLOAT, b = FLOAT }
-	IN.array = ARRAY(5, FloatPair)
+function interface(IN,OUT)
+	local FloatPair = { a = Type:Float(), b = Type:Float() }
+	IN.array = Type:Array(5, FloatPair)
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -237,15 +237,15 @@ TEST_F(LuaScriptTest, properties_are_correctly_sorted) {
 	ValueHandle uri{s.get("uri")};
 
 	auto scriptFile = makeFile("script.lua", R"(
-function interface()
-	IN.zz = INT
-	IN.aa = FLOAT
+function interface(IN,OUT)
+	IN.zz = Type:Int32()
+	IN.aa = Type:Float()
 
-	OUT.zz = INT
-	OUT.aa = FLOAT
+	OUT.zz = Type:Int32()
+	OUT.aa = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -255,20 +255,20 @@ end
 	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
 
 	auto scriptFile2 = makeFile("script2.lua", R"(
-function interface()
-	IN.zz = INT
-	IN.aa = FLOAT
-	IN.abc = INT
-	IN.za = STRING
-	IN.ff = BOOL
+function interface(IN,OUT)
+	IN.zz = Type:Int32()
+	IN.aa = Type:Float()
+	IN.abc = Type:Int32()
+	IN.za = Type:String()
+	IN.ff = Type:Bool()
 
-	OUT.zz = INT
-	OUT.aa = FLOAT
-	OUT.zzz = FLOAT
-	OUT.e = STRING
+	OUT.zz = Type:Int32()
+	OUT.aa = Type:Float()
+	OUT.zzz = Type:Float()
+	OUT.e = Type:String()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -299,20 +299,20 @@ TEST_F(LuaScriptTest, module_loaded_without_assigned_module_objects) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("coalas", "module", "anothermodule")
 
-function interface()
-	IN.zz = INT
-	IN.aa = FLOAT
-	IN.abc = INT
-	IN.za = STRING
-	IN.ff = BOOL
+function interface(IN,OUT)
+	IN.zz = Type:Int32()
+	IN.aa = Type:Float()
+	IN.abc = Type:Int32()
+	IN.za = Type:String()
+	IN.ff = Type:Bool()
 
-	OUT.zz = INT
-	OUT.aa = FLOAT
-	OUT.zzz = FLOAT
-	OUT.e = STRING
+	OUT.zz = Type:Int32()
+	OUT.aa = Type:Float()
+	OUT.zzz = Type:Float()
+	OUT.e = Type:String()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set(s.get("uri"), scriptFile);
@@ -337,20 +337,20 @@ TEST_F(LuaScriptTest, module_loaded_after_assigned_module_objects) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("coalas", "module", "anothermodule")
 
-function interface()
-	IN.zz = INT
-	IN.aa = FLOAT
-	IN.abc = INT
-	IN.za = STRING
-	IN.ff = BOOL
+function interface(IN,OUT)
+	IN.zz = Type:Int32()
+	IN.aa = Type:Float()
+	IN.abc = Type:Int32()
+	IN.za = Type:String()
+	IN.ff = Type:Bool()
 
-	OUT.zz = INT
-	OUT.aa = FLOAT
-	OUT.zzz = FLOAT
-	OUT.e = STRING
+	OUT.zz = Type:Int32()
+	OUT.aa = Type:Float()
+	OUT.zzz = Type:Float()
+	OUT.e = Type:String()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	auto moduleFile1  = makeFile("module1.lua", R"(
@@ -429,30 +429,30 @@ TEST_F(LuaScriptTest, module_caching) {
 	auto scriptFile1 = makeFile("script1.lua", R"(
 modules("coalas", "module", "anothermodule")
 
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	auto scriptFile2 = makeFile("script2.lua", R"(
 modules("coalas")
 
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	auto scriptFile3 = makeFile("script3.lua", R"(
 modules("coalas", "module", "anothermodule", "fourthmodule")
 
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -505,40 +505,40 @@ TEST_F(LuaScriptTest, module_loaded_with_redeclaration_of_standard_lua_module) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("math", "coalas")
 
-function interface()
-	IN.zz = INT
-	IN.aa = FLOAT
-	IN.abc = INT
-	IN.za = STRING
-	IN.ff = BOOL
+function interface(IN,OUT)
+	IN.zz = Type:Int32()
+	IN.aa = Type:Float()
+	IN.abc = Type:Int32()
+	IN.za = Type:String()
+	IN.ff = Type:Bool()
 
-	OUT.zz = INT
-	OUT.aa = FLOAT
-	OUT.zzz = FLOAT
-	OUT.e = STRING
+	OUT.zz = Type:Int32()
+	OUT.aa = Type:Float()
+	OUT.zzz = Type:Float()
+	OUT.e = Type:String()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	auto scriptFile2 = makeFile("script2.lua", R"(
 modules("coalas")
 
-function interface()
-	IN.zz = INT
-	IN.aa = FLOAT
-	IN.abc = INT
-	IN.za = STRING
-	IN.ff = BOOL
+function interface(IN,OUT)
+	IN.zz = Type:Int32()
+	IN.aa = Type:Float()
+	IN.abc = Type:Int32()
+	IN.za = Type:String()
+	IN.ff = Type:Bool()
 
-	OUT.zz = INT
-	OUT.aa = FLOAT
-	OUT.zzz = FLOAT
-	OUT.e = STRING
+	OUT.zz = Type:Int32()
+	OUT.aa = Type:Float()
+	OUT.zzz = Type:Float()
+	OUT.e = Type:String()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -580,18 +580,18 @@ TEST_F(LuaScriptTest, module_amount_to_zero) {
 	auto scriptFile1 = makeFile("script1.lua", R"(
 modules("coalas", "module", "anothermodule")
 
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
 	auto scriptFile2 = makeFile("script2.lua", R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -612,10 +612,10 @@ TEST_F(LuaScriptTest, module_error_messages_invalid_assigned) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("test", "coalas")
 
-function interface()	
+function interface(IN,OUT)	
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -648,10 +648,10 @@ TEST_F(LuaScriptTest, module_error_messages_two_invalid_assigned) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("test", "coalas")
 
-function interface()	
+function interface(IN,OUT)	
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -687,10 +687,10 @@ TEST_F(LuaScriptTest, module_error_messages_invalid_then_valid) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("test", "coalas")
 
-function interface()	
+function interface(IN,OUT)	
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -742,10 +742,10 @@ TEST_F(LuaScriptTest, module_error_messages_invalid_then_empty) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("test", "coalas")
 
-function interface()	
+function interface(IN,OUT)	
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -788,10 +788,10 @@ TEST_F(LuaScriptTest, module_error_messages_no_module_uri) {
 	auto scriptFile = makeFile("script.lua", R"(
 modules("test")
 
-function interface()	
+function interface(IN,OUT)	
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -809,16 +809,16 @@ TEST_F(LuaScriptTest, module_invalid_module_statement) {
 
 	auto scriptFile = makeFile("script.lua", R"(
 modules("test")
-function interface()	
+function interface(IN,OUT)	
 end
-function run()
+function run(IN,OUT)
 end
 )");
 	auto scriptFile2 = makeFile("script2.lua", R"(
 modules(123)
-function interface()	
+function interface(IN,OUT)	
 end
-function run()
+function run(IN,OUT)
 end
 )");
 

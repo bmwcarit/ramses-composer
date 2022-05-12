@@ -43,7 +43,7 @@ Int64Editor::Int64Editor(
 
 	// connect everything to our item values
 	{
-		QObject::connect(spinBox, &Int64SpinBox::valueChanged, item, [item](int64_t value) { item->set(value); });
+		QObject::connect(spinBox, &Int64SpinBox::valueEdited, item, [item](int64_t value) { item->set(value); });
 		QObject::connect(slider, &Int64Slider::valueEdited, item, [item](int64_t value) { item->set(value); });
 		QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [slider, spinBox](core::ValueHandle& handle) {
 			slider->setValue(handle.as<int64_t>());

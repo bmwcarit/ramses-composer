@@ -61,9 +61,11 @@ TEST_F(NodeAdaptorTest, context_node_name_change) {
 
 	EXPECT_EQ(nodes.size(), 1);
 	EXPECT_STREQ("Node Name", nodes[0]->getName());
+	EXPECT_EQ(select<rlogic::RamsesNodeBinding>(sceneContext.logicEngine(), "Node Name_NodeBinding")->getUserId(), node->objectIDAsRamsesLogicID());
 
 	context.set({node, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
 	EXPECT_STREQ("Changed", nodes[0]->getName());
+	EXPECT_EQ(select<rlogic::RamsesNodeBinding>(sceneContext.logicEngine(), "Changed_NodeBinding")->getUserId(), node->objectIDAsRamsesLogicID());
 }

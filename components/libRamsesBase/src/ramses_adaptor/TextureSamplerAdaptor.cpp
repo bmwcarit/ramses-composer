@@ -40,6 +40,9 @@ TextureSamplerAdaptor::TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::sh
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::anisotropy_}, [this]() {
 			  tagDirty();
 		  }),
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::textureFormat_}, [this]() {
+			  tagDirty();
+		  }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::flipTexture_}, [this]() {
 			  tagDirty();
 		  }),
@@ -51,11 +54,15 @@ TextureSamplerAdaptor::TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::sh
 		  })} {}
 
 bool TextureSamplerAdaptor::sync(core::Errors* errors) {
+	errors->removeError({editorObject()->shared_from_this()});
+	errors->removeError({editorObject()->shared_from_this(), &user_types::Texture::uri_});
+	errors->removeError({editorObject()->shared_from_this(), &user_types::Texture::textureFormat_});
+
 	textureData_ = nullptr;
 	std::string uri = editorObject()->uri_.asString();
 	if (!uri.empty()) {
 		// do not clear errors here, this is done earlier in Texture
-		textureData_ = createTexture();
+		textureData_ = createTexture(errors);
 		if (!textureData_) {
 			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': Couldn't load png file from '{}'", editorObject()->objectName(), uri);
 			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::Texture::uri_}, "Image file could not be loaded.");
@@ -71,9 +78,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 
 		infoText += fmt::format("Width: {} px\n", textureData_->getWidth());
 		infoText += fmt::format("Height: {} px\n\n", textureData_->getHeight());
-
-		std::string formatString{getTextureFormatString(textureData_->getTextureFormat())};		
-		infoText += fmt::format("Format: {}", formatString.substr(strlen("ETextureFormat_")));
+		infoText += fmt::format("Format: {}", ramsesTextureFormatToString(textureData_->getTextureFormat()));
 
 		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {editorObject()->shared_from_this()}, infoText);
 	}
@@ -96,27 +101,52 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-RamsesTexture2D TextureSamplerAdaptor::createTexture() {
+RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors) {
 	std::string pngPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Texture::uri_});
-
 	unsigned int width = 0;
 	unsigned int height = 0;
 	std::vector<unsigned char> data;
 
-	auto pngData = raco::utils::file::readBinary(pngPath);
-	const unsigned int ret = lodepng::decode(data, width, height, pngData);
+	auto rawBinaryData = raco::utils::file::readBinary(pngPath);
+
+	lodepng::State pngImportState;
+	pngImportState.decoder.color_convert = false;
+	lodepng_inspect(&width, &height, &pngImportState, rawBinaryData.data(), rawBinaryData.size());
+
+	auto& lodePngColorInfo = pngImportState.info_png.color;
+	auto selectedTextureFormat = static_cast<ramses::ETextureFormat>((*editorObject()->textureFormat_));
+
+	auto textureFormatCompatInfo = validateTextureColorTypeAndBitDepth(selectedTextureFormat, lodePngColorInfo.colortype, lodePngColorInfo.bitdepth);
+	if (textureFormatCompatInfo.errorLvl != raco::core::ErrorLevel::NONE) {
+		errors->addError(core::ErrorCategory::PARSE_ERROR, textureFormatCompatInfo.errorLvl, {editorObject()->shared_from_this(), &raco::user_types::Texture::textureFormat_}, textureFormatCompatInfo.errorMsg);
+		if (textureFormatCompatInfo.errorLvl == raco::core::ErrorLevel::ERROR) {
+			return nullptr;
+		}
+	}
+
+	auto ret = textureFormatCompatInfo.conversionNeeded
+		? lodepng::decode(data, width, height, rawBinaryData, static_cast<LodePNGColorType>(ramsesTextureFormatToPngFormat(selectedTextureFormat)), lodePngColorInfo.bitdepth)
+		: lodepng::decode(data, width, height, pngImportState, rawBinaryData);
 	if (ret != 0) {
 		return nullptr;
 	}
-	
+
+	if (selectedTextureFormat == ramses::ETextureFormat::RG8) {
+		data = raco::ramses_base::generateColorDataWithoutBlueChannel(data);
+	}
+
 	// PNG has top left origin. Flip it vertically if required to match U/V origin
-	if (*editorObject()->flipTexture_) { 
-		flipDecodedPicture(data, width, height);
-	} 
-	
+	if (*editorObject()->flipTexture_) {
+		flipDecodedPicture(data, raco::ramses_base::ramsesTextureFormatToChannelAmount(selectedTextureFormat), width, height, lodePngColorInfo.bitdepth);
+	}
+
+	if (lodePngColorInfo.bitdepth == 16) {
+		raco::ramses_base::normalize16BitColorData(data);
+	}
+
 	ramses::MipLevelData mipLevelData(static_cast<uint32_t>(data.size()), data.data());
 
-	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, width, height, 1, &mipLevelData, *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), selectedTextureFormat, width, height, 1, &mipLevelData, *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {
@@ -131,8 +161,8 @@ std::string TextureSamplerAdaptor::createDefaultTextureDataName() {
 	return this->editorObject()->objectName() + "_Texture2D";
 }
 
-void TextureSamplerAdaptor::flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int width, unsigned int height) {
-	unsigned lineSize = width * 4;
+void TextureSamplerAdaptor::flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int availableChannels, unsigned int width, unsigned int height, unsigned int bitdepth) {
+	unsigned lineSize = width * availableChannels * (bitdepth / 8);
 	for (unsigned y = 0; y < height / 2; y++) {
 		unsigned lineIndex = y * lineSize;
 		unsigned swapIndex = (height - y - 1) * lineSize;
@@ -162,7 +192,7 @@ std::vector<unsigned char>& TextureSamplerAdaptor::getFallbackTextureData(bool f
 		unsigned int height;
 		lodepng::decode(fallbackTextureData_[0], width, height, sBuffer);
 		fallbackTextureData_[1] = fallbackTextureData_[0];
-		flipDecodedPicture(fallbackTextureData_[1], width, height);
+		flipDecodedPicture(fallbackTextureData_[1], 4, width, height, 8);
 	}
 
 	return fallbackTextureData_[flipped];

@@ -31,7 +31,7 @@ public:
 
 private:
 	raco::ramses_base::RamsesAnimationNode animNode_;
-	std::array<raco::components::Subscription, 3> settingsSubscriptions_;
+	raco::components::Subscription progressSubscription_;
 	raco::components::Subscription dirtySubscription_;
 	raco::components::Subscription nameSubscription_;
 

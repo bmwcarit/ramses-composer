@@ -9,7 +9,8 @@
  */
 #include "property_browser/editors/TagContainerEditor.h"
 #include "TagContainerEditor/TagContainerEditor_Popup.h"
-#include "TagContainerEditor/TagContainerEditor_TagDataCache.h"
+#include "core/TagDataCache.h"
+#include "core/Queries_Tags.h"
 
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -33,22 +34,18 @@ namespace raco::property_browser {
 TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* parent) : PropertyEditor(item, parent) {
 	auto* layout{new PropertyBrowserGridLayout{this}};
 
-	if (&item->valueHandle().rootObject()->getTypeDescription() == &user_types::Material::typeDescription) {
-		tagType_ = TagType::MaterialTags;
-	} else if (&item->valueHandle().rootObject()->getTypeDescription() == &user_types::RenderLayer::typeDescription) {
-		// TODO: what is a good way of checking if the ValueHandle points to a specific known C++ class member?
-		// Would be nice to be able to write something like if(item->valueHandle().refersTo(&user_types::RenderLayer::renderableTags_))?
-		// Checking the property name hides the dependency of this code to the property?
-		// Or: make the TagType part of the TagContainerAnnotation? That would be easier and probably make more sense?
-		if (item->valueHandle().getPropName() == "materialFilterTags") {
-			tagType_ = TagType::MaterialTags;
-		} else if (item->valueHandle().getPropName() == "renderableTags") {
-			tagType_ = TagType::NodeTags_Referencing;
+	if (item->valueHandle().rootObject()->isType<user_types::Material>()) {
+		tagType_ = raco::core::TagType::MaterialTags;
+	} else if (item->valueHandle().rootObject()->isType<user_types::RenderLayer>()) {
+		if (item->valueHandle().isRefToProp(&user_types::RenderLayer::materialFilterTags_)) {
+			tagType_ = raco::core::TagType::MaterialTags;
+		} else if (item->valueHandle().isRefToProp(&user_types::RenderLayer::renderableTags_)) {
+			tagType_ = raco::core::TagType::NodeTags_Referencing;
 		} else {
-			tagType_ = TagType::NodeTags_Referenced;
+			tagType_ = raco::core::TagType::NodeTags_Referenced;
 		}
 	} else {
-		tagType_ = TagType::NodeTags_Referenced;
+		tagType_ = raco::core::TagType::NodeTags_Referenced;
 	}
 
 	layout->setColumnStretch(0, 0);
@@ -80,8 +77,8 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 			item->dispatcher()->registerOnPropertyChange("layer5", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
 			item->dispatcher()->registerOnPropertyChange("layer6", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
 			item->dispatcher()->registerOnPropertyChange("layer7", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
-			item->dispatcher()->registerOnPropertyChange("invertMaterialFilter", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
-			item->dispatcher()->registerOnPropertyChange("materialTags", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
+			item->dispatcher()->registerOnPropertyChange("materialFilterMode", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
+			item->dispatcher()->registerOnPropertyChange("materialFilterTags", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
 			item->dispatcher()->registerOnPropertyChange("renderableTags", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); })};
 		if (auto meshNode = item->valueHandle().rootObject()->as<user_types::MeshNode>(); meshNode != nullptr) {
 			materialPropertySubscription_ = item->dispatcher()->registerOn(core::ValueHandle{meshNode, &user_types::MeshNode::materials_}, [this]() { Q_EMIT tagCacheDirty(); });
@@ -113,7 +110,7 @@ void TagContainerEditor::editButtonClicked() const {
 
 void TagContainerEditor::updateTags() const {
 	tagList_->clear();
-	if (tagType_ == TagType::NodeTags_Referencing) {
+	if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
 		const auto order = static_cast<user_types::ERenderLayerOrder>(item_->valueHandle().rootObject()->as<user_types::RenderLayer>()->sortOrder_.asInt());		
 		std::map<int, QStringList> tagsSorted;
 		for (size_t index{0}; index < item_->valueHandle().size(); index++) {
@@ -144,7 +141,7 @@ void TagContainerEditor::updateRenderedBy() const {
 	if (!showRenderedBy()) {
 		return;
 	}
-	const auto tagData = TagDataCache::createTagDataCache(item_->project(), TagType::NodeTags_Referencing);
+	const auto tagData = raco::core::TagDataCache::createTagDataCache(item_->project(), raco::core::TagType::NodeTags_Referencing);
 	auto alltags = core::Queries::renderableTagsWithParentTags(item_->valueHandle().rootObject());
 	const auto rps = tagData->allRenderPassesForObjectWithTags(item_->valueHandle().rootObject(), alltags);
 	if (!rps.empty()) {

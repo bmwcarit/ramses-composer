@@ -1,11 +1,11 @@
-function interface()
-	IN.float = FLOAT
-	IN.int = INT
-	OUT.float = FLOAT
-	OUT.int = INT
+function interface(IN,OUT)
+	IN.float = Type:Float()
+	IN.int = Type:Int32()
+	OUT.float = Type:Float()
+	OUT.int = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.float = IN.float
 	OUT.int = IN.int
 end

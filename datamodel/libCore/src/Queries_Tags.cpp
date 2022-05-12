@@ -60,30 +60,50 @@ std::set<std::string> Queries::renderableTagsWithParentTags(SEditorObject obj) {
 	return tags;
 }
 
-bool Queries::isMeshNodeInMaterialFilter(user_types::SMeshNode const& obj, std::set<std::string> const& materialFilterTags, bool invertMaterialFilter) {
+bool Queries::isMeshNodeInMaterialFilter(user_types::SMeshNode const& obj, std::set<std::string> const& materialFilterTags, bool materialFilterExclusive) {
 	bool matFilterDiscarded = false;
 
 	if (!materialFilterTags.empty()) {
 		auto meshnode = obj->as<raco::user_types::MeshNode>();
 		auto material = meshnode->getMaterial(0);
 
-		if (!material && !invertMaterialFilter) {
+		if (!material && !materialFilterExclusive) {
 			matFilterDiscarded = true;
 		} else {
 			if (material) {
 				bool matHasTag = core::Queries::hasObjectAnyTag(material, materialFilterTags);
 
-				if (invertMaterialFilter && matHasTag || !invertMaterialFilter && !matHasTag) {
+				if (materialFilterExclusive && matHasTag || !materialFilterExclusive && !matHasTag) {
 					matFilterDiscarded = true;
 				}
 			} else {
-				// !material && invertMaterialFilter -> keep
+				// !material && materialFilterExclusive -> keep
 			}
 		}
 	} else {
-		matFilterDiscarded = !invertMaterialFilter;
+		matFilterDiscarded = !materialFilterExclusive;
 	}
 	return !matFilterDiscarded;
+}
+
+void Queries::findForbiddenTags(const TagDataCache& tagDataCache, SEditorObject const& object, std::set<std::string>& outForbiddenTags) {
+	if (auto const renderLayer = object->as<user_types::RenderLayer>()) {
+		tagDataCache.collectRenderableTagsFromRenderLayerChildren(renderLayer, outForbiddenTags);
+	}
+}
+
+void Queries::findForbiddenTags(const Project& project, SEditorObject const& object, std::set<std::string>& outForbiddenTags) {
+	auto tagDataCache = TagDataCache::createTagDataCache(&project, TagType::NodeTags_Referenced);
+	Queries::findForbiddenTags(*tagDataCache, object, outForbiddenTags);
+}
+
+void Queries::findRenderLayerForbiddenRenderableTags(const TagDataCache& tagDataCache, user_types::SRenderLayer const& renderLayer, std::set<std::string>& outForbiddenTags) {
+	tagDataCache.collectAppliedTagsFromRenderLayerParents(renderLayer, outForbiddenTags);
+}
+
+void Queries::findRenderLayerForbiddenRenderableTags(const Project& project, user_types::SRenderLayer const& renderLayer, std::set<std::string>& outForbiddenTags) {
+	auto tagDataCache = TagDataCache::createTagDataCache(&project, TagType::NodeTags_Referenced);
+	Queries::findRenderLayerForbiddenRenderableTags(*tagDataCache, renderLayer, outForbiddenTags);
 }
 
 }  // namespace raco::core

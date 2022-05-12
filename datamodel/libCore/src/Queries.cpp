@@ -101,7 +101,7 @@ std::vector<SEditorObject> Queries::findAllUnreferencedObjects(Project const& pr
 	// are referenced by them, but given that this function is mainly used to delete "unused" resources it
 	// seems to be better to return fewer rather than more objects.
 	for (auto instance : project.instances()) {
-		if (&instance->getTypeDescription() == &user_types::RenderPass::typeDescription) {
+		if (instance->isType<user_types::RenderPass>()) {
 			// Render passes cannot be referenced by anything - don't count them as unreferenced.
 			referenced.insert(instance);
 		}		
@@ -147,7 +147,6 @@ bool Queries::canDeleteUnreferencedResources(const Project& project) {
 	auto toRemove = Queries::findAllUnreferencedObjects(project, Queries::isResource);
 	return !toRemove.empty();
 }
-
 bool Queries::canDuplicateObjects(const std::vector<SEditorObject>& objects, const Project& project) {
 	if (objects.empty()) {
 		return false;
@@ -158,6 +157,31 @@ bool Queries::canDuplicateObjects(const std::vector<SEditorObject>& objects, con
 	for (const auto& obj : objects) {
 		if (obj->query<ExternalReferenceAnnotation>() || !Queries::canPasteIntoObject(project, obj->getParent()) || obj->getParent() != parentForAllObjs) {
 			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Queries::isValidReferenceTarget(Project const& project, const ValueHandle& handle, SEditorObject object) {
+	if (!handle.constValueRef()->canSetRef(object)) {
+		return false;
+	}
+
+	if (handle.isRefToProp(&user_types::PrefabInstance::template_)) {
+		auto inst = handle.rootObject()->as<user_types::PrefabInstance>();
+		// We can only create loops if the PrefabInstance is nested inside a Prefab:
+		if (auto prefab = PrefabOperations::findContainingPrefab(inst)) {
+			// Now the actual loop check:
+			// if the candidate prefab object depends via instantiations on the containing prefab
+			// of the instance then we have found a loop and will discard the object from the
+			// valid set.
+			std::vector<user_types::SPrefab> downstreamPrefabs;
+			PrefabOperations::prefabUpdateOrderDepthFirstSearch(prefab, downstreamPrefabs);
+
+			if (std::find(downstreamPrefabs.begin(), downstreamPrefabs.end(), object) != downstreamPrefabs.end()) {
+				return false;
+			}
 		}
 	}
 
@@ -292,7 +316,7 @@ bool Queries::canPasteObjectAsExternalReference(const SEditorObject& editorObjec
 }
 
 bool Queries::isProjectSettings(const SEditorObject& obj) {
-	return obj->getTypeDescription().typeName == ProjectSettings::typeDescription.typeName;
+	return obj->isType<ProjectSettings>();
 }
 
 bool Queries::isResource(const SEditorObject& object) {
@@ -335,25 +359,9 @@ bool Queries::isReadOnly(SEditorObject editorObj) {
 
 	// Prefab instance subtree is read-only with one exception:
 	// Lua scripts which are direct children of the prefab instance serve as the interface for the
-	// prefab instance: their lua input properties are modifyable. see exception below.
-	// This exception doesn't apply to prefab instance which are nested inside other prefab instances
-	auto inst = PrefabOperations::findContainingPrefabInstance(editorObj);
-	if (inst && inst != editorObj) {
-		// Exception: LuaScript objects which are direct children of a PrefabInstance which is not nested inside another PrefabInstance
-		// are not read-only.
-		if (!(&editorObj->getTypeDescription() == &user_types::LuaScript::typeDescription &&
-				editorObj->getParent() == inst &&
-				!PrefabOperations::findContainingPrefabInstance(inst->getParent()))) {
-			return true;
-		}
-	}
-
-	// PrefabInstances nested inside other PrefabInstances are also readonly
-	if (editorObj->as<user_types::PrefabInstance>()) {
-		auto parent = editorObj->getParent();
-		if (parent && PrefabOperations::findContainingPrefabInstance(parent)) {
-			return true;
-		}
+	// prefab instance: their lua input properties are modifyable. 
+	if (PrefabOperations::findContainingPrefabInstance(editorObj->getParent()) && !PrefabOperations::isInterfaceObject(editorObj)) {
+		return true;
 	}
 
 	return false;
@@ -369,14 +377,8 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 	// Lua scripts which are direct children of the prefab instance serve as the interface for the 
 	// prefab instance: their lua input properties are modifyable. see exception below.
 	// This exception doesn't apply to prefab instance which are nested inside other prefab instances
-	auto inst = PrefabOperations::findContainingPrefabInstance(handle.rootObject());
-	if (inst && inst != handle.rootObject()) {
-		// All properties other than the lua inputs in a LuaScript inside a PrefabInstance are read-only.
-		if (handle.rootObject()->as<user_types::LuaScript>()) {
-			if (!(handle.depth() > 0 && handle.getPropertyNamesVector()[0] == "luaInputs")) {
-				return true;
-			}
-		}
+	if (PrefabOperations::findContainingPrefabInstance(handle.rootObject()->getParent()) && !PrefabOperations::isInterfaceProperty(handle)) {
+		return true;
 	}
 
 	auto meshnode = handle.rootObject()->as<user_types::MeshNode>();
@@ -408,7 +410,10 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 }
 
 
-bool Queries::isHidden(const Project& project, const ValueHandle& handle) {
+bool Queries::isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle) {
+	if (handle.query<TagContainerAnnotation>() || handle.query<RenderableTagContainerAnnotation>()) {
+		return false;
+	}
 	if (handle.query<HiddenProperty>()) {
 		return true;
 	}
@@ -816,6 +821,9 @@ bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start
 	if (!(start && end && isValidLinkEnd(end) && isValidLinkStart(start) && checkLinkCompatibleTypes(start, end))) {
 		return false;
 	}
+	if (Queries::isReadOnly(project, end, true)) {
+		return false;
+	}
 	PropertyDescriptor startDesc{start.getDescriptor()};
 	PropertyDescriptor endDesc{end.getDescriptor()};
 	return linkSatisfiesConstraints(startDesc, endDesc) && !project.createsLoop(startDesc, endDesc);
@@ -888,6 +896,10 @@ std::vector<SEditorObject> Queries::filterForDeleteableObjects(Project const& pr
 		partitionPoint = std::partition(
 			partitionPoint, end,
 			[project, partitionPoint, begin, end](const SEditorObject& object) {
+
+				if (object->isType<ProjectSettings>()) {
+					return false;
+				}
 
 				// Block deletion if this object is a child of a prefab instance
 				if (auto parent = object->getParent(); parent) {

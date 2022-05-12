@@ -28,7 +28,7 @@ RenderLayerAdaptor::RenderLayerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_p
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::objectName_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::renderableTags_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::materialFilterTags_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::invertMaterialFilter_}, [this]() { tagDirty(); }),
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::materialFilterMode_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::sortOrder_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOnPropertyChange("children", [this](core::ValueHandle handle) { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOnPropertyChange("tags", [this](core::ValueHandle handle) { tagDirty(); }),
@@ -47,7 +47,7 @@ void RenderLayerAdaptor::buildRenderGroup(core::Errors* errors) {
 	std::vector<SEditorObject> topLevelNodes;
 	std::vector<user_types::SRenderLayer> layers;
 	for (auto const& child : sceneAdaptor_->project().instances()) {
-		if (!child->getParent() && child->getTypeDescription().typeName != raco::user_types::Prefab::typeDescription.typeName) {
+		if (!child->getParent() && !child->isType<raco::user_types::Prefab>()) {
 			topLevelNodes.emplace_back(child);
 		}
 		if (auto layer = child->as<user_types::RenderLayer>()) {
@@ -70,19 +70,19 @@ void RenderLayerAdaptor::buildRenderGroup(core::Errors* errors) {
 		}
 
 		bool sceneGraphOrder = sortOrder == raco::user_types::ERenderLayerOrder::SceneGraph;
-		buildRenderableOrder(errors, topLevelNodes, renderableTag, false, materialTags, *editorObject()->invertMaterialFilter_, orderIndex, sceneGraphOrder);
+		buildRenderableOrder(errors, topLevelNodes, renderableTag, false, materialTags, *editorObject()->materialFilterMode_ == static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Exclusive), orderIndex, sceneGraphOrder);
 		addNestedLayers(errors, layers, renderableTag, orderIndex, sceneGraphOrder);
 	}
 }
 
-void RenderLayerAdaptor::buildRenderableOrder(core::Errors* errors, std::vector<SEditorObject>& objs, const std::string& tag, bool parentActive, const std::set<std::string>& materialFilterTags, bool invertMaterialFilter, int32_t& orderIndex, bool sceneGraphOrder) {
+void RenderLayerAdaptor::buildRenderableOrder(core::Errors* errors, std::vector<SEditorObject>& objs, const std::string& tag, bool parentActive, const std::set<std::string>& materialFilterTags, bool materialFilterExclusive, int32_t& orderIndex, bool sceneGraphOrder) {
 
 	for (const auto& obj : objs) {
 		bool currentActive = parentActive || core::Queries::hasObjectTag(obj->as<user_types::Node>(), tag);
 
 		if (currentActive) {
-			if (obj->getTypeDescription().typeName == raco::user_types::MeshNode::typeDescription.typeName) {
-				if (core::Queries::isMeshNodeInMaterialFilter(obj->as<user_types::MeshNode>(), materialFilterTags, invertMaterialFilter)) {
+			if (obj->isType<raco::user_types::MeshNode>()) {
+				if (core::Queries::isMeshNodeInMaterialFilter(obj->as<user_types::MeshNode>(), materialFilterTags, materialFilterExclusive)) {
 					auto adaptor = sceneAdaptor_->lookup<MeshNodeAdaptor>(obj);
 					if (ramsesObject().containsMeshNode(adaptor->getRamsesObjectPointer())) {
 						if (ramsesObject().getMeshNodeOrder(adaptor->getRamsesObjectPointer()) != orderIndex) {
@@ -104,7 +104,7 @@ void RenderLayerAdaptor::buildRenderableOrder(core::Errors* errors, std::vector<
 
 		if (obj->children_->size() > 0) {
 			auto vec = obj->children_->asVector<SEditorObject>();
-			buildRenderableOrder(errors, vec, tag, currentActive, materialFilterTags, invertMaterialFilter, orderIndex, sceneGraphOrder);
+			buildRenderableOrder(errors, vec, tag, currentActive, materialFilterTags, materialFilterExclusive, orderIndex, sceneGraphOrder);
 		}
 	}
 }

@@ -45,13 +45,13 @@ public:
 		commandInterface.moveScenegraphChildren({meshnode_}, rootnode_);
 		commandInterface.moveScenegraphChildren({meshnodeInPrefab_}, prefab_);
 
-		commandInterface.set(ValueHandle{rootnode_, &Node::tags_}, std::vector<std::string>{"rntag1", "rntag2"});
-		commandInterface.set(ValueHandle{meshnode_, &MeshNode::tags_}, std::vector<std::string>{"tag1", "tag2"});
-		commandInterface.set(ValueHandle{renderLayer_, &RenderLayer::tags_}, std::vector<std::string>{"tag1", "tag2"});
-		commandInterface.set(ValueHandle{material_, &Material::tags_}, std::vector<std::string>{"mtag1"});
+		commandInterface.setTags(ValueHandle{rootnode_, &Node::tags_}, std::vector<std::string>{"rntag1", "rntag2"});
+		commandInterface.setTags(ValueHandle{meshnode_, &MeshNode::tags_}, std::vector<std::string>{"tag1", "tag2"});
+		commandInterface.setTags(ValueHandle{renderLayer_, &RenderLayer::tags_}, std::vector<std::string>{"tag1", "tag2"});
+		commandInterface.setTags(ValueHandle{material_, &Material::tags_}, std::vector<std::string>{"mtag1"});
 		commandInterface.set(ValueHandle{prefabInstance_, &PrefabInstance::template_}, prefab_);
-		commandInterface.set(ValueHandle{prefabInstance_, &PrefabInstance::tags_}, std::vector<std::string>{"pitag1", "pitag2"});
-		commandInterface.set(ValueHandle{meshnodeInPrefab_, &MeshNode::tags_}, std::vector<std::string>{"mnptag1", "mnptag2"});
+		commandInterface.setTags(ValueHandle{prefabInstance_, &PrefabInstance::tags_}, std::vector<std::string>{"pitag1", "pitag2"});
+		commandInterface.setTags(ValueHandle{meshnodeInPrefab_, &MeshNode::tags_}, std::vector<std::string>{"mnptag1", "mnptag2"});
 	}
 
 	SNode rootnode_;

@@ -14,14 +14,6 @@
 
 namespace raco::user_types {
 
-enum class ETextureOrigin {
-	Bottom = 0,
-	Top
-};
-
-extern std::map<int, std::string> enumerationTextureOrigin;
-
-
 enum class ERenderLayerOrder {
 	Manual = 0,
 	SceneGraph
@@ -29,6 +21,12 @@ enum class ERenderLayerOrder {
 
 extern std::map<int, std::string> enumerationRenderLayerOrder;
 
-extern std::map<int, std::string> enumerationRenderLayerMaterialFilterFlag;
+
+enum class ERenderLayerMaterialFilterMode {
+	Inclusive = 0,
+	Exclusive
+};
+
+extern std::map<int, std::string> enumerationRenderLayerMaterialFilterMode;
 
 }

@@ -20,7 +20,7 @@ class ObjectTreeViewPrefabModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewPrefabModelTest() : ObjectTreeViewDefaultModelTest() {
 		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewPrefabModel(&commandInterface, dataChangeDispatcher_, nullptr,
-			{	Animation::typeDescription.typeName,
+			{Animation::typeDescription.typeName,
 				Node::typeDescription.typeName,
 				MeshNode::typeDescription.typeName,
 				Prefab::typeDescription.typeName,
@@ -78,7 +78,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, TypesAllowedIntoIndexNode) {
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedOnTopLevel) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({} , newObj));
 		}
@@ -90,7 +90,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedUnderPref
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromTreeNodeID(prefab->objectID()), newObj));
 		}
@@ -99,7 +99,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedUnderPref
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckSceneGraphObjectsOnTopLevel) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (!raco::core::Queries::isResource(newObj)) {
 			if (typeName == Prefab::typeDescription.typeName) {
 				ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
@@ -115,7 +115,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckExternalSceneGraphObjectsU
 	auto prefabIndex = viewModel_->indexFromTreeNodeID(prefab->objectID());
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		if (!raco::core::Queries::isResource(newObj) && !raco::core::Queries::isProjectSettings(newObj)) {
 			if (newObj->as<Prefab>()) {
 				ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(prefabIndex, newObj));
@@ -221,14 +221,14 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsNothingIsAllowedUnderExtRef) {
 	auto extRefPrefabIndex = viewModel_->indexFromTreeNodeID(extRefPrefab->objectID());
 
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-		auto newObj = viewModel_->objectFactory()->createObject(typeName);
+		auto newObj = context.createObject(typeName);
 		ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefPrefabIndex, newObj));
 	}
 	
 	auto extRefGroupIndex = viewModel_->index(0, 0);
 	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
-	ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, viewModel_->objectFactory()->createObject(Node::typeDescription.typeName)));
-	ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, viewModel_->objectFactory()->createObject(Prefab::typeDescription.typeName)));
+	ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, context.createObject(Node::typeDescription.typeName)));
+	ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, context.createObject(Prefab::typeDescription.typeName)));
 }
 
 TEST_F(ObjectTreeViewPrefabModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {

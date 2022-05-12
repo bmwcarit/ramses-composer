@@ -32,11 +32,11 @@ TEST(ramses_logic, repeat_create_destroy_simple_script) {
 	rlogic::LogicEngine logicEngine;
 
 	std::string scriptText = R"(
-function interface()
-    OUT.out_float = FLOAT
+function interface(IN,OUT)
+    OUT.out_float = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 	for (unsigned i = 0; i < 10000; i++) {
@@ -49,19 +49,19 @@ end
 TEST(ramses_logic, relink_scriptToScript) {
 	rlogic::LogicEngine logicEngine;
 	auto* outScript = logicEngine.createLuaScript(R"(
-function interface()
-    OUT.out_float = FLOAT
+function interface(IN,OUT)
+    OUT.out_float = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	auto* inScript = logicEngine.createLuaScript(R"(
-function interface()
-    IN.in_float = FLOAT
+function interface(IN,OUT)
+    IN.in_float = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -90,12 +90,12 @@ TEST(ramses_logic, relink_scriptToNode) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
-function interface()
-	IN.in_float = FLOAT
-    OUT.out_vec3f = VEC3F
+function interface(IN,OUT)
+	IN.in_float = Type:Float()
+    OUT.out_vec3f = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_vec3f = { IN.in_float, 0.0, 0.0 }
 end
 )");
@@ -179,12 +179,12 @@ TEST(ramses_logic, linkUnlink_nodeBinding_single) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
-function interface()
-	IN.in_float = FLOAT
-    OUT.out_vec3f = VEC3F
+function interface(IN,OUT)
+	IN.in_float = Type:Float()
+    OUT.out_vec3f = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_vec3f = { IN.in_float, 0.0, 0.0 }
 end
 )");
@@ -219,12 +219,12 @@ TEST(ramses_logic, linkUnlink_nodeBinding_multi) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
-function interface()
-	IN.in_float = FLOAT
-    OUT.out_vec3f = VEC3F
+function interface(IN,OUT)
+	IN.in_float = Type:Float()
+    OUT.out_vec3f = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_vec3f = { IN.in_float, 0.0, 0.0 }
 end
 )");
@@ -264,12 +264,12 @@ TEST(ramses_logic, unlinkAndDestroy_nodeBinding) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
-function interface()
-	IN.in_float = FLOAT
-    OUT.out_vec3f = VEC3F
+function interface(IN,OUT)
+	IN.in_float = Type:Float()
+    OUT.out_vec3f = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_vec3f = { IN.in_float, 0.0, 0.0 }
 end
 )");
@@ -295,12 +295,12 @@ TEST(ramses_logic, unlinkAndDestroyScript_multipleLinks) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
-function interface()
-    OUT.translation = VEC3F
-    OUT.visibility = BOOL
+function interface(IN,OUT)
+    OUT.translation = Type:Vec3f()
+    OUT.visibility = Type:Bool()
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 
@@ -332,13 +332,13 @@ TEST(ramses_logic, arrayOfStruct_linking) {
 	rlogic::LogicEngine logicEngine;
 	auto scriptContent{
 		R"(
-function interface()
-	local FloatPair = { a = FLOAT, b = FLOAT }
-	IN.arrayOfStruct = ARRAY(2, FloatPair)
-	OUT.arrayOfStruct = ARRAY(2, FloatPair)
+function interface(IN,OUT)
+	local FloatPair = { a = Type:Float(), b = Type:Float() }
+	IN.arrayOfStruct = Type:Array(2, FloatPair)
+	OUT.arrayOfStruct = Type:Array(2, FloatPair)
 end
 
-function run()
+function run(IN,OUT)
 	OUT.arrayOfStruct = IN.arrayOfStruct
 end
 )"};
@@ -363,24 +363,24 @@ TEST(ramses_logic, array_linkToComponent) {
 	rlogic::LogicEngine logicEngine;
 	auto scriptContentFloatArray {
 R"(
-function interface()
-	IN.float_array = ARRAY(5, FLOAT)
-	OUT.float_array = ARRAY(5, FLOAT)
+function interface(IN,OUT)
+	IN.float_array = Type:Array(5, Type:Float())
+	OUT.float_array = Type:Array(5, Type:Float())
 end
 
-function run()
+function run(IN,OUT)
 	OUT.float_array = IN.float_array
 end
 )"
 	};
 	auto scriptContentFloat {
 R"(
-function interface()
-	IN.float = FLOAT
-	OUT.float = FLOAT
+function interface(IN,OUT)
+	IN.float = Type:Float()
+	OUT.float = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.float = IN.float
 end
 )"
@@ -404,12 +404,12 @@ TEST(ramses_logic, standardModules) {
 	rlogic::LogicEngine logicEngine;
 	auto scriptContentFloat{
 		R"(
-function interface()
-	IN.float = FLOAT
-	OUT.float = FLOAT
+function interface(IN,OUT)
+	IN.float = Type:Float()
+	OUT.float = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.float = math.cos(IN.float)
 end
 )"};
@@ -421,4 +421,64 @@ end
 	script->getInputs()->getChild("float")->set(pi);
 	ASSERT_TRUE(logicEngine.update());
 	ASSERT_EQ(-1.0, script->getOutputs()->getChild("float")->get<float>().value());
+}
+
+TEST(ramses_logic, weird_crash) {
+	rlogic::LogicEngine logicEngine;
+
+	std::string scriptText = R"(
+function interface(IN,OUT)
+    local craneGimbal = {
+        cam_Translation = Type:Vec3f(),
+        POS_ORIGIN_Translation = Type:Vec3f(),
+        PITCH_Rotation = Type:Vec3f(),
+        YAW_Rotation = Type:Vec3f()
+    }
+    
+    local viewport = {
+        offsetX = Type:Int32(),
+        offsetY = Type:Int32(),
+        width = Type:Int32(),
+        height = Type:Int32()
+    }
+    
+    local frustum_persp = {
+        nearPlane = Type:Float(),
+        farPlane =  Type:Float(),
+        fieldOfView = Type:Float(),
+        aspectRatio = Type:Float()
+    }
+    
+    local frustum_ortho = {
+        nearPlane = Type:Float(),
+        farPlane =  Type:Float(),
+        leftPlane = Type:Float(),
+        rightPlane = Type:Float(),
+        bottomPlane = Type:Float(),
+        topPlane = Type:Float()
+    }
+
+    OUT.CameraSettings = {
+        CraneGimbal = craneGimbal,
+        CraneGimbal_R = craneGimbal,
+		scene_camera = {
+            Viewport = viewport,
+            Frustum = frustum_persp,
+        },
+        ui_camera = {
+            Frustum = frustum_ortho,
+            Viewport = viewport,
+            translation = Type:Vec3f(), 
+        }
+	}
+end
+
+function run(IN,OUT)
+end
+)";
+	for (unsigned i = 0; i < 10000; i++) {
+		auto* script = logicEngine.createLuaScript(scriptText);
+		ASSERT_TRUE(script != nullptr);
+		ASSERT_TRUE(logicEngine.destroy(*script));
+	}
 }

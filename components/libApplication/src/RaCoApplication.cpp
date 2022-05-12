@@ -32,7 +32,7 @@ extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
 
 namespace raco::application {
 
-RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject)
+RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject, bool createDefaultScene)
 	: engine_{&engine},
 	  dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  dataChangeDispatcherEngine_{std::make_shared<raco::components::DataChangeDispatcher>()},
@@ -41,17 +41,8 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const Q
 	ramses_base::installLogicLogHandler();
 	// Preferences need to be initalized before we have a fist initial project
 	raco::components::RaCoPreferences::init();
-	std::vector<std::string> stack;
-	activeProject_ = initialProject.isEmpty() ? RaCoProject::createNew(this) : RaCoProject::loadFromFile(initialProject, this, stack);
-	externalProjectsStore_.setActiveProject(activeProject_.get());
 
-	logicEngineNeedsUpdate_ = true;
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
-
-	activeProject_->applyDefaultCachedPaths();
-	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
-
-	startTime_ = std::chrono::high_resolution_clock::now();
+	switchActiveRaCoProject(initialProject, createDefaultScene);
 }
 
 RaCoProject& RaCoApplication::activeRaCoProject() {
@@ -76,11 +67,11 @@ std::string RaCoApplication::activeProjectFolder() const {
 	return std::string();
 }
 
-void RaCoApplication::resetScene() {
+void RaCoApplication::resetSceneBackend() {
 	scenesBackend_->reset();
 }
 
-void RaCoApplication::switchActiveRaCoProject(const QString& file) {
+void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDefaultScene) {
 	externalProjectsStore_.clear();
 	activeProject_.reset();
 	scenesBackend_->reset();
@@ -88,7 +79,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file) {
 	dataChangeDispatcher_->assertEmpty();
 
 	std::vector<std::string> stack;
-	activeProject_ = file.isEmpty() ? RaCoProject::createNew(this) : RaCoProject::loadFromFile(file, this, stack);
+	activeProject_ = file.isEmpty() ? RaCoProject::createNew(this, createDefaultScene) : RaCoProject::loadFromFile(file, this, stack);
 
 	externalProjectsStore_.setActiveProject(activeProject_.get());
 
@@ -98,17 +89,27 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file) {
 	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
 
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
+	startTime_ = std::chrono::high_resolution_clock::now();
+	doOneLoop();
 }
 
-bool RaCoApplication::exportProject(const RaCoProject& project, const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError) const {
+bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) const {
 	// we currently only support export of active project currently
-	assert(&project == &activeRaCoProject());
+	if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
+		outError = "Export failed: scene contains Composer errors";
+		return false;
+	}
+	if (!sceneBackend()->sceneValid()) {
+		outError = "Export failed: scene contains Ramses errors";
+		return false;
+	}
 	auto status = scenesBackend_->currentScene()->saveToFile(ramsesExport.c_str(), compress);
 	if (status != ramses::StatusOK) {
 		outError = scenesBackend_->currentScene()->getStatusMessage(status);
 		return false;
 	}
 	rlogic::SaveFileConfig metadata;
+	metadata.setValidationEnabled(!forceExportWithErrors);
 	// Use JSON format for the metadata string to allow future extensibility
 	// CAREFUL: only include data here which we are certain all users agree to have included in the exported files.
 	metadata.setMetadataString(fmt::format(
@@ -135,8 +136,12 @@ void RaCoApplication::doOneLoop() {
 		scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
 	}
 
-	auto animNodes = engine_->logicEngine().getCollection<rlogic::AnimationNode>();
-	logicEngineNeedsUpdate_ |= (animNodes.size() > 0);
+	for (const auto& timerNode : engine_->logicEngine().getCollection<rlogic::TimerNode>()) {
+		if (timerNode->getInputs()->getChild("ticker_us")->get<int64_t>() == 0) {
+			logicEngineNeedsUpdate_ = true;
+			break;
+		}
+	}
 
 	auto elapsedTime = std::chrono::high_resolution_clock::now() - startTime_;
 	auto elapsedMsec = std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count();
@@ -162,12 +167,6 @@ void RaCoApplication::doOneLoop() {
 		logicEngineNeedsUpdate_ = false;
 	}
 
-	auto msecDiff = elapsedMsec - totalElapsedMsec_;
-	totalElapsedMsec_ = elapsedMsec;
-	// keep Ramses logic animation nodes dirty so they will keep running in the next loop
-	for (auto animNode : animNodes) {
-		animNode->getInputs()->getChild("timeDelta")->set(msecDiff / 1000.0F);
-	}
 	dataChangeDispatcher_->dispatch(dataChanges);
 }
 

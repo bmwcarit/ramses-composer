@@ -1,26 +1,30 @@
 
-function interface()
-	IN.float = FLOAT
-	IN.vector2f = VEC2F
-	IN.vector3f = VEC3F
-	IN.vector4f = VEC4F
-	IN.integer = INT
-	IN.integer64 = INT64
-	IN.vector2i = VEC2I
-	IN.vector3i = VEC3I
-	IN.vector4i = VEC4I
-	IN.bool = BOOL
-	IN.s = STRING
+function interface(IN,OUT)
+	IN.float = Type:Float()
+	IN.vector2f = Type:Vec2f()
+	IN.vector3f = Type:Vec3f()
+	IN.vector4f = Type:Vec4f()
+	IN.integer = Type:Int32()
+	IN.integer64 = Type:Int64()
+	IN.vector2i = Type:Vec2i()
+	IN.vector3i = Type:Vec3i()
+	IN.vector4i = Type:Vec4i()
+	IN.bool = Type:Bool()
+	IN.s = Type:String()
 
-	OUT.ofloat = FLOAT
-	OUT.ointeger = INT
-	OUT.ointeger64 = INT64
-	OUT.ovector3f = VEC3F
-	OUT.ovector4f = VEC4F
-	OUT.obool = BOOL
-	OUT.foo = FLOAT
-	OUT.bar = FLOAT
-	OUT.flag = BOOL
+	OUT.ofloat = Type:Float()
+	OUT.ointeger = Type:Int32()
+	OUT.ointeger64 = Type:Int64()
+	OUT.ovector2f = Type:Vec2f()
+	OUT.ovector3f = Type:Vec3f()
+	OUT.ovector4f = Type:Vec4f()
+	OUT.ovector2i = Type:Vec2i()
+	OUT.ovector3i = Type:Vec3i()
+	OUT.ovector4i = Type:Vec4i()
+	OUT.obool = Type:Bool()
+	OUT.foo = Type:Float()
+	OUT.bar = Type:Float()
+	OUT.flag = Type:Bool()
 end
 
 function init()
@@ -29,7 +33,7 @@ function init()
 	end
 end
 
-function run()
+function run(IN,OUT)
 	local v = IN.vector3f
 	-- OUT.ofloat = v[0]
 	OUT.ofloat = GLOBAL.test(IN.vector3f)

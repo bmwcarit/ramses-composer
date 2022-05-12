@@ -42,7 +42,7 @@ DoubleEditor::DoubleEditor(
 
 	// connect everything to our item values
 	{
-		QObject::connect(spinBox, &DoubleSpinBox::valueChanged, item, [item](double value) {
+		QObject::connect(spinBox, &DoubleSpinBox::valueEdited, item, [item](double value) {
 			item->set(value);
 		});
 		QObject::connect(slider, &DoubleSlider::valueEdited, item, [item](double value) {

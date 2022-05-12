@@ -1,7 +1,7 @@
-function interface()
-	IN.float = FLOAT
+function interface(IN,OUT)
+	IN.float = Type:Float()
 end
 
 
-function run()
+function run(IN,OUT)
 end

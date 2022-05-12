@@ -1,13 +1,13 @@
 
-function interface()
-	IN.choice = INT
-    IN.value = FLOAT
+function interface(IN,OUT)
+	IN.choice = Type:Int32()
+    IN.value = Type:Float()
     
-    OUT.value = STRING
+    OUT.value = Type:String()
 end
 
 
-function run()
+function run(IN,OUT)
     if IN.choice > 0 then
         OUT.value = IN.value
         error("WUFF")

@@ -8,7 +8,8 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "TagContainerEditor_Popup.h"
-#include "TagContainerEditor_TagDataCache.h"
+#include "core/Queries_Tags.h"
+#include "core/TagDataCache.h"
 #include "TagContainerEditor_AvailableTagsItemModel.h"
 #include "TagContainerEditor_AppliedTagModel.h"
 #include "TreeViewWithDel.h"
@@ -71,7 +72,7 @@ namespace raco::property_browser {
 		QCompleter* completer_;
 	};
 
-	TagContainerEditor_Popup::TagContainerEditor_Popup(PropertyBrowserItem* item, TagType tagType, QWidget* anchor) : PopupDialog{anchor, QString::fromStdString(item->valueHandle().rootObject()->objectName()) + "." +  QString::fromStdString(item->displayName())}, tagType_{tagType}, item_{item} {
+	TagContainerEditor_Popup::TagContainerEditor_Popup(PropertyBrowserItem* item, raco::core::TagType tagType, QWidget* anchor) : PopupDialog{anchor, QString::fromStdString(item->valueHandle().rootObject()->objectName()) + "." +  QString::fromStdString(item->displayName())}, tagType_{tagType}, item_{item} {
 		listOfTags_ = std::make_unique<TreeViewWithDel>(this);
 		availableTagsItemModel_ = new TagContainerEditor_AvailableTagsItemModel(&listOfAvailableTags_);
 		tagListItemModel_ = new TagContainerEditor_AppliedTagModel(listOfTags_.get(), tagType_);
@@ -83,7 +84,7 @@ namespace raco::property_browser {
 
 		// Set up list of tags
 		for (size_t index{ 0 }; index < item->valueHandle().size(); index++) {
-			if (tagType_ == TagType::NodeTags_Referencing) {
+			if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
 				tagListItemModel_->addTag(item->valueHandle()[index].getPropName(), -1,
 					item->valueHandle()[index].asInt());
 				
@@ -93,12 +94,12 @@ namespace raco::property_browser {
 		}
 		listOfTags_->setDragEnabled(true);
 		listOfTags_->setAcceptDrops(true);
-		listOfTags_->setDropIndicatorShown(tagType == TagType::NodeTags_Referencing);
+		listOfTags_->setDropIndicatorShown(tagType == raco::core::TagType::NodeTags_Referencing);
 		listOfTags_->setDefaultDropAction(Qt::MoveAction);
 		completer_.setModel(availableTagsItemModel_);
 		listOfTags_->setItemDelegate(new TreeViewItemWithFullWidthEditor(listOfTags_.get(), &completer_));
 		listOfTags_->setModel(tagListItemModel_);
-		if (tagType_ == TagType::NodeTags_Referencing) {
+		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
 			tagListItemModel_->setHorizontalHeaderLabels({"Applied tags", "Render Order"});
 			listOfTags_->header()->setStretchLastSection(false);
 			listOfTags_->header()->setSectionResizeMode(0, QHeaderView::ResizeMode::Stretch);
@@ -111,7 +112,7 @@ namespace raco::property_browser {
 			tagListItemModel_->setHorizontalHeaderLabels({"Applied tags"});
 		}
 
-		tagDataCache_ = TagDataCache::createTagDataCache(item->project(), tagType);
+		tagDataCache_ = raco::core::TagDataCache::createTagDataCache(item->project(), tagType);
 
 		onTagListUpdated();
 		
@@ -122,9 +123,9 @@ namespace raco::property_browser {
 			auto const tag = QString::fromStdString(p.first);
 			QStringList listOfRenderLayerNames;
 			for (auto const& r : p.second.referencingObjects_) {
-				if (tagType_ == TagType::MaterialTags) {
+				if (tagType_ == raco::core::TagType::MaterialTags) {
 					auto renderLayer = std::dynamic_pointer_cast<user_types::RenderLayer>(r);
-					listOfRenderLayerNames.push_back((*renderLayer->invertMaterialFilter_ ? "+" : "-") + QString::fromStdString(r->objectName()));
+					listOfRenderLayerNames.push_back((*renderLayer->materialFilterMode_ == static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Exclusive) ? "+" : "-") + QString::fromStdString(r->objectName()));
 				}
 				else {
 					listOfRenderLayerNames.push_back(QString::fromStdString(r->objectName()));
@@ -177,7 +178,11 @@ namespace raco::property_browser {
 	}
 
 	void TagContainerEditor_Popup::newTagListAccepted() {
-		item_->set(tagListItemModel_->tagTable());
+		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
+			item_->setTags(tagListItemModel_->renderableTags());
+		} else {
+			item_->setTags(tagListItemModel_->tags());
+		}
 		accept();
 	}
 
@@ -197,41 +202,15 @@ namespace raco::property_browser {
 		auto appliedTags = tagListItemModel_->tags();
 		forbiddenTags_ = { appliedTags.begin(), appliedTags.end() };
 		switch (tagType_) {
-			case TagType::MaterialTags: {
+			case raco::core::TagType::MaterialTags: {
 				break;
 			}
-			case TagType::NodeTags_Referenced: {				
-				std::function<void(user_types::SRenderLayer const&, std::set<std::string>&)> collectRenderableTagsFromRenderLayerChildren = [this, &collectRenderableTagsFromRenderLayerChildren](user_types::SRenderLayer const& renderLayer, std::set<std::string>& allTags) -> void {
-					auto const newRenderLayerRenderableTags = renderLayer->renderableTags();
-					for (auto const& newRenderLayerTag : newRenderLayerRenderableTags) {
-						if (allTags.emplace(newRenderLayerTag).second) {
-							// New tag.
-							auto taggedRenderLayers = tagDataCache_->allTaggedObjects<user_types::RenderLayer>(newRenderLayerTag);
-							for (auto const& newRenderLayer : taggedRenderLayers) {
-								collectRenderableTagsFromRenderLayerChildren(newRenderLayer, allTags);
-							}
-						}
-					}
-				};
-				if(auto const renderLayer = item_->valueHandle().rootObject()->as<user_types::RenderLayer>()) {
-					collectRenderableTagsFromRenderLayerChildren(renderLayer, forbiddenTags_);
-				}
+			case raco::core::TagType::NodeTags_Referenced: {				
+				raco::core::Queries::findForbiddenTags(*tagDataCache_, item_->valueHandle().rootObject(), forbiddenTags_);
 				break;
 			}
-			case TagType::NodeTags_Referencing: {
-				std::function<void(user_types::SRenderLayer const&, std::set<std::string>&)> collectAppliedTagsFromRenderLayerParents = [this, &collectAppliedTagsFromRenderLayerParents](user_types::SRenderLayer const& renderLayer, std::set<std::string>& allTags) -> void {
-					auto const newRenderLayerAppliedTags = TagDataCache::tagsFromTable(renderLayer->tags_.asTable());
-					for (auto const& newRenderLayerTag : newRenderLayerAppliedTags) {
-						if (allTags.emplace(newRenderLayerTag).second) {
-							// New tag.
-							auto referencingRenderLayers = tagDataCache_->allReferencingObjects<user_types::RenderLayer>(newRenderLayerTag);
-							for (auto const& newRenderLayer : referencingRenderLayers) {
-								collectAppliedTagsFromRenderLayerParents(newRenderLayer, allTags);
-							}
-						}
-					}
-				};
-				collectAppliedTagsFromRenderLayerParents(item_->valueHandle().rootObject()->as<user_types::RenderLayer>(), forbiddenTags_);
+			case raco::core::TagType::NodeTags_Referencing: {
+				raco::core::Queries::findRenderLayerForbiddenRenderableTags(*tagDataCache_, item_->valueHandle().rootObject()->as<user_types::RenderLayer>(), forbiddenTags_);
 				break;
 			}
 		}

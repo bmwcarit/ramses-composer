@@ -1,7 +1,7 @@
 modules("m1","m2")
 
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end

@@ -576,7 +576,12 @@ void BaseContext::restoreReferences(const Project& project, std::vector<SEditorO
 }
 
 std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralizedObjects, const SEditorObject& target, bool pasteAsExtref) {
-	auto deserialization{raco::serialization::deserializeObjects(seralizedObjects)};
+	auto deserialization_opt{raco::serialization::deserializeObjects(seralizedObjects)};
+	if (!deserialization_opt) {
+		throw std::runtime_error("Paste Objects: data has invalid format.");
+	}
+
+	auto& deserialization{*deserialization_opt};
 
 	if (deserialization.objects.size() == 0) {
 		return {};
@@ -1052,7 +1057,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 					LOG_DEBUG(log_system::CONTEXT, "Searching for material {} which belongs to MeshNode {}", glTFMaterialName, meshScenegraphNode.name);
 					auto foundMaterial = Queries::findByName(projectMaterials, glTFMaterialName);
 
-					if (foundMaterial && foundMaterial->getTypeDescription().typeName == user_types::Material::typeDescription.typeName) {
+					if (foundMaterial && foundMaterial->isType<user_types::Material>()) {
 						LOG_DEBUG(log_system::CONTEXT, "Found matching material {} in project resources, will reassign current MeshNode material to it", glTFMaterialName);
 						set(ValueHandle{submeshNode}.get("materials")[0].get("material"), foundMaterial);
 					}
@@ -1132,8 +1137,6 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		auto samplerSize = scenegraph.animationSamplers.at(animationIndex).size();
 		auto& newAnim = scenegraphAnims.emplace_back(createObject(raco::user_types::Animation::typeDescription.typeName, fmt::format("{}", meshAnim.name)));
 		newAnim->as<raco::user_types::Animation>()->setChannelAmount(samplerSize);
-		set({newAnim, {"play"}}, true);
-		set({newAnim, {"loop"}}, true);
 		moveScenegraphChildren({newAnim}, sceneRootNode);
 		LOG_INFO(log_system::CONTEXT, "Assigning animation samplers to animation '{}'...", meshAnim.name);
 		for (auto samplerIndex = 0; samplerIndex < samplerSize; ++samplerIndex) {

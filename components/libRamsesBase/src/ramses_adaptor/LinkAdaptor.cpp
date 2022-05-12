@@ -91,7 +91,7 @@ void LinkAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	if (destAdaptor && destHandle && editorLink_.isValid) {
 		auto endProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
 		if (endProp) {
-			getLuaOutputFromEngine(*endProp, destHandle, recorder);
+			getOutputFromEngine(*endProp, destHandle, recorder);
 		}
 	}
 }

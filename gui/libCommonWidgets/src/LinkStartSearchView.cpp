@@ -63,7 +63,7 @@ LinkStartSearchView::LinkStartSearchView(components::SDataChangeDispatcher dispa
 	  filterModel_{},
 	  projectChanges_{dispatcher->registerOnObjectsLifeCycle(
 		  [this, dispatcher](raco::core::SEditorObject obj) {
-            if (obj->getTypeDescription().typeName == raco::user_types::LuaScript::typeDescription.typeName) {
+            if (obj->isType<raco::user_types::LuaScript>()) {
                 outputsChanges_[obj] = dispatcher->registerOnPreviewDirty(obj, [this]() {
                     rebuild();
                 });

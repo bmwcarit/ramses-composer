@@ -18,10 +18,8 @@ using namespace raco::ramses_base;
 AnimationAdaptor::AnimationAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimation animation)
 	: UserTypeObjectAdaptor{sceneAdaptor, animation},
 	  animNode_{sceneAdaptor_->defaultAnimation()},
-	  settingsSubscriptions_{
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::play_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::loop_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::rewindOnStop_}, [this]() { tagDirty(); })},
+	  progressSubscription_{
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::progress_}, [this]() { tagDirty(); })},
 	  dirtySubscription_{
 		  sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })},
 	  nameSubscription_{
@@ -85,7 +83,7 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 			}
 		}
 
-		animNode_ = raco::ramses_base::ramsesAnimationNode(&sceneAdaptor_->logicEngine(), config, newChannelHandles, editorObject_->objectName());
+		animNode_ = raco::ramses_base::ramsesAnimationNode(&sceneAdaptor_->logicEngine(), config, newChannelHandles, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 		if (!animNode_) {
 			animNode_ = sceneAdaptor_->defaultAnimation();
 		}
@@ -100,20 +98,16 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 
 void AnimationAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	core::ValueHandle animOutputs{editorObject_, &user_types::Animation::animationOutputs};
-	getLuaOutputFromEngine(*(*animNode_)->getOutputs(), animOutputs, recorder);
+	getOutputFromEngine(*(*animNode_)->getOutputs(), animOutputs, recorder);
 }
 
 void AnimationAdaptor::updateGlobalAnimationSettings() {
-	// This rlogic property is currently being set in RaCoApplication::doOneLoop()
-	//animNode_->getInputs()->getChild("timeDelta")->set(static_cast<float>(TIME_DELTA * editorObject_->speed_.asDouble()));
-
-	(*animNode_)->getInputs()->getChild("play")->set(editorObject_->play_.asBool());
-	(*animNode_)->getInputs()->getChild("loop")->set(editorObject_->loop_.asBool());
-	(*animNode_)->getInputs()->getChild("rewindOnStop")->set(editorObject_->rewindOnStop_.asBool());
+	(*animNode_)->getInputs()->getChild("progress")->set<float>(*editorObject_->progress_);
 }
 
 void AnimationAdaptor::updateGlobalAnimationStats(core::Errors* errors) {
-	auto infoText = fmt::format("Total Duration: {:.2f} s", (*animNode_)->getDuration());
+	auto duration = (*animNode_)->getOutputs()->getChild("duration")->get<float>().value();
+	auto infoText = fmt::format("Total Duration: {:.2f} s", duration);
 	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, {editorObject_->shared_from_this(), {"animationOutputs"}}, infoText);
 }
 

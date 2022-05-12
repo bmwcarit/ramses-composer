@@ -30,11 +30,11 @@ TEST_F(LinkAdaptorFixture, linkCreationOneLink) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 	raco::utils::file::write((test_path() / "lua_script.lua").string(), R"(
-function interface()
-	IN.x = FLOAT
-	OUT.translation = VEC3F
+function interface(IN,OUT)
+	IN.x = Type:Float()
+	OUT.translation = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.translation = { IN.x, 0.0, 0.0 }
 end
 	)");
@@ -64,11 +64,11 @@ TEST_F(LinkAdaptorFixture, linkWorksIfScriptContentChanges) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 	raco::utils::file::write((test_path() / "lua_script.lua").string(), R"(
-function interface()
-	IN.x = FLOAT
-	OUT.translation = VEC3F
+function interface(IN,OUT)
+	IN.x = Type:Float()
+	OUT.translation = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.translation = { IN.x, 0.0, 0.0 }
 end
 	)");
@@ -84,11 +84,11 @@ end
 	ASSERT_TRUE(backend.logicEngine().update());
 
 	raco::utils::file::write((test_path() / "lua_script.lua").string(), R"(
-function interface()
-	IN.x = FLOAT
-	OUT.translation = VEC3F
+function interface(IN,OUT)
+	IN.x = Type:Float()
+	OUT.translation = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.translation = { IN.x, 5.0, 0.0 }
 end
 	)");
@@ -111,11 +111,11 @@ TEST_F(LinkAdaptorFixture, linkUnlinkLink) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 	raco::utils::file::write((test_path() / "lua_script.lua").string(), R"(
-function interface()
-	IN.x = FLOAT
-	OUT.translation = VEC3F
+function interface(IN,OUT)
+	IN.x = Type:Float()
+	OUT.translation = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.translation = { IN.x, 0.0, 0.0 }
 end
 	)");
@@ -173,29 +173,29 @@ TEST_F(LinkAdaptorFixture, linkStruct) {
 	const auto luaScriptOut{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script_out", "lua_script_out_id")};
 	const auto luaScriptIn{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script_in", "lua_script_in_id")};
 	raco::utils::file::write((test_path() / "lua_script_out.lua").string(), R"(
-function interface()
-	IN.x = FLOAT
+function interface(IN,OUT)
+	IN.x = Type:Float()
 	OUT.a = {
-		a = FLOAT,
-		b = FLOAT
+		a = Type:Float(),
+		b = Type:Float()
 	}
 end
-function run()
+function run(IN,OUT)
     OUT.a.a = IN.x
     OUT.a.b = IN.x
 end
 )");
 	context.set({luaScriptOut, {"uri"}}, (test_path() / "lua_script_out.lua").string());
 	raco::utils::file::write((test_path() / "lua_script_in.lua").string(), R"(
-function interface()
-	OUT.a = FLOAT
-	OUT.b = FLOAT
+function interface(IN,OUT)
+	OUT.a = Type:Float()
+	OUT.b = Type:Float()
 	IN.a = {
-		a = FLOAT,
-		b = FLOAT
+		a = Type:Float(),
+		b = Type:Float()
 	}
 end
-function run()
+function run(IN,OUT)
     OUT.a = IN.a.a
     OUT.b = IN.a.b
 end
@@ -214,11 +214,11 @@ TEST_F(LinkAdaptorFixture, linkQuaternion) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out.lua").string(), R"(
-function interface()
-	IN.x = VEC4F
-	OUT.x = VEC4F
+function interface(IN,OUT)
+	IN.x = Type:Vec4f()
+	OUT.x = Type:Vec4f()
 end
-function run()
+function run(IN,OUT)
     OUT.x = IN.x    
 end
 )");
@@ -250,13 +250,13 @@ TEST_F(LinkAdaptorFixture, linkEulerAfterQuaternion) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out.lua").string(), R"(
-function interface()
-	IN.vec4 = VEC4F
-	IN.vec3 = VEC3F
-	OUT.vec4 = VEC4F
-	OUT.vec3 = VEC3F
+function interface(IN,OUT)
+	IN.vec4 = Type:Vec4f()
+	IN.vec3 = Type:Vec3f()
+	OUT.vec4 = Type:Vec4f()
+	OUT.vec3 = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec4 = IN.vec4
     OUT.vec3 = IN.vec3
 end
@@ -296,13 +296,13 @@ TEST_F(LinkAdaptorFixture, linkQuaternionAfterEuler) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out.lua").string(), R"(
-function interface()
-	IN.vec4 = VEC4F
-	IN.vec3 = VEC3F
-	OUT.vec4 = VEC4F
-	OUT.vec3 = VEC3F
+function interface(IN,OUT)
+	IN.vec4 = Type:Vec4f()
+	IN.vec3 = Type:Vec3f()
+	OUT.vec4 = Type:Vec4f()
+	OUT.vec3 = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec4 = IN.vec4
     OUT.vec3 = IN.vec3
 end
@@ -342,21 +342,21 @@ TEST_F(LinkAdaptorFixture, linkQuaternionToEulerByURIChange) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
-function interface()
-	IN.vec = VEC4F
-	OUT.vec = VEC4F
+function interface(IN,OUT)
+	IN.vec = Type:Vec4f()
+	OUT.vec = Type:Vec4f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 end
 )");
 
 	raco::utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
-function interface()
-	IN.vec = VEC3F
-	OUT.vec = VEC3F
+function interface(IN,OUT)
+	IN.vec = Type:Vec3f()
+	OUT.vec = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 end
 )");
@@ -381,21 +381,21 @@ TEST_F(LinkAdaptorFixture, linkEulerToQuaternionByURIChange) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
-function interface()
-	IN.vec = VEC4F
-	OUT.vec = VEC4F
+function interface(IN,OUT)
+	IN.vec = Type:Vec4f()
+	OUT.vec = Type:Vec4f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 end
 )");
 
 	raco::utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
-function interface()
-	IN.vec = VEC3F
-	OUT.vec = VEC3F
+function interface(IN,OUT)
+	IN.vec = Type:Vec3f()
+	OUT.vec = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 end
 )");
@@ -420,13 +420,13 @@ TEST_F(LinkAdaptorFixture, linkQuaternionStaysAfterTranslationLinkRemoval) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
-function interface()
-	IN.vec = VEC4F
-	OUT.vec = VEC4F
-	IN.transl = VEC3F
-	OUT.transl = VEC3F
+function interface(IN,OUT)
+	IN.vec = Type:Vec4f()
+	OUT.vec = Type:Vec4f()
+	IN.transl = Type:Vec3f()
+	OUT.transl = Type:Vec3f()
 end
-function run()
+function run(IN,OUT)
     OUT.vec = IN.vec
 	OUT.transl = IN.transl
 end
@@ -458,36 +458,36 @@ TEST_F(LinkAdaptorFixture, linkQuaternionChangeToEulerAfterInvalidLinkIsValid) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
-function interface()	
-	IN.vec = VEC4F
-	OUT.vec = VEC4F
+function interface(IN,OUT)	
+	IN.vec = Type:Vec4f()
+	OUT.vec = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.vec = IN.vec
 end
 
 )");
 
 	raco::utils::file::write((test_path() / "lua_script_out1b.lua").string(), R"(
-function interface()	
-	IN.vec_b = VEC4F
-	OUT.vec_b = VEC4F
+function interface(IN,OUT)	
+	IN.vec_b = Type:Vec4f()
+	OUT.vec_b = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.vec_b = IN.vec_b
 end
 
 )");
 
 	raco::utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
-function interface()	
-	IN.vec = VEC3F
-	OUT.vec = VEC3F
+function interface(IN,OUT)	
+	IN.vec = Type:Vec3f()
+	OUT.vec = Type:Vec3f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.vec = IN.vec
 end
 
@@ -520,24 +520,24 @@ TEST_F(LinkAdaptorFixture, linkQuaternionChangeInvalidToValid) {
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
 
 	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
-function interface()	
-	IN.vec = VEC4F
-	OUT.vec = VEC4F
+function interface(IN,OUT)	
+	IN.vec = Type:Vec4f()
+	OUT.vec = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.vec = IN.vec
 end
 
 )");
 
 	raco::utils::file::write((test_path() / "lua_script_out1b.lua").string(), R"(
-function interface()	
-	IN.vec_b = VEC4F
-	OUT.vec_b = VEC4F
+function interface(IN,OUT)	
+	IN.vec_b = Type:Vec4f()
+	OUT.vec_b = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.vec_b = IN.vec_b
 end
 

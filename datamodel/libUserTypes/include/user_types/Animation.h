@@ -26,9 +26,7 @@ public:
 
 	Animation(Animation const& other)
 		: BaseObject(other),
-		  play_(other.play_),
-		  loop_(other.loop_),
-		  rewindOnStop_(other.rewindOnStop_),
+		  progress_(other.progress_),
 		  animationChannels(other.animationChannels),
 		  animationOutputs(other.animationOutputs)
 	{
@@ -41,9 +39,7 @@ public:
 	}
 
 	void fillPropertyDescription() {
-		properties_.emplace_back("play", &play_);
-		properties_.emplace_back("loop", &loop_);
-		properties_.emplace_back("rewindOnStop", &rewindOnStop_);
+		properties_.emplace_back("progress", &progress_);
 		properties_.emplace_back("animationChannels", &animationChannels);
 		properties_.emplace_back("animationOutputs", &animationOutputs);
 	}
@@ -58,16 +54,10 @@ public:
 	std::string createAnimChannelOutputName(int channelIndex, const std::string& channelName);
 	void setChannelAmount(int amount);
 
-	// This property stays hidden until we figure out a proper Ramses-Logic-based time concept.
-	//Property<double, DisplayNameAnnotation> speed_{1.0, {}, {"Speed Multiplier"}};
+	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> progress_{0.0, {"Progress"}, {0.0, 1.0}, {}};
 
-	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> play_{false, {"Play"}, {}};
-	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> loop_{false, {"Loop"}, {}};
-	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> rewindOnStop_{false, {"Rewind on Pause"}, {}};
 	Property<Table, DisplayNameAnnotation> animationChannels{{}, {"Animation Channels"}};
 	Property<Table, DisplayNameAnnotation> animationOutputs{{}, {"Outputs"}};
-
-private:
 };
 
 using SAnimation = std::shared_ptr<Animation>;

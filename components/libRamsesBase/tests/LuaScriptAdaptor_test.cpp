@@ -41,10 +41,10 @@ TEST_F(LuaScriptAdaptorFixture, validScript) {
 	
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -53,6 +53,7 @@ end
 	
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), luaScript->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptAdaptorFixture, nameChange) {
@@ -60,10 +61,10 @@ TEST_F(LuaScriptAdaptorFixture, nameChange) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -74,6 +75,7 @@ end
 		auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
 		ASSERT_TRUE(engineObj != nullptr);
 		ASSERT_EQ(engineObj->getName(), "LuaScript Name");
+		ASSERT_EQ(engineObj->getUserId(), luaScript->objectIDAsRamsesLogicID());
 	}
 
 	context.set({luaScript, {"objectName"}}, std::string("Changed"));
@@ -83,6 +85,7 @@ end
 		auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "Changed")};
 		ASSERT_TRUE(engineObj != nullptr);
 		ASSERT_EQ(engineObj->getName(), "Changed");
+		ASSERT_EQ(engineObj->getUserId(), luaScript->objectIDAsRamsesLogicID());
 	}
 }
 
@@ -91,11 +94,11 @@ TEST_F(LuaScriptAdaptorFixture, inInt) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.value = INT
+function interface(IN,OUT)
+	IN.value = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -112,11 +115,11 @@ TEST_F(LuaScriptAdaptorFixture, inFloat) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.value = FLOAT
+function interface(IN,OUT)
+	IN.value = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -133,11 +136,11 @@ TEST_F(LuaScriptAdaptorFixture, inBool) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.value = BOOL
+function interface(IN,OUT)
+	IN.value = Type:Bool()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -154,11 +157,11 @@ TEST_F(LuaScriptAdaptorFixture, inVec2f) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.value = VEC2F
+function interface(IN,OUT)
+	IN.value = Type:Vec2f()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -176,13 +179,13 @@ TEST_F(LuaScriptAdaptorFixture, inStruct) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 	IN.value = {
-		a = FLOAT
+		a = Type:Float()
 	}
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -199,14 +202,14 @@ TEST_F(LuaScriptAdaptorFixture, inNestedStruct) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	local s = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local s = { x = Type:Float(), y = Type:Float() }
 	IN.value = {
 		a = s
 	}
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -223,11 +226,11 @@ TEST_F(LuaScriptAdaptorFixture, inVec4f) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.value = VEC4F
+function interface(IN,OUT)
+	IN.value = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 end
 
 )");
@@ -245,12 +248,12 @@ TEST_F(LuaScriptAdaptorFixture, outInt) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = INT
-	OUT.out_value = INT
+function interface(IN,OUT)
+	IN.in_value = Type:Int32()
+	OUT.out_value = Type:Int32()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -268,12 +271,12 @@ TEST_F(LuaScriptAdaptorFixture, outFloat) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = FLOAT
-	OUT.out_value = FLOAT
+function interface(IN,OUT)
+	IN.in_value = Type:Float()
+	OUT.out_value = Type:Float()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -291,12 +294,12 @@ TEST_F(LuaScriptAdaptorFixture, outBool) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = BOOL
-	OUT.out_value = BOOL
+function interface(IN,OUT)
+	IN.in_value = Type:Bool()
+	OUT.out_value = Type:Bool()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -314,12 +317,12 @@ TEST_F(LuaScriptAdaptorFixture, outVec2f) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = VEC2F
-	OUT.out_value = VEC2F
+function interface(IN,OUT)
+	IN.in_value = Type:Vec2f()
+	OUT.out_value = Type:Vec2f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -338,17 +341,17 @@ TEST_F(LuaScriptAdaptorFixture, outStruct) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 	IN.in_value = {
-		a = FLOAT
+		a = Type:Float()
 	}
 
 	OUT.out_value = {
-		a = FLOAT
+		a = Type:Float()
 	}
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value.a = IN.in_value.a
 end
 
@@ -366,8 +369,8 @@ TEST_F(LuaScriptAdaptorFixture, outNestedStruct) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	local s = { x = FLOAT, y = FLOAT }
+function interface(IN,OUT)
+	local s = { x = Type:Float(), y = Type:Float() }
 	IN.in_value = {
 		a = s
 	}
@@ -376,7 +379,7 @@ function interface()
 	}
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value.b = IN.in_value.a
 end
 
@@ -394,12 +397,12 @@ TEST_F(LuaScriptAdaptorFixture, outVec4f) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.in_value = VEC4F
-	OUT.out_value = VEC4F
+function interface(IN,OUT)
+	IN.in_value = Type:Vec4f()
+	OUT.out_value = Type:Vec4f()
 end
 
-function run()
+function run(IN,OUT)
 	OUT.out_value = IN.in_value
 end
 
@@ -418,16 +421,16 @@ TEST_F(LuaScriptAdaptorFixture, keep_global_lua_state) {
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
-	IN.value = FLOAT
-	OUT.value = FLOAT
+function interface(IN,OUT)
+	IN.value = Type:Float()
+	OUT.value = Type:Float()
 end
 
 function init()
 	GLOBAL.counter = 0
 end
 
-function run()
+function run(IN,OUT)
 	GLOBAL.counter = GLOBAL.counter + 1
 	OUT.value = IN.value + GLOBAL.counter
 end
@@ -453,10 +456,10 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -473,12 +476,14 @@ end
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.LuaScript Name")};
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), prefabInst->children_->asVector<raco::core::SEditorObject>().back()->objectIDAsRamsesLogicID());
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.Child LuaScript Name");
 	ASSERT_TRUE(engineObj == nullptr);
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "Child LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), prefabInst->children_->asVector<raco::core::SEditorObject>().front()->children_->asVector<raco::core::SEditorObject>().front()->objectIDAsRamsesLogicID());
 
 	commandInterface.moveScenegraphChildren({luaScriptTopLevel}, {});
 	dispatch();
@@ -488,12 +493,14 @@ end
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), luaScriptTopLevel->objectIDAsRamsesLogicID());
 
 	commandInterface.moveScenegraphChildren({luaScriptChild}, prefab);
 	dispatch();
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.Child LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), prefabInst->children_->asVector<raco::core::SEditorObject>().back()->objectIDAsRamsesLogicID());
 
 	commandInterface.moveScenegraphChildren({luaScriptChild}, node);
 	dispatch();
@@ -510,10 +517,10 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -530,8 +537,10 @@ end
 
 	auto engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.LuaScript Name");
 	ASSERT_TRUE(engineObj == nullptr);
+
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "New PrefabInstance.LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), prefabInst->children_->asVector<raco::core::SEditorObject>().back()->objectIDAsRamsesLogicID());
 }
 
 
@@ -542,10 +551,10 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -558,11 +567,12 @@ end
 	dispatch();
 
 	auto copiedObjs = commandInterface.copyObjects({prefabInst, luaScript}, false);
-	commandInterface.pasteObjects(copiedObjs);
+	auto pastedObjs = commandInterface.pasteObjects(copiedObjs);
 	dispatch();
 
 	auto engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance (1).LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), pastedObjs.front()->children_->asVector<raco::core::SEditorObject>().back()->objectIDAsRamsesLogicID());
 }
 
 
@@ -573,10 +583,10 @@ TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_get
 
 	std::string uriPath{(test_path() / "script.lua").string()};
 	raco::utils::file::write(uriPath, R"(
-function interface()
+function interface(IN,OUT)
 end
 
-function run()
+function run(IN,OUT)
 end
 )");
 	commandInterface.set({prefabInst, {"template"}}, prefab);
@@ -596,14 +606,18 @@ end
 
 	auto engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "New PrefabInstance.LuaScript Name");
 	ASSERT_TRUE(engineObj == nullptr);
+
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), prefabInst->children_->asVector<raco::core::SEditorObject>().back()->objectIDAsRamsesLogicID());
 
 	commandInterface.undoStack().redo();
 	dispatch();
 
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "New PrefabInstance.LuaScript Name");
 	ASSERT_TRUE(engineObj != nullptr);
+	ASSERT_EQ(engineObj->getUserId(), prefabInst->children_->asVector<raco::core::SEditorObject>().back()->objectIDAsRamsesLogicID());
+
 	engineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "PrefabInstance.LuaScript Name");
 	ASSERT_TRUE(engineObj == nullptr);
 }

@@ -60,7 +60,7 @@ public:
 		}
 	}
 
-	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {"Tags"}};
+	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
 	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> visible_{true, DisplayNameAnnotation("Visible"), {}};
 

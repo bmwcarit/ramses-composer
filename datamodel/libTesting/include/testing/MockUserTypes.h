@@ -19,7 +19,7 @@ using namespace raco::core;
 
 class MockLuaScript : public EditorObject {
 public:
-	static inline const TypeDescriptor typeDescription = { "MockLuaScript", true};
+	static inline const TypeDescriptor typeDescription = {"MockLuaScript", true};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
@@ -59,10 +59,9 @@ public:
 		properties_.emplace_back("luaOutputs", &luaOutputs_);
 	}
 
-	Property<Table> luaInputs_{ {} };
-	Property<Table> luaOutputs_{ {} };
+	Property<Table> luaInputs_{{}};
+	Property<Table> luaOutputs_{{}};
 };
-
 
 class StructWithRef : public StructBase {
 public:
@@ -101,12 +100,12 @@ public:
 
 class Foo : public EditorObject {
 public:
-	static inline const TypeDescriptor typeDescription = { "Foo", false};
+	static inline const TypeDescriptor typeDescription = {"Foo", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
-	Foo(Foo const& other) : EditorObject(other), b_(other.b_), i_(other.i_), x_(other.x_), s_(other.s_), ref_(other.ref_), vec_(other.vec_) {
+	Foo(Foo const& other) : EditorObject(other), b_(other.b_), i_(other.i_), i64_(other.i64_), x_(other.x_), s_(other.s_), ref_(other.ref_), vec_(other.vec_), v2f_(other.v2f_), v3f_(other.v3f_), v4f_(other.v4f_), v2i_(other.v2i_), v3i_(other.v3i_), v4i_(other.v4i_) {
 		fillPropertyDescription();
 	}
 
@@ -117,21 +116,36 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("flag", &b_);
 		properties_.emplace_back("i", &i_);
+		properties_.emplace_back("i64", &i64_);
 		properties_.emplace_back("x", &x_);
 		properties_.emplace_back("s", &s_);
 		properties_.emplace_back("ref", &ref_);
 		properties_.emplace_back("vec", &vec_);
+		properties_.emplace_back("v2f", &v2f_);
+		properties_.emplace_back("v3f", &v3f_);
+		properties_.emplace_back("v4f", &v4f_);
+		properties_.emplace_back("v2i", &v2i_);
+		properties_.emplace_back("v3i", &v3i_);
+		properties_.emplace_back("v4i", &v4i_);
 	}
 
-	Value<bool> b_{ false };
-	Value<int> i_{ 3 };
-	Value<double> x_{ 2.5 };
-	Value<std::string> s_{ "cat" };
+	Value<bool> b_{false};
+	Value<int> i_{3};
+	Value<int64_t> i64_;
+	Value<double> x_{2.5};
+	Value<std::string> s_{"cat"};
 	Value<SEditorObject> ref_;
 
 	Value<Vec3f> vec_{
-		{ 2.0 }
-	};
+		{2.0}};
+
+	Value<Vec2f> v2f_{};
+	Value<Vec3f> v3f_{};
+	Value<Vec4f> v4f_{};
+
+	Value<Vec2i> v2i_{};
+	Value<Vec3i> v3i_{};
+	Value<Vec4i> v4i_{};
 
 	void onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const override {
 		onBeforeRemoveReferenceToThis_.push_back(sourceReferenceProperty);
@@ -140,7 +154,7 @@ public:
 
 	void onAfterAddReferenceToThis(ValueHandle const& sourceReferenceProperty) const override {
 		onAfterAddReferenceToThis_.push_back(sourceReferenceProperty);
-		EditorObject::onAfterAddReferenceToThis(sourceReferenceProperty);		
+		EditorObject::onAfterAddReferenceToThis(sourceReferenceProperty);
 	}
 
 	mutable std::vector<ValueHandle> onBeforeRemoveReferenceToThis_;
@@ -157,7 +171,9 @@ public:
 	ObjectWithTableProperty(ObjectWithTableProperty const& other)
 		: EditorObject(other),
 		  t_(other.t_),
-		  array_(other.array_) {
+		  array_(other.array_),
+		  tags_(other.tags_),
+		  renderableTags_(other.renderableTags_) {
 		fillPropertyDescription();
 	}
 
@@ -168,10 +184,14 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("t", &t_);
 		properties_.emplace_back("array", &array_);
+		properties_.emplace_back("tags", &tags_);
+		properties_.emplace_back("renderableTags", &renderableTags_);
 	}
 
 	Value<Table> t_{};
 	Property<Table, ArraySemanticAnnotation> array_{};
+	Property<Table, TagContainerAnnotation> tags_{};
+	Property<Table, RenderableTagContainerAnnotation> renderableTags_{};
 };
 
 class ObjectWithStructProperty : public EditorObject {
@@ -199,4 +219,4 @@ public:
 
 	Value<StructWithRef> s_{};
 };
-}
+}  // namespace raco::user_types

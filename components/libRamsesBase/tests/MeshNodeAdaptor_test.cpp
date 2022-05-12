@@ -50,11 +50,18 @@ protected:
 		for (int i = 0; i < MESH_NODE_AMOUNT; ++i) {
 			auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), std::to_string(i).c_str());
 			EXPECT_STREQ(std::to_string(i).c_str(), ramsesMeshNode->getName());
+
 			EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
 			if (private_material) {
 				EXPECT_STREQ((std::to_string(i) + "_Appearance").c_str(), ramsesMeshNode->getAppearance()->getName());
+
+				auto appearanceBinding = select<rlogic::RamsesAppearanceBinding>(sceneContext.logicEngine(), std::to_string(i).append("_AppearanceBinding").c_str());
+				EXPECT_EQ(appearanceBinding->getUserId(), meshNodes[i]->objectIDAsRamsesLogicID());
 			} else {
 				EXPECT_STREQ("Material_Appearance", ramsesMeshNode->getAppearance()->getName());
+
+				auto appearanceBinding = select<rlogic::RamsesAppearanceBinding>(sceneContext.logicEngine(), "Material_AppearanceBinding");
+				EXPECT_EQ(appearanceBinding->getUserId(), material->objectIDAsRamsesLogicID());
 			}
 			EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
 			EXPECT_TRUE(ramsesMeshNode->getGeometryBinding() != nullptr);

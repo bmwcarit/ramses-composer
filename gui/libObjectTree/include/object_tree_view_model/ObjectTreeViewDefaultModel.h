@@ -154,7 +154,8 @@ protected:
 		{"PrefabInstance", raco::style::Icons::instance().typePrefabInstance},
 		{"LuaScriptModule", raco::style::Icons::instance().typeLuaScriptModule},
 		{"AnimationChannel", raco::style::Icons::instance().typeAnimationChannel},
-		{"Animation", raco::style::Icons::instance().typeAnimation}
+		{"Animation", raco::style::Icons::instance().typeAnimation},
+		{"Timer", raco::style::Icons::instance().typeTimer}
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;

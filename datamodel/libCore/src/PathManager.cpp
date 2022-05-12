@@ -27,11 +27,17 @@ using u8path = raco::utils::u8path;
 
 u8path PathManager::basePath_;
 u8path PathManager::appDataBasePath_;
+u8path PathManager::executableDirectory_;
 
 void PathManager::init(const u8path& executableDirectory, const u8path& appDataDirectory) {
+	executableDirectory_ = executableDirectory.normalized();
 	basePath_ = executableDirectory.normalized().parent_path().parent_path();
 	appDataBasePath_ = appDataDirectory.normalized();
 	migrateLegacyConfigDirectory();
+}
+
+u8path PathManager::executableDirectory() {
+	return executableDirectory_;
 }
 
 u8path PathManager::defaultBaseDirectory() {

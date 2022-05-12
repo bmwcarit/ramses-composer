@@ -175,10 +175,10 @@ void ExportDialog::exportProject() {
 	auto ramsesFilePath = raco::utils::u8path(ramsesEdit_->text().toStdString()).normalizedAbsolutePath(dir);
 	auto rlogicFilePath = raco::utils::u8path(logicEdit_->text().toStdString()).normalizedAbsolutePath(dir);
 
-	if (application_->exportProject(application_->activeRaCoProject(),
+	if (application_->exportProject(
 			ramsesFilePath.string(),
 			rlogicFilePath.string(),
-			compressEdit_->isChecked(), error)) {
+			compressEdit_->isChecked(), error, true)) {
 		accept();
 	} else {
 		QMessageBox::critical(

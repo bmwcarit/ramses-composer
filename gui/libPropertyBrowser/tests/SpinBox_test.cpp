@@ -8,10 +8,17 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#include <math.h>
+#include <cmath>
 
-#include "testing/TestEnvironmentCore.h"
+#include "PropertyBrowserItemTestHelper.h"
+#include "property_browser/PropertyBrowserModel.h"
 #include "property_browser/controls/SpinBox.h"
+#include "property_browser/editors/Int64Editor.h"
+#include "ramses_adaptor/SceneBackend.h"
+#include "testing/TestEnvironmentCore.h"
+#include "user_types/Timer.h"
+
+#include <QApplication>
 
 class SpinBoxFixture : public TestEnvironmentCore {};
 
@@ -75,4 +82,24 @@ TEST_F(SpinBoxFixture, evaluateLuaExpressionInteger) {
 
 	// If the user enters an infinite loop, program excecution should be aborted without a result after some time.
 	ASSERT_FALSE(evaluateLuaExpression<int>("(function() while(true)do end end)()").has_value());
+}
+
+TEST_F(SpinBoxFixture, spinboxExternalOutputValueUpdateNoThrow) {
+	int argc{0};
+	QApplication application{argc, nullptr};
+	PropertyBrowserItemTestHelper<raco::user_types::Timer> timerHelper{};
+	auto timer = timerHelper.commandInterface.createObject(raco::user_types::Timer::typeDescription.typeName, "Timer");
+
+	auto changes = timerHelper.recorder.release();
+	timerHelper.dispatcher->dispatch(changes);
+
+	raco::core::ValueHandle timerOutputHandle{timer, &raco::user_types::Timer::tickerOutput_};
+	raco::property_browser::PropertyBrowserModel model;
+	PropertyBrowserItem propertyBrowserItem{timerOutputHandle, timerHelper.dispatcher, &timerHelper.commandInterface, &model};
+	raco::property_browser::Int64Editor editor(&propertyBrowserItem);
+
+	timerHelper.context->set(timerOutputHandle, int64_t{22});
+
+	changes = timerHelper.recorder.release();
+	ASSERT_NO_THROW(timerHelper.dispatcher->dispatch(changes));
 }

@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <glm/detail/type_half.hpp>
 #include <glm/glm.hpp>
 
 namespace raco::utils::math {
@@ -53,6 +54,13 @@ std::array<double, 3> quaternionToXYZDegrees(double qX, double qY, double qZ, do
 	}
 
 	return {glm::degrees(eulerX), glm::degrees(eulerY), glm::degrees(eulerZ)};
+}
+
+uint16_t twoBytesToHalfFloat(unsigned char firstByte, unsigned char secondByte) {
+	float twoBytes = (firstByte << 8) | (secondByte & 0xff);
+	float bytesNormalized = (twoBytes / (std::numeric_limits<uint16_t>::max()));
+
+	return glm::detail::toFloat16(bytesNormalized);
 }
 
 

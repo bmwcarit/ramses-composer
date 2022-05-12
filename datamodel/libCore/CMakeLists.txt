@@ -45,6 +45,7 @@ add_library(libCore
 	include/core/ProxyObjectFactory.h src/ProxyObjectFactory.cpp
 	include/core/Serialization.h src/Serialization.cpp
     include/core/SerializationKeys.h    
+	include/core/TagDataCache.h src/TagDataCache.cpp
 	include/core/CoreAnnotations.h
 	include/core/BasicAnnotations.h
 	include/core/BasicTypes.h

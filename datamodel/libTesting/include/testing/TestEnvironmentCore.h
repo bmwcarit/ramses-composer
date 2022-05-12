@@ -34,6 +34,7 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/Enumerations.h"
 
 #include "testing/MockUserTypes.h"
 
@@ -157,15 +158,16 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		const std::vector<std::string>& tags = {},
 		const std::vector<std::pair<std::string, int>>& renderables = {},
 		const std::vector<std::string>& matFilterTags = {},
-		bool invertFilter = true) {
+		bool filterExclusive = true) {
 		auto layer = create<raco::user_types::RenderLayer>(name, nullptr, tags);
 		for (int index = 0; index < renderables.size(); index++) {
 			context.addProperty({layer, {"renderableTags"}}, renderables[index].first, std::make_unique<raco::data_storage::Value<int>>(renderables[index].second));
 		}
 		if (!matFilterTags.empty()) {
-			context.set({layer, {"materialFilterTags"}}, matFilterTags);
+			context.set({layer, &raco::user_types::RenderLayer::materialFilterTags_}, matFilterTags);
 		}
-		context.set({layer, {"invertMaterialFilter"}}, invertFilter);
+		context.set({layer, &raco::user_types::RenderLayer::materialFilterMode_},
+			static_cast<int>(filterExclusive ? raco::user_types::ERenderLayerMaterialFilterMode::Exclusive : raco::user_types::ERenderLayerMaterialFilterMode::Inclusive));
 
 		return layer;
 	}

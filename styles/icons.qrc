@@ -40,5 +40,6 @@
         <file alias="typePrefabExternalIcon">_Default/icons/typePrefabExternal.svg</file>
         <file alias="typePrefabInstanceIcon">_Default/icons/typePrefabInstance.svg</file>
         <file alias="typeLuaScriptModuleIcon">_Default/icons/typeLuaScriptModule.svg</file>
+        <file alias="typeTimerIcon">_Default/icons/typeTimer.svg</file>
     </qresource>
 </RCC>

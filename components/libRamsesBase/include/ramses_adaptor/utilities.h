@@ -356,19 +356,20 @@ public:
 	}
 };
 
-void getLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
+
+void getOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
 
 inline void getComplexLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
 	for (size_t i{0}; i < valueHandle.size(); i++) {
 		if (property.getType() == rlogic::EPropertyType::Array) {
-			getLuaOutputFromEngine(*property.getChild(i), valueHandle[i], recorder);
+			getOutputFromEngine(*property.getChild(i), valueHandle[i], recorder);
 		} else {
-			getLuaOutputFromEngine(*property.getChild(valueHandle[i].getPropName()), valueHandle[i], recorder);
+			getOutputFromEngine(*property.getChild(valueHandle[i].getPropName()), valueHandle[i], recorder);
 		}
 	}
 }
 
-inline void getLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
+inline void getOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
 	using core::PrimitiveType;
 
 	// read quaternion rotation data

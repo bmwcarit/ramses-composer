@@ -23,6 +23,7 @@
 #include "components/Naming.h"
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
+#include "components/RaCoNameConstants.h"
 #include "core/ProjectMigration.h"
 #include "core/Serialization.h"
 #include "core/SerializationKeys.h"
@@ -75,13 +76,12 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	// A bug in V0.9.0 allowed to create such projects.
 	// TODO: remove this eventually when we are reasonably certain that no such projects have been encountered.
 	for (const auto& object : context_->project()->instances()) {
-		if ((&object->getTypeDescription() == &user_types::RenderPass::typeDescription) &&
+		if (object->isType<user_types::RenderPass>() &&
 			object->query<raco::core::ExternalReferenceAnnotation>()) {
 			throw std::runtime_error("project contains external reference RenderPass.");
 		}
 
-		if ((&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription ||
-				&object->getTypeDescription() == &user_types::OrthographicCamera::typeDescription) &&
+		if ((object->isType<user_types::PerspectiveCamera>() || object->isType<user_types::OrthographicCamera>()) &&
 			object->query<raco::core::ExternalReferenceAnnotation>()) {
 			if (!PrefabOperations::findContainingPrefab(object)) {
 				throw std::runtime_error("file contains external reference camera outside a prefab");
@@ -96,6 +96,13 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 		context_->initLinkValidity();
 	}
 
+	// Create creation records for all PrefabInstances to force update of their children:
+	// This is necessary since we don't save all the children of the PrefabInstances anymore.
+	for (auto object : context_->project()->instances()) {
+		if (&object->getTypeDescription() == &user_types::PrefabInstance::typeDescription) {
+			context_->modelChanges().recordCreateObject(object);
+		}
+	}
 	context_->performExternalFileReload(project_.instances());
 
 	// Push currently loading project on the project load stack to enable project loop detection to work.
@@ -145,6 +152,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 	}
 	project_.rerootExternalProjectPaths(oldPath, newPath);
 	updateActiveFileListener();
+	undoStack_.push("Rewrite uri paths.");
 }
 
 void RaCoProject::generateProjectSubfolder(const std::string& subFolderPath) {
@@ -218,7 +226,7 @@ RaCoProject::~RaCoProject() {
 	}
 }
 
-std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
+std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool createDefaultScene) {
 	LOG_INFO(raco::log_system::PROJECT, "Creating new project.");
 	Project p{};
 	p.setCurrentPath(components::RaCoPreferences::instance().userProjectsDirectory.toStdString());
@@ -232,11 +240,6 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 		app->externalProjects(),
 		app,
 		stack));
-	auto sMeshNode = result->context_->createObject(raco::user_types::MeshNode::typeDescription.typeName, raco::components::Naming::format(raco::user_types::MeshNode::typeDescription.typeName));
-	auto sNode = result->context_->createObject(raco::user_types::Node::typeDescription.typeName, raco::components::Naming::format(raco::user_types::Node::typeDescription.typeName))->as<user_types::Node>();
-	auto sCamera = result->context_->createObject(raco::user_types::PerspectiveCamera::typeDescription.typeName, raco::components::Naming::format(raco::user_types::PerspectiveCamera::typeDescription.typeName))->as<user_types::PerspectiveCamera>();
-	auto sRenderPass = result->context_->createObject(raco::user_types::RenderPass::typeDescription.typeName, "MainRenderPass")->as<user_types::RenderPass>();
-	auto sRenderLayer = result->context_->createObject(raco::user_types::RenderLayer::typeDescription.typeName, "MainRenderLayer")->as<user_types::RenderLayer>();
 
 	const auto& prefs = raco::components::RaCoPreferences::instance();
 	auto settings = result->context_->createObject(ProjectSettings::typeDescription.typeName);
@@ -245,13 +248,22 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, prefs.scriptSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, prefs.shaderSubdirectory.toStdString());
 
-	result->context_->set({sRenderPass, &user_types::RenderPass::camera_}, sCamera);
-	result->context_->set({sRenderPass, &user_types::RenderPass::layer0_}, sRenderLayer);
-	result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Value<int>>(0));
+	if (createDefaultScene) {
+		auto sMeshNode = result->context_->createObject(raco::user_types::MeshNode::typeDescription.typeName, raco::components::Naming::format(raco::user_types::MeshNode::typeDescription.typeName));
+		auto sNode = result->context_->createObject(raco::user_types::Node::typeDescription.typeName, raco::components::Naming::format(raco::user_types::Node::typeDescription.typeName))->as<user_types::Node>();
+		auto sCamera = result->context_->createObject(raco::user_types::PerspectiveCamera::typeDescription.typeName, raco::components::Naming::format(raco::user_types::PerspectiveCamera::typeDescription.typeName))->as<user_types::PerspectiveCamera>();
+		auto sRenderPass = result->context_->createObject(raco::user_types::RenderPass::typeDescription.typeName, "MainRenderPass")->as<user_types::RenderPass>();
+		auto sRenderLayer = result->context_->createObject(raco::user_types::RenderLayer::typeDescription.typeName, "MainRenderLayer")->as<user_types::RenderLayer>();
 
-	result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
-	result->context_->set({sCamera, &user_types::Node::translation_, &Vec3f::z}, 10.0);
-	result->context_->moveScenegraphChildren({sMeshNode}, sNode);
+		result->context_->set({sRenderPass, &user_types::RenderPass::camera_}, sCamera);
+		result->context_->set({sRenderPass, &user_types::RenderPass::layer0_}, sRenderLayer);
+		result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Value<int>>(0));
+
+		result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
+		result->context_->set({sCamera, &user_types::Node::translation_, &Vec3f::z}, 10.0);
+		result->context_->moveScenegraphChildren({sMeshNode}, sNode);
+	}
+
 	result->undoStack_.reset();
 	result->context_->changeMultiplexer().reset();
 	result->dirty_ = false;
@@ -264,23 +276,30 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app) {
 std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack) {
 	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
-	if (!raco::utils::u8path(filename.toStdString()).existsFile()) {
-		LOG_WARNING(raco::log_system::PROJECT, "File not found {}", filename.toLatin1());
-		return {};
+	QFileInfo path(filename);
+	QString absPath = path.absoluteFilePath();
+	if (path.suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) != 0) {
+		throw std::runtime_error(fmt::format("Load file: wrong extension {}", path.filePath().toStdString()));
 	}
 
-	QFile file{filename};
+	if (!raco::utils::u8path(absPath.toStdString()).existsFile()) {
+		throw std::runtime_error(fmt::format("File not found {}", absPath.toLatin1()));
+	}
+
+	if (!raco::utils::u8path(absPath.toStdString()).userHasReadAccess()) {
+		throw std::runtime_error(fmt::format("Project file could not be read {}", absPath.toLatin1()));
+	}
+
+	QFile file{absPath};
 	if (!file.open(QIODevice::ReadOnly)) {
-		LOG_WARNING(raco::log_system::PROJECT, "Can't read file {}", filename.toLatin1());
-		return {};
+		throw std::runtime_error(fmt::format("Error opening file {}", absPath.toLatin1()));
 	}
 
 	auto fileContents = file.readAll();
 	file.close();
 
 	if (fileContents.size() < 4) {
-		LOG_WARNING(raco::log_system::PROJECT, "File {} has invalid content", filename.toLatin1());
-		return {};
+		throw std::runtime_error(fmt::format("File {} has invalid content", absPath.toLatin1()));
 	}
 
 	if (raco::utils::zip::isZipFile({fileContents.begin(), fileContents.begin() + 4})) {
@@ -289,7 +308,7 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		if (unzippedProj.success) {
 			fileContents = QByteArray(unzippedProj.payload.c_str());
 		} else {
-			throw std::runtime_error(fmt::format("Can't read zipped file {}:\n{}", filename.toLatin1(), unzippedProj.payload));
+			throw std::runtime_error(fmt::format("Can't read zipped file {}:\n{}", absPath.toLatin1(), unzippedProj.payload));
 		}
 	}
 
@@ -302,11 +321,14 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 	if (fileVersion > raco::serialization::RAMSES_PROJECT_FILE_VERSION) {
 		throw FutureFileVersion{fileVersion};
 	}
+	if (fileVersion == 0) {
+		throw std::runtime_error("File is not a RamsesComposer file.");
+	}
 
-	auto result{raco::serialization::deserializeProject(document, filename.toStdString())};
+	auto result{raco::serialization::deserializeProject(document, absPath.toStdString())};
 
 	Project p{result.objects};
-	p.setCurrentPath(filename.toStdString());
+	p.setCurrentPath(absPath.toStdString());
 	for (const auto& instance : result.objects) {
 		instance->onAfterDeserialization();
 	}
@@ -317,12 +339,12 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		auto absPath = raco::utils::u8path(info.path).normalizedAbsolutePath(p.currentFolder());
 		p.addExternalProjectMapping(id, absPath.string(), info.name);
 	}
-	LOG_INFO(raco::log_system::PROJECT, "Finished loading project from {}", filename.toLatin1());
+	LOG_INFO(raco::log_system::PROJECT, "Finished loading project from {}", absPath.toLatin1());
 
 	Consistency::checkProjectSettings(p);
 
 	auto newProject = new RaCoProject{
-		filename,
+		absPath,
 		p,
 		app->engine(),
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
@@ -345,7 +367,8 @@ QString RaCoProject::name() const {
 	return QString::fromStdString(project_.settings()->objectName());
 }
 
-QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
+
+QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
 	// Sort instances and links serialized to file:
 	// needed for file comparison via diff.
 	auto instances{context_->project()->instances()};
@@ -367,7 +390,198 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 		project_.externalProjectsMap());
 }
 
-bool RaCoProject::save() {
+QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
+	// On discarding objects during save
+	// - we discard all objects which can not be recreated by the external reference and/or prefab update during load.
+	// 
+	// The rules in detail
+	// - local PrefabInstance children are discarded
+	//   - except the modifiable lua interface scripts
+	//   - except cameras and their scenegraph parent chain up to the scenegraph root.
+	//     these can be referenced by render passes
+	// - all extref objects are removed
+	//   - except objects directly referenced by a local non-discarded object
+	//     this exception applies to extref prefabs used by local prefab instances.
+	// 	   this exception does not apply to meshes referenced by meshnodes inside local prefabinstances.
+	//   - except objects which have a link starting on them and the link endpoint is a local object.
+	//     this applies to extref lua scripts linked to local material uniforms.
+	// - implications
+	//   - all unused extref objects are removed during save
+	//   - extref scenes only indirectly used are removed from the external projects mapping in the saved file.
+	// - rationale for the rules:
+	//	 - we rely on the extref and prefab update during load to recreate objects and links. we can only discard
+	//     objects or links which can be fully recreated.
+	//   - an object can't be discarded if it is referenced by a non-discarded object or part of a non-discarded link.
+	// 	   otherwise we would loose the references in the saved file.
+
+	// Implementation note: we destructively delete the discarded objects and links here and restore them after serialization 
+	// of the project from the current undo stack entry.
+
+	// Reset model changes to allow data loss detection below.
+	// This is safe since the undo stack restore below would do this anyway and there is no undo stack push in here.
+	context_->modelChanges().reset();
+
+	// reconstrucible properties
+	// - all properties of extref objects
+	// - children property of prefab instances
+	// - all properties of prefab instance children except interface properties of interface lua scripts
+	std::function<bool(const ValueHandle&)> canReconstructPropertyPredicate = [](const ValueHandle& prop) -> bool {
+		auto obj = prop.rootObject();
+		if (obj->query<ExternalReferenceAnnotation>()) {
+			return true;
+		}
+
+		if (obj->as<user_types::PrefabInstance>() && (prop.isRefToProp(&EditorObject::children_) || ValueHandle(obj, &EditorObject::children_).contains(prop))) {
+			return true;
+		}
+
+		if (PrefabOperations::findContainingPrefabInstance(obj->getParent()) && !PrefabOperations::isInterfaceProperty(prop)) {
+			return true;
+		}
+
+		return false;
+	};
+
+	// reconstructible links
+	// - links ending on extref objects
+	// - links ending on prefab instance children except the interface lua scripts
+	std::function<bool(const LinkDescriptor&)> canReconstructLinkPredicate = [](const LinkDescriptor& link) {
+		auto endObj = link.end.object();
+
+		if (endObj->query<ExternalReferenceAnnotation>()) {
+			return true;
+		}
+
+		if (PrefabOperations::findContainingPrefabInstance(endObj->getParent()) && !PrefabOperations::isInterfaceObject(endObj)) {
+			return true;
+		}
+
+		return false;
+	};
+
+	{
+		std::vector<SEditorObject> instances{project_.instances()};
+
+		auto partitionPoint = instances.begin();
+
+		// Partition all instances with discardable objects moved to the front
+
+		// Initial partition: separate objects which are discardable in principle
+		// Discardable in prinple are
+		// - extref objects
+		// - children of prefab instances but only if read-only, i.e. no interface lua scripts
+		auto newPartitionPoint = std::partition(instances.begin(), instances.end(), [](SEditorObject object) -> bool {
+			return (PrefabOperations::findContainingPrefabInstance(object->getParent()) && Queries::isReadOnly(object)) || 
+				object->query<ExternalReferenceAnnotation>();
+		});
+
+		// Iteratively remove objects from the discardable set until we achieved a stable discardable set
+		while (newPartitionPoint != partitionPoint && newPartitionPoint != instances.begin()) {
+			partitionPoint = newPartitionPoint;
+
+			newPartitionPoint = std::partition(instances.begin(), partitionPoint, [this, partitionPoint, &instances, &canReconstructPropertyPredicate, &canReconstructLinkPredicate](SEditorObject object) -> bool {
+
+				// Can't discard object when a child is non-discarded and object is inside a prefab instance
+				// since the prefab update needs to determine the set of current prefab instance children
+				if (PrefabOperations::findContainingPrefabInstance(object->getParent())) {
+					for (const auto& child : object->children_->asVector<SEditorObject>()) {
+						if (std::find(partitionPoint, instances.end(), child) != instances.end()) {
+							return false;
+						}
+					}
+				}
+
+				// Can't discard object when referenced by non-discarded object via a non-reconstructible property.
+				for (const auto& weakReferencingObj : object->referencesToThis()) {
+					auto referencingObj = weakReferencingObj.lock();
+					if (referencingObj && std::find(partitionPoint, instances.end(), referencingObj) != instances.end()) {
+						for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(referencingObj))) {
+							if (prop.type() == PrimitiveType::Ref) {
+								if (object == prop.asTypedRef<EditorObject>() && !canReconstructPropertyPredicate(prop)) {
+									return false;
+								}
+							}
+						}
+					}
+				}
+
+				// Can't discard LuaScriptModules which are used since this might lead to a LuaScript to lose its 
+				// properties as a side effect of the reference removal which is not allowed for interface lua scripts.
+				// This needs to take into account potential nesting of modules so it is not sufficient to check if 
+				// the referencing object is an interface lua script.
+				if (object->as<user_types::LuaScriptModule>()) {
+					if (!object->referencesToThis().empty()) {
+						return false;
+					}
+				}
+
+				// Can't discard object if connected to non-reconstructible link
+				for (const auto& link : Queries::getLinksConnectedToObject(project_, object, true, true)) {
+					if (!canReconstructLinkPredicate(link->descriptor())) {
+						return false;
+					}
+				}
+
+				return true;
+			});
+		}
+
+		std::vector<SEditorObject> toDelete{instances.begin(), newPartitionPoint};
+		context_->deleteObjects(toDelete);
+
+		project_.gcExternalProjectMapping();
+	}
+
+
+	auto serializedJson = serializeProjectData(currentVersions);
+
+
+	// Check for non-recoverable data loss arising from the object deletions above
+	bool lostData = false;
+
+	// Check if we lost any non-reconstructible property values
+	for (const auto& [id, handles] : context_->modelChanges().getChangedValues()) {
+		for (const auto& handle : handles) {
+			if (!canReconstructPropertyPredicate(handle)) {
+				LOG_WARNING(raco::log_system::PROJECT, "serializeProject: optimization changed property {}; using non-optimized fallback instead.", handle);
+				lostData = true;
+			}
+		}
+	}
+
+	// Check if we lost any non-reconstructible links
+	for (const auto& [id, links] : context_->modelChanges().getRemovedLinks()) {
+		for (const auto& link : links) {
+			// Only consider links ending on objects not deleted, i.e. objects which can still be found in the project:
+			auto endID = link.end.object()->objectID();
+			auto endObj = project_.getInstanceByID(endID);
+			if (endObj && !canReconstructLinkPredicate(link)) {
+				LOG_WARNING(raco::log_system::PROJECT, "serializeProject: optimization removed link {}; using non-optimized fallback instead.", link);
+				lostData = true;
+			}
+		}
+	}
+
+
+	// Force restoring the project from the current undo stack entry.
+	undoStack_.setIndex(undoStack_.getIndex(), true);
+
+
+#ifdef NDEBUG
+	// If optimization leads to data loss, return unoptimized json instead:
+	if (lostData) {
+		serializedJson = serializeProjectData(currentVersions);
+	}
+#else
+	// In a debug build data loss will abort to allow the unit tests to have a chance at detecting problems.
+	assert(!lostData);
+#endif
+
+	return serializedJson;
+}
+
+bool RaCoProject::save(std::string& outError) {
+	outError.clear();
 	const auto path(project_.currentPath());
 	LOG_INFO(raco::log_system::PROJECT, "Saving project to {}", path);
 	QFile file{path.c_str()};
@@ -376,7 +590,9 @@ bool RaCoProject::save() {
 	auto flags = (saveAsZip) ? QIODevice::WriteOnly : QIODevice::WriteOnly | QIODevice::Text;
 
 	if (!file.open(flags)) {
-		LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
+		std::string msg = fmt::format("Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
+		LOG_ERROR(raco::log_system::PROJECT, msg);
+		outError = msg;
 		return false;
 	}
 
@@ -404,8 +620,9 @@ bool RaCoProject::save() {
 
 	file.write(projectFileData);
 	if (!file.flush() || file.error() != QFile::FileError::NoError) {
-		LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Could not write to disk: FileError {} {}", file.error(), file.errorString().toStdString());
-		file.close();
+		std::string msg = fmt::format("Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
+		LOG_ERROR(raco::log_system::PROJECT, msg);
+		outError = msg;
 		return false;
 	}
 	file.close();
@@ -417,12 +634,12 @@ bool RaCoProject::save() {
 	return true;
 }
 
-bool RaCoProject::saveAs(const QString& fileName, bool setProjectName) {
+bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool setProjectName) {
 	auto oldPath = project_.currentPath();
 	auto oldProjectFolder = project_.currentFolder();
 	auto newPath = fileName.toStdString();
 	if (newPath == oldPath) {
-		return save();
+		return save(outError);
 	} else {
 		project_.setCurrentPath(newPath);
 		onAfterProjectPathChange(oldProjectFolder, project_.currentFolder());
@@ -433,7 +650,7 @@ bool RaCoProject::saveAs(const QString& fileName, bool setProjectName) {
 				context_->set({settings, &raco::core::EditorObject::objectName_}, projName);
 			}
 		}
-		if (save()) {
+		if (save(outError)) {
 			undoStack_.reset();
 			dirty_ = false;
 			return true;
@@ -457,6 +674,10 @@ Project* RaCoProject::project() {
 }
 
 Errors* RaCoProject::errors() {
+	return &errors_;
+}
+
+const Errors* RaCoProject::errors() const{
 	return &errors_;
 }
 

@@ -31,6 +31,7 @@ namespace Queries {
 	std::vector<ValueHandle> findAllReferences(const SEditorObject& object);
 	std::vector<SEditorObject> findAllUnreferencedObjects(Project const& project, std::function<bool(SEditorObject)> predicate = nullptr);
 	std::vector<SEditorObject> findAllValidReferenceTargets(Project const& project, const ValueHandle& handle );
+	bool isValidReferenceTarget(Project const& project, const ValueHandle& handle, SEditorObject object);
 
 	SEditorObject findById(const Project& project, const std::string& id);
 	SEditorObject findById(const std::vector<SEditorObject>& objects, const std::string& id);
@@ -57,7 +58,7 @@ namespace Queries {
 	std::vector<std::shared_ptr<UserType>> filterByType(const std::vector<SEditorObject>& objects) {
 		std::vector<std::shared_ptr<UserType>> r;
 		for (auto const& o : objects) {
-			if (&o->getTypeDescription() == &UserType::typeDescription) {
+			if (o->isType<UserType>()) {
 				r.push_back(o->as<UserType>());
 			}
 		}
@@ -81,7 +82,7 @@ namespace Queries {
 	// is changeable in the data model.
 	bool isReadOnly(const Project& project, const ValueHandle& handle, bool linkState = false);
 
-	bool isHidden(const Project& project, const ValueHandle& handle);
+	bool isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle);
 
 
 	// Determines whether an object is read-only content of a prefab instance

@@ -43,7 +43,7 @@ IntEditor::IntEditor(
 
 	// connect everything to our item values
 	{
-		QObject::connect(spinBox, &IntSpinBox::valueChanged, item, [item](int value) { item->set(value); });
+		QObject::connect(spinBox, &IntSpinBox::valueEdited, item, [item](int value) { item->set(value); });
 		QObject::connect(slider, &IntSlider::valueEdited, item, [item](int value) { item->set(value); });
 		QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [slider, spinBox](core::ValueHandle& handle) {
 			slider->setValue(handle.as<int>());

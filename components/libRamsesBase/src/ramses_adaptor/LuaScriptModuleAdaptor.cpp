@@ -32,7 +32,7 @@ bool LuaScriptModuleAdaptor::sync(core::Errors* errors) {
 
 	if (editorObject_->isValid()) {
 		const auto& scriptContents = editorObject_->currentScriptContents();
-		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), editorObject_->objectName());
+		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 		assert(module_ != nullptr);
 	} else {
 		module_.reset();

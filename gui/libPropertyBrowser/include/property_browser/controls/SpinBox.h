@@ -25,13 +25,13 @@ std::optional<T> evaluateLuaExpression(QString expression, T min = raco::data_st
 template <typename T>
 class InternalSpinBox : public QAbstractSpinBox {
 public:
-	InternalSpinBox(QWidget* parent, std::function<void(T)> valueChanged);
+	InternalSpinBox(QWidget* parent, std::function<void(T)> valueEdited);
 
 	QString textFromValue(T value) const;
 	T valueFromText(const QString& text) const;
 
 	T value() const;
-	void setValue(T value);
+	void setValue(T newValue);
 
 	void setRange(T min, T max);
 
@@ -43,7 +43,7 @@ protected:
 	T min_;
 	T max_;
 	T focusInOldValue_;
-	std::function<void(T)> valueChanged_;
+	std::function<void(T)> valueEdited_;
 
 	void focusInEvent(QFocusEvent* event);
 	void keyPressEvent(QKeyEvent* event);
@@ -63,7 +63,7 @@ public:
 	void keyPressEvent(QKeyEvent* event);
 
 protected:
-	virtual void emitValueChanged(T value) = 0;
+	virtual void emitvalueEdited(T value) = 0;
 	virtual void emitEditingFinished() = 0;
 	virtual void emitFocusNextRequested() = 0;
 
@@ -80,12 +80,12 @@ public:
 	Q_PROPERTY(int outOfRange READ outOfRange);
 	DoubleSpinBox(QWidget* parent = nullptr);
 Q_SIGNALS:
-	void valueChanged(double val);
+	void valueEdited(double val);
 	void editingFinished();
 	void focusNextRequested();
 
 protected:
-	void emitValueChanged(double value) override;
+	void emitvalueEdited(double value) override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };
@@ -99,12 +99,12 @@ public:
 	IntSpinBox(QWidget* parent = nullptr);
 
 Q_SIGNALS:
-	void valueChanged(int val);
+	void valueEdited(int val);
 	void editingFinished();
 	void focusNextRequested();
 
 protected:
-	void emitValueChanged(int value) override;
+	void emitvalueEdited(int value) override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };
@@ -117,12 +117,12 @@ public:
 	Int64SpinBox(QWidget* parent = nullptr);
 
 Q_SIGNALS:
-	void valueChanged(int64_t val);
+	void valueEdited(int64_t val);
 	void editingFinished();
 	void focusNextRequested();
 
 protected:
-	void emitValueChanged(int64_t value) override;
+	void emitvalueEdited(int64_t value) override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };

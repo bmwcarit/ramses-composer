@@ -18,14 +18,14 @@ class EngineInterfaceTest : public RamsesBaseFixture<> {};
 
 TEST_F(EngineInterfaceTest, parseLuaScript_struct) {
 	const std::string script = R"(
-function interface()
+function interface(IN,OUT)
 	IN.struct = {
-        a = FLOAT,
-        b = FLOAT
+        a = Type:Float(),
+        b = Type:Float()
     }
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 	std::string error;
@@ -52,11 +52,11 @@ end
 
 TEST_F(EngineInterfaceTest, parseLuaScript_arrayNT) {
 	const std::string script = R"(
-function interface()
-	IN.vec = ARRAY(5, FLOAT)
+function interface(IN,OUT)
+	IN.vec = Type:Array(5, Type:Float())
 end
 
-function run()
+function run(IN,OUT)
 end
 )";
 	std::string error;

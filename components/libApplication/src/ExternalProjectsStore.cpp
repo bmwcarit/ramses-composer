@@ -28,7 +28,6 @@ void ExternalProjectsStore::setActiveProject(RaCoProject* activeProject) {
 	activeProject_ = activeProject;
 }
 
-
 void ExternalProjectsStore::buildProjectGraph(const std::string& absPath, std::vector<ProjectGraphNode>& outProjects) {
 	if (std::find_if(outProjects.begin(), outProjects.end(), [absPath](const ProjectGraphNode& node) {
 			return absPath == node.path;
@@ -137,16 +136,16 @@ std::string ExternalProjectsStore::activeProjectPath() const {
 bool ExternalProjectsStore::loadExternalProject(const std::string& projectPath, std::vector<std::string>& pathStack) {
 	std::unique_ptr<RaCoProject> project;
 	bool success = false;
-	if (utils::u8path(projectPath).existsFile()) {
-		if (projectPath != activeProjectPath()) {
-			try {
-				project = RaCoProject::loadFromFile(QString::fromStdString(projectPath), application_, pathStack);
-				success = true;
-			} catch (raco::application::FutureFileVersion& fileVerError) {
-				LOG_ERROR(raco::log_system::OBJECT_TREE_VIEW, "Can not add Project {} to Project Browser - incompatible file version {} of project file", projectPath, fileVerError.fileVersion_);
-			} catch (raco::core::ExtrefError& error) {
-				LOG_ERROR(raco::log_system::COMMON, "Can not add Project {} to Project Browser: loading failed {}", projectPath, error.what());
-			}
+	if (projectPath != activeProjectPath()) {
+		try {
+			project = RaCoProject::loadFromFile(QString::fromStdString(projectPath), application_, pathStack);
+			success = true;
+		} catch (raco::application::FutureFileVersion& fileVerError) {
+			LOG_ERROR(raco::log_system::OBJECT_TREE_VIEW, "Can not add Project {} to Project Browser - incompatible file version {} of project file", projectPath, fileVerError.fileVersion_);
+		} catch (raco::core::ExtrefError& error) {
+			LOG_ERROR(raco::log_system::COMMON, "Can not add Project {} to Project Browser: loading failed {}", projectPath, error.what());
+		} catch (std::runtime_error& error) {
+			LOG_ERROR(raco::log_system::COMMON, "Loading external project '{}' failed with error: {}", projectPath, error.what());
 		}
 	}
 	if (projectPath == activeProjectPath() ||
@@ -175,7 +174,6 @@ void ExternalProjectsStore::removeExternalProject(const std::string& projectPath
 		application_->dataChangeDispatcher()->setExternalProjectChanged();
 	}
 }
-
 
 raco::core::CommandInterface* ExternalProjectsStore::getExternalProjectCommandInterface(const std::string& projectPath) const {
 	auto it = externalProjects_.find(projectPath);
@@ -210,4 +208,4 @@ raco::core::Project* ExternalProjectsStore::getExternalProject(const std::string
 	return nullptr;
 }
 
-}  // namespace raco
+}  // namespace raco::application

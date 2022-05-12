@@ -50,6 +50,8 @@ struct PathManager {
 
 	static void init(const u8path& executableDirectory, const u8path& appDataDirectory);
 
+	static u8path executableDirectory();
+
 	static u8path defaultBaseDirectory();
 
 	static u8path logFileDirectory();
@@ -89,6 +91,7 @@ struct PathManager {
 private:
 	friend class raco::components::RaCoPreferences;
 
+	static u8path executableDirectory_;
 	static u8path basePath_;
 	static u8path appDataBasePath_;
 

@@ -30,6 +30,7 @@ add_library(libRamsesBase
 
     include/ramses_adaptor/AnimationAdaptor.h src/ramses_adaptor/AnimationAdaptor.cpp
     include/ramses_adaptor/AnimationChannelAdaptor.h src/ramses_adaptor/AnimationChannelAdaptor.cpp
+    include/ramses_adaptor/BaseCameraAdaptorHelpers.h src/ramses_adaptor/BaseCameraAdaptorHelpers.cpp
     include/ramses_adaptor/CubeMapAdaptor.h src/ramses_adaptor/CubeMapAdaptor.cpp
     include/ramses_adaptor/Factories.h src/ramses_adaptor/Factories.cpp
     include/ramses_adaptor/MaterialAdaptor.h src/ramses_adaptor/MaterialAdaptor.cpp
@@ -39,14 +40,14 @@ add_library(libRamsesBase
     include/ramses_adaptor/LuaScriptAdaptor.h src/ramses_adaptor/LuaScriptAdaptor.cpp
     include/ramses_adaptor/LuaScriptModuleAdaptor.h src/ramses_adaptor/LuaScriptModuleAdaptor.cpp
     include/ramses_adaptor/ObjectAdaptor.h src/ramses_adaptor/ObjectAdaptor.cpp
-    include/ramses_adaptor/BaseCameraAdaptorHelpers.h src/ramses_adaptor/BaseCameraAdaptorHelpers.cpp
     include/ramses_adaptor/OrthographicCameraAdaptor.h src/ramses_adaptor/OrthographicCameraAdaptor.cpp
     include/ramses_adaptor/PerspectiveCameraAdaptor.h src/ramses_adaptor/PerspectiveCameraAdaptor.cpp
-    include/ramses_adaptor/SceneAdaptor.h src/ramses_adaptor/SceneAdaptor.cpp
     include/ramses_adaptor/RenderBufferAdaptor.h src/ramses_adaptor/RenderBufferAdaptor.cpp
-    include/ramses_adaptor/RenderTargetAdaptor.h src/ramses_adaptor/RenderTargetAdaptor.cpp
-    include/ramses_adaptor/RenderPassAdaptor.h src/ramses_adaptor/RenderPassAdaptor.cpp
     include/ramses_adaptor/RenderLayerAdaptor.h src/ramses_adaptor/RenderLayerAdaptor.cpp
+    include/ramses_adaptor/RenderPassAdaptor.h src/ramses_adaptor/RenderPassAdaptor.cpp
+    include/ramses_adaptor/RenderTargetAdaptor.h src/ramses_adaptor/RenderTargetAdaptor.cpp
+    include/ramses_adaptor/SceneAdaptor.h src/ramses_adaptor/SceneAdaptor.cpp
+    include/ramses_adaptor/TimerAdaptor.h src/ramses_adaptor/TimerAdaptor.cpp
 
     include/ramses_adaptor/LinkAdaptor.h src/ramses_adaptor/LinkAdaptor.cpp
 

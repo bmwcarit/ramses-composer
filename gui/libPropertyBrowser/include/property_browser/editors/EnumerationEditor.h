@@ -24,5 +24,7 @@ public:
 
 protected:
 	QComboBox* comboBox_;
+	std::vector<int> comboBoxIndexToRamsesEnumIndex_;
+	std::map<int, int> ramsesEnumIndexToComboBoxIndex_;
 };
 }  // namespace raco::property_browser

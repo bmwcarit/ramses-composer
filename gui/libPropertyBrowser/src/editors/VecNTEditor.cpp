@@ -107,7 +107,7 @@ VecNTEditor<T, N>::VecNTEditor(
 			spinboxes_[i]->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 		}
 		spinboxes_[i]->setValue(item->children().at(i)->valueHandle().as<T>());
-		QObject::connect(spinboxes_[i].get(), &SpinBoxType::valueChanged, this, [this, item, i](T value) {
+		QObject::connect(spinboxes_[i].get(), &SpinBoxType::valueEdited, this, [this, item, i](T value) {
 			item->children().at(i)->set(value);
 			updateColorPicker();
 		});

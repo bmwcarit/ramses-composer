@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 29,
+    "fileVersion": 35,
     "instances": [
         {
             "properties": {
@@ -53,6 +53,7 @@
                 "minSamplingMethod": 0,
                 "objectID": "0d2c96e3-0ed2-4f95-ac54-03b9fa81e963",
                 "objectName": "Texture",
+                "textureFormat": 5,
                 "uri": "",
                 "wrapUMode": 0,
                 "wrapVMode": 0
@@ -61,7 +62,7 @@
         },
         {
             "properties": {
-                "invertMaterialFilter": false,
+                "materialFilterMode": 0,
                 "objectID": "0e55bd9c-7f72-4afe-bfa8-64cdfd59cb8d",
                 "objectName": "RenderLayerOptimized",
                 "sortOrder": 0
@@ -869,6 +870,7 @@
                 },
                 "objectID": "410631d1-cb7f-40c9-88c7-3bb1515d5caa",
                 "objectName": "CubeMap",
+                "textureFormat": 5,
                 "uriBack": "",
                 "uriBottom": "",
                 "uriFront": "",
@@ -882,7 +884,7 @@
         },
         {
             "properties": {
-                "invertMaterialFilter": false,
+                "materialFilterMode": 0,
                 "objectID": "4ba33009-0575-4128-bbbe-48e3ebc6e6ad",
                 "objectName": "RenderLayerManual",
                 "sortOrder": 0
@@ -945,33 +947,20 @@
                         }
                     }
                 },
-                "animationOutputs": {
-                    "order": [
-                        "progress"
-                    ],
-                    "properties": {
-                        "progress": {
-                            "annotations": [
-                                {
-                                    "properties": {
-                                        "engineType": 5
-                                    },
-                                    "typeName": "EngineTypeAnnotation"
-                                },
-                                {
-                                    "typeName": "LinkStartAnnotation"
-                                }
-                            ],
-                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation",
-                            "value": 0
-                        }
-                    }
-                },
-                "loop": false,
                 "objectID": "6d1b00fe-912f-4a92-83ce-7d405ac6b989",
                 "objectName": "Animation",
-                "play": false,
-                "rewindOnStop": false
+                "progress": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 1,
+                                "min": 0
+                            },
+                            "typeName": "RangeAnnotationDouble"
+                        }
+                    ],
+                    "value": 0
+                }
             },
             "typeName": "Animation"
         },
@@ -1461,6 +1450,15 @@
         },
         {
             "properties": {
+                "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
+                "objectName": "Timer",
+                "tickerInput": "0",
+                "tickerOutput": "1135280524100"
+            },
+            "typeName": "Timer"
+        },
+        {
+            "properties": {
                 "objectID": "9ec70db9-1ec5-4c64-833d-44eb4ad1d495",
                 "objectName": "PrefabInstance",
                 "rotation": {
@@ -1824,7 +1822,7 @@
         },
         {
             "properties": {
-                "invertMaterialFilter": false,
+                "materialFilterMode": 0,
                 "objectID": "b9826309-15d0-425b-8ca7-431dc9b6964e",
                 "objectName": "RenderLayerSceneGraph",
                 "sortOrder": 1
@@ -1917,19 +1915,19 @@
     "links": [
     ],
     "logicEngineVersion": [
+        1,
         0,
-        14,
         2
     ],
     "racoVersion": [
         0,
-        13,
+        14,
         0
     ],
     "ramsesVersion": [
         27,
         0,
-        115
+        119
     ],
     "structPropMap": {
         "BlendOptions": {
@@ -2006,11 +2004,9 @@
             "animationChannels": "Table::DisplayNameAnnotation",
             "animationOutputs": "Table::DisplayNameAnnotation",
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
-            "loop": "Bool::DisplayNameAnnotation::LinkEndAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "play": "Bool::DisplayNameAnnotation::LinkEndAnnotation",
-            "rewindOnStop": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
+            "progress": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
         },
         "AnimationChannel": {
             "animationIndex": "Int::DisplayNameAnnotation",
@@ -2047,6 +2043,7 @@
             "mipmapLevel": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
+            "textureFormat": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "uriBack": "String::URIAnnotation::DisplayNameAnnotation",
             "uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
             "uriFront": "String::URIAnnotation::DisplayNameAnnotation",
@@ -2076,7 +2073,7 @@
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "options": "BlendOptions::DisplayNameAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "uniforms": "Table::DisplayNameAnnotation",
             "uriDefines": "String::URIAnnotation::DisplayNameAnnotation",
             "uriFragment": "String::URIAnnotation::DisplayNameAnnotation",
@@ -2101,7 +2098,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "scale": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "visible": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
@@ -2111,7 +2108,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "scale": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "visible": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
@@ -2122,7 +2119,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "scale": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "viewport": "CameraViewport::DisplayNameAnnotation::LinkEndAnnotation",
             "visible": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
@@ -2134,7 +2131,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "scale": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "viewport": "CameraViewport::DisplayNameAnnotation::LinkEndAnnotation",
             "visible": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
@@ -2150,7 +2147,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "scale": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "template": "Prefab::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "visible": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
@@ -2182,13 +2179,13 @@
         },
         "RenderLayer": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
-            "invertMaterialFilter": "Bool::DisplayNameAnnotation::EnumerationAnnotation",
-            "materialFilterTags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation",
+            "materialFilterMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "materialFilterTags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "renderableTags": "Table::RenderableTagContainerAnnotation::DisplayNameAnnotation",
+            "renderableTags": "Table::RenderableTagContainerAnnotation::HiddenProperty::DisplayNameAnnotation",
             "sortOrder": "Int::DisplayNameAnnotation::EnumerationAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::TagContainerAnnotation::DisplayNameAnnotation"
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation"
         },
         "RenderPass": {
             "camera": "BaseCamera::DisplayNameAnnotation",
@@ -2233,9 +2230,17 @@
             "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
+            "textureFormat": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "uri": "String::URIAnnotation::DisplayNameAnnotation",
             "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
+        },
+        "Timer": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "tickerInput": "Int64::DisplayNameAnnotation::LinkEndAnnotation",
+            "tickerOutput": "Int64::DisplayNameAnnotation::LinkStartAnnotation"
         }
     }
 }

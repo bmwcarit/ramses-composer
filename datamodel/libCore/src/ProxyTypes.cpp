@@ -32,6 +32,7 @@ const char renderPassTypeName[] = "RenderPass";
 const char renderTargetTypeName[] = "RenderTarget";
 const char prefabTypeName[] = "Prefab";
 const char prefabInstanceTypeName[] = "PrefabInstance";
+const char timerTypeName[] = "Timer";
 
 const char vec2fTypeName[] = "Vec2f";
 const char vec3fTypeName[] = "Vec3f";

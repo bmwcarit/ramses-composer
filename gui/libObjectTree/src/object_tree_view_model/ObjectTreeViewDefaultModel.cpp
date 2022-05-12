@@ -391,7 +391,7 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::Ty
 	});
 
 	auto name = project()->findAvailableUniqueName(nodes.begin(), nodes.end(), nullptr, nodeName.empty() ? raco::components::Naming::format(typeDesc.typeName) : nodeName);
-	auto newObj = commandInterface_->createObject(typeDesc.typeName, name, std::string(), parent.isValid() ? parentObj : nullptr);
+	auto newObj = commandInterface_->createObject(typeDesc.typeName, name, parent.isValid() ? parentObj : nullptr);
 
 	return newObj;
 }
@@ -421,9 +421,11 @@ bool ObjectTreeViewDefaultModel::isObjectAllowedIntoIndex(const QModelIndex& ind
 
 std::pair<std::vector<core::SEditorObject>, std::set<std::string>> ObjectTreeViewDefaultModel::getObjectsAndRootIdsFromClipboardString(const std::string& serializedObjs) const {
 	auto deserialization{raco::serialization::deserializeObjects(serializedObjs)};
-	auto objects = BaseContext::getTopLevelObjectsFromDeserializedObjects(deserialization, project());
-
-	return {objects, deserialization.rootObjectIDs};
+	if (deserialization) {
+		auto objects = BaseContext::getTopLevelObjectsFromDeserializedObjects(*deserialization, project());
+		return {objects, deserialization->rootObjectIDs};
+	}
+	return {};
 }
 
 bool ObjectTreeViewDefaultModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
@@ -496,7 +498,12 @@ void ObjectTreeViewDefaultModel::copyObjectsAtIndices(const QModelIndexList& ind
 
 bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	bool success = true;
-	commandInterface_->pasteObjects(serializedObjects, indexToSEditorObject(index), pasteAsExtref, &success, outError);
+	try {
+		commandInterface_->pasteObjects(serializedObjects, indexToSEditorObject(index), pasteAsExtref);
+	} catch (std::exception &error) {
+		success = false;
+		*outError = error.what();
+	}
 	return success;
 }
 

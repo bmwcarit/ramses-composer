@@ -5,3 +5,4 @@ vc140.pdb
 .vs/
 Testing/
 CMakeLists.txt.user
+__pycache__/

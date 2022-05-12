@@ -24,18 +24,21 @@
 
 class QApplicationStateChangeEvent;
 
+namespace raco::core {
+enum class TagType;
+class TagDataCache;
+}
+
 namespace raco::property_browser {
 
-	enum class TagType;
 	class PropertyBrowserItem;
-	class TagDataCache;
 	class TagContainerEditor_AvailableTagsItemModel;
 	class TagContainerEditor_AppliedTagModel;
 	class TreeViewWithDel;
 
 	class TagContainerEditor_Popup : public common_widgets::PopupDialog {
 	public:
-		explicit TagContainerEditor_Popup(PropertyBrowserItem* item, TagType tagType, QWidget* anchor);
+		explicit TagContainerEditor_Popup(PropertyBrowserItem* item, raco::core::TagType tagType, QWidget* anchor);
 		~TagContainerEditor_Popup() override;
 		void newTagListAccepted();
 		void newTagListRejected();
@@ -46,7 +49,7 @@ namespace raco::property_browser {
 		void updateRenderedBy();
 		bool showRenderedBy() const;
 		
-		TagType tagType_;
+		raco::core::TagType tagType_;
 		PropertyBrowserItem* item_;
 		QGridLayout outerLayout_{ this };
 		QFrame frame_{ this };
@@ -61,7 +64,7 @@ namespace raco::property_browser {
 		QLabel referencedBy_{ this };
 		QLabel renderedBy_{this};
 		
-		std::unique_ptr<TagDataCache> tagDataCache_{};
+		std::unique_ptr<raco::core::TagDataCache> tagDataCache_{};
 		std::set<std::string> forbiddenTags_{};
 	};
 

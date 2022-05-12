@@ -133,7 +133,7 @@ public:
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	void updateFromExternalFile(BaseContext& context) override;
 
-	Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {"Tags"}};
+	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriVertex_{std::string(), {"Vertex shader files(*.glsl *.vert)"}, DisplayNameAnnotation("Vertex URI")};
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriGeometry_{std::string(), {"Geometry shader files(*.glsl *.geom)"}, DisplayNameAnnotation("Geometry URI")};

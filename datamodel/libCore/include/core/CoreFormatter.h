@@ -21,7 +21,7 @@ template <>
 struct fmt::formatter<raco::data_storage::PrimitiveType> : formatter<string_view> {
 	template <typename FormatContext>
 	auto format(const raco::data_storage::PrimitiveType type, FormatContext& ctx) {
-		string_view name = std::to_string(static_cast<int>(type));
+		std::string name = std::to_string(static_cast<int>(type));
 		switch (type) {
 			case raco::data_storage::PrimitiveType::Bool:
 				name = "Bool";
@@ -91,7 +91,7 @@ struct fmt::formatter<raco::core::ValueHandle> : formatter<string_view> {
 		if (c.isObject()) {
 			return formatter<string_view>::format(fmt::format("ValueHandle[Object]( objectName: {} )", c.rootObject()->objectName()), ctx);
 		}
-		return formatter<string_view>::format(fmt::format("ValueHandle[{}]( propName: {} )", c.type(), c.getPropName()), ctx);
+		return formatter<string_view>::format(fmt::format("ValueHandle[{}]( propertyPath: {} )", c.type(), c.getPropertyPath()), ctx);
 	}
 };
 

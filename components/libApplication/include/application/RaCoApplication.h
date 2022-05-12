@@ -36,7 +36,7 @@ namespace raco::application {
 
 class RaCoApplication {
 public:
-	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject = {});
+	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject = {}, bool createDefaultScene = true);
 
 	RaCoProject& activeRaCoProject();
 	const RaCoProject& activeRaCoProject() const;
@@ -45,18 +45,18 @@ public:
 
 	// @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	// @exception ExtrefError
-	void switchActiveRaCoProject(const QString& file);
+	void switchActiveRaCoProject(const QString& file, bool createDefaultScene = true);
 
 	bool exportProject(
-		const RaCoProject& project,
 		const std::string& ramsesExport,
 		const std::string& logicExport,
 		bool compress,
-		std::string& outError) const;
+		std::string& outError, 
+		bool forceExportWithErrors = false) const;
 
 	void doOneLoop();
 
-	void resetScene();
+	void resetSceneBackend();
 
 	bool canSaveActiveProject() const;
 
@@ -93,7 +93,6 @@ private:
 	bool logicEngineNeedsUpdate_ = false;
 
 	std::chrono::high_resolution_clock::time_point startTime_;
-	long long totalElapsedMsec_{0};
 };
 
 }  // namespace raco::application
