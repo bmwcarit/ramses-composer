@@ -36,6 +36,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
             * `cd MyProjectFolder`
             * `python \RaCoInstallationFolder\migrate_to_v1.0.py inout .`
             * `python \RaCoInstallationFolder\migrate_to_v1.0.py types .`
+        * You might need to install the [click Python module](https://pypi.org/project/click/) using `pip install click` to run the migration script.
 
 ### Added
 * Added Python API and the ability to run python scripts using the RaCoHeadless application.
