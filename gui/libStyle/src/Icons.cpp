@@ -10,7 +10,7 @@
 #include "style/Icons.h"
 
 namespace raco::style {
-	
+
 const Icons& Icons::instance() {
 	static Icons icons;
 	return icons;

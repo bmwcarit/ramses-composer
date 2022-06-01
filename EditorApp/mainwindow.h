@@ -48,6 +48,7 @@ public:
 		static inline const char* SCENE_GRAPH{"Scene Graph"};
 		static inline const char* UNDO_STACK{"Undo Stack"};
 		static inline const char* ERROR_VIEW{"Error View"};
+		static inline const char* ANIMATION_VIEW{"animation View"};
 		static inline const char* LOG_VIEW{"Log View"};
 	};
 

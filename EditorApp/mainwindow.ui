@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>400</width>
-     <height>21</height>
+     <height>17</height>
     </rect>
    </property>
    <property name="contextMenuPolicy">
@@ -74,6 +74,7 @@
     <addaction name="actionNewUndoView"/>
     <addaction name="actionNewErrorView"/>
     <addaction name="actionNewLogView"/>
+    <addaction name="actionNewAnimation"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -231,6 +232,20 @@
   <action name="actionNewLogView">
    <property name="text">
     <string>New Log View</string>
+   </property>
+  </action>
+  <action name="actionNewAnimation">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>New Animation</string>
+   </property>
+   <property name="toolTip">
+    <string>New Animation</string>
    </property>
   </action>
  </widget>
