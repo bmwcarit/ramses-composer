@@ -51,6 +51,7 @@ target_link_libraries(RaCoEditor
 	raco::RamsesWidgets
 	raco::ObjectTree
         raco::Animation
+        raco::Curve
         raco::signal
 	Qt5::Widgets
 	qtadvanceddocking

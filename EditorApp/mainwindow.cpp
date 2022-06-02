@@ -40,6 +40,7 @@
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserModel.h"
 #include "property_browser/PropertyBrowserWidget.h"
+#include "curve/CurveWindow.h"
 #include "animation/AnimationMainWindow.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/LogicEngineFormatter.h"
@@ -172,6 +173,16 @@ ads::CDockAreaWidget* createAndAddAnimation(MainWindow* mainWindow, const char* 
     return dockManager->addDockWidget(ads::RightDockWidgetArea, dockWidget);
 }
 
+ads::CDockAreaWidget* createAndAddCurve(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* application) {
+    auto *curveLogic = new CurveLogic(mainWindow);
+    auto *curveWindow = new raco::curve::CurveWindow(application->dataChangeDispatcher(), application->activeRaCoProject().commandInterface(), curveLogic, mainWindow);
+
+    auto* dockWidget = createDockWidget(MainWindow::DockWidgetTypes::CURVE_VIEW, mainWindow);
+    dockWidget->setWidget(curveWindow);
+    dockWidget->setObjectName(dockObjName);
+    return dockManager->addDockWidget(ads::RightDockWidgetArea, dockWidget);
+}
+
 void createAndAddProjectSettings(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::application::RaCoProject* project, SDataChangeDispatcher dataChangeDispatcher, CommandInterface* commandInterface) {
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::PROJECT_SETTINGS, mainWindow);
 	dock->setObjectName(dockObjName);
@@ -298,7 +309,9 @@ void createInitialWidgets(MainWindow* mainWindow, raco::ramses_widgets::Renderer
 	createAndAddUndoView(application, "defaultUndoView", &application->activeRaCoProject(), mainWindow, dockManager, leftDockArea);
 
 	createAndAddPropertyBrowser(mainWindow, "defaultPropertyBrowser", dockManager, treeDockManager, application);
+
     createAndAddAnimation(mainWindow, "defaultAnimation", dockManager);
+	createAndAddCurve(mainWindow, "defaultCurve", dockManager, treeDockManager, application);
 }
 
 }  // namespace
@@ -387,6 +400,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
 	});
     QObject::connect(ui->actionNewAnimation, &QAction::triggered, [this]() { createAndAddAnimation(this, EditorObject::normalizedObjectID("").c_str(), dockManager_); });
+    QObject::connect(ui->actionNewCurve, &QAction::triggered, [this]() { createAndAddCurve(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, racoApplication_); });
+    // QObject::connect(ui->actionNewVisualCurve, &QAction::triggered, [this]() { createAndAddVisualCurve(this, EditorObject::normalizedObjectID("").c_str(), dockManager_); });
 
 	QObject::connect(ui->actionSaveCurrentLayout, &QAction::triggered, [this]() {
 		bool ok;
@@ -457,10 +472,11 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 
 	Q_EMIT viewportChanged({*viewport->i1_, *viewport->i2_});
 
-	for (auto preview : findChildren<raco::ramses_widgets::PreviewMainWindow*>()) {
-		preview->commit();
-		preview->displayScene(racoApplication_->sceneBackendImpl()->currentSceneId(), backgroundColor);
-	}
+	// todo:fix the bug that the curve window crashes
+	//for (auto preview : findChildren<raco::ramses_widgets::PreviewMainWindow*>()) {
+	//	preview->commit();
+	//	preview->displayScene(racoApplication_->sceneBackendImpl()->currentSceneId(), backgroundColor);
+	//}
 	auto logicEngineExecutionEnd = std::chrono::high_resolution_clock::now();
 	timingsModel_.addLogicEngineTotalExecutionDuration(std::chrono::duration_cast<std::chrono::microseconds>(logicEngineExecutionEnd - startLoop).count());
 	rendererBackend_->doOneLoop();
@@ -720,8 +736,8 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 			createAndAddUndoView(racoApplication_, dockNameCString, &racoApplication_->activeRaCoProject(), this, dockManager_);
 		} else if (savedDockType == DockWidgetTypes::ERROR_VIEW) {
 			createAndAddErrorView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
-		} else if (savedDockType == DockWidgetTypes::LOG_VIEW) {
-			createAndAddLogView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
+        }else if(savedDockType == DockWidgetTypes::CURVE_VIEW) {
+			createAndAddCurve(this, dockNameCString, dockManager_, treeDockManager_, racoApplication_);
         }else if (savedDockType == DockWidgetTypes::ANIMATION_VIEW) {
             createAndAddAnimation(this, dockNameCString, dockManager_);
 		} else {

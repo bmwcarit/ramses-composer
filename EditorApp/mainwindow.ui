@@ -75,6 +75,7 @@
     <addaction name="actionNewErrorView"/>
     <addaction name="actionNewLogView"/>
     <addaction name="actionNewAnimation"/>
+    <addaction name="actionNewCurve"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -246,6 +247,14 @@
    </property>
    <property name="toolTip">
     <string>New Animation</string>
+   </property>
+  </action>
+  <action name="actionNewCurve">
+   <property name="text">
+    <string>New Curve</string>
+   </property>
+   <property name="toolTip">
+    <string>New Curve</string>
    </property>
   </action>
  </widget>
