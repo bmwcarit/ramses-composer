@@ -14,6 +14,7 @@
 #include "object_tree_view/ObjectTreeDockManager.h"
 #include "ramses_widgets/RendererBackend.h"
 #include "common_widgets/log_model/LogViewModel.h"
+#include "node_logic/NodeLogic.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -101,6 +102,7 @@ private:
 	raco::common_widgets::TimingsModel timingsModel_{this};
 	QMetaObject::Connection activeProjectFileConnection_;
 	raco::common_widgets::LogViewModel* logViewModel_;
+	raco::node_logic::NodeLogic* nodeLogic_{nullptr};
 
 	int renderTimerId_ = 0;
 };

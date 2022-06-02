@@ -34,6 +34,7 @@
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
+#include <QDebug>
 
 namespace raco::object_tree::view {
 
@@ -100,6 +101,59 @@ std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 	auto selectedObjects = indicesToSEditorObjects(selectionModel()->selectedIndexes());
 
 	return std::set<ValueHandle>(selectedObjects.begin(), selectedObjects.end());
+}
+
+void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap) {
+	if (!model()->hasChildren(index)) {
+		// 打印handle的信息
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		NodeData tempNode;
+		std::string str;
+		str = tempHandle[0].getPropertyPath();
+		// 设置node的名字
+		tempNode.setName(str);
+		// 设置node的 ID
+		str = tempHandle[0].asString();
+		// objectID 和 handle的映射
+		NodeNameHandleReMap.emplace(str, tempHandle);
+		tempNode.setObjectID(str);
+
+		tempNode.setParent(parent);
+		parent->childMapRef().emplace(tempNode.getName(), std::move(tempNode));
+	} else {
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		NodeData tempNode;
+		std::string str;
+		str = tempHandle[0].getPropertyPath();
+		tempNode.setName(str);
+		str = tempHandle[0].asString();
+		tempNode.setObjectID(str);
+		tempNode.setParent(parent);
+		parent->childMapRef().emplace(tempNode.getName(), tempNode);
+		NodeData *pNode = &(parent->childMapRef().find(tempNode.getName())->second);
+		for (int i{0}; i < model()->rowCount(index); i++) {
+			QModelIndex tempIndex = model()->index(i, 0, index);
+			core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+			getOnehandle(tempIndex, pNode, nodeDataManager, NodeNameHandleReMap);
+		}
+
+		NodeNameHandleReMap.emplace(tempNode.objectID(), tempHandle);
+	}
+}
+
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
+	std::map<std::string, core::ValueHandle> NodeNameHandleReMap;
+	raco::guiData::NodeDataManager &nodeDataManager = raco::guiData::NodeDataManager::GetInstance();
+	if (nodeDataManager.root().childMapRef().size())
+		nodeDataManager.deleteNode(nodeDataManager.root().childMapRef().begin()->second);
+	NodeData *parent = &nodeDataManager.root();
+	int row = model()->rowCount();
+	for (int i{0}; i < row; ++i) {
+		QModelIndex index = model()->index(i, 0);
+		getOnehandle(index, parent, nodeDataManager, NodeNameHandleReMap);
+	}
+
+	return NodeNameHandleReMap;
 }
 
 void ObjectTreeView::globalCopyCallback() {
@@ -406,6 +460,14 @@ std::vector<core::SEditorObject> ObjectTreeView::indicesToSEditorObjects(const Q
 	return treeModel_->indicesToSEditorObjects(itemIndices);
 }
 
+core::SEditorObject ObjectTreeView::indexToSEditorObject(const QModelIndex &index) const {
+	auto itemIndex = index;
+	if (proxyModel_) {
+		itemIndex = proxyModel_->mapToSource(index);
+	}
+	return treeModel_->indexToSEditorObject(itemIndex);
+}
+
 std::string ObjectTreeView::indexToTreeNodeID(const QModelIndex &index) const {
 	auto itemIndex = index;
 	if (proxyModel_) {
@@ -422,7 +484,6 @@ QModelIndex ObjectTreeView::indexFromTreeNodeID(const std::string &id) const {
 
 	return index;
 }
-
 
 QModelIndexList ObjectTreeView::getSelectedIndices(bool sorted) const {
 	auto selectedIndices = selectionModel()->selectedRows();

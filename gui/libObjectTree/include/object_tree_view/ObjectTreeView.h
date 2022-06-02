@@ -10,6 +10,7 @@
 #pragma once
 
 #include "core/EditorObject.h"
+#include "node_logic/NodeLogic.h"
 
 #include <QAbstractItemModel>
 #include <QTreeView>
@@ -35,6 +36,9 @@ public:
 
 	std::set<ValueHandle> getSelectedHandles() const;
 	QString getViewTitle() const;
+
+	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
+	std::map<std::string, core::ValueHandle> updateNodeTree();
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
@@ -81,6 +85,7 @@ protected:
 	void mousePressEvent(QMouseEvent *event) override;
 
 	std::vector<SEditorObject> indicesToSEditorObjects(const QModelIndexList &index) const;
+	core::SEditorObject indexToSEditorObject(const QModelIndex &index) const;
 	std::string indexToTreeNodeID(const QModelIndex &index) const;
 	QModelIndex indexFromTreeNodeID(const std::string &id) const;
 
