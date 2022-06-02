@@ -50,6 +50,7 @@ target_link_libraries(RaCoEditor
 	raco::Core 
 	raco::RamsesWidgets
 	raco::ObjectTree
+        raco::Property
         raco::Animation
         raco::Curve
         raco::signal
