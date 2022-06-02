@@ -24,3 +24,6 @@
 [submodule "third_party/zip"]
 	path = third_party/zip
 	url = https://github.com/kuba--/zip
+[submodule "third_party/protobuf"]
+	path = third_party/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
