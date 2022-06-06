@@ -156,6 +156,21 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
 	return NodeNameHandleReMap;
 }
 
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
+	std::map<std::string, core::ValueHandle> ResHandleReMap;
+	int row = model()->rowCount();
+	for (int i{0}; i < row; ++i) {
+		QModelIndex index = model()->index(i, 0);
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		// 设置node的名字
+		std::string str = tempHandle[0].getPropertyPath();
+		ResHandleReMap.emplace(str, tempHandle);
+		// 设置node的 ID
+		str = tempHandle[0].asString();
+	}
+	return ResHandleReMap;
+}
+
 void ObjectTreeView::globalCopyCallback() {
 	auto selectedIndices = getSelectedIndices(true);
 	if (!selectedIndices.empty()) {

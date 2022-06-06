@@ -39,6 +39,7 @@ public:
 
 	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
 	std::map<std::string, core::ValueHandle> updateNodeTree();
+	std::map<std::string, core::ValueHandle> updateResource();
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);

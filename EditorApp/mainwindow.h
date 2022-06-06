@@ -16,6 +16,7 @@
 #include "common_widgets/log_model/LogViewModel.h"
 #include "node_logic/NodeLogic.h"
 #include "curve/CurveNameWidget.h"
+#include "material_logic/materalLogic.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -108,6 +109,7 @@ private:
 	raco::common_widgets::LogViewModel* logViewModel_;
 	raco::node_logic::NodeLogic* nodeLogic_{nullptr};
 	CurveNameWidget* curveNameWidget_{nullptr};
+	raco::material_logic::MateralLogic* materialLogic_{nullptr};
 
 	int renderTimerId_ = 0;
 };
