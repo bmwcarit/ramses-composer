@@ -42,12 +42,22 @@ void PreviewContentWidget::setBackgroundColor(core::Vec4f backgroundColor) {
 	}
 }
 
+void PreviewContentWidget::setEnableDisplayGrid(bool enable) {
+	if (ramsesPreview_) {
+		ramsesPreview_->setEnableDisplayGrid(enable);
+	}
+}
+
 ramses::sceneId_t PreviewContentWidget::getSceneId() {
 	if (ramsesPreview_) {
 		return ramsesPreview_->nextState().sceneId;
 	} else {
 		return ramses::sceneId_t::Invalid();
 	}
+}
+
+std::unique_ptr<RamsesPreviewWindow>& PreviewContentWidget::getRamsesPreview() {
+	return ramsesPreview_;
 }
 
 bool PreviewContentWidget::event(QEvent* event) {

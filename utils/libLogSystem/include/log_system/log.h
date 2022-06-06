@@ -29,6 +29,7 @@ constexpr const char* PROPERTY_BROWSER{"PROPERTY_BROWSER"};
 constexpr const char* OBJECT_TREE_VIEW{"OBJECT_TREE_VIEW"};
 constexpr const char* LOGGING{"LOGGING"};
 constexpr const char* PREVIEW_WIDGET {"PREVIEW_WIDGET"};
+constexpr const char* PREVIEW_MAIN{"PREVIEW_MAIN"};
 constexpr const char* RAMSES_BACKEND {"RAMSES_BACKEND"};
 constexpr const char* RAMSES_ADAPTOR {"RAMSES_ADAPTOR"};
 constexpr const char* DESERIALIZATION{"DESERIALIZATION"};

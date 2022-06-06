@@ -138,8 +138,12 @@ ads::CDockWidget* createDockWidget(const QString& title, QWidget* parent) {
 ads::CDockAreaWidget* createAndAddPreview(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::ramses_widgets::RendererBackend& rendererBackend, raco::application::RaCoApplication* application) {
 	const auto& viewport = application->activeRaCoProject().project()->settings()->viewport_;
 	const auto& backgroundColor = *application->activeRaCoProject().project()->settings()->backgroundColor_;
-	auto* previewWidget = new raco::ramses_widgets::PreviewMainWindow{rendererBackend, application->sceneBackendImpl(), {*viewport->i1_, *viewport->i2_}, application->activeRaCoProject().project(), application->dataChangeDispatcher()};
+	const auto& axes = application->activeRaCoProject().project()->settings()->axes_;
+	auto* previewWidget = new raco::ramses_widgets::PreviewMainWindow{rendererBackend, application->sceneBackendImpl(), {*viewport->i1_, *viewport->i2_}, application->activeRaCoProject().project(), application->dataChangeDispatcher(),
+		application->activeRaCoProject().commandInterface()};
 	QObject::connect(mainWindow, &MainWindow::viewportChanged, previewWidget, &raco::ramses_widgets::PreviewMainWindow::setViewport);
+	QObject::connect(mainWindow, &MainWindow::axesChanged, previewWidget, &raco::ramses_widgets::PreviewMainWindow::setAxes);
+	QObject::connect(mainWindow, &MainWindow::displayGridChanged, previewWidget, &raco::ramses_widgets::PreviewMainWindow::setEnableDisplayGrid);
 	previewWidget->displayScene(application->sceneBackendImpl()->currentSceneId(), backgroundColor);
 	previewWidget->setWindowFlags(Qt::Widget);
 
@@ -149,6 +153,10 @@ ads::CDockAreaWidget* createAndAddPreview(MainWindow* mainWindow, const char* do
 	QObject::connect(dock, &ads::CDockWidget::closed, [mainWindow]() {
 		mainWindow->setNewPreviewMenuEntryEnabled(true);
 	});
+	QLabel* axesIcon_ = new QLabel(previewWidget);
+	axesIcon_->setScaledContents(true);
+	axesIcon_->setStyleSheet("background:transparent");
+	previewWidget->setAxesIconLabel(axesIcon_);
 	mainWindow->setNewPreviewMenuEntryEnabled(false);
 	return dockManager->addDockWidget(ads::CenterDockWidgetArea, dock);
 }
@@ -516,14 +524,18 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 
 	const auto& viewport = racoApplication_->activeRaCoProject().project()->settings()->viewport_;
 	const auto& backgroundColor = *racoApplication_->activeRaCoProject().project()->settings()->backgroundColor_;
+	const auto& axes = racoApplication_->activeRaCoProject().project()->settings()->axes_.asBool();
+	const auto& enable = racoApplication_->activeRaCoProject().project()->settings()->displayGrid_.asBool();
 
 	Q_EMIT viewportChanged({*viewport->i1_, *viewport->i2_});
+	Q_EMIT axesChanged(axes);
+	Q_EMIT displayGridChanged(enable);
 
 	// todo:fix the bug that the curve window crashes
-	//for (auto preview : findChildren<raco::ramses_widgets::PreviewMainWindow*>()) {
-	//	preview->commit();
-	//	preview->displayScene(racoApplication_->sceneBackendImpl()->currentSceneId(), backgroundColor);
-	//}
+	for (auto preview : findChildren<raco::ramses_widgets::PreviewMainWindow*>()) {
+		preview->commit();
+		preview->displayScene(racoApplication_->sceneBackendImpl()->currentSceneId(), backgroundColor);
+	}
 	auto logicEngineExecutionEnd = std::chrono::high_resolution_clock::now();
 	timingsModel_.addLogicEngineTotalExecutionDuration(std::chrono::duration_cast<std::chrono::microseconds>(logicEngineExecutionEnd - startLoop).count());
 	rendererBackend_->doOneLoop();

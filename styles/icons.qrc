@@ -41,5 +41,7 @@
         <file alias="typePrefabInstanceIcon">_Default/icons/typePrefabInstance.svg</file>
         <file alias="typeLuaScriptModuleIcon">_Default/icons/typeLuaScriptModule.svg</file>
         <file alias="typeTimerIcon">_Default/icons/typeTimer.svg</file>
+        <file alias="yUp">axes_y_up.png</file>
+        <file alias="zUp">axes_z_up.png</file>
     </qresource>
 </RCC>

@@ -97,6 +97,8 @@ protected Q_SLOTS:
 Q_SIGNALS:
 	void viewportChanged(const QSize& sceneSize);
 
+    void axesChanged(const bool& z_up);
+    void displayGridChanged(const bool& z_up);
 private:
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;
