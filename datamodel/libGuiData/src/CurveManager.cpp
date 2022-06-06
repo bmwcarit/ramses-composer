@@ -108,6 +108,15 @@ bool CurveManager::modifyCurveName(const std::string &curveName, const std::stri
     return false;
 }
 
+bool CurveManager::clearCurve() {
+    for (auto it : curveList_) {
+        delete it;
+        it = nullptr;
+    }
+    curveList_.clear();
+    return true;
+}
+
 std::list<Curve *> CurveManager::getCurveList() {
     return curveList_;
 }

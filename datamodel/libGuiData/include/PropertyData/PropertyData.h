@@ -37,6 +37,7 @@ public:
     bool deleteCustomProItem(const std::string &name);
     bool modifyCustomProItem(const std::string &name, const EPropertyType& type);
     bool getCustomProItemType(const std::string &name, EPropertyType &type);
+    bool hasCustomProperty(const std::string &name);
 
     std::map<std::string, EPropertyType> getSystemPropertyTypeMap();
     bool insertSystemProItem(const std::string &name, const EPropertyType& type);

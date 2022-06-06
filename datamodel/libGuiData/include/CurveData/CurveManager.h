@@ -20,6 +20,8 @@ public:
     Curve *getCurve(const std::string& curveName);
     // 修改 Curve Name
     bool modifyCurveName(const std::string& curveName, const std::string& modifyName);
+    // 清空Curve
+    bool clearCurve();
     // 模糊搜索
     std::list<Curve*> search(const std::string& curveNmae);
     //

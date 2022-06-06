@@ -4,11 +4,12 @@ namespace raco::guiData {
 animationData::animationData() {
 }
 
-animationData::animationData(int startTime, int endTime, int loopCount, int updateInterval) :
+animationData::animationData(int startTime, int endTime, int loopCount, int updateInterval, int playSpeed) :
 							m_StartTime(startTime),
 						    m_EndTime(endTime),
 						    m_LoopCount(loopCount),
-						    m_UpdateInterval(updateInterval){}
+                            m_UpdateInterval(updateInterval),
+                            m_PlaySpeed(playSpeed){}
 
 void animationData::SetStartTime(const int startTime) {
 	m_StartTime = startTime;
@@ -27,7 +28,11 @@ void animationData::SetLoopCount(const int loopCount) {
 
 void animationData::SetUpdateInterval(const int updateInterval) {
 	m_UpdateInterval = updateInterval;
-	return;
+    return;
+}
+
+void animationData::SetPlaySpeed(const int playSpeed) {
+    m_PlaySpeed = playSpeed;
 }
 
 int animationData::GetStartTime() {
@@ -43,7 +48,11 @@ int animationData::GetLoopCount() {
 }
 
 int animationData::GetUpdateInterval() {
-	return m_UpdateInterval;
+    return m_UpdateInterval;
+}
+
+int animationData::GetPlaySpeed() {
+    return m_PlaySpeed;
 }
 
 bool animationData::IsHaveNode(const std::string nodeName)
@@ -100,7 +109,7 @@ bool animationDataManager::InsertAmimation(std::string sampleProperty) {
 	}
 	else
 	{
-        m_AnitnList[sampleProperty] = animationData(0, 200, 1, 17);
+        m_AnitnList[sampleProperty] = animationData(0, 200, 1, 17, 1.0);
 		return true;
 	}
 }
@@ -108,7 +117,7 @@ bool animationDataManager::InsertAmimation(std::string sampleProperty) {
 bool animationDataManager::CopyAmimation(std::string src, std::string dest) {
 	if(IsHaveAnimation(src))
 	{
-		m_AnitnList[dest] = animationData(m_AnitnList[src].GetStartTime(),m_AnitnList[src].GetEndTime(),m_AnitnList[src].GetLoopCount(),m_AnitnList[src].GetUpdateInterval());
+        m_AnitnList[dest] = animationData(m_AnitnList[src].GetStartTime(),m_AnitnList[src].GetEndTime(),m_AnitnList[src].GetLoopCount(),m_AnitnList[src].GetUpdateInterval(), m_AnitnList[src].GetPlaySpeed());
 		return true;
 	}
 	else{
@@ -137,6 +146,12 @@ bool animationDataManager::ModifyAnimation(std::string oldSampleProperty, std::s
         return true;
     }
     return false;
+}
+
+bool animationDataManager::ClearAniamtion() {
+    m_AnitnList.clear();
+    m_ActiveAnimation = std::string();
+    return true;
 }
 
 void animationDataManager::SetActiveAnimation(std::string sampleProperty) {

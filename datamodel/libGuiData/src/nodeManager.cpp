@@ -58,6 +58,11 @@ bool NodeDataManager::deleteActiveNode() {
     return deleteNode(*activeNode_);
 }
 
+bool NodeDataManager::clearNodeData() {
+    deleting(root_);
+    activeNode_ = nullptr;
+    return true;
+}
 
 /**
  * @brief NodeTree::deleteNode
@@ -81,7 +86,7 @@ bool NodeDataManager::deleteNode(NodeData& pNode) {
  * @note  根据objectID查找相应的结点
  * @return 找到的话返回结点地址，找不到的返回空
  */
-NodeData* NodeDataManager::searchNodeByID(std::string& objectID) {
+NodeData* NodeDataManager::searchNodeByID(const std::string &objectID) {
     std::cout << " objectID: " << objectID << "\n";
 
     NodeData* p = &(root_);  // 第一个结点 
@@ -94,7 +99,7 @@ NodeData* NodeDataManager::searchNodeByID(std::string& objectID) {
  * @brief NodeTree::searching
  * @note  searchNode的子函数，递归进行查找
  */
-void NodeDataManager::searchingByID(NodeData* pNode, std::string& objectID) {
+void NodeDataManager::searchingByID(NodeData* pNode, const std::string &objectID) {
     std::cout << " searching pNode->objectID(): " << pNode->objectID() << "\n";
     if(pNode->objectID() == objectID) {
         searchedNode_ = pNode;

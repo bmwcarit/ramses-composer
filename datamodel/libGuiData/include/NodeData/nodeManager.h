@@ -183,9 +183,10 @@ public:
     void deleting(NodeData& pNode);     // 递归删除结点函数
     bool deleteNode(NodeData& pNode);   // 删除当前活跃的结点
     bool deleteActiveNode();
+    bool clearNodeData();
 
-    NodeData* searchNodeByID(std::string& objectID);  // 从根结点查找
-	void searchingByID(NodeData* pNode, std::string& objectID);
+    NodeData* searchNodeByID(const std::string& objectID);  // 从根结点查找
+    void searchingByID(NodeData* pNode, const std::string& objectID);
 
 
     NodeData* searchNodeByName(std::string& nodeName);  // 从根结点查找

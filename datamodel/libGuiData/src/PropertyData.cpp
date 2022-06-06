@@ -54,6 +54,14 @@ bool PropertyDataManager::getCustomProItemType(const std::string &name, EPropert
     return false;
 }
 
+bool PropertyDataManager::hasCustomProperty(const std::string &name) {
+    auto it = customPropertyTypeMap_.find(name);
+    if (it == customPropertyTypeMap_.end()) {
+        return false;
+    }
+    return true;
+}
+
 std::map<std::string, EPropertyType> PropertyDataManager::getSystemPropertyTypeMap() {
     return systemPropertyTypeMap_;
 }

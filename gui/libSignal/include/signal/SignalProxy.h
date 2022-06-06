@@ -1,6 +1,7 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
+#include "core/CommandInterface.h"
 #include <QObject>
 #include <QDebug>
 namespace raco::signal {
@@ -45,6 +46,18 @@ Q_SIGNALS:
     void sigUpdateAnimationKey_From_AnimationUI(QString oldKey, QString newKey);
     //
     void sigUpdateCustomProperty_From_PropertyUI();
+    //
+    void sigResetAllData_From_MainWindow();
+    //
+    void sigInitPropertyView();
+    //
+    void sigInitAnimationView();
+    //
+    void sigInitCurveView();
+    //
+    void sigInitPropertyBrowserView();
+    //
+    void sigValueHandleChanged_From_NodeUI(const raco::core::ValueHandle &handle);
 
 signals:
 

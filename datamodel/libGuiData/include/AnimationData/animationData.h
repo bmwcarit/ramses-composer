@@ -7,17 +7,19 @@ namespace raco::guiData {
 class animationData{
 public:
 	animationData();
-	animationData(int startTime, int endTime, int loopCount, int updateInterval);
+    animationData(int startTime, int endTime, int loopCount, int updateInterval, int playSpeed);
 
 	void SetStartTime(const int startTime);
 	void SetEndTime(const int endTime);
 	void SetLoopCount(const int loopCount);
 	void SetUpdateInterval(const int updateInterval);
+    void SetPlaySpeed(const int playSpeed);
 	//get
 	int GetStartTime();
 	int GetEndTime();
 	int GetLoopCount();
 	int GetUpdateInterval();
+    int GetPlaySpeed();
 
 	//Relate to  Node List
 	bool IsHaveNode(const std::string nodeName);
@@ -30,6 +32,7 @@ private:
 	int m_EndTime;
 	int m_LoopCount;
 	int m_UpdateInterval;
+    double m_PlaySpeed;
 	std::set<std::string> m_NodeList;
 };
 
@@ -47,6 +50,7 @@ public:
 	bool DeleteAnimation(std::string sampleProperty);
 	bool IsHaveAnimation(std::string samplerProperty);
     bool ModifyAnimation(std::string oldSampleProperty, std::string newSampleProperty);
+    bool ClearAniamtion();
     void SetActiveAnimation(std::string sampleProperty);
     std::string GetActiveAnimation();
     animationData &getAnimationData(const std::string samplerProperty);
