@@ -29,6 +29,8 @@ Q_SIGNALS:
 	void beforeStructuralChange(QWidget* toChange = nullptr);
 	void beforeRemoveWidget(QWidget* toRemove);
 	void objectSelectionRequested(const QString objectID);
+	void sigCreateCurve(QString property, QString curve, QVariant value);
+    void sigCreateCurveAndBinding(QString property, QString curve, QVariant value);
 };
 
 }  // namespace raco::property_browser

@@ -61,6 +61,10 @@ PUBLIC
     raco::UserTypes
     raco::Components
     raco::CommonWidgets
+    raco::TimeAxis
+    raco::node_logic
+    raco::GuiData
+    raco::signal
     Qt5::Widgets
 PRIVATE
     raco::Style

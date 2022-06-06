@@ -78,6 +78,7 @@
     <addaction name="actionNewAnimation"/>
     <addaction name="actionNewCurve"/>
     <addaction name="actionNewProperty"/>
+    <addaction name="actionNewTimeAxisView"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -262,6 +263,11 @@
   <action name="actionNewProperty">
    <property name="text">
     <string>New Property</string>
+   </property>
+  </action>
+  <action name="actionNewTimeAxisView">
+   <property name="text">
+    <string>New Time Axis View</string>
    </property>
   </action>
  </widget>

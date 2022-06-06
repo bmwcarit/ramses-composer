@@ -47,6 +47,7 @@ EmbeddedPropertyBrowserView::EmbeddedPropertyBrowserView(PropertyBrowserItem* it
 PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent)
 	: QWidget{parent}, item_{item}, model_{model}, layout_{this} {
 	layout_.setAlignment(Qt::AlignTop);
+	setContextMenuPolicy(Qt::CustomContextMenu);
 
 	// .PropertySubtreeView--------------------------------------------------------------.
 	// | expand button |  label + margin       | link control | property / value control |
@@ -111,6 +112,12 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		QObject::connect(item, &PropertyBrowserItem::childrenChangedOrCollapsedChildChanged, this, &PropertySubtreeView::playStructureChangeAnimation);
 		updateChildrenContainer();
 	}
+    insertKeyFrameAction_ = new QAction("insert KeyFrame", this);
+    copyProperty_ = new QAction("copy Property", this);
+    connect(insertKeyFrameAction_, &QAction::triggered, this, &PropertySubtreeView::slotInsertKeyFrame);
+    connect(copyProperty_, &QAction::triggered, this, &PropertySubtreeView::slotCopyProperty);
+    // 添加右键菜单栏
+    connect(this, &PropertySubtreeView::customContextMenuRequested, this, &PropertySubtreeView::slotTreeMenu);
 }
 
 void PropertySubtreeView::updateError() {
@@ -131,6 +138,101 @@ void PropertySubtreeView::updateError() {
 	}
 }
 
+void PropertySubtreeView::updatePropertyControl() {
+	if (propertyControl_) {
+		propertyControl_->setVisible(!item_->expanded() || item_->size() == 0);
+    }
+}
+
+void PropertySubtreeView::slotTreeMenu(const QPoint &pos) {
+    QMenu menu;
+    if (item_->valueHandle().isProperty()) {
+        std::string property = item_->valueHandle().getPropertyPath();
+        QStringList strList = QString::fromStdString(property).split(".");
+        // 判断是否为System/Custom Property, 且是否为Float类型
+        if (!isValidValueHandle(strList, item_->valueHandle())) {
+            return;
+        }
+		menu.addAction(insertKeyFrameAction_);
+		menu.addAction(copyProperty_);
+        menu.exec(QCursor::pos());
+    }
+}
+
+void PropertySubtreeView::slotInsertKeyFrame() {
+    if (item_->valueHandle().isProperty()) {
+        std::string stdStrProperty = item_->valueHandle().getPropertyPath();
+        QString property = QString::fromStdString(stdStrProperty);
+        QStringList strList = QString::fromStdString(stdStrProperty).split(".");
+
+        // 判断是否已激活动画
+        std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
+        if (sampleProperty == std::string()) {
+            // TODO ZZ
+            return;
+        }
+        QString curve = QString::fromStdString(sampleProperty) + "_" + property;
+
+        double value{0};
+        if (item_->valueHandle().type() == raco::core::PrimitiveType::Double) {
+            value = item_->valueHandle().asDouble();
+        }
+        std::map<std::string, std::string> bindingMap;
+        NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingMap);
+
+        auto it = bindingMap.find(stdStrProperty);
+        if (it != bindingMap.end()) {
+            Q_EMIT item_->model()->sigCreateCurve(property, QString::fromStdString(it->second), value);
+            return;
+        }
+
+        // 若无对应binding
+        Q_EMIT item_->model()->sigCreateCurveAndBinding(property, curve, value);
+    }
+}
+
+void PropertySubtreeView::slotCopyProperty() {
+    raco::core::ValueHandle valueHandle = item_->valueHandle();
+    if (valueHandle.isProperty()) {
+        std::string property = item_->valueHandle().getPropertyPath();
+		QClipboard* clip = QApplication::clipboard();
+		clip->setText(QString::fromStdString(property));
+    }
+}
+
+bool PropertySubtreeView::isValidValueHandle(QStringList list, core::ValueHandle handle) {
+    // lamada
+    auto func = [&](QStringList tempList, raco::core::ValueHandle tempHandle)->bool {
+        if (tempHandle.isObject()) {
+            for (int i{1}; i < list.size(); i++) {
+                QString str = list[i];
+                tempHandle = tempHandle.get(str.toStdString());
+                if (!tempHandle.isProperty()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    if (list.contains("translation") || list.contains("rotation") || list.contains("scale")) {
+        if (list.contains("x") || list.contains("y") || list.contains("z")) {
+            return true;
+        }
+	} else if (list.contains("uniforms")) {
+        if (list.contains("x") || list.contains("y") || list.contains("z")) {
+            return true;
+        } else {
+            if (func(list, handle)) {
+				if (!handle.hasProperty("x") && !handle.hasProperty("y") && !handle.hasProperty("z")) {
+                    return true;
+                }
+            }
+        }
+	}
+    return false;
+}
+
 void PropertySubtreeView::collectTabWidgets(QObject* item, QWidgetList& tabWidgets) {
 	if (auto itemWidget = qobject_cast<QWidget*>(item)) {
 		if (itemWidget->focusPolicy() & Qt::TabFocus) {
@@ -141,7 +243,6 @@ void PropertySubtreeView::collectTabWidgets(QObject* item, QWidgetList& tabWidge
 		collectTabWidgets(child, tabWidgets);
 	}
 }
-
 
 void PropertySubtreeView::recalculateTabOrder() {
 	QWidgetList tabWidgets;

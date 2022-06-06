@@ -176,7 +176,7 @@ void NodeLogic::setUniformProperty(raco::core::ValueHandle valueHandle, NodeData
 				}
 				break;
 			}
-			// case PrimitiveType::Vec2f:  // PrimitiveType属性值更新
+			// case libNodeLogic::Vec2f:  // PrimitiveType属性值更新
 			// case PrimitiveType::Vec3f:
 			// case PrimitiveType::Vec4f:
 			// case PrimitiveType::Vec2i:
