@@ -29,7 +29,9 @@ public:
 	void setSceneId(ramses::sceneId_t id);
 	void setBackgroundColor(core::Vec4f backgroundColor);
 	void setFilteringMode(PreviewFilteringMode mode);
+	void setEnableDisplayGrid(bool enable);
 	void commit();
+	std::unique_ptr<RamsesPreviewWindow>& getRamsesPreview();
 
 public Q_SLOTS:
 	void setViewportRect(
@@ -42,6 +44,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
 	void newMousePosition(const QPoint globalPosition);
+	void updateAxesIconLabel();
 
 protected:
 	void paintEvent(QPaintEvent* event) override;

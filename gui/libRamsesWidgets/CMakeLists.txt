@@ -12,6 +12,8 @@ raco_find_qt_components(Widgets)
 
 add_library(libRamsesWidgets
     include/ramses_widgets/BuildOptions.h
+    include/ramses_widgets/grid_vert.h
+    include/ramses_widgets/grid_frag.h
     include/ramses_widgets/PreviewContentWidget.h src/PreviewContentWidget.cpp
     include/ramses_widgets/PreviewFramebufferScene.h src/PreviewFramebufferScene.cpp
     include/ramses_widgets/PreviewMainWindow.h src/PreviewMainWindow.cpp
@@ -19,6 +21,7 @@ add_library(libRamsesWidgets
     include/ramses_widgets/RamsesPreviewWindow.h src/RamsesPreviewWindow.cpp
     include/ramses_widgets/RendererBackend.h src/RendererBackend.cpp
     include/ramses_widgets/SceneStateEventHandler.h src/SceneStateEventHandler.cpp
+    include/ramses_widgets/PreviewBackgroundScene.h src/PreviewBackgroundScene.cpp
     src/PreviewMainWindow.ui
 )
 
@@ -38,6 +41,14 @@ target_link_libraries(libRamsesWidgets
         raco::LogSystem
         raco::UserTypes
         Qt5::Widgets
+        raco::Core
+        raco::UserTypes
+        raco::Components
+        raco::TimeAxis
+        raco::GuiData
+        raco::PropertyBrowser
+        Qt5::Core
+        Qt5::Gui
     PRIVATE
         raco::ramses-logic-lib
         raco::ramses-lib

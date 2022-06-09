@@ -91,6 +91,23 @@
     <string>Linear filtering</string>
    </property>
   </action>
+  <action name="actionPreviewMode"/>
+   <action name="actionModePreview">
+    <property name="text">
+     <string>Preview</string>
+    </property>
+    <property name="toolTip">
+     <string>Preview</string>
+     </property>
+  </action>
+  <action name="actionModeRoam">
+    <property name="text">
+     <string>Roam</string>
+    </property>
+    <property name="toolTip">
+     <string>Roam</string>
+    </property>
+ </action>
  </widget>
  <resources/>
  <connections/>

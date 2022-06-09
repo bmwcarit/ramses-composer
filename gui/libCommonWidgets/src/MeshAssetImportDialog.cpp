@@ -83,6 +83,19 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	massSelectButtonLayout_->addWidget(deselectAllButton_);
 	massSelectButtonLayout_->addStretch();
 
+	yAxesUpButton_ = new QRadioButton(this);
+	zAxesUpButton_ = new QRadioButton(this);
+	yAxesUpButton_->setChecked(true);
+	axesDirectionButtonLayout_ = new QHBoxLayout(nullptr);
+	axesDirectionButtonLayout_->addWidget(new QLabel("Assets Axes Direction:"));
+	axesDirectionButtonLayout_->addStretch();
+	axesDirectionButtonLayout_->addWidget(yAxesUpButton_);
+	axesDirectionButtonLayout_->addWidget(new QLabel("+Y up, +Z forward"));
+	axesDirectionButtonLayout_->addStretch();
+	axesDirectionButtonLayout_->addWidget(zAxesUpButton_);
+	axesDirectionButtonLayout_->addWidget(new QLabel("+Z up, -Y forward"));
+	axesDirectionButtonLayout_->addStretch();
+
 	dialogButtonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};
 	dialogButtonBox_->button(QDialogButtonBox::Ok)->setText("Import");
 	connect(dialogButtonBox_, &QDialogButtonBox::rejected, this, &MeshAssetImportDialog::reject);
@@ -100,7 +113,8 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	layout_->addWidget(new QLabel("Check/Uncheck the external assets that you would like to import into the scene.", 0));
 	layout_->addWidget(widget_, 1, 0);
 	layout_->addLayout(massSelectButtonLayout_, 2, 0);
-	layout_->addWidget(dialogButtonBox_, 3, 0);
+	layout_->addLayout(axesDirectionButtonLayout_, 3, 0);
+	layout_->addWidget(dialogButtonBox_, 4, 0);
 
 	for (auto i = 0; i < sceneGraph_.nodes.size(); ++i) {
 		auto& node = sceneGraph_.nodes[i].value();

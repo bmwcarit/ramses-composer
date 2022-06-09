@@ -96,8 +96,11 @@ protected Q_SLOTS:
 	void updateActiveProjectConnection();
 
 Q_SIGNALS:
-    void viewportChanged(const QSize& sceneSize);
     void getResourceHandles();
+	void viewportChanged(const QSize& sceneSize);
+
+    void axesChanged(const bool& z_up);
+    void displayGridChanged(const bool& z_up);
 private:
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;

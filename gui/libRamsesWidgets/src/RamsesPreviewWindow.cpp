@@ -27,10 +27,14 @@ void setAndWaitSceneState(
 	RendererBackend& backend,
 	const ramses::RendererSceneState state,
 	const std::unique_ptr<raco::ramses_widgets::PreviewFramebufferScene>& framebufferScene,
+	const std::unique_ptr<raco::ramses_widgets::PreviewBackgroundScene>& backgroundScene,
 	const ramses::sceneId_t sceneId) {
 	auto& sceneControlAPI = *backend.renderer().getSceneControlAPI();
 	if (framebufferScene && framebufferScene->getSceneId().isValid()) {
 		sceneControlAPI.setSceneState(framebufferScene->getSceneId(), state);
+	}
+	if (backgroundScene && backgroundScene->getSceneId().isValid()) {
+		sceneControlAPI.setSceneState(backgroundScene->getSceneId(), state);
 	}
 	if (sceneId.isValid()) {
 		sceneControlAPI.setSceneState(sceneId, state);
@@ -40,6 +44,9 @@ void setAndWaitSceneState(
 
 	if (framebufferScene && framebufferScene->getSceneId().isValid()) {
 		backend.eventHandler().waitForSceneState(framebufferScene->getSceneId(), state);
+	}
+	if (backgroundScene && backgroundScene->getSceneId().isValid()) {
+		backend.eventHandler().waitForSceneState(backgroundScene->getSceneId(), state);
 	}
 	if (sceneId.isValid()) {
 		backend.eventHandler().waitForSceneState(sceneId, state);
@@ -53,11 +60,15 @@ void reduceAndWaitSceneState(
 	RendererBackend& backend,
 	const ramses::RendererSceneState state,
 	const std::unique_ptr<raco::ramses_widgets::PreviewFramebufferScene>& framebufferScene,
+	const std::unique_ptr<raco::ramses_widgets::PreviewBackgroundScene>& backgroundScene,
 	const ramses::sceneId_t sceneId) {
 	auto& eventHandler = backend.eventHandler();
 	auto& sceneControlAPI = *backend.renderer().getSceneControlAPI();
 	if (framebufferScene && framebufferScene->getSceneId().isValid() && eventHandler.sceneState(framebufferScene->getSceneId()) > state) {
 		sceneControlAPI.setSceneState(framebufferScene->getSceneId(), state);
+	}
+	if (backgroundScene && backgroundScene->getSceneId().isValid() && eventHandler.sceneState(backgroundScene->getSceneId()) > state) {
+		sceneControlAPI.setSceneState(backgroundScene->getSceneId(), state);
 	}
 	if (sceneId.isValid() && eventHandler.sceneState(sceneId) > state) {
 		sceneControlAPI.setSceneState(sceneId, state);
@@ -67,6 +78,9 @@ void reduceAndWaitSceneState(
 
 	if (framebufferScene && framebufferScene->getSceneId().isValid()) {
 		backend.eventHandler().waitForSceneState(framebufferScene->getSceneId(), state);
+	}
+	if (backgroundScene && backgroundScene->getSceneId().isValid()) {
+		backend.eventHandler().waitForSceneState(backgroundScene->getSceneId(), state);
 	}
 	if (sceneId.isValid() && eventHandler.sceneState(sceneId) > state) {
 		backend.eventHandler().waitForSceneState(sceneId, state);
@@ -80,11 +94,13 @@ namespace raco::ramses_widgets {
 RamsesPreviewWindow::RamsesPreviewWindow(
 	void* windowHandle,
 	RendererBackend& rendererBackend)
-	: windowHandle_{windowHandle}, rendererBackend_{rendererBackend}, displayId_{ramses::displayId_t::Invalid()}, offscreenBufferId_{ramses::displayBufferId_t::Invalid()}, framebufferScene_{std::make_unique<raco::ramses_widgets::PreviewFramebufferScene>(rendererBackend_.client(), rendererBackend.internalSceneId())} {
+	: windowHandle_{windowHandle}, rendererBackend_{rendererBackend}, displayId_{ramses::displayId_t::Invalid()}, offscreenBufferId_{ramses::displayBufferId_t::Invalid()},
+	framebufferScene_{std::make_unique<raco::ramses_widgets::PreviewFramebufferScene>(rendererBackend_.client(), rendererBackend.internalSceneId())},
+	backgroundScene_{std::make_unique<raco::ramses_widgets::PreviewBackgroundScene>(rendererBackend_.client(), rendererBackend.internalSceneId())} {
 }
 
 RamsesPreviewWindow::~RamsesPreviewWindow() {
-	setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, framebufferScene_, current_.sceneId);
+	setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, framebufferScene_, backgroundScene_, current_.sceneId);
 	if (offscreenBufferId_.isValid()) {
 		rendererBackend_.renderer().destroyOffscreenBuffer(displayId_, offscreenBufferId_);
 		rendererBackend_.renderer().flush();
@@ -108,7 +124,7 @@ RamsesPreviewWindow::State& RamsesPreviewWindow::nextState() {
 void RamsesPreviewWindow::commit() {
 	if (!displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.filteringMode != current_.filteringMode) {
 		// Unload current scenes
-		reduceAndWaitSceneState(rendererBackend_, (displayId_.isValid()) ? ramses::RendererSceneState::Available : ramses::RendererSceneState::Unavailable, framebufferScene_, current_.sceneId);
+		reduceAndWaitSceneState(rendererBackend_, (displayId_.isValid()) ? ramses::RendererSceneState::Available : ramses::RendererSceneState::Unavailable, framebufferScene_, backgroundScene_, current_.sceneId);
 
 		if (offscreenBufferId_.isValid()) {
 			rendererBackend_.renderer().destroyOffscreenBuffer(displayId_, offscreenBufferId_);
@@ -154,7 +170,10 @@ void RamsesPreviewWindow::commit() {
 				sceneControlAPI.setSceneMapping(next_.sceneId, displayId_);
 			}
 
-			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Ready, framebufferScene_, next_.sceneId);
+			sceneControlAPI.setSceneMapping(backgroundScene_->getSceneId(), displayId_);
+		
+			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Ready, framebufferScene_, backgroundScene_, next_.sceneId);
+			
 
 			// Set up the render buffer we use as a default framebuffer.
 			// This is not a normal Ramses render target / render buffer created with Scene::createRenderBuffer / Scene::createRenderTarget
@@ -174,13 +193,15 @@ next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 			if (next_.sceneId.isValid()) {
 				sceneControlAPI.setSceneDisplayBufferAssignment(next_.sceneId, offscreenBufferId_);
 			}
+			sceneControlAPI.setSceneDisplayBufferAssignment(backgroundScene_->getSceneId(), offscreenBufferId_);
 			sceneControlAPI.flush();
 
 			sceneControlAPI.linkOffscreenBuffer(offscreenBufferId_, framebufferScene_->getSceneId(), dataConsumerId);
 			sceneControlAPI.flush();
 			rendererBackend_.eventHandler().waitForOffscreenBufferLinked(offscreenBufferId_);
 
-			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Rendered, framebufferScene_, next_.sceneId);
+			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Rendered, framebufferScene_, backgroundScene_, next_.sceneId);
+
 			current_.sceneId = next_.sceneId;
 			LOG_DEBUG(PREVIEW_WIDGET, "commit() sceneId {}", current_.sceneId);
 		}
@@ -198,6 +219,14 @@ next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 	if (current_.viewportSize.width() > 0 && current_.viewportSize.height() > 0) {
 		framebufferScene_->setViewport(current_.viewportOffset, current_.viewportSize, current_.virtualSize);
 	}
+}
+
+void RamsesPreviewWindow::setEnableDisplayGrid(bool enable) {
+	backgroundScene_->setEnableDisplayGrid(enable);
+}
+
+std::unique_ptr<raco::ramses_widgets::PreviewBackgroundScene>& RamsesPreviewWindow::getBackgroundScene() {
+	return backgroundScene_;
 }
 
 }  // namespace raco::ramses_widgets
