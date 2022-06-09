@@ -302,7 +302,8 @@ void TimeAxisWidget::startAnimation() {
         if (0 == loopCount_)
             loopCount_ = INT32_MAX;	// 如果loopCount_为0.改成循环int最大值次数
         curLoop_ = 0;
-        timerId_ = startTimer(animationDataManager::GetInstance().getActiveAnimationData().GetUpdateInterval());
+        int timer = animationDataManager::GetInstance().getActiveAnimationData().GetUpdateInterval() * animationDataManager::GetInstance().getActiveAnimationData().GetPlaySpeed();
+        timerId_ = startTimer(timer);
         return;
     }
     stopAnimation();
@@ -384,6 +385,11 @@ void TimeAxisWidget::setCurFrameToEnd() {
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
+}
+
+void TimeAxisWidget::clearKeyFrames() {
+    keyFrameMgr_->clearKeyFrameList();
+    update();
 }
 
 //绘制关键帧的点

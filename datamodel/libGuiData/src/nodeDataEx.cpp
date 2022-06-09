@@ -61,7 +61,6 @@ bool CurveBinding::deleteBindingDataItem(const std::string& sampleProp, const st
 bool CurveBinding::getPropCurve(std::string sampleProp, std::map<std::string, std::string> &bindingData) {
     auto iter = bindingMap_.find(sampleProp);
     if(iter == bindingMap_.end()) {
-        std::cout << "can't find [" << sampleProp << "] !\n";
         return false;
     }
     bindingData =iter->second;

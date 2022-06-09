@@ -78,9 +78,15 @@ void PointPropertyView::initView() {
 
     if (point_) {
         keyFrameSpinBox_->setValue(point_->getKeyFrame());
-        valueEditor_->setText(QString::number(*(point_->getDataValue())._Cast<double>()));
-        leftTangEditor_->setText(QString::number(*(point_->getLeftTagent())._Cast<double>()));
-        rightTangEditor_->setText(QString::number(*(point_->getRightTagent())._Cast<double>()));
+		if (point_->getDataValue().type() == typeid(double)) {
+		    valueEditor_->setText(QString::number(*(point_->getDataValue())._Cast<double>()));
+        }
+		if (point_->getLeftTagent().type() == typeid(double)) {
+			leftTangEditor_->setText(QString::number(*(point_->getLeftTagent())._Cast<double>()));
+		}
+		if (point_->getRightTagent().type() == typeid(double)) {
+			rightTangEditor_->setText(QString::number(*(point_->getRightTagent())._Cast<double>()));
+		}
 
         EInterPolationType type = point_->getInterPolationType();
         switch(type) {

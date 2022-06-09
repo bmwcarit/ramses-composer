@@ -9,7 +9,7 @@
 
 namespace raco::property {
 
-class PropertyMainWindows : public QMainWindow {
+class PropertyMainWindows : public QWidget {
     Q_OBJECT
 public:
     PropertyMainWindows(QWidget *parent);

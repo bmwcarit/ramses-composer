@@ -46,7 +46,6 @@ public Q_SLOTS:
 	void playStructureChangeAnimation();
 	void setLabelAreaWidth(int offset);
 	void updateChildrenContainer();
-	void updatePropertyControl();
     void slotTreeMenu(const QPoint &pos);
     void slotInsertKeyFrame();
     void slotCopyProperty();

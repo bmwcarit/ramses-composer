@@ -95,6 +95,8 @@ void ObjectTreeDockManager::connectTreeDockSignals(ObjectTreeDock* dock) {
 	QObject::connect(dock, &ObjectTreeDock::dockSelectionFocusRequested, this, &ObjectTreeDockManager::setFocusedDock);
 
 	QObject::connect(dock, &ObjectTreeDock::dockClosed, this, &ObjectTreeDockManager::eraseTreeDock);
+
+    QObject::connect(this, &ObjectTreeDockManager::selectObject, dock, &ObjectTreeDock::selectObject);
 }
 
 }  // namespace raco::object_tree::view

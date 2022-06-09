@@ -138,12 +138,6 @@ void PropertySubtreeView::updateError() {
 	}
 }
 
-void PropertySubtreeView::updatePropertyControl() {
-	if (propertyControl_) {
-		propertyControl_->setVisible(!item_->expanded() || item_->size() == 0);
-    }
-}
-
 void PropertySubtreeView::slotTreeMenu(const QPoint &pos) {
     QMenu menu;
     if (item_->valueHandle().isProperty()) {
@@ -163,6 +157,7 @@ void PropertySubtreeView::slotInsertKeyFrame() {
     if (item_->valueHandle().isProperty()) {
         std::string stdStrProperty = item_->valueHandle().getPropertyPath();
         QString property = QString::fromStdString(stdStrProperty);
+        QString property2 = property.section(".", 1);
         QStringList strList = QString::fromStdString(stdStrProperty).split(".");
 
         // 判断是否已激活动画
@@ -180,23 +175,23 @@ void PropertySubtreeView::slotInsertKeyFrame() {
         std::map<std::string, std::string> bindingMap;
         NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingMap);
 
-        auto it = bindingMap.find(stdStrProperty);
+        auto it = bindingMap.find(property2.toStdString());
         if (it != bindingMap.end()) {
-            Q_EMIT item_->model()->sigCreateCurve(property, QString::fromStdString(it->second), value);
+            Q_EMIT item_->model()->sigCreateCurve(property2, QString::fromStdString(it->second), value);
             return;
         }
 
         // 若无对应binding
-        Q_EMIT item_->model()->sigCreateCurveAndBinding(property, curve, value);
+        Q_EMIT item_->model()->sigCreateCurveAndBinding(property2, curve, value);
     }
 }
 
 void PropertySubtreeView::slotCopyProperty() {
     raco::core::ValueHandle valueHandle = item_->valueHandle();
     if (valueHandle.isProperty()) {
-        std::string property = item_->valueHandle().getPropertyPath();
+        QString property = QString::fromStdString(item_->valueHandle().getPropertyPath()).section(".", 1);
 		QClipboard* clip = QApplication::clipboard();
-		clip->setText(QString::fromStdString(property));
+        clip->setText(property);
     }
 }
 

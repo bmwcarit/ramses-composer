@@ -84,10 +84,14 @@ CurveTree::CurveTree(QWidget *parent, CurveLogic *logic) : QTreeView(parent), cu
     deletePointAct_ = new QAction(QStringLiteral("delete Point"), this);
     deleteCurveAct_ = new QAction(QStringLiteral("delete Curve"), this);
     createCurveAct_ = new QAction(QStringLiteral("create Curve"), this);
+    copyCurveAct_   = new QAction(QStringLiteral("copy Curve"), this);
+    pasteCurveAct_  = new QAction(QStringLiteral("paste Curve"), this);
     connect(insertPointAct_, &QAction::triggered, this, &CurveTree::slotInsertPoint);
     connect(deletePointAct_, &QAction::triggered, this, &CurveTree::slotDeletePoint);
     connect(deleteCurveAct_, &QAction::triggered, this, &CurveTree::slotDeleteCurve);
     connect(createCurveAct_, &QAction::triggered, this, &CurveTree::slotCreateCurve);
+    connect(copyCurveAct_,   &QAction::triggered, this, &CurveTree::slotCopyCurve);
+    connect(pasteCurveAct_,  &QAction::triggered, this, &CurveTree::slotPasteCurve);
 }
 
 void CurveTree::setItemExpandStatus() {
@@ -140,6 +144,10 @@ void CurveTree::slotTreeMenu(const QPoint &pos) {
         }
 		if (index.isValid() && item->childItem() && item->childItem()->getPoint() == nullptr) {
             menu.addAction(deleteCurveAct_);
+            menu.addAction(copyCurveAct_);
+            if (!copyCurve_.empty()) {
+                menu.addAction(pasteCurveAct_);
+            }
         }
     }
     menu.addAction(createCurveAct_);
@@ -214,7 +222,6 @@ void CurveTree::slotDeletePoint() {
 
                 Q_EMIT sigRefreshCurveView();
             }
-
         }
     }
 }
@@ -236,6 +243,27 @@ void CurveTree::slotDeleteCurve() {
             Q_EMIT sigRefreshCurveView();
         }
     }
+}
+
+void CurveTree::slotCopyCurve() {
+    QModelIndexList selected = selectionModel()->selectedIndexes();
+    if (selected.size() <= 0) {
+        return;
+    }
+    QModelIndex curIndex = selected.at(0);
+    QModelIndex index = curIndex.sibling(curIndex.row(), 0);
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+
+    if (item) {
+        if (item->getCurve()) {
+            copyCurve_ = item->getCurve()->getCurveName();
+        }
+    }
+}
+
+void CurveTree::slotPasteCurve() {
+    curveLogic_->copyCurve(copyCurve_);
+    Q_EMIT sigRefreshCurveView();
 }
 
 void CurveTree::slotCollapsePointPropertyView(const QModelIndex &index) {

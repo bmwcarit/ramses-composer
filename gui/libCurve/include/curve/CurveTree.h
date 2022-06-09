@@ -55,6 +55,8 @@ public Q_SLOTS:
     void slotCreateCurve();
     void slotDeletePoint();
     void slotDeleteCurve();
+    void slotCopyCurve();
+    void slotPasteCurve();
     void slotCollapsePointPropertyView(const QModelIndex &index);
 Q_SIGNALS:
     void sigRefreshCurveView();
@@ -73,6 +75,9 @@ private:
     QAction *deletePointAct_{nullptr};
     QAction *deleteCurveAct_{nullptr};
     QAction *createCurveAct_{nullptr};
+    QAction *copyCurveAct_{nullptr};
+    QAction *pasteCurveAct_{nullptr};
+    std::string copyCurve_;
 };
 
 

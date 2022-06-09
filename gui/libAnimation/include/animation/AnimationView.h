@@ -22,13 +22,16 @@ public:
     AnimationView(QWidget* parent = nullptr);
 
 public Q_SLOTS:
+    void initAnimationView();
     void startTimeEditorTextChanged();
     void endTimeEditorTextChanged();
     void loopCountEditorTextChanged();
     void intervalEditorTextChanged();
     void returnEditorTextChanged();
+    void playSpeedTextChanged();
     void slotloadAnimation(QString sampleProperty);
     void slotUpdateAnimationProperty();
+    void slotResetAniamitonView();
 private:
     TagContainerEditor* startTimeEditor_{nullptr};
     QLineEdit* startTimeStrEditor_{nullptr};

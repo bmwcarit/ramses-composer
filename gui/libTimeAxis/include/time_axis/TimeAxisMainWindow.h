@@ -23,20 +23,8 @@ class TimeAxisMainWindow;
 }
 
 namespace raco::time_axis {
-class AnimationButton : public QWidget {
+class TimeAxisMainWindow final : public QWidget {
     Q_OBJECT
-
-public:
-    AnimationButton(QWidget* parent = nullptr);
-
-private:
-    QPushButton *startBtn_;
-    QPushButton *previousBtn_;
-
-};
-
-class TimeAxisMainWindow final : public QMainWindow {
-Q_OBJECT
 public:
     TimeAxisMainWindow(raco::components::SDataChangeDispatcher dispatcher,
                        raco::core::CommandInterface* commandInterface,
@@ -50,6 +38,7 @@ public Q_SLOTS:
     void startOrStopAnimation();
     void slotUpdateAnimation();
     void slotUpdateAnimationKey(QString oldKey, QString newKey);
+    void slotResetAnimation();
 private Q_SLOTS:
     void slotTreeMenu(const QPoint &pos);
     void slotLoad();

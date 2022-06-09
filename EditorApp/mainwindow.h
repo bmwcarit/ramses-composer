@@ -73,7 +73,8 @@ public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
 	void slotCreateCurveAndBinding(QString property, QString curve, QVariant value);
 	void slotCreateCurve(QString property, QString curve, QVariant value);
-
+    void setResourceHandles(const std::map<std::string, raco::core::ValueHandle> &map);
+    void updateNodeHandles(const QString &title, const std::map<std::string, raco::core::ValueHandle> &map);
 protected:
 	void timerEvent(QTimerEvent* event) override;
 	void closeEvent(QCloseEvent* event) override;
@@ -95,8 +96,8 @@ protected Q_SLOTS:
 	void updateActiveProjectConnection();
 
 Q_SIGNALS:
-	void viewportChanged(const QSize& sceneSize);
-
+    void viewportChanged(const QSize& sceneSize);
+    void getResourceHandles();
 private:
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;

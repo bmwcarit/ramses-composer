@@ -35,6 +35,8 @@ Q_SIGNALS:
     //
     void sigRepaintTimeAixs_From_CurveUI();
     //
+    void sigCheckCurveBindingValid_From_CurveUI();
+    //
     void sigInsertCurve_From_NodeUI(QString property, QString curve, QVariant value);
     //
     void sigInsertCurveBinding_From_NodeUI(QString property, QString curve);

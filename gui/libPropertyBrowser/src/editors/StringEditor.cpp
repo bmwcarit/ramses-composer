@@ -110,4 +110,39 @@ void StringEditorLineEdit::keyPressEvent(QKeyEvent* event) {
 	}
 }
 
+StringNoItemEditor::StringNoItemEditor(QWidget *parent) {
+    this->setLayout(new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(this));
+    lineEdit_ = new QLineEdit(this);
+    layout()->addWidget(lineEdit_);
+
+    // simple reset of outdate color on editingFinished
+    QObject::connect(lineEdit_, &QLineEdit::editingFinished, this, [this]() {
+        updatedInBackground_ = false;
+        QString tempText = lineEdit_->text();
+        Q_EMIT changedText(tempText);
+    });
+
+    setStyleSheet("QWidget{background-color:black;}");
+}
+
+bool StringNoItemEditor::updatedInBackground() const {
+    return updatedInBackground_;
+}
+
+void StringNoItemEditor::setEnable(bool bEnabled) {
+    lineEdit_->setEnabled(bEnabled);
+}
+
+void StringNoItemEditor::setText(const QString & t) {
+    if (lineEdit_->hasFocus() && editingStartedByUser() && t != lineEdit_->text()) {
+        updatedInBackground_ = true;
+    } else {
+        lineEdit_->setText(t);
+    }
+}
+
+bool StringNoItemEditor::editingStartedByUser() {
+    return lineEdit_->isModified() || lineEdit_->cursorPosition() != lineEdit_->text().size();
+}
+
 }  // namespace raco::property_browser

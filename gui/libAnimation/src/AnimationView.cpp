@@ -46,16 +46,26 @@ AnimationView::AnimationView(QWidget *parent) {
     connect(loopCountStrEditor_, &QLineEdit::editingFinished, this, &AnimationView::loopCountEditorTextChanged);
     connect(intervalStrEditor_, &QLineEdit::editingFinished, this, &AnimationView::intervalEditorTextChanged);
     connect(returnStrEditor_, &QLineEdit::editingFinished, this, &AnimationView::returnEditorTextChanged);
+    connect(returnStrEditor_, &QLineEdit::editingFinished, this, &AnimationView::playSpeedTextChanged);
 
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateActiveAnimation_From_AnimationLogic, this, &AnimationView::slotloadAnimation);
     connect(&signalProxy::GetInstance(), &signalProxy::sigResetAnimationProperty_From_AnimationLogic, this, &AnimationView::slotUpdateAnimationProperty);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &AnimationView::slotResetAniamitonView);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInitAnimationView, this, &AnimationView::initAnimationView);
+}
+
+void AnimationView::initAnimationView() {
+    QString sampleProperty = QString::fromStdString(animationDataManager::GetInstance().GetActiveAnimation());
+    if (!sampleProperty.isEmpty()) {
+        slotloadAnimation(sampleProperty);
+    }
 }
 
 void AnimationView::startTimeEditorTextChanged() {
-    double dStartTime = startTimeStrEditor_->text().toDouble() * 100.0;
-    double dEndTime = endTimeStrEditor_->text().toDouble() * 100.0;
+    double dStartTime = startTimeStrEditor_->text().toDouble();
+    double dEndTime = endTimeStrEditor_->text().toDouble();
     if (dStartTime >= dEndTime) {
-        startTimeStrEditor_->setText(QString::number(dStartTime_ / 100.0));
+        startTimeStrEditor_->setText(QString::number(dStartTime_));
         return;
     }
     dStartTime_ = dStartTime;
@@ -64,10 +74,10 @@ void AnimationView::startTimeEditorTextChanged() {
 }
 
 void AnimationView::endTimeEditorTextChanged() {
-    double dEndTime = endTimeStrEditor_->text().toDouble() * 100.0;
-    double dStartTime = startTimeStrEditor_->text().toDouble() * 100.0;
+    double dEndTime = endTimeStrEditor_->text().toDouble();
+    double dStartTime = startTimeStrEditor_->text().toDouble();
     if (dStartTime >= dEndTime) {
-        endTimeStrEditor_->setText(QString::number(dEndTime_ / 100.0));
+        endTimeStrEditor_->setText(QString::number(dEndTime_));
         return;
     }
     dEndTime_ = dEndTime;
@@ -93,6 +103,12 @@ void AnimationView::returnEditorTextChanged() {
     sampleProperty_ = newSampleProperty;
 }
 
+void AnimationView::playSpeedTextChanged() {
+    double playSpeed = playSpeedStrEditor_->text().toDouble();
+    animationDataManager::GetInstance().getActiveAnimationData().SetPlaySpeed(playSpeed);
+    Q_EMIT signalProxy::GetInstance().sigUpdateAnimation_From_AnimationUI();
+}
+
 void AnimationView::slotloadAnimation(QString sampleProperty) {
     animationData tempData = animationDataManager::GetInstance().getAnimationData(sampleProperty.toStdString());
     startTimeStrEditor_->setText(QString::number(tempData.GetStartTime()));
@@ -109,5 +125,13 @@ void AnimationView::slotUpdateAnimationProperty() {
     loopCountStrEditor_->setText(QString::number(tempData.GetLoopCount()));
     intervalStrEditor_->setText(QString::number(tempData.GetUpdateInterval()));
     returnStrEditor_->setText(QString::fromStdString(animationDataManager::GetInstance().GetActiveAnimation()));
+}
+
+void AnimationView::slotResetAniamitonView() {
+    startTimeStrEditor_->clear();
+    endTimeStrEditor_->clear();
+    loopCountStrEditor_->clear();
+    intervalStrEditor_->clear();
+    returnStrEditor_->clear();
 }
 }

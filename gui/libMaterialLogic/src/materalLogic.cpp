@@ -181,30 +181,6 @@ void MateralLogic::setUniformsProperty(core::ValueHandle valueHandle, MaterialDa
                 materialData.addUniform(tempUniform);
                 break;
             }
-            // case PrimitiveType::Vec2f: {
-            //     setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec2f);
-			// 	break;
-            // }
-            // case PrimitiveType::Vec3f: {
-            //     setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec3f);
-			// 	break;
-            // }
-            // case PrimitiveType::Vec4f: {
-            //     setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec4f);
-			// 	break;
-            // }
-            // case PrimitiveType::Vec2i: {
-            //     setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec2i);
-			// 	break;
-            // }
-            // case PrimitiveType::Vec3i: {
-            //     setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec3i);
-			// 	break;
-            // }
-            // case PrimitiveType::Vec4i: {
-            //     setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec4i);
-			// 	break;
-            // }
             case PrimitiveType::Ref: {
                 TextureData textureData;
                 textureData.setUniformName(property);
@@ -213,7 +189,23 @@ void MateralLogic::setUniformsProperty(core::ValueHandle valueHandle, MaterialDa
 				break;
             }
             case PrimitiveType::Table:
-            case PrimitiveType::Struct:
+            case PrimitiveType::Struct: {
+                auto typeDesc = &tempHandle.constValueRef()->asStruct().getTypeDescription();
+                if (typeDesc == &core::Vec2f::typeDescription) {
+                    setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec2f);
+                } else if (typeDesc == &core::Vec3f::typeDescription) {
+                    setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec3f);
+                } else if (typeDesc == &core::Vec4f::typeDescription) {
+                    setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec4f);
+                } else if (typeDesc == &core::Vec2i::typeDescription) {
+                    setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec2i);
+                } else if (typeDesc == &core::Vec3i::typeDescription) {
+                    setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec3i);
+                } else if (typeDesc == &core::Vec4i::typeDescription) {
+                    setUniformsMultiElementProperty(tempHandle, materialData, UniformType::Vec4i);
+                }
+                break;
+            }
             default: {
                 break;
             }
@@ -225,7 +217,7 @@ void MateralLogic::setTexturePorperty(core::ValueHandle valueHandle, MaterialDat
     Bitmap bitMap;
     std::string bitMapKey;
     using PrimitiveType = core::PrimitiveType;
-	if (valueHandle.isProperty()) {
+    if (valueHandle != NULL) {
 		for (int i{0}; i < valueHandle.size(); i++) {
 			if (!valueHandle[i].isObject()) {
 				raco::core::ValueHandle tempHandle = valueHandle[i];
@@ -235,6 +227,7 @@ void MateralLogic::setTexturePorperty(core::ValueHandle valueHandle, MaterialDat
 						bitMapKey = tempHandle.asString();
 						bitMap.setName(tempHandle.asString());
 						textureData.setName(tempHandle.asString());
+                        textureData.setBitmapRef(tempHandle.asString());
 					}
 				}
 				if (QString::fromStdString(propName).compare("wrapUMode") == 0) {
@@ -264,8 +257,7 @@ void MateralLogic::setTexturePorperty(core::ValueHandle valueHandle, MaterialDat
 				}
 				if (QString::fromStdString(propName).compare("uri") == 0) {
 					if (tempHandle.type() == PrimitiveType::String) {
-						bitMap.setResource(tempHandle.asString());
-						textureData.setBitmapRef(tempHandle.asString());
+                        bitMap.setResource(tempHandle.asString());
 					}
 				}
 				if (QString::fromStdString(propName).compare("flipTexture") == 0) {
@@ -277,7 +269,7 @@ void MateralLogic::setTexturePorperty(core::ValueHandle valueHandle, MaterialDat
 					}
 				}
 			}
-    }
+        }
     }
     MaterialManager::GetInstance().addBitmap(bitMapKey, bitMap);
 }

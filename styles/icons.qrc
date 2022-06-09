@@ -41,5 +41,11 @@
         <file alias="typePrefabInstanceIcon">_Default/icons/typePrefabInstance.svg</file>
         <file alias="typeLuaScriptModuleIcon">_Default/icons/typeLuaScriptModule.svg</file>
         <file alias="typeTimerIcon">_Default/icons/typeTimer.svg</file>
+        <file alias="typeZoomIcon">_Default/icons/map_zoomin.png</file>
+        <file alias="typeAnimationNextIcon">_Default/icons/animation_next.png</file>
+        <file alias="typeAnimationPreviousIcon">_Default/icons/animation_previous.png</file>
+        <file alias="typeAnimationStartIcon">_Default/icons/animation_start.png</file>
+        <file alias="typeAnimationStopIcon">_Default/icons/animation_stop.png</file>
+        <file alias="applicationLogo">_Default/icons/ramses-composer-logo.png</file>
     </qresource>
 </RCC>

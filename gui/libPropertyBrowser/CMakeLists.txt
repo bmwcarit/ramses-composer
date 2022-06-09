@@ -19,6 +19,12 @@ add_library(libPropertyBrowser
     include/property_browser/PropertySubtreeChildrenContainer.h src/PropertySubtreeChildrenContainer.cpp
     include/property_browser/PropertySubtreeView.h src/PropertySubtreeView.cpp
     include/property_browser/WidgetFactory.h src/WidgetFactory.cpp
+    include/property_browser/PropertyBrowserNodeWidget.h src/PropertyBrowserNodeWidget.cpp
+    include/property_browser/PropertyBrowserMeshWidget.h src/PropertyBrowserMeshWidget.cpp
+    include/property_browser/PropertyBrowserCustomWidget.h src/PropertyBrowserCustomWidget.cpp
+    include/property_browser/PropertyBrowserCustomView.h src/PropertyBrowserCustomView.cpp
+    include/property_browser/PropertyBrowserCurveBindingWidget.h src/PropertyBrowserCurveBindingWidget.cpp
+    include/property_browser/PropertyBrowserCurveBindingView.h src/PropertyBrowserCurveBindingView.cpp
 
     include/property_browser/editors/BoolEditor.h src/editors/BoolEditor.cpp
     include/property_browser/editors/DoubleEditor.h src/editors/DoubleEditor.cpp
@@ -32,11 +38,13 @@ add_library(libPropertyBrowser
     include/property_browser/editors/TagContainerEditor.h src/editors/TagContainerEditor.cpp
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
     include/property_browser/editors/VecNTEditor.h src/editors/VecNTEditor.cpp
+    include/property_browser/editors/SearchEditor.h src/editors/SearchEditor.cpp
     
     include/property_browser/controls/ExpandButton.h src/controls/ExpandButton.cpp
     include/property_browser/controls/MouseWheelGuard.h src/controls/MouseWheelGuard.cpp
     include/property_browser/controls/ScalarSlider.h src/controls/ScalarSlider.cpp
     include/property_browser/controls/SpinBox.h src/controls/SpinBox.cpp
+    include/property_browser/controls/ResultTree.h src/controls/ResultTree.cpp
 
     src/ErrorBox.h src/ErrorBox.cpp
     src/editors/TagContainerEditor/TagContainerEditor_Popup.h src/editors/TagContainerEditor/TagContainerEditor_Popup.cpp

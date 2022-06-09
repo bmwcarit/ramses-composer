@@ -3,17 +3,18 @@
 namespace raco::curve {
 CurveWindow::CurveWindow(raco::components::SDataChangeDispatcher dispatcher,
                          raco::core::CommandInterface *commandInterface, CurveLogic *curveLogic,
-                         QWidget *parent) : QMainWindow{parent},
+                         QWidget *parent) :
+                         QWidget{parent},
                          commandInterface_ {commandInterface},
                          curveLogic_{curveLogic} {
-    QWidget* mainWidget = new QWidget(this);
-    QHBoxLayout* hLayout = new QHBoxLayout(mainWidget);
+//    QWidget* mainWidget = new QWidget(this);
+    QHBoxLayout* hLayout = new QHBoxLayout(this);
     curveTree_ = new CurveTree(this, curveLogic_);
     curveTree_->setHeaderHidden(true);
     hLayout->addWidget(curveTree_, 3);
-    mainWidget->setLayout(hLayout);
+    this->setLayout(hLayout);
 
-    this->setCentralWidget(mainWidget);
+//    this->setCentralWidget(mainWidget);
     connect(curveTree_, &CurveTree::sigRefreshCurveView, this, &CurveWindow::slotRefreshCurveView);
     connect(curveLogic, &CurveLogic::sigRefreshCurveView, this, &CurveWindow::slotRefreshCurveView);
 }
@@ -33,5 +34,6 @@ void CurveWindow::slotRefreshCurveView() {
     curveTree_->setItemExpandStatus();
 
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAixs_From_CurveUI();
+    Q_EMIT signalProxy::GetInstance().sigCheckCurveBindingValid_From_CurveUI();
 }
 }

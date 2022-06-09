@@ -71,6 +71,7 @@ public Q_SLOTS:
     void updateSlider(int pix);    //拖动时间线的处理函数
     void setCurFrameToBegin();
     void setCurFrameToEnd();
+    void clearKeyFrames();
 
 Q_SIGNALS:
     void AnimationStop();

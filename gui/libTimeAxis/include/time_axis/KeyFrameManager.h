@@ -30,6 +30,8 @@ public:
     bool delKeyFrame();
     // 刷新 keyframe list
     void refreshKeyFrameList(std::map<std::string, std::string> bindingMap);
+    // 清空 keyframe list
+    void clearKeyFrameList();
 
 private:
     QMap<QString, QSet<int>> keyFrameMap_;

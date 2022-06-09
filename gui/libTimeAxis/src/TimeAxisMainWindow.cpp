@@ -5,34 +5,20 @@
 #include "style/Icons.h"
 #include "core/EngineInterface.h"
 
+using namespace raco::style;
 namespace raco::time_axis{
-
-AnimationButton::AnimationButton(QWidget *parent) {
-    QHBoxLayout *hLayout = new QHBoxLayout(this);
-    startBtn_ = new QPushButton(this);
-    startBtn_->resize(20, 15);
-    startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStart);}");
-    previousBtn_ = new QPushButton(this);
-    previousBtn_->setStyleSheet("QPushButton{background-image: url(:/animationPrevious);}");
-    previousBtn_->resize(20, 15);
-    hLayout->addWidget(previousBtn_, 1);
-    hLayout->addWidget(startBtn_, 1);
-    setLayout(hLayout);
-    resize(40, 15);
-}
-
 TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher dispatcher,
                                        raco::core::CommandInterface* commandInterface,
-                                       QWidget* parent):
-    QMainWindow(parent),
+                                       QWidget* parent) :
+    QWidget(parent),
     commandInterface_(commandInterface) {
 
-    QWidget *mainWidget = new QWidget(this);
-    hTitleLayout = new QHBoxLayout(mainWidget);
-    vBoxLayout_ = new QVBoxLayout(mainWidget);
-    hBoxLayout = new QHBoxLayout(mainWidget);
+//    QWidget *mainWidget = new QWidget(this);
+    hTitleLayout = new QHBoxLayout(this);
+    vBoxLayout_ = new QVBoxLayout(this);
+    hBoxLayout = new QHBoxLayout(this);
 
-    timeAxisScrollArea_ = new TimeAxisScrollArea(mainWidget);
+    timeAxisScrollArea_ = new TimeAxisScrollArea(this);
 
     timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
@@ -40,8 +26,8 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
 
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
 
-    initTitle(mainWidget);
-    initTree(mainWidget);
+    initTitle(this);
+    initTree(this);
 	initAnimationMenu();
     hBoxLayout->addWidget(editorView_);
     hBoxLayout->addWidget(timeAxisScrollArea_);
@@ -52,23 +38,29 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     vBoxLayout_->addLayout(hBoxLayout);
     vBoxLayout_->setStretchFactor(titleWidget_, 1);
     vBoxLayout_->setStretchFactor(hBoxLayout, 7);
-    mainWidget->setLayout(vBoxLayout_);
-    setCentralWidget(mainWidget);
+    this->setLayout(vBoxLayout_);
+//    setCentralWidget(mainWidget);
 
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAxis_From_NodeUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAixs_From_CurveUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInsertKeyFrame_From_NodeUI, this, &TimeAxisMainWindow::slotCreateKeyFrame);
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateAnimation_From_AnimationUI, this, &TimeAxisMainWindow::slotUpdateAnimation);
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateAnimationKey_From_AnimationUI, this, &TimeAxisMainWindow::slotUpdateAnimationKey);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &TimeAxisMainWindow::slotResetAnimation);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInitAnimationView, this, &TimeAxisMainWindow::slotInitAnimationMgr);
 }
 
 
 void TimeAxisMainWindow::startOrStopAnimation() {
     if (animationStarted_) {
-        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStart);}");
+        startBtn_->setFlat(true);
+        startBtn_->setIcon(Icons::instance().animationStart);
+//        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStart);}");
         timeAxisWidget_->stopAnimation();
     } else {
-        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStop);}");
+        startBtn_->setFlat(true);
+        startBtn_->setIcon(Icons::instance().animationStop);
+//        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStop);}");
         timeAxisWidget_->startAnimation();
     }
     animationStarted_ = !animationStarted_;
@@ -198,19 +190,31 @@ void TimeAxisMainWindow::slotUpdateAnimationKey(QString oldKey, QString newKey) 
     timeAxisWidget_->stopAnimation();
 }
 
+void TimeAxisMainWindow::slotResetAnimation() {
+    animationDataManager::GetInstance().ClearAniamtion();
+
+    for (auto it : itemMap_.toStdMap()) {
+        delete it.second;
+        it.second = nullptr;
+    }
+    itemMap_.clear();
+    timeAxisWidget_->clearKeyFrames();
+    editorView_->update();
+}
+
 void TimeAxisMainWindow::slotInitAnimationMgr() {
-//    QString strCurAnimationID;
-//    if (model_) {
-//        for (const auto& it : keyFrameMgrMap.toStdMap()) {
-//            if (!itemMap_.contains(it.first)) {
-//                QStandardItem* item = new QStandardItem(it.first);
-//                itemMap_.insert(it.first, item);
-//                model_->appendRow(item);
-//            }
-//        }
-//        curItemName_ = strCurAnimationID;
-//        loadOperation();
-//    }
+    if (model_) {
+        for (const auto& it : animationDataManager::GetInstance().getAniamtionNameList()) {
+            if (!itemMap_.contains(QString::fromStdString(it))) {
+                QStandardItem* item = new QStandardItem(QString::fromStdString(it));
+                itemMap_.insert(QString::fromStdString(it), item);
+                model_->appendRow(item);
+            }
+        }
+        curItemName_ = QString::fromStdString(animationDataManager::GetInstance().GetActiveAnimation());
+        loadOperation();
+    }
+    timeAxisWidget_->refreshKeyFrameView();
 }
 
 void TimeAxisMainWindow::slotCreateKeyFrame() {
@@ -228,17 +232,17 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     spacerLeft->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     startBtn_ = new QPushButton(titleWidget_);
-    startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStart);}");
-    startBtn_->setFixedSize(20, 20);
+    startBtn_->setFlat(true);
+    startBtn_->setIcon(Icons::instance().animationStart);
     connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startOrStopAnimation);
     QPushButton *previousBtn_ = new QPushButton(titleWidget_);
-    previousBtn_->setStyleSheet("QPushButton{background-image: url(:/animationPrevious);}");
-    previousBtn_->setFixedSize(20, 20);
+    previousBtn_->setFlat(true);
+    previousBtn_->setIcon(Icons::instance().animationPrevious);
     connect(previousBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToBegin);
 
     QPushButton *nextBtn = new QPushButton(titleWidget_);
-    nextBtn->setStyleSheet("QPushButton{background-image: url(:/animationNext);}");
-    nextBtn->setFixedSize(20, 20);
+    nextBtn->setFlat(true);
+    nextBtn->setIcon(Icons::instance().animationNext);
     connect(nextBtn, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToEnd);
 
     QWidget* spacerRight = new QWidget(titleWidget_);
@@ -298,6 +302,9 @@ bool TimeAxisMainWindow::initAnimationMenu() {
 }
 
 void TimeAxisMainWindow::loadOperation() {
+	if (curItemName_.isEmpty()) {
+		return;
+    }
     timeAxisWidget_->stopAnimation();
     animationDataManager::GetInstance().SetActiveAnimation(curItemName_.toStdString());
     animationData data = animationDataManager::GetInstance().getAnimationData(curItemName_.toStdString());

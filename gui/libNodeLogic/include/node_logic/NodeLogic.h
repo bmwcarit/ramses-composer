@@ -10,6 +10,7 @@
 #include "CurveData/CurveManager.h"
 #include "signal/SignalProxy.h"
 #include <QDebug>
+#include <QMutex>
 
 using namespace raco::signal;
 using namespace raco::guiData;
@@ -34,28 +35,26 @@ public:
 	void setMaterial(raco::core::ValueHandle valueHandle, NodeData *material);
     bool getValueHanlde(std::string property, core::ValueHandle &valueHandle);
 
-	void setProperty(core::ValueHandle handle, std::string property, float value) {
-        if (getValueHanlde(property, handle) && commandInterface_) {
-			commandInterface_->set(handle, value);
-		}
-	}
+    void setProperty(core::ValueHandle handle, std::string property, float value);
+    std::map<std::string, core::ValueHandle > &getNodeNameHandleReMap();
 
-	std::map<std::string, core::ValueHandle > &getNodeNameHandleReMap() {
-		return nodeObjectIDHandleReMap_;
-	}
+    void setNodeNameHandleReMap(std::map<std::string, core::ValueHandle> nodeNameHandleReMap);
+    bool getHandleFromObjectID(const std::string &objectID, raco::core::ValueHandle &handle);
+    bool hasHandleFromObjectID(const std::string &objectID);
 
-	void setNodeNameHandleReMap(std::map<std::string, core::ValueHandle> nodeNameHandleReMap) {
-		nodeObjectIDHandleReMap_ = std::move(nodeNameHandleReMap);
-    }
+    void preOrderReverse(NodeData *pNode, std::map<std::string, std::map<std::string, std::string>> &IdCurveBindingMap, const std::string &sampleProperty);
+    std::map<std::string , std::map<std::string, std::string>> getCurveBindings();
 
 public Q_SLOTS:
     void slotUpdateActiveAnimation(QString animation);
     void slotUpdateKeyFrame(int keyFrame);
+    void slotResetNodeData();
+    void slotValueHandleChanged(const raco::core::ValueHandle &handle);
 
 signals:
 	void sig_getHandles_from_NodePro(std::set<core::ValueHandle>& handles);
 private:
-
+    QMutex handleMapMutex_;
 	std::map<std::string, core::ValueHandle> nodeObjectIDHandleReMap_;
 	raco::core::CommandInterface *commandInterface_;
 	QString curAnimation_;

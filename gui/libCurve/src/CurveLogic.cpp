@@ -2,7 +2,9 @@
 
 CurveLogic::CurveLogic(QObject *parent) {
 	connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateKeyFram_From_AnimationLogic, this, &CurveLogic::slotUpdateCurrentKey);
-	connect(&signalProxy::GetInstance(), &signalProxy::sigInsertCurve_From_NodeUI, this, &CurveLogic::slotInsertCurve);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInsertCurve_From_NodeUI, this, &CurveLogic::slotInsertCurve);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &CurveLogic::slotResetCurve);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInitCurveView, this, &CurveLogic::sigRefreshCurveView);
 }
 
 void CurveLogic::setCurrentKeyFrame(int keyFrame) {
@@ -37,6 +39,10 @@ bool CurveLogic::delCurve(QString curve) {
     return CurveManager::GetInstance().delCurve(curve.toStdString());
 }
 
+bool CurveLogic::copyCurve(std::string curve) {
+    return CurveManager::GetInstance().copyCurve(curve);
+}
+
 std::list<Curve *> CurveLogic::getCurveList() {
     return CurveManager::GetInstance().getCurveList();
 }
@@ -52,4 +58,9 @@ void CurveLogic::slotInsertCurve(QString property, QString curve, QVariant value
 
 void CurveLogic::slotUpdateCurrentKey(int keyFrame) {
     setCurrentKeyFrame(keyFrame);
+}
+
+void CurveLogic::slotResetCurve() {
+    CurveManager::GetInstance().clearCurve();
+    Q_EMIT sigRefreshCurveView();
 }

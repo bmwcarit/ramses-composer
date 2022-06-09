@@ -17,6 +17,7 @@ public:
     void setCurrentKeyFrame(int keyFrame);
     bool insertCurve(QString property, QString curve, QVariant value = 0.0);
     bool delCurve(QString curve);
+    bool copyCurve(std::string curve);
     std::list<Curve*> getCurveList();
     bool modifyCurveName(QString curve, QString modifyCurve);
 
@@ -26,6 +27,7 @@ Q_SIGNALS:
 public Q_SLOTS:
     void slotInsertCurve(QString property, QString curve, QVariant value);
     void slotUpdateCurrentKey(int keyFrame);
+    void slotResetCurve();
 private:
     int curFrame_{0};
 };

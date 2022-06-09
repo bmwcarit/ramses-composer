@@ -65,4 +65,8 @@ void KeyFrameManager::refreshKeyFrameList(std::map<std::string, std::string> bin
     }
     keyFrameMap_.insert(curNodeName_, keyFrameList);
 }
+
+void KeyFrameManager::clearKeyFrameList() {
+    keyFrameMap_.clear();
+}
 }

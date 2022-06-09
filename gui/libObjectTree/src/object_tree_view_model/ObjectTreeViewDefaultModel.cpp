@@ -393,6 +393,8 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::Ty
 	auto name = project()->findAvailableUniqueName(nodes.begin(), nodes.end(), nullptr, nodeName.empty() ? raco::components::Naming::format(typeDesc.typeName) : nodeName);
 	auto newObj = commandInterface_->createObject(typeDesc.typeName, name, parent.isValid() ? parentObj : nullptr);
 
+    Q_EMIT editNodeOpreations();
+
 	return newObj;
 }
 
@@ -476,7 +478,9 @@ bool ObjectTreeViewDefaultModel::canDuplicateAtIndices(const QModelIndexList& in
 }
 
 size_t ObjectTreeViewDefaultModel::deleteObjectsAtIndices(const QModelIndexList& indices) {
-	return commandInterface_->deleteObjects(indicesToSEditorObjects(indices));
+    size_t t = commandInterface_->deleteObjects(indicesToSEditorObjects(indices));
+    Q_EMIT editNodeOpreations();
+    return t;
 }
 
 bool ObjectTreeViewDefaultModel::canDeleteUnusedResources() const {
@@ -504,6 +508,7 @@ bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bo
 		success = false;
 		*outError = error.what();
 	}
+	Q_EMIT editNodeOpreations();
 	return success;
 }
 
@@ -518,10 +523,12 @@ void ObjectTreeViewDefaultModel::cutObjectsAtIndices(const QModelIndexList& indi
 	if (!text.empty()) {
 		RaCoClipboard::set(text);
 	}
+    Q_EMIT editNodeOpreations();
 }
 
 void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEditorObject>& objects, SEditorObject parent, int row) {
 	commandInterface_->moveScenegraphChildren(objects, parent, row);
+    Q_EMIT editNodeOpreations();
 }
 
 void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex) {
@@ -540,6 +547,7 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 		auto meshError = commandInterface_->meshCache()->getMeshError(meshDesc.absPath);
 		Q_EMIT meshImportFailed(meshDesc.absPath, meshError);
 	}
+    Q_EMIT editNodeOpreations();
 }
 
 int ObjectTreeViewDefaultModel::rowCount(const QModelIndex& parent) const {

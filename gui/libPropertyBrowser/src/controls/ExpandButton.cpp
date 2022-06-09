@@ -64,4 +64,38 @@ void ExpandButton::updateIcon(bool expanded) {
 	}
 }
 
+ExpandControlNoItemButton::ExpandControlNoItemButton(QWidget *parent, PropertyBrowserNodeWidget *view
+                                                     , PropertyBrowserCustomView* customView, PropertyBrowserCurveBindingView* curveView)
+    : QPushButton{parent} {
+
+	setIcon(Icons::instance().collapsed);
+    setContentsMargins(0, 0, 0, 0);
+    setFlat(true);
+
+    if (view != nullptr) {
+        QObject::connect(this, &ExpandControlNoItemButton::clicked, view, &PropertyBrowserNodeWidget::expandedWidget);
+        QObject::connect(view, &PropertyBrowserNodeWidget::updateIcon, this, &ExpandControlNoItemButton::updateIcon);
+    }
+
+    if (customView != nullptr) {
+        QObject::connect(this, &ExpandControlNoItemButton::clicked, customView, &PropertyBrowserCustomView::expandedWidget);
+        QObject::connect(customView, &PropertyBrowserCustomView::updateIcon, this, &ExpandControlNoItemButton::updateIcon);
+    }
+
+    if (curveView != nullptr) {
+        QObject::connect(this, &ExpandControlNoItemButton::clicked, curveView, &PropertyBrowserCurveBindingView::slotExpandedWidget);
+        QObject::connect(curveView, &PropertyBrowserCurveBindingView::updateIcon, this, &ExpandControlNoItemButton::updateIcon);
+    }
+
+    updateIcon(false);
+}
+
+void ExpandControlNoItemButton::updateIcon(bool expanded) {
+    if (expanded) {
+		setIcon(Icons::instance().expanded);
+    } else {
+		setIcon(Icons::instance().collapsed);
+    }
+}
+
 }  // namespace raco::property_browser

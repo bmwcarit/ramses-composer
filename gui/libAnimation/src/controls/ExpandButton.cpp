@@ -11,7 +11,6 @@ using namespace ::raco::style;
 
 ExpandButton::ExpandButton(QWidget* parent)
     : QPushButton{parent} {
-    // auto icon = Icons::icon(Pixmap::collapsed, this);
     auto icon = Icons::instance().collapsed;
     setIcon(icon);
     setContentsMargins(0, 0, 0, 0);

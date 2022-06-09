@@ -188,7 +188,6 @@ public:
     NodeData* searchNodeByID(const std::string& objectID);  // 从根结点查找
     void searchingByID(NodeData* pNode, const std::string& objectID);
 
-
     NodeData* searchNodeByName(std::string& nodeName);  // 从根结点查找
 	void searchingByName(NodeData* pNode, std::string& nodeName);
 

@@ -6,6 +6,8 @@ NodeLogic::NodeLogic(raco::core::CommandInterface *commandInterface, QObject *pa
     : QObject{parent}, commandInterface_{commandInterface} {
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateKeyFram_From_AnimationLogic, this, &NodeLogic::slotUpdateKeyFrame);
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateActiveAnimation_From_AnimationLogic, this, &NodeLogic::slotUpdateActiveAnimation);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &NodeLogic::slotResetNodeData);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigValueHandleChanged_From_NodeUI, this, &NodeLogic::slotValueHandleChanged);
 }
 
 void NodeLogic::setCommandInterface(core::CommandInterface *commandInterface) {
@@ -22,6 +24,7 @@ void NodeLogic::Analyzing(NodeData *pNode) {
 		return;
 	qDebug() << "Name :" << QString::fromStdString(pNode->getName()) << " ID :" << QString::fromStdString(pNode->objectID()) << "  ";
 	
+    handleMapMutex_.lock();
 	if (pNode->objectID() != "" && pNode->objectID() != "objectID") {
 		auto it = nodeObjectIDHandleReMap_.find(pNode->objectID());
 		if (it != nodeObjectIDHandleReMap_.end()) {
@@ -29,6 +32,8 @@ void NodeLogic::Analyzing(NodeData *pNode) {
 			initBasicProperty(valueHandle, pNode);
 		}
 	}
+    handleMapMutex_.unlock();
+
 	for (auto it = pNode->childMapRef().begin(); it != pNode->childMapRef().end(); ++it) {
 		Analyzing(&(it->second));
     }
@@ -49,7 +54,7 @@ bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHan
 
     bool bInvalid = false;
     if (valueHandle.isObject()) {
-        for (int i{1}; i < list.size(); i++) {
+        for (int i{0}; i < list.size(); i++) {
             QString str = list[i];
             bInvalid = func(valueHandle, str.toStdString());
             if (!bInvalid) {
@@ -64,6 +69,41 @@ bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHan
         }
     }
     return bInvalid;
+}
+
+void NodeLogic::setProperty(core::ValueHandle handle, std::string property, float value) {
+    if (getValueHanlde(property, handle) && commandInterface_) {
+        commandInterface_->set(handle, value);
+    }
+}
+
+std::map<std::string, core::ValueHandle> &NodeLogic::getNodeNameHandleReMap() {
+    QMutexLocker locker(&handleMapMutex_);
+    return nodeObjectIDHandleReMap_;
+}
+
+void NodeLogic::setNodeNameHandleReMap(std::map<std::string, core::ValueHandle> nodeNameHandleReMap) {
+    QMutexLocker locker(&handleMapMutex_);
+    nodeObjectIDHandleReMap_ = std::move(nodeNameHandleReMap);
+}
+
+bool NodeLogic::getHandleFromObjectID(const std::string &objectID, core::ValueHandle &handle) {
+    QMutexLocker locker(&handleMapMutex_);
+    auto it = nodeObjectIDHandleReMap_.find(objectID);
+    if (it == nodeObjectIDHandleReMap_.end()) {
+        return false;
+    }
+    handle = it->second;
+    return true;
+}
+
+bool NodeLogic::hasHandleFromObjectID(const std::string &objectID) {
+    QMutexLocker locker(&handleMapMutex_);
+    auto it = nodeObjectIDHandleReMap_.find(objectID);
+    if (it == nodeObjectIDHandleReMap_.end()) {
+        return false;
+    }
+    return true;
 }
 
 void NodeLogic::AnalyzeHandle() {
@@ -231,23 +271,67 @@ void NodeLogic::slotUpdateActiveAnimation(QString animation) {
     curAnimation_ = animation;
 }
 
-void NodeLogic::slotUpdateKeyFrame(int keyFrame) {
-    for (const auto &it : nodeObjectIDHandleReMap_) {
-        std::string objectId = it.first;
+void NodeLogic::preOrderReverse(NodeData *pNode, std::map<std::string, std::map<std::string, std::string>> &IdCurveBindingMap, const std::string &sampleProperty) {
+    if (!pNode)
+        return;
+
+    if (pNode->getBindingySize() != 0) {
         std::map<std::string, std::string> bindingDataMap;
-		NodeData* nodeData = NodeDataManager::GetInstance().searchNodeByID(objectId);
-		if (nodeData) {
-			nodeData->NodeExtendRef().curveBindingRef().getPropCurve(curAnimation_.toStdString(), bindingDataMap);
-		}
-        for (const auto &bindingIt : bindingDataMap) {
-            if (CurveManager::GetInstance().getCurve(bindingIt.second)) {
-                double value{0};
-                if (CurveManager::GetInstance().getCurveValue(bindingIt.second, keyFrame, value)) {
-                    setProperty(it.second, bindingIt.first, value);
-                }
-            }
-        }
+        pNode->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingDataMap);
+        IdCurveBindingMap.emplace(pNode->objectID(), bindingDataMap);
     }
-    //lastKeyFrame_ = keyFrame;
+
+    for (auto it = pNode->childMapRef().begin(); it != pNode->childMapRef().end(); ++it) {
+        preOrderReverse(&(it->second), IdCurveBindingMap, sampleProperty);
+    }
+}
+
+std::map<std::string, std::map<std::string, std::string>> NodeLogic::getCurveBindings() {
+    std::map<std::string, std::map<std::string, std::string>> IdCurveBindingMap;
+    NodeData *root = &NodeDataManager::GetInstance().root();
+    preOrderReverse(root, IdCurveBindingMap, curAnimation_.toStdString());
+    return IdCurveBindingMap;
+}
+
+void NodeLogic::slotUpdateKeyFrame(int keyFrame) {
+    QMutexLocker locker(&handleMapMutex_);
+	for (const auto &it : getCurveBindings()) {
+		auto iter = nodeObjectIDHandleReMap_.find(it.first);
+		if (iter != nodeObjectIDHandleReMap_.end()) {
+			for (const auto &bindingIt : it.second) {
+				if (CurveManager::GetInstance().getCurve(bindingIt.second)) {
+					double value{0};
+					if (CurveManager::GetInstance().getCurveValue(bindingIt.second, keyFrame, value)) {
+						setProperty(iter->second, bindingIt.first, value);
+					}
+				}
+			}
+		}
+	}
+}
+
+void NodeLogic::slotResetNodeData() {
+    NodeDataManager::GetInstance().clearNodeData();
+}
+
+void NodeLogic::slotValueHandleChanged(const core::ValueHandle &handle) {
+    core::ValueHandle tempHandle = handle;
+	while (tempHandle != NULL) {
+		if (tempHandle.hasProperty("objectID")) {
+			std::string objectID = tempHandle.get("objectID").asString();
+			if (hasHandleFromObjectID(objectID)) {
+				NodeData *data = NodeDataManager::GetInstance().searchNodeByID(objectID);
+				if (data) {
+                    if (tempHandle.hasProperty("objectName")) {
+                        std::string nodeName = tempHandle.get("objectName").asString();
+                        data->setName(nodeName);
+                    }
+                    initBasicProperty(tempHandle, data);
+					return;
+				}
+			}
+		}
+		tempHandle = tempHandle.parent();
+	}
 }
 }

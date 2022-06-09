@@ -3,9 +3,9 @@
 namespace raco::property {
 
 PropertyMainWindows::PropertyMainWindows(QWidget *parent) :
-    QMainWindow(parent){
+    QWidget(parent){
 
-    QWidget* mainWidget = new QWidget(this);
+//    QWidget* mainWidget = new QWidget(this);
     QVBoxLayout *vLayout = new QVBoxLayout(this);
     sysTitle_ = new PropertyTitileBar("SystemProperty", this);
     sysTitle_->setFixedHeight(30);
@@ -35,8 +35,8 @@ PropertyMainWindows::PropertyMainWindows(QWidget *parent) :
     vLayout->addWidget(animationTitle_);
     vLayout->addWidget(animationTableView_);
 
-    mainWidget->setLayout(vLayout);
-    setCentralWidget(mainWidget);
+    this->setLayout(vLayout);
+//    setCentralWidget(mainWidget);
 
 }
 

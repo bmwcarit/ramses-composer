@@ -57,11 +57,14 @@ Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void newObjectTreeItemsSelected(const std::set<ValueHandle> &handles);
-	void externalObjectSelected();
+    void externalObjectSelected();
+    void setResourceHandles(const std::map<std::string, core::ValueHandle>& map);
+    void updateNodeHandles(const QString &title, const std::map<std::string, core::ValueHandle> &map);
 
 public Q_SLOTS:
 	void resetSelection();
 	void globalCopyCallback();
+    void globalOpreations();
 	void cut();
 	void duplicateObjects();
 	void globalPasteCallback(const QModelIndex &index, bool asExtRef = false);
@@ -70,6 +73,7 @@ public Q_SLOTS:
 	void expandAllParentsOfObject(const QString &objectID);
 	void expanded(const QModelIndex &index);
 	void collapsed(const QModelIndex &index);
+    void getResourceHandles();
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;

@@ -47,6 +47,34 @@ PropertyModel::PropertyModel(TABLETYPE type, QObject *parent) :
     }
 }
 
+void PropertyModel::initModel() {
+    switch(type_) {
+    case PROPERTY_SYSTEM: {
+
+        break;
+    }
+    case PROPERTY_CUSTOM: {
+        std::map<std::string, EPropertyType> customTypeMap  = PropertyDataManager::GetInstance().getCustomPropertyTypeMap();
+        for (auto it : customTypeMap) {
+            dataMap_.emplace(QString::fromStdString(it.first), it.second);
+			insertRow(rowCount(QModelIndex()));
+        }
+        break;
+    }
+    case PROPERTY_ANIMATION: {
+
+        break;
+    }
+    default:
+        break;
+    }
+
+    for (const auto &it : dataMap_) {
+		keyVec_.push_back(it.first);
+		typeVec_.push_back(it.second);
+    }
+}
+
 QVariant PropertyModel::data(const QModelIndex &index, int role) const {
     switch (role) {
     case Qt::DisplayRole: {
@@ -246,6 +274,9 @@ PropertyTableView::PropertyTableView(TABLETYPE type, QWidget *parent) :
     setItemDelegateForColumn(1, boxDelegate);
 
     this->setSelectionMode(QAbstractItemView::SelectionMode::MultiSelection);
+
+    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &PropertyTableView::slotResetProperty);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInitPropertyView, this, &PropertyTableView::slotInitPropertyView);
 }
 
 void PropertyTableView::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) {
@@ -277,6 +308,15 @@ void PropertyTableView::delProperty() {
         itor.previous();
         sysModel->removeRow(itor.key());
     }
+}
+
+void PropertyTableView::slotInitPropertyView() {
+    sysModel->initModel();
+}
+
+void PropertyTableView::slotResetProperty() {
+    int size = sysModel->rowCount(QModelIndex());
+    sysModel->removeRows(0, size);
 }
 
 void PropertyTableView::mousePressEvent(QMouseEvent *event) {

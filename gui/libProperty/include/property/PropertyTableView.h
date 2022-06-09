@@ -27,6 +27,7 @@ class PropertyTableView;
 class PropertyModel : public QAbstractTableModel {
 public:
     PropertyModel(TABLETYPE type, QObject *parent = nullptr);
+    void initModel();
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
     int rowCount(const QModelIndex &parent) const override;
@@ -62,6 +63,8 @@ Q_SIGNALS:
 public Q_SLOTS:
     void addProperty();
     void delProperty();
+    void slotInitPropertyView();
+    void slotResetProperty();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

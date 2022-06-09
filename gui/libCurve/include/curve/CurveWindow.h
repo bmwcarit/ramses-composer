@@ -11,7 +11,7 @@
 #include "CurveTree.h"
 
 namespace raco::curve {
-class CurveWindow : public QMainWindow {
+class CurveWindow : public QWidget {
     Q_OBJECT
 public:
     explicit CurveWindow(raco::components::SDataChangeDispatcher dispatcher,
