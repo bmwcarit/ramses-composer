@@ -90,8 +90,6 @@ PreviewBackgroundScene::PreviewBackgroundScene(
     effect_->findAttributeInput("pos", positionsInput);
     (*geometryBinding_)->setInputBuffer(positionsInput, *vertexDataBuffer_.get());
 
-    update(zUp_, scaleValue_);
-
 	meshNode_ =  ramsesMeshNode(scene_.get());
 	meshNode_->setGeometryBinding(geometryBinding_);
 	meshNode_->setAppearance(appearance_);

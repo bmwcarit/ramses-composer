@@ -16,16 +16,12 @@ uniform vec3 planeAxes;
 uniform float gridDistance;
 uniform vec3 gridSize;
 uniform float lineKernel;
-// uniform sampler2D depthBuffer;
 
 uniform int gridFlag;
 uniform float zoomFactor;
 
 uniform highp mat4 ProjectionMatrix;
 uniform highp mat4 ViewMatrix;
-
-// #define STEPS_LEN 8 /* Match: #SI_GRID_STEPS_LEN */
-// float gridSteps[8] = {0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0};
 
 #define AXIS_X (1 << 0)
 #define AXIS_Y (1 << 1)
@@ -95,19 +91,6 @@ void main()
   float gridSteps_5 = 100.0;
   float gridSteps_6 = 1000.0;
   float gridSteps_7 = 10000.0;
-
-  // vec4 colorGrid = vec4(0.111932434, 0.111932434, 0.111932434, 0.501960814);
-  // vec4 colorGridEmphasis = vec4(0.138431653, 0.138431653, 0.138431653, 0.501960814);
-  // vec4 colorGridAxisX = vec4(0.346704096, 0.0409152061, 0.0666259751, 0.749019623);
-  // vec4 colorGridAxisY = vec4(0.130136520, 0.270497888, 0.0144438418, 0.749019623);
-  // vec4 colorGridAxisZ = vec4(0.0343398042, 0.138431653, 0.346704096, 0.749019623);
-
-  // vec4 colorGrid = vec4(0.4, 0.4, 0.4, 0.5);
-  // vec4 colorGridEmphasis = vec4(0.45, 0.45, 0.45, 0.5);
-  // vec4 colorGridAxisX = vec4(0.7, 0.0, 0.0, 0.75);
-  // vec4 colorGridAxisY = vec4(0.0, 0.7, 0.0, 0.75);
-  // vec4 colorGridAxisZ = vec4(0.0, 0.0, 0.7, 0.75);
-
 
   vec4 colorGrid = vec4(0.4, 0.4, 0.4, 0.5);
   vec4 colorGridEmphasis = vec4(0.41, 0.41, 0.41, 0.5);
@@ -272,7 +255,7 @@ void main()
     }
   }
 
-  float scene_depth = 1.0;//texelFetch(depthBuffer, ivec2(gl_FragCoord.xy), 0).r;
+  float scene_depth = 1.0;
   if ((gridFlag & GRID_BACK) != 0) {
     fade *= (scene_depth == 1.0) ? 1.0 : 0.0;
   }

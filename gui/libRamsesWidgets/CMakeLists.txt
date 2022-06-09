@@ -41,6 +41,14 @@ target_link_libraries(libRamsesWidgets
         raco::LogSystem
         raco::UserTypes
         Qt5::Widgets
+        raco::Core
+        raco::UserTypes
+        raco::Components
+        raco::TimeAxis
+        raco::GuiData
+        raco::PropertyBrowser
+        Qt5::Core
+        Qt5::Gui
     PRIVATE
         raco::ramses-logic-lib
         raco::ramses-lib

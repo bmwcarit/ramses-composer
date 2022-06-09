@@ -21,6 +21,7 @@
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "core/Queries.h"
+#include "signal/SignalProxy.h"
 
 #include "ui_PreviewMainWindow.h"
 #include <QLabel>
@@ -50,7 +51,8 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 	ui_->statusbar->addPermanentWidget(pixelLabel);
 	ui_->statusbar->addPermanentWidget(scaleLabel);
 
-	zUp_ = false;//project_->settings()->axes_.asBool();
+	haveInited_ = false;
+	zUp_ = project_->settings()->axes_.asBool();
 	updateAxesIconLabel_ = true;
 	scaleValue_ = 1.0f;
 	// scroll and zoom logic widget
@@ -264,17 +266,21 @@ void PreviewMainWindow::setAxesIcon(const bool& z_up) {
 */
 void PreviewMainWindow::setAxes(const bool& z_up) {
 	CameraParam_t cameraParam;
-
+	if (!haveInited_) {
+		setAxesIcon(z_up);
+		haveInited_ = true;
+		previewWidget_->getRamsesPreview()->getBackgroundScene()->update(z_up, scaleValue_);
+		zUp_ = z_up;
+		goto end;
+	}
 	if (zUp_ == z_up) {
 		if (updateAxesIconLabel_) {
 			updateAxesIconLabel_ = false;
 			scrollAreaWidget_->setForceUpdateFlag(false);
-			RamsesPreviewWindow::State state = previewWidget_->getRamsesPreview()->nextState();
-			previewWidget_->setMask({state.maskViewportPosition.x(), state.maskViewportPosition.y(),
-				state.maskViewportSize.width(), state.maskViewportSize.height()});
 		}
 		goto end;
 	}
+
 	setAxesIcon(z_up);
 
 	for (const auto& object : project_->instances()) {
@@ -310,6 +316,7 @@ void PreviewMainWindow::setAxes(const bool& z_up) {
 	}
 	previewWidget_->getRamsesPreview()->getBackgroundScene()->update(z_up, scaleValue_);
 	zUp_ = z_up;
+	signal::signalProxy::GetInstance().sigInitPropertyBrowserView();
 
 end:
 	for (const auto& object : project_->instances()) {

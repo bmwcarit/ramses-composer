@@ -85,6 +85,7 @@ private:
 	bool updateAxesIconLabel_;
 	float scaleValue_;
 	int mode_;
+	bool haveInited_;
 
 	struct CameraParam_t {
 		float translation[3];

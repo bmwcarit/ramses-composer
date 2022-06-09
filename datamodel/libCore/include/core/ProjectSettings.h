@@ -109,7 +109,7 @@ public:
 	Property<bool, DisplayNameAnnotation> saveAsZip_{false, {"Save As Zipped File"}};
 
 	Property<DefaultResourceDirectories, DisplayNameAnnotation> defaultResourceDirectories_{{}, {"Default Resource Folders"}};
-	Property<bool, DisplayNameAnnotation> axes_{true, {"+Z up"}};
+	Property<bool, DisplayNameAnnotation> axes_{false, {"+Z up"}};
 	Property<bool, DisplayNameAnnotation> displayGrid_{true, {"Display Grid"}};
 	// Properties related to timer running hack - remove these properties and all related code when proper animations have been implemented
 	Property<bool, HiddenProperty> enableTimerFlag_{false, HiddenProperty()};
