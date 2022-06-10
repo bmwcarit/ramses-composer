@@ -1,4 +1,4 @@
-#include "property_browser/PropertyBrowserCurveBindingWidget.h"
+#include "property_browser_extend/PropertyBrowserCurveBindingWidget.h"
 
 namespace raco::property_browser {
 PropertyBrowserCurveBindingWidget::PropertyBrowserCurveBindingWidget(QWidget *parent)

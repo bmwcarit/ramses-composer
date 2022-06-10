@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QScrollArea>
-#include "property_browser/PropertyBrowserCurveBindingView.h"
+#include "property_browser_extend/PropertyBrowserCurveBindingView.h"
 #include "AnimationData/animationData.h"
 
 namespace raco::property_browser {

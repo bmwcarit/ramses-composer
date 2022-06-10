@@ -1,4 +1,4 @@
-#include "property_browser/PropertyBrowserCurveBindingView.h"
+#include "property_browser_extend/PropertyBrowserCurveBindingView.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
 

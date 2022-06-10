@@ -10,11 +10,12 @@
 #include "property_browser/editors/StringEditor.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/controls/ExpandButton.h"
+#include "property_browser_extend/controls/ExpandControlNoItemButton.h"
 #include "CurveData/CurveManager.h"
 #include "NodeData/nodeManager.h"
 #include "signal/SignalProxy.h"
-#include "editors/SearchEditor.h"
-#include "controls/ResultTree.h"
+#include "property_browser/editors/SearchEditor.h"
+#include "property_browser/controls/ResultTree.h"
 
 using namespace raco::signal;
 using namespace raco::guiData;

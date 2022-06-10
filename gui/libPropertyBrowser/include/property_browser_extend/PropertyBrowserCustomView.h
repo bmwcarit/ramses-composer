@@ -14,12 +14,12 @@
 #include <QMap>
 #include "property_browser/editors/StringEditor.h"
 #include "property_browser/PropertyBrowserLayouts.h"
-#include "property_browser/controls/ExpandButton.h"
+#include "property_browser_extend/controls/ExpandControlNoItemButton.h"
 #include "PropertyData/PropertyData.h"
 #include "signal/SignalProxy.h"
 #include "NodeData/nodeManager.h"
 #include "PropertyData/PropertyType.h"
-#include "editors/SearchEditor.h"
+#include "property_browser/editors/SearchEditor.h"
 
 using namespace raco::signal;
 using namespace raco::guiData;

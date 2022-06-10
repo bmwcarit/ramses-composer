@@ -1,4 +1,4 @@
-#include "property_browser/PropertyBrowserCustomView.h"
+#include "property_browser_extend/PropertyBrowserCustomView.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
 

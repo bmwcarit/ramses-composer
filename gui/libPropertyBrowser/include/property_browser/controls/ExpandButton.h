@@ -11,18 +11,10 @@
 
 
 #include <QPushButton>
-#include <QWidget>
-
-#include "property_browser/PropertyBrowserNodeWidget.h"
-#include "property_browser/PropertyBrowserCustomView.h"
-#include "property_browser/PropertyBrowserCurveBindingView.h"
 
 namespace raco::property_browser {
 
 class PropertyBrowserItem;
-class PropertyBrowserNodeWidget;
-class PropertyBrowserCustomView;
-class PropertyBrowserCurveBindingView;
 
 class ExpandButton final : public QPushButton {
 	Q_OBJECT
@@ -31,17 +23,6 @@ public:
 
 	private Q_SLOTS:
 	void updateIcon(bool expanded);
-};
-
-class ExpandControlNoItemButton final : public QPushButton {
-    Q_OBJECT
-public:
-    explicit ExpandControlNoItemButton(QWidget* parent = nullptr, PropertyBrowserNodeWidget* view = nullptr
-            , PropertyBrowserCustomView* customView = nullptr, PropertyBrowserCurveBindingView* curveView = nullptr);
-
-
-private Q_SLOTS:
-    void updateIcon(bool expanded);
 };
 
 }  // namespace raco::property_browser

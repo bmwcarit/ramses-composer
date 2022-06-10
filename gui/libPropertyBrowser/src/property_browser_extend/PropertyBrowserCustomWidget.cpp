@@ -1,4 +1,4 @@
-#include "property_browser/PropertyBrowserCustomWidget.h"
+#include "property_browser_extend/PropertyBrowserCustomWidget.h"
 #include <any>
 
 namespace raco::property_browser {

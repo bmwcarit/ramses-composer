@@ -16,10 +16,10 @@
 
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
-#include "property_browser/PropertyBrowserNodeWidget.h"
-#include "property_browser/PropertyBrowserMeshWidget.h"
-#include "property_browser/PropertyBrowserCustomWidget.h"
-#include "property_browser/PropertyBrowserCurveBindingWidget.h"
+#include "property_browser_extend/PropertyBrowserNodeWidget.h"
+#include "property_browser_extend/PropertyBrowserMeshWidget.h"
+#include "property_browser_extend/PropertyBrowserCustomWidget.h"
+#include "property_browser_extend/PropertyBrowserCurveBindingWidget.h"
 #include "property_browser/PropertySubtreeView.h"
 
 class QPushButton;
