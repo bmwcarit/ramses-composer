@@ -100,6 +100,24 @@ public:
 		return childNodeMap_;
 	}
 
+	bool addChild(std::string name, NodeData data) {
+		auto it = childNodeMap_.find(name);
+		if (it != childNodeMap_.end()) {
+			return false;
+		}
+		childNodeMap_.emplace(name, data);
+		return true;
+	}
+
+    bool removeChild(std::string name) {
+        auto it = childNodeMap_.find(name);
+        if (it == childNodeMap_.end()) {
+            return false;
+        }
+        childNodeMap_.erase(it);
+        return true;
+    }
+
 	void setChildList(std::map<std::string, NodeData>& childMap) {
 		childNodeMap_ = childMap;
 	}
@@ -175,9 +193,9 @@ public:
     NodeData& root() {
         return root_;
     }
-  //  void setRoot(NodeData& root) {
-		//root_ = root;
-  //  }
+    void setRoot(NodeData root) {
+        root_ = root;
+    }
 
     void insertNode(NodeData& node);    // 当前活跃的结点下，插入子结点
     void deleting(NodeData& pNode);     // 递归删除结点函数

@@ -120,7 +120,14 @@ bool CurveManager::copyCurve(const std::string &curveName) {
     }
     if (curve) {
         Curve* cpCurve = new Curve();
-        cpCurve->setCurveName(curveName + "_cp");
+        std::string copyCurveName = curveName + "_cp";
+		std::string tempCurveName = copyCurveName;
+        int index{1};
+		while (hasCurve(copyCurveName)) {
+			copyCurveName = tempCurveName + std::to_string(index);
+            index++;
+        }
+		cpCurve->setCurveName(copyCurveName);
         cpCurve->setDataType(curve->getDataType());
         for (auto it : curve->getPointList()) {
             Point *cpPoint = new Point;

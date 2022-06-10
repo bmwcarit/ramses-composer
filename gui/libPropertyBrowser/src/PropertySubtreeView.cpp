@@ -154,44 +154,50 @@ void PropertySubtreeView::slotTreeMenu(const QPoint &pos) {
 }
 
 void PropertySubtreeView::slotInsertKeyFrame() {
-    if (item_->valueHandle().isProperty()) {
-        std::string stdStrProperty = item_->valueHandle().getPropertyPath();
-        QString property = QString::fromStdString(stdStrProperty);
-        QString property2 = property.section(".", 1);
-        QStringList strList = QString::fromStdString(stdStrProperty).split(".");
+    raco::core::ValueHandle valueHandle = item_->valueHandle();
+    if (valueHandle.isProperty()) {
+        QString propertyPath = QString::fromStdString(valueHandle.getPropertyPath());
+        if (valueHandle.parent() != NULL) {
+            raco::core::ValueHandle parentHandle = valueHandle.parent();
+			QString property = QString::fromStdString(parentHandle.getPropName()) + "." + QString::fromStdString(valueHandle.getPropName());
 
-        // 判断是否已激活动画
-        std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
-        if (sampleProperty == std::string()) {
-            // TODO ZZ
-            return;
+            // 判断是否已激活动画
+            std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
+            if (sampleProperty == std::string()) {
+                // TODO ZZ
+                return;
+            }
+            QString curve = QString::fromStdString(sampleProperty) + "_" + propertyPath;
+
+            double value{0};
+            if (valueHandle.type() == raco::core::PrimitiveType::Double) {
+                value = valueHandle.asDouble();
+            }
+            std::map<std::string, std::string> bindingMap;
+            NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingMap);
+
+            auto it = bindingMap.find(property.toStdString());
+            if (it != bindingMap.end()) {
+                Q_EMIT item_->model()->sigCreateCurve(property, QString::fromStdString(it->second), value);
+                return;
+            }
+
+            // 若无对应binding
+            Q_EMIT item_->model()->sigCreateCurveAndBinding(property, curve, value);
         }
-        QString curve = QString::fromStdString(sampleProperty) + "_" + property;
-
-        double value{0};
-        if (item_->valueHandle().type() == raco::core::PrimitiveType::Double) {
-            value = item_->valueHandle().asDouble();
-        }
-        std::map<std::string, std::string> bindingMap;
-        NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingMap);
-
-        auto it = bindingMap.find(property2.toStdString());
-        if (it != bindingMap.end()) {
-            Q_EMIT item_->model()->sigCreateCurve(property2, QString::fromStdString(it->second), value);
-            return;
-        }
-
-        // 若无对应binding
-        Q_EMIT item_->model()->sigCreateCurveAndBinding(property2, curve, value);
     }
 }
 
 void PropertySubtreeView::slotCopyProperty() {
     raco::core::ValueHandle valueHandle = item_->valueHandle();
     if (valueHandle.isProperty()) {
-        QString property = QString::fromStdString(item_->valueHandle().getPropertyPath()).section(".", 1);
-		QClipboard* clip = QApplication::clipboard();
-        clip->setText(property);
+        std::string str = valueHandle.getPropName();
+        if (valueHandle.parent() != NULL) {
+            valueHandle = valueHandle.parent();
+            QString property = QString::fromStdString(valueHandle.getPropName()) + "." + QString::fromStdString(str);
+            QClipboard* clip = QApplication::clipboard();
+            clip->setText(property);
+        }
     }
 }
 

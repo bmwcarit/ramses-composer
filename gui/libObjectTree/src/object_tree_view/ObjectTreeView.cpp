@@ -120,6 +120,12 @@ void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::gui
 		tempNode.setObjectID(str);
 
 		tempNode.setParent(parent);
+
+        NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
+        if (data) {
+            tempNode.setNodeExtend(data->NodeExtendRef());
+        }
+
 		parent->childMapRef().emplace(tempNode.getName(), std::move(tempNode));
 	} else {
 		core::ValueHandle tempHandle = indexToSEditorObject(index);
@@ -130,6 +136,12 @@ void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::gui
 		str = tempHandle[0].asString();
 		tempNode.setObjectID(str);
 		tempNode.setParent(parent);
+
+        NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
+        if (data) {
+            tempNode.setNodeExtend(data->NodeExtendRef());
+        }
+
 		parent->childMapRef().emplace(tempNode.getName(), tempNode);
 		NodeData *pNode = &(parent->childMapRef().find(tempNode.getName())->second);
 		for (int i{0}; i < model()->rowCount(index); i++) {
@@ -145,14 +157,20 @@ void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::gui
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
 	std::map<std::string, core::ValueHandle> NodeNameHandleReMap;
 	raco::guiData::NodeDataManager &nodeDataManager = raco::guiData::NodeDataManager::GetInstance();
-	if (nodeDataManager.root().childMapRef().size())
-		nodeDataManager.deleteNode(nodeDataManager.root().childMapRef().begin()->second);
-	NodeData *parent = &nodeDataManager.root();
+//	if (nodeDataManager.root().childMapRef().size())
+//        nodeDataManager.deleteNode(nodeDataManager.root().childMapRef().begin()->second);
+
+    NodeData *parent = new NodeData;
+
 	int row = model()->rowCount();
 	for (int i{0}; i < row; ++i) {
 		QModelIndex index = model()->index(i, 0);
-		getOnehandle(index, parent, nodeDataManager, NodeNameHandleReMap);
+        getOnehandle(index, parent, nodeDataManager, NodeNameHandleReMap);
 	}
+
+    nodeDataManager.clearNodeData();
+    nodeDataManager.setRoot(*parent);
+    nodeDataManager.setActiveNode(parent);
 
 	return NodeNameHandleReMap;
 }

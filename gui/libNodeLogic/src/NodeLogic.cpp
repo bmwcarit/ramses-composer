@@ -52,23 +52,23 @@ bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHan
           return tempHandle.isProperty();
     };
 
-    bool bInvalid = false;
+    bool bValid = false;
     if (valueHandle.isObject()) {
         for (int i{0}; i < list.size(); i++) {
             QString str = list[i];
-            bInvalid = func(valueHandle, str.toStdString());
-            if (!bInvalid) {
+			bValid = func(valueHandle, str.toStdString());
+			if (!bValid) {
                 i++;
 				if (i >= list.size())
                     break;
                 str += "." + list[i];
-                bInvalid = func(valueHandle, str.toStdString());
-                if (!bInvalid)
+				bValid = func(valueHandle, str.toStdString());
+				if (!bValid)
                     break;
             }
         }
     }
-    return bInvalid;
+	return bValid;
 }
 
 void NodeLogic::setProperty(core::ValueHandle handle, std::string property, float value) {
@@ -271,43 +271,39 @@ void NodeLogic::slotUpdateActiveAnimation(QString animation) {
     curAnimation_ = animation;
 }
 
-void NodeLogic::preOrderReverse(NodeData *pNode, std::map<std::string, std::map<std::string, std::string>> &IdCurveBindingMap, const std::string &sampleProperty) {
+void NodeLogic::preOrderReverse(NodeData *pNode, const int &keyFrame, const std::string &sampleProperty) {
     if (!pNode)
         return;
 
     if (pNode->getBindingySize() != 0) {
         std::map<std::string, std::string> bindingDataMap;
         pNode->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingDataMap);
-        IdCurveBindingMap.emplace(pNode->objectID(), bindingDataMap);
-    }
 
+        // TODO SETPROPERTY
+        setPropertyByCurveBinding(pNode->objectID(), bindingDataMap, keyFrame);
+    }
     for (auto it = pNode->childMapRef().begin(); it != pNode->childMapRef().end(); ++it) {
-        preOrderReverse(&(it->second), IdCurveBindingMap, sampleProperty);
+        preOrderReverse(&(it->second), keyFrame, sampleProperty);
     }
 }
 
-std::map<std::string, std::map<std::string, std::string>> NodeLogic::getCurveBindings() {
-    std::map<std::string, std::map<std::string, std::string>> IdCurveBindingMap;
-    NodeData *root = &NodeDataManager::GetInstance().root();
-    preOrderReverse(root, IdCurveBindingMap, curAnimation_.toStdString());
-    return IdCurveBindingMap;
+void NodeLogic::setPropertyByCurveBinding(const std::string &objecID, const std::map<std::string, std::string> &map, const int &keyFrame) {
+    QMutexLocker locker(&handleMapMutex_);
+    auto iter = nodeObjectIDHandleReMap_.find(objecID);
+    if (iter != nodeObjectIDHandleReMap_.end()) {
+        for (const auto &bindingIt : map) {
+            if (CurveManager::GetInstance().getCurve(bindingIt.second)) {
+                double value{0};
+                if (CurveManager::GetInstance().getCurveValue(bindingIt.second, keyFrame, value)) {
+                    setProperty(iter->second, bindingIt.first, value);
+                }
+            }
+        }
+    }
 }
 
 void NodeLogic::slotUpdateKeyFrame(int keyFrame) {
-    QMutexLocker locker(&handleMapMutex_);
-	for (const auto &it : getCurveBindings()) {
-		auto iter = nodeObjectIDHandleReMap_.find(it.first);
-		if (iter != nodeObjectIDHandleReMap_.end()) {
-			for (const auto &bindingIt : it.second) {
-				if (CurveManager::GetInstance().getCurve(bindingIt.second)) {
-					double value{0};
-					if (CurveManager::GetInstance().getCurveValue(bindingIt.second, keyFrame, value)) {
-						setProperty(iter->second, bindingIt.first, value);
-					}
-				}
-			}
-		}
-	}
+    preOrderReverse(&NodeDataManager::GetInstance().root(), keyFrame, curAnimation_.toStdString());
 }
 
 void NodeLogic::slotResetNodeData() {

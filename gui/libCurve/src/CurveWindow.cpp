@@ -7,14 +7,12 @@ CurveWindow::CurveWindow(raco::components::SDataChangeDispatcher dispatcher,
                          QWidget{parent},
                          commandInterface_ {commandInterface},
                          curveLogic_{curveLogic} {
-//    QWidget* mainWidget = new QWidget(this);
     QHBoxLayout* hLayout = new QHBoxLayout(this);
     curveTree_ = new CurveTree(this, curveLogic_);
     curveTree_->setHeaderHidden(true);
     hLayout->addWidget(curveTree_, 3);
     this->setLayout(hLayout);
-
-//    this->setCentralWidget(mainWidget);
+	slotRefreshCurveView();
     connect(curveTree_, &CurveTree::sigRefreshCurveView, this, &CurveWindow::slotRefreshCurveView);
     connect(curveLogic, &CurveLogic::sigRefreshCurveView, this, &CurveWindow::slotRefreshCurveView);
 }

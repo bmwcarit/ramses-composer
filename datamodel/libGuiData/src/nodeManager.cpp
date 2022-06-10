@@ -47,8 +47,9 @@ void NodeDataManager::deleting(NodeData& pNode) {
     }else {
         // 删除结点，所有的结点都是new出来的，也就是说所有的结点放在堆区
         std::cout << " delete : " << pNode.objectID() << "\n";
-        if(pNode.getParent()) {
-			pNode.getParent()->childMapRef().erase(pNode.getName());
+		NodeData* parentData = pNode.getParent();
+		if (parentData) {
+            parentData->removeChild(pNode.getName());
         }
     }
 }

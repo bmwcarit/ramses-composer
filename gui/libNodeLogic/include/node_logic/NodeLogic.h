@@ -42,8 +42,8 @@ public:
     bool getHandleFromObjectID(const std::string &objectID, raco::core::ValueHandle &handle);
     bool hasHandleFromObjectID(const std::string &objectID);
 
-    void preOrderReverse(NodeData *pNode, std::map<std::string, std::map<std::string, std::string>> &IdCurveBindingMap, const std::string &sampleProperty);
-    std::map<std::string , std::map<std::string, std::string>> getCurveBindings();
+    void preOrderReverse(NodeData *pNode, const int &keyFrame, const std::string &sampleProperty);
+    void setPropertyByCurveBinding(const std::string &objecID, const std::map<std::string, std::string> &map, const int &keyFrame);
 
 public Q_SLOTS:
     void slotUpdateActiveAnimation(QString animation);
