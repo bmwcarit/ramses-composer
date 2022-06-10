@@ -11,6 +11,7 @@
 
 #include "ramses_widgets/PreviewContentWidget.h"
 #include "ramses_widgets/PreviewScrollAreaWidget.h"
+#include <ramses-renderer-api/RamsesRenderer.h>
 #include "user_types/BaseCamera.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
@@ -67,7 +68,7 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 	setCentralWidget(scrollAreaWidget_);
 
 	// Actual preview surface
-	previewWidget_ = new PreviewContentWidget{rendererBackend, scrollAreaWidget_->viewport()};
+	previewWidget_ = new PreviewContentWidget{rendererBackend, sceneBackend, scrollAreaWidget_->viewport()};
 	connect(scrollAreaWidget_, &PreviewScrollAreaWidget::viewportRectChanged, previewWidget_, &PreviewContentWidget::setViewportRect);
 	connect(previewWidget_, &PreviewContentWidget::updateAxesIconLabel, this, &PreviewMainWindow::updateAxesIconLabel);
 	connect(previewWidget_, &PreviewContentWidget::newMousePosition, [this, pixelLabel](const QPoint globalPosition) {
@@ -208,20 +209,12 @@ void PreviewMainWindow::sceneScaleUpdate(bool zup, float scaleValue, bool scaleU
 		scaleValue_ = scaleValue;
 		float x, y, z;
 		float cameraScale = (scaleUp == true) ? 0.95 : 1.05;
-		(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->getTranslation(x, y, z);
-		if (zup) {
-			(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setTranslation(x * cameraScale, y * cameraScale, z);
-		} else {
-			(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setTranslation(x * cameraScale, y, z * cameraScale);
-		}
-		
-		previewWidget_->getRamsesPreview()->getBackgroundScene()->update(zup, scaleValue_);
-
 		auto scene = const_cast<ramses::Scene *>(sceneBackend_->currentScene());
         ramses::RamsesObject* object = scene->findObjectByName("PerspectiveCamera");
         if (object) {
             if (object->getType() == ramses::ERamsesObjectType_PerspectiveCamera) {
                 ramses::PerspectiveCamera* camera = static_cast<ramses::PerspectiveCamera*>(object);
+				camera->getTranslation(x, y, z);
 				if (zup) {
 					camera->setTranslation(x * cameraScale, y * cameraScale, z);
 				} else {
@@ -265,20 +258,18 @@ void PreviewMainWindow::setAxesIcon(const bool& z_up) {
 ** z_up == false, +Y up, +Z forward
 */
 void PreviewMainWindow::setAxes(const bool& z_up) {
-	CameraParam_t cameraParam;
 	if (!haveInited_) {
 		setAxesIcon(z_up);
 		haveInited_ = true;
-		previewWidget_->getRamsesPreview()->getBackgroundScene()->update(z_up, scaleValue_);
 		zUp_ = z_up;
-		goto end;
+		return;
 	}
 	if (zUp_ == z_up) {
 		if (updateAxesIconLabel_) {
 			updateAxesIconLabel_ = false;
 			scrollAreaWidget_->setForceUpdateFlag(false);
 		}
-		goto end;
+		return;
 	}
 
 	setAxesIcon(z_up);
@@ -314,75 +305,26 @@ void PreviewMainWindow::setAxes(const bool& z_up) {
 			}
 		}
 	}
-	previewWidget_->getRamsesPreview()->getBackgroundScene()->update(z_up, scaleValue_);
 	zUp_ = z_up;
 	signal::signalProxy::GetInstance().sigInitPropertyBrowserView();
-
-end:
-	for (const auto& object : project_->instances()) {
-		if (&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription) {
-			ValueHandle translation_x{object, &user_types::Node::translation_, &core::Vec3f::x};
-			ValueHandle translation_y{object, &user_types::Node::translation_, &core::Vec3f::y};
-			ValueHandle translation_z{object, &user_types::Node::translation_, &core::Vec3f::z};
-			ValueHandle rotation_x{object, &user_types::Node::rotation_, &core::Vec3f::x};
-			ValueHandle rotation_y{object, &user_types::Node::rotation_, &core::Vec3f::y};
-			ValueHandle rotation_z{object, &user_types::Node::rotation_, &core::Vec3f::z};
-			ValueHandle scaling_x{object, &user_types::Node::scale_, &core::Vec3f::x};
-			ValueHandle scaling_y{object, &user_types::Node::scale_, &core::Vec3f::y};
-			ValueHandle scaling_z{object, &user_types::Node::scale_, &core::Vec3f::z};
-			ValueHandle viewport_x{object, &user_types::BaseCamera::viewport_, &user_types::CameraViewport::offsetX_};
-			ValueHandle viewport_y{object, &user_types::BaseCamera::viewport_, &user_types::CameraViewport::offsetY_};
-			ValueHandle viewport_w{object, &user_types::BaseCamera::viewport_, &user_types::CameraViewport::width_};
-			ValueHandle viewport_h{object, &user_types::BaseCamera::viewport_, &user_types::CameraViewport::height_};
-			ValueHandle frustum_near{object, &user_types::PerspectiveCamera::frustum_, &user_types::PerspectiveFrustum::near_};
-			ValueHandle frustum_far{object, &user_types::PerspectiveCamera::frustum_, &user_types::PerspectiveFrustum::far_};
-			ValueHandle frustum_fov{object, &user_types::PerspectiveCamera::frustum_, &user_types::PerspectiveFrustum::fov_};
-			ValueHandle frustum_aspect{object, &user_types::PerspectiveCamera::frustum_, &user_types::PerspectiveFrustum::aspect_};
-			cameraParam.translation[0] = translation_x.as<float>();
-			cameraParam.translation[1] = translation_y.as<float>();
-			cameraParam.translation[2] = translation_z.as<float>();
-			cameraParam.rotation[0] = rotation_x.as<float>();
-			cameraParam.rotation[1] = rotation_y.as<float>();
-			cameraParam.rotation[2] = rotation_z.as<float>();
-			cameraParam.scaling[0] = scaling_x.as<float>();
-			cameraParam.scaling[1] = scaling_y.as<float>();
-			cameraParam.scaling[2] = scaling_z.as<float>();
-			cameraParam.viewport[0] = viewport_x.as<int>();
-			cameraParam.viewport[1] = viewport_y.as<int>();
-			cameraParam.viewport[2] = viewport_w.as<int>();
-			cameraParam.viewport[3] = viewport_h.as<int>();
-			cameraParam.frustum[0] = frustum_near.as<float>();
-			cameraParam.frustum[1] = frustum_far.as<float>();
-			cameraParam.frustum[2] = frustum_fov.as<float>();
-			cameraParam.frustum[3] = frustum_aspect.as<float>();
-			ramses::ERotationConvention type = ramses::ERotationConvention::XYZ;
-			if (cameraParam != currentCamera_) {
-				(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setTranslation(cameraParam.translation[0], cameraParam.translation[1], cameraParam.translation[2]);
-				(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setRotation(cameraParam.rotation[0], cameraParam.rotation[1], cameraParam.rotation[2], type);
-				(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setScaling(cameraParam.scaling[0], cameraParam.scaling[1], cameraParam.scaling[2]);
-				(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setViewport(cameraParam.viewport[0], cameraParam.viewport[1], cameraParam.viewport[2], cameraParam.viewport[3]);
-				(*(previewWidget_->getRamsesPreview()->getBackgroundScene()->getCamera()))->setFrustum(cameraParam.frustum[0], cameraParam.frustum[1], cameraParam.frustum[2], cameraParam.frustum[3]);
-				previewWidget_->getRamsesPreview()->getBackgroundScene()->getScene()->flush();
-			}
-		}
-	}
-
-	currentCamera_ = cameraParam;
 }
 
 void PreviewMainWindow::commit() {
-	previewWidget_->commit();
-
 	const QSize areaSize = scrollAreaWidget_->viewport()->size();
 	if (sceneSize_ != areaSize) {
 		sceneSize_ = areaSize;
 		QRect scrollRect = QRect(scrollAreaWidget_->pos(), scrollAreaWidget_->size());
 		axesIcon_->setGeometry(scrollRect.width() - 130, scrollRect.y() + 20, 100, 100);
 	}
+	previewWidget_->commit();
 }
 
 void PreviewMainWindow::setEnableDisplayGrid(bool enable) {
 	previewWidget_->setEnableDisplayGrid(enable);
+}
+
+void PreviewMainWindow::sceneUpdate(bool z_up) {
+	previewWidget_->sceneUpdate(z_up, scaleValue_);
 }
 
 }  // namespace raco::ramses_widgets

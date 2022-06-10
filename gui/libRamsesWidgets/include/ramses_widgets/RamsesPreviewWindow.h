@@ -12,6 +12,7 @@
 #include "PreviewFramebufferScene.h"
 #include "PreviewBackgroundScene.h"
 #include "RendererBackend.h"
+#include "ramses_adaptor/SceneBackend.h"
 #include <QSize>
 #include <QColor>
 #include <memory>
@@ -57,14 +58,15 @@ public:
 
 	explicit RamsesPreviewWindow(
 		void* windowHandle,
-		RendererBackend& rendererBackend);
+		RendererBackend& rendererBackend,
+		raco::ramses_adaptor::SceneBackend* sceneBackend);
 	~RamsesPreviewWindow();
 
 	const State& currentState();
 	State& nextState();
 	void commit();
 	void setEnableDisplayGrid(bool enable);
-	std::unique_ptr<raco::ramses_widgets::PreviewBackgroundScene>& getBackgroundScene();
+	void sceneUpdate(bool z_up, float scaleValue);
 
 private:
 	void* windowHandle_;

@@ -18,8 +18,8 @@
 
 namespace raco::ramses_widgets {
 
-PreviewContentWidget::PreviewContentWidget(RendererBackend& rendererBackend, QWidget* parent)
-	: QWidget(parent), ramsesPreview_{std::make_unique<RamsesPreviewWindow>(reinterpret_cast<void*>(winId()), rendererBackend)} {
+PreviewContentWidget::PreviewContentWidget(RendererBackend& rendererBackend, raco::ramses_adaptor::SceneBackend* sceneBackend, QWidget* parent)
+	: sceneBackend_(sceneBackend), QWidget(parent), ramsesPreview_{std::make_unique<RamsesPreviewWindow>(reinterpret_cast<void*>(winId()), rendererBackend, sceneBackend)} {
 	// In order to prevent Qt from interfering with Ramses rendering into the window we need to set these flags
 	// and also override the QWidget::paintEngine method (returning a nullptr).
 	setAttribute(Qt::WA_PaintOnScreen, true);
@@ -48,16 +48,18 @@ void PreviewContentWidget::setEnableDisplayGrid(bool enable) {
 	}
 }
 
+void PreviewContentWidget::sceneUpdate(bool z_up, float scaleValue) {
+	if (ramsesPreview_) {
+		ramsesPreview_->sceneUpdate(z_up, scaleValue);
+	}
+}
+
 ramses::sceneId_t PreviewContentWidget::getSceneId() {
 	if (ramsesPreview_) {
 		return ramsesPreview_->nextState().sceneId;
 	} else {
 		return ramses::sceneId_t::Invalid();
 	}
-}
-
-std::unique_ptr<RamsesPreviewWindow>& PreviewContentWidget::getRamsesPreview() {
-	return ramsesPreview_;
 }
 
 bool PreviewContentWidget::event(QEvent* event) {
@@ -118,7 +120,6 @@ void PreviewContentWidget::setFilteringMode(PreviewFilteringMode filteringMode) 
 		update();
 	}
 }
-
 
 void PreviewContentWidget::commit() {
 	const auto& currentState = ramsesPreview_->currentState();

@@ -9,8 +9,10 @@ using namespace raco::ramses_base;
 
 PreviewBackgroundScene::PreviewBackgroundScene(
 	ramses::RamsesClient& client,
+    raco::ramses_adaptor::SceneBackend* sceneBackend, 
 	ramses::sceneId_t sceneId)
 	: scene_{ ramsesScene(sceneId, &client)}, 
+    sceneBackend_(sceneBackend),
 	camera_{ ramsesPerspectiveCamera(scene_.get()) }, 
 	renderGroup_{std::shared_ptr<ramses::RenderGroup>(scene_.get()->createRenderGroup(), raco::ramses_base::createRamsesObjectDeleter<ramses::RenderGroup>(scene_.get()))},
 	renderPass_{scene_->createRenderPass(), raco::ramses_base::createRamsesObjectDeleter<ramses::RenderPass>(scene_.get())} {
@@ -18,11 +20,27 @@ PreviewBackgroundScene::PreviewBackgroundScene(
     lineMaxValue_ = 500.0f;
     scaleValue_ = 1.0f;
     zUp_ = true;
+    globalCamera_ = nullptr;
 
     (*camera_)->setViewport(0, 0, 1440u, 720u);
     (*camera_)->setFrustum(35.f, 1440.f / 720.f, 0.1f, 1000.f);
     (*camera_)->setTranslation(0.0f, 0.0f, 10.0f);
     (*camera_)->setRotation(0.0, 0.0, 0.0, ramses::ERotationConvention::XYZ);
+
+    currentCameraParam_.translation[0] = 0.0f;
+    currentCameraParam_.translation[1] = 0.0f;
+    currentCameraParam_.translation[2] = 10.0f;
+    currentCameraParam_.rotation[0] = 0.0f;
+    currentCameraParam_.rotation[1] = 0.0f;
+    currentCameraParam_.rotation[2] = 0.0f;
+    currentCameraParam_.viewport[0] = 0;
+    currentCameraParam_.viewport[1] = 0;
+    currentCameraParam_.viewport[2] = 1440;
+    currentCameraParam_.viewport[3] = 720;
+    currentCameraParam_.frustum[0] = 35.f;
+    currentCameraParam_.frustum[1] = 1440.f / 720.f;
+    currentCameraParam_.frustum[2] = 0.1f;
+    currentCameraParam_.frustum[3] = 1000.f;
 
 	renderPass_->setCamera(**camera_);
 	renderPass_->addRenderGroup(*renderGroup_.get());
@@ -110,12 +128,39 @@ ramses::sceneId_t PreviewBackgroundScene::getSceneId() const {
 	return scene_->getSceneId();
 }
 
-void PreviewBackgroundScene::setViewport(const QPoint& viewportPosition, const QSize& viewportSize, const QSize& virtualSize) {
+void PreviewBackgroundScene::sceneUpdate(bool z_up, float scaleValue) {
+    if (globalCamera_ == nullptr) {
+        auto scene = const_cast<ramses::Scene *>(sceneBackend_->currentScene());
+        auto id = scene->getSceneId();
+        ramses::RamsesObject* object = scene->findObjectByName("PerspectiveCamera");
+        if (object) {
+            if (object->getType() == ramses::ERamsesObjectType_PerspectiveCamera) {
+                globalCamera_ = static_cast<ramses::PerspectiveCamera*>(object);
+            }
+        }
+    }
 
-}
-
-ramses::dataConsumerId_t PreviewBackgroundScene::generateAxesGridlines(RendererBackend& backend, const QSize& size) {
-	return backgroundSampleId_;
+    CameraParam_t globalCameraParam;
+    ramses::ERotationConvention type;
+    globalCamera_->getTranslation(globalCameraParam.translation[0], globalCameraParam.translation[1], globalCameraParam.translation[2]);
+    globalCamera_->getRotation(globalCameraParam.rotation[0], globalCameraParam.rotation[1], globalCameraParam.rotation[2], type);
+    globalCameraParam.viewport[0] = globalCamera_->getViewportX();
+    globalCameraParam.viewport[1] = globalCamera_->getViewportY();
+    globalCameraParam.viewport[2] = globalCamera_->getViewportWidth();
+    globalCameraParam.viewport[3] = globalCamera_->getViewportHeight();
+    globalCameraParam.frustum[0] = globalCamera_->getVerticalFieldOfView();
+    globalCameraParam.frustum[1] = globalCamera_->getAspectRatio();
+    globalCameraParam.frustum[2] = globalCamera_->getNearPlane();
+    globalCameraParam.frustum[3] = globalCamera_->getFarPlane();
+    
+    if (currentCameraParam_ != globalCameraParam) {
+        (*camera_)->setTranslation(globalCameraParam.translation[0], globalCameraParam.translation[1], globalCameraParam.translation[2]);
+        (*camera_)->setRotation(globalCameraParam.rotation[0], globalCameraParam.rotation[1], globalCameraParam.rotation[2], type);
+        (*camera_)->setViewport(globalCamera_->getViewportX(), globalCamera_->getViewportY(), globalCamera_->getViewportWidth(), globalCamera_->getViewportHeight());
+        (*camera_)->setFrustum(globalCamera_->getVerticalFieldOfView(), globalCamera_->getAspectRatio(), globalCamera_->getNearPlane(), globalCamera_->getFarPlane());
+        currentCameraParam_ = globalCameraParam;
+        update(z_up, scaleValue);
+    }
 }
 
 void PreviewBackgroundScene::madd_v2_v2v2fl(float r[2], const float a[2], const float b[2], float f) {
@@ -181,14 +226,6 @@ void PreviewBackgroundScene::setEnableDisplayGrid(bool enable) {
         renderPass_->setEnabled(enable);
         scene_->flush();
     }
-}
-
-raco::ramses_base::RamsesScene PreviewBackgroundScene::getScene() {
-    return scene_;
-}
-
-raco::ramses_base::RamsesPerspectiveCamera PreviewBackgroundScene::getCamera() {
-    return camera_;
 }
 
 }
