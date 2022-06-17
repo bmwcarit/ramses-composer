@@ -24,6 +24,12 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.0.1] Fix export differences between RaCoHeadless and Ramses Composer GUI
+
+### Fixes
+* Ensure correct export in RaCoHeadless application by flushing the ramses scene before export.
+* Remove warning for "time_ms" Lua input parameter.
+
 ## [1.0.0] ramses-logic 1.x, Python API, timer, new animations
 * **File version number has changed. Files saved with RaCo 1.0.0 cannot be opened by previous versions.**
     * rca files saved with this version will be much smaller than files saved with previous versions.

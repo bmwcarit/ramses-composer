@@ -83,18 +83,8 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 			success = context.engineInterface().parseLuaScript(luaScript, objectName(), *luaModules_, inputs, outputs, error);
 		}
 
-		if (success) {
-			if (std::find_if(inputs.begin(), inputs.end(), [](const PropertyInterface& intf) { return intf.type == EnginePrimitive::Int32 && intf.name == "time_ms"; }) != inputs.end()) {
-				auto infoText =
-					"Dear Animator,\n\n"
-					"this LuaScript uses the 'time_ms'-based runtime hack which will be deprecated in a future version of Ramses Composer.\n"
-					"Please prepare to transfer your timer-based animations to our new user types Animation and AnimationChannel.";
-				context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::WARNING, shared_from_this(), infoText);
-			}
-		} else {
-			if (!error.empty()) {
-				context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
-			}
+		if (!success && !error.empty()) {
+			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
 		}
 	}
 

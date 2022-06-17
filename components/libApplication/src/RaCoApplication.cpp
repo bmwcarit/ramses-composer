@@ -94,6 +94,9 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDe
 }
 
 bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) const {
+	// Flushing the scene prevents inconsistent states being saved which could lead to unexpected bevahiour after loading the scene:
+	scenesBackend_->flush();
+
 	// we currently only support export of active project currently
 	if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
 		outError = "Export failed: scene contains Composer errors";
