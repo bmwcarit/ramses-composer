@@ -1,6 +1,17 @@
-#include "data_Convert/ProgramManager.h"
+﻿#include "data_Convert/ProgramManager.h"
 #include "data_Convert/ProgramDefine.h"
 
+#include "proto/Numeric.pb.h"
+#include "proto/Common.pb.h"
+#include "proto/Scenegraph.pb.h"
+#include "proto/HmiWidget.pb.h"
+#include "proto/HmiBase.pb.h"
+#include <google/protobuf/text_format.h>
+#include <stdio.h>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <qdir.h>
 QString dataType2String(int type) {
     QString strType;
     switch(type) {
@@ -66,7 +77,7 @@ QString dataType2String(int type) {
 
 QString windingType2String(WindingType type) {
     switch (type) {
-    case TEWinding_CounterClockWise: {
+		case M_TEWinding_CounterClockWise: {
         return QString("TEWinding_CounterClockWise");
     }
 	default: {
@@ -790,8 +801,54 @@ void readJsonFillPropertyData(QJsonObject jsonObj) {
     }
 }
 
+void writeAsset(std::string filePath)
+{
+	filePath = filePath.substr(0, filePath.find(".rca"));
+	HmiWidget::TWidgetCollection widgetCollection;
+	HmiWidget::TWidget* widget = widgetCollection.add_widget();
+
+	TIdentifier *type = new TIdentifier;
+	type->set_valuestring("eWidgetType_Generate");
+	widget->set_allocated_type(type);
+
+	TIdentifier *prototype = new TIdentifier;
+	prototype->set_valuestring("eWidgetType_Model");
+	widget->set_allocated_prototype(prototype);
+
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier *key = new TIdentifier;
+	key->set_valuestring("WidgetNameHint");
+	externalModelValue->set_allocated_key(key);
+	TVariant *variant = new TVariant;
+	variant->set_asciistring("WIDGET_SCENE");
+	externalModelValue->set_allocated_variant(variant);
+
+	externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier *key1 = new TIdentifier;
+	key1->set_valuestring("eParam_ModelResourceId");
+	externalModelValue->set_allocated_key(key1);
+	TVariant *variant1 = new TVariant;
+	variant1->set_resourceid("scene.ptx");
+	externalModelValue->set_allocated_variant(variant1);
+
+	std::string output;
+	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
+	std::cout << output << std::endl;
+
+    QDir* folder = new QDir;
+    if (!folder->exists(QString::fromStdString(filePath))) {
+		bool ok = folder->mkpath(QString::fromStdString(filePath));
+	}
+	delete folder;
+	std::ofstream outfile;
+	outfile.open(filePath +"/widget.ptw", std::ios_base::out | std::ios_base::trunc);
+	outfile << output << std::endl;
+	outfile.close();
+}
 namespace raco::dataConvert {
+
 bool ProgramManager::writeProgram2Json(QString filePath) {
+	writeAsset(filePath.toStdString());
 	QFile file(filePath + ".json");
 	if (!file.open(QIODevice::ReadWrite)) {
 		return false;

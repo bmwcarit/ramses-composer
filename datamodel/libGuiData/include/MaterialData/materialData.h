@@ -29,7 +29,7 @@ enum UniformType {
 };
 
 enum WindingType{
-    TEWinding_CounterClockWise   // 逆时针
+    M_TEWinding_CounterClockWise   // 逆时针
 };
 
 enum Culling {  // 对应Cull Mode
@@ -396,7 +396,7 @@ private:
 
 class RenderMode {
 public:
-    RenderMode() : winding_(TEWinding_CounterClockWise), culling_(CU_Disabled), depthCompareFunction_(DC_Disabled), depthWrite_(false) {}
+	RenderMode() : winding_(M_TEWinding_CounterClockWise), culling_(CU_Disabled), depthCompareFunction_(DC_Disabled), depthWrite_(false) {}
 
     void setWindingType(WindingType type) {
         winding_ = type;

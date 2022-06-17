@@ -10,6 +10,11 @@ raco_find_qt_components(Widgets)
 add_library(libDataConvert
     include/data_Convert/ProgramDefine.h
     include/data_Convert/ProgramManager.h src/ProgramManager.cpp
+    include/proto/Common.pb.h src/Common.pb.cpp
+    include/proto/HmiBase.pb.h src/HmiBase.pb.cpp
+    include/proto/HmiWidget.pb.h src/HmiWidget.pb.cpp
+    include/proto/Numeric.pb.h src/Numeric.pb.cpp
+    include/proto/Scenegraph.pb.h src/Scenegraph.pb.cpp
     )
 
 target_include_directories(libDataConvert
@@ -34,6 +39,9 @@ target_link_libraries(libDataConvert
         Qt5::Core
         Qt5::Gui
     PRIVATE
+        protobuf::libprotobuf-lite
+        protobuf::libprotobuf
+        protobuf::libprotoc
         raco::LogSystem
 )
 

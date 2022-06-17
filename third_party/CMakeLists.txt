@@ -193,3 +193,9 @@ if(WIN32)
 elseif(UNIX)
     add_subdirectory(python-linux)
 endif()
+
+#protobuf
+add_subdirectory(protobuf)
+set_target_properties(libprotobuf-lite PROPERTIES FOLDER third_party/protobuf POSITION_INDEPENDENT_CODE ON)
+set_target_properties(libprotobuf PROPERTIES FOLDER third_party/protobuf POSITION_INDEPENDENT_CODE ON)
+set_target_properties(libprotoc PROPERTIES FOLDER third_party/protobuf POSITION_INDEPENDENT_CODE ON)
