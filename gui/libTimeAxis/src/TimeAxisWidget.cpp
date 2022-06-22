@@ -410,10 +410,10 @@ void TimeAxisWidget::drawKeyFrame(QPainter &painter) {
        for (const int& keyFrame : keyFrameList) {
            int leftPos = n * keyFrame - curX;
            if (leftPos > 0) {
-               if (keyFrameMgr_->getClickedFrame() == keyFrame) {
-                   brush.setColor(QColor(217, 125, 13, 255));
-                   painter.setBrush(brush);
-               }
+//               if (keyFrameMgr_->getClickedFrame() == keyFrame) {
+//                   brush.setColor(QColor(217, 125, 13, 255));
+//                   painter.setBrush(brush);
+//               }
                painter.drawEllipse(leftPos - 5,20,10,10);
                brush.setColor(QColor(245, 250, 250, 255));
                painter.setBrush(brush);

@@ -14,6 +14,7 @@
 #include "RendererBackend.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include <QSize>
+#include <QLabel>
 #include <QColor>
 #include <memory>
 #include <ramses-framework-api/RamsesFrameworkTypes.h>
