@@ -151,7 +151,11 @@ void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::gui
 		}
 
 		NodeNameHandleReMap.emplace(tempNode.objectID(), tempHandle);
-	}
+    }
+}
+
+void ObjectTreeView::getOneMesh(QModelIndex index) {
+
 }
 
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
@@ -187,7 +191,15 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
 		// 设置node的 ID
 		str = tempHandle[0].asString();
 	}
-	return ResHandleReMap;
+    return ResHandleReMap;
+}
+
+void ObjectTreeView::updateMeshData() {
+    int row = model()->rowCount();
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        getOneMesh(index);
+    }
 }
 
 void ObjectTreeView::globalCopyCallback() {
