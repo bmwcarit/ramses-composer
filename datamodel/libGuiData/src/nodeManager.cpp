@@ -101,7 +101,7 @@ NodeData* NodeDataManager::searchNodeByID(const std::string &objectID) {
  * @note  searchNode的子函数，递归进行查找
  */
 void NodeDataManager::searchingByID(NodeData* pNode, const std::string &objectID) {
-    std::cout << " searching pNode->objectID(): " << pNode->objectID() << "\n";
+//    std::cout << " searching pNode->objectID(): " << pNode->objectID() << "\n";
     if(pNode->objectID() == objectID) {
         searchedNode_ = pNode;
         return ;

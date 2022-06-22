@@ -22,6 +22,8 @@
 #include "CurveData/CurveManager.h"
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
+#include "openctm.h"
+#include "openctmpp.h"
 
 using namespace raco::guiData;
 namespace raco::dataConvert {

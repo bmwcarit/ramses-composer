@@ -213,6 +213,9 @@ void ObjectTreeView::globalCopyCallback() {
 
 void ObjectTreeView::globalOpreations() {
 	// TBD
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
+    }
     QTime dieTime = QTime::currentTime().addMSecs(5);
     while( QTime::currentTime() < dieTime ) {
         QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
