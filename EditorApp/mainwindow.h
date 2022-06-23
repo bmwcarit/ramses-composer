@@ -99,6 +99,7 @@ protected Q_SLOTS:
 
 Q_SIGNALS:
     void getResourceHandles();
+    void updateMeshData();
 	void viewportChanged(const QSize& sceneSize);
 
     void axesChanged(const bool& z_up);

@@ -235,6 +235,7 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 	dockModel->buildObjectTree();
 	auto newTreeView = new raco::object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
 	QObject::connect(mainWindow, &MainWindow::getResourceHandles, newTreeView, &raco::object_tree::view::ObjectTreeView::getResourceHandles);
+    QObject::connect(mainWindow, &MainWindow::updateMeshData, newTreeView, &raco::object_tree::view::ObjectTreeView::updateMeshData);
 	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::setResourceHandles, mainWindow, &MainWindow::setResourceHandles);
 	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::updateNodeHandles, mainWindow, &MainWindow::updateNodeHandles);
 
@@ -685,15 +686,18 @@ bool MainWindow::saveAsActiveProject() {
 		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
 		if (newPath.isEmpty()) {
 			return false;
-		}
-		Q_EMIT getResourceHandles();
+        }
+
+        Q_EMIT getResourceHandles();
+        Q_EMIT updateMeshData();
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		std::string errorMsg;
 		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
 			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 
 			updateActiveProjectConnection();
-			updateApplicationTitle();		
+            updateApplicationTitle();
+            programManager_.setRelativePath(QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()));
 			programManager_.writeProgram2Json(newPath);
 			return true;
 		} else {

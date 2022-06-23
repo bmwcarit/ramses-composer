@@ -801,53 +801,7 @@ void readJsonFillPropertyData(QJsonObject jsonObj) {
     }
 }
 
-bool writeCTM(std::string file) {
-    std::string path = file + "test.ctm";
-    CTMuint aVerCount;
-    CTMuint aTriCount;
-    CTMfloat *aVertices = new CTMfloat[900000];
-    CTMuint *aIndices = new CTMuint[300000];
-
-    CTMcontext context;
-    CTMenum ret;
-
-    aVerCount = 300000;
-    aTriCount = 100000;
-
-    // 顶点
-    CTMfloat *ptrVertices = aVertices;
-    // 指数
-    CTMuint *ptrIndices = aIndices;
-
-    for (int j = 0; j < aVerCount; j++)
-    {
-        *ptrVertices = j*0.1f;
-        *(ptrVertices + 1) = j*0.2f;
-        *(ptrVertices + 2) = j*0.3f;
-        ptrVertices += 3;
-    }
-
-    for (int i = 0; i < aTriCount; i++)
-    {
-        *(ptrIndices + 0) = i;
-        *(ptrIndices + 1) = i + 1;
-        *(ptrIndices + 2) = i + 2;
-        ptrIndices += 3;
-    }
-
-    context = ctmNewContext(CTM_EXPORT);
-
-    ctmDefineMesh(context, aVertices, aVerCount, aIndices, aTriCount, NULL);
-
-    ctmCompressionMethod(context, CTM_METHOD_MG1);
-
-    ctmSave(context, path.c_str());
-    ctmFreeContext(context);
-    return true;
-}
-
-void writeAsset(std::string filePath)
-{
+void writeAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
@@ -892,8 +846,69 @@ void writeAsset(std::string filePath)
 }
 namespace raco::dataConvert {
 
+void ProgramManager::setRelativePath(QString path) {
+    relativePath_ = path;
+}
+
+bool ProgramManager::writeCTMFile() {
+    QDir folder(relativePath_ + "/ctms");
+    if (!folder.exists()) {
+        folder.mkpath(relativePath_ + "/ctms");
+    } else {
+        for (int i{0}; i < folder.count(); i++) {
+            folder.remove(folder[i]);
+        }
+    }
+
+    for (const auto &meshIt : MeshDataManager::GetInstance().getMeshDataMap()) {
+        MeshData mesh = meshIt.second;
+        std::string path = relativePath_.toStdString() + mesh.getMeshName();
+        CTMuint aVerCount = mesh.getNumVertices();
+        CTMuint aTriCount = mesh.getNumTriangles();
+
+        CTMfloat *aVertices = new CTMfloat[aVerCount];
+        CTMuint *aIndices = new CTMuint[aTriCount];
+
+        CTMcontext context;
+        CTMenum ret;
+
+        CTMfloat *ptrVertices = aVertices;
+        CTMuint *ptrIndices = aIndices;
+
+        for (int j = 0; j < aVerCount; j++) {
+//            *ptrVertices = j*0.1f;
+//            *(ptrVertices + 1) = j*0.2f;
+//            *(ptrVertices + 2) = j*0.3f;
+//            ptrVertices += 3;
+        }
+
+        for (int i = 0; i < aTriCount; i++) {
+//            *(ptrIndices + 0) = i;
+//            *(ptrIndices + 1) = i + 1;
+//            *(ptrIndices + 2) = i + 2;
+//            ptrIndices += 3;
+        }
+
+        context = ctmNewContext(CTM_EXPORT);
+
+        // fill mesh
+        ctmDefineMesh(context, aVertices, aVerCount, aIndices, aTriCount, NULL);
+
+        // fill attributes
+        for (const auto &attriIt : mesh.getAttributes()) {
+            ctmAddAttribMap(context, attriIt.data.data(), attriIt.name.c_str());
+        }
+
+        ctmCompressionMethod(context, CTM_METHOD_MG1);
+
+        ctmSave(context, path.c_str());
+        ctmFreeContext(context);
+    }
+    return true;
+}
+
 bool ProgramManager::writeProgram2Json(QString filePath) {
-	writeCTM(filePath.toStdString());
+//    writeCTMFile();
 	writeAsset(filePath.toStdString());
 	QFile file(filePath + ".json");
 	if (!file.open(QIODevice::ReadWrite)) {
