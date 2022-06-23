@@ -88,7 +88,7 @@ QString windingType2String(WindingType type) {
 
 QString culling2String(Culling culling) {
     switch (culling) {
-    case CU_Disabled: {
+    case CU_None: {
         return QString("TEFace_None");
     }
     case CU_Front: {
@@ -151,7 +151,7 @@ QString bool2String(bool temp) {
 
 QString blendOperation2String(BlendOperation opreation) {
     switch (opreation) {
-    case BO_Disabled: {
+    case BO_None: {
         return QString("TEBlendOperation_Disabled");
     }
     case BO_Add: {
@@ -847,8 +847,25 @@ void writeAsset(std::string filePath)
 }
 namespace raco::dataConvert {
 
+bool ProgramManager::writeProgram(QString filePath) {
+	bool result = true;
+    // 1. Output Json file
+	if (!writeProgram2Json(filePath)) {
+		qDebug() << "Write Json file ERROR!";
+		result = false;
+    }
+	// 2. Output Ptx file
+	if (!outputPtx_.writeProgram2Ptx(filePath)) {
+		qDebug() << "Write Ptx file ERROR!";
+		result = false;
+    }
+    // 3. Output Asset file
+    writeAsset(filePath.toStdString());
+
+	return result;
+}
+
 bool ProgramManager::writeProgram2Json(QString filePath) {
-	writeAsset(filePath.toStdString());
 	QFile file(filePath + ".json");
 	if (!file.open(QIODevice::ReadWrite)) {
 		return false;

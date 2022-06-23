@@ -22,6 +22,7 @@
 #include "CurveData/CurveManager.h"
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
+#include "data_Convert/OutputPtx.h"
 
 using namespace raco::guiData;
 namespace raco::dataConvert {
@@ -36,7 +37,8 @@ enum EDATAYPE {
 class ProgramManager : public QObject {
     Q_OBJECT
 public:
-    bool writeProgram2Json(QString filePath);
+	bool writeProgram(QString filePath);
+	bool writeProgram2Json(QString filePath);
     bool readProgramFromJson(QString filePath);
 
 Q_SIGNALS:
@@ -45,6 +47,7 @@ Q_SIGNALS:
 private:
     QString file_;
     QMap<QString, QJsonArray> aryMap_;
+    OutputPtx outputPtx_;
 };
 }
 

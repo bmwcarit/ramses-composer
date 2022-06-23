@@ -657,7 +657,7 @@ bool MainWindow::saveActiveProject() {
 			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
 				recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 				updateApplicationTitle();
-				programManager_.writeProgram2Json(QString::fromStdString(racoApplication_->activeProjectPath()));
+				programManager_.writeProgram(QString::fromStdString(racoApplication_->activeProjectPath()));
 				return true;
 			} else {
 				updateApplicationTitle();	
@@ -686,7 +686,7 @@ bool MainWindow::saveAsActiveProject() {
 
 			updateActiveProjectConnection();
 			updateApplicationTitle();		
-			programManager_.writeProgram2Json(newPath);
+			programManager_.writeProgram(newPath);
 			return true;
 		} else {
 			updateApplicationTitle();

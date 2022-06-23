@@ -10,6 +10,7 @@ raco_find_qt_components(Widgets)
 add_library(libDataConvert
     include/data_Convert/ProgramDefine.h
     include/data_Convert/ProgramManager.h src/ProgramManager.cpp
+    include/data_Convert/OutputPtx.h src/OutputPtx.cpp
     include/proto/Common.pb.h src/Common.pb.cpp
     include/proto/HmiBase.pb.h src/HmiBase.pb.cpp
     include/proto/HmiWidget.pb.h src/HmiWidget.pb.cpp
