@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include "MeshData/MeshDataManager.h"
 #include "core/EditorObject.h"
 #include "node_logic/NodeLogic.h"
 
@@ -38,8 +39,11 @@ public:
 	QString getViewTitle() const;
 
 	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
-	std::map<std::string, core::ValueHandle> updateNodeTree();
+    void getOneMeshHandle(QModelIndex index);
+    bool getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData);
+    std::map<std::string, core::ValueHandle> updateNodeTree();
 	std::map<std::string, core::ValueHandle> updateResource();
+    void updateMeshData();
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
@@ -74,6 +78,7 @@ public Q_SLOTS:
 	void expanded(const QModelIndex &index);
 	void collapsed(const QModelIndex &index);
     void getResourceHandles();
+    void fillMeshData();
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;

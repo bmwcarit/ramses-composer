@@ -282,7 +282,7 @@ void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
 		// No need to update the Value Handle if we still are referencing to the same object.
 		// This happens for example when the display name changes, thus the tree view will update and then restore the selected item in the property browser.
 		return;	
-	}
+    }
 
 	if (!locked_) {
 		emptyLabel_->setVisible(false);

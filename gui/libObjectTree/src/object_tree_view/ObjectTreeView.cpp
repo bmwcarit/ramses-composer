@@ -15,6 +15,7 @@
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "core/UserObjectFactoryInterface.h"
+#include "user_types/Mesh.h"
 #include "user_types/Node.h"
 
 #include "object_tree_view_model/ObjectTreeNode.h"
@@ -151,7 +152,64 @@ void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::gui
 		}
 
 		NodeNameHandleReMap.emplace(tempNode.objectID(), tempHandle);
-	}
+    }
+}
+
+void ObjectTreeView::getOneMeshHandle(QModelIndex index) {
+    if (!model()->hasChildren(index)) {
+        core::ValueHandle tempHandle = indexToSEditorObject(index);
+        raco::guiData::MeshData mesh;
+        std::string objectID = tempHandle[0].asString();;
+        if (getOneMeshData(tempHandle, mesh)) {
+            MeshDataManager::GetInstance().addMeshData(objectID, mesh);
+        }
+    } else {
+        for (int i{0}; i < model()->rowCount(index); i++) {
+            QModelIndex tempIndex = model()->index(i, 0, index);
+            core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+            raco::guiData::MeshData mesh;
+            std::string objectID = tempHandle[0].asString();;
+            if (getOneMeshData(tempHandle, mesh)) {
+                MeshDataManager::GetInstance().addMeshData(objectID, mesh);
+            }
+            getOneMeshHandle(tempIndex);
+        }
+    }
+}
+bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData) {
+    if (valueHandle.hasProperty("mesh")) {
+        raco::core::ValueHandle tempHandle = valueHandle.get("mesh");
+        if (tempHandle.type() == core::PrimitiveType::Ref) {
+            raco::core::ValueHandle meshHandle = tempHandle.asRef();
+            if (meshHandle != NULL) {
+                // fill meshData
+                raco::user_types::Mesh *mesh = dynamic_cast<raco::user_types::Mesh *>(meshHandle.rootObject().get());
+
+                meshData.setNumTriangles(mesh->meshData()->numTriangles());
+                meshData.setNumVertices(mesh->meshData()->numVertices());
+                for (int i{0}; i < mesh->meshData()->numAttributes(); i++) {
+                    raco::guiData::Attribute attribute;
+                    attribute.name = mesh->meshData()->attribName(i);
+                    attribute.type = static_cast<raco::guiData::VertexAttribDataType>(mesh->meshData()->attribDataType(i));
+
+                    auto firstPos = mesh->meshData()->attribBuffer(i);
+                    auto posElementAmount = mesh->meshData()->attribElementCount(i);
+                    attribute.data.resize(posElementAmount * 3);
+                    std::memcpy(&attribute.data[0], firstPos, posElementAmount * 3 * sizeof(float));
+                    meshData.addAttribute(attribute);
+                }
+                if (meshHandle.hasProperty("objectName") && meshHandle.hasProperty("uri")) {
+                    std::string objectName = meshHandle.get("objectName").asString();
+                    meshData.setMeshName(objectName);
+
+                    std::string uri = "ctms/" + objectName + ".ctm";
+                    meshData.setMeshUri(uri);
+                }
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
@@ -187,7 +245,15 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
 		// 设置node的 ID
 		str = tempHandle[0].asString();
 	}
-	return ResHandleReMap;
+    return ResHandleReMap;
+}
+
+void ObjectTreeView::updateMeshData() {
+    int row = model()->rowCount();
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        getOneMeshHandle(index);
+    }
 }
 
 void ObjectTreeView::globalCopyCallback() {
@@ -201,6 +267,9 @@ void ObjectTreeView::globalCopyCallback() {
 
 void ObjectTreeView::globalOpreations() {
 	// TBD
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
+    }
     QTime dieTime = QTime::currentTime().addMSecs(5);
     while( QTime::currentTime() < dieTime ) {
         QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
@@ -246,6 +315,13 @@ void ObjectTreeView::getResourceHandles() {
         std::map<std::string, core::ValueHandle> handleMap = updateResource();
         Q_EMIT setResourceHandles(handleMap);
     }
+}
+
+void ObjectTreeView::fillMeshData() {
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
+    }
+    updateMeshData();
 }
 
 void ObjectTreeView::expanded(const QModelIndex &index) {

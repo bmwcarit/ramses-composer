@@ -23,6 +23,9 @@
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
 #include "data_Convert/OutputPtx.h"
+#include "MeshData/MeshDataManager.h"
+#include "openctm.h"
+#include "openctmpp.h"
 
 using namespace raco::guiData;
 namespace raco::dataConvert {
@@ -39,6 +42,8 @@ class ProgramManager : public QObject {
 public:
 	bool writeProgram(QString filePath);
 	bool writeProgram2Json(QString filePath);
+    void setRelativePath(QString path);
+    bool writeCTMFile();
     bool readProgramFromJson(QString filePath);
 
 Q_SIGNALS:
@@ -46,6 +51,7 @@ Q_SIGNALS:
 
 private:
     QString file_;
+    QString relativePath_;
     QMap<QString, QJsonArray> aryMap_;
     OutputPtx outputPtx_;
 };
