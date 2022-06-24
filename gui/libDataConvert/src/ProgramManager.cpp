@@ -613,16 +613,18 @@ void initMaterialJson(QJsonObject& jsonObj) {
 
         MaterialObj.insert(JSON_SHADER_REFERENCE, QString::fromStdString(materialData.getShaderRef()));
 
-        QJsonObject textureObj;
-        textureObj.insert(JSON_NAME, QString::fromStdString(materialData.getTexture().getName()));
-        textureObj.insert(JSON_BITMAP_REFERENCE, QString::fromStdString(materialData.getTexture().getBitmapRef()));
-        textureObj.insert(JSON_MIN_FILTER, filter2String(materialData.getTexture().getMinFilter()));
-        textureObj.insert(JSON_MAG_FILTER, filter2String(materialData.getTexture().getMagFilter()));
-        textureObj.insert(JSON_ANISOTROPIC_SAMPLES, materialData.getTexture().getAnisotropicSamples());
-        textureObj.insert(JSON_WRAPE_MODEU, wrapMode2String(materialData.getTexture().getWrapModeU()));
-        textureObj.insert(JSON_WRAPE_MODEV, wrapMode2String(materialData.getTexture().getWrapModeV()));
-        textureObj.insert(JSON_UNIFORM_NAME, QString::fromStdString(materialData.getTexture().getUniformName()));
-        MaterialObj.insert(JSON_TEXTURE, textureObj);
+        for (auto texture : materialData.getTextures()) {
+            QJsonObject textureObj;
+            textureObj.insert(JSON_NAME, QString::fromStdString(texture.getName()));
+            textureObj.insert(JSON_BITMAP_REFERENCE, QString::fromStdString(texture.getBitmapRef()));
+            textureObj.insert(JSON_MIN_FILTER, filter2String(texture.getMinFilter()));
+            textureObj.insert(JSON_MAG_FILTER, filter2String(texture.getMagFilter()));
+            textureObj.insert(JSON_ANISOTROPIC_SAMPLES, texture.getAnisotropicSamples());
+            textureObj.insert(JSON_WRAPE_MODEU, wrapMode2String(texture.getWrapModeU()));
+            textureObj.insert(JSON_WRAPE_MODEV, wrapMode2String(texture.getWrapModeV()));
+            textureObj.insert(JSON_UNIFORM_NAME, QString::fromStdString(texture.getUniformName()));
+            MaterialObj.insert(JSON_TEXTURE, textureObj);
+        }
 
         initUniformJson(materialData, MaterialObj);
 		materialAry.append(MaterialObj);
@@ -885,12 +887,9 @@ bool ProgramManager::writeCTMFile() {
         CTMcontext context;
         CTMenum ret;
 
-        CTMfloat *ptrVertices = aVertices;
-        CTMuint *ptrIndices = aIndices;
-
         std::vector<uint32_t> indices = mesh.getIndices();
         auto indicesData = reinterpret_cast<uint32_t *>(indices.data());;
-        std::memcpy(ptrIndices, indicesData, aTriCount * 3 * sizeof(uint32_t));
+        std::memcpy(aIndices, indicesData, aTriCount * 3 * sizeof(uint32_t));
 
         context = ctmNewContext(CTM_EXPORT);
 
@@ -906,20 +905,8 @@ bool ProgramManager::writeCTMFile() {
             delete[] aAttribute;
         }
 
-        // uv maps
-        int posIndex = attriIndex(mesh.getAttributes(), "a_TextureCoordinate");
-        if (posIndex != -1) {
-            aUVMaps = new CTMfloat[aVerCount * 2];
-            Attribute attri = mesh.getAttributes().at(posIndex);
-            auto uvMapsData = reinterpret_cast<float *>(attri.data.data());;
-            std::memcpy(aUVMaps, uvMapsData, aVerCount * 2 * sizeof(float));
-            if (CTM_NONE == ctmAddUVMap(context, aUVMaps, "a_TextureCoordinate", NULL)) {
-                qDebug() << "uv failed";
-            }
-        }
-
         // normals
-        posIndex = attriIndex(mesh.getAttributes(), "a_Normal");
+        int posIndex = attriIndex(mesh.getAttributes(), "a_Normal");
         if (posIndex != -1) {
             aNormals = new CTMfloat[aVerCount * 3];
             Attribute attri = mesh.getAttributes().at(posIndex);
@@ -935,7 +922,19 @@ bool ProgramManager::writeCTMFile() {
             std::memcpy(aVertices, verticesData, aVerCount * 3 * sizeof(float));
         }
 
-        ctmDefineMesh(context, ptrVertices, aVerCount, ptrIndices, aTriCount, aNormals);
+        ctmDefineMesh(context, aVertices, aVerCount, aIndices, aTriCount, aNormals);
+
+        // uv maps
+        posIndex = attriIndex(mesh.getAttributes(), "a_TextureCoordinate");
+        if (posIndex != -1) {
+            aUVMaps = new CTMfloat[aVerCount * 2];
+            Attribute attri = mesh.getAttributes().at(posIndex);
+            auto uvMapsData = reinterpret_cast<float *>(attri.data.data());;
+            std::memcpy(aUVMaps, uvMapsData, aVerCount * 2 * sizeof(float));
+            if (CTM_NONE == ctmAddUVMap(context, aUVMaps, "a_TextureCoordinate", NULL)) {
+                qDebug() << "uv failed";
+            }
+        }
 
         ctmCompressionMethod(context, CTM_METHOD_MG1);
 

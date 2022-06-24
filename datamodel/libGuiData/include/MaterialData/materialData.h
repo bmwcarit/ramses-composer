@@ -479,11 +479,11 @@ public:
         return shaderRef_;
     }
 
-    void setTexture(TextureData texture) {
-        texture_ = texture;
+    void addTexture(TextureData texture) {
+        textures_.push_back(texture);
     }
-    TextureData getTexture() {
-        return texture_;
+    std::vector<TextureData> getTextures() {
+        return textures_;
     }
 
     void addUniform(Uniform uniform) {
@@ -497,7 +497,9 @@ public:
         qDebug() << "object name:" << QString::fromStdString(name_);
         renderMode_.traverseRenderMode();
         qDebug() << "shaderRef_:" << QString::fromStdString(shaderRef_);
-        texture_.traverseTextureData();
+        for (auto texture : textures_) {
+            texture.traverseTextureData();
+        }
         for (auto uniform : uniforms_) {
             uniform.traverseUniform();
         }
@@ -508,7 +510,7 @@ private:
     RenderMode renderMode_;          // ok
 
     std::string shaderRef_;          // 和shader关联
-    TextureData texture_;            // ok
+    std::vector<TextureData> textures_;
     std::vector<Uniform> uniforms_;  // 不一定
 };
 }
