@@ -145,7 +145,6 @@ void NodeLogic::initBasicProperty(raco::core::ValueHandle valueHandle, NodeData 
 				scal.y = tempHandle.get("y").asDouble();
 				scal.z = tempHandle.get("z").asDouble();
 				node->insertSystemData("scale", scal);
-
 			}  
             initBasicProperty(valueHandle[i], node);
 		}

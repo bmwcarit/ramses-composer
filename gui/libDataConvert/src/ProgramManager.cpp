@@ -844,6 +844,17 @@ void writeAsset(std::string filePath) {
 	outfile << output << std::endl;
 	outfile.close();
 }
+
+int attriIndex(std::vector<Attribute> attrs, std::string aName) {
+    for (int i{0}; i < attrs.size(); i++) {
+        auto attrIt = attrs.at(i);
+        if (attrIt.name.compare(aName) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 namespace raco::dataConvert {
 
 void ProgramManager::setRelativePath(QString path) {
@@ -862,12 +873,14 @@ bool ProgramManager::writeCTMFile() {
 
     for (const auto &meshIt : MeshDataManager::GetInstance().getMeshDataMap()) {
         MeshData mesh = meshIt.second;
-        std::string path = relativePath_.toStdString() + mesh.getMeshName();
+        std::string path = relativePath_.toStdString() + "/" + mesh.getMeshUri();
         CTMuint aVerCount = mesh.getNumVertices();
         CTMuint aTriCount = mesh.getNumTriangles();
 
-        CTMfloat *aVertices = new CTMfloat[aVerCount];
-        CTMuint *aIndices = new CTMuint[aTriCount];
+        CTMfloat *aVertices = new CTMfloat[aVerCount * 3];
+        CTMuint *aIndices = new CTMuint[aTriCount * 3];
+        CTMfloat *aNormals{nullptr};
+        CTMfloat *aUVMaps{nullptr};
 
         CTMcontext context;
         CTMenum ret;
@@ -875,40 +888,70 @@ bool ProgramManager::writeCTMFile() {
         CTMfloat *ptrVertices = aVertices;
         CTMuint *ptrIndices = aIndices;
 
-        for (int j = 0; j < aVerCount; j++) {
-//            *ptrVertices = j*0.1f;
-//            *(ptrVertices + 1) = j*0.2f;
-//            *(ptrVertices + 2) = j*0.3f;
-//            ptrVertices += 3;
-        }
-
-        for (int i = 0; i < aTriCount; i++) {
-//            *(ptrIndices + 0) = i;
-//            *(ptrIndices + 1) = i + 1;
-//            *(ptrIndices + 2) = i + 2;
-//            ptrIndices += 3;
-        }
+        std::vector<uint32_t> indices = mesh.getIndices();
+        auto indicesData = reinterpret_cast<uint32_t *>(indices.data());;
+        std::memcpy(ptrIndices, indicesData, aTriCount * 3 * sizeof(uint32_t));
 
         context = ctmNewContext(CTM_EXPORT);
 
-        // fill mesh
-        ctmDefineMesh(context, aVertices, aVerCount, aIndices, aTriCount, NULL);
-
         // fill attributes
-        for (const auto &attriIt : mesh.getAttributes()) {
-            ctmAddAttribMap(context, attriIt.data.data(), attriIt.name.c_str());
+        for (auto attriIt : mesh.getAttributes()) {
+            int size = attriIt.data.size();
+            CTMfloat *aAttribute = new CTMfloat[size];
+            auto attriData = reinterpret_cast<float *>(attriIt.data.data());
+            std::memcpy(aAttribute, attriData, size * sizeof(float));
+            if (CTM_NONE == ctmAddAttribMap(context, aAttribute, attriIt.name.c_str())) {
+                qDebug() << "color failed";
+            }
+            delete[] aAttribute;
         }
+
+        // uv maps
+        int posIndex = attriIndex(mesh.getAttributes(), "a_TextureCoordinate");
+        if (posIndex != -1) {
+            aUVMaps = new CTMfloat[aVerCount * 2];
+            Attribute attri = mesh.getAttributes().at(posIndex);
+            auto uvMapsData = reinterpret_cast<float *>(attri.data.data());;
+            std::memcpy(aUVMaps, uvMapsData, aVerCount * 2 * sizeof(float));
+            if (CTM_NONE == ctmAddUVMap(context, aUVMaps, "a_TextureCoordinate", NULL)) {
+                qDebug() << "uv failed";
+            }
+        }
+
+        // normals
+        posIndex = attriIndex(mesh.getAttributes(), "a_Normal");
+        if (posIndex != -1) {
+            aNormals = new CTMfloat[aVerCount * 3];
+            Attribute attri = mesh.getAttributes().at(posIndex);
+            auto normalsData = reinterpret_cast<float *>(attri.data.data());;
+            std::memcpy(aNormals, normalsData, aVerCount * 3 * sizeof(float));
+        }
+
+        // vertices
+        posIndex = attriIndex(mesh.getAttributes(), "a_Position");
+        if (posIndex != -1) {
+            Attribute attri = mesh.getAttributes().at(posIndex);
+            auto verticesData = reinterpret_cast<float *>(attri.data.data());;
+            std::memcpy(aVertices, verticesData, aVerCount * 3 * sizeof(float));
+        }
+
+        ctmDefineMesh(context, ptrVertices, aVerCount, ptrIndices, aTriCount, aNormals);
 
         ctmCompressionMethod(context, CTM_METHOD_MG1);
 
         ctmSave(context, path.c_str());
         ctmFreeContext(context);
+
+        delete[] aVertices;
+        delete[] aIndices;
+        delete[] aNormals;
+        delete[] aUVMaps;
     }
     return true;
 }
 
 bool ProgramManager::writeProgram2Json(QString filePath) {
-//    writeCTMFile();
+    writeCTMFile();
 	writeAsset(filePath.toStdString());
 	QFile file(filePath + ".json");
 	if (!file.open(QIODevice::ReadWrite)) {

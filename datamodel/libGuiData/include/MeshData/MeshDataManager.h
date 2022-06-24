@@ -42,12 +42,16 @@ public:
     int getAttributeSize();
     void addAttribute(Attribute attr);
     std::vector<Attribute> getAttributes();
+
+    void setIndices(std::vector<uint32_t> indices);
+    std::vector<uint32_t> getIndices();
 private:
     std::string meshName_;
     std::string meshUri_;
     int numTriangles_{0};
     int numVertices_{0};
     std::vector<Attribute> attributes_;
+    std::vector<uint32_t> indexBuffer_;
 };
 
 class MeshDataManager {
@@ -55,6 +59,8 @@ public:
     static MeshDataManager &GetInstance();
     MeshDataManager(const MeshDataManager&) = delete;
     MeshDataManager& operator=(const MeshDataManager&) = delete;
+
+    void clearMesh();
 
     void addMeshData(std::string id, MeshData mesh);
     MeshData getMeshData(std::string id);

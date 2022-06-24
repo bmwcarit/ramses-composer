@@ -49,6 +49,14 @@ std::vector<Attribute> MeshData::getAttributes() {
     return attributes_;
 }
 
+void MeshData::setIndices(std::vector<uint32_t> indices) {
+    indexBuffer_ = indices;
+}
+
+std::vector<uint32_t> MeshData::getIndices() {
+    return indexBuffer_;
+}
+
 MeshDataManager &MeshDataManager::GetInstance() {
     static MeshDataManager Instance;
     return Instance;
@@ -56,6 +64,10 @@ MeshDataManager &MeshDataManager::GetInstance() {
 
 MeshDataManager::MeshDataManager() {
 
+}
+
+void MeshDataManager::clearMesh() {
+    meshDataMap_.clear();
 }
 
 void MeshDataManager::addMeshData(std::string id, MeshData mesh) {
