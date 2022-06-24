@@ -14,7 +14,7 @@ namespace raco::guiData {
 
 class NodeData {
 public:
-	NodeData() : nodeName_{""}, objectID_{""}, parentNode_{nullptr} {}
+	NodeData() : nodeName_{""}, objectID_{""}, materialsID_{""}, meshID_{""}, parentNode_{nullptr} {}
 
 	NodeExtend& NodeExtendRef() {
 		return nodeExtend_;
@@ -37,6 +37,20 @@ public:
 	}
 	void setName(std::string name) {
 		nodeName_ = name;
+	}
+
+	std::string getMaterialsID() {
+		return materialsID_;
+	}
+	void setMaterialsID(std::string materialsID) {
+		materialsID_ = materialsID;
+	}
+
+	std::string getMeshID() {
+		return meshID_;
+	}
+	void setMeshID(std::string meshId) {
+		meshID_ = meshId;
 	}
 	
 	std::map<std::string, std::any>& systemDataMapNewRef() {
@@ -155,9 +169,11 @@ private:
 	NodeExtend nodeExtend_;
 	// 添加系统属性
 	std::map<std::string, std::any> systemDataMap_;
-	// 从渲染引擎中获取数据句柄指针（最好是指针或者引用）
-	//void* handle_;					 // 渲染引擎中的数据，建议保存，因为handleProp_是node的一部分
-	// 去掉handle，在逻辑层加一个映射，map<std::string,handleType>  nodeNameHandleMap
+	// materials ID
+	std::string materialsID_;
+	// mesh ID
+	std::string meshID_;
+
 	NodeData* parentNode_;							// 指向父节点
 	std::map<std::string, NodeData> childNodeMap_;	// 子结点列表
 };

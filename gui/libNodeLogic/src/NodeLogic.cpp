@@ -145,6 +145,16 @@ void NodeLogic::initBasicProperty(raco::core::ValueHandle valueHandle, NodeData 
 				scal.y = tempHandle.get("y").asDouble();
 				scal.z = tempHandle.get("z").asDouble();
 				node->insertSystemData("scale", scal);
+			}else if (QString::fromStdString(tempHandle.getPropName()).compare("mesh") == 0) {
+				if (tempHandle.type() == core::PrimitiveType::Ref) {
+					raco::core::ValueHandle meshHandle = tempHandle.asRef();
+					if (meshHandle) {
+						std::string str = meshHandle[0].asString();
+						node->setMeshID(str);
+						qDebug() << QString::fromStdString(str);
+						str = meshHandle[0].getPropertyPath();
+					}
+				}
 			}
             initBasicProperty(valueHandle[i], node);
 		}

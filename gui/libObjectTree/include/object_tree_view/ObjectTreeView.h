@@ -41,9 +41,13 @@ public:
 	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
     void getOneMeshHandle(QModelIndex index);
     bool getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData);
+    bool getOneMaterialHandle(ValueHandle &valueHandle);
+    void getOneMaterials(QModelIndex index, std::map<std::string, core::ValueHandle> &materialHandleMap);
     std::map<std::string, core::ValueHandle> updateNodeTree();
 	std::map<std::string, core::ValueHandle> updateResource();
+    std::map<std::string, core::ValueHandle> updateMaterial();
     void updateMeshData();
+    int attriElementSize(raco::guiData::VertexAttribDataType type);
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);

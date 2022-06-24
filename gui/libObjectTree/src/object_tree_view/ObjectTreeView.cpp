@@ -187,6 +187,7 @@ bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::Mesh
 
                 meshData.setNumTriangles(mesh->meshData()->numTriangles());
                 meshData.setNumVertices(mesh->meshData()->numVertices());
+                //meshData.setIndices(mesh->meshData()->getIndices());
                 for (int i{0}; i < mesh->meshData()->numAttributes(); i++) {
                     raco::guiData::Attribute attribute;
                     attribute.name = mesh->meshData()->attribName(i);
@@ -194,8 +195,8 @@ bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::Mesh
 
                     auto firstPos = mesh->meshData()->attribBuffer(i);
                     auto posElementAmount = mesh->meshData()->attribElementCount(i);
-                    attribute.data.resize(posElementAmount * 3);
-                    std::memcpy(&attribute.data[0], firstPos, posElementAmount * 3 * sizeof(float));
+                    attribute.data.resize(posElementAmount * attriElementSize(attribute.type));
+                    std::memcpy(&attribute.data[0], firstPos, posElementAmount * attriElementSize(attribute.type) * sizeof(float));
                     meshData.addAttribute(attribute);
                 }
                 if (meshHandle.hasProperty("objectName") && meshHandle.hasProperty("uri")) {
@@ -210,6 +211,57 @@ bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::Mesh
         }
     }
     return false;
+}
+
+bool hasMaterial(raco::core::ValueHandle handle, std::string &id) {
+    if (handle.hasProperty("materials")) {
+        raco::core::ValueHandle tempHandle = handle.get("materials");
+        if (tempHandle != NULL && tempHandle.hasProperty("material")) {
+            tempHandle = tempHandle.get("material");
+            id = tempHandle[0].asString();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ObjectTreeView::getOneMaterialHandle(ValueHandle &valueHandle) {
+    if (valueHandle.hasProperty("materials")) {
+        valueHandle = valueHandle.get("materials");
+        if (valueHandle != NULL && valueHandle.hasProperty("material")) {
+            valueHandle = valueHandle.get("material");
+            if (valueHandle.type() == core::PrimitiveType::Table) {
+                valueHandle = valueHandle[0];
+                if (valueHandle.type() == core::PrimitiveType::Ref) {
+                    valueHandle = valueHandle.asRef();
+                    if (valueHandle != NULL) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void ObjectTreeView::getOneMaterials(QModelIndex index, std::map<std::string, core::ValueHandle> &materialHandleMap) {
+    if (!model()->hasChildren(index)) {
+        core::ValueHandle tempHandle = indexToSEditorObject(index);
+        std::string objectID = tempHandle[0].asString();;
+        if (getOneMaterialHandle(tempHandle)) {
+            materialHandleMap.emplace(objectID, tempHandle);
+        }
+    } else {
+        for (int i{0}; i < model()->rowCount(index); i++) {
+            QModelIndex tempIndex = model()->index(i, 0, index);
+            core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+            std::string objectID = tempHandle[0].asString();;
+            if (getOneMaterialHandle(tempHandle)) {
+                materialHandleMap.emplace(objectID, tempHandle);
+            }
+            getOneMaterials(tempIndex, materialHandleMap);
+        }
+    }
 }
 
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
@@ -240,12 +292,22 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
 		QModelIndex index = model()->index(i, 0);
 		core::ValueHandle tempHandle = indexToSEditorObject(index);
 		// 设置node的名字
-		std::string str = tempHandle[0].getPropertyPath();
+        std::string str = tempHandle[0].asString();
 		ResHandleReMap.emplace(str, tempHandle);
-		// 设置node的 ID
-		str = tempHandle[0].asString();
+//		// 设置node的 ID
+//		str = tempHandle[0].asString();
 	}
     return ResHandleReMap;
+}
+
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateMaterial() {
+    std::map<std::string, core::ValueHandle> materialHandleReMap;
+    int row = model()->rowCount();
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        getOneMaterials(index, materialHandleReMap);
+    }
+    return materialHandleReMap;
 }
 
 void ObjectTreeView::updateMeshData() {
@@ -253,6 +315,21 @@ void ObjectTreeView::updateMeshData() {
     for (int i{0}; i < row; ++i) {
         QModelIndex index = model()->index(i, 0);
         getOneMeshHandle(index);
+    }
+}
+
+int ObjectTreeView::attriElementSize(VertexAttribDataType type) {
+    switch (type) {
+        case VertexAttribDataType::VAT_Float2:
+            return 2;
+        case VertexAttribDataType::VAT_Float3:
+            return 3;
+        case VertexAttribDataType::VAT_Float4:
+            return 4;
+        case VertexAttribDataType::VAT_Float:  // Falls through
+            return 1;
+        default:  // NOLINT(clang-diagnostic-covered-switch-default)
+            return 0;
     }
 }
 
@@ -311,10 +388,11 @@ void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
 }
 
 void ObjectTreeView::getResourceHandles() {
-    if (viewTitle_ == QString("Resources")) {
-        std::map<std::string, core::ValueHandle> handleMap = updateResource();
-        Q_EMIT setResourceHandles(handleMap);
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
     }
+    std::map<std::string, core::ValueHandle> handleMap = updateMaterial();
+    Q_EMIT setResourceHandles(handleMap);
 }
 
 void ObjectTreeView::fillMeshData() {

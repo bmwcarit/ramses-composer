@@ -14,6 +14,7 @@
 #include "CurveData/CurveManager.h"
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
+#include "MeshData/MeshDataManager.h"
 
 namespace HmiScenegraph {
 class TNode;

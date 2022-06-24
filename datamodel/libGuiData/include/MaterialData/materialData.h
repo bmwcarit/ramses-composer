@@ -42,7 +42,7 @@ enum Culling {  // 对应Cull Mode
 
 enum DepthCompare {  // Depth Function
     // TECompareFunction_Always = 0,  // 总是有比较函数
-    DC_Disabled = 0,
+    DC_Disabled = 1,
 	DC_GreaterThan,		// >
 	DC_GreaterOrEqualTo,  // >=
 	DC_LessThan,		  // <
@@ -51,6 +51,16 @@ enum DepthCompare {  // Depth Function
 	DC_NotEqual,		   // !=
 	DC_True,			   // 真
 	DC_False			   // 假
+
+
+ //   TECompareFunction_Never = 1,
+	//TECompareFunction_Less = 2,
+	//TECompareFunction_LessEqual = 3,
+	//TECompareFunction_Equal = 4,
+	//TECompareFunction_NotEqual = 5,
+	//TECompareFunction_GreaterEqual = 6,
+	//TECompareFunction_Greater = 7,
+	//TECompareFunction_Always = 8
 };
 
 enum Filter {	// 已补充
@@ -83,14 +93,32 @@ enum BlendOperation {	// 已补充
 };
 
 enum BlendFactor {	 // 已补充
-    Zero = 0,
-    One,
-    SrcAlpha,
+    Zero = 1,
+    One = 2,
+    SrcAlpha = 5,
     OneMinusSrcAlpha,
-    DstAlpha,
+	DstColor = 9,
+    DstAlpha = 10,
     OneMinusSrcColor,
-    DstColor,
     OneMinusDstColor
+
+
+ //   TEBlendFactor_Zero = 1,
+	//TEBlendFactor_One = 2,
+	//TEBlendFactor_SourceColor = 3,
+	//TEBlendFactor_InverseSourceColor = 4,
+	//TEBlendFactor_SourceAlpha = 5,
+	//TEBlendFactor_SourceAlphaSaturate = 6,
+	//TEBlendFactor_InverseSourceAlpha = 7,
+	//TEBlendFactor_DestinationColor = 8,
+	//TEBlendFactor_InverseDestinationColor = 9,
+	//TEBlendFactor_DestinationAlpha = 10,
+	//TEBlendFactor_InverseDestinationAlpha = 11,
+	//TEBlendFactor_ConstantColor = 12,
+	//TEBlendFactor_InverseConstantColor = 13,
+	//TEBlendFactor_ConstantAlpha = 14,
+	//TEBlendFactor_InverseConstantAlpha = 15
+
 };
 
 class Blending {   // ok 和Options对应

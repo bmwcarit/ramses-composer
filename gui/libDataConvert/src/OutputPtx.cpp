@@ -47,32 +47,32 @@ void OutputPtx::setMeshBaseNode(NodeData* node, HmiScenegraph::TNode* baseNode) 
 	translation->set_y(0.0);
 	translation->set_z(0.0);
 	baseNode->set_allocated_translation(translation);
-
 }
 
-void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& mesh) {
+void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 	// 1. set baseNode data
 	HmiScenegraph::TNode* baseNode = new HmiScenegraph::TNode();
 	setMeshBaseNode(node, baseNode);
-	mesh.set_allocated_basenode(baseNode);
-	// 2. set meshresource
-	mesh.set_meshresource("meshes/Sphere.ctm");
-	// 3. set materialreference
-	mesh.set_materialreference("test1");
+	tMesh.set_allocated_basenode(baseNode);
 
-	// 4. attributes
-	//for 循环重写
-	
-	HmiScenegraph::TMesh_TAttributeParamteter tempAttr;
-	tempAttr.set_name("a_Position");
-	HmiScenegraph::TMesh_TAttributeParamteter* itAttr = mesh.add_attributeparameter();
-	*itAttr = tempAttr; 
+	MeshData meshData;
+	if(raco::guiData::MeshDataManager::GetInstance().getMeshData(node->objectID(), meshData)){
+		// 2. set meshresource
+		tMesh.set_meshresource(meshData.getMeshUri());
+		// 4. attributes
+		//for 循环重写
+		for (auto& attr : meshData.getAttributes()) {
+			HmiScenegraph::TMesh_TAttributeParamteter tempAttr;
+			tempAttr.set_name(attr.name);
+			HmiScenegraph::TMesh_TAttributeParamteter* itAttr = tMesh.add_attributeparameter();
+			*itAttr = tempAttr;
+		}
+	}
 
-	HmiScenegraph::TMesh_TAttributeParamteter tempAttr1;
-	tempAttr1.set_name("a_Normal");
-	HmiScenegraph::TMesh_TAttributeParamteter* itAttr1 = mesh.add_attributeparameter();
-	*itAttr1 = tempAttr1; 
-
+	MaterialData materialData;
+	if (raco::guiData::MaterialManager::GetInstance().getMaterialData(node->objectID(), materialData)) {
+		tMesh.set_materialreference(materialData.getObjectName());
+	}
 	
 }
 
@@ -183,14 +183,91 @@ void setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* r
 	enumMaptemp = renderMode.getCulling();
 	rRenderMode->set_culling(TEFace(enumMaptemp));
 
-
 	HmiScenegraph::TBlendMode* tblending = new HmiScenegraph::TBlendMode();
 	Blending blending = renderMode.getBlending();
-	tblending->set_blendoperationcolor(TEBlendOperation(blending.getBlendOperationColor()));
+	enumMaptemp = blending.getBlendOperationColor();
+	if (enumMaptemp > 4)
+		enumMaptemp = 1;
+	tblending->set_blendoperationcolor(TEBlendOperation(enumMaptemp));
 
+	enumMaptemp = blending.getBlendOperationAlpha();
+	if (enumMaptemp > 4)
+		enumMaptemp = 1;
+	tblending->set_blendoperationalpha(TEBlendOperation(enumMaptemp));
 
+	enumMaptemp = blending.getSrcAlphaFactor();
+	tblending->set_sourcealphafactor(TEBlendFactor(enumMaptemp));
+
+	enumMaptemp = blending.getSrcColorFactor();
+	tblending->set_sourcecolorfactor(TEBlendFactor(enumMaptemp));
+
+	enumMaptemp = blending.getDesAlphaFactor();
+	tblending->set_destinationalphafactor(TEBlendFactor(enumMaptemp));
+
+	enumMaptemp = blending.getDesColorFactor();
+	tblending->set_destinationcolorfactor(TEBlendFactor(enumMaptemp));
 
 	rRenderMode->set_allocated_blending(tblending);
+
+	enumMaptemp = renderMode.getDepthCompare();
+	if (enumMaptemp > 8)
+		enumMaptemp = 1;
+	rRenderMode->set_depthcompare(TECompareFunction(enumMaptemp));
+
+	rRenderMode->set_depthwrite(renderMode.getDepthWrite());
+
+	HmiScenegraph::TRenderMode_TColorWrite* tColorWrite = new HmiScenegraph::TRenderMode_TColorWrite();
+	ColorWrite colorWrite = renderMode.getColorWrite();
+	tColorWrite->set_alpha(colorWrite.getAlpha());
+	tColorWrite->set_blue(colorWrite.getBlue());
+	tColorWrite->set_green(colorWrite.getGreen());
+	tColorWrite->set_red(colorWrite.getRed());
+	rRenderMode->set_allocated_colorwrite(tColorWrite);
+
+}
+
+void uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform) {
+	tUniform.set_name(data.getName());
+	TNumericValue* tNumericValue = new TNumericValue();
+
+	switch (data.getType()) {
+		case UniformType::Bool: {
+			uint32_t temp = std::any_cast<bool>(data.getValue());
+			tNumericValue->set_uint(temp);
+			tUniform.set_allocated_value(tNumericValue);
+
+			tUniform.set_type(TENumericType::TENumericType_unsignedInteger);
+
+			break;
+		}
+		case UniformType::Double: {
+			float temp = std::any_cast<double>(data.getValue());
+			tNumericValue->set_float_(temp);
+			tUniform.set_allocated_value(tNumericValue);
+
+			tUniform.set_type(TENumericType::TENumericType_float);
+			break;
+		}
+		case UniformType::Int: {
+			int temp = std::any_cast<int>(data.getValue());
+			tNumericValue->set_int_(temp);
+			tUniform.set_allocated_value(tNumericValue);
+
+			tUniform.set_type(TENumericType::TENumericType_unsignedInteger);
+			break;
+		}
+		case UniformType::Null: {
+			int temp = std::any_cast<int>(data.getValue());
+			tNumericValue->set_uint(temp);
+			tUniform.set_allocated_value(tNumericValue);
+
+			tUniform.set_type(TENumericType::TENumericType_unsignedInteger);
+			break;
+		}
+		default:
+			break;
+	}
+
 }
 
 bool OutputPtx::writeProgram2Ptx(QString filePath) {
@@ -214,7 +291,7 @@ bool OutputPtx::writeProgram2Ptx(QString filePath) {
 	}
 
     scene.set_allocated_root(tRoot);
-	
+
 	// materiallibrary
 	HmiScenegraph::TMaterialLib* materialLibrary = new HmiScenegraph::TMaterialLib();
 	std::map<std::string, MaterialData> materialMap = raco::guiData::MaterialManager::GetInstance().getMaterialDataMap();
@@ -230,17 +307,58 @@ bool OutputPtx::writeProgram2Ptx(QString filePath) {
 		setMaterialRenderMode(renderMode, rRenderMode);
 		tMaterial.set_allocated_rendermode(rRenderMode);
 
-		// 
+		// shaderReference
+		tMaterial.set_shaderreference(data.getShaderRef());
+
+		// textures 待补充
+		TextureData textureData = data.getTexture();
+		if (textureData.getName() != "") {
+			HmiScenegraph::TTexture tTextture;
+			tTextture.set_name(textureData.getName());
+			tTextture.set_bitmapreference(textureData.getBitmapRef());
+			tTextture.set_uniformname(textureData.getUniformName());
+			HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
+			*textureIt = tTextture;
+		}
+
+		// uniforms
+		for (auto& uniform : data.getUniforms()) {
+			HmiScenegraph::TUniform tUniform;
+			uniformTypeValue(uniform, tUniform);
+			HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
+			*tUniformIt = tUniform;
+		}
 
 		HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
 		*materialIt = tMaterial;
+	}
+
+	// shaders
+	std::map<std::string, Shader> shaderMap = raco::guiData::MaterialManager::GetInstance().getShaderDataMap();
+	for (auto& shader : shaderMap) {
+		HmiScenegraph::TShader tShader;
+		tShader.set_name(shader.second.getName());
+		tShader.set_fragmentshader(shader.second.getFragmentShader());
+		tShader.set_vertexshader(shader.second.getVertexShader());
+		HmiScenegraph::TShader* tShaderIt = materialLibrary->add_shader();
+		*tShaderIt = tShader;
+	}
+
+	// bitmaps
+	std::map<std::string, Bitmap> bitMaps = raco::guiData::MaterialManager::GetInstance().getBitmapDataMap();
+	for (auto& bitData : bitMaps) {
+		HmiScenegraph::TBitmap tBitMap;
+		tBitMap.set_name(bitData.second.getName());
+		tBitMap.set_resource(bitData.second.getResource());
+		tBitMap.set_generatemipmaps(bitData.second.getGenerateMipmaps());
+		HmiScenegraph::TBitmap* tBitMapIt = materialLibrary->add_bitmap();
+		*tBitMapIt = tBitMap;
 	}
 
 	scene.set_allocated_materiallibrary(materialLibrary);
 
     std::string output;
 	google::protobuf::TextFormat::PrintToString(scene, &output);
-	//qDebug() << QString::fromStdString(output) ;
 
     QByteArray byteArray = QByteArray::fromStdString(output);
 	file.write(byteArray);
