@@ -74,8 +74,13 @@ void MeshDataManager::addMeshData(std::string id, MeshData mesh) {
     meshDataMap_.emplace(id, mesh);
 }
 
-MeshData MeshDataManager::getMeshData(std::string id) {
-    return meshDataMap_.at(id);
+bool MeshDataManager::getMeshData(std::string id, MeshData& meshdata) {
+	auto iter = meshDataMap_.find(id);
+	if (iter != meshDataMap_.end()) {
+		meshdata = iter->second;
+		return true;
+    }
+	return false;
 }
 
 std::map<std::string, MeshData> MeshDataManager::getMeshDataMap() {

@@ -35,10 +35,7 @@ private:
     MaterialManager();
 
 private:
-//    MaterialData materialData_;
-    // 上面结构没看懂 material应该用一个map吧？
     std::map<std::string, MaterialData> materialDataMap_;
-
     std::map<std::string, Shader> shaderMap_;   // vertex和fragment
     std::map<std::string, Bitmap> bitmapMap_;   // 贴图
 };

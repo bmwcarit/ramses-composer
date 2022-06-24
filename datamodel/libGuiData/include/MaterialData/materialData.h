@@ -29,20 +29,20 @@ enum UniformType {
 };
 
 enum WindingType{
-    M_TEWinding_CounterClockWise   // 逆时针
+	M_TEWinding_ClockWise = 1,
+	M_TEWinding_CounterClockWise = 2
 };
 
 enum Culling {  // 对应Cull Mode
-					  //    TEFace_None = 0,
-    CU_Disabled = 0,
-	CU_Front,
-	CU_Back,
-	CU_FrontAndBack
+	CU_Front = 1,
+	CU_Back = 2,
+	CU_FrontAndBack = 3,
+	CU_None = 4
 };
 
 enum DepthCompare {  // Depth Function
     // TECompareFunction_Always = 0,  // 总是有比较函数
-    DC_Disabled = 0,
+    DC_Disabled = 1,
 	DC_GreaterThan,		// >
 	DC_GreaterOrEqualTo,  // >=
 	DC_LessThan,		  // <
@@ -51,6 +51,16 @@ enum DepthCompare {  // Depth Function
 	DC_NotEqual,		   // !=
 	DC_True,			   // 真
 	DC_False			   // 假
+
+
+ //   TECompareFunction_Never = 1,
+	//TECompareFunction_Less = 2,
+	//TECompareFunction_LessEqual = 3,
+	//TECompareFunction_Equal = 4,
+	//TECompareFunction_NotEqual = 5,
+	//TECompareFunction_GreaterEqual = 6,
+	//TECompareFunction_Greater = 7,
+	//TECompareFunction_Always = 8
 };
 
 enum Filter {	// 已补充
@@ -68,28 +78,52 @@ enum WrapMode {  // 已补充
 };
 
 enum BlendOperation {	// 已补充
-    BO_Disabled = 0,
-    BO_Add,
-    BO_Subtract,
-    BO_ReverseSub,
-    BO_Min,
-    BO_Max
+    BO_None = 1,
+    BO_Add = 2,
+    BO_Subtract = 3,
+    BO_ReverseSub = 4,
+    BO_Min = 5,
+    BO_Max = 6
+
+    // ptx
+    //TEBlendOperation_None = 1,
+	//TEBlendOperation_Add = 2,
+	//TEBlendOperation_Subtract = 3,
+	//TEBlendOperation_ReverseSubtract = 4
 };
 
 enum BlendFactor {	 // 已补充
-    Zero = 0,
-    One,
-    SrcAlpha,
+    Zero = 1,
+    One = 2,
+    SrcAlpha = 5,
     OneMinusSrcAlpha,
-    DstAlpha,
+	DstColor = 9,
+    DstAlpha = 10,
     OneMinusSrcColor,
-    DstColor,
     OneMinusDstColor
+
+
+ //   TEBlendFactor_Zero = 1,
+	//TEBlendFactor_One = 2,
+	//TEBlendFactor_SourceColor = 3,
+	//TEBlendFactor_InverseSourceColor = 4,
+	//TEBlendFactor_SourceAlpha = 5,
+	//TEBlendFactor_SourceAlphaSaturate = 6,
+	//TEBlendFactor_InverseSourceAlpha = 7,
+	//TEBlendFactor_DestinationColor = 8,
+	//TEBlendFactor_InverseDestinationColor = 9,
+	//TEBlendFactor_DestinationAlpha = 10,
+	//TEBlendFactor_InverseDestinationAlpha = 11,
+	//TEBlendFactor_ConstantColor = 12,
+	//TEBlendFactor_InverseConstantColor = 13,
+	//TEBlendFactor_ConstantAlpha = 14,
+	//TEBlendFactor_InverseConstantAlpha = 15
+
 };
 
 class Blending {   // ok 和Options对应
 public:
-	Blending() : blendOperationColor_(BO_Disabled), blendOperationAlpha_(BO_Disabled), srcColorFactor_(Zero)
+	Blending() : blendOperationColor_(BO_None), blendOperationAlpha_(BO_None), srcColorFactor_(Zero)
         , srcAlphaFactor_(Zero), desColorFactor_(Zero), desAlphaFactor_(Zero) {}
 
     void setBlendOperationColor(BlendOperation operation) {
@@ -396,7 +430,7 @@ private:
 
 class RenderMode {
 public:
-	RenderMode() : winding_(M_TEWinding_CounterClockWise), culling_(CU_Disabled), depthCompareFunction_(DC_Disabled), depthWrite_(false) {}
+	RenderMode() : winding_(M_TEWinding_CounterClockWise), culling_(CU_None), depthCompareFunction_(DC_Disabled), depthWrite_(false) {}
 
     void setWindingType(WindingType type) {
         winding_ = type;
@@ -428,6 +462,10 @@ public:
     }
 
     void setCulling(Culling culling) {
+		int temp = culling;
+		if (0 == temp) {
+			qDebug() << culling;
+        }
         culling_ = culling;
     }
     Culling getCulling() {
@@ -444,7 +482,7 @@ public:
     }
 
 private:
-    WindingType winding_;   // ?????????
+    WindingType winding_;   // ok
     Culling culling_;   // ok
     Blending blending_;     // ok  和Options对应
 

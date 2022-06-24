@@ -22,6 +22,7 @@
 #include "CurveData/CurveManager.h"
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
+#include "data_Convert/OutputPtx.h"
 #include "MeshData/MeshDataManager.h"
 #include "openctm.h"
 #include "openctmpp.h"
@@ -39,9 +40,10 @@ enum EDATAYPE {
 class ProgramManager : public QObject {
     Q_OBJECT
 public:
+	bool writeProgram(QString filePath);
+	bool writeProgram2Json(QString filePath);
     void setRelativePath(QString path);
     bool writeCTMFile();
-    bool writeProgram2Json(QString filePath);
     bool readProgramFromJson(QString filePath);
 
 Q_SIGNALS:
@@ -51,6 +53,7 @@ private:
     QString file_;
     QString relativePath_;
     QMap<QString, QJsonArray> aryMap_;
+    OutputPtx outputPtx_;
 };
 }
 

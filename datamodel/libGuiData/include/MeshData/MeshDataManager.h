@@ -63,7 +63,7 @@ public:
     void clearMesh();
 
     void addMeshData(std::string id, MeshData mesh);
-    MeshData getMeshData(std::string id);
+	bool getMeshData(std::string id, MeshData& meshdata);
     std::map<std::string, MeshData> getMeshDataMap();
 private:
     MeshDataManager();

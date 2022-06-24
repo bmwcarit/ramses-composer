@@ -138,6 +138,10 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             if (QString::fromStdString(propName).compare("cullmode") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
+                    // 和ptx中Culling取值对应，0代表的是4
+					if (0 == value) {
+						value = 4;
+                    }
                     renderMode.setCulling(static_cast<Culling>(value));
                 }
             }
