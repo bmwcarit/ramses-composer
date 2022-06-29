@@ -14,6 +14,7 @@ add_library(libTimeAxis
     include/time_axis/AnimationEditorView.h src/AnimationEditorView.cpp
     include/time_axis/TimeAxisCommon.h
     include/time_axis/KeyFrameManager.h src/KeyFrameManager.cpp
+    include/time_axis/VisualCurveWidget.h src/VisualCurveWidget.cpp
     )
 
 target_include_directories(libTimeAxis

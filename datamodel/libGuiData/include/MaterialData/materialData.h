@@ -439,10 +439,16 @@ public:
         return winding_;
     }
 
+    void setBlending(Blending blending) {
+        blending_ = blending;
+    }
     Blending getBlending() {
         return blending_;
     }
 
+    void setColorWrite(ColorWrite colorWrite) {
+        colorWrite_ = colorWrite;
+    }
     ColorWrite getColorWrite() {
         return colorWrite_;
     }

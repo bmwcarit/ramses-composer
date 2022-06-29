@@ -56,6 +56,8 @@ void MateralLogic::initMaterialProperty(core::ValueHandle valueHandle, MaterialD
 }
 
 void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialData &materialData) {
+    Blending blending;
+    ColorWrite colorWrite;
     RenderMode renderMode;
     using PrimitiveType = core::PrimitiveType;
     auto func = [&](raco::core::ValueHandle handle, std::string str, double &value)->bool {
@@ -76,52 +78,52 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             if (QString::fromStdString(propName).compare("blendOperationColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    renderMode.getBlending().setBlendOperationColor(static_cast<BlendOperation>(value));
+                    blending.setBlendOperationColor(static_cast<BlendOperation>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendOperationAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    renderMode.getBlending().setBlendOperationAlpha(static_cast<BlendOperation>(value));
+                    blending.setBlendOperationAlpha(static_cast<BlendOperation>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorSrcColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    renderMode.getBlending().setSrcColorFactor(static_cast<BlendFactor>(value));
+                    blending.setSrcColorFactor(static_cast<BlendFactor>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorDestColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    renderMode.getBlending().setDesColorFactor(static_cast<BlendFactor>(value));
+                    blending.setDesColorFactor(static_cast<BlendFactor>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorSrcAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    renderMode.getBlending().setSrcAlphaFactor(static_cast<BlendFactor>(value));
+                    blending.setSrcAlphaFactor(static_cast<BlendFactor>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorDestAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    renderMode.getBlending().setDesAlphaFactor(static_cast<BlendFactor>(value));
+                    blending.setDesAlphaFactor(static_cast<BlendFactor>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendColor") == 0) {
                 double value{0.0};
                 if (func(tempHandle, "x", value)) {
-                    renderMode.getColorWrite().setRed(value);
+                    colorWrite.setRed(value);
                 }
                 if (func(tempHandle, "y", value)) {
-                    renderMode.getColorWrite().setGreen(value);
+                    colorWrite.setGreen(value);
                 }
                 if (func(tempHandle, "z", value)) {
-                    renderMode.getColorWrite().setBlue(value);
+                    colorWrite.setBlue(value);
                 }
                 if (func(tempHandle, "w", value)) {
-                    renderMode.getColorWrite().setAlpha(value);
+                    colorWrite.setAlpha(value);
                 }
             }
             if (QString::fromStdString(propName).compare("depthwrite") == 0) {
@@ -147,6 +149,8 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             }
         }
     }
+    renderMode.setBlending(blending);
+    renderMode.setColorWrite(colorWrite);
     materialData.setRenderMode(renderMode);
 }
 

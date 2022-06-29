@@ -885,13 +885,9 @@ void ProgramManager::setRelativePath(QString path) {
 }
 
 bool ProgramManager::writeCTMFile() {
-    QDir folder(relativePath_ + "/ctms");
+    QDir folder(relativePath_ + "/meshes");
     if (!folder.exists()) {
-        folder.mkpath(relativePath_ + "/ctms");
-    } else {
-        for (int i{0}; i < folder.count(); i++) {
-            folder.remove(folder[i]);
-        }
+        folder.mkpath(relativePath_ + "/meshes");
     }
 
     for (const auto &meshIt : MeshDataManager::GetInstance().getMeshDataMap()) {

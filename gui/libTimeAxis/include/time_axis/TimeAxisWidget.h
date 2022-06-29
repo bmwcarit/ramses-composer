@@ -23,6 +23,9 @@
 
 namespace raco::time_axis {
 
+Q_GLOBAL_STATIC_WITH_ARGS(int, numHeight, (20))
+Q_GLOBAL_STATIC_WITH_ARGS(double, PI, (3.14159265))
+
 class DragPushButton : public QWidget {
     Q_OBJECT
 public:
@@ -36,7 +39,6 @@ protected:
     virtual void mousePressEvent(QMouseEvent *event) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
     virtual void paintEvent(QPaintEvent *event) override;
-
 private:
     QPoint pressPoint_;
     int curText_;
@@ -45,7 +47,7 @@ private:
 class TimeAxisWidget : public QWidget {
     Q_OBJECT
 public:
-    TimeAxisWidget(QWidget * parent, raco::core::CommandInterface* commandInterface);
+    TimeAxisWidget(QWidget * parent, raco::core::CommandInterface* commandInterface, KeyFrameManager *keyFrameManager);
     void startAnimation();
     void stopAnimation();
     void createKeyFrame();
@@ -57,6 +59,8 @@ protected:
     virtual void resizeEvent(QResizeEvent* event) override;
     void timerEvent(QTimerEvent* event) override;
     virtual void mousePressEvent(QMouseEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
+    virtual void keyReleaseEvent(QKeyEvent *event) override;
 
 public Q_SLOTS:
     //选中时间轴区域时，滚动条操作的处理函数
@@ -75,7 +79,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void AnimationStop();
-
+    void switchCurveType();
 private:
     // 绘制关键帧
     void drawKeyFrame(QPainter &painter);

@@ -203,7 +203,7 @@ bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::Mesh
                     std::string objectName = meshHandle.get("objectName").asString();
                     meshData.setMeshName(objectName);
 
-                    std::string uri = "ctms/" + objectName + ".ctm";
+                    std::string uri = "meshes/" + objectName + ".ctm";
                     meshData.setMeshUri(uri);
                 }
                 return true;

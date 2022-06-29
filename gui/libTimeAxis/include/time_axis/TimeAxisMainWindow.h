@@ -11,10 +11,12 @@
 #include <QMenu>
 #include "components/DataChangeDispatcher.h"
 #include "core/CommandInterface.h"
+#include "qstackedwidget.h"
 #include "time_axis/TimeAxisWidget.h"
 #include "time_axis/TimeAxisScrollArea.h"
 #include "time_axis/AnimationEditorView.h"
 #include "signal/SignalProxy.h"
+#include "time_axis/VisualCurveWidget.h"
 #include <QItemSelectionModel>
 
 using namespace raco::signal;
@@ -23,6 +25,12 @@ class TimeAxisMainWindow;
 }
 
 namespace raco::time_axis {
+
+enum CURVE_TYPE_ENUM {
+    TIME_AXIS,
+    VISUAL_CURVE
+};
+
 class TimeAxisMainWindow final : public QWidget {
     Q_OBJECT
 public:
@@ -39,6 +47,7 @@ public Q_SLOTS:
     void slotUpdateAnimation();
     void slotUpdateAnimationKey(QString oldKey, QString newKey);
     void slotResetAnimation();
+    void slotSwitchCurveWidget();
 private Q_SLOTS:
     void slotTreeMenu(const QPoint &pos);
     void slotLoad();
@@ -57,6 +66,7 @@ private:
 
 private:
     TimeAxisWidget *timeAxisWidget_;
+    VisualCurveWidget *visualCurveWidget_;
     TimeAxisScrollArea *timeAxisScrollArea_;
     QVBoxLayout *vBoxLayout_;
     QHBoxLayout *hBoxLayout;
@@ -66,6 +76,8 @@ private:
     QWidget *titleWidget_;
     AnimationEditorView *editorView_;
     QPushButton *startBtn_;
+    QPushButton *nextBtn_;
+    QPushButton *previousBtn_;
     bool animationStarted_{false};
     //--------------------------------------------
 	QMenu m_Menu;
@@ -82,6 +94,9 @@ private:
     QMap<QString, QStandardItem*> itemMap_;
     QLineEdit *lineBegin_{nullptr};
     QLineEdit *lineEnd_{nullptr};
+    KeyFrameManager *keyFrameMgr_{nullptr};
+    CURVE_TYPE_ENUM curCurveType_ = CURVE_TYPE_ENUM::TIME_AXIS;
+    DragPushButton *button_{nullptr}; //时间轴滑动条
 };
 }
 

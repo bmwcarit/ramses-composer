@@ -38,7 +38,7 @@ class TimeAxisScrollArea : public QAbstractScrollArea {
     Q_OBJECT
 public:
     TimeAxisScrollArea(QWidget* parent = nullptr);
-    void setCenterWidget(TimeAxisWidget *widget);
+    void setCenterWidget(QWidget *widget);
 
 public Q_SLOTS:
     void barLeftExtend();
@@ -76,7 +76,7 @@ private:
     double scaleValueBeforeExtend_{1.0};
     MOUSEACTION mouseAction_{MOUSE_NO_ACTION};
     TimeAxisScrollBar *hScrollBar_;
-    TimeAxisWidget *centerWidget;
+    QWidget *centerWidget;
 };
 }
 #endif // TIMEAXISSCROLLAREA_H

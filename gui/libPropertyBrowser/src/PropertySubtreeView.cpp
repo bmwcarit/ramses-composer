@@ -155,6 +155,10 @@ void PropertySubtreeView::slotTreeMenu(const QPoint &pos) {
 
 void PropertySubtreeView::slotInsertKeyFrame() {
     raco::core::ValueHandle valueHandle = item_->valueHandle();
+    bool isResource = valueHandle.rootObject().get()->getTypeDescription().isResource;
+    if (isResource) {
+        return;
+    }
     if (valueHandle.isProperty()) {
         QString propertyPath = QString::fromStdString(valueHandle.getPropertyPath());
         if (valueHandle.parent() != NULL) {
@@ -195,6 +199,10 @@ void PropertySubtreeView::slotInsertKeyFrame() {
 
 void PropertySubtreeView::slotCopyProperty() {
     raco::core::ValueHandle valueHandle = item_->valueHandle();
+    bool isResource = valueHandle.rootObject().get()->getTypeDescription().isResource;
+    if (isResource) {
+        return;
+    }
     if (valueHandle.isProperty()) {
         QString property = QString::fromStdString(valueHandle.getPropertyPath());
         if (property.contains("material")) {

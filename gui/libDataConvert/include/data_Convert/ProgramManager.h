@@ -52,6 +52,7 @@ Q_SIGNALS:
 private:
     QString file_;
     QString relativePath_;
+    QString openedProjectPath_;
     QMap<QString, QJsonArray> aryMap_;
     OutputPtx outputPtx_;
 };
