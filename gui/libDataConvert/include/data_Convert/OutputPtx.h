@@ -16,10 +16,23 @@
 #include "signal/SignalProxy.h"
 #include "MeshData/MeshDataManager.h"
 
+#include "proto/Numeric.pb.h"
+#include "proto/Common.pb.h"
+#include "proto/Scenegraph.pb.h"
+#include "proto/HmiWidget.pb.h"
+#include "proto/HmiBase.pb.h"
+#include <google/protobuf/text_format.h>
+#include <stdio.h>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <qdir.h>
+
 namespace HmiScenegraph {
 class TNode;
 class TMesh;
 }
+
 
 using namespace raco::guiData;
 
@@ -40,6 +53,26 @@ Q_SIGNALS:
 
 private:
 
+};
+
+class OutputPtw{
+public:
+	std::string ConvertAnimationInfo(HmiWidget::TWidget* widget);
+	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
+	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
+	void WriteAsset(std::string filePath);
+
+private:
+	void ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
+	void CreateTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
+
+	void ModifyScale(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
+	void CreateScale(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
+
+	void ModifyRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
+	void CreateRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
+
+	void AddUniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam);
 };
 }
 

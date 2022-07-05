@@ -873,7 +873,7 @@ bool ProgramManager::writeProgram(QString filePath) {
     }
     // 3. Output Asset file
 //    writeAsset(filePath.toStdString());
-
+	outputPtw_.WriteAsset(filePath.toStdString());
     // 4. Output ctm file
     writeCTMFile();
 

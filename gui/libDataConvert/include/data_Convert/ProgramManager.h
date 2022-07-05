@@ -54,6 +54,7 @@ private:
     QString relativePath_;
     QMap<QString, QJsonArray> aryMap_;
     OutputPtx outputPtx_;
+	OutputPtw outputPtw_;
 };
 }
 
