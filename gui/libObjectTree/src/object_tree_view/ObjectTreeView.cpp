@@ -17,12 +17,14 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "user_types/Mesh.h"
 #include "user_types/Node.h"
+#include "user_types/Material.h"
 
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
+#include "MeshData/MeshDataManager.h"
 #include "utils/u8path.h"
 
 #include <QContextMenuEvent>
@@ -107,16 +109,12 @@ std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 
 void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap) {
 	if (!model()->hasChildren(index)) {
-		// 打印handle的信息
 		core::ValueHandle tempHandle = indexToSEditorObject(index);
 		NodeData tempNode;
 		std::string str;
 		str = tempHandle[0].getPropertyPath();
-		// 设置node的名字
 		tempNode.setName(str);
-		// 设置node的 ID
 		str = tempHandle[0].asString();
-		// objectID 和 handle的映射
 		NodeNameHandleReMap.emplace(str, tempHandle);
 		tempNode.setObjectID(str);
 

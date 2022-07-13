@@ -43,6 +43,7 @@ public:
 	bool writeProgram(QString filePath);
 	bool writeProgram2Json(QString filePath);
     void setRelativePath(QString path);
+	void setOpenedProjectPath(QString path);
     bool writeCTMFile();
     bool readProgramFromJson(QString filePath);
 
@@ -52,6 +53,7 @@ Q_SIGNALS:
 private:
     QString file_;
     QString relativePath_;
+    QString openedProjectPath_;
     QMap<QString, QJsonArray> aryMap_;
     OutputPtx outputPtx_;
 };

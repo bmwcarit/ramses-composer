@@ -7,6 +7,7 @@
 #include <iostream>
 #include <set>
 #include <vector>
+#include <list>
 #include <map>
 #include <functional>
 
@@ -32,11 +33,27 @@ public:
 		objectID_ = id;
 	}
 
+	std::string delNodeNameSuffix(std::string nodeName) {
+		int index = nodeName.rfind(".objectID");
+		if (-1 != index)
+			nodeName = nodeName.substr(0, nodeName.length() - 9);
+		return nodeName;
+	}
+
 	std::string getName() {
 		return nodeName_;
 	}
+
 	void setName(std::string name) {
-		nodeName_ = name;
+		nodeName_ = delNodeNameSuffix(name);
+	}
+
+	std::string getMaterialName() {
+		return materialName_;
+	}
+
+	void setMaterialName(std::string name) {
+		materialName_ = name;
 	}
 
 	std::string getMaterialsID() {
@@ -150,7 +167,6 @@ public:
 
 	int getCustomPropertySize() {
 		return nodeExtend_.getCustomPropSize();
-		//return 0;
 	}
 
 	int getChildCount() {
@@ -158,27 +174,92 @@ public:
 	}
 	int getBindingySize() {
 		return nodeExtend_.getCurveBindingSize();
-		//return 0;
+	}
+
+	bool hasUniform(std::string name) {
+		for (auto& it : uniforms_) {
+			if (it.getName() == name) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool insertUniformData(Uniform uniform) {
+		if (hasUniform(uniform.getName())) {
+			return false;
+		}
+		uniforms_.push_back(uniform);
+		return true;
+	}
+
+	bool deleteUniformData(std::string name) {
+		for (auto it = uniforms_.begin(); it < uniforms_.end(); ++it) {
+			if (it->getName() == name) {
+				uniforms_.erase(it);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool modifyUniformData(std::string name, std::any data) {
+		for (auto it = uniforms_.begin(); it < uniforms_.end(); ++it) {
+			if (it->getName() == name) {
+				it->setValue(data);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool modifyUniformType(std::string name, UniformType uniformType) {
+		for (auto it = uniforms_.begin(); it < uniforms_.end(); ++it) {
+			if (it->getName() == name) {
+				it->setType(uniformType);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	std::vector<Uniform> getUniforms() {
+		return uniforms_;
+	}
+
+	void uniformClear() {
+		uniforms_.clear();
+	}
+
+	void setMaterialIsChanged(bool changed) {
+		materialChanged_ = changed;
+	}
+
+	bool materialIsChanged() {
+		return materialChanged_;
+
 	}
 
 private:
-	std::string nodeName_;	// 也可以路径
-	// 当前结点在ValueHandle中的ID，可以用来索引Handle
+	std::string nodeName_;
 	std::string objectID_;
-	// 扩展的属性
 	NodeExtend nodeExtend_;
-	// 添加系统属性
 	std::map<std::string, std::any> systemDataMap_;
 	// materials ID
 	std::string materialsID_;
 	// mesh ID
 	std::string meshID_;
+	// uniforms
+	std::string materialName_;
+	bool materialChanged_{false};
+	std::vector<Uniform> uniforms_;
 
-	NodeData* parentNode_;							// 指向父节点
-	std::map<std::string, NodeData> childNodeMap_;	// 子结点列表
+	NodeData* parentNode_;
+	std::map<std::string, NodeData> childNodeMap_;
 };
 
-class NodeDataManager  // 处理node相关的逻辑
+class NodeDataManager
 {
 private:
 	NodeDataManager() 
@@ -199,8 +280,8 @@ public:
     }
 
     void setActiveNode(NodeData* pNode) {
-		if (!pNode) {  // 点击matrial 也会切换结点，但是这个结点不在nodetree中，导致切换active结点为NULL
-			std::cout << "[ERROR]：设置活动结点为空！" << std::endl;
+		if (!pNode) {
+			std::cout << "[ERROR]：setActiveNode null！" << std::endl;
 			return;
 		}
         activeNode_ = pNode;
@@ -213,24 +294,23 @@ public:
         root_ = root;
     }
 
-    void insertNode(NodeData& node);    // 当前活跃的结点下，插入子结点
-    void deleting(NodeData& pNode);     // 递归删除结点函数
-    bool deleteNode(NodeData& pNode);   // 删除当前活跃的结点
+    void insertNode(NodeData& node);
+    void deleting(NodeData& pNode);
+    bool deleteNode(NodeData& pNode);
     bool deleteActiveNode();
     bool clearNodeData();
 
-    NodeData* searchNodeByID(const std::string& objectID);  // 从根结点查找
+    NodeData* searchNodeByID(const std::string& objectID);
     void searchingByID(NodeData* pNode, const std::string& objectID);
 
-    NodeData* searchNodeByName(std::string& nodeName);  // 从根结点查找
+    NodeData* searchNodeByName(std::string& nodeName);
 	void searchingByName(NodeData* pNode, std::string& nodeName);
 
-    void preOrderReverse(std::function<void(NodeData*)> fun = nullptr);					  // 先序遍历
-	void preOrderReverse(NodeData* pNode, std::function<void(NodeData*)> fun = nullptr);	// 先序遍历
+    void preOrderReverse(std::function<void(NodeData*)> fun = nullptr);
+	void preOrderReverse(NodeData* pNode, std::function<void(NodeData*)> fun = nullptr);
 
 private:
-     // 存放所有的node，objectID_是node的惟一索引
-    NodeData* activeNode_; // 一直指向当前活跃的结点
+    NodeData* activeNode_;
     NodeData root_;
     NodeData* searchedNode_;
 };

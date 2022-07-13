@@ -21,7 +21,7 @@ public:
 	std::map<std::string, core::ValueHandle>& getResourcesHandleReMap() {
 		return resourcesHandleReMap_;
 	}
-
+	void setPtxName(Shader &shader);
     void Analyzing();
     void initMaterialProperty(core::ValueHandle valueHandle, MaterialData &materialData, Shader &shader);
     void setOptionsProperty(core::ValueHandle valueHandle, MaterialData &materialData);

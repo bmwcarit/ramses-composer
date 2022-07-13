@@ -1,6 +1,6 @@
 #ifndef MATERIALMANAGER_H
 #define MATERIALMANAGER_H
-#include "materialData.h"
+#include "MaterialData/materialData.h"
 #include <list>
 #include <map>
 #include <vector>
@@ -29,6 +29,16 @@ public:
     bool getBitmap(std::string name, Bitmap &bitmap);
     std::map<std::string, Bitmap> getBitmapDataMap();
 
+    void addCurUniform(Uniform uniform);
+	bool deleteCurUniform(std::string name);
+	std::vector<Uniform> getCurUniformArr();
+	int curUniformArrSize();
+	void curUniformClear();
+	void curUniformAssign(std::vector<Uniform> arr);
+	bool hasUniform(std::string name);
+
+    void clearData();
+
     void traverseMaterialData();
 
 private:
@@ -36,8 +46,9 @@ private:
 
 private:
     std::map<std::string, MaterialData> materialDataMap_;
-    std::map<std::string, Shader> shaderMap_;   // vertex和fragment
-    std::map<std::string, Bitmap> bitmapMap_;   // 贴图
+    std::map<std::string, Shader> shaderMap_;// vertex and fragment
+    std::map<std::string, Bitmap> bitmapMap_;
+	std::vector<Uniform> currentUniforms_;
 };
 }
 

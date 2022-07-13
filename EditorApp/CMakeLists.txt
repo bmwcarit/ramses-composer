@@ -59,6 +59,11 @@ target_link_libraries(RaCoEditor
 		raco::dataConvert
 	Qt5::Widgets
 	qtadvanceddocking
+
+        protobuf::libprotobuf-lite
+        protobuf::libprotobuf
+        protobuf::libprotoc
+        raco::LogSystem
 )
 add_compile_definitions(RaCoEditor PRIVATE CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
