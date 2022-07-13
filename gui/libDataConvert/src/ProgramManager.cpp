@@ -867,10 +867,10 @@ bool ProgramManager::writeProgram(QString filePath) {
 		result = false;
     }
 	// 2. Output Ptx file
-	if (!outputPtx_.writeProgram2Ptx(filePath)) {
-		qDebug() << "Write Ptx file ERROR!";
-		result = false;
-    }
+//	if (!outputPtx_.writeProgram2Ptx(filePath)) {
+//		qDebug() << "Write Ptx file ERROR!";
+//		result = false;
+//    }
     // 3. Output Asset file
 //    writeAsset(filePath.toStdString());
 

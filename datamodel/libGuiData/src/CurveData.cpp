@@ -188,8 +188,13 @@ double Curve::calculateLinerValue(Point *firstPoint, Point *secondPoint, double 
         double firstPointValue{0};
         double secondPointValue{0};
         if (firstPoint->getDataValue().has_value() && secondPoint->getDataValue().has_value()) {
-            firstPointValue = *(firstPoint->getDataValue())._Cast<double>();
-            secondPointValue = *(secondPoint->getDataValue())._Cast<double>();
+            if (firstPoint->getDataValue().type() == typeid(double)) {
+                firstPointValue = std::any_cast<double>(firstPoint->getDataValue());
+                secondPointValue = std::any_cast<double>(secondPoint->getDataValue());
+            } else if (firstPoint->getDataValue().type() == typeid(float)) {
+                firstPointValue = std::any_cast<float>(firstPoint->getDataValue());
+                secondPointValue = std::any_cast<float>(secondPoint->getDataValue());
+            }
         }
         double t = (curFrame - firstPoint->getKeyFrame()) / (secondPoint->getKeyFrame() - firstPoint->getKeyFrame()) * (secondPointValue - firstPointValue) + firstPointValue;
         return t;

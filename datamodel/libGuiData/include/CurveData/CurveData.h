@@ -20,7 +20,8 @@ enum EDataType{
 enum EInterPolationType{
     LINER,
     HERMIT_SPLINE,
-    BESIER_SPLINE
+    BESIER_SPLINE,
+    STEP
 };
 
 class Point

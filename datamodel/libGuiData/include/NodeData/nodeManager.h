@@ -32,11 +32,18 @@ public:
 		objectID_ = id;
 	}
 
+    std::string delNodeNameSuffix(std::string nodeName) {
+        int index = nodeName.rfind(".objectID");
+        if (-1 != index)
+            nodeName = nodeName.substr(0, nodeName.length() - 9);
+        return nodeName;
+    }
+
 	std::string getName() {
 		return nodeName_;
 	}
 	void setName(std::string name) {
-		nodeName_ = name;
+        nodeName_ = delNodeNameSuffix(name);
 	}
 
 	std::string getMaterialsID() {

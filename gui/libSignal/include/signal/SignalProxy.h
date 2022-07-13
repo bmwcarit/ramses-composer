@@ -60,6 +60,10 @@ Q_SIGNALS:
     void sigInitPropertyBrowserView();
     //
     void sigValueHandleChanged_From_NodeUI(const raco::core::ValueHandle &handle);
+    //
+    void sigUpdateGltfAnimation(const raco::core::ValueHandle &handle);
+    //
+    void sigDeleteAniamtionNode(const std::string id);
 
 signals:
 

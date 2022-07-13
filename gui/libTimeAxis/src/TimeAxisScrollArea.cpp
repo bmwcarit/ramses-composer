@@ -61,7 +61,7 @@ TimeAxisScrollArea::TimeAxisScrollArea(QWidget* parent)
     connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, &TimeAxisScrollArea::updateViewport);
 }
 
-void TimeAxisScrollArea::setCenterWidget(QWidget *widget)
+void TimeAxisScrollArea::setCenterWidget(TimeAxisWidget *widget)
 {
     centerWidget = widget;
 }

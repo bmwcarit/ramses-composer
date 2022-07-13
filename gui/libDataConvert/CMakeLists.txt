@@ -16,6 +16,7 @@ add_library(libDataConvert
     include/proto/HmiWidget.pb.h src/HmiWidget.pb.cpp
     include/proto/Numeric.pb.h src/Numeric.pb.cpp
     include/proto/Scenegraph.pb.h src/Scenegraph.pb.cpp
+    include/gltf_Animation/GltfAnimationManager.h src/GltfAnimationManager.cpp
     )
 
 target_include_directories(libDataConvert

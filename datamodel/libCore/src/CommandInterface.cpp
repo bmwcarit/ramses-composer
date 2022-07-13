@@ -62,10 +62,10 @@ bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 		throw std::runtime_error(fmt::format("Object '{}' not in project", handle.rootObject()->objectName()));
 	}
 	if (Queries::isReadOnly(*project(), handle, false)) {
-		throw std::runtime_error(fmt::format("Property '{}' is read-only", handle.getPropertyPath()));
+        throw std::runtime_error(fmt::format("Property '{}' is read-only", handle.getPropertyPath()));
 	}
 	if (Queries::currentLinkState(*project(), handle) != Queries::CurrentLinkState::NOT_LINKED) {
-		throw std::runtime_error(fmt::format("Property '{}' is linked", handle.getPropertyPath()));
+        throw std::runtime_error(fmt::format("Property '{}' is linked", handle.getPropertyPath()));
 	}
 
 	return true;
@@ -116,12 +116,12 @@ void CommandInterface::set(ValueHandle const& handle, int64_t const& value) {
 }
 
 void CommandInterface::set(ValueHandle const& handle, double const& value) {
-	if (checkScalarHandleForSet(handle, PrimitiveType::Double) && handle.asDouble() != value) {
-		context_->set(handle, value);
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
-			fmt::format("{}", handle.getPropertyPath(true)));
-	}
+    if (checkScalarHandleForSet(handle, PrimitiveType::Double) && handle.asDouble() != value) {
+        context_->set(handle, value);
+        PrefabOperations::globalPrefabUpdate(*context_);
+        undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+            fmt::format("{}", handle.getPropertyPath(true)));
+    }
 }
 
 void CommandInterface::set(ValueHandle const& handle, std::string const& value) {

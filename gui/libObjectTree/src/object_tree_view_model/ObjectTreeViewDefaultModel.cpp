@@ -538,7 +538,7 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 
 	auto selectedObject = indexToSEditorObject(selectedIndex);
 
-	if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {
+    if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {
 		auto importDialog = new raco::common_widgets::MeshAssetImportDialog(*sceneGraph, nullptr);
 		auto importStatus = importDialog->exec();
 		if (importStatus == QDialog::Accepted && selectedObject != nullptr) {

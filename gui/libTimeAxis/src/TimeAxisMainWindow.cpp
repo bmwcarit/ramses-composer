@@ -13,24 +13,17 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     QWidget(parent),
     commandInterface_(commandInterface) {
 
-    keyFrameMgr_ = new KeyFrameManager();
+//    QWidget *mainWidget = new QWidget(this);
     hTitleLayout = new QHBoxLayout(this);
     vBoxLayout_ = new QVBoxLayout(this);
     hBoxLayout = new QHBoxLayout(this);
 
     timeAxisScrollArea_ = new TimeAxisScrollArea(this);
 
-    timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
+    timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
     connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
-    connect(timeAxisWidget_, &TimeAxisWidget::switchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
 
-    visualCurveWidget_ = new VisualCurveWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
-    connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, visualCurveWidget_, &VisualCurveWidget::setViewportRect);
-    connect(visualCurveWidget_, &VisualCurveWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
-    connect(visualCurveWidget_, &VisualCurveWidget::switchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
-
-    visualCurveWidget_->hide();
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
 
     initTitle(this);
@@ -46,6 +39,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     vBoxLayout_->setStretchFactor(titleWidget_, 1);
     vBoxLayout_->setStretchFactor(hBoxLayout, 7);
     this->setLayout(vBoxLayout_);
+//    setCentralWidget(mainWidget);
 
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAxis_From_NodeUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAixs_From_CurveUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
@@ -55,6 +49,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &TimeAxisMainWindow::slotResetAnimation);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInitAnimationView, this, &TimeAxisMainWindow::slotInitAnimationMgr);
 }
+
 
 void TimeAxisMainWindow::startOrStopAnimation() {
     if (animationStarted_) {
@@ -207,33 +202,6 @@ void TimeAxisMainWindow::slotResetAnimation() {
     editorView_->update();
 }
 
-void TimeAxisMainWindow::slotSwitchCurveWidget() {
-    switch (curCurveType_) {
-    case CURVE_TYPE_ENUM::TIME_AXIS: {
-        startBtn_->hide();
-        nextBtn_->hide();
-        previousBtn_->hide();
-        curCurveType_ = VISUAL_CURVE;
-        timeAxisWidget_->hide();
-        visualCurveWidget_->show();
-        visualCurveWidget_->setFocus(Qt::MouseFocusReason);
-        timeAxisScrollArea_->setCenterWidget(visualCurveWidget_);
-        break;
-    }
-    case CURVE_TYPE_ENUM::VISUAL_CURVE: {
-        startBtn_->show();
-        nextBtn_->show();
-        previousBtn_->show();
-        curCurveType_ = TIME_AXIS;
-        timeAxisWidget_->show();
-        timeAxisWidget_->setFocus(Qt::MouseFocusReason);
-        visualCurveWidget_->hide();
-        timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
-        break;
-    }
-    }
-}
-
 void TimeAxisMainWindow::slotInitAnimationMgr() {
     if (model_) {
         for (const auto& it : animationDataManager::GetInstance().getAniamtionNameList()) {
@@ -267,15 +235,15 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     startBtn_->setFlat(true);
     startBtn_->setIcon(Icons::instance().animationStart);
     connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startOrStopAnimation);
-    previousBtn_ = new QPushButton(titleWidget_);
+    QPushButton *previousBtn_ = new QPushButton(titleWidget_);
     previousBtn_->setFlat(true);
     previousBtn_->setIcon(Icons::instance().animationPrevious);
     connect(previousBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToBegin);
 
-    nextBtn_ = new QPushButton(titleWidget_);
-    nextBtn_->setFlat(true);
-    nextBtn_->setIcon(Icons::instance().animationNext);
-    connect(nextBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToEnd);
+    QPushButton *nextBtn = new QPushButton(titleWidget_);
+    nextBtn->setFlat(true);
+    nextBtn->setIcon(Icons::instance().animationNext);
+    connect(nextBtn, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToEnd);
 
     QWidget* spacerRight = new QWidget(titleWidget_);
     spacerRight->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -295,7 +263,7 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     hTitleLayout->addWidget(spacerLeft);
     hTitleLayout->addWidget(previousBtn_);
     hTitleLayout->addWidget(startBtn_);
-    hTitleLayout->addWidget(nextBtn_);
+    hTitleLayout->addWidget(nextBtn);
 
     hTitleLayout->addWidget(spacerRight);
     hTitleLayout->addWidget(lineBegin_);

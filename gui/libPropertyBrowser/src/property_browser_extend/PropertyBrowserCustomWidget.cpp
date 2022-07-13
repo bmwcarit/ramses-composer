@@ -52,10 +52,7 @@ void PropertyBrowserCustomWidget::insertData() {
     if (listWidget_.size() < 0) {
         return;
     }
-//    std::string stdStrSampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
-//    if (stdStrSampleProperty == std::string()) {
-//        return;
-//    }
+
     // 判断当前property data是否存在，并且判断当前customProperty View是否已经和Property Data一一对应，不创建重复的CustomProperty View
     if (listWidget_.size() < PropertyDataManager::GetInstance().getCustomPropertyTypeMap().size()) {
         PropertyBrowserCustomView* widget = new PropertyBrowserCustomView(this);

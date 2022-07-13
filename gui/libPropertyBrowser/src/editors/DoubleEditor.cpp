@@ -36,8 +36,8 @@ DoubleEditor::DoubleEditor(
 	spinBox->setValue(item->valueHandle().as<double>());
 
 	if (auto rangeAnnotation = item->query<core::RangeAnnotation<double>>()) {
-		spinBox->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
-		slider->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+        spinBox->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+        slider->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 	}
 
 	// connect everything to our item values

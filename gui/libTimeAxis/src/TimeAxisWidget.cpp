@@ -11,6 +11,10 @@
 
 namespace raco::time_axis {
 
+
+Q_GLOBAL_STATIC_WITH_ARGS(int, numHeight, (20))
+Q_GLOBAL_STATIC_WITH_ARGS(double, PI, (3.14159265))
+
 double calLinerValue(glm::vec2 first, glm::vec2 second, int n) {
     return ((double)n - first.x)/(second.x - first.x)*(second.y - first.y) + first.y;
 }
@@ -109,19 +113,20 @@ void DragPushButton::paintEvent(QPaintEvent *event) {
     QWidget::paintEvent(event);
 }
 
-TimeAxisWidget::TimeAxisWidget(QWidget *parent, raco::core::CommandInterface* commandInterface, KeyFrameManager *keyFrameManager) :
+TimeAxisWidget::TimeAxisWidget(QWidget *parent, raco::core::CommandInterface* commandInterface) :
     QWidget(parent),
-    intervalLength_(INTERVAL_LENGTH_DEFAULT),
-    keyFrameMgr_(keyFrameManager) {
+    intervalLength_(INTERVAL_LENGTH_DEFAULT) {
 
-    button_ = new DragPushButton(this);
+    keyFrameMgr_ = new KeyFrameManager();
+
+    button_ = new DragPushButton(parent);
     button_->resize(DEFAULT_BUTTON_WIDTH, this->height());
-    button_->setText(curFrame_);
+    connect(button_, &DragPushButton::buttonMove, this, &TimeAxisWidget::updateSlider);
 
     viewportOffset_.setX(moveNum_ * intervalLength_);
+
+    button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
-    connect(button_, &DragPushButton::buttonMove, this, &TimeAxisWidget::updateSlider);
-    setFocusPolicy(Qt::StrongFocus);
 }
 
 void TimeAxisWidget::refreshKeyFrameView() {
@@ -236,19 +241,6 @@ void TimeAxisWidget::mousePressEvent(QMouseEvent *event) {
         }
         update();
     }
-}
-
-void TimeAxisWidget::keyPressEvent(QKeyEvent *event) {
-    if(event->modifiers() == Qt::ControlModifier) {
-        if(event->key() == Qt::Key_Tab) {
-            Q_EMIT switchCurveType();
-        }
-    }
-//    else QWidget::keyPressEvent(event);
-}
-
-void TimeAxisWidget::keyReleaseEvent(QKeyEvent *event) {
-
 }
 
 void TimeAxisWidget::setViewportRect(const QSize areaSize,
@@ -418,6 +410,10 @@ void TimeAxisWidget::drawKeyFrame(QPainter &painter) {
        for (const int& keyFrame : keyFrameList) {
            int leftPos = n * keyFrame - curX;
            if (leftPos > 0) {
+//               if (keyFrameMgr_->getClickedFrame() == keyFrame) {
+//                   brush.setColor(QColor(217, 125, 13, 255));
+//                   painter.setBrush(brush);
+//               }
                painter.drawEllipse(leftPos - 5,20,10,10);
                brush.setColor(QColor(245, 250, 250, 255));
                painter.setBrush(brush);

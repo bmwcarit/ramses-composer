@@ -19,6 +19,7 @@
 #include "material_logic/materalLogic.h"
 #include "data_Convert/ProgramManager.h"
 #include "curve/CurveLogic.h"
+#include "gltf_Animation/GltfAnimationManager.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -121,6 +122,7 @@ private:
     CurveLogic *curveLogic_{nullptr};
 	CurveNameWidget* curveNameWidget_{nullptr};
 	raco::material_logic::MateralLogic* materialLogic_{nullptr};
+    GltfAnimationManager *gltfAnimationMgr_{nullptr};
 
 	int renderTimerId_ = 0;
 };

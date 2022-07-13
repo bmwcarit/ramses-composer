@@ -193,7 +193,9 @@ void MateralLogic::setUniformsProperty(core::ValueHandle valueHandle, MaterialDa
                 TextureData textureData;
                 textureData.setUniformName(property);
                 setTexturePorperty(tempHandle.asRef(), materialData, textureData);
-                materialData.addTexture(textureData);
+                if (!textureData.getName().empty()) {
+                    materialData.addTexture(textureData);
+                }
 				break;
             }
             case PrimitiveType::Table:

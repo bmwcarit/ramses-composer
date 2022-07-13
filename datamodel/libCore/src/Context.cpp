@@ -122,13 +122,13 @@ void BaseContext::performExternalFileReload(const std::vector<SEditorObject>& ob
 template <typename T>
 void BaseContext::setT(ValueHandle const& handle, T const& value) {
 	ValueBase* v = handle.valueRef();
-	v->set(value);
+    v->set(value);
 
-	handle.object_->onAfterValueChanged(*this, handle);
+    handle.object_->onAfterValueChanged(*this, handle);
 
-	callReferencedObjectChangedHandlers(handle.object_);
+    callReferencedObjectChangedHandlers(handle.object_);
 
-	changeMultiplexer_.recordValueChanged(handle);
+    changeMultiplexer_.recordValueChanged(handle);
 }
 
 template <>
