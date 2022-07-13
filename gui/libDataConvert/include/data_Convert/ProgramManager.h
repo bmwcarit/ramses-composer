@@ -56,6 +56,7 @@ private:
     QString openedProjectPath_;
     QMap<QString, QJsonArray> aryMap_;
     OutputPtx outputPtx_;
+	OutputPtw outputPtw_;
 };
 }
 
