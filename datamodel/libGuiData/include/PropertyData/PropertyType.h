@@ -42,3 +42,21 @@ struct mat4 {
 	float m20, m21, m22, m23;
 	float m30, m31, m32, m33;
 };
+
+struct Vec2int {
+	int x;
+	int y;
+};
+
+struct Vec3int {
+	int x;
+	int y;
+	int z;
+};
+
+struct Vec4int {
+	int x;
+	int y;
+	int z;
+	int w;
+};

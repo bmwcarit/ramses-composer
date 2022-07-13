@@ -28,6 +28,7 @@ enable_warnings_as_errors(libGuiData)
 target_link_libraries(libGuiData
 PUBLIC
         raco::Core
+        raco::PropertyBrowser
 PRIVATE
         raco::LogSystem
 )

@@ -103,6 +103,52 @@ std::map<std::string, Bitmap> MaterialManager::getBitmapDataMap() {
     return bitmapMap_;
 }
 
+void MaterialManager::addCurUniform(Uniform uniform) {
+	currentUniforms_.push_back(uniform);
+}
+
+bool MaterialManager::deleteCurUniform(std::string name) {
+	for (auto it = currentUniforms_.begin(); it != currentUniforms_.end(); ++it) {
+		if (it->getName() == name) {
+			currentUniforms_.erase(it);
+			return true;
+		}
+    }
+	return false;
+}
+
+std::vector<Uniform> MaterialManager::getCurUniformArr() {
+	return currentUniforms_;
+}
+
+int MaterialManager::curUniformArrSize() {
+	return currentUniforms_.size();
+}
+
+void MaterialManager::curUniformClear() {
+	currentUniforms_.clear();
+}
+
+void MaterialManager::curUniformAssign(std::vector<Uniform> arr) {
+	currentUniforms_.clear();
+	currentUniforms_.swap(arr);
+}
+
+bool MaterialManager::hasUniform(std::string name) {
+	for (auto &it : currentUniforms_) {
+		if (it.getName() == name) {
+			return true;
+        }
+    }
+	return false;
+}
+
+void MaterialManager::clearData() {
+	materialDataMap_.clear();
+	shaderMap_.clear();
+	bitmapMap_.clear();
+}
+
 void MaterialManager::traverseMaterialData() {
     qDebug() << "start <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
     qDebug() << "material size:" << materialDataMap_.size();

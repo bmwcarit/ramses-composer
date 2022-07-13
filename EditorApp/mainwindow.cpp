@@ -684,8 +684,10 @@ bool MainWindow::saveActiveProject() {
 
 bool MainWindow::saveAsActiveProject() {
 	if (racoApplication_->canSaveActiveProject()) {
-        QString path = QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string());
-        bool setProjectName = racoApplication_->activeProjectPath().empty();
+
+		QString openedProjectPath = QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string());
+		bool setProjectName = racoApplication_->activeProjectPath().empty();
+
 		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
 		if (newPath.isEmpty()) {
 			return false;
@@ -700,6 +702,7 @@ bool MainWindow::saveAsActiveProject() {
 
 			updateActiveProjectConnection();
             updateApplicationTitle();
+			programManager_.setOpenedProjectPath(openedProjectPath);
             programManager_.setRelativePath(QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()));
 			programManager_.writeProgram(newPath);
 			return true;

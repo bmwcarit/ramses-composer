@@ -27,6 +27,7 @@
 #include <QScrollBar>
 #include <QSequentialAnimationGroup>
 #include <QTime>
+#include <QMouseEvent>
 
 namespace raco::property_browser {
 
@@ -87,6 +88,8 @@ bool getObjId(raco::core::ValueHandle valueHandle, std::string& objId, std::stri
 
 PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent)
 	: currentObjectID_(item->valueHandle().rootObject()->objectID()), QWidget{parent} {
+	NodeData* pNode  =	raco::guiData::NodeDataManager::GetInstance().searchNodeByID(currentObjectID_);
+	raco::guiData::NodeDataManager::GetInstance().setActiveNode(pNode);
 	item->setParent(this);
 	auto* layout = new PropertyBrowserGridLayout{this};
 	layout->setColumnStretch(0, 1);
@@ -150,7 +153,6 @@ PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrow
 		verticalPivotWidget_ = nullptr;
 		verticalPivot_ = {0, 0};
 	});
-
 	contentLayout->addWidget(new PropertySubtreeView{model, item, this});
 }
 

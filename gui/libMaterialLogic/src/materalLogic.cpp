@@ -1,5 +1,6 @@
 #include "material_logic/materalLogic.h"
 #include "MaterialData/materialManager.h"
+#include "user_types/Material.h"
 
 namespace raco::material_logic { 
 MateralLogic::MateralLogic(QObject *parent)
@@ -7,14 +8,49 @@ MateralLogic::MateralLogic(QObject *parent)
 
 }
 
+void MateralLogic::setPtxName(Shader &shader) {
+	std::map<std::string, Shader> shaderMap = MaterialManager::GetInstance().getShaderDataMap();
+	for (auto &it : shaderMap) {
+		if (it.second.getFragmentShader() == shader.getFragmentShader()
+			&& it.second.getVertexShader() == shader.getVertexShader()){
+			shader.setPtxShaderName(it.second.getPtxShaderName());
+			return;
+        }
+    }
+	shader.setPtxShaderName(shader.getName());
+}
+
+void setIsDefaultMaterial(std::string id,MaterialData& materialData) {
+	std::map<std::string, MaterialData> materialMap = MaterialManager::GetInstance().getMaterialDataMap();
+	for (auto &it : materialMap) {
+		if (it.second.getObjectName() == materialData.getObjectName()) {
+			materialData.setDefaultID(it.first);
+			return;
+		}
+	}
+	materialData.setDefaultID(id);
+}
+
+
 void MateralLogic::Analyzing() {
+	MaterialManager::GetInstance().clearData();
     for (const auto &it : resourcesHandleReMap_) {
         MaterialData materialData;
         Shader shader;
 		core::ValueHandle valueHandle = it.second;
         if (valueHandle.hasProperty("options")) {
             initMaterialProperty(valueHandle, materialData, shader);
+			raco::user_types::Material *material = dynamic_cast<raco::user_types::Material *>(valueHandle.rootObject().get());
+			raco::core::PropertyInterfaceList attritesArr = material->attributes();
+            for (auto &it : attritesArr) {
+				raco::guiData::Attribute attribute;
+				attribute.name = it.name;
+				attribute.type = static_cast<raco::guiData::VertexAttribDataType>(it.type);
+				materialData.addUsedAttribute(attribute);
+            }
+			setIsDefaultMaterial(it.first,materialData);
             MaterialManager::GetInstance().addMaterialData(it.first, materialData);
+			setPtxName(shader);
             MaterialManager::GetInstance().addShader(shader.getName(), shader);
         }
     }
@@ -56,7 +92,7 @@ void MateralLogic::initMaterialProperty(core::ValueHandle valueHandle, MaterialD
 }
 
 void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialData &materialData) {
-    Blending blending;
+	Blending blending;
     ColorWrite colorWrite;
     RenderMode renderMode;
     using PrimitiveType = core::PrimitiveType;
@@ -78,7 +114,7 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             if (QString::fromStdString(propName).compare("blendOperationColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    blending.setBlendOperationColor(static_cast<BlendOperation>(value));
+                    blending.setBlendOperationColor((BlendOperation)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendOperationAlpha") == 0) {
@@ -90,37 +126,37 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             if (QString::fromStdString(propName).compare("blendFactorSrcColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    blending.setSrcColorFactor(static_cast<BlendFactor>(value));
+                    blending.setSrcColorFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorDestColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    blending.setDesColorFactor(static_cast<BlendFactor>(value));
+                    blending.setDesColorFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorSrcAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    blending.setSrcAlphaFactor(static_cast<BlendFactor>(value));
+                    blending.setSrcAlphaFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorDestAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    blending.setDesAlphaFactor(static_cast<BlendFactor>(value));
+                    blending.setDesAlphaFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendColor") == 0) {
                 double value{0.0};
                 if (func(tempHandle, "x", value)) {
-                    colorWrite.setRed(value);
+					colorWrite.setRed(value);
                 }
                 if (func(tempHandle, "y", value)) {
-                    colorWrite.setGreen(value);
+					colorWrite.setGreen(value);
                 }
                 if (func(tempHandle, "z", value)) {
-                    colorWrite.setBlue(value);
+					colorWrite.setBlue(value);
                 }
                 if (func(tempHandle, "w", value)) {
                     colorWrite.setAlpha(value);
@@ -140,16 +176,12 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             if (QString::fromStdString(propName).compare("cullmode") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-                    // 和ptx中Culling取值对应，0代表的是4
-					if (0 == value) {
-						value = 4;
-                    }
                     renderMode.setCulling(static_cast<Culling>(value));
                 }
             }
         }
     }
-    renderMode.setBlending(blending);
+	renderMode.setBlending(blending);
     renderMode.setColorWrite(colorWrite);
     materialData.setRenderMode(renderMode);
 }
@@ -193,9 +225,12 @@ void MateralLogic::setUniformsProperty(core::ValueHandle valueHandle, MaterialDa
                 TextureData textureData;
                 textureData.setUniformName(property);
                 setTexturePorperty(tempHandle.asRef(), materialData, textureData);
-                if (!textureData.getName().empty()) {
-                    materialData.addTexture(textureData);
-                }
+
+				if (textureData.getName().empty()) {
+					textureData.setName("empty");
+					textureData.setBitmapRef("empty");
+				}
+                materialData.addTexture(textureData);
 				break;
             }
             case PrimitiveType::Table:

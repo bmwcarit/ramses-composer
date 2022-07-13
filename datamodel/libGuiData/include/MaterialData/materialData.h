@@ -6,10 +6,13 @@
 #include <iostream>
 #include <QDebug>
 
+#include "MeshData/MeshDataManager.h"
+
 namespace raco::guiData {
 
 class Shader;
 class Bitmap;
+
 
 enum UniformType {
     Null = -1,
@@ -29,99 +32,73 @@ enum UniformType {
 };
 
 enum WindingType{
-	M_TEWinding_ClockWise = 1,
-	M_TEWinding_CounterClockWise = 2
+	M_TEWinding_ClockWise,
+	M_TEWinding_CounterClockWise
 };
 
-enum Culling {  // 对应Cull Mode
-	CU_Front = 1,
-	CU_Back = 2,
-	CU_FrontAndBack = 3,
-	CU_None = 4
+enum Culling {
+	CU_Front,
+	CU_Back,
+	CU_FrontAndBack,
+	CU_None
+};
+// Depth Function
+enum DepthCompare {
+    DC_Disabled,
+	DC_GreaterThan,
+	DC_GreaterOrEqualTo,
+	DC_LessThan,
+	DC_LessThanOrEqualTo,
+	DC_Equal,
+	DC_NotEqual,
+	DC_True,
+	DC_False
+
 };
 
-enum DepthCompare {  // Depth Function
-    // TECompareFunction_Always = 0,  // 总是有比较函数
-    DC_Disabled = 1,
-	DC_GreaterThan,		// >
-	DC_GreaterOrEqualTo,  // >=
-	DC_LessThan,		  // <
-	DC_LessThanOrEqualTo,  // <=
-	DC_Equal,			   // =
-	DC_NotEqual,		   // !=
-	DC_True,			   // 真
-	DC_False			   // 假
-
-
- //   TECompareFunction_Never = 1,
-	//TECompareFunction_Less = 2,
-	//TECompareFunction_LessEqual = 3,
-	//TECompareFunction_Equal = 4,
-	//TECompareFunction_NotEqual = 5,
-	//TECompareFunction_GreaterEqual = 6,
-	//TECompareFunction_Greater = 7,
-	//TECompareFunction_Always = 8
-};
-
-enum Filter {	// 已补充
-    Linear = 0,
+enum Filter {
+	Nearest,
+    Linear,
     NearestMipMapNearest,
     NearestMipMapLinear,
     LinearMipMapNearest,
     LinearMipMapLinear
 };
 
-enum WrapMode {  // 已补充
-    Clamp = 0,
+enum WrapMode {
+    Clamp,
     Repeat,
     Mirror
 };
 
-enum BlendOperation {	// 已补充
-    BO_None = 1,
-    BO_Add = 2,
-    BO_Subtract = 3,
-    BO_ReverseSub = 4,
-    BO_Min = 5,
-    BO_Max = 6
-
-    // ptx
-    //TEBlendOperation_None = 1,
-	//TEBlendOperation_Add = 2,
-	//TEBlendOperation_Subtract = 3,
-	//TEBlendOperation_ReverseSubtract = 4
+enum BlendOperation {
+    BO_None,
+    BO_Add,
+    BO_Subtract,
+    BO_ReverseSub,
+    BO_Min,
+    BO_Max
 };
 
-enum BlendFactor {	 // 已补充
-    Zero = 1,
-    One = 2,
-    SrcAlpha = 5,
-    OneMinusSrcAlpha,
-	DstColor = 9,
-    DstAlpha = 10,
-    OneMinusSrcColor,
-    OneMinusDstColor
-
-
- //   TEBlendFactor_Zero = 1,
-	//TEBlendFactor_One = 2,
-	//TEBlendFactor_SourceColor = 3,
-	//TEBlendFactor_InverseSourceColor = 4,
-	//TEBlendFactor_SourceAlpha = 5,
-	//TEBlendFactor_SourceAlphaSaturate = 6,
-	//TEBlendFactor_InverseSourceAlpha = 7,
-	//TEBlendFactor_DestinationColor = 8,
-	//TEBlendFactor_InverseDestinationColor = 9,
-	//TEBlendFactor_DestinationAlpha = 10,
-	//TEBlendFactor_InverseDestinationAlpha = 11,
-	//TEBlendFactor_ConstantColor = 12,
-	//TEBlendFactor_InverseConstantColor = 13,
-	//TEBlendFactor_ConstantAlpha = 14,
-	//TEBlendFactor_InverseConstantAlpha = 15
-
+enum BlendFactor {
+	Zero,
+	One,
+	SrcAlpha,
+	OneMinusSrcAlpha,
+	DstAlpha,
+	OneMinusDstAlpha,
+	SrcColor,
+	OneMinusSrcColor,
+	DstColor,
+	OneMinusDstColor,
+	ConstColor,
+	OneMinusConstColor,
+	ConstAlpha,
+	OneMinusConstAlpha,
+	AlphaSaturated
 };
 
-class Blending {   // ok 和Options对应
+class Blending {
 public:
 	Blending() : blendOperationColor_(BO_None), blendOperationAlpha_(BO_None), srcColorFactor_(Zero)
         , srcAlphaFactor_(Zero), desColorFactor_(Zero), desAlphaFactor_(Zero) {}
@@ -185,8 +162,8 @@ private:
     BlendFactor desColorFactor_;
     BlendFactor desAlphaFactor_;
 };
-
-class ColorWrite {  // Blend Color
+// Blend Color
+class ColorWrite {
 public:
 	ColorWrite() : red_(0), green_(0), blue_(0), alpha_ (0){}
 
@@ -243,6 +220,14 @@ public:
     std::string getName() {
         return name_;
     }
+
+    void setPtxShaderName(std::string ptxName) {
+		ptxShaderName_ = ptxName;
+	}
+	std::string getPtxShaderName() {
+		return ptxShaderName_;
+	}
+
     void setVertexShader(std::string vertexShader) {
         vertexShader_ = vertexShader;
     }
@@ -263,6 +248,7 @@ public:
     }
 
 private:
+	std::string ptxShaderName_;
     std::string name_;
     std::string vertexShader_;
     std::string fragmentShader_;
@@ -382,20 +368,20 @@ public:
     }
 
 private:
-    std::string name_;    // objectName
-    std::string bitmapRef_;  // ok
-    Filter minFilter_;    // ok
-    Filter magFilter_;    // ok
-    int anisotropicSamples_;  // ???
-    WrapMode wrapModeU_;        // ok
-    WrapMode wrapModeV_;        // ok
-    std::string uniformName_;   // ok
-    std::string bitmapsRef_;    // 和bitmap关联
+    std::string name_;      // objectName
+    std::string bitmapRef_;
+    Filter minFilter_;
+    Filter magFilter_;
+    int anisotropicSamples_;
+    WrapMode wrapModeU_;
+    WrapMode wrapModeV_;
+    std::string uniformName_;
+    std::string bitmapsRef_;
 };
 
 class Uniform {
 public:
-    Uniform() : name_(""), value_(0) {}
+	Uniform() : name_(""), value_(0), type_(UniformType::Bool) {}
 
     void setName(std::string name) {
         name_ = name;
@@ -424,7 +410,7 @@ public:
 private:
     std::string name_;
     std::any value_;
-    UniformType type_;  // 可能是三维向量也可能是一个float等
+    UniformType type_;
 };
 
 
@@ -446,11 +432,12 @@ public:
         return blending_;
     }
 
-    void setColorWrite(ColorWrite colorWrite) {
-        colorWrite_ = colorWrite;
-    }
     ColorWrite getColorWrite() {
         return colorWrite_;
+    }
+
+    void setColorWrite(ColorWrite& colorWrite) {
+		colorWrite_ = colorWrite;
     }
 
     void setDepthWrite(bool bWrite) {
@@ -488,13 +475,13 @@ public:
     }
 
 private:
-    WindingType winding_;   // ok
-    Culling culling_;   // ok
-    Blending blending_;     // ok  和Options对应
+    WindingType winding_;
+    Culling culling_;
+    Blending blending_;
 
-    DepthCompare depthCompareFunction_; // ok
-    bool depthWrite_;        // ok
-    ColorWrite colorWrite_; // ok  BlendColor
+    DepthCompare depthCompareFunction_;
+    bool depthWrite_;
+    ColorWrite colorWrite_;
  };
 
 
@@ -507,6 +494,14 @@ public:
     }
     std::string getObjectName() {
         return name_;
+    }
+
+    std::string getDefaultID() {
+		return defaultID_;
+    }
+
+    void setDefaultID(std::string Default) {
+		defaultID_ = Default;
     }
 
     void setRenderMode(RenderMode renderMode) {
@@ -549,13 +544,27 @@ public:
         }
     }
 
-private:
-    std::string name_;               // ObjectName
-    RenderMode renderMode_;          // ok
+    int getUsedAttributeSize() {
+		return usedAttributes_.size();
+	}
 
-    std::string shaderRef_;          // 和shader关联
+	void addUsedAttribute(Attribute attr) {
+		usedAttributes_.push_back(attr);
+	}
+
+	std::vector<Attribute> getUsedAttributes() {
+		return usedAttributes_;
+	}
+
+private:
+	std::string defaultID_;
+    std::string name_;
+    RenderMode renderMode_;
+
+    std::string shaderRef_;
     std::vector<TextureData> textures_;
-    std::vector<Uniform> uniforms_;  // 不一定
+    std::vector<Uniform> uniforms_;
+	std::vector<Attribute> usedAttributes_;
 };
 }
 
