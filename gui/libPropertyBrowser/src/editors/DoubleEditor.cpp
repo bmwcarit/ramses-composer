@@ -17,10 +17,39 @@
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/controls/ScalarSlider.h"
 #include "property_browser/controls/SpinBox.h"
+#include "NodeData/nodeManager.h"
 
 #include <QStackedWidget>
 
 namespace raco::property_browser {
+
+
+bool nodeDataSync(std::string propName, double value, std::string parentName = "") {
+	raco::guiData::NodeData* pNode = raco::guiData::NodeDataManager::GetInstance().getActiveNode();
+
+	if (propName == "x" || propName == "y" || propName == "z") {
+		if (parentName == "translation" || parentName == "scale" || parentName == "rotation") {
+			Vec3 parent = std::any_cast<Vec3>(pNode->getSystemData(parentName));
+			if (propName == "x") {
+				parent.x = value;
+			} else if (propName == "y") {
+				parent.y = value;
+			} else {
+				parent.z = value;
+			}
+			pNode->modifySystemData(parentName, parent);
+			return true;
+		}
+	} else {
+		for (auto& un : pNode->getUniforms()) {
+			if (propName == un.getName()) {
+				pNode->modifyUniformData(propName, value);
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 DoubleEditor::DoubleEditor(
 	PropertyBrowserItem* item,
@@ -44,9 +73,23 @@ DoubleEditor::DoubleEditor(
 	{
 		QObject::connect(spinBox, &DoubleSpinBox::valueEdited, item, [item](double value) {
 			item->set(value);
+			std::string propName = item->valueHandle().getPropName();
+			if (propName == "x" || propName == "y" || propName == "z") {
+				std::string parentPropName = item->parentItem()->valueHandle().getPropName();
+				nodeDataSync(propName, value, parentPropName);
+			} else {
+				nodeDataSync(propName, value);
+			}
 		});
 		QObject::connect(slider, &DoubleSlider::valueEdited, item, [item](double value) {
 			item->set(value);
+			std::string propName = item->valueHandle().getPropName();
+			if (propName == "x" || propName == "y" || propName == "z") {
+				std::string parentPropName = item->parentItem()->valueHandle().getPropName();
+				nodeDataSync(propName, value, parentPropName);
+			} else {
+				nodeDataSync(propName, value);
+			}
 		});
 		QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [slider, spinBox](core::ValueHandle& handle) {
 			slider->setValue(handle.as<double>());

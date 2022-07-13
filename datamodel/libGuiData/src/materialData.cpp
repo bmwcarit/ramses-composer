@@ -3,7 +3,7 @@
 
 namespace raco::guiData {
 
-MaterialData::MaterialData() : name_(""), shaderRef_("") {
+MaterialData::MaterialData() : name_(""), shaderRef_(""), defaultID_("") {
 
 }
 

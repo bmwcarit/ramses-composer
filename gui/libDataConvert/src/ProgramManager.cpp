@@ -861,20 +861,24 @@ namespace raco::dataConvert {
 
 bool ProgramManager::writeProgram(QString filePath) {
 	bool result = true;
-    // 1. Output Json file
+    // Output Json file
 	if (!writeProgram2Json(filePath)) {
 		qDebug() << "Write Json file ERROR!";
 		result = false;
     }
-	// 2. Output Ptx file
-	if (!outputPtx_.writeProgram2Ptx(filePath)) {
+	// Output Asset file
+	writeAsset(filePath.toStdString());
+
+	// Output Ptx file
+	if (!outputPtx_.writeProgram2Ptx(filePath.toStdString(), openedProjectPath_)) {
 		qDebug() << "Write Ptx file ERROR!";
 		result = false;
     }
-    // 3. Output Asset file
-//    writeAsset(filePath.toStdString());
+
+    // Output Asset file
 	outputPtw_.WriteAsset(filePath.toStdString());
-    // 4. Output ctm file
+
+    // Output ctm file
     writeCTMFile();
 
 	return result;
@@ -882,6 +886,10 @@ bool ProgramManager::writeProgram(QString filePath) {
 
 void ProgramManager::setRelativePath(QString path) {
     relativePath_ = path;
+}
+
+void ProgramManager::setOpenedProjectPath(QString path) {
+	openedProjectPath_ = path;
 }
 
 bool ProgramManager::writeCTMFile() {

@@ -6,6 +6,7 @@
 #include <string>
 #include <any>
 #include <map>
+#include "MaterialData/materialData.h"
 
 namespace raco::guiData {
 enum EPropertyType {
@@ -13,6 +14,7 @@ enum EPropertyType {
     PROPERTY_TYPE_INT,
     PROPERTY_TYPE_BOOL,
     PROPERTY_TYPE_STRING,
+	//PROPERTY_TYPE_UNIFORM_STRING,
     PROPERTY_TYPE_SAMPLETEXTURE,
     PROPERTY_TYPE_VEC2i,
     PROPERTY_TYPE_VEC3i,
@@ -46,6 +48,7 @@ public:
     std::map<std::string, EPropertyType> getAnimationPropertyTypeMap();
     bool insertAnimationProItem(const std::string &name, const EPropertyType& type);
     bool deleteAnimationProItem(const std::string &name);
+
 private:
     PropertyDataManager();
 private:
