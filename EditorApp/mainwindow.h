@@ -19,6 +19,7 @@
 #include "material_logic/materalLogic.h"
 #include "data_Convert/ProgramManager.h"
 #include "curve/CurveLogic.h"
+#include "gltf_Animation/GltfAnimationManager.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -87,7 +88,7 @@ protected:
 	void restoreCachedLayout();
 	void restoreCustomLayout(const QString& layoutName);
 	void regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks);
-	void saveDockManagerCustomLayouts();
+    void saveDockManagerCustomLayouts();
 
 protected Q_SLOTS:
 	void openProject(const QString& file = {});
@@ -121,6 +122,7 @@ private:
     CurveLogic *curveLogic_{nullptr};
 	CurveNameWidget* curveNameWidget_{nullptr};
 	raco::material_logic::MateralLogic* materialLogic_{nullptr};
+    GltfAnimationManager *gltfAnimationMgr_{nullptr};
 
 	int renderTimerId_ = 0;
 };

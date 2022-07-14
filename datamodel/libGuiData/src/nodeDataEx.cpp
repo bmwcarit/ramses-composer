@@ -67,7 +67,6 @@ bool CurveBinding::getPropCurve(std::string sampleProp, std::map<std::string, st
     return true;
 }
 
-
 void CurveBinding::traverseCurveBinding() {
     for(auto& it : bindingMap_){
         std::cout << "sampleProp_ :"<< it.first << " \n bindingData: \n";

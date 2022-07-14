@@ -397,7 +397,7 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 	}
 	if (!linkState) {
 		if (currentLinkState(project, handle) != CurrentLinkState::NOT_LINKED) {
-			return true;
+            return true;
 		}
 	}
 
@@ -453,6 +453,7 @@ SLink Queries::getLink(const Project& project, const PropertyDescriptor& propert
 }
 
 Queries::CurrentLinkState Queries::currentLinkState(const Project& project, const ValueHandle& property) {
+    return CurrentLinkState::NOT_LINKED;
 	if (auto link = Queries::getLink(project, property.getDescriptor())) {
 		return (link->isValid()) ? CurrentLinkState::LINKED : CurrentLinkState::BROKEN;
 	}

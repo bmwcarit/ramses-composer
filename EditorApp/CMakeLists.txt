@@ -54,9 +54,9 @@ target_link_libraries(RaCoEditor
         raco::Animation
         raco::Curve
         raco::signal
-		raco::TimeAxis
-		raco::material_logic
-		raco::dataConvert
+        raco::TimeAxis
+        raco::material_logic
+        raco::dataConvert
 	Qt5::Widgets
 	qtadvanceddocking
 	libprotobuf-lite

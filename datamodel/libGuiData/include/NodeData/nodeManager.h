@@ -38,13 +38,13 @@ public:
 		if (-1 != index)
 			nodeName = nodeName.substr(0, nodeName.length() - 9);
 		return nodeName;
-	}
+    }
 
 	std::string getName() {
 		return nodeName_;
 	}
 
-	void setName(std::string name) {
+    void setName(std::string name) {
 		nodeName_ = delNodeNameSuffix(name);
 	}
 
@@ -53,7 +53,7 @@ public:
 	}
 
 	void setMaterialName(std::string name) {
-		materialName_ = name;
+        materialName_ = name;
 	}
 
 	std::string getMaterialsID() {

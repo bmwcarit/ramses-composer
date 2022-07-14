@@ -53,6 +53,7 @@ void PropertyBrowserCustomWidget::insertData() {
         return;
     }
 
+    // 判断当前property data是否存在，并且判断当前customProperty View是否已经和Property Data一一对应，不创建重复的CustomProperty View
     if (listWidget_.size() < PropertyDataManager::GetInstance().getCustomPropertyTypeMap().size()) {
         PropertyBrowserCustomView* widget = new PropertyBrowserCustomView(this);
         layout_->addWidget(widget, layout_->rowCount(), 0);

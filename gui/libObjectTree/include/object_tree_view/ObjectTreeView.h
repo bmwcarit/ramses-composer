@@ -12,7 +12,7 @@
 #include "MeshData/MeshDataManager.h"
 #include "core/EditorObject.h"
 #include "node_logic/NodeLogic.h"
-
+#include "signal/SignalProxy.h"
 #include <QAbstractItemModel>
 #include <QTreeView>
 #include <unordered_set>
@@ -48,6 +48,8 @@ public:
     std::map<std::string, core::ValueHandle> updateMaterial();
     void updateMeshData();
     int attriElementSize(raco::guiData::VertexAttribDataType type);
+    void convertGltfAnimation();
+    bool getAnimationHandle(QModelIndex index, core::ValueHandle &valueHandle);
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
@@ -83,6 +85,7 @@ public Q_SLOTS:
 	void collapsed(const QModelIndex &index);
     void getResourceHandles();
     void fillMeshData();
+    void deleteAnimationHandle(std::string id);
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;

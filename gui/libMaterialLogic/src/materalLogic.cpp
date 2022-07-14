@@ -93,7 +93,7 @@ void MateralLogic::initMaterialProperty(core::ValueHandle valueHandle, MaterialD
 
 void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialData &materialData) {
 	Blending blending;
-	ColorWrite colorWrite;
+    ColorWrite colorWrite;
     RenderMode renderMode;
     using PrimitiveType = core::PrimitiveType;
     auto func = [&](raco::core::ValueHandle handle, std::string str, double &value)->bool {
@@ -114,37 +114,37 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
             if (QString::fromStdString(propName).compare("blendOperationColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-					blending.setBlendOperationColor((BlendOperation)(value));
+                    blending.setBlendOperationColor((BlendOperation)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendOperationAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-					blending.setBlendOperationAlpha((BlendOperation)(value));
+                    blending.setBlendOperationAlpha(static_cast<BlendOperation>(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorSrcColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-					blending.setSrcColorFactor((BlendFactor)(value));
+                    blending.setSrcColorFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorDestColor") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-					blending.setDesColorFactor((BlendFactor)(value));
+                    blending.setDesColorFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorSrcAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-					blending.setSrcAlphaFactor((BlendFactor)(value));
+                    blending.setSrcAlphaFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendFactorDestAlpha") == 0) {
                 if (tempHandle.type() == PrimitiveType::Int) {
                     int value = tempHandle.asInt();
-					blending.setDesAlphaFactor((BlendFactor)(value));
+                    blending.setDesAlphaFactor((BlendFactor)(value));
                 }
             }
             if (QString::fromStdString(propName).compare("blendColor") == 0) {
@@ -159,7 +159,7 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
 					colorWrite.setBlue(value);
                 }
                 if (func(tempHandle, "w", value)) {
-					colorWrite.setAlpha(value);
+                    colorWrite.setAlpha(value);
                 }
             }
             if (QString::fromStdString(propName).compare("depthwrite") == 0) {
@@ -182,7 +182,7 @@ void MateralLogic::setOptionsProperty(core::ValueHandle valueHandle, MaterialDat
         }
     }
 	renderMode.setBlending(blending);
-	renderMode.setColorWrite(colorWrite);
+    renderMode.setColorWrite(colorWrite);
     materialData.setRenderMode(renderMode);
 }
 
@@ -225,11 +225,12 @@ void MateralLogic::setUniformsProperty(core::ValueHandle valueHandle, MaterialDa
                 TextureData textureData;
                 textureData.setUniformName(property);
                 setTexturePorperty(tempHandle.asRef(), materialData, textureData);
+
 				if (textureData.getName().empty()) {
 					textureData.setName("empty");
 					textureData.setBitmapRef("empty");
 				}
-				materialData.addTexture(textureData);
+                materialData.addTexture(textureData);
 				break;
             }
             case PrimitiveType::Table:

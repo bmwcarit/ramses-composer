@@ -291,7 +291,7 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 						linkEndMenu->addAction(QString::fromStdString(linkEndPath),
 							[this, &requestedLinkEndObj, linkEndObjID]() {
 								requestedLinkEndObj = QString::fromStdString(linkEndObjID);
-							});
+                            });
 					}
 
 					linkEndMenu->exec(mapToGlobal(goToLinkButton_->pos() + QPoint(goToLinkButton_->width(), 0)));

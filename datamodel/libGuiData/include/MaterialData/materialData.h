@@ -425,13 +425,12 @@ public:
         return winding_;
     }
 
+    void setBlending(Blending blending) {
+        blending_ = blending;
+    }
     Blending getBlending() {
         return blending_;
     }
-
-    void setBlending(Blending& blending) {
-		blending_ = blending;
-	}
 
     ColorWrite getColorWrite() {
         return colorWrite_;

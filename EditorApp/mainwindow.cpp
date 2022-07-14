@@ -515,7 +515,7 @@ void MainWindow::saveDockManagerCustomLayouts() {
 		LOG_ERROR(raco::log_system::COMMON, "Saving custom layout failed: {}", raco::core::PathManager::recentFilesStorePath().string());
 		QMessageBox::critical(this, "Saving custom layout failed", QString("Custom layout data could not be saved to disk and will be lost after closing Ramses Composer. Check whether the application can write to its config directory.\nFile: ") 
 			+ QString::fromStdString(PathManager::layoutFilePath().string()));
-	}
+    }
 }
 
 void MainWindow::timerEvent(QTimerEvent* event) {
@@ -651,6 +651,8 @@ void MainWindow::initLogic() {
 
     // Material logic
     materialLogic_ = new raco::material_logic::MateralLogic(this);
+
+    gltfAnimationMgr_ = new GltfAnimationManager(racoApplication_->activeRaCoProject().commandInterface(), this);
 }
 
 void MainWindow::updateApplicationTitle() {
@@ -682,8 +684,10 @@ bool MainWindow::saveActiveProject() {
 
 bool MainWindow::saveAsActiveProject() {
 	if (racoApplication_->canSaveActiveProject()) {
+
 		QString openedProjectPath = QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string());
 		bool setProjectName = racoApplication_->activeProjectPath().empty();
+
 		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
 		if (newPath.isEmpty()) {
 			return false;
@@ -765,6 +769,7 @@ QString MainWindow::getActiveProjectFolder() {
 void MainWindow::restoreCachedLayout() {
 	auto cachedLayoutInfo = dockManager_->getCachedLayoutInfo();
     nodeLogic_->setCommandInterface(racoApplication_->activeRaCoProject().commandInterface());
+    gltfAnimationMgr_->commandInterface(racoApplication_->activeRaCoProject().commandInterface());
 
 	if (cachedLayoutInfo.empty()) {
         createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_, nodeLogic_, materialLogic_, curveLogic_, programManager_);

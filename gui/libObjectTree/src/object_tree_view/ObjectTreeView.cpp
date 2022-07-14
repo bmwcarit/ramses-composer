@@ -99,6 +99,8 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	auto duplicateShortcut = new QShortcut({"Ctrl+D"}, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
+
+    QObject::connect(&signalProxy::GetInstance(), &signalProxy::sigDeleteAniamtionNode, this, &ObjectTreeView::deleteAnimationHandle);
 }
 
 std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
@@ -201,7 +203,7 @@ bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::Mesh
                     std::string objectName = meshHandle.get("objectName").asString();
                     meshData.setMeshName(objectName);
 
-                    std::string uri = "ctms/" + objectName + ".ctm";
+                    std::string uri = "meshes/" + objectName + ".ctm";
                     meshData.setMeshUri(uri);
                 }
                 return true;
@@ -332,6 +334,35 @@ int ObjectTreeView::attriElementSize(VertexAttribDataType type) {
     }
 }
 
+void ObjectTreeView::convertGltfAnimation() {
+    int row = model()->rowCount();
+    raco::core::ValueHandle valueHandle;
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        if (getAnimationHandle(index, valueHandle)) {
+            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(valueHandle);
+        }
+    }
+}
+
+bool ObjectTreeView::getAnimationHandle(QModelIndex index, raco::core::ValueHandle &valueHandle) {
+    if (!model()->hasChildren(index)) {
+        core::ValueHandle tempHandle = indexToSEditorObject(index);
+        if (tempHandle.rootObject().get()->getTypeDescription().typeName.compare("Animation") == 0) {
+            valueHandle = tempHandle;
+            return true;
+        }
+    } else {
+        for (int i{0}; i < model()->rowCount(index); i++) {
+            QModelIndex tempIndex = model()->index(i, 0, index);
+            if (getAnimationHandle(tempIndex, valueHandle)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void ObjectTreeView::globalCopyCallback() {
 	auto selectedIndices = getSelectedIndices(true);
 	if (!selectedIndices.empty()) {
@@ -399,6 +430,15 @@ void ObjectTreeView::fillMeshData() {
         return;
     }
     updateMeshData();
+}
+
+void ObjectTreeView::deleteAnimationHandle(std::string id) {
+    auto index = indexFromTreeNodeID(id);
+    auto delObjAmount = treeModel_->deleteObjectsAtIndices(QModelIndexList() << index);
+
+    if (delObjAmount > 0) {
+        selectionModel()->Q_EMIT selectionChanged({}, {});
+    }
 }
 
 void ObjectTreeView::expanded(const QModelIndex &index) {
@@ -528,6 +568,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
+                convertGltfAnimation();
 			}
 		});
 		actionImport->setEnabled(canInsertMeshAsset);
