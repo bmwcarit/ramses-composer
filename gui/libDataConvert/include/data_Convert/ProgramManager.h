@@ -22,7 +22,7 @@
 #include "CurveData/CurveManager.h"
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
-#include "data_Convert/OutputPtx.h"
+#include "data_Convert/OutputAssets.h"
 #include "MeshData/MeshDataManager.h"
 #include "openctm.h"
 #include "openctmpp.h"
