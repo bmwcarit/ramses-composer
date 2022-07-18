@@ -22,7 +22,7 @@
 #include "CurveData/CurveManager.h"
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
-#include "data_Convert/OutputPtx.h"
+#include "data_Convert/OutputAssets.h"
 #include "MeshData/MeshDataManager.h"
 #include "openctm.h"
 #include "openctmpp.h"
@@ -41,10 +41,11 @@ class ProgramManager : public QObject {
     Q_OBJECT
 public:
 	bool writeProgram(QString filePath);
+	bool writeBMWAssets(QString filePath);
 	bool writeProgram2Json(QString filePath);
     void setRelativePath(QString path);
 	void setOpenedProjectPath(QString path);
-    bool writeCTMFile();
+	bool writeCTMFile(std::string filePathStr);
     bool readProgramFromJson(QString filePath);
 
 Q_SIGNALS:

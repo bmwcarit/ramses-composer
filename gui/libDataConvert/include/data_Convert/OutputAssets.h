@@ -1,5 +1,5 @@
-#ifndef OUTPUTPTX_H
-#define OUTPUTPTX_H
+#ifndef OUTPUT_ASSETS_H
+#define OUTPUT_ASSETS_H
 
 #include <QDebug>
 #include <QFile>
@@ -87,4 +87,4 @@ private:
 };
 }
 
-#endif // OUTPUTPTX_H
+#endif // OUTPUT_ASSETS_H
