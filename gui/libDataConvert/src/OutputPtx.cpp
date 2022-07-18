@@ -199,9 +199,10 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 		nodeName = nodeName.substr(0, nodeName.length() - 9);
 	hmiNode.set_name(nodeName);
 
-    if (nodeName == "PerspectiveCamera") {
-		setPtxTCamera(childNode, hmiNode);
-    }
+	// Do not export camera data for now
+  //  if (nodeName == "PerspectiveCamera") {
+		//setPtxTCamera(childNode, hmiNode);
+  //  }
 
 	if (childNode->hasSystemData("scale")) {
 		TVector3f* scale = new TVector3f();

@@ -93,6 +93,7 @@ protected:
 protected Q_SLOTS:
 	void openProject(const QString& file = {});
 	bool saveActiveProject();
+	bool exportBMWAssets();
 	bool saveAsActiveProject();
 	void importScene();
 	void resetDockManager();
