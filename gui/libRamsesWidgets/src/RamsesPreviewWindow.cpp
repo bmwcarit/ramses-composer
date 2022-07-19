@@ -105,8 +105,8 @@ RamsesPreviewWindow::State& RamsesPreviewWindow::nextState() {
 	return next_;
 }
 
-void RamsesPreviewWindow::commit() {
-	if (!displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.filteringMode != current_.filteringMode) {
+void RamsesPreviewWindow::commit(bool forceUpdate) {
+	if (forceUpdate || !displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.filteringMode != current_.filteringMode) {
 		// Unload current scenes
 		reduceAndWaitSceneState(rendererBackend_, (displayId_.isValid()) ? ramses::RendererSceneState::Available : ramses::RendererSceneState::Unavailable, framebufferScene_, current_.sceneId);
 
@@ -186,7 +186,7 @@ next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 		}
 	}
 
-	if (displayId_.isValid() && offscreenBufferId_.isValid() && next_.backgroundColor != current_.backgroundColor) {
+	if (displayId_.isValid() && offscreenBufferId_.isValid() && (forceUpdate || next_.backgroundColor != current_.backgroundColor)) {
 		rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_, next_.backgroundColor.redF(), next_.backgroundColor.greenF(), next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 		rendererBackend_.renderer().flush();
 		current_.backgroundColor = next_.backgroundColor;

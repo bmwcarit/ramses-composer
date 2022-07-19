@@ -14,6 +14,7 @@
 #include "core/CommandInterface.h"
 #include "core/EditorObject.h"
 #include "core/ExternalReferenceAnnotation.h"
+#include "core/PrefabOperations.h"
 #include "core/Project.h"
 #include "user_types/Prefab.h"
 #include "core/Queries.h"
@@ -180,9 +181,27 @@ bool ObjectTreeViewDefaultModel::canDropMimeData(const QMimeData* data, Qt::Drop
 		return false;
 	}
 	for (const auto& id : idList) {
-		auto objectFromId = Queries::findById((droppingFromOtherProject) ? *externalProjectStore_->getExternalProjectCommandInterface(originPath)->project() : *project(), id.toStdString());
+		auto idString = id.toStdString();
+		auto objectFromId = Queries::findById((droppingFromOtherProject) ? *externalProjectStore_->getExternalProjectCommandInterface(originPath)->project() : *project(), idString);
+
+		if (!droppingFromOtherProject) {
+			if (&objectFromId->getTypeDescription() != &raco::user_types::PrefabInstance::typeDescription && raco::core::PrefabOperations::findContainingPrefabInstance(objectFromId)) {
+				return false;
+			}
+
+			if (objectFromId->getParent() == nullptr && !parent.isValid()) {
+				auto objIndex = indexFromTreeNodeID(id.toStdString());
+				auto objIsAlreadyInSameModel = objIndex.isValid();
+				if (objIsAlreadyInSameModel) {
+					if (!indexToSEditorObject(objIndex)->query<raco::core::ExternalReferenceAnnotation>()) {
+						return false;
+					}
+				}
+			}
+		}
+
 		if (objectFromId->getParent() == nullptr) {
-			sourceProjectTopLevelObjectIds.emplace(id.toStdString());
+			sourceProjectTopLevelObjectIds.emplace(idString);
 		}
 		objectsFromId.emplace_back(objectFromId);
 	}
@@ -521,7 +540,7 @@ void ObjectTreeViewDefaultModel::cutObjectsAtIndices(const QModelIndexList& indi
 }
 
 void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEditorObject>& objects, SEditorObject parent, int row) {
-	commandInterface_->moveScenegraphChildren(objects, parent, row);
+	commandInterface_->moveScenegraphChildren(objects, parent, parent ? row : -1);
 }
 
 void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex) {
@@ -636,6 +655,17 @@ std::vector<std::string> raco::object_tree::model::ObjectTreeViewDefaultModel::t
 	} else {
 		return allowedUserCreatableUserTypes_;
 	}
+}
+
+std::set<std::string> ObjectTreeViewDefaultModel::externalProjectPathsAtIndices(const QModelIndexList& indices) {
+	std::set<std::string> projectPaths;
+	for (const auto& index : indices) {
+		auto path = indexToTreeNode(index)->getExternalProjectPath();
+		if (!path.empty()) {
+			projectPaths.emplace(path);
+		}
+	}
+	return projectPaths;
 }
 
 }  // namespace raco::object_tree::model

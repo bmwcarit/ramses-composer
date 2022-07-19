@@ -29,10 +29,10 @@ public:
 
 	Node(const Node& other) : BaseObject(other),
 		tags_(other.tags_),
-		visible_(other.visible_),
+		visibility_(other.visibility_),
 		translation_(other.translation_),
 		rotation_(other.rotation_),
-		scale_(other.scale_)
+		scaling_(other.scaling_)
 	{
 		fillPropertyDescription();
 	}
@@ -44,10 +44,10 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("tags", &tags_);
-		properties_.emplace_back("visible", &visible_ );
+		properties_.emplace_back("visibility", &visibility_ );
 		properties_.emplace_back("translation", &translation_);
 		properties_.emplace_back("rotation", &rotation_);
-		properties_.emplace_back("scale", &scale_);
+		properties_.emplace_back("scaling", &scaling_);
 	}
 
 	void onAfterContextActivated(BaseContext& context) override {
@@ -62,17 +62,17 @@ public:
 
 	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
-	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> visible_{true, DisplayNameAnnotation("Visible"), {}};
+	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> visibility_{true, DisplayNameAnnotation("Visibility"), {}};
 
 	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> translation_{Vec3f(0.0, 1.0, -100, 100 ), DisplayNameAnnotation("Translation"), {}};
-	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> scale_{Vec3f(1.0, 0.1, 0.1, 100 ), DisplayNameAnnotation("Scaling"), {}};
+	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> scaling_{Vec3f(1.0, 0.1, 0.1, 100 ), DisplayNameAnnotation("Scaling"), {}};
 	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> rotation_{Vec3f(0.0, 5.0, -360.0, 360.0), DisplayNameAnnotation("Rotation"), {}};
 };
 
 template <auto T> struct property_name { static constexpr std::string_view value {}; };
-template <> struct property_name<&Node::visible_> { static constexpr std::string_view value { "visible" }; };
+template <> struct property_name<&Node::visibility_> { static constexpr std::string_view value { "visibility" }; };
 template <> struct property_name<&Node::translation_> { static constexpr std::string_view value { "translation" }; };
 template <> struct property_name<&Node::rotation_> { static constexpr std::string_view value { "rotation" }; };
-template <> struct property_name<&Node::scale_> { static constexpr std::string_view value { "scale" }; };
+template <> struct property_name<&Node::scaling_> { static constexpr std::string_view value { "scaling" }; };
 
 }

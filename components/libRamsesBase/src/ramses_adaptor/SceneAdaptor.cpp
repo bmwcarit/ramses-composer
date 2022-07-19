@@ -108,7 +108,7 @@ inline ramses_base::RamsesAnimationNode createDefaultAnimation(const raco::ramse
 };
 
 
-SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors)
+SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors, bool optimizeForExport)
 	: client_{client},
 	  logicEngine_{logicEngine},
 	  project_(project),
@@ -123,7 +123,8 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 	  linkValidityChangeSub_{dispatcher->registerOnLinkValidityChange(
 		  [this](const core::LinkDescriptor& link) { changeLinkValidity(link, link.isValid); })},
 	  dispatcher_{dispatcher},
-	  errors_{errors} {
+	  errors_{errors},
+      optimizeForExport_(optimizeForExport) {
 
 	for (const SEditorObject& obj : project_->instances()) {
 		createAdaptor(obj);
@@ -181,6 +182,10 @@ void SceneAdaptor::iterateAdaptors(std::function<void(ObjectAdaptor*)> func) {
 	for (const auto& [obj, adaptor] : adaptors_) {
 		func(adaptor.get());
 	}
+}
+
+bool SceneAdaptor::optimizeForExport() const {
+	return optimizeForExport_;
 }
 
 void SceneAdaptor::updateRuntimeErrorList() {

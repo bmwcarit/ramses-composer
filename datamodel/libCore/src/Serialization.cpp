@@ -680,11 +680,13 @@ std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePro
 	return typesPropTypeMap;
 }
 
-std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders) {
+std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, bool includeVersionInfo) {
 	QJsonObject result{};
 
-	result.insert(keys::FILE_VERSION, RAMSES_PROJECT_FILE_VERSION);
-	result.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH});
+	if (includeVersionInfo) {
+		result.insert(keys::FILE_VERSION, RAMSES_PROJECT_FILE_VERSION);
+		result.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH});
+	}
 
 	if (!originFolder.empty()) {
 		result.insert(keys::ORIGIN_FOLDER, originFolder.c_str());
@@ -723,7 +725,7 @@ std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objec
 	return QJsonDocument{result}.toJson().toStdString();
 }
 
-std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json) {
+std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo) {
 	auto& factory{user_types::UserObjectFactory::getInstance()};
 	ObjectsDeserialization result{};
 	auto document{QJsonDocument::fromJson(json.c_str())};
@@ -732,11 +734,13 @@ std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json
 	}
 
 	auto container{document.object()};
-	if (container[keys::FILE_VERSION].isUndefined() || container[keys::FILE_VERSION].toInt() != RAMSES_PROJECT_FILE_VERSION) {
-		return {};
-	}
-	if (container[keys::RAMSES_COMPOSER_VERSION].isUndefined() || container[keys::RAMSES_COMPOSER_VERSION].toArray() != QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}) {
-		return {};
+	if (checkVersionInfo) {
+		if (container[keys::FILE_VERSION].isUndefined() || container[keys::FILE_VERSION].toInt() != RAMSES_PROJECT_FILE_VERSION) {
+			return {};
+		}
+		if (container[keys::RAMSES_COMPOSER_VERSION].isUndefined() || container[keys::RAMSES_COMPOSER_VERSION].toArray() != QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}) {
+			return {};
+		}
 	}
 
 	if (!container[keys::ORIGIN_FOLDER].isUndefined() && !container[keys::ORIGIN_FOLDER].toString().isEmpty()) {
@@ -872,7 +876,8 @@ ProjectDeserializationInfo deserializeProject(const QJsonDocument& document, con
 	auto deserializedIR{deserializeProjectToIR(document, filename)};
 
 	// run new migration code
-	migrateProject(deserializedIR);
+	auto& factory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	migrateProject(deserializedIR, factory);
 
 	return ConvertFromIRToUserTypes(deserializedIR);
 }

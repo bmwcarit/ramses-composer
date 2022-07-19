@@ -27,6 +27,18 @@ public:
 	virtual void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const = 0;
 	virtual const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) = 0;
 	virtual void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) = 0;
+
+	static const rlogic::Property* getPropertyRecursive(const rlogic::Property* property, const std::vector<std::string>& propertyNames, size_t startIndex = 0) {
+		for (size_t index = startIndex; index < propertyNames.size(); index++) {
+			if (property->getType() == rlogic::EPropertyType::Array) {
+				// convert 1-bases Editor index back to 0-based index
+				property = property->getChild(std::stoi(propertyNames[index]) - 1);
+			} else {
+				property = property->getChild(propertyNames[index]);
+			}
+		}
+		return property;
+	}
 };
 
 

@@ -41,6 +41,7 @@ public:
 	bool canCopyAtIndices(const QModelIndexList &indices);
 	bool canPasteIntoIndex(const QModelIndex &index, bool asExtref);
 	bool canProgrammaticallyGoToObject();
+	bool containsObject(const QString &objectID) const;
 
 	QSortFilterProxyModel *proxyModel() const;
 

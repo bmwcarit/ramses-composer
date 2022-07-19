@@ -103,7 +103,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value"}}, 5);
+	context.set({luaScript, {"inputs", "value"}}, 5);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -124,7 +124,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value"}}, 5.0);
+	context.set({luaScript, {"inputs", "value"}}, 5.0);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -145,7 +145,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value"}}, true);
+	context.set({luaScript, {"inputs", "value"}}, true);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -166,7 +166,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value", "x" }}, 5.0f);
+	context.set({luaScript, {"inputs", "value", "x" }}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -190,7 +190,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value", "a"}}, 5.0f);
+	context.set({luaScript, {"inputs", "value", "a"}}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -214,7 +214,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value", "a", "x"}}, 5.0f);
+	context.set({luaScript, {"inputs", "value", "a", "x"}}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -235,7 +235,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value", "x"}}, 5.0f);
+	context.set({luaScript, {"inputs", "value", "x"}}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -259,7 +259,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value"}}, 5);
+	context.set({luaScript, {"inputs", "in_value"}}, 5);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -282,7 +282,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value"}}, 5.0);
+	context.set({luaScript, {"inputs", "in_value"}}, 5.0);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -305,7 +305,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value"}}, true);
+	context.set({luaScript, {"inputs", "in_value"}}, true);
 	dispatch();	
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -328,7 +328,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value", "x" }}, 5.0f);
+	context.set({luaScript, {"inputs", "in_value", "x" }}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -357,7 +357,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value", "a"}}, 5.0f);
+	context.set({luaScript, {"inputs", "in_value", "a"}}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -385,7 +385,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value", "a", "x"}}, 5.0f);
+	context.set({luaScript, {"inputs", "in_value", "a", "x"}}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -408,7 +408,7 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value", "x"}}, 5.0f);
+	context.set({luaScript, {"inputs", "in_value", "x"}}, 5.0f);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
@@ -436,13 +436,13 @@ function run(IN,OUT)
 end
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "value"}}, 5.0);
+	context.set({luaScript, {"inputs", "value"}}, 5.0);
 	dispatch();
 
 	auto engineObj{select<rlogic::LuaScript>(sceneContext.logicEngine(), "LuaScript Name")};
 	ASSERT_EQ(6.0f, engineObj->getOutputs()->getChild("value")->get<float>());
 
-	context.set({luaScript, {"luaInputs", "value"}}, 2.0);
+	context.set({luaScript, {"inputs", "value"}}, 2.0);
 	dispatch();
 	ASSERT_EQ(4.0f, engineObj->getOutputs()->getChild("value")->get<float>());
 }

@@ -31,6 +31,8 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Material.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaScriptModule.h"
+#include "user_types/LuaInterface.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/PrefabInstance.h"
@@ -154,6 +156,24 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return create_lua(commandInterface, name, file);
 	}
 
+	raco::user_types::SLuaScriptModule create_lua_module(const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
+		auto module = create<raco::user_types::LuaScriptModule>(commandInterface, name, parent);
+		commandInterface.set({module, {"uri"}}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
+		return module;
+	}
+
+	raco::user_types::SLuaInterface create_lua_interface(const std::string& name, const std::string& relpath, raco::core::SEditorObject parent = nullptr) {
+		auto interface = create<raco::user_types::LuaInterface>(commandInterface, name, parent);
+		commandInterface.set({interface, {"uri"}}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
+		return interface;
+	}
+
+	raco::user_types::SLuaInterface create_lua_interface(const std::string& name, const typename RacoBaseTest<BaseClass>::TextFile& file, raco::core::SEditorObject parent = nullptr) {
+		auto interface = create<raco::user_types::LuaInterface>(commandInterface, name, parent);
+		commandInterface.set({interface, {"uri"}}, file);
+		return interface;
+	}
+
 	raco::user_types::SRenderLayer create_layer(const std::string& name,
 		const std::vector<std::string>& tags = {},
 		const std::vector<std::pair<std::string, int>>& renderables = {},
@@ -191,7 +211,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	std::pair<raco::core::PropertyDescriptor, raco::core::PropertyDescriptor> link(raco::user_types::SEditorObject startObj, std::vector<std::string> startProp, raco::user_types::SEditorObject endObj, std::vector<std::string> endProp) {
 		raco::core::PropertyDescriptor start{startObj, startProp};
 		raco::core::PropertyDescriptor end{endObj, endProp};
-		commandInterface.addLink(start, end);
+		commandInterface.addLink(raco::core::ValueHandle(start), raco::core::ValueHandle(end));
 		return {start, end};
 	}
 

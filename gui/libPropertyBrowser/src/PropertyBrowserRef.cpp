@@ -24,7 +24,9 @@ PropertyBrowserRef::PropertyBrowserRef(PropertyBrowserItem* parent)
 		  updateIndex();
 		  Q_EMIT indexChanged(index_);
 	  })},
-	  lifecycleSub_{parent->dispatcher()->registerOnObjectsLifeCycle([this](auto) { update(); }, [this](auto) { update(); })} {
+	  lifecycleSub_{parent->dispatcher()->registerOnObjectsLifeCycle([this](auto) { update(); }, [this](auto) { update(); })},
+	  childMoveSub_{parent->dispatcher()->registerOnPropertyChange("children", [this](raco::core::ValueHandle handle) { update(); })}
+ {
 	update();
 }
 

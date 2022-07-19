@@ -22,6 +22,9 @@ LuaScriptModuleAdaptor::LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco:
 	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, &user_types::LuaScriptModule::objectName_}, [this]() {
 		  tagDirty();
 	  })},
+	  stdModuleSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScriptModule::stdModules_}, [this](auto) {
+		  tagDirty();
+	  })},
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() {
 		  tagDirty();
 	  })} {
@@ -32,7 +35,8 @@ bool LuaScriptModuleAdaptor::sync(core::Errors* errors) {
 
 	if (editorObject_->isValid()) {
 		const auto& scriptContents = editorObject_->currentScriptContents();
-		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
+		auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), luaConfig, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 		assert(module_ != nullptr);
 	} else {
 		module_.reset();

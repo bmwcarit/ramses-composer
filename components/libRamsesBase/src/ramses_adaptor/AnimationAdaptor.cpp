@@ -32,13 +32,8 @@ void AnimationAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes
 }
 
 const rlogic::Property* AnimationAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
-	if (propertyNamesVector.size() > 1) {
-		const rlogic::Property* prop{(*animNode_)->getOutputs()};
-		// The first element in the names is the output container
-		for (size_t i = 1; i < propertyNamesVector.size(); i++) {
-			prop = prop->getChild(propertyNamesVector.at(i));
-		}
-		return prop;
+	if (propertyNamesVector.size() > 1 && propertyNamesVector[0] == "outputs") {
+		return ILogicPropertyProvider::getPropertyRecursive((*animNode_)->getOutputs(), propertyNamesVector, 1);
 	} else if (propertyNamesVector.size() == 1) {
 		return (*animNode_)->getInputs()->getChild(propertyNamesVector.front());
 	}

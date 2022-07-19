@@ -35,7 +35,7 @@ TEST_F(DeserializationTest, deserializeNode) {
 	SNode sNode{std::dynamic_pointer_cast<Node>(result.object)};
 	ASSERT_EQ(sNode->objectID(), "node_id");
 	ASSERT_EQ(sNode->objectName(), "node");
-	ASSERT_EQ(100.0, *sNode->scale_->z.staticQuery<raco::core::RangeAnnotation<double>>().max_);
+	ASSERT_EQ(100.0, *sNode->scaling_->z.staticQuery<raco::core::RangeAnnotation<double>>().max_);
 }
 
 TEST_F(DeserializationTest, deserializeNodeRotated) {
@@ -91,8 +91,8 @@ TEST_F(DeserializationTest, deserializeLuaScript) {
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 	ASSERT_EQ(0, result.references.size());
-	ASSERT_EQ(0, sLuaScript->luaInputs_->size());
-	ASSERT_EQ(0, sLuaScript->luaOutputs_->size());
+	ASSERT_EQ(0, sLuaScript->inputs_->size());
+	ASSERT_EQ(0, sLuaScript->outputs_->size());
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptInStruct) {
@@ -101,10 +101,10 @@ TEST_F(DeserializationTest, deserializeLuaScriptInStruct) {
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 	ASSERT_EQ(0, result.references.size());
-	ASSERT_EQ(1, sLuaScript->luaInputs_->size());
-	ASSERT_EQ(raco::data_storage::PrimitiveType::Double, sLuaScript->luaInputs_->get(0)->asTable().get(0)->type());
-	ASSERT_EQ(raco::data_storage::PrimitiveType::Double, sLuaScript->luaInputs_->get(0)->asTable().get(1)->type());
-	ASSERT_EQ(0, sLuaScript->luaOutputs_->size());
+	ASSERT_EQ(1, sLuaScript->inputs_->size());
+	ASSERT_EQ(raco::data_storage::PrimitiveType::Double, sLuaScript->inputs_->get(0)->asTable().get(0)->type());
+	ASSERT_EQ(raco::data_storage::PrimitiveType::Double, sLuaScript->inputs_->get(0)->asTable().get(1)->type());
+	ASSERT_EQ(0, sLuaScript->outputs_->size());
 }
 
 TEST_F(DeserializationTest, deserializeLuaScriptInSpecificPropNames) {
@@ -119,7 +119,7 @@ TEST_F(DeserializationTest, deserializeLuaScriptWithRefToUserTypeWithAnnotation)
 		raco::utils::file::read((test_path() / "expectations" / "LuaScriptWithRefToUserTypeWithAnnotation.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
-	auto* property{sLuaScript->luaInputs_->get(sLuaScript->luaInputs_->index("ref"))};
+	auto* property{sLuaScript->inputs_->get(sLuaScript->inputs_->index("ref"))};
 	ASSERT_EQ("Texture::EngineTypeAnnotation", property->typeName());
 	ASSERT_EQ(1, property->baseAnnotationPtrs().size());
 	ASSERT_TRUE(property->dynamicQuery<raco::user_types::EngineTypeAnnotation>() != nullptr);
@@ -131,7 +131,7 @@ TEST_F(DeserializationTest, deserializeLuaScriptWithURI) {
 		raco::utils::file::read((test_path() / "expectations" / "LuaScriptWithURI.json").string()));
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
-	auto* property{sLuaScript->luaInputs_->get(sLuaScript->luaInputs_->index("uri"))};
+	auto* property{sLuaScript->inputs_->get(sLuaScript->inputs_->index("uri"))};
 	ASSERT_EQ("String::URIAnnotation", property->typeName());
 	ASSERT_EQ(1, property->baseAnnotationPtrs().size());
 	ASSERT_TRUE(property->dynamicQuery<raco::core::URIAnnotation>() != nullptr);
@@ -143,7 +143,7 @@ TEST_F(DeserializationTest, deserializeLuaScriptWithAnnotatedDouble) {
 	ASSERT_EQ(raco::user_types::LuaScript::typeDescription.typeName, result.object->getTypeDescription().typeName);
 	SLuaScript sLuaScript{std::dynamic_pointer_cast<LuaScript>(result.object)};
 
-	auto* property = sLuaScript->luaInputs_->get(sLuaScript->luaInputs_->index("double"));
+	auto* property = sLuaScript->inputs_->get(sLuaScript->inputs_->index("double"));
 	ASSERT_EQ("Double", *property->query<raco::user_types::DisplayNameAnnotation>()->name_);
 	ASSERT_EQ(-10.0, *property->query<raco::user_types::RangeAnnotation<double>>()->min_);
 	ASSERT_EQ(10.0, *property->query<raco::user_types::RangeAnnotation<double>>()->max_);
@@ -179,16 +179,16 @@ TEST_F(DeserializationTest, deserializeVersionArray) {
 
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode_outputsAreDeserialized) {
 	auto result = raco::serialization::deserializeObjects(
-		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()));
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()), false);
 	ASSERT_TRUE(result.has_value());
 
 	raco::user_types::SLuaScript sScript{ raco::select<raco::user_types::LuaScript>(result->objects)};
-	ASSERT_EQ(3, sScript->luaOutputs_->size());
+	ASSERT_EQ(3, sScript->outputs_->size());
 }
 
 TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	auto result = raco::serialization::deserializeObjects(
-		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()));
+		raco::utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()), false);
 	ASSERT_TRUE(result.has_value());
 
 	std::vector<raco::core::SEditorObject> objects{};
@@ -210,7 +210,7 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	raco::user_types::SLuaScript sLuaScript{raco::select<raco::user_types::LuaScript>(result->objects)};
 	raco::user_types::SNode sNode{raco::select<raco::user_types::Node>(result->objects)};
 
-	raco::core::PropertyDescriptor startProp {sLuaScript, {"luaOutputs", "translation"}};
+	raco::core::PropertyDescriptor startProp {sLuaScript, {"outputs", "translation"}};
 	EXPECT_EQ(startProp, sLink->startProp());
 	raco::core::PropertyDescriptor endProp{sNode, {"translation"}};
 	EXPECT_EQ(endProp, sLink->endProp());

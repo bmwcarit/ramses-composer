@@ -57,6 +57,7 @@ raco_package_add_test_resouces(
     scripts/struct-simple.lua
     scripts/struct-nested.lua
     scripts/SimpleScript.lua
+    scripts/interface-scalar-types.lua
 )
 
 
@@ -129,6 +130,17 @@ raco_package_add_test_resouces(
     migrationTestData/V29.rca
     migrationTestData/V29_tags.rca
     migrationTestData/V29_renderlayer.rca
+    migrationTestData/scripts/array.lua
+    migrationTestData/scripts/array-of-array.lua
+    migrationTestData/scripts/array-of-structs.lua
+    migrationTestData/scripts/types-scalar.lua
+    migrationTestData/scripts/struct-simple.lua
+    migrationTestData/scripts/struct-nested.lua
+    migrationTestData/scripts/interface-scalar-types.lua
+    migrationTestData/V35.rca
+    migrationTestData/V35_extref.rca
+    migrationTestData/V35_extref_nested.rca
+    migrationTestData/V39.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

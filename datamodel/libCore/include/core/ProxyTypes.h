@@ -52,6 +52,10 @@ extern const char luaScriptTypeName[];
 using LuaScript = Proxy<luaScriptTypeName>;
 using SLuaScript = std::shared_ptr<LuaScript>;
 
+extern const char luaInterfaceTypeName[];
+using LuaInterface = Proxy<luaInterfaceTypeName>;
+using SLuaInterface = std::shared_ptr<LuaInterface>;
+
 extern const char luaScriptModuleTypeName[];
 using LuaScriptModule = Proxy<luaScriptModuleTypeName>;
 using SLuaScriptModule = std::shared_ptr<LuaScriptModule>;
@@ -120,6 +124,7 @@ extern const char timerTypeName[];
 using Timer = Proxy<timerTypeName>;
 using STimer = std::shared_ptr<Timer>;
 
+
 template<const char* Name>
 class StructProxy : public DynamicGenericStruct {
 public:
@@ -182,5 +187,14 @@ using OrthographicFrustum = StructProxy<orthographicFrustumTypeName>;
 
 extern const char defaultResourceDirectoriesTypeName[];
 using DefaultResourceDirectories = StructProxy<defaultResourceDirectoriesTypeName>;
+
+extern const char luaStandardModuleSelectionTypeName[];
+using LuaStandardModuleSelection = StructProxy<luaStandardModuleSelectionTypeName>;
+
+extern const char timerInputTypeName[];
+using TimerInput = StructProxy<timerInputTypeName>;
+
+extern const char timerOutputTypeName[];
+using TimerOutput = StructProxy<timerOutputTypeName>;
 
 }  // namespace raco::serialization::proxy

@@ -30,10 +30,10 @@ public:
 	static std::vector<unsigned char>& getFallbackTextureData(bool flipped);
 
 private:
-	ramses_base::RamsesTexture2D createTexture(core::Errors* errors);
+	ramses_base::RamsesTexture2D createTexture(core::Errors* errors, raco::ramses_base::PngDecodingInfo &decodingInfo);
 	ramses_base::RamsesTexture2D getFallbackTexture();
 
-	std::array<components::Subscription, 9> subscriptions_;
+	std::array<components::Subscription, 10> subscriptions_;
 	ramses_base::RamsesTexture2D textureData_;
 
 	static inline std::array<std::vector<unsigned char>, 2> fallbackTextureData_;

@@ -44,6 +44,7 @@ public:
 	PropertyBrowserModel* model() const;
 
 public Q_SLOTS:
+	void setValueHandleFromObjectId(const QString& objectID);
 	void setValueHandle(raco::core::ValueHandle valueHandle);
 	void setValueHandles(const std::set<raco::core::ValueHandle>& valueHandles);
 	void clear();

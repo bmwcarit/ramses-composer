@@ -52,17 +52,17 @@ TEST_F(LinkTest, fail_create_invalid_handles) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "INVALID"}}), std::runtime_error);
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "INVALID"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"outputs", "INVALID"}}, ValueHandle{end, {"inputs", "float"}}), std::runtime_error);
 
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"INVALID"}}), std::runtime_error);
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"INVALID"}}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"INVALID"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"INVALID"}}, ValueHandle{end, {"inputs", "float"}}), std::runtime_error);
 
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end}), std::runtime_error);
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start}, ValueHandle{end, {"inputs", "float"}}), std::runtime_error);
 
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{}), std::runtime_error);
-	EXPECT_THROW(commandInterface.addLink(ValueHandle{}, ValueHandle{end, {"luaInputs", "float"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink(ValueHandle{}, ValueHandle{end, {"inputs", "float"}}), std::runtime_error);
 }
 
 TEST_F(LinkTest, lua_lua_scalar) {
@@ -70,14 +70,14 @@ TEST_F(LinkTest, lua_lua_scalar) {
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 
 	checkUndoRedoMultiStep<2>(
-		{[this, start, end]() { commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "float"}}); },
-			[this, end]() { commandInterface.removeLink({end, {"luaInputs", "float"}}); }},
+		{[this, start, end]() { commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}); },
+			[this, end]() { commandInterface.removeLink({end, {"inputs", "float"}}); }},
 		{
 			[this]() {
 				EXPECT_EQ(project.links().size(), 0);
 			},
 			[this, start, end]() {
-				std::vector<Link> refLinks{{{{start, {"luaOutputs", "ofloat"}}, {end, {"luaInputs", "float"}}}}};
+				std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}}}};
 				checkLinks(refLinks);
 			},
 			[this]() {
@@ -90,7 +90,7 @@ TEST_F(LinkTest, remove_valid) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 	checkLinks({{sprop, eprop, true}});
 	commandInterface.removeLink(eprop);
 	checkLinks({});
@@ -100,7 +100,7 @@ TEST_F(LinkTest, remove_invalid) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set({end, {"uri"}}, std::string());
@@ -115,13 +115,13 @@ TEST_F(LinkTest, lua_lua_recorder_merge) {
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 
 	EXPECT_EQ(project.links().size(), 0);
-	commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "float"}});
+	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
 
-	std::vector<Link> refLinks{{{{start, {"luaOutputs", "ofloat"}}, {end, {"luaInputs", "float"}}}}};
+	std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}}}};
 	checkLinks(refLinks);
 	EXPECT_EQ(recorder.getAddedLinks().size(), 1);
 
-	commandInterface.removeLink({end, {"luaInputs", "float"}});
+	commandInterface.removeLink({end, {"inputs", "float"}});
 
 	EXPECT_EQ(project.links().size(), 0);
 	EXPECT_EQ(recorder.getAddedLinks().size(), 0);
@@ -133,17 +133,17 @@ TEST_F(LinkTest, lua_lua_struct_simple) {
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
 	checkUndoRedoMultiStep<2>(
-		{[this, start, end]() { commandInterface.addLink(ValueHandle{start, {"luaOutputs", "s", "float"}}, ValueHandle{end, {"luaInputs", "s", "float"}}); },
-			[this, start, end]() { commandInterface.addLink(ValueHandle{start, {"luaOutputs", "s"}}, ValueHandle{end, {"luaInputs", "s"}}); }},
+		{[this, start, end]() { commandInterface.addLink(ValueHandle{start, {"outputs", "s", "float"}}, ValueHandle{end, {"inputs", "s", "float"}}); },
+			[this, start, end]() { commandInterface.addLink(ValueHandle{start, {"outputs", "s"}}, ValueHandle{end, {"inputs", "s"}}); }},
 		{[this]() {
 			 EXPECT_EQ(project.links().size(), 0);
 		 },
 			[this, start, end]() {
-				std::vector<Link> refLinks{{{{start, {"luaOutputs", "s", "float"}}, {end, {"luaInputs", "s", "float"}}}}};
+				std::vector<Link> refLinks{{{{start, {"outputs", "s", "float"}}, {end, {"inputs", "s", "float"}}}}};
 				checkLinks(refLinks);
 			},
 			[this, start, end]() {
-				std::vector<Link> refLinks{{{{start, {"luaOutputs", "s"}}, {end, {"luaInputs", "s"}}}}};
+				std::vector<Link> refLinks{{{{start, {"outputs", "s"}}, {end, {"inputs", "s"}}}}};
 				checkLinks(refLinks);
 			}});
 }
@@ -154,34 +154,34 @@ TEST_F(LinkTest, lua_persp_camera_struct_viewport_frustum) {
 
 	checkUndoRedoMultiStep<4>(
 		{[this, lua, camera]() {
-			 commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport", "offsetX"}}, ValueHandle{camera, {"viewport", "offsetX"}});
+			 commandInterface.addLink(ValueHandle{lua, {"outputs", "viewport", "offsetX"}}, ValueHandle{camera, {"viewport", "offsetX"}});
 		 },
 			[this, lua, camera]() {
-				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "perspFrustum", "nearPlane"}}, ValueHandle{camera, {"frustum", "nearPlane"}});
+				commandInterface.addLink(ValueHandle{lua, {"outputs", "perspFrustum", "nearPlane"}}, ValueHandle{camera, {"frustum", "nearPlane"}});
 			},
 			[this, lua, camera]() {
-				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport"}}, ValueHandle{camera, {"viewport"}});
+				commandInterface.addLink(ValueHandle{lua, {"outputs", "viewport"}}, ValueHandle{camera, {"viewport"}});
 			},
 			[this, lua, camera]() {
-				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "perspFrustum"}}, ValueHandle{camera, {"frustum"}});
+				commandInterface.addLink(ValueHandle{lua, {"outputs", "perspFrustum"}}, ValueHandle{camera, {"frustum"}});
 			}},
 		{[this]() {
 			 EXPECT_EQ(project.links().size(), 0);
 		 },
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetX"}}, {camera, {"viewport", "offsetX"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport", "offsetX"}}, {camera, {"viewport", "offsetX"}}, true}});
 			},
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetX"}}, {camera, {"viewport", "offsetX"}}, true},
-					{{lua, {"luaOutputs", "perspFrustum", "nearPlane"}}, {camera, {"frustum", "nearPlane"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport", "offsetX"}}, {camera, {"viewport", "offsetX"}}, true},
+					{{lua, {"outputs", "perspFrustum", "nearPlane"}}, {camera, {"frustum", "nearPlane"}}, true}});
 			},
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
-					{{lua, {"luaOutputs", "perspFrustum", "nearPlane"}}, {camera, {"frustum", "nearPlane"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"outputs", "perspFrustum", "nearPlane"}}, {camera, {"frustum", "nearPlane"}}, true}});
 			},
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
-					{{lua, {"luaOutputs", "perspFrustum"}}, {camera, {"frustum"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"outputs", "perspFrustum"}}, {camera, {"frustum"}}, true}});
 			}});
 }
 
@@ -191,34 +191,34 @@ TEST_F(LinkTest, lua_ortho_camera_struct_viewport_frustum) {
 
 	checkUndoRedoMultiStep<4>(
 		{[this, lua, camera]() {
-			 commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport", "offsetY"}}, ValueHandle{camera, {"viewport", "offsetY"}});
+			 commandInterface.addLink(ValueHandle{lua, {"outputs", "viewport", "offsetY"}}, ValueHandle{camera, {"viewport", "offsetY"}});
 		 },
 			[this, lua, camera]() {
-				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "orthoFrustum", "leftPlane"}}, ValueHandle{camera, {"frustum", "leftPlane"}});
+				commandInterface.addLink(ValueHandle{lua, {"outputs", "orthoFrustum", "leftPlane"}}, ValueHandle{camera, {"frustum", "leftPlane"}});
 			},
 			[this, lua, camera]() {
-				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "viewport"}}, ValueHandle{camera, {"viewport"}});
+				commandInterface.addLink(ValueHandle{lua, {"outputs", "viewport"}}, ValueHandle{camera, {"viewport"}});
 			},
 			[this, lua, camera]() {
-				commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "orthoFrustum"}}, ValueHandle{camera, {"frustum"}});
+				commandInterface.addLink(ValueHandle{lua, {"outputs", "orthoFrustum"}}, ValueHandle{camera, {"frustum"}});
 			}},
 		{[this]() {
 			 EXPECT_EQ(project.links().size(), 0);
 		 },
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetY"}}, {camera, {"viewport", "offsetY"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport", "offsetY"}}, {camera, {"viewport", "offsetY"}}, true}});
 			},
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport", "offsetY"}}, {camera, {"viewport", "offsetY"}}, true},
-					{{lua, {"luaOutputs", "orthoFrustum", "leftPlane"}}, {camera, {"frustum", "leftPlane"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport", "offsetY"}}, {camera, {"viewport", "offsetY"}}, true},
+					{{lua, {"outputs", "orthoFrustum", "leftPlane"}}, {camera, {"frustum", "leftPlane"}}, true}});
 			},
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
-					{{lua, {"luaOutputs", "orthoFrustum", "leftPlane"}}, {camera, {"frustum", "leftPlane"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"outputs", "orthoFrustum", "leftPlane"}}, {camera, {"frustum", "leftPlane"}}, true}});
 			},
 			[this, lua, camera]() {
-				checkLinks({{{lua, {"luaOutputs", "viewport"}}, {camera, {"viewport"}}, true},
-					{{lua, {"luaOutputs", "orthoFrustum"}}, {camera, {"frustum"}}, true}});
+				checkLinks({{{lua, {"outputs", "viewport"}}, {camera, {"viewport"}}, true},
+					{{lua, {"outputs", "orthoFrustum"}}, {camera, {"frustum"}}, true}});
 			}});
 }
 
@@ -226,15 +226,15 @@ TEST_F(LinkTest, lua_lua_compatibility_int64) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
-	auto allowed64 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"luaInputs", "s", "integer64"}));
+	auto allowed64 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "integer64"}));
 	std::set<ValueHandle> refAllowed64{
-		{start, {"luaOutputs", "ointeger64"}}};
+		{start, {"outputs", "ointeger64"}}};
 
 	EXPECT_EQ(allowed64, refAllowed64);
 
-	auto allowed32 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"luaInputs", "s", "integer"}));
+	auto allowed32 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "integer"}));
 	std::set<ValueHandle> refAllowed32{
-		{start, {"luaOutputs", "ointeger"}}};
+		{start, {"outputs", "ointeger"}}};
 
 	EXPECT_EQ(allowed32, refAllowed32);
 }
@@ -243,11 +243,11 @@ TEST_F(LinkTest, lua_lua_compatibility_float) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
-	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"luaInputs", "s", "float"}));
+	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "float"}));
 	std::set<ValueHandle> refAllowed{
-		{start, {"luaOutputs", "ofloat"}},
-		{start, {"luaOutputs", "foo"}},
-		{start, {"luaOutputs", "bar"}}};
+		{start, {"outputs", "ofloat"}},
+		{start, {"outputs", "foo"}},
+		{start, {"outputs", "bar"}}};
 
 	EXPECT_EQ(allowed, refAllowed);
 }
@@ -256,47 +256,47 @@ TEST_F(LinkTest, lua_lua_compatibility_struct) {
 	auto start = create_lua("start", "scripts/struct-simple.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
-	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"luaInputs", "s"}));
+	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s"}));
 
-	EXPECT_EQ(allowed, std::set<ValueHandle>({{start, {"luaOutputs", "s"}}}));
+	EXPECT_EQ(allowed, std::set<ValueHandle>({{start, {"outputs", "s"}}}));
 }
 
 TEST_F(LinkTest, lua_loop_detection) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 	checkLinks({{sprop, eprop, true}});
 
 	// 2 lua scripts, connected graph -> no links allowed
 	{
-		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"luaInputs", "float"}));
+		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
 		EXPECT_EQ(allowed.size(), 0);
 	}
 
 	auto start2 = create_lua("start 2", "scripts/types-scalar.lua");
 	auto end2 = create_lua("end 2", "scripts/types-scalar.lua");
-	context.addLink(ValueHandle{start2, {"luaOutputs", "ofloat"}}, ValueHandle{end2, {"luaInputs", "float"}});
+	context.addLink(ValueHandle{start2, {"outputs", "ofloat"}}, ValueHandle{end2, {"inputs", "float"}});
 	EXPECT_EQ(project.links().size(), 2);
 
 	// 4 lua scripts, graph not connected, links allowed between the 2 disconnected subgraphs
 	{
-		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"luaInputs", "float"}));
+		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
 		std::set<ValueHandle> refAllowed{
-			{start2, {"luaOutputs", "ofloat"}},
-			{start2, {"luaOutputs", "foo"}},
-			{start2, {"luaOutputs", "bar"}},
-			{end2, {"luaOutputs", "ofloat"}},
-			{end2, {"luaOutputs", "foo"}},
-			{end2, {"luaOutputs", "bar"}}};
+			{start2, {"outputs", "ofloat"}},
+			{start2, {"outputs", "foo"}},
+			{start2, {"outputs", "bar"}},
+			{end2, {"outputs", "ofloat"}},
+			{end2, {"outputs", "foo"}},
+			{end2, {"outputs", "bar"}}};
 		EXPECT_EQ(allowed, refAllowed);
 	}
 
-	context.addLink(ValueHandle{end, {"luaOutputs", "ofloat"}}, ValueHandle{start2, {"luaInputs", "float"}});
+	context.addLink(ValueHandle{end, {"outputs", "ofloat"}}, ValueHandle{start2, {"inputs", "float"}});
 	EXPECT_EQ(project.links().size(), 3);
 
 	// 4 lua scripts, graph connected again, no links allowed
 	{
-		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"luaInputs", "float"}));
+		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
 		EXPECT_EQ(allowed.size(), 0);
 	}
 }
@@ -304,7 +304,7 @@ TEST_F(LinkTest, lua_loop_detection) {
 TEST_F(LinkTest, removal_del_start_obj) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.deleteObjects({start});
@@ -313,7 +313,7 @@ TEST_F(LinkTest, removal_del_start_obj) {
 TEST_F(LinkTest, removal_del_end_obj) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.deleteObjects({end});
@@ -323,7 +323,7 @@ TEST_F(LinkTest, removal_del_end_obj) {
 TEST_F(LinkTest, removal_del_start_obj_invalid_link) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(start, "scripts/SimpleScript.lua");
@@ -336,7 +336,7 @@ TEST_F(LinkTest, removal_del_start_obj_invalid_link) {
 TEST_F(LinkTest, removal_del_end_obj_invalid_link) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(start, "scripts/SimpleScript.lua");
@@ -378,14 +378,14 @@ end
 	auto start = create_lua("start", script_1);
 	auto end = create_lua("end", script_1);
 
-	context.addLink({start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}});
-	context.addLink({start, {"luaOutputs", "flag"}}, {end, {"luaInputs", "flag"}});
-	checkLinks({{{start, {"luaOutputs", "flag"}}, {end, {"luaInputs", "flag"}}, true},
-		{{start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}, true}});
+	context.addLink({start, {"outputs", "v"}}, {end, {"inputs", "v"}});
+	context.addLink({start, {"outputs", "flag"}}, {end, {"inputs", "flag"}});
+	checkLinks({{{start, {"outputs", "flag"}}, {end, {"inputs", "flag"}}, true},
+		{{start, {"outputs", "v"}}, {end, {"inputs", "v"}}, true}});
 
 	context.set({start, {"uri"}}, script_2);
-	checkLinks({{{start, {"luaOutputs", "flag"}}, {end, {"luaInputs", "flag"}}, true},
-		{{start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}, false}});
+	checkLinks({{{start, {"outputs", "flag"}}, {end, {"inputs", "flag"}}, true},
+		{{start, {"outputs", "v"}}, {end, {"inputs", "v"}}, false}});
 }
 
 TEST_F(LinkTest, removal_sync_lua_struct_remove_property_whole) {
@@ -418,7 +418,7 @@ end
 	auto start = create_lua("start", script_1);
 	auto end = create_lua("end", script_1);
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "s"}, end, {"luaInputs", "s"});
+	auto [sprop, eprop] = link(start, {"outputs", "s"}, end, {"inputs", "s"});
 	checkLinks({{sprop, eprop, true}});
 
 	context.set({start, {"uri"}}, script_2);
@@ -455,19 +455,19 @@ end
 	auto start = create_lua("start", script_1);
 	auto end = create_lua("end", script_1);
 
-	context.addLink({start, {"luaOutputs", "s", "x"}}, {end, {"luaInputs", "s", "x"}});
-	context.addLink({start, {"luaOutputs", "s", "y"}}, {end, {"luaInputs", "s", "y"}});
-	context.addLink({start, {"luaOutputs", "s", "z"}}, {end, {"luaInputs", "s", "z"}});
+	context.addLink({start, {"outputs", "s", "x"}}, {end, {"inputs", "s", "x"}});
+	context.addLink({start, {"outputs", "s", "y"}}, {end, {"inputs", "s", "y"}});
+	context.addLink({start, {"outputs", "s", "z"}}, {end, {"inputs", "s", "z"}});
 
-	checkLinks({{{start, {"luaOutputs", "s", "x"}}, {end, {"luaInputs", "s", "x"}}, true},
-		{{start, {"luaOutputs", "s", "y"}}, {end, {"luaInputs", "s", "y"}}, true},
-		{{start, {"luaOutputs", "s", "z"}}, {end, {"luaInputs", "s", "z"}}, true}});
+	checkLinks({{{start, {"outputs", "s", "x"}}, {end, {"inputs", "s", "x"}}, true},
+		{{start, {"outputs", "s", "y"}}, {end, {"inputs", "s", "y"}}, true},
+		{{start, {"outputs", "s", "z"}}, {end, {"inputs", "s", "z"}}, true}});
 
 	context.set({start, {"uri"}}, script_2);
 
-	checkLinks({{{start, {"luaOutputs", "s", "x"}}, {end, {"luaInputs", "s", "x"}}, true},
-		{{start, {"luaOutputs", "s", "y"}}, {end, {"luaInputs", "s", "y"}}, false},
-		{{start, {"luaOutputs", "s", "z"}}, {end, {"luaInputs", "s", "z"}}, false}});
+	checkLinks({{{start, {"outputs", "s", "x"}}, {end, {"inputs", "s", "x"}}, true},
+		{{start, {"outputs", "s", "y"}}, {end, {"inputs", "s", "y"}}, false},
+		{{start, {"outputs", "s", "z"}}, {end, {"inputs", "s", "z"}}, false}});
 }
 
 TEST_F(LinkTest, removal_sync_lua_struct_add_property_whole) {
@@ -500,7 +500,7 @@ end
 	auto start = create_lua("start", script_1);
 	auto end = create_lua("end", script_1);
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "s"}, end, {"luaInputs", "s"});
+	auto [sprop, eprop] = link(start, {"outputs", "s"}, end, {"inputs", "s"});
 	checkLinks({{sprop, eprop, true}});
 
 	context.set({start, {"uri"}}, script_2);
@@ -537,14 +537,14 @@ end
 	auto start = create_lua("start", script_1);
 	auto end = create_lua("end", script_1);
 
-	context.addLink({start, {"luaOutputs", "s", "x"}}, {end, {"luaInputs", "s", "x"}});
-	context.addLink({start, {"luaOutputs", "s", "y"}}, {end, {"luaInputs", "s", "y"}});
-	checkLinks({{{{start, {"luaOutputs", "s", "x"}}, {end, {"luaInputs", "s", "x"}}, true},
-		{{start, {"luaOutputs", "s", "y"}}, {end, {"luaInputs", "s", "y"}}, true}}});
+	context.addLink({start, {"outputs", "s", "x"}}, {end, {"inputs", "s", "x"}});
+	context.addLink({start, {"outputs", "s", "y"}}, {end, {"inputs", "s", "y"}});
+	checkLinks({{{{start, {"outputs", "s", "x"}}, {end, {"inputs", "s", "x"}}, true},
+		{{start, {"outputs", "s", "y"}}, {end, {"inputs", "s", "y"}}, true}}});
 
 	context.set({start, {"uri"}}, script_2);
-	checkLinks({{{{start, {"luaOutputs", "s", "x"}}, {end, {"luaInputs", "s", "x"}}, true},
-		{{start, {"luaOutputs", "s", "y"}}, {end, {"luaInputs", "s", "y"}}, false}}});
+	checkLinks({{{{start, {"outputs", "s", "x"}}, {end, {"inputs", "s", "x"}}, true},
+		{{start, {"outputs", "s", "y"}}, {end, {"inputs", "s", "y"}}, false}}});
 }
 
 
@@ -577,7 +577,7 @@ end
 	auto start = create_lua("start", script_1);
 	auto end = create_lua("end", script_1);
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "s", "x"}, end, {"luaInputs", "s", "x"});
+	auto [sprop, eprop] = link(start, {"outputs", "s", "x"}, end, {"inputs", "s", "x"});
 	checkLinks({{sprop, eprop, true}});
 
 	context.set({start, {"uri"}}, script_2);
@@ -589,10 +589,21 @@ TEST_F(LinkTest, removal_move_start_lua_lua) {
 	auto end = create_lua("end", "scripts/types-scalar.lua");
 	auto node = create<Node>("node");
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 
 	commandInterface.moveScenegraphChildren({start}, node);
 	ASSERT_EQ(project.links().size(), 0);
+}
+
+TEST_F(LinkTest, move_scenegraph_multi_keep_link) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto node = create<Node>("node");
+
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
+
+	commandInterface.moveScenegraphChildren({start, end}, node);
+	ASSERT_EQ(project.links().size(), 1);
 }
 
 TEST_F(LinkTest, removal_move_end_lua_lua) {
@@ -601,7 +612,7 @@ TEST_F(LinkTest, removal_move_end_lua_lua) {
 	auto node = create<Node>("node");
 	auto meshnode = create<MeshNode>("meshnode");
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
+	auto [sprop, eprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
 
 	commandInterface.moveScenegraphChildren({end}, node);
 	checkLinks({{sprop, eprop, true}});
@@ -621,7 +632,7 @@ TEST_F(LinkTest, removal_move_start_lua_mat) {
 	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
 	auto node = create<Node>("node");
 
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, material, {"uniforms", "u_color"});
+	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, material, {"uniforms", "u_color"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.moveScenegraphChildren({lua}, node);
@@ -634,8 +645,8 @@ TEST_F(LinkTest, removal_move_middle_lua_lua_mat) {
 	auto material = create_material("material", "shaders/basic.vert", "shaders/basic.frag");
 	auto node = create<Node>("node");
 
-	auto [sprop, iprop] = link(start, {"luaOutputs", "ofloat"}, end, {"luaInputs", "float"});
-	auto [oprop, eprop] = link(end, {"luaOutputs", "ovector3f"}, material, {"uniforms", "u_color"});
+	auto [sprop, iprop] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
+	auto [oprop, eprop] = link(end, {"outputs", "ovector3f"}, material, {"uniforms", "u_color"});
 	checkLinks({{sprop, iprop, true}, {oprop, eprop, true}});
 
 	commandInterface.moveScenegraphChildren({end}, node);
@@ -645,7 +656,7 @@ TEST_F(LinkTest, removal_move_middle_lua_lua_mat) {
 TEST_F(LinkTest, lua_restore_after_reselecting_output_uri) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ofloat"}, linkRecipient, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ofloat"}, linkRecipient, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkBase, "scripts/SimpleScript.lua");
@@ -699,7 +710,7 @@ end
 	auto right = create_lua("right", rightScript1);
 	auto left = create_lua("left", leftScript1);
 
-	auto [sprop, eprop] = link(left, {"luaOutputs", "a"}, right, {"luaInputs", "b"});
+	auto [sprop, eprop] = link(left, {"outputs", "a"}, right, {"inputs", "b"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set({left, {"uri"}}, leftScript2);
@@ -718,7 +729,7 @@ end
 TEST_F(LinkTest, lua_restore_after_reselecting_input_uri) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ofloat"}, linkRecipient, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ofloat"}, linkRecipient, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkRecipient, "scripts/types-scalar.lua");
@@ -731,14 +742,14 @@ TEST_F(LinkTest, lua_restore_after_reselecting_input_uri) {
 TEST_F(LinkTest, lua_restore_two_scripts_prevent_loop_when_changing_output_uri) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ofloat"}, linkRecipient, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ofloat"}, linkRecipient, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkBase, "scripts/SimpleScript.lua");
 	checkLinks({{sprop, eprop, false}});
 
 	// Broken link hinders further links and thus loops
-	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(linkBase, {"luaOutputs", "out_float"}));
+	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(linkBase, {"outputs", "out_float"}));
 	EXPECT_EQ(allowed.size(), 0);
 
 	change_uri(linkBase, "scripts/types-scalar.lua");
@@ -794,30 +805,30 @@ end
 	auto start = create_lua("start", leftScript1);
 	auto end = create_lua("mid", rightScript);
 
-	commandInterface.addLink({start, {"luaOutputs", "b"}}, {end, {"luaInputs", "a"}});
-	checkLinks({{{start, {"luaOutputs", "b"}}, {end, {"luaInputs", "a"}}, true}});
+	commandInterface.addLink({start, {"outputs", "b"}}, {end, {"inputs", "a"}});
+	checkLinks({{{start, {"outputs", "b"}}, {end, {"inputs", "a"}}, true}});
 
 	commandInterface.set({start, {"uri"}}, leftScript2);
-	checkLinks({{{start, {"luaOutputs", "b"}}, {end, {"luaInputs", "a"}}, false}});
+	checkLinks({{{start, {"outputs", "b"}}, {end, {"inputs", "a"}}, false}});
 
-	commandInterface.addLink({start, {"luaOutputs", "c"}}, {end, {"luaInputs", "a"}});
+	commandInterface.addLink({start, {"outputs", "c"}}, {end, {"inputs", "a"}});
 	// BaseContext::addLink() replaces broken link with new link
-	checkLinks({{{start, {"luaOutputs", "c"}}, {end, {"luaInputs", "a"}}, true}});
+	checkLinks({{{start, {"outputs", "c"}}, {end, {"inputs", "a"}}, true}});
 
 	commandInterface.set({start, {"uri"}}, leftScript3);
-	checkLinks({{{start, {"luaOutputs", "c"}}, {end, {"luaInputs", "a"}}, true}});
+	checkLinks({{{start, {"outputs", "c"}}, {end, {"inputs", "a"}}, true}});
 }
 
 TEST_F(LinkTest, lua_restore_two_scripts_prevent_multiple_active_links_on_same_output) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ofloat"}, linkRecipient, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ofloat"}, linkRecipient, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkRecipient, "scripts/types-scalar.lua");
 	checkLinks({{sprop, eprop, false}});
 
-	auto [sprop2, eprop2] = link(linkBase, {"luaOutputs", "ofloat"}, linkRecipient, {"luaInputs", "float"});
+	auto [sprop2, eprop2] = link(linkBase, {"outputs", "ofloat"}, linkRecipient, {"inputs", "float"});
 	checkLinks({{sprop, eprop, false},
 		{sprop2, eprop2, true}});
 
@@ -829,7 +840,7 @@ TEST_F(LinkTest, lua_restore_two_scripts_prevent_multiple_active_links_on_same_o
 TEST_F(LinkTest, lua_restore_nested_struct_link_from_other_struct) {
 	auto linkBase = create_lua("base", "scripts/struct-nested.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/struct-nested.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "nested_out", "inner"}, linkRecipient, {"luaInputs", "nested", "inner"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "nested_out", "inner"}, linkRecipient, {"inputs", "nested", "inner"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkBase, "scripts/SimpleScript.lua");
@@ -842,7 +853,7 @@ TEST_F(LinkTest, lua_restore_nested_struct_link_from_other_struct) {
 TEST_F(LinkTest, lua_restore_nested_struct_link_from_empty_uri) {
 	auto linkBase = create_lua("base", "scripts/struct-nested.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/struct-nested.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "nested_out", "inner"}, linkRecipient, {"luaInputs", "nested", "inner"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "nested_out", "inner"}, linkRecipient, {"inputs", "nested", "inner"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set(ValueHandle{linkBase, {"uri"}}, std::string());
@@ -899,7 +910,7 @@ end
 
 	auto linkBase = create_lua("base", script1);
 	auto linkRecipient = create_lua("recipient", script1);
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "nested_out", "inner", "struct"}, linkRecipient, {"luaInputs", "nested", "inner", "struct"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "nested_out", "inner", "struct"}, linkRecipient, {"inputs", "nested", "inner", "struct"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set(ValueHandle{linkBase, {"uri"}}, script2);
@@ -913,7 +924,7 @@ end
 TEST_F(LinkTest, lua_restore_nested_struct_property_link_after_reselecting_output_uri) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/struct-nested.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ovector4f"}, linkRecipient, {"luaInputs", "nested", "inner", "vector4f"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ovector4f"}, linkRecipient, {"inputs", "nested", "inner", "vector4f"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkBase, "scripts/SimpleScript.lua");
@@ -926,7 +937,7 @@ TEST_F(LinkTest, lua_restore_nested_struct_property_link_after_reselecting_outpu
 TEST_F(LinkTest, lua_restore_nested_struct_property_link_after_reselecting_input_uri) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/struct-nested.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ovector4f"}, linkRecipient, {"luaInputs", "nested", "inner", "vector4f"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ovector4f"}, linkRecipient, {"inputs", "nested", "inner", "vector4f"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkRecipient, "scripts/SimpleScript.lua");
@@ -939,7 +950,7 @@ TEST_F(LinkTest, lua_restore_nested_struct_property_link_after_reselecting_input
 TEST_F(LinkTest, lua_restore_struct_link_from_other_struct) {
 	auto linkBase = create_lua("start", "scripts/struct-simple.lua");
 	auto linkRecipient = create_lua("end", "scripts/struct-simple.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "s"}, linkRecipient, {"luaInputs", "s"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "s"}, linkRecipient, {"inputs", "s"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkBase, "scripts/struct-nested.lua");
@@ -952,7 +963,7 @@ TEST_F(LinkTest, lua_restore_struct_link_from_other_struct) {
 TEST_F(LinkTest, lua_restore_struct_link_from_empty_uri) {
 	auto linkBase = create_lua("start", "scripts/struct-simple.lua");
 	auto linkRecipient = create_lua("end", "scripts/struct-simple.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "s"}, linkRecipient, {"luaInputs", "s"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "s"}, linkRecipient, {"inputs", "s"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set(ValueHandle{linkBase, {"uri"}}, std::string());
@@ -966,7 +977,7 @@ TEST_F(LinkTest, lua_restore_from_proper_base_script) {
 	auto linkBase = create_lua("base", "scripts/types-scalar.lua");
 	auto notLinkBase = create_lua("notbase", "scripts/types-scalar.lua");
 	auto linkRecipient = create_lua("recipient", "scripts/SimpleScript.lua");
-	auto [sprop, eprop] = link(linkBase, {"luaOutputs", "ofloat"}, linkRecipient, {"luaInputs", "in_float"});
+	auto [sprop, eprop] = link(linkBase, {"outputs", "ofloat"}, linkRecipient, {"inputs", "in_float"});
 	checkLinks({{sprop, eprop, true}});
 
 	change_uri(linkBase, "scripts/SimpleScript.lua");
@@ -986,15 +997,15 @@ TEST_F(LinkTest, lua_restore_single_output_property_multiple_links) {
 	auto structSimple = create_lua("base", "scripts/struct-simple.lua");
 	auto node = create<Node>("node");
 
-	auto ofloat = PropertyDescriptor{linkBase, {"luaOutputs", "ofloat"}};
-	auto ovector3f = PropertyDescriptor{linkBase, {"luaOutputs", "ovector3f"}};
-	auto in_float = PropertyDescriptor{simpleScript, {"luaInputs", "in_float"}};
-	auto s_vector3f = PropertyDescriptor{structSimple, {"luaInputs", "s", "vector3f"}};
+	auto ofloat = PropertyDescriptor{linkBase, {"outputs", "ofloat"}};
+	auto ovector3f = PropertyDescriptor{linkBase, {"outputs", "ovector3f"}};
+	auto in_float = PropertyDescriptor{simpleScript, {"inputs", "in_float"}};
+	auto s_vector3f = PropertyDescriptor{structSimple, {"inputs", "s", "vector3f"}};
 	auto rotation = PropertyDescriptor{node, {"rotation"}};
 
-	commandInterface.addLink(ofloat, in_float);
-	commandInterface.addLink(ovector3f, s_vector3f);
-	commandInterface.addLink(ovector3f, rotation);
+	commandInterface.addLink(ValueHandle(ofloat), ValueHandle(in_float));
+	commandInterface.addLink(ValueHandle(ovector3f), ValueHandle(s_vector3f));
+	commandInterface.addLink(ValueHandle(ovector3f), ValueHandle(rotation));
 	checkLinks({{ofloat, in_float, true},
 		{ovector3f, s_vector3f, true},
 		{ovector3f, rotation, true}});
@@ -1041,7 +1052,7 @@ function run(IN,OUT)
 	auto start = create_lua("base", script);
 	auto end = create_lua("recipient", script);
 
-	auto [sprop, eprop] = link(start, {"luaOutputs", "v"}, end, {"luaInputs", "v"});
+	auto [sprop, eprop] = link(start, {"outputs", "v"}, end, {"inputs", "v"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set({start, {"uri"}}, scriptBroken);
@@ -1102,18 +1113,18 @@ end
 	auto mid = create_lua("mid", script2);
 	auto end = create<Node>("end");
 
-	commandInterface.addLink({start, {"luaOutputs", "f"}}, {mid, {"luaInputs", "f"}});
-	commandInterface.addLink({mid, {"luaOutputs", "vec"}}, {end, {"translation"}});
+	commandInterface.addLink({start, {"outputs", "f"}}, {mid, {"inputs", "f"}});
+	commandInterface.addLink({mid, {"outputs", "vec"}}, {end, {"translation"}});
 
 	commandInterface.set({start, {"uri"}}, script1Broken);
 	commandInterface.set({mid, {"uri"}}, script2Broken);
-	checkLinks({{{start, {"luaOutputs", "f"}}, {mid, {"luaInputs", "f"}}, false},
-		{{mid, {"luaOutputs", "vec"}}, {end, {"translation"}}, false}});
+	checkLinks({{{start, {"outputs", "f"}}, {mid, {"inputs", "f"}}, false},
+		{{mid, {"outputs", "vec"}}, {end, {"translation"}}, false}});
 
 	commandInterface.set({mid, {"uri"}}, script2);
 	commandInterface.set({start, {"uri"}}, script1);
-	checkLinks({{{start, {"luaOutputs", "f"}}, {mid, {"luaInputs", "f"}}}, 
-		{{mid, {"luaOutputs", "vec"}}, {end, {"translation"}}}});
+	checkLinks({{{start, {"outputs", "f"}}, {mid, {"inputs", "f"}}},
+		{{mid, {"outputs", "vec"}}, {end, {"translation"}}}});
 }
 
 TEST_F(LinkTest, material_restore_uniform_links) {
@@ -1124,7 +1135,7 @@ TEST_F(LinkTest, material_restore_uniform_links) {
 	auto emptyMaterial = create<Material>("emptymat");
 	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
 
-	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
+	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set(ValueHandle{meshNode, {"materials", "material", "material"}}, emptyMaterial);
@@ -1141,7 +1152,7 @@ TEST_F(LinkTest, restore_meshnode_uniform_switching_shared) {
 	auto meshNode = create_meshnode("meshnode", mesh, material);
 	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
 
-	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
+	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set(meshNode->getMaterialPrivateHandle(0), false);
@@ -1155,7 +1166,7 @@ TEST_F(LinkTest, lua_to_quaternion) {
 	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
 	auto node = create<raco::user_types::Node>("node", nullptr);
 
-	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector4f"}, node, {"rotation"});
+	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector4f"}, node, {"rotation"});
 	checkLinks({{sprop, eprop, true}});
 }
 
@@ -1163,8 +1174,8 @@ TEST_F(LinkTest, lua_to_euler_after_quaternion) {
 	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
 	auto node = create<raco::user_types::Node>("node", nullptr);
 
-	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector4f"}, node, {"rotation"});
-	auto [sprop2, eprop2] = link(luaScript, {"luaOutputs", "ovector3f"}, node, {"rotation"});
+	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector4f"}, node, {"rotation"});
+	auto [sprop2, eprop2] = link(luaScript, {"outputs", "ovector3f"}, node, {"rotation"});
 	checkLinks({{sprop2, eprop2, true}});
 }
 
@@ -1176,14 +1187,14 @@ TEST_F(LinkTest, remove_link_keeps_value_with_undo_redo) {
 	auto start = create_lua(cmd, "lua_start", "scripts/SimpleScript.lua");
 	auto end = create_lua(cmd, "lua_end", "scripts/SimpleScript.lua");
 
-	cmd.set({start, {"luaInputs", "in_float"}}, 2.0);
-	cmd.set({end, {"luaInputs", "in_float"}}, 42.0);
+	cmd.set({start, {"inputs", "in_float"}}, 2.0);
+	cmd.set({end, {"inputs", "in_float"}}, 42.0);
 
-	PropertyDescriptor sprop{start, {"luaOutputs", "out_float"}};
-	PropertyDescriptor eprop{end, {"luaInputs", "in_float"}};
+	PropertyDescriptor sprop{start, {"outputs", "out_float"}};
+	PropertyDescriptor eprop{end, {"inputs", "in_float"}};
 	EXPECT_EQ(ValueHandle(eprop).asDouble(), 42.0);
 
-	cmd.addLink(sprop, eprop);
+	cmd.addLink(ValueHandle(sprop), ValueHandle(eprop));
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 	app.doOneLoop();
 	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
@@ -1219,14 +1230,14 @@ TEST_F(LinkTest, break_link_keeps_value_with_undo_redo) {
 	auto start = create_lua(cmd, "lua_start", "scripts/SimpleScript.lua");
 	auto end = create_lua(cmd, "lua_end", "scripts/SimpleScript.lua");
 
-	cmd.set({start, {"luaInputs", "in_float"}}, 2.0);
-	cmd.set({end, {"luaInputs", "in_float"}}, 42.0);
+	cmd.set({start, {"inputs", "in_float"}}, 2.0);
+	cmd.set({end, {"inputs", "in_float"}}, 42.0);
 
-	PropertyDescriptor sprop{start, {"luaOutputs", "out_float"}};
-	PropertyDescriptor eprop{end, {"luaInputs", "in_float"}};
+	PropertyDescriptor sprop{start, {"outputs", "out_float"}};
+	PropertyDescriptor eprop{end, {"inputs", "in_float"}};
 	EXPECT_EQ(ValueHandle(eprop).asDouble(), 42.0);
 
-	cmd.addLink(sprop, eprop);
+	cmd.addLink(ValueHandle(sprop), ValueHandle(eprop));
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 	app.doOneLoop();
 	EXPECT_EQ(ValueHandle(eprop).asDouble(), 2.0);
@@ -1289,38 +1300,38 @@ end
 	auto start = create_lua(cmd, "start", script_1);
 	auto end = create_lua(cmd, "end", script_1);
 
-	cmd.set({start, {"luaInputs", "s", "x"}}, 2.0);
-	cmd.set({end, {"luaInputs", "s", "x"}}, 42.0);
+	cmd.set({start, {"inputs", "s", "x"}}, 2.0);
+	cmd.set({end, {"inputs", "s", "x"}}, 42.0);
 
-	PropertyDescriptor sprop{start, {"luaOutputs", "s"}};
-	PropertyDescriptor eprop{end, {"luaInputs", "s"}};
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 42.0);
+	PropertyDescriptor sprop{start, {"outputs", "s"}};
+	PropertyDescriptor eprop{end, {"inputs", "s"}};
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 42.0);
 
-	cmd.addLink(sprop, eprop);
+	cmd.addLink(ValueHandle(sprop), ValueHandle(eprop));
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 	app.doOneLoop();
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 2.0);
 
 	cmd.set({start, {"uri"}}, script_2);
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, false}});
 	app.doOneLoop();
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 2.0);
 
 	cmd.undoStack().undo();
 	app.doOneLoop();
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 2.0);
 
 	cmd.undoStack().undo();
 	app.doOneLoop();
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 42.0);
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 42.0);
 
 	cmd.undoStack().redo();
 	app.doOneLoop();
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 2.0);
 
 	cmd.undoStack().redo();
 	app.doOneLoop();
-	EXPECT_EQ(ValueHandle(end, {"luaInputs", "s", "x"}).asDouble(), 2.0);
+	EXPECT_EQ(ValueHandle(end, {"inputs", "s", "x"}).asDouble(), 2.0);
 }
 
 TEST_F(LinkTest, dont_crash_when_object_is_deleted_after_property_with_link_was_removed) {
@@ -1331,7 +1342,7 @@ TEST_F(LinkTest, dont_crash_when_object_is_deleted_after_property_with_link_was_
 	auto emptyMaterial = create<Material>("emptymat");
 	commandInterface.set(meshNode->getMaterialPrivateHandle(0), true);
 
-	auto [sprop, eprop] = link(luaScript, {"luaOutputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
+	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector3f"}, meshNode, {"materials", "material", "uniforms", "u_color"});
 	checkLinks({{sprop, eprop, true}});
 
 	commandInterface.set(ValueHandle{meshNode, {"materials", "material", "material"}}, emptyMaterial);
@@ -1363,31 +1374,31 @@ end
 	auto luaScript = create_lua(cmd, "base", script);
 	app.doOneLoop();
 
-	PropertyDescriptor sprop{timer, {"tickerOutput"}};
-	PropertyDescriptor eprop{luaScript, {"luaInputs", "integer64"}};
+	PropertyDescriptor sprop{timer, {"outputs", "ticker_us"}};
+	PropertyDescriptor eprop{luaScript, {"inputs", "integer64"}};
 
-	cmd.addLink(sprop, eprop);
+	cmd.addLink(ValueHandle(sprop), ValueHandle(eprop));
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 
 	app.doOneLoop();
 
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
-	ASSERT_NE(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{0});
+	ASSERT_NE(ValueHandle(luaScript, {"inputs", "integer64"}).asInt64(), int64_t{0});
 
-	cmd.set({timer, &Timer::tickerInput_}, int64_t{1});
+	cmd.set({timer, {"inputs", "ticker_us"}}, int64_t{1});
 	app.doOneLoop();
 
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
-	ASSERT_EQ(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{1});
+	ASSERT_EQ(ValueHandle(luaScript, {"inputs", "integer64"}).asInt64(), int64_t{1});
 
 	app.doOneLoop();
-	ASSERT_EQ(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{1});
+	ASSERT_EQ(ValueHandle(luaScript, {"inputs", "integer64"}).asInt64(), int64_t{1});
 
-	cmd.set({timer, &Timer::tickerInput_}, int64_t{0});
+	cmd.set({timer, {"inputs", "ticker_us"}}, int64_t{0});
 	app.doOneLoop();
 
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
-	ASSERT_NE(ValueHandle(luaScript, {"luaInputs", "integer64"}).asInt64(), int64_t{0});
+	ASSERT_NE(ValueHandle(luaScript, {"inputs", "integer64"}).asInt64(), int64_t{0});
 }
 
 TEST_F(LinkTest, timer_link_to_input) {
@@ -1412,17 +1423,17 @@ end
 	auto luaScript = create_lua(cmd, "base", script);
 	app.doOneLoop();
 
-	PropertyDescriptor sprop{luaScript, {"luaOutputs", "ointeger64"}};
-	PropertyDescriptor eprop{timer, {"tickerInput"}};
+	PropertyDescriptor eprop{timer, {"inputs", "ticker_us"}};
+	PropertyDescriptor sprop{luaScript, {"outputs", "ointeger64"}};
 
-	cmd.addLink(sprop, eprop);
+	cmd.addLink(ValueHandle(sprop), ValueHandle(eprop));
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 
-	cmd.set({luaScript, {"luaInputs", "integer64"}}, int64_t{22});
+	cmd.set({luaScript, {"inputs", "integer64"}}, int64_t{22});
 	app.doOneLoop();
 
-	ASSERT_EQ(ValueHandle(timer, &Timer::tickerInput_).asInt64(), int64_t{44});
-	ASSERT_EQ(ValueHandle(timer, &Timer::tickerOutput_).asInt64(), int64_t{44});
+	ASSERT_EQ(ValueHandle(timer, {"inputs", "ticker_us"}).asInt64(), int64_t{44});
+	ASSERT_EQ(ValueHandle(timer, {"outputs", "ticker_us"}).asInt64(), int64_t{44});
 }
 
 TEST_F(LinkTest, timer_link_different_type) {
@@ -1458,10 +1469,10 @@ end
 	auto luaScript = create_lua(cmd, "base", script);
 	app.doOneLoop();
 
-	PropertyDescriptor sprop{timer, {"tickerOutput"}};
-	PropertyDescriptor eprop{luaScript, {"luaInputs", "integer64"}};
+	PropertyDescriptor sprop{timer, {"outputs", "ticker_us"}};
+	PropertyDescriptor eprop{luaScript, {"inputs", "integer64"}};
 
-	cmd.addLink(sprop, eprop);
+	cmd.addLink(ValueHandle(sprop), ValueHandle(eprop));
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 
 	app.doOneLoop();

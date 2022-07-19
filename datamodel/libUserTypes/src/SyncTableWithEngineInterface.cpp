@@ -83,6 +83,13 @@ raco::data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
 	return nullptr;
 }
 
+std::string dataModelPropNameForLogicEnginePropName(const std::string& propName, size_t index) {
+	if (propName.empty()) {
+		return std::to_string(index + 1);
+	}
+	return propName;
+}
+
 namespace {
 inline size_t index_of(const ValueHandle& handle, const std::string& name) {
 	for (size_t i{0}; i < handle.size(); i++) {
@@ -95,10 +102,7 @@ inline size_t index_of(const ValueHandle& handle, const std::string& name) {
 static const char propertyPathSeparator = '/';
 
 std::string dataModelNameFromInterface(const PropertyInterface& propInterface, size_t index) {
-	if (propInterface.name.empty()) {
-		return std::to_string(index + 1);
-	}
-	return propInterface.name;
+	return dataModelPropNameForLogicEnginePropName(propInterface.name, index);
 }
 
 std::vector<PropertyInterface>::const_iterator findNameInInterfaces(const PropertyInterfaceList& interfaces, const std::string& name) {
@@ -159,7 +163,9 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 		if (!property.hasProperty(name)) {
 			std::unique_ptr<raco::data_storage::ValueBase> uniqueValue;
 			bool isRefType = PropertyInterface::primitiveType(iEntry.type) == PrimitiveType::Ref;
-			if (linkStart && !isRefType) {
+			if (linkStart && linkEnd && !isRefType) {
+				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkStartAnnotation, raco::core::LinkEndAnnotation>(iEntry.type));
+			} else if (linkStart && !isRefType) {
 				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkStartAnnotation>(iEntry.type));
 			} else if (linkEnd && !isRefType) {
 				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkEndAnnotation>(iEntry.type));

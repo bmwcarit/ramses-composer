@@ -24,6 +24,70 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.1.0] Lua Interfaces, various UI improvements
+* **File version number has changed. Files saved with RaCo 1.1.0 cannot be opened by previous versions.**
+* **Check the suggested migration procedure below for the LuaInterfaces introduced in RamsesComposer 1.1.0 to avoid unnecessary issues.**
+
+### Added
+* Added LuaInterface objects
+    * LuaInterfaces are created from an interface script similar to the Lua scripts but only containing an interface function and only defining input but not output properties. Interfaces can't use modules either. See the LogicEngine documentation for further details.
+    * The input properties of LuaInterfaces can be both starting end ending points of links.
+    * Interfaces do not have a run function and no Lua code is evaluated each frame.
+    * LuaInterfaces replace the LuaScripts as interfaces for Prefabs. LuaScripts inside PrefabInstances are now completely readonly, i.e. their input property can't be changed or have links ending on them anymore.
+    * Migration of Prefab/PrefabInstance interface LuaScripts to LuaInterfaces is performed automatically when loading an old project: new LuaInterface objects are generated for each interface LuaScript and the interface scripts files are generated in an `interfaces/` subdirectory of the project directory. Furthermore the links ending on the interface LuaScripts are rerouted through the newly created LuaInterfaces leading to the same behaviour as before.
+    * LuaInterfaces are also allowed outside Prefabs/PrefabInstances.
+    * **WARNING** The migration code will generate and write the interface scripts each time it is run. If a file is loaded repeatedly without saving it the interface files will be overwritten each time. To avoid running the migration code repeatedly make sure to save the scenes after loading. A python migration script included  in the release automates this process, see below.
+* **Suggested migration procedure**
+  * Open main scene, make sure there are no errors, in particular no errors relating to scripts (including missing modules). Make sure all scenes have been migrated to RaCo 1.0.x.
+    * If you do not ensure that the scripts have no errors, the LuaInterface objects generated for the scripts will not work as expected!
+  * Use the Python migration script on the main scene, e. g. `\bin\RelWithDebInfo\RaCoHeadless.exe -r \python\migrate_recursive.py -l 3 -p .rca
+    * Make sure to include the "-l 3" otherwise the console will be full with irrelevant info/debug/trace messages.
+    * The script will perform the migration by loading and saving the main scene and all external scenes used by it.
+    * The automatic migration might fail if multiple main scenes in the same directory are migrated like this since there might be conflicting versions of the new interface files being generated and written to the same file. This should not happen if there is only a single project file per directory.
+  * Open the scene in RaCo again and verify the scene.
+  * The generated interface files are now safe to be edited and will not be overwritten on subsequent loads of the project.
+  * Make sure the C++ coders loading and using the scene change their code to search for LuaInterface objects instead of LuaScript objects, if the object they try to find is part of a prefab instance.
+  * (optional optimization) Strip all simple OUT=IN assignments from the scripts serving as prefab interfaces and link those properties directly to the LuaInterface objects. This can decrease the CPU load of your scene on the target significantly due to the link optimization (see below).
+* Added link optimization when exporting: links chains that have only LuaInterfaces in the middle of the chain will be replaced by single link from the chain start to the chain end property.
+* Added Ramses log output to RaCo log output.
+	* Ramses trace-level log output has to be explicitly activated in the RaCo Editor with the command argument "-t".
+* Added custom Texture mipmap support, similar to CubeMap's mipmap support.
+* Added tooltips for RaCo properties showing the RaCo-internal property name.
+* Added more information to Texture and CubeMap information boxes.
+* Allow configuration of standard modules used for lua scripts and modules via a new stdModules property in LuaScript and LuaScriptModule types.
+* Added context menu item in the Treeview and Project Browser to open the external project(s) of the selected objects in a separate RamsesComposer instance.
+* Added keybord shortcuts for the toolbar menus of the main window.
+* Added "u_Resolution" as builtin shader uniform in addition to "u_resolution".
+
+### Changes
+* Update from ramses-logic 1.0.2 to 1.1.0
+* Update from ramses 27.0.119 to 27.0.121
+* Disallowed referencing objects inside Prefabs from objects outside of the same Prefab.
+* Disallowed moving top-level objects onto top-level places inside the same objects tree view.
+* Extended Texture & Cubemap information to show color channel flow from origin file to shader channels.
+* Texture format down-conversion message has been downgraded from warning to information level.
+* Texture format up-conversion warning message has been declared as deprecated as it will be upgraded to an error soon.
+* Texture format conversion message from palette to any 8-bit format has been downgraded from warning to information level.
+* Add python script path as first element of `sys.argv` during script execution with RaCoHeadless.
+* Renamed some Node/MeshNode/PerspectiveCamera/OrthographicCamera/PrefabInstance, Timer and LuaScript/LuaInterface properties so they are closer to their ramses-logic counterparts.
+	* Attention: This affects Python scripts that directly accesses properties by name.
+* Added `projectPath` function to Python API to query the path of the current project.
+
+### Fixes
+* Fixed crash when switching scenes after an Export Dialog that shows scene errors has been closed.
+* Fixed repeated Ramses DisplayDispatcher "no renderer events" message appearing in log.
+* Fixed texture not being loaded when using RG8 mode on grayscale pictures.
+* Raise python exception if Python API `load` is called with an empty string as filename argument.
+* Fixed crash when saving files with relative paths using Python API.
+* Add missing TextureFormat enum to Python API.
+* Fixed greyscale PNGs not looking correct when texture format RG8 is selected.
+* Fixed goto button not working when the referenced object is not selectable in the scene graphs of the current layout.
+* Fixed logging of error messages for projects loaded in the RaCoHeadless application to include errors generated by the Ramses/RamsesLogic engine interface code.
+* Fixed link removal in Python API to fail when attempting to remove links ending on read-only objects, e.g. external reference objects or PrefabInstance contents.
+* Removed spurious "discard invalid link" warning with empty start and/or endpoints when pasting as external reference.
+* Fixed crash when moving Nodes to root level in scenegraph.
+
+
 ## [1.0.1] Fix export differences between RaCoHeadless and Ramses Composer GUI
 
 ### Fixes

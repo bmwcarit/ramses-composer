@@ -38,8 +38,8 @@ TEST(NodeTest, Basic) {
 TEST(NodeTest, Properties) {
 	Node n;
 
-	n.visible_ = false;
-	EXPECT_EQ(*n.visible_, false);
+	n.visibility_ = false;
+	EXPECT_EQ(*n.visibility_, false);
 
 	n.rotation_->y = 2.0;
 	double b = *n.rotation_->y;

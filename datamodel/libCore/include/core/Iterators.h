@@ -61,5 +61,6 @@ private:
 template <>
 struct std::iterator_traits<raco::core::ValueTreeIterator> {
 	using value_type = raco::core::ValueHandle;
+	using reference = raco::core::ValueHandle&;
 	using iterator_category = std::forward_iterator_tag;
 };

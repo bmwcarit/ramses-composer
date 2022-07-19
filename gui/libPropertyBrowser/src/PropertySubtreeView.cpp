@@ -79,9 +79,16 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		labelLayout->addWidget(label_, 0);
 		labelLayout->addWidget(linkControl, 1);
 
-		auto isLuaScriptProperty = !item->valueHandle().isObject() && &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
-		if (isLuaScriptProperty) {
-			label_->setToolTip(QString::fromStdString(item->luaTypeName()));
+		if (!item->valueHandle().isObject()) {
+
+			QString toolTip = QString::fromStdString(item->valueHandle().getPropName());
+
+			auto isLuaScriptProperty = &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
+			if (isLuaScriptProperty) {
+				toolTip.append(" [" + QString::fromStdString(item->luaTypeName()) + "]");
+			}
+
+			label_->setToolTip(toolTip);
 		}
 
 		linkControl->setControl(propertyControl_);

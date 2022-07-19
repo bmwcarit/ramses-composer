@@ -74,6 +74,7 @@ namespace raco::serialization::proxy {
 			OrthographicCamera,
 			PerspectiveCamera,
 			LuaScript,
+			LuaInterface,
 			LuaScriptModule,
 			Texture,
 			RenderBuffer,

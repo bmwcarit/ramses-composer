@@ -102,7 +102,23 @@ public:
 		Property<Vec4i, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkEndAnnotation>,
-		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>>;
+		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>,
+	
+		Property<bool, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<int, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<int64_t, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<double, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<std::string, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Table, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec2f, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec3f, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec4f, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec2i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec3i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>
+		>;
 
 	using StructCreationFunction = std::function<std::shared_ptr<ClassWithReflectedMembers>()>;
 

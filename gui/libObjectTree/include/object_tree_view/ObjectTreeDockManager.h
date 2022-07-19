@@ -28,6 +28,7 @@ public:
 	size_t getTreeDockAmount() const;
 	std::vector<ObjectTreeDock*> getDocks() const;
 	ObjectTreeDock* getActiveDockWithSelection() const;
+	bool docksContainObject(const QString& objID) const;
 
 Q_SIGNALS:
 	void treeDockListChanged();

@@ -22,6 +22,8 @@
 
 #include "user_types/EngineTypeAnnotation.h"
 
+#include "utils/FileUtils.h"
+
 #include <spdlog/fmt/fmt.h>
 
 #include "core/PathManager.h"
@@ -93,6 +95,68 @@ raco::data_storage::ValueBase* createDynamicProperty_V11(raco::core::EnginePrimi
 	return nullptr;
 }
 
+template <class... Args>
+raco::data_storage::ValueBase* createDynamicProperty_V36(raco::core::EnginePrimitive type) {
+	using namespace raco::serialization::proxy;
+	using namespace raco::data_storage;
+	using namespace raco::core;
+
+	switch (type) {
+		case EnginePrimitive::Bool:
+			return ProxyObjectFactory::staticCreateProperty<bool, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Int32:
+		case EnginePrimitive::UInt16:
+		case EnginePrimitive::UInt32:
+			return ProxyObjectFactory::staticCreateProperty<int, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Int64:
+			return ProxyObjectFactory::staticCreateProperty<int64_t, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Double:
+			return ProxyObjectFactory::staticCreateProperty<double, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::String:
+			return ProxyObjectFactory::staticCreateProperty<std::string, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::Vec2f:
+			return ProxyObjectFactory::staticCreateProperty<Vec2f, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec3f:
+			return ProxyObjectFactory::staticCreateProperty<Vec3f, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec4f:
+			return ProxyObjectFactory::staticCreateProperty<Vec4f, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::Vec2i:
+			return ProxyObjectFactory::staticCreateProperty<Vec2i, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec3i:
+			return ProxyObjectFactory::staticCreateProperty<Vec3i, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec4i:
+			return ProxyObjectFactory::staticCreateProperty<Vec4i, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::Array:
+		case EnginePrimitive::Struct:
+			return ProxyObjectFactory::staticCreateProperty<Table, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::TextureSampler2D:
+			return ProxyObjectFactory::staticCreateProperty<STextureSampler2DBase, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::TextureSamplerCube:
+			return ProxyObjectFactory::staticCreateProperty<SCubeMap, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+	}
+	return nullptr;
+}
+
+
 raco::data_storage::Table* findItemByValue(raco::data_storage::Table& table, raco::core::SEditorObject obj) {
 	for (size_t i{0}; i < table.size(); i++) {
 		raco::data_storage::Table& item = table.get(i)->asTable();
@@ -116,6 +180,143 @@ void insertPrefabInstancesRecursive(raco::serialization::proxy::SEditorObject in
 	}
 }
 
+std::string generateInterfaceTable(const data_storage::Table& table, int depth, const std::string& prefix = std::string(), const std::string& newLine = ",\n");
+
+std::string generateInterfaceSingleEntry(const data_storage::ValueBase* value, int depth) {
+	using namespace raco::core;
+
+	auto anno = value->query<user_types::EngineTypeAnnotation>();
+	switch (anno->type()) {
+		case EnginePrimitive::Bool:
+			return "Type:Bool()";
+			break;
+		case EnginePrimitive::Int32:
+			return "Type:Int32()";
+			break;
+		case EnginePrimitive::Int64:
+			return "Type:Int64()";
+			break;
+		case EnginePrimitive::Double:
+			return "Type:Float()";
+			break;
+		case EnginePrimitive::String:
+			return "Type:String()";
+			break;
+		case EnginePrimitive::Vec2f:
+			return "Type:Vec2f()";
+			break;
+		case EnginePrimitive::Vec3f:
+			return "Type:Vec3f()";
+			break;
+		case EnginePrimitive::Vec4f:
+			return "Type:Vec4f()";
+			break;
+		case EnginePrimitive::Vec2i:
+			return "Type:Vec2i()";
+			break;
+		case EnginePrimitive::Vec3i:
+			return "Type:Vec3i()";
+			break;
+		case EnginePrimitive::Vec4i:
+			return "Type:Vec4i()";
+			break;
+
+		case EnginePrimitive::Struct: {
+			return "{\n" + generateInterfaceTable(value->asTable(), depth + 1) + "\n" + std::string(4 * depth, ' ') + "}";
+			break;
+		}
+
+		case EnginePrimitive::Array: {
+			auto table = value->asTable();
+			auto size = table.size();
+			return fmt::format("Type:Array({}, {})", std::to_string(size), generateInterfaceSingleEntry(table.get(0), depth));
+			break;
+		}
+		default:
+			return "Invalid";
+			break;
+	}
+}
+
+std::string generateInterfaceTable(const data_storage::Table& table, int depth, const std::string& prefix, const std::string& newLine) {
+	std::string result;
+	for (size_t i = 0; i < table.size(); i++) {
+		result += std::string(4 * depth, ' ') + prefix + table.name(i) + " = " + generateInterfaceSingleEntry(table.get(i), depth);
+		if (i < table.size() - 1) {
+			result += newLine;
+		}
+	}
+	return result;
+}
+
+std::string generateInterfaceScript(raco::serialization::proxy::SEditorObject object) {
+	return fmt::format(R"___(function interface(INOUT)
+{}
+end
+)___",
+		generateInterfaceTable(object->get("luaInputs")->asTable(), 1, "INOUT.", "\n"));
+}
+
+void createInterfaceProperties(const data_storage::Table& scriptTable, data_storage::Table& interfaceTable) {
+	for (size_t i = 0; i < scriptTable.size(); i++) {
+		auto anno = scriptTable.get(i)->query<user_types::EngineTypeAnnotation>();
+		if (raco::core::PropertyInterface::primitiveType(anno->type()) == PrimitiveType::Ref) {
+			interfaceTable.addProperty(scriptTable.name(i), createDynamicProperty_V36<>(anno->type()), -1);
+		} else {
+			interfaceTable.addProperty(scriptTable.name(i), createDynamicProperty_V36<raco::core::LinkStartAnnotation, raco::core::LinkEndAnnotation>(anno->type()), -1);
+		}
+
+		if (scriptTable.get(i)->type() == PrimitiveType::Table) {
+			createInterfaceProperties(scriptTable.get(i)->asTable(), interfaceTable.get(i)->asTable());
+		} else {
+			*interfaceTable.get(i) = *scriptTable.get(i);
+		}
+	}
+}
+
+raco::serialization::proxy::SDynamicEditorObject createInterfaceObjectV36(raco::serialization::proxy::ProxyObjectFactory& factory, raco::serialization::ProjectDeserializationInfoIR& deserializedIR, std::vector<raco::core::SLink>& createdLinks, raco::serialization::proxy::SDynamicEditorObject& script, std::string& interfaceObjID, const raco::utils::u8path& intfRelPath, const raco::core::SEditorObject& parentObj) {
+	using namespace raco::serialization::proxy;
+
+	auto interfaceObj = std::dynamic_pointer_cast<DynamicEditorObject>(factory.createObject("LuaInterface", script->objectName(), interfaceObjID));
+	interfaceObj->addProperty("uri", new Property<std::string, URIAnnotation, DisplayNameAnnotation>{intfRelPath.string(), {"Lua interface files(*.lua)"}, DisplayNameAnnotation("URI")}, -1);
+
+	if (auto anno = script->query<raco::core::ExternalReferenceAnnotation>()) {
+		interfaceObj->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>(*anno->projectID_));
+	}
+
+	auto newIntfInputs = interfaceObj->addProperty("luaInputs", new Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation>{{}, DisplayNameAnnotation("Inputs"), {}, {}}, -1);
+	createInterfaceProperties(script->get("luaInputs")->asTable(), newIntfInputs->asTable());
+
+	deserializedIR.objects.emplace_back(interfaceObj);
+
+	auto prop = parentObj->children_->addProperty(PrimitiveType::Ref, -1);
+	*prop = interfaceObj;
+
+	createdLinks.emplace_back(std::make_shared<raco::core::Link>(
+		raco::core::PropertyDescriptor(interfaceObj, {"luaInputs"}),
+		raco::core::PropertyDescriptor(script, {"luaInputs"}),
+		true));
+
+	{
+		auto it = deserializedIR.links.begin();
+		while (it != deserializedIR.links.end()) {
+			auto link = *it;
+			if (*link->endObject_ == script) {
+				if (parentObj->serializationTypeName() == "Prefab") {
+					it = deserializedIR.links.erase(it);
+				} else {
+					link->endObject_ = interfaceObj;
+					++it;
+				}
+			} else {
+				++it;
+			}
+		}
+	}
+
+	return interfaceObj;
+}
+
 // Limitations
 // - Annotations and links are handled as static classes:
 //   the class definition is not supposed to change in any observable way:
@@ -123,7 +324,7 @@ void insertPrefabInstancesRecursive(raco::serialization::proxy::SEditorObject in
 // - If the need arises to migrate the annotationns we would need to create proxy types for them in the same
 //   way currently done for the Struct PrimitiveTypes.
 
-void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
+void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory) {
 	using namespace raco::data_storage;
 	using namespace raco::serialization::proxy;
 
@@ -629,7 +830,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 			} else {
 				++it;
 			}
-		}	
+		}
 	}
 
 	// File version 33: Added HiddenProperty annotation to all tag - related properties
@@ -640,7 +841,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 			if (instanceType == "Node" || instanceType == "MeshNode" || instanceType == "PrefabInstance" || instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera" || instanceType == "RenderLayer" || instanceType == "Material") {
 				if (dynObj->hasProperty("tags")) {
 					auto oldProp = dynObj->extractProperty("tags");
-					auto newProp = new Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> {oldProp->asTable(), {}, {}, {}, {"Tags"}};
+					auto newProp = new Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation>{oldProp->asTable(), {}, {}, {}, {"Tags"}};
 					dynObj->addProperty("tags", newProp, -1);
 				}
 			}
@@ -674,6 +875,195 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR) {
 					auto newProp = new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{newValue, {"Material Filter Mode"}, raco::core::EngineEnumeration::RenderLayerMaterialFilterMode};
 					dynObj->addProperty("materialFilterMode", newProp, -1);
 				}
+			}
+		}
+	}
+
+	// File version 36: LuaInterfaces instead of LuaScripts as Prefab/PrefabInstance interfaces
+	if (deserializedIR.fileVersion < 36) {
+
+		// Add LinkEndAnnotation to LuaScript::luaInputs_ property
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "LuaScript") {
+				auto oldInputs = dynObj->extractProperty("luaInputs");
+				auto newInputs = dynObj->addProperty("luaInputs", new Property<Table, DisplayNameAnnotation, LinkEndAnnotation>{{}, DisplayNameAnnotation("Inputs"), {}}, -1);
+				*newInputs = *oldInputs;
+			}
+		}
+
+		// create interface objects
+		// - synthesize lua from lua script inputs
+		// - write file
+		// - create interface objects (careful with object ids)
+
+		auto projectPath = utils::u8path(deserializedIR.currentPath).normalized().parent_path();
+		auto scriptRelPath = utils::u8path("interfaces");
+		std::filesystem::create_directories(projectPath / scriptRelPath);
+
+		std::vector<raco::core::SLink> createdLinks;
+
+		// Prefab pass 1: 
+		// Generate file names for the interface script we need to generate
+		// - disambiguation based on script name and generated interface contents
+		// - use file name of script if no ambiguity
+		// - otherwise use object ids as fallback
+		
+		std::map<std::string, std::map<std::string, std::set<std::string>>> scriptNameToTextToIDMap;
+
+		auto objectsCopy = deserializedIR.objects;
+		for (const auto& dynObj : objectsCopy) {
+			if (dynObj->serializationTypeName() == "Prefab") {
+				for (auto child : dynObj->children_->asVector<SEditorObject>()) {
+					if (child->serializationTypeName() == "LuaScript") {
+						auto prefabScript = std::dynamic_pointer_cast<DynamicEditorObject>(child);
+						if (!prefabScript->query<raco::core::ExternalReferenceAnnotation>()) {
+							auto interfaceText = generateInterfaceScript(prefabScript);
+							utils::u8path path(prefabScript->get("uri")->asString());
+							scriptNameToTextToIDMap[path.stem().string()][interfaceText].insert(prefabScript->objectID());
+						}
+					}
+				}
+			}
+		}
+
+		std::map<std::string, std::string> interfacePaths;
+		for (auto const& [name, text_to_ids] : scriptNameToTextToIDMap) {
+			if (text_to_ids.size() == 1) {
+				for (auto const& id : text_to_ids.begin()->second) {
+					interfacePaths[id] = (scriptRelPath / (name + ".lua")).string();
+				}
+			} else {
+				for (auto const& id_set : text_to_ids) {
+					for (auto id : id_set.second) {
+						interfacePaths[id] = (scriptRelPath / (id + ".lua")).string();
+					}
+				}
+			}
+		}
+
+		for (const auto& dynObj : objectsCopy) {
+			if (dynObj->serializationTypeName() == "Prefab") {
+				for (auto child : dynObj->children_->asVector<SEditorObject>()) {
+					if (child->serializationTypeName() == "LuaScript") {
+						auto prefabScript = std::dynamic_pointer_cast<DynamicEditorObject>(child);
+
+						utils::u8path intfRelPath;
+
+						if (!prefabScript->query<raco::core::ExternalReferenceAnnotation>()) {
+							auto it = interfacePaths.find(prefabScript->objectID());
+							assert(it != interfacePaths.end());
+							intfRelPath = it->second;
+							auto interfaceText = generateInterfaceScript(prefabScript);
+							auto intfAbsPath = projectPath / intfRelPath;
+							LOG_INFO(raco::log_system::DESERIALIZATION, "Writing generated interface file {} -> {}", prefabScript->objectName(), intfAbsPath.string());
+							raco::utils::file::write(intfAbsPath, interfaceText);
+						}
+
+						auto interfaceObjID = EditorObject::XorObjectIDs(prefabScript->objectID(), "00000000-0000-0000-0000-000000000001");
+						auto interfaceObj = createInterfaceObjectV36(factory, deserializedIR, createdLinks, prefabScript, interfaceObjID, intfRelPath, dynObj);
+					}
+				}
+			}
+		}
+
+		for (const auto& dynObj : objectsCopy) {
+			if (dynObj->serializationTypeName() == "PrefabInstance") {
+				auto inst = dynObj;
+				for (auto child : dynObj->children_->asVector<SEditorObject>()) {
+					if (child->serializationTypeName() == "LuaScript") {
+						auto instScript = std::dynamic_pointer_cast<DynamicEditorObject>(child);
+
+						utils::u8path intfRelPath;
+
+						// Note: if we haven't written the file above the uri must remain empty.
+						// Since 'load' will reload/sync from external files before the external reference update the 
+						// sync will remove the interface properties (since the file doesn't exist yet). The extref
+						// update will then create the file. But the succeeding prefab update will only perform another
+						// external file reload/sync on the interface if the object changed during the prefab update.
+						// If we set the uri correctly here there is no change though and no sync will be triggered.
+						auto prefabScriptID = EditorObject::XorObjectIDs(instScript->objectID(), inst->objectID());
+						auto it = interfacePaths.find(prefabScriptID);
+						if (it != interfacePaths.end()) {
+							intfRelPath = it->second;
+						}
+
+						std::string instInterfaceID = EditorObject::XorObjectIDs(instScript->objectID(), "00000000-0000-0000-0000-000000000001");
+						createInterfaceObjectV36(factory, deserializedIR, createdLinks, instScript, instInterfaceID, intfRelPath, inst);
+					}
+				}
+			}
+		}
+
+		std::copy(createdLinks.begin(), createdLinks.end(), std::back_inserter(deserializedIR.links));
+
+		for (const auto& obj : deserializedIR.objects) {
+			auto dynObj = std::dynamic_pointer_cast<raco::serialization::proxy::DynamicEditorObject>(obj);
+			dynObj->onAfterDeserialization();
+		}
+	}
+
+	// File version 40: Renamed internal properties
+	if (deserializedIR.fileVersion < 40) {
+		{
+			std::unordered_map<std::string, std::vector<std::string>> newPropertyStrings = {
+				{"luaInputs", {"inputs"}},
+				{"luaOutputs", {"outputs"}},
+				{"scale", {"scaling"}},
+				{"visible", {"visibility"}},
+				{"tickerInput", {"inputs", "ticker_us"}},
+				{"tickerOutput", {"outputs", "ticker_us"}}};
+
+			for (auto& link : deserializedIR.links) {
+				auto linkStartProps = link->startPropertyNamesVector();
+				auto linkEndProps = link->endPropertyNamesVector();
+
+				auto stringIt = newPropertyStrings.find(linkStartProps.front());
+				if (stringIt != newPropertyStrings.end()) {
+					auto newlinkStartProps = stringIt->second;
+					newlinkStartProps.insert(newlinkStartProps.end(), linkStartProps.begin() + 1, linkStartProps.end());
+					link->startProp_->set<std::string>(newlinkStartProps);
+				}
+
+				stringIt = newPropertyStrings.find(linkEndProps.front());
+				if (stringIt != newPropertyStrings.end()) {
+					auto newlinkEndProps = stringIt->second;
+					newlinkEndProps.insert(newlinkEndProps.end(), linkEndProps.begin() + 1, linkEndProps.end());
+					link->endProp_->set<std::string>(newlinkEndProps);
+				}
+			}
+		}
+
+		for (const auto& dynObj : deserializedIR.objects) {
+			const auto& typeName = dynObj->serializationTypeName();
+			if (typeName == "Node" || typeName == "MeshNode" || typeName == "PerspectiveCamera" || typeName == "OrthographicCamera" || typeName == "PrefabInstance") {
+				auto oldScale = dynObj->extractProperty("scale");
+				auto newScale = dynObj->addProperty("scaling", new Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation>{{}, DisplayNameAnnotation("Scaling"), {}}, -1);
+				auto oldVis = dynObj->extractProperty("visible");
+				auto newVis = dynObj->addProperty("visibility", new Property<bool, DisplayNameAnnotation, LinkEndAnnotation>{true, DisplayNameAnnotation("Visibility"), {}}, -1);
+
+				*newScale = *oldScale;
+				*newVis = *oldVis;
+			} else if (typeName == "LuaScript") {
+				auto oldInputs = dynObj->extractProperty("luaInputs");
+				auto newInputs = dynObj->addProperty("inputs", new Property<Table, DisplayNameAnnotation, LinkEndAnnotation>{{}, DisplayNameAnnotation("Inputs"), {}}, -1);
+				auto oldOutputs = dynObj->extractProperty("luaOutputs");
+				auto newOutputs = dynObj->addProperty("outputs", new Property<Table, DisplayNameAnnotation>{{}, DisplayNameAnnotation("Outputs")}, -1);
+
+				*newInputs = *oldInputs;
+				*newOutputs = *oldOutputs;
+			} else if (typeName == "LuaInterface") {
+				auto oldInputs = dynObj->extractProperty("luaInputs");
+				auto newInputs = dynObj->addProperty("inputs", new Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation>{{}, DisplayNameAnnotation("Inputs"), {}, {}}, -1);
+
+				*newInputs = *oldInputs;
+			} else if (typeName == "Timer") {
+				auto newInputs = new Property<TimerInput, DisplayNameAnnotation>{{}, DisplayNameAnnotation("Inputs")};
+				(*newInputs)->addProperty("ticker_us", dynObj->extractProperty("tickerInput"), -1);
+				dynObj->addProperty("inputs", newInputs, -1);
+
+				auto newOutputs = new Property<TimerOutput, DisplayNameAnnotation>{{}, DisplayNameAnnotation("Outputs")};
+				(*newOutputs)->addProperty("ticker_us", dynObj->extractProperty("tickerOutput"), -1);
+				dynObj->addProperty("outputs", newOutputs, -1);
 			}
 		}
 	}

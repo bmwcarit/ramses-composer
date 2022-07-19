@@ -28,6 +28,9 @@ class GeneralTests(unittest.TestCase):
         raco.load(self.cwd() + "/../resources/example_scene.rca")
 
         with self.assertRaises(RuntimeError):
+            raco.load("")
+
+        with self.assertRaises(RuntimeError):
             raco.load(self.cwd() + "/wrong-extension.abc")
 
         with self.assertRaises(RuntimeError):
@@ -51,6 +54,12 @@ class GeneralTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             raco.load(self.cwd() + "/../resources/multi-file-zip.rca")
 
+    def test_project_path(self):
+        self.assertEqual(raco.projectPath(), "")
+
+        raco.load(self.cwd() + "/../resources/example_scene.rca")
+        self.assertEqual(os.path.normpath(raco.projectPath()), os.path.normpath(self.cwd() + "/../resources/example_scene.rca"))
+
     def test_instances(self):
         self.assertTrue(len(raco.instances()) > 0)
         
@@ -61,7 +70,7 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(node.parent(), None)
         self.assertEqual(node.children(), [])
         self.assertTrue(node.objectID() != None)
-        self.assertEqual(dir(node), ['objectName', 'rotation', 'scale', 'translation', 'visible'])
+        self.assertEqual(dir(node), ['objectName', 'rotation', 'scaling', 'translation', 'visibility'])
 
     def test_create_fail(self):
         with self.assertRaises(RuntimeError):
@@ -98,6 +107,8 @@ class GeneralTests(unittest.TestCase):
 
     def test_prop_handle_functions(self):
         node = raco.create("Node", "my_node")
+        self.assertEqual(node.translation.object(), node)
+        self.assertEqual(node.translation.x.object(), node)
         self.assertEqual(node.translation.propName(), "translation")
         self.assertEqual(dir(node.translation), ["x", "y", "z"])
         self.assertEqual(node.translation.typeName(), "Vec3f")
@@ -105,8 +116,8 @@ class GeneralTests(unittest.TestCase):
 
     def test_prop_get(self):
         node = raco.create("Node", "my_node")
-        self.assertEqual(node.visible.value(), True)
-        self.assertEqual(node.visible.value(), getattr(node, "visible").value())
+        self.assertEqual(node.visibility.value(), True)
+        self.assertEqual(node.visibility.value(), getattr(node, "visibility").value())
         self.assertEqual(node.translation.x.value(), getattr(node.translation, "x").value())
         self.assertEqual(node.translation.x.value(), getattr(node, "translation").x.value())
 
@@ -149,68 +160,68 @@ class GeneralTests(unittest.TestCase):
     def test_prop_set_top_bool(self):
         node = raco.create("Node", "my_node")
         
-        self.assertEqual(node.visible.value(), True)
+        self.assertEqual(node.visibility.value(), True)
 
-        node.visible = False
-        self.assertEqual(node.visible.value(), False)
-        setattr(node, "visible", True)
-        self.assertEqual(node.visible.value(), True)
+        node.visibility = False
+        self.assertEqual(node.visibility.value(), False)
+        setattr(node, "visibility", True)
+        self.assertEqual(node.visibility.value(), True)
 
         # conversion: int to bool
-        node.visible = 0
-        self.assertEqual(node.visible.value(), False)
-        node.visible = 42
-        self.assertEqual(node.visible.value(), True)
+        node.visibility = 0
+        self.assertEqual(node.visibility.value(), False)
+        node.visibility = 42
+        self.assertEqual(node.visibility.value(), True)
         
         # conversion: float to bool
-        node.visible = 0.0
-        self.assertEqual(node.visible.value(), False)
-        node.visible = 2.345
-        self.assertEqual(node.visible.value(), True)
+        node.visibility = 0.0
+        self.assertEqual(node.visibility.value(), False)
+        node.visibility = 2.345
+        self.assertEqual(node.visibility.value(), True)
 
 
     def test_prop_get_nested_fail(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
 
-        self.assertTrue(lua.luaInputs != None)
+        self.assertTrue(lua.inputs != None)
         with self.assertRaises(RuntimeError):
-            lua.luaInputs.nosuch
+            lua.inputs.nosuch
  
     def test_prop_set_nested_fail(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
-        self.assertTrue(lua.luaInputs != None)
+        self.assertTrue(lua.inputs != None)
         with self.assertRaises(RuntimeError):
-            lua.luaInputs.nosuch = 42
+            lua.inputs.nosuch = 42
 
         raco.delete(lua)
         
         with self.assertRaises(RuntimeError):
-            lua.luaInputs.nosuch = 42
+            lua.inputs.nosuch = 42
 
 
     def test_prop_set_nested_bool(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
 
-        lua.luaInputs.bool = False
-        self.assertEqual(lua.luaInputs.bool.value(), False)
-        setattr(lua.luaInputs, "bool", True)
-        self.assertEqual(lua.luaInputs.bool.value(), True)
+        lua.inputs.bool = False
+        self.assertEqual(lua.inputs.bool.value(), False)
+        setattr(lua.inputs, "bool", True)
+        self.assertEqual(lua.inputs.bool.value(), True)
 
         # conversion: int to bool
-        lua.luaInputs.bool = 0
-        self.assertEqual(lua.luaInputs.bool.value(), False)
-        lua.luaInputs.bool = 42
-        self.assertEqual(lua.luaInputs.bool.value(), True)
+        lua.inputs.bool = 0
+        self.assertEqual(lua.inputs.bool.value(), False)
+        lua.inputs.bool = 42
+        self.assertEqual(lua.inputs.bool.value(), True)
         
         # conversion: float to bool
-        lua.luaInputs.bool = 0.0
-        self.assertEqual(lua.luaInputs.bool.value(), False)
-        lua.luaInputs.bool = 2.345
-        self.assertEqual(lua.luaInputs.bool.value(), True)
+        lua.inputs.bool = 0.0
+        self.assertEqual(lua.inputs.bool.value(), False)
+        lua.inputs.bool = 2.345
+        self.assertEqual(lua.inputs.bool.value(), True)
     
 
     def test_move_scenegraph(self):
@@ -267,8 +278,8 @@ class GeneralTests(unittest.TestCase):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
-        link = raco.addLink(lua.luaOutputs.ovector3f, node.translation)
-        self.assertEqual(link.start, lua.luaOutputs.ovector3f)
+        link = raco.addLink(lua.outputs.ovector3f, node.translation)
+        self.assertEqual(link.start, lua.outputs.ovector3f)
         self.assertEqual(link.end, node.translation)
         self.assertTrue(link.valid)
         
@@ -284,7 +295,7 @@ class GeneralTests(unittest.TestCase):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
-        link = raco.addLink(lua.luaOutputs.ovector3f, node.translation)
+        link = raco.addLink(lua.outputs.ovector3f, node.translation)
         raco.delete(node)
         with self.assertRaises(RuntimeError):
             raco.getLink(node.translation)
@@ -294,7 +305,7 @@ class GeneralTests(unittest.TestCase):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
-        start = lua.luaOutputs.ovector3f
+        start = lua.outputs.ovector3f
         end = node.translation
         
         raco.delete(lua)
@@ -306,7 +317,7 @@ class GeneralTests(unittest.TestCase):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
-        start = lua.luaOutputs.ovector3f
+        start = lua.outputs.ovector3f
         end = node.translation
         
         raco.delete(lua)
@@ -321,26 +332,48 @@ class GeneralTests(unittest.TestCase):
         lua_end.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
 
         with self.assertRaises(RuntimeError):
-            raco.addLink(lua_start.luaOutputs.ovector3f, lua_end.luaOutputs.ovector3f)
+            raco.addLink(lua_start.outputs.ovector3f, lua_end.outputs.ovector3f)
         
     def test_link_remove_fail_no_end(self):
         node = raco.create("Node", "node")
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
-        link = raco.addLink(lua.luaOutputs.ovector3f, node.translation)
+        link = raco.addLink(lua.outputs.ovector3f, node.translation)
             
         raco.delete(node)
         with self.assertRaises(RuntimeError):
             raco.removeLink(node.translation)
         
+    def test_link_remove_fail_end_readonly(self):
+        prefab = raco.create("Prefab", "prefab")
+        node = raco.create("Node", "node")
+        raco.moveScenegraph(node, prefab)
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+        raco.moveScenegraph(lua, prefab)
+        
+        link = raco.addLink(lua.outputs.ovector3f, node.translation)
+    
+        inst = raco.create("PrefabInstance", "inst")
+        inst.template = prefab
+        
+        inst_lua = [child for child in inst.children() if child.typeName() == "LuaScript"][0]
+        inst_node = [child for child in inst.children() if child.typeName() == "Node"][0]
+    
+        inst_link = raco.getLink(inst_node.translation)
+        self.assertEqual(inst_link.start, inst_lua.outputs.ovector3f)
+    
+        with self.assertRaises(RuntimeError):
+            raco.removeLink(inst_node.translation)
+        
     def test_engine_update_lua_outputs(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/SimpleScript.lua"
 
-        self.assertEqual(lua.luaOutputs.out_float.value(), 0.0)
-        lua.luaInputs.in_float = 2.0
-        self.assertEqual(lua.luaOutputs.out_float.value(), 2.0)
+        self.assertEqual(lua.outputs.out_float.value(), 0.0)
+        lua.inputs.in_float = 2.0
+        self.assertEqual(lua.outputs.out_float.value(), 2.0)
 
     def test_engine_update_lua_link(self):
         start = raco.create("LuaScript", "lua_start")
@@ -348,12 +381,12 @@ class GeneralTests(unittest.TestCase):
         end = raco.create("LuaScript", "lua_end")
         end.uri = self.cwd() + R"/../resources/scripts/SimpleScript.lua"
         
-        self.assertTrue(raco.addLink(start.luaOutputs.out_float, end.luaInputs.in_float) != None)
+        self.assertTrue(raco.addLink(start.outputs.out_float, end.inputs.in_float) != None)
 
-        self.assertEqual(end.luaInputs.in_float.value(), 0.0)
-        start.luaInputs.in_float = 2.0
-        self.assertEqual(end.luaInputs.in_float.value(), 2.0)
+        self.assertEqual(end.inputs.in_float.value(), 0.0)
+        start.inputs.in_float = 2.0
+        self.assertEqual(end.inputs.in_float.value(), 2.0)
     
-        raco.removeLink(end.luaInputs.in_float)
-        start.luaInputs.in_float = 3.0
-        self.assertEqual(end.luaInputs.in_float.value(), 2.0)
+        raco.removeLink(end.inputs.in_float)
+        start.inputs.in_float = 3.0
+        self.assertEqual(end.inputs.in_float.value(), 2.0)

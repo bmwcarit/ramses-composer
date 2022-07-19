@@ -170,31 +170,31 @@ public:
 };
 
 TEST_F(LifeCycleListenertest, generic) {
-	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scale"}}, true};
+	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scaling"}}, true};
 	auto subscribtion = underTest.registerOnLinksLifeCycle(creationCallback.AsStdFunction(), deletionCallback.AsStdFunction());
 	test_add_remove(linkDesc, 1);
 }
 
 TEST_F(LifeCycleListenertest, for_start_link_same_start) {
-	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scale"}}, true};
+	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scaling"}}, true};
 	auto subscribtion = underTest.registerOnLinksLifeCycleForStart(node_start, creationCallback.AsStdFunction(), deletionCallback.AsStdFunction());
 	test_add_remove(linkDesc, 1);
 }
 
 TEST_F(LifeCycleListenertest, for_start_link_different_start) {
-	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scale"}}, true};
+	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scaling"}}, true};
 	auto subscribtion = underTest.registerOnLinksLifeCycleForStart(node_end, creationCallback.AsStdFunction(), deletionCallback.AsStdFunction());
 	test_add_remove(linkDesc, 0);
 }
 
 TEST_F(LifeCycleListenertest, for_end_link_same_end) {
-	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scale"}}, true};
+	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scaling"}}, true};
 	auto subscribtion = underTest.registerOnLinksLifeCycleForEnd(node_end, creationCallback.AsStdFunction(), deletionCallback.AsStdFunction());
 	test_add_remove(linkDesc, 1);
 }
 
 TEST_F(LifeCycleListenertest, for_end_link_different_end) {
-	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scale"}}, true};
+	LinkDescriptor linkDesc{{node_start, {"translation"}}, {node_end, {"scaling"}}, true};
 	auto subscribtion = underTest.registerOnLinksLifeCycleForEnd(node_start, creationCallback.AsStdFunction(), deletionCallback.AsStdFunction());
 	test_add_remove(linkDesc, 0);
 }

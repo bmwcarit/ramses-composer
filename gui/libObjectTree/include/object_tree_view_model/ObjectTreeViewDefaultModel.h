@@ -79,12 +79,13 @@ public:
 	core::UserObjectFactoryInterface* objectFactory();
 	core::Project* project() const;
 
+	std::set<std::string> externalProjectPathsAtIndices(const QModelIndexList& indices);
+
 	virtual Qt::TextElideMode textElideMode() const;
 
 	// Compare function that produces the following order: First sort by hierachy level then by row in scene graph.
 	static bool isIndexAboveInHierachyOrPosition(QModelIndex left, QModelIndex right);
 
-public:
 	std::pair<std::vector<core::SEditorObject>, std::set<std::string>> getObjectsAndRootIdsFromClipboardString(const std::string& serializedObjs) const;
 	
 	virtual bool canCopyAtIndices(const QModelIndexList& index) const;
@@ -145,6 +146,7 @@ protected:
 		{"Texture", raco::style::Icons::instance().typeTexture},
 		{"CubeMap", raco::style::Icons::instance().typeCubemap},
 		{"LuaScript", raco::style::Icons::instance().typeLuaScript},
+		{"LuaInterface", raco::style::Icons::instance().typeLuaInterface},
 		{"Material", raco::style::Icons::instance().typeMaterial},
 		{"Mesh", raco::style::Icons::instance().typeMesh},
 		{"MeshNode", raco::style::Icons::instance().typeMesh},

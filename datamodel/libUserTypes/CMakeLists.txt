@@ -16,7 +16,10 @@ add_library(libUserTypes
 	include/user_types/BaseTexture.h
 	include/user_types/CubeMap.h src/CubeMap.cpp
 	include/user_types/DefaultValues.h
+	include/user_types/EngineTypeAnnotation.h
 	include/user_types/Enumerations.h src/Enumerations.cpp
+	include/user_types/LuaStandardModuleSelection.h
+	include/user_types/LuaInterface.h src/LuaInterface.cpp
 	include/user_types/LuaScript.h src/LuaScript.cpp
 	include/user_types/LuaScriptModule.h src/LuaScriptModule.cpp
 	include/user_types/Material.h src/Material.cpp
@@ -29,15 +32,12 @@ add_library(libUserTypes
 	include/user_types/PrefabInstance.h src/PrefabInstance.cpp
 	include/user_types/RenderBuffer.h
 	include/user_types/RenderLayer.h
+	include/user_types/RenderPass.h src/RenderPass.cpp
 	include/user_types/RenderTarget.h
-	include/user_types/RenderPass.h
+	include/user_types/SyncTableWithEngineInterface.h src/SyncTableWithEngineInterface.cpp
 	include/user_types/Texture.h src/Texture.cpp
 	include/user_types/Timer.h src/Timer.cpp
-	include/user_types/EngineTypeAnnotation.h
-
 	include/user_types/UserObjectFactory.h src/UserObjectFactory.cpp
-
-	include/user_types/SyncTableWithEngineInterface.h src/SyncTableWithEngineInterface.cpp
 	src/Validation.h
 )
 

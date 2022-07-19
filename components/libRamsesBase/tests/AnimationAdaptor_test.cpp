@@ -227,10 +227,10 @@ end
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
 	dispatch();
 
-	commandInterface.addLink({luaScript, {"luaOutputs", "out_value"}}, {anim, &raco::user_types::Animation::progress_});
+	commandInterface.addLink({luaScript, {"outputs", "out_value"}}, {anim, &raco::user_types::Animation::progress_});
 	dispatch();
 
-	context.set({luaScript, {"luaInputs", "in_value"}}, 2.0);
+	context.set({luaScript, {"inputs", "in_value"}}, 2.0);
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getInputs()->getChild("progress")->get<float>(), 2.0);

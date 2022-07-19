@@ -43,6 +43,7 @@ struct PathManager {
 		Image,
 		Mesh,
 		Script,
+		Interface,
 		Shader
 	};
 
@@ -101,6 +102,7 @@ private:
 		{FolderTypeKeys::Image, {}},
 		{FolderTypeKeys::Mesh, {}},
 		{FolderTypeKeys::Script, {}},
+		{FolderTypeKeys::Interface, {}},
 		{FolderTypeKeys::Shader, {}}
 	};
 };

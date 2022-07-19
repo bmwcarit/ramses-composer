@@ -44,6 +44,7 @@
 #include <ramses-logic/DataArray.h>
 #include <ramses-logic/LogicEngine.h>
 #include <ramses-logic/LuaScript.h>
+#include <ramses-logic/LuaInterface.h>
 #include <ramses-logic/LuaModule.h>
 #include <ramses-logic/TimerNode.h>
 #include <ramses-logic/RamsesAppearanceBinding.h>
@@ -68,6 +69,7 @@ using RamsesTextureSampler = RamsesHandle<ramses::TextureSampler>;
 using RamsesTimerNode = RamsesHandle<rlogic::TimerNode>;
 using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
 using RamsesLuaScript = RamsesHandle<rlogic::LuaScript>;
+using RamsesLuaInterface = RamsesHandle<rlogic::LuaInterface>;
 
 /** RESOURCE HANDLES */
 using RamsesEffect = RamsesHandle<ramses::Effect>;
@@ -629,11 +631,10 @@ inline RamsesTimerNode ramsesTimer(rlogic::LogicEngine* logicEngine, const std::
 	return node;
 }
 
-inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	auto moduleConfig = defaultLuaConfig();
+inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, rlogic::LogicEngine* logicEngine, rlogic::LuaConfig& config, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 
 	RamsesLuaModule module{
-		logicEngine->createLuaModule(luaContent, moduleConfig, name), [logicEngine](rlogic::LuaModule* module) {
+		logicEngine->createLuaModule(luaContent, config, name), [logicEngine](rlogic::LuaModule* module) {
 			destroyLogicObject(logicEngine, module);
 		}};
 
@@ -656,6 +657,19 @@ inline RamsesLuaScript ramsesLuaScript(rlogic::LogicEngine* logicEngine, const s
 	}
 
 	return script;
+}
+
+inline RamsesLuaInterface ramsesLuaInterface(rlogic::LogicEngine* logicEngine, const std::string& interfaceText, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesLuaInterface interface{
+		logicEngine->createLuaInterface(interfaceText, name),
+		[logicEngine](rlogic::LuaInterface* interface) {
+			destroyLogicObject(logicEngine, interface);
+		}};
+
+	if (interface) {
+		interface->setUserId(objectID.first, objectID.second);
+	}
+	return interface;
 }
 
 struct RamsesAnimationChannelData {

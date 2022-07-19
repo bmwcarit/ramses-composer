@@ -46,16 +46,14 @@ public:
 class ObjectTreeViewExternalProjectModelTest : public ObjectTreeViewDefaultModelTest {
 protected:
 
-	raco::ramses_base::HeadlessEngineBackend backend{};
 	raco::ramses_base::HeadlessEngineBackend otherBackend{};
-	raco::application::RaCoApplication application{backend};
 	raco::application::RaCoApplication otherApplication{otherBackend};
-	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application};
+	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application_};
 
 	void generateExternalProject(const std::vector<raco::core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
-		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication);
+		application_.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication);
 
-		auto project = application.externalProjectsStore_.externalProjects_[projectPath]->project();
+		auto project = application_.externalProjectsStore_.externalProjects_[projectPath]->project();
 		for (const auto &instance : instances) {
 			project->addInstance(instance);
 		}

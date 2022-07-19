@@ -44,7 +44,7 @@ public Q_SLOTS:
 		std::unique_ptr<raco::application::RaCoApplication> app;
 
 		try {
-			app = std::make_unique<raco::application::RaCoApplication>(backend, projectFile_, false);
+			app = std::make_unique<raco::application::RaCoApplication>(backend, raco::application::RaCoApplicationLaunchSettings{projectFile_, false, true});
 		} catch (const raco::application::FutureFileVersion& error) {
 			LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 			app.reset();
@@ -62,6 +62,7 @@ public Q_SLOTS:
 		if (app) {
 			if (!pythonScriptPath_.isEmpty()) {
 				std::vector<std::string> pos_argv_s;
+				pos_argv_s.emplace_back(pythonScriptPath_.toStdString());
 				for (auto arg : positionalArguments_) {
 					pos_argv_s.emplace_back(arg.toStdString());
 				}

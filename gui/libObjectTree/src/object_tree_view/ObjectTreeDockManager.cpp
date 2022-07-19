@@ -77,6 +77,16 @@ ObjectTreeDock* ObjectTreeDockManager::getActiveDockWithSelection() const {
 	return focusedDock_;
 }
 
+bool ObjectTreeDockManager::docksContainObject(const QString& objID) const {
+	for (auto* dock : docks_) {
+		if (dock->getCurrentlyActiveTreeView()->containsObject(objID)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void ObjectTreeDockManager::connectTreeDockSignals(ObjectTreeDock* dock) {
 	QObject::connect(dock, &ObjectTreeDock::externalObjectSelected, [this](auto* selectionSrcDock) {
 		// Keep the external dock focused while clearing selection to not show external objects in the Property Browser

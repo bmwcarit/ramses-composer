@@ -53,6 +53,7 @@
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/CubeMap.h"
+#include "user_types/LuaInterface.h"
 #include "user_types/LuaScript.h"
 #include "user_types/LuaScriptModule.h"
 #include "user_types/MeshNode.h"
@@ -150,11 +151,12 @@ ads::CDockAreaWidget* createAndAddPreview(MainWindow* mainWindow, const char* do
 void connectPropertyBrowserAndTreeDockManager(raco::property_browser::PropertyBrowserWidget* propertyBrowser, raco::object_tree::view::ObjectTreeDockManager& treeDockManager) {
 	QObject::connect(&treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::newObjectTreeItemsSelected, propertyBrowser, &raco::property_browser::PropertyBrowserWidget::setValueHandles);
 	QObject::connect(&treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectionCleared, propertyBrowser, &raco::property_browser::PropertyBrowserWidget::clear);
-	QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::objectSelectionRequested, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
 }
 
 ads::CDockAreaWidget* createAndAddPropertyBrowser(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* application) {
 	auto propertyBrowser = new raco::property_browser::PropertyBrowserWidget(application->dataChangeDispatcher(), application->activeRaCoProject().commandInterface(), mainWindow);
+	QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::objectSelectionRequested, mainWindow, &MainWindow::focusToObject);
+	QObject::connect(mainWindow, &MainWindow::objectFocusRequestedForPropertyBrowser, propertyBrowser, &raco::property_browser::PropertyBrowserWidget::setValueHandleFromObjectId);
 	connectPropertyBrowserAndTreeDockManager(propertyBrowser, treeDockManager);
 	auto* dockWidget = createDockWidget(MainWindow::DockWidgetTypes::PROPERTY_BROWSER, mainWindow);
 	dockWidget->setWidget(propertyBrowser, ads::CDockWidget::ForceNoScrollArea);
@@ -228,7 +230,8 @@ ads::CDockAreaWidget* createAndAddPrefabTree(MainWindow* mainWindow, const char*
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
 		Animation::typeDescription.typeName,
-		LuaScript::typeDescription.typeName};
+		LuaScript::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewPrefabModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 
@@ -247,7 +250,8 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
 		Animation::typeDescription.typeName,
-		LuaScript::typeDescription.typeName};
+		LuaScript::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewDefaultModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, nullptr,
@@ -412,6 +416,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		about.exec();
 	});
 
+	QObject::connect(this, &MainWindow::objectFocusRequestedForTreeDock, &treeDockManager_, &raco::object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
+
 	restoreSettings();
 	restoreCachedLayout();
 
@@ -446,14 +452,15 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 	Q_EMIT viewportChanged({*viewport->i1_, *viewport->i2_});
 
 	for (auto preview : findChildren<raco::ramses_widgets::PreviewMainWindow*>()) {
-		preview->commit();
+		preview->commit(racoApplication_->rendererDirty_);
 		preview->displayScene(racoApplication_->sceneBackendImpl()->currentSceneId(), backgroundColor);
 	}
+	racoApplication_->rendererDirty_ = false;
 	auto logicEngineExecutionEnd = std::chrono::high_resolution_clock::now();
 	timingsModel_.addLogicEngineTotalExecutionDuration(std::chrono::duration_cast<std::chrono::microseconds>(logicEngineExecutionEnd - startLoop).count());
-	rendererBackend_->doOneLoop();
-
 	racoApplication_->sceneBackendImpl()->flush();
+
+	rendererBackend_->doOneLoop();
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
@@ -727,6 +734,14 @@ void MainWindow::updateActiveProjectConnection() {
 		activeProjectFileConnection_ = QObject::connect(&racoApplication_->activeRaCoProject(), &raco::application::RaCoProject::activeProjectFileChanged, [this]() {
 			updateApplicationTitle();
 		});
+	}
+}
+
+void MainWindow::focusToObject(const QString& objectID) {
+	if (treeDockManager_.getTreeDockAmount() != 0 && treeDockManager_.docksContainObject(objectID)) {
+		Q_EMIT objectFocusRequestedForTreeDock(objectID);
+	} else {
+		Q_EMIT objectFocusRequestedForPropertyBrowser(objectID);
 	}
 }
 

@@ -78,7 +78,7 @@ TEST(IteratorTest, Property) {
 		{node, {"objectName"}},
 		{node, {"children"}},
 		{node, {"tags"}},
-		{node, {"visible"}},
+		{node, {"visibility"}},
 		{node, {"translation"}},
 		{node, {"translation", "x"}},
 		{node, {"translation", "y"}},
@@ -87,10 +87,10 @@ TEST(IteratorTest, Property) {
 		{node, {"rotation", "x"}},
 		{node, {"rotation", "y"}},
 		{node, {"rotation", "z"}},
-		{node, {"scale"}},
-		{node, {"scale", "x"}},
-		{node, {"scale", "y"}},
-		{node, {"scale", "z"}}};
+		{node, {"scaling"}},
+		{node, {"scaling", "x"}},
+		{node, {"scaling", "y"}},
+		{node, {"scaling", "z"}}};
 	EXPECT_EQ(handles, refHandles);
 
 	handles.clear();
@@ -104,7 +104,7 @@ TEST(IteratorTest, Property) {
 	EXPECT_EQ(handles, refTranslationHandles);
 
 	handles.clear();
-	ValueHandle visible{node, {"visible"}};
+	ValueHandle visible{node, {"visibility"}};
 	std::copy(ValueTreeIteratorAdaptor(visible).begin(), ValueTreeIteratorAdaptor(visible).end(), std::back_inserter(handles));
 	EXPECT_EQ(handles.size(), 0);
 

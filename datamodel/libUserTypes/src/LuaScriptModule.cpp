@@ -18,14 +18,29 @@
 
 namespace raco::user_types {
 
+void LuaScriptModule::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
+	// uri changed -> updateFromExternalFile
+	// -> sync lua modules and parse/sync script
+	BaseObject::onAfterValueChanged(context, value);
+
+	ValueHandle stdModulesHandle(shared_from_this(), &LuaScriptModule::stdModules_);
+	if (stdModulesHandle.contains(value)) {
+		sync(context);
+	}
+}
+
 void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
+	sync(context);
+}
+
+void LuaScriptModule::sync(BaseContext& context) {
 	context.errors().removeError({shared_from_this()});
 
 	if (validateURI(context, {shared_from_this(), &LuaScriptModule::uri_})) {
 		std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
 
 		std::string error;
-		isValid_ = context.engineInterface().parseLuaScriptModule(luaScript, objectName(), error);
+		isValid_ = context.engineInterface().parseLuaScriptModule(luaScript, objectName(), stdModules_->activeModules(), error);
 
 		if (!isValid_) {
 			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);

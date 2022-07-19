@@ -11,10 +11,10 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 raco_find_qt_components(Widgets)
 
 add_library(libStyle 
+    include/style/Colors.h src/Colors.cpp
+    include/style/Icons.h src/Icons.cpp
     include/style/QStyleFormatter.h
 	include/style/RaCoStyle.h src/RaCoStyle.cpp
-    include/style/Icons.h src/Icons.cpp
-    include/style/Colors.h src/Colors.cpp
 )
 
 target_include_directories(libStyle

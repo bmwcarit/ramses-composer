@@ -29,23 +29,23 @@ public:
 	MockLuaScript(std::string name = std::string(), std::string id = std::string()) : EditorObject(name, id) {
 		fillPropertyDescription();
 
-		luaInputs_->addProperty("in_double", PrimitiveType::Double);
+		inputs_->addProperty("in_double", PrimitiveType::Double);
 
-		auto s = luaInputs_->addProperty("in_struct", PrimitiveType::Table);
+		auto s = inputs_->addProperty("in_struct", PrimitiveType::Table);
 		s->asTable().addProperty("foo", PrimitiveType::Double);
 		s->asTable().addProperty("bar", std::make_unique<Value<Vec3f>>());
 
-		auto a = luaInputs_->addProperty("in_array_double", PrimitiveType::Table);
+		auto a = inputs_->addProperty("in_array_double", PrimitiveType::Table);
 		a->asTable().addProperty(std::string(), PrimitiveType::Double);
 		a->asTable().addProperty(std::string(), PrimitiveType::Double);
 		a->asTable().addProperty(std::string(), PrimitiveType::Double);
 
-		auto av = luaInputs_->addProperty("in_array_vec3f", PrimitiveType::Table);
+		auto av = inputs_->addProperty("in_array_vec3f", PrimitiveType::Table);
 		av->asTable().addProperty(std::string(), new Value<Vec3f>());
 		av->asTable().addProperty(std::string(), new Value<Vec3f>());
 		av->asTable().addProperty(std::string(), new Value<Vec3f>());
 
-		auto as = luaInputs_->addProperty("in_array_struct", PrimitiveType::Table);
+		auto as = inputs_->addProperty("in_array_struct", PrimitiveType::Table);
 		auto as0 = as->asTable().addProperty(std::string(), PrimitiveType::Table);
 		as0->asTable().addProperty("foo", PrimitiveType::Double);
 		as0->asTable().addProperty("bar", new Value<Vec3f>());
@@ -55,12 +55,12 @@ public:
 	}
 
 	void fillPropertyDescription() {
-		properties_.emplace_back("luaInputs", &luaInputs_);
-		properties_.emplace_back("luaOutputs", &luaOutputs_);
+		properties_.emplace_back("inputs", &inputs_);
+		properties_.emplace_back("outputs", &outputs_);
 	}
 
-	Property<Table> luaInputs_{{}};
-	Property<Table> luaOutputs_{{}};
+	Property<Table> inputs_{{}};
+	Property<Table> outputs_{{}};
 };
 
 class StructWithRef : public StructBase {

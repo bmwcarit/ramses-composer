@@ -19,26 +19,28 @@ set_target_properties(libLodepng PROPERTIES FOLDER third_party/libLodepng)
 
 add_library(libRamsesBase
     include/ramses_base/BaseEngineBackend.h src/ramses_base/BaseEngineBackend.cpp
-    include/ramses_base/HeadlessEngineBackend.h src/ramses_base/HeadlessEngineBackend.cpp
+    include/ramses_base/BuildOptions.h
     include/ramses_base/CoreInterfaceImpl.h src/ramses_base/CoreInterfaceImpl.cpp
+    include/ramses_base/HeadlessEngineBackend.h src/ramses_base/HeadlessEngineBackend.cpp
+    include/ramses_base/LogicEngine.h
     include/ramses_base/RamsesHandles.h
     include/ramses_base/Utils.h src/ramses_base/Utils.cpp
-    include/ramses_base/LogicEngine.h
-    include/ramses_base/BuildOptions.h
-    
     src/ramses_base/EnumerationDescriptions.h
 
     include/ramses_adaptor/AnimationAdaptor.h src/ramses_adaptor/AnimationAdaptor.cpp
     include/ramses_adaptor/AnimationChannelAdaptor.h src/ramses_adaptor/AnimationChannelAdaptor.cpp
     include/ramses_adaptor/BaseCameraAdaptorHelpers.h src/ramses_adaptor/BaseCameraAdaptorHelpers.cpp
+    include/ramses_adaptor/BuildOptions.h
     include/ramses_adaptor/CubeMapAdaptor.h src/ramses_adaptor/CubeMapAdaptor.cpp
     include/ramses_adaptor/Factories.h src/ramses_adaptor/Factories.cpp
+    include/ramses_adaptor/LinkAdaptor.h src/ramses_adaptor/LinkAdaptor.cpp
+    include/ramses_adaptor/LuaInterfaceAdaptor.h src/ramses_adaptor/LuaInterfaceAdaptor.cpp
+    include/ramses_adaptor/LuaScriptAdaptor.h src/ramses_adaptor/LuaScriptAdaptor.cpp
+    include/ramses_adaptor/LuaScriptModuleAdaptor.h src/ramses_adaptor/LuaScriptModuleAdaptor.cpp
     include/ramses_adaptor/MaterialAdaptor.h src/ramses_adaptor/MaterialAdaptor.cpp
     include/ramses_adaptor/MeshAdaptor.h src/ramses_adaptor/MeshAdaptor.cpp
     include/ramses_adaptor/MeshNodeAdaptor.h src/ramses_adaptor/MeshNodeAdaptor.cpp
     include/ramses_adaptor/NodeAdaptor.h src/ramses_adaptor/NodeAdaptor.cpp
-    include/ramses_adaptor/LuaScriptAdaptor.h src/ramses_adaptor/LuaScriptAdaptor.cpp
-    include/ramses_adaptor/LuaScriptModuleAdaptor.h src/ramses_adaptor/LuaScriptModuleAdaptor.cpp
     include/ramses_adaptor/ObjectAdaptor.h src/ramses_adaptor/ObjectAdaptor.cpp
     include/ramses_adaptor/OrthographicCameraAdaptor.h src/ramses_adaptor/OrthographicCameraAdaptor.cpp
     include/ramses_adaptor/PerspectiveCameraAdaptor.h src/ramses_adaptor/PerspectiveCameraAdaptor.cpp
@@ -47,14 +49,10 @@ add_library(libRamsesBase
     include/ramses_adaptor/RenderPassAdaptor.h src/ramses_adaptor/RenderPassAdaptor.cpp
     include/ramses_adaptor/RenderTargetAdaptor.h src/ramses_adaptor/RenderTargetAdaptor.cpp
     include/ramses_adaptor/SceneAdaptor.h src/ramses_adaptor/SceneAdaptor.cpp
-    include/ramses_adaptor/TimerAdaptor.h src/ramses_adaptor/TimerAdaptor.cpp
-
-    include/ramses_adaptor/LinkAdaptor.h src/ramses_adaptor/LinkAdaptor.cpp
-
     include/ramses_adaptor/SceneBackend.h src/ramses_adaptor/SceneBackend.cpp
     include/ramses_adaptor/TextureSamplerAdaptor.h src/ramses_adaptor/TextureSamplerAdaptor.cpp
+    include/ramses_adaptor/TimerAdaptor.h src/ramses_adaptor/TimerAdaptor.cpp
     include/ramses_adaptor/utilities.h
-    include/ramses_adaptor/BuildOptions.h
 )
 
 target_include_directories(libRamsesBase

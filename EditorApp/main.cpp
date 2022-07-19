@@ -77,10 +77,15 @@ int main(int argc, char* argv[]) {
 					  << "project",
 		"Load a scene from specified path.",
 		"project-path");
+	QCommandLineOption ramsesTraceLogMessageAction(
+		QStringList() << "t"
+					  << "trace-messages-ramses",
+		"Enable trace-level Ramses log messages.");
 	parser.addOption(consoleOption);
 	parser.addOption(forwardCommandLineArgs);
 	parser.addOption(noDumpFileCheckOption);
 	parser.addOption(loadProjectAction);
+	parser.addOption(ramsesTraceLogMessageAction);
 
 	// apply global style, must be done before application instance
 	QApplication::setStyle(new raco::style::RaCoStyle());
@@ -124,7 +129,7 @@ int main(int argc, char* argv[]) {
 	std::unique_ptr<raco::application::RaCoApplication> app;
 
 	try {
-		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, projectFile, true);
+		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, raco::application::RaCoApplicationLaunchSettings{projectFile, true, parser.isSet(ramsesTraceLogMessageAction)});
 	} catch (const raco::application::FutureFileVersion& error) {
 		LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 		app.reset();

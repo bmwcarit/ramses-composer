@@ -99,6 +99,7 @@ void init(spdlog::filename_t logFileName) {
 	spdlog::register_logger(makeLogger(PROJECT));
 	spdlog::register_logger(makeLogger(DEFAULT));
 	spdlog::register_logger(makeLogger(MESH_LOADER));
+	spdlog::register_logger(makeLogger(RAMSES));
 	spdlog::register_logger(makeLogger(RAMSES_LOGIC));
 	spdlog::set_default_logger(spdlog::get(DEFAULT));
 	spdlog::set_pattern("%^[%L] [%D %T:%f] [%n] [%s:%#] [%!] %v");

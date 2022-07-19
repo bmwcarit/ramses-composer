@@ -54,8 +54,8 @@ class RamsesBaseFixture : public TestEnvironmentCoreT<BaseClass> {
 public:
 	using DataChangeDispatcher = raco::components::DataChangeDispatcher;
 
-	RamsesBaseFixture() : dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()},
-						  sceneContext{&this->backend.client(), &this->backend.logicEngine(), ramses::sceneId_t{1u}, &this->project, dataChangeDispatcher, &this->errors} {}
+	RamsesBaseFixture(bool optimizeForExport = false) : dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()},
+						  sceneContext{&this->backend.client(), &this->backend.logicEngine(), ramses::sceneId_t{1u}, &this->project, dataChangeDispatcher, &this->errors, optimizeForExport} {}
 
 	std::shared_ptr<DataChangeDispatcher> dataChangeDispatcher;
 	raco::ramses_adaptor::SceneAdaptor sceneContext;

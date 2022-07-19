@@ -103,16 +103,8 @@ void MaterialAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes)
 }
 
 const rlogic::Property* MaterialAdaptor::getProperty(const std::vector<std::string>& names) {
-	if (names.size() > 1) {
-		if (appearanceBinding_) {
-			const rlogic::Property* prop{appearanceBinding_->getInputs()};
-			// The first element in the names is the uniforms container
-			for (size_t i = 1; i < names.size(); i++) {
-				prop = prop->getChild(names.at(i));
-			}
-			return prop;
-		}
-		return nullptr;
+	if (names.size() > 1 && names[0] == "uniforms" && appearanceBinding_) {
+		return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), names, 1);
 	}
 	return nullptr;
 }

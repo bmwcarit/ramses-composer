@@ -122,6 +122,21 @@ public:
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>,
 
+		Property<bool, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<int, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<int64_t, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<double, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<std::string, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Table, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec2f, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec3f, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec4f, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec2i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec3i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+
 		// EditorObject
 		Property<Table, ArraySemanticAnnotation, HiddenProperty>,
 		Property<std::string, HiddenProperty>,
@@ -146,9 +161,18 @@ public:
 		Property<DefaultResourceDirectories, DisplayNameAnnotation>,
 		Property<std::string, DisplayNameAnnotation, URIAnnotation>,
 
+		// LuaScript
+		Property<Table, DisplayNameAnnotation, LinkEndAnnotation>,
+
+		// LuaInterface
+		Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+
 		// BaseCamera
 		Property<CameraViewport, DisplayNameAnnotation, LinkEndAnnotation>,
 		Property<double>,
+
+		// LuaScript
+		Property<LuaStandardModuleSelection, DisplayNameAnnotation>,
 
 		// CameraViewport
 		Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>,
@@ -188,6 +212,8 @@ public:
 		Property<SPrefab, DisplayNameAnnotation>,
 
 		// Timer
+		Property<TimerInput, DisplayNameAnnotation>,
+		Property<TimerOutput, DisplayNameAnnotation>,
 		Property<int64_t, DisplayNameAnnotation, LinkEndAnnotation>,
 		Property<int64_t, DisplayNameAnnotation, LinkStartAnnotation>>;
 

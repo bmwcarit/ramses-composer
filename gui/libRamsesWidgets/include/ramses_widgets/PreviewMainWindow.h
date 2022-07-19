@@ -59,7 +59,7 @@ public:
 
 public Q_SLOTS:
 	void setViewport(const QSize& sceneSize);
-	void commit();
+	void commit(bool forceUpdate);
 
 private:
 	std::unique_ptr<Ui::PreviewMainWindow> ui_;

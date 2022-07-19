@@ -10,6 +10,7 @@
 #include "core/CommandInterface.h"
 
 #include "core/Context.h"
+#include "core/CoreFormatter.h"
 #include "core/MeshCacheInterface.h"
 #include "core/PathManager.h"
 #include "core/PrefabOperations.h"
@@ -484,10 +485,14 @@ void CommandInterface::removeLink(const PropertyDescriptor& end) {
 		throw std::runtime_error(fmt::format("Link end object '{}' not in project", end.object()->objectName()));
 	}
 
-	if (Queries::getLink(*context_->project(), end)) {
-		context_->removeLink(end);
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Remove link ending on '{}'", end.getPropertyPath()));
+	if (auto link = Queries::getLink(*context_->project(), end)) {
+		if (Queries::userCanRemoveLink(*context_->project(), end)) {
+			context_->removeLink(end);
+			PrefabOperations::globalPrefabUpdate(*context_);
+			undoStack_->push(fmt::format("Remove link ending on '{}'", end.getPropertyPath()));
+		} else {
+			throw std::runtime_error(fmt::format("Remove link {} failed: end object is read-only.", link));
+		}
 	}
 }
 

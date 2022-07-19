@@ -17,7 +17,6 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "user_types/Node.h"
 
-#include "object_tree_view_model/ObjectTreeNode.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
@@ -31,6 +30,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QProcess>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -224,6 +224,10 @@ bool ObjectTreeView::canProgrammaticallyGoToObject() {
 	return treeModel_->canProgramaticallyGotoObject();
 }
 
+bool ObjectTreeView::containsObject(const QString &objectID) const {
+	return treeModel_->indexFromTreeNodeID(objectID.toStdString()).isValid();
+}
+
 QSortFilterProxyModel* ObjectTreeView::proxyModel() const {
 	return proxyModel_;
 }
@@ -367,7 +371,19 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 		auto actionCloseImportedProject = treeViewMenu->addAction("Remove Project", [this, selectedItemIndices, externalProjectModel]() { externalProjectModel->removeProjectsAtIndices(selectedItemIndices); });
 		actionCloseImportedProject->setEnabled(externalProjectModel->canRemoveProjectsAtIndices(selectedItemIndices));
+
 	}
+
+	auto paths = externalProjectModel->externalProjectPathsAtIndices(selectedItemIndices);
+	auto actionOpenProject = treeViewMenu->addAction("Open External Projects", [this, paths, externalProjectModel]() {
+		if (!paths.empty()) {
+			auto appPath = QCoreApplication::applicationFilePath();
+			for (auto projectPath : paths) {
+				QProcess::startDetached(appPath, QStringList(QString::fromStdString(projectPath)));
+			}
+		}
+	});
+	actionOpenProject->setEnabled(!paths.empty());
 
 	return treeViewMenu;
 }

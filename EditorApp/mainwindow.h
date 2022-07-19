@@ -63,6 +63,7 @@ public:
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
+	void focusToObject(const QString& objectID);
 
 protected:
 	void timerEvent(QTimerEvent* event) override;
@@ -86,6 +87,8 @@ protected Q_SLOTS:
 
 Q_SIGNALS:
 	void viewportChanged(const QSize& sceneSize);
+	void objectFocusRequestedForPropertyBrowser(const QString& objectID);
+	void objectFocusRequestedForTreeDock(const QString& objectID);
 
 private:
 	Ui::MainWindow* ui;

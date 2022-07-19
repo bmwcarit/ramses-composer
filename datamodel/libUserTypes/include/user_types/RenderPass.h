@@ -9,8 +9,12 @@
  */
 #pragma once
 
+#include "core/PrefabOperations.h"
+
 #include "user_types/BaseCamera.h"
 #include "user_types/BaseObject.h"
+#include "user_types/OrthographicCamera.h"
+#include "user_types/PerspectiveCamera.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 
@@ -68,13 +72,7 @@ public:
 		properties_.emplace_back("enableClearStencil", &enableClearStencil_);
 	}
 
-	bool isClearTargetProperty(ValueHandle const& handle) const {
-		if (handle.depth() == 0) {
-			return false;
-		}
-		std::string const& pn = handle.getPropName();
-		return pn == "clearColor" || pn == "enableClearColor" || pn == "enableClearDepth" || pn == "enableClearStencil";
-	}
+	bool isClearTargetProperty(ValueHandle const& handle) const;
 	
 	Property<SRenderTarget, DisplayNameAnnotation, ExpectEmptyReference> target_{{}, {"Target"}, {"Default Framebuffer"}};
 	Property<SBaseCamera, DisplayNameAnnotation> camera_{{}, {"Camera"}};

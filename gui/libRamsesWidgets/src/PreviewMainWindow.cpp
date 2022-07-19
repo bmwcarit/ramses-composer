@@ -157,8 +157,8 @@ void PreviewMainWindow::setViewport(const QSize& sceneSize) {
 	scrollAreaWidget_->setViewport(sceneSize);
 }
 
-void PreviewMainWindow::commit() {
-	previewWidget_->commit();
+void PreviewMainWindow::commit(bool forceUpdate) {
+	previewWidget_->commit(forceUpdate);
 }
 
 }  // namespace raco::ramses_widgets

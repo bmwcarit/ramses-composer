@@ -24,18 +24,18 @@ TimerAdaptor::TimerAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::STimer 
 	  nameSubscription_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Timer::objectName_}, [this]() { tagDirty(); })},
 	  inputSubscription_{
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Timer::tickerInput_}, [this]() { tagDirty(); })} {}
+		  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject_, &user_types::Timer::inputs_}, [this](auto) { tagDirty(); })} {}
 
 void TimerAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
 	logicNodes.emplace_back(timerNode_.get());
 }
 
 const rlogic::Property* TimerAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
-	const auto& propName = propertyNamesVector.back();
+	const auto& propGroup = propertyNamesVector.front();
 
-	if (propName == "tickerInput") {
+	if (propGroup == "inputs") {
 		return timerNode_->getInputs()->getChild("ticker_us");
-	} else if (propName == "tickerOutput") {
+	} else {
 		return timerNode_->getOutputs()->getChild("ticker_us");
 	}
 
@@ -57,14 +57,14 @@ bool TimerAdaptor::sync(core::Errors* errors) {
 		timerNode_ = raco::ramses_base::ramsesTimer(&sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 	}
 
-	timerNode_->getInputs()->getChild("ticker_us")->set(editorObject_->tickerInput_.asInt64());
+	timerNode_->getInputs()->getChild("ticker_us")->set(editorObject_->inputs_->get("ticker_us")->asInt64());
 
 	tagDirty(false);
 	return true;
 }
 
 void TimerAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
-	core::ValueHandle animOutputs{editorObject_, &user_types::Timer::tickerOutput_};
+	core::ValueHandle animOutputs{editorObject_, {"outputs", "ticker_us"}};
 	getOutputFromEngine(*timerNode_->getOutputs()->getChild("ticker_us"), animOutputs, recorder);
 }
 

@@ -35,10 +35,15 @@ void LuaScript::onAfterValueChanged(BaseContext& context, ValueHandle const& val
 		context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 	}
 
+	ValueHandle stdModulesHandle(shared_from_this(), &LuaScript::stdModules_);
+	if (stdModulesHandle.contains(value)) {
+		syncLuaScript(context, true);
+	}
+
 	ValueHandle modulesHandle(shared_from_this(), &LuaScript::luaModules_);
 	if (modulesHandle.contains(value)) {
 		// -> only script parsing
-		syncLuaScript(context, false);
+		syncLuaScript(context, true);
 	}
 }
 
@@ -80,7 +85,7 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 		}
 
 		if (success) {
-			success = context.engineInterface().parseLuaScript(luaScript, objectName(), *luaModules_, inputs, outputs, error);
+			success = context.engineInterface().parseLuaScript(luaScript, objectName(), stdModules_->activeModules(), *luaModules_, inputs, outputs, error);
 		}
 
 		if (!success && !error.empty()) {
@@ -88,9 +93,9 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 		}
 	}
 
-	syncTableWithEngineInterface(context, inputs, ValueHandle(shared_from_this(), &LuaScript::luaInputs_), cachedLuaInputValues_, false, true);
+	syncTableWithEngineInterface(context, inputs, ValueHandle(shared_from_this(), &LuaScript::inputs_), cachedLuaInputValues_, false, true);
 	OutdatedPropertiesStore dummyCache{};
-	syncTableWithEngineInterface(context, outputs, ValueHandle(shared_from_this(), &LuaScript::luaOutputs_), dummyCache, true, false);
+	syncTableWithEngineInterface(context, outputs, ValueHandle(shared_from_this(), &LuaScript::outputs_), dummyCache, true, false);
 
 	context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 

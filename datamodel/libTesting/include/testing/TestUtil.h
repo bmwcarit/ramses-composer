@@ -33,6 +33,17 @@ inline std::shared_ptr<T> select(const std::vector<I>& vec) {
 	return {};
 }
 
+template <typename T, typename I>
+inline std::shared_ptr<T> select(const std::vector<I>& vec, std::string_view name) {
+	auto it = std::find_if(vec.begin(), vec.end(), [name](const auto& obj) {
+		return obj->objectName() == name && std::dynamic_pointer_cast<T>(obj);
+	});
+	if (it != vec.end()) {
+		return std::dynamic_pointer_cast<T>(*it);
+	}
+	return {};
+}
+
 inline auto createLinkedScene(raco::core::CommandInterface& context, const raco::utils::u8path& path) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script")};
 	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node")};
@@ -46,7 +57,7 @@ function run(IN,OUT)
 end
 	)");
 	context.set({luaScript, {"uri"}}, (path / "lua_script.lua").string());
-	auto link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 	return std::make_tuple(
 		std::dynamic_pointer_cast<user_types::LuaScript>(luaScript), std::dynamic_pointer_cast<user_types::Node>(node), link);
 }
@@ -65,7 +76,7 @@ function run(IN,OUT)
 end
 	)");
 	context.set({luaScript, {"uri"}}, (path / "lua_script.lua").string());
-	auto link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 	return std::make_tuple(
 		std::dynamic_pointer_cast<user_types::LuaScript>(luaScript), std::dynamic_pointer_cast<user_types::Node>(node), link);
 }

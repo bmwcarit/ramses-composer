@@ -32,6 +32,7 @@ public:
 };
 
 using raco::application::RaCoApplication;
+using raco::application::RaCoApplicationLaunchSettings;
 using raco::names::PROJECT_FILE_EXTENSION;
 
 TEST_F(RaCoProjectFixture, saveLoadWithLink) {
@@ -42,7 +43,10 @@ TEST_F(RaCoProjectFixture, saveLoadWithLink) {
 		ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 	}
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
 	}
 }
@@ -62,7 +66,10 @@ end
 		ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 	}
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
 		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
@@ -84,12 +91,12 @@ function run(IN,OUT)
 end
 	)");
 		app.activeRaCoProject().commandInterface()->set({luaScript, {"uri"}}, (test_path() / "lua_script.lua").string());
-		app.activeRaCoProject().commandInterface()->addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({luaScript, {"outputs", "rotation"}}, {node, {"rotation"}});
 
 		checkLinks(*app.activeRaCoProject().project(),
-			{{{luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}}, true},
-				{{luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}}, true}});
+			{{{luaScript, {"outputs", "translation"}}, {node, {"translation"}}, true},
+				{{luaScript, {"outputs", "rotation"}}, {node, {"rotation"}}, true}});
 
 		std::string msg;
 		ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
@@ -105,13 +112,16 @@ end
 	)");
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
 		auto luaScript = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
 
 		checkLinks(*app.activeRaCoProject().project(),
-			{{{luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}}, false},
-				{{luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}}, true}});
+			{{{luaScript, {"outputs", "translation"}}, {node, {"translation"}}, false},
+				{{luaScript, {"outputs", "rotation"}}, {node, {"rotation"}}, true}});
 
 		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
@@ -126,13 +136,16 @@ end
 	)");
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
 		auto luaScript = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
 
 		checkLinks(*app.activeRaCoProject().project(),
-			{{{luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}}, true},
-				{{luaScript, {"luaOutputs", "rotation"}}, {node, {"rotation"}}, true}});
+			{{{luaScript, {"outputs", "translation"}}, {node, {"translation"}}, true},
+				{{luaScript, {"outputs", "rotation"}}, {node, {"rotation"}}, true}});
 
 		ASSERT_FALSE(app.activeRaCoProject().errors()->hasError(node));
 	}
@@ -154,7 +167,10 @@ end
 	)");
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
 		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
@@ -187,7 +203,10 @@ end
 	)");
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
 		ASSERT_TRUE(app.activeRaCoProject().project()->links()[0]->isValid());
 	}
@@ -212,7 +231,10 @@ end
 	)");
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		app.doOneLoop();
 		ASSERT_EQ(app.activeRaCoProject().project()->links().size(), 1);
 		ASSERT_EQ(app.activeRaCoProject().project()->links()[0]->isValid(), false);
@@ -239,7 +261,7 @@ end
 		RaCoApplication app{backend};
 		const auto luaScript{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script")};
 		app.activeRaCoProject().commandInterface()->set(raco::core::ValueHandle{luaScript, {"uri"}}, luaScriptPath);
-		app.activeRaCoProject().commandInterface()->set(raco::core::ValueHandle{luaScript, {"luaInputs", "integer"}}, 5);
+		app.activeRaCoProject().commandInterface()->set(raco::core::ValueHandle{luaScript, {"inputs", "integer"}}, 5);
 		std::string msg;
 		ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 	}
@@ -257,10 +279,13 @@ end
 
 	)");
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		app.doOneLoop();
 		auto luaScript = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
-		auto newPropertyOutput = raco::core::ValueHandle{luaScript, {"luaOutputs", "integerTwo"}}.asInt();
+		auto newPropertyOutput = raco::core::ValueHandle{luaScript, {"outputs", "integerTwo"}}.asInt();
 		ASSERT_EQ(newPropertyOutput, 5);
 	}
 }
@@ -422,7 +447,7 @@ TEST_F(RaCoProjectFixture, restoredLinkWorksInLogicEngine) {
 	app.activeRaCoProject().commandInterface()->set({end, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 	app.doOneLoop();
 
-	app.activeRaCoProject().commandInterface()->addLink({start, {"luaOutputs", "out_float"}}, {end, {"luaInputs", "in_float"}});
+	app.activeRaCoProject().commandInterface()->addLink({start, {"outputs", "out_float"}}, {end, {"inputs", "in_float"}});
 	app.doOneLoop();
 
 	app.activeRaCoProject().commandInterface()->set({end, {"uri"}}, std::string());
@@ -431,9 +456,9 @@ TEST_F(RaCoProjectFixture, restoredLinkWorksInLogicEngine) {
 	ASSERT_FALSE(app.activeRaCoProject() .project()->links()[0]->isValid());
 
 	app.activeRaCoProject().commandInterface()->set({end, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
-	app.activeRaCoProject().commandInterface()->set({start, {"luaInputs", "in_float"}}, 3.0);
+	app.activeRaCoProject().commandInterface()->set({start, {"inputs", "in_float"}}, 3.0);
 	app.doOneLoop();
-	ASSERT_EQ(raco::core::ValueHandle(end, {"luaInputs", "in_float"}).asDouble(), 3.0);
+	ASSERT_EQ(raco::core::ValueHandle(end, {"inputs", "in_float"}).asDouble(), 3.0);
 }
 
 TEST_F(RaCoProjectFixture, brokenLinkDoesNotResetProperties) {
@@ -445,20 +470,20 @@ TEST_F(RaCoProjectFixture, brokenLinkDoesNotResetProperties) {
 	app.activeRaCoProject().commandInterface()->set({linkEnd, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	app.doOneLoop();
 
-	app.activeRaCoProject().commandInterface()->addLink({linkStart, {"luaOutputs", "ointeger"}}, {linkEnd, {"luaInputs", "integer"}});
+	app.activeRaCoProject().commandInterface()->addLink({linkStart, {"outputs", "ointeger"}}, {linkEnd, {"inputs", "integer"}});
 	app.doOneLoop();
 
-	app.activeRaCoProject().commandInterface()->set({linkStart, {"luaInputs", "integer"}}, 10);
+	app.activeRaCoProject().commandInterface()->set({linkStart, {"inputs", "integer"}}, 10);
 	app.doOneLoop();
 
 	app.activeRaCoProject().commandInterface()->set({linkStart, {"uri"}}, std::string());
 	app.doOneLoop();
 
-	app.activeRaCoProject().commandInterface()->set({linkEnd, {"luaInputs", "float"}}, 20.0);
+	app.activeRaCoProject().commandInterface()->set({linkEnd, {"inputs", "float"}}, 20.0);
 	app.doOneLoop();
 
-	auto output_int = raco::core::ValueHandle{linkEnd, {"luaOutputs", "ointeger"}}.asInt();
-	auto output_bool = raco::core::ValueHandle{linkEnd, {"luaOutputs", "flag"}}.asBool();
+	auto output_int = raco::core::ValueHandle{linkEnd, {"outputs", "ointeger"}}.asInt();
+	auto output_bool = raco::core::ValueHandle{linkEnd, {"outputs", "flag"}}.asBool();
 	ASSERT_EQ(output_int, 40);
 	ASSERT_EQ(output_bool, true);
 }
@@ -473,12 +498,14 @@ TEST_F(RaCoProjectFixture, launchApplicationWithNoResourceSubFoldersCachedPathsA
 	auto imageSubdirectory = defaultResourceDirectories->imageSubdirectory_.asString();
 	auto meshSubdirectory = defaultResourceDirectories->meshSubdirectory_.asString();
 	auto scriptSubdirectory = defaultResourceDirectories->scriptSubdirectory_.asString();
+	auto interfaceSubdirectory = defaultResourceDirectories->interfaceSubdirectory_.asString();
 	auto shaderSubdirectory = defaultResourceDirectories->shaderSubdirectory_.asString();
 
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder / meshSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder / imageSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder / scriptSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder / interfaceSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder / shaderSubdirectory);
 }
 
@@ -488,6 +515,7 @@ TEST_F(RaCoProjectFixture, launchApplicationWithResourceSubFoldersCachedPathsAre
 	const auto& prefs = raco::components::RaCoPreferences::instance();
 	std::filesystem::create_directory(test_path() / prefs.meshSubdirectory.toStdString());
 	std::filesystem::create_directory(test_path() / prefs.scriptSubdirectory.toStdString());
+	std::filesystem::create_directory(test_path() / prefs.interfaceSubdirectory.toStdString());
 	std::filesystem::create_directory(test_path() / prefs.imageSubdirectory.toStdString());
 	std::filesystem::create_directory(test_path() / prefs.shaderSubdirectory.toStdString()); 
 
@@ -498,11 +526,13 @@ TEST_F(RaCoProjectFixture, launchApplicationWithResourceSubFoldersCachedPathsAre
 	auto imageSubdirectory = defaultResourceDirectories->imageSubdirectory_.asString();
 	auto meshSubdirectory = defaultResourceDirectories->meshSubdirectory_.asString();
 	auto scriptSubdirectory = defaultResourceDirectories->scriptSubdirectory_.asString();
+	auto interfaceSubdirectory = defaultResourceDirectories->interfaceSubdirectory_.asString();
 	auto shaderSubdirectory = defaultResourceDirectories->shaderSubdirectory_.asString();
 
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + meshSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + scriptSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder + "/" + interfaceSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + imageSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + shaderSubdirectory);
 }
@@ -520,6 +550,7 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 
 
 	std::string scriptSubdirectory = u8"shared";
+	std::string interfaceSubdirectory = u8"shared";
 	std::string shaderSubdirectory = u8"shared";
 
 	using namespace raco::user_types;
@@ -530,6 +561,7 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
 	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
 	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
 	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
 	std::string msg;
 	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca"), msg));
@@ -545,6 +577,9 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script).string(), newProjectFolder + "/" + scriptSubdirectory);
 	ASSERT_TRUE(raco::utils::u8path(newProjectFolder + "/" + scriptSubdirectory).existsDirectory());
 	
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface).string(), newProjectFolder + "/" + interfaceSubdirectory);
+	ASSERT_TRUE(raco::utils::u8path(newProjectFolder + "/" + interfaceSubdirectory).existsDirectory());
+
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader).string(), newProjectFolder + "/" + shaderSubdirectory);
 	ASSERT_TRUE(raco::utils::u8path(newProjectFolder + "/" + shaderSubdirectory).existsDirectory());
 }
@@ -556,6 +591,7 @@ TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 	const auto& prefs = raco::components::RaCoPreferences::instance();
 	std::filesystem::create_directory(test_path() / prefs.meshSubdirectory.toStdString());
 	std::filesystem::create_directory(test_path() / prefs.scriptSubdirectory.toStdString());
+	std::filesystem::create_directory(test_path() / prefs.interfaceSubdirectory.toStdString());
 	std::filesystem::create_directory(test_path() / prefs.imageSubdirectory.toStdString());
 	std::filesystem::create_directory(test_path() / prefs.shaderSubdirectory.toStdString()); 
 	std::filesystem::create_directory(test_path() / "newProject");
@@ -569,6 +605,7 @@ TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 	auto imageSubdirectory = defaultResourceDirectories->imageSubdirectory_.asString();
 	auto meshSubdirectory = defaultResourceDirectories->meshSubdirectory_.asString();
 	auto scriptSubdirectory = defaultResourceDirectories->scriptSubdirectory_.asString();
+	auto interfaceSubdirectory = defaultResourceDirectories->interfaceSubdirectory_.asString();
 	auto shaderSubdirectory = defaultResourceDirectories->shaderSubdirectory_.asString();
 
 	auto newProjectFolder = raco::components::RaCoPreferences::instance().userProjectsDirectory.toStdString();
@@ -576,6 +613,7 @@ TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + meshSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + scriptSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder + "/" + interfaceSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + imageSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + shaderSubdirectory);
 }
@@ -594,11 +632,13 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadProjectProperlySetCachedPaths) {
 	auto imageSubdirectory = defaultResourceDirectories->imageSubdirectory_.asString();
 	auto meshSubdirectory = defaultResourceDirectories->meshSubdirectory_.asString();
 	auto scriptSubdirectory = defaultResourceDirectories->scriptSubdirectory_.asString();
+	auto interfaceSubdirectory = defaultResourceDirectories->interfaceSubdirectory_.asString();
 	auto shaderSubdirectory = defaultResourceDirectories->shaderSubdirectory_.asString();
 
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder / meshSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder / scriptSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder / interfaceSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder / imageSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder / shaderSubdirectory);
 }
@@ -623,17 +663,20 @@ TEST_F(RaCoProjectFixture, saveLoadAsZip) {
 		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat")};
 
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
 		app.activeRaCoProject().commandInterface()->set({app.activeRaCoProject().project()->settings(), &raco::user_types::ProjectSettings::saveAsZip_}, true);
 
 		std::string msg;
 		app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg);
 	}
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(10, app.activeRaCoProject().project()->instances().size());
 		ASSERT_EQ(5, app.activeRaCoProject().project()->links().size());
 	}
@@ -647,16 +690,19 @@ TEST_F(RaCoProjectFixture, saveLoadRotationLinksGetReinstated) {
 		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat")};
 
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
 
 		std::string msg;
 		app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg);
 	}
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(5, app.activeRaCoProject().project()->links().size());
 	}
 }
@@ -669,10 +715,10 @@ TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstated) {
 		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat")};
 
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
 		app.doOneLoop();
 
 		app.activeRaCoProject().commandInterface()->set({lua, {"uri"}}, std::string());
@@ -682,7 +728,10 @@ TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstated) {
 		app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg);
 	}
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		ASSERT_EQ(5, app.activeRaCoProject().project()->links().size());
 		for (const auto& link : app.activeRaCoProject().project()->links()) {
 			ASSERT_FALSE(link->isValid());
@@ -699,10 +748,10 @@ TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstatedWithDifferen
 		const auto nodeRotEuler{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{app.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_quat")};
 		
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotEuler, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "translation"}}, {nodeRotQuat, {"translation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
-		app.activeRaCoProject().commandInterface()->addLink({lua, {"luaOutputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotEuler, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "translation"}}, {nodeRotQuat, {"translation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation3"}}, {nodeRotEuler, {"rotation"}});
+		app.activeRaCoProject().commandInterface()->addLink({lua, {"outputs", "rotation4"}}, {nodeRotQuat, {"rotation"}});
 		app.doOneLoop();
 
 		app.activeRaCoProject().commandInterface()->set({lua, {"uri"}}, std::string());
@@ -712,7 +761,10 @@ TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstatedWithDifferen
 		app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg);
 	}
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 		app.doOneLoop();
 
 		auto lua = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "lua_script");
@@ -845,7 +897,10 @@ TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
 	ASSERT_TRUE(!ec) << "Failed to set permissons. Error code: " << ec.value() << " Error message: '" << ec.message() << "'";
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 
 		auto expectedAppTitle = fmt::format("{} -  ({}) <read-only>", QCoreApplication::applicationName().toStdString(), app.activeProjectPath());
 		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);
@@ -855,7 +910,10 @@ TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
 	ASSERT_TRUE(!ec) << "Failed to set permissons. Error code: " << ec.value() << " Error message: '" << ec.message() << "'";
 
 	{
-		RaCoApplication app{backend, (test_path() / "project.rca").string().c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "project.rca").string().c_str();
+
+		RaCoApplication app{backend, settings};
 
 		auto expectedAppTitle = fmt::format("{} -  ({})", QCoreApplication::applicationName().toStdString(), app.activeProjectPath());
 		EXPECT_EQ(app.generateApplicationTitle().toStdString(), expectedAppTitle);

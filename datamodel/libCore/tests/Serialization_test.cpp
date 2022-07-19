@@ -44,7 +44,7 @@ struct SerializationTest : public TestEnvironmentCore {
 
 TEST_F(SerializationTest, serializeNode) {
 	const auto sNode{std::make_shared<raco::user_types::Node>("node", "node_id")};
-	sNode->scale_->z.staticQuery<raco::core::RangeAnnotation<double>>().max_ = 100.0;
+	sNode->scaling_->z.staticQuery<raco::core::RangeAnnotation<double>>().max_ = 100.0;
 	auto result = raco::serialization::test_helpers::serializeObject(sNode);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "Node.json").string(), result);
 
@@ -190,7 +190,7 @@ TEST_F(SerializationTest, serializeMeshglTFBakedSubmeshes) {
 TEST_F(SerializationTest, serializeLuaScriptWithRefToUserTypeWithAnnotation) {
 	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "mesh", "mesh_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
-	sLuaScript->luaInputs_->addProperty("ref", new raco::data_storage::Property<raco::user_types::STexture, raco::user_types::EngineTypeAnnotation>({}, {raco::core::EnginePrimitive::TextureSampler2D}));
+	sLuaScript->inputs_->addProperty("ref", new raco::data_storage::Property<raco::user_types::STexture, raco::user_types::EngineTypeAnnotation>({}, {raco::core::EnginePrimitive::TextureSampler2D}));
 
 	auto result = raco::serialization::test_helpers::serializeObject(editorObject);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptWithRefToUserTypeWithAnnotation.json").string(), result);
@@ -201,7 +201,7 @@ TEST_F(SerializationTest, serializeLuaScriptWithRefToUserTypeWithAnnotation) {
 TEST_F(SerializationTest, serializeLuaScriptWithURI) {
 	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
-	sLuaScript->luaInputs_->addProperty("uri", new raco::data_storage::Property<std::string, raco::user_types::URIAnnotation>("", {}));
+	sLuaScript->inputs_->addProperty("uri", new raco::data_storage::Property<std::string, raco::user_types::URIAnnotation>("", {}));
 
 	auto result = raco::serialization::test_helpers::serializeObject(editorObject);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptWithURI.json").string(), result);
@@ -212,7 +212,7 @@ TEST_F(SerializationTest, serializeLuaScriptWithURI) {
 TEST_F(SerializationTest, serializeLuaScriptWithAnnotatedDouble) {
 	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
-	sLuaScript->luaInputs_->addProperty("double", new raco::data_storage::Property<double, raco::user_types::DisplayNameAnnotation, raco::user_types::RangeAnnotation<double>>({}, {"Double"}, {-10.0, 10.0}));
+	sLuaScript->inputs_->addProperty("double", new raco::data_storage::Property<double, raco::user_types::DisplayNameAnnotation, raco::user_types::RangeAnnotation<double>>({}, {"Double"}, {-10.0, 10.0}));
 
 	auto result = raco::serialization::test_helpers::serializeObject(editorObject);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptWithAnnotatedDouble.json").string(), result);
@@ -223,7 +223,7 @@ TEST_F(SerializationTest, serializeLuaScriptWithAnnotatedDouble) {
 TEST_F(SerializationTest, serializeNodeAndScript_withLink) {
 	const auto editorObject{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	raco::user_types::SLuaScript sLuaScript{std::dynamic_pointer_cast<raco::user_types::LuaScript>(editorObject)};
-	sLuaScript->luaInputs_->addProperty("double", new raco::data_storage::Property<double, raco::user_types::DisplayNameAnnotation, raco::user_types::RangeAnnotation<double>>({}, {"Double"}, {-10.0, 10.0}));
+	sLuaScript->inputs_->addProperty("double", new raco::data_storage::Property<double, raco::user_types::DisplayNameAnnotation, raco::user_types::RangeAnnotation<double>>({}, {"Double"}, {-10.0, 10.0}));
 
 	auto result = raco::serialization::test_helpers::serializeObject(editorObject);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptWithAnnotatedDouble.json").string(), result);
@@ -239,7 +239,7 @@ TEST_F(SerializationTest, serializeObjects_luaScriptLinkedToNode) {
 	auto result = raco::serialization::serializeObjects(
 		{std::get<0>(objs), std::get<1>(objs)}, 
 		{std::get<0>(objs)->objectID(), std::get<1>(objs)->objectID()},
-		{std::get<2>(objs)}, "", "", "", "", externalProjectsMap, originFolders);
+		{std::get<2>(objs)}, "", "", "", "", externalProjectsMap, originFolders, false);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptLinkedToNode.json").string(), result);
 
     assertFileContentEqual((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string(), result);

@@ -94,7 +94,9 @@ public:
 		indices_ = {static_cast<std::size_t>(index1), static_cast<std::size_t>(index2)};
 	}
 
-	ValueHandle(const PropertyDescriptor& property) : ValueHandle(property.object(), property.propertyNames()) {
+	// Make constructor from PropertyDescriptor explicit to avoid implicit conversions resulting in 
+	// invalid ValueHandles if the property doesn't exist.
+	explicit ValueHandle(const PropertyDescriptor& property) : ValueHandle(property.object(), property.propertyNames()) {
 	}
 
 	static ValueHandle translatedHandle(const ValueHandle& handle, SEditorObject newObject);

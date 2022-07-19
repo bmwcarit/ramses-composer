@@ -49,7 +49,7 @@ TEST_F(ResourcesAdaptorFixture, texture_info_box) {
 	auto infoBoxError = context.errors().getError(raco::core::ValueHandle{texture});
 	EXPECT_EQ(infoBoxError.category(), raco::core::ErrorCategory::GENERAL);
 	EXPECT_EQ(infoBoxError.level(), raco::core::ErrorLevel::INFORMATION);
-	EXPECT_EQ(infoBoxError.message(), "Texture information\n\nWidth: 512 px\nHeight: 512 px\n\nFormat: RGBA8");
+	EXPECT_EQ(infoBoxError.message(), "Texture information\n\nWidth: 512 px\nHeight: 512 px\n\nPNG Bit depth: 8\n\nColor channel flow\nFile -> Ramses -> Shader\nRGBA -> RGBA -> RGBA");
 }
 
 TEST_F(ResourcesAdaptorFixture, cube_map_info_box) {
@@ -65,5 +65,5 @@ TEST_F(ResourcesAdaptorFixture, cube_map_info_box) {
 	auto infoBoxError = context.errors().getError(raco::core::ValueHandle{cubemap});
 	EXPECT_EQ(infoBoxError.category(), raco::core::ErrorCategory::GENERAL);
 	EXPECT_EQ(infoBoxError.level(), raco::core::ErrorLevel::INFORMATION);
-	EXPECT_EQ(infoBoxError.message(), "CubeMap information\n\nWidth: 512 px\nHeight: 512 px\n\nFormat: RGBA8");
+	EXPECT_EQ(infoBoxError.message(), "CubeMap information\n\nWidth: 512 px\nHeight: 512 px\n\nPNG Bit depth: 8\n\nColor channel flow\nFile -> Ramses -> Shader\nRGBA -> RGBA -> RGBA");
 }

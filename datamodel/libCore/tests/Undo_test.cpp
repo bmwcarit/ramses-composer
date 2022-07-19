@@ -25,9 +25,11 @@
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/PerspectiveCamera.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderBuffer.h"
+#include "user_types/RenderPass.h"
 #include "user_types/RenderTarget.h"
 
 #include "gtest/gtest.h"
@@ -111,7 +113,7 @@ public:
 TEST_F(UndoTest, Node_undoredo_single_op) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "node");
 
-	checkSetValue<bool>(ValueHandle(node, {"visible"}), false);
+	checkSetValue<bool>(ValueHandle(node, {"visibility"}), false);
 	checkSetValue<double>(ValueHandle(node, {"translation", "x"}), 2.0);
 }
 
@@ -166,7 +168,7 @@ TEST_F(UndoTest, Node_undoredo_nomerge_different) {
 TEST_F(UndoTest, Node_jump_single_op) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "node");
 
-	ValueHandle visibility{node, {"visible"}};
+	ValueHandle visibility{node, {"visibility"}};
 	checkJump([this, visibility]() { commandInterface.set(visibility, false); },
 		[this, visibility]() {
 			EXPECT_EQ(visibility.asBool(), true);
@@ -187,7 +189,7 @@ TEST_F(UndoTest, Node_jump_single_op) {
 
 TEST_F(UndoTest, Node_jump_multi_op) {
 	auto node = commandInterface.createObject(Node::typeDescription.typeName, "node");
-	ValueHandle visibility{node, {"visible"}};
+	ValueHandle visibility{node, {"visibility"}};
 	ValueHandle translation_x{node, {"translation", "x"}};
 
 	checkJump([this, visibility, translation_x]() { 
@@ -452,9 +454,9 @@ TEST_F(UndoTest, no_change_records_for_deleted_objects) {
 	auto index = undoStack.getIndex();
 
 	auto end = create_lua("end", "scripts/types-scalar.lua");
-	commandInterface.addLink(ValueHandle{start, {"luaOutputs", "ofloat"}}, ValueHandle{end, {"luaInputs", "float"}});
+	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
 
-	std::vector<Link> refLinks{{{{start, {"luaOutputs", "ofloat"}}, {end, {"luaInputs", "float"}}}}};
+	std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}}}};
 	checkLinks(refLinks);
 
 	undoStack.setIndex(index);
@@ -469,7 +471,7 @@ TEST_F(UndoTest, link_broken_changed_output) {
 	auto linkRecipient = create<LuaScript>("script2");
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
-	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
+	commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "in_float"}});
 
 	// link gets broken here
 	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string()); },
@@ -490,7 +492,7 @@ TEST_F(UndoTest, link_broken_changed_input) {
 	auto linkRecipient = create<LuaScript>("script2");
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
-	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
+	commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "in_float"}});
 
 	// link gets broken here
 	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string()); },
@@ -511,7 +513,7 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_input) {
 	auto linkRecipient = create<LuaScript>("script2");
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
-	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
+	commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "in_float"}});
 
 	// link gets broken here
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
@@ -536,7 +538,7 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_output) {
 	auto linkRecipient = create<LuaScript>("script2");
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
-	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
+	commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "in_float"}});
 
 	// link gets broken here
 	commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
@@ -562,11 +564,11 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 	auto linkRecipient = create<LuaScript>("script2");
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 
-	commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "in_float"}});
+	commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "in_float"}});
 
 	// link gets broken here
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
-	checkUndoRedo([this, linkBase, linkRecipient]() { commandInterface.addLink(ValueHandle{linkBase, {"luaOutputs", "ofloat"}}, ValueHandle{linkRecipient, {"luaInputs", "float"}}); },
+	checkUndoRedo([this, linkBase, linkRecipient]() { commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "float"}}); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_FALSE(project.links()[0]->isValid());
@@ -668,7 +670,7 @@ end
 	commandInterface.set(ValueHandle{lua, {"uri"}}, test_path().append("lua_script_out1.lua").string());
 
 	auto node = create<Node>("node");
-	commandInterface.addLink(ValueHandle{lua, {"luaOutputs", "vec"}}, ValueHandle{node, {"rotation"}});
+	commandInterface.addLink(ValueHandle{lua, {"outputs", "vec"}}, ValueHandle{node, {"rotation"}});
 
 	checkUndoRedo([this, lua, node]() { 
 		commandInterface.set(ValueHandle{lua, {"uri"}}, test_path().append("lua_script_out2.lua").string());
@@ -677,13 +679,13 @@ end
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_TRUE(project.links()[0]->isValid());
 			ASSERT_TRUE(ValueHandle(node, {"rotation"}).isVec3f());
-			ASSERT_TRUE(ValueHandle(lua, {"luaOutputs", "vec"}).isVec4f());
+			ASSERT_TRUE(ValueHandle(lua, {"outputs", "vec"}).isVec4f());
 		},
 		[this, node, lua]() {
 			ASSERT_EQ(project.links().size(), 1);
 			ASSERT_TRUE(project.links()[0]->isValid());
 			ASSERT_TRUE(ValueHandle(node, {"rotation"}).isVec3f());
-			ASSERT_TRUE(ValueHandle(lua, {"luaOutputs", "vec"}).isVec3f());
+			ASSERT_TRUE(ValueHandle(lua, {"outputs", "vec"}).isVec3f());
 		});
 }
 
@@ -890,7 +892,7 @@ end
 	auto lua = create_lua("lua", luaFile);
 	auto node = create<Node>("node");
 
-	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	ValueHandle luaOutputs(lua, &LuaScript::outputs_);
 	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
@@ -935,14 +937,14 @@ end
 	auto node = create<Node>("node");
 
 	// #1: create link
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "vec"}, node, {"translation"});
+	auto [sprop, eprop] = link(lua, {"outputs", "vec"}, node, {"translation"});
 	checkLinks({{sprop, eprop, true}});
 
 	// #2: remove link
 	commandInterface.removeLink(eprop);
 	checkLinks({});
 
-	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	ValueHandle luaOutputs(lua, &LuaScript::outputs_);
 	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
@@ -996,7 +998,7 @@ end
 	auto lua = create_lua("lua", luaFile);
 	auto node = create<Node>("node");
 
-	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	ValueHandle luaOutputs(lua, &LuaScript::outputs_);
 	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
@@ -1012,7 +1014,7 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
 
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "renamed"}, node, {"translation"});
+	auto [sprop, eprop] = link(lua, {"outputs", "renamed"}, node, {"translation"});
 	checkLinks({{sprop, eprop, true}});
 
 	{
@@ -1050,7 +1052,7 @@ end
 	auto lua = create_lua("lua", luaFile);
 	auto node = create<Node>("node");
 
-	ValueHandle luaOutputs(lua, &LuaScript::luaOutputs_);
+	ValueHandle luaOutputs(lua, &LuaScript::outputs_);
 	EXPECT_TRUE(luaOutputs.hasProperty("vec"));
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
@@ -1066,7 +1068,7 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
 
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "renamed"}, node, {"translation"});
+	auto [sprop, eprop] = link(lua, {"outputs", "renamed"}, node, {"translation"});
 	checkLinks({{sprop, eprop, true}});
 
 	raco::utils::file::write(luaFile.path.string(), origLuaScript);
@@ -1424,4 +1426,25 @@ TEST_F(UndoTest, setArray_nested_struct_with_ref) {
 			[this, refTarget]() {
 				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
 			}});
+}
+
+TEST_F(UndoTest, referenced_object_moved_into_prefab) {
+	auto prefab = create<Prefab>("prefab");
+	auto camera = create<PerspectiveCamera>("camera");
+
+	auto renderPass = create<RenderPass>("pass");
+	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &raco::user_types::RenderPass::camera_});
+	ASSERT_EQ(refTargets, std::vector<SEditorObject>{camera});
+
+	commandInterface.set({renderPass, &raco::user_types::RenderPass::camera_}, camera);
+	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), camera);
+
+	commandInterface.moveScenegraphChildren({camera}, prefab);
+	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
+
+	commandInterface.undoStack().undo();
+	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), camera);
+
+	commandInterface.undoStack().redo();
+	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
 }

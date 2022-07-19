@@ -19,9 +19,10 @@ set(TEST_SOURCES
     MeshNode_test.cpp
     LuaScript_test.cpp
     LuaScriptModule_test.cpp
-    LuaScript_test.cpp
-    LuaScriptModule_test.cpp
+    LuaInterface_test.cpp
+    Texture_test.cpp
 )
+
 set(TEST_LIBRARIES
     raco::UserTypes
     raco::Testing
@@ -46,6 +47,9 @@ raco_package_add_test_resouces(
     scripts/moduleDefinition.lua
     scripts/moduleDependency.lua
     scripts/struct.lua
+    scripts/using-math.lua
+    scripts/module-using-math.lua
+    scripts/using-module-using-math.lua
     shaders/basic.vert
     shaders/basic.frag
 )

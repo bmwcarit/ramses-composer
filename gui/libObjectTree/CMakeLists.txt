@@ -17,11 +17,11 @@ add_library(libObjectTree
     include/object_tree_view/ObjectTreeView.h src/object_tree_view/ObjectTreeView.cpp
     include/object_tree_view_model/ObjectTreeNode.h src/object_tree_view_model/ObjectTreeNode.cpp
     include/object_tree_view_model/ObjectTreeViewDefaultModel.h src/object_tree_view_model/ObjectTreeViewDefaultModel.cpp
-    include/object_tree_view_model/ObjectTreeViewResourceModel.h
-    src/object_tree_view_model/ObjectTreeViewResourceModel.cpp
     include/object_tree_view_model/ObjectTreeViewExternalProjectModel.h src/object_tree_view_model/ObjectTreeViewExternalProjectModel.cpp
     include/object_tree_view_model/ObjectTreeViewPrefabModel.h src/object_tree_view_model/ObjectTreeViewPrefabModel.cpp
+    include/object_tree_view_model/ObjectTreeViewResourceModel.h
     include/object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.h src/object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.cpp
+    src/object_tree_view_model/ObjectTreeViewResourceModel.cpp
 )
 
 target_include_directories(libObjectTree

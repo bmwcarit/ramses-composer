@@ -171,6 +171,9 @@ namespace Queries {
 	// Check if two properties can be linked together
 	bool userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& link);
 
+	// Check if a link ending on a property could be removed
+	bool userCanRemoveLink(const Project& project, const PropertyDescriptor& end);
+
 	// Check if a link is allowed to exist in the data model.
 	bool linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end);
 

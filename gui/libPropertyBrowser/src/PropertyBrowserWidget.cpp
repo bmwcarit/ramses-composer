@@ -11,6 +11,7 @@
 
 #include "common_widgets/QtGuiFormatter.h"
 #include "core/CoreFormatter.h"
+#include "core/Project.h"
 #include "log_system/log.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -193,6 +194,10 @@ void PropertyBrowserWidget::clearValueHandle(bool restorable) {
 		propertyBrowser_.reset();
 		emptyLabel_->setVisible(true);
 	}
+}
+
+void PropertyBrowserWidget::setValueHandleFromObjectId(const QString& objectID) {
+	setValueHandle(commandInterface_->project()->getInstanceByID(objectID.toStdString()));
 }
 
 void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {

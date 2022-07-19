@@ -17,6 +17,7 @@ const char nodeTypeName[] = "Node";
 const char meshNodeTypeName[] = "MeshNode";
 const char materialTypeName[] = "Material";
 const char luaScriptTypeName[] = "LuaScript";
+const char luaInterfaceTypeName[] = "LuaInterface";
 const char luaScriptModuleTypeName[] = "LuaScriptModule";
 const char animationTypeName[] = "Animation";
 const char animationChannelTypeName[] = "AnimationChannel";
@@ -45,5 +46,8 @@ const char cameraViewportTypeName[] = "CameraViewport";
 const char perspectiveFrustumTypeName[] = "PerspectiveFrustum";
 const char orthographicFrustumTypeName[] = "OrthographicFrustum";
 const char defaultResourceDirectoriesTypeName[] = "DefaultResourceDirectories";
+const char luaStandardModuleSelectionTypeName[] = "LuaStandardModuleSelection";
+const char timerInputTypeName[] = "TimerInput";
+const char timerOutputTypeName[] = "TimerOutput";
 
 }

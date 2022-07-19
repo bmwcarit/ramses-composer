@@ -57,31 +57,35 @@ PropertyBrowserItem::PropertyBrowserItem(
 	if (!valueHandle_.isObject() && valueHandle_.type() == core::PrimitiveType::Ref) {
 		refItem_ = new PropertyBrowserRef(this);
 	}
-	if (raco::core::Queries::isValidLinkEnd(valueHandle_)) {
-		if (auto link = raco::core::Queries::getLink(*project(), valueHandle_.getDescriptor())) {
-			linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(
-				[this](const core::LinkDescriptor& link) {
-					auto endHandle = core::ValueHandle(link.end);
-					if (endHandle && endHandle == valueHandle_) {
-						updateLinkState();
-					}
-				});
+	
+	bool linkEnd = raco::core::Queries::isValidLinkEnd(valueHandle_);
+	bool linkStart = raco::core::Queries::isValidLinkStart(valueHandle_);
+	
+	auto linkValidityCallback = [this](const core::LinkDescriptor& link) {
+		auto endHandle = core::ValueHandle(link.end);
+		if (endHandle && endHandle == valueHandle_) {
+			updateLinkState();
 		}
+		auto startHandle = core::ValueHandle(link.start);
+		if (startHandle && startHandle == valueHandle_) {
+			updateLinkState();
+		}
+	};
 
-		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycleForEnd(
+	if (linkStart || linkEnd) {
+		if (auto link = raco::core::Queries::getLink(*project(), valueHandle_.getDescriptor())) {
+			linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(linkValidityCallback);
+		}
+	}
+	
+	if (linkEnd) {
+		linkLifecycleEndSub_ = dispatcher_->registerOnLinksLifeCycleForEnd(
 			valueHandle_.rootObject(),
-			[this](const core::LinkDescriptor& link) {
+			[this, linkValidityCallback](const core::LinkDescriptor& link) {
 			if (valueHandle_) {
 				auto endHandle = core::ValueHandle(link.end);
 				if (endHandle && endHandle == valueHandle_) {
-					linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(
-						[this](const core::LinkDescriptor& link) {
-							auto endHandle = core::ValueHandle(link.end);
-							if (endHandle && endHandle == valueHandle_) {
-								updateLinkState();
-							}
-						});
-
+					linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(linkValidityCallback);
 					updateLinkState();
 				}
 			} },
@@ -94,21 +98,15 @@ PropertyBrowserItem::PropertyBrowserItem(
 					}
 				}
 			});
-	} else if (raco::core::Queries::isValidLinkStart(valueHandle_)) {
-		linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(
-			[this](const core::LinkDescriptor& link) {
-				auto startHandle = core::ValueHandle(link.start);
-				if (startHandle && startHandle == valueHandle_) {
-					updateLinkState();
-				}
-			});
-
-		linkLifecycleSub_ = dispatcher_->registerOnLinksLifeCycleForStart(
+	}
+	if (linkStart) {
+		linkLifecycleStartSub_ = dispatcher_->registerOnLinksLifeCycleForStart(
 			valueHandle_.rootObject(),
-			[this](const core::LinkDescriptor& link) {
+			[this, linkValidityCallback](const core::LinkDescriptor& link) {
 			if (valueHandle_) {
 				auto startHandle = core::ValueHandle(link.start);
 				if (startHandle && startHandle == valueHandle_) {
+					linkValidityChangeSub_ = dispatcher_->registerOnLinkValidityChange(linkValidityCallback);
 					updateLinkState();
 				}
 			} },
@@ -116,6 +114,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 				if (valueHandle_) {
 					auto startHandle = core::ValueHandle(link.start);
 					if (startHandle && startHandle == valueHandle_) {
+						linkValidityChangeSub_ = components::Subscription();
 						updateLinkState();
 					}
 				}
@@ -180,7 +179,8 @@ void PropertyBrowserItem::markForDeletion() {
 	subscription_ = raco::components::Subscription{};
 	errorSubscription_ = raco::components::Subscription{};
 	linkValidityChangeSub_ = raco::components::Subscription{};
-	linkLifecycleSub_ = raco::components::Subscription{};
+	linkLifecycleStartSub_ = raco::components::Subscription{};
+	linkLifecycleEndSub_ = raco::components::Subscription{};
 	changeChildrenSub_ = raco::components::Subscription{};
 
 	for (auto& child : children_) {
@@ -415,7 +415,7 @@ bool PropertyBrowserItem::canBeChosenByColorPicker() const {
 		return false;	
 	}
 
-	if(valueHandle_.isRefToProp(&raco::user_types::Node::translation_) || valueHandle_.isRefToProp(&raco::user_types::Node::rotation_) || valueHandle_.isRefToProp(&raco::user_types::Node::scale_)) {		
+	if(valueHandle_.isRefToProp(&raco::user_types::Node::translation_) || valueHandle_.isRefToProp(&raco::user_types::Node::rotation_) || valueHandle_.isRefToProp(&raco::user_types::Node::scaling_)) {
 		return false;
 	}
 	
@@ -442,14 +442,14 @@ bool PropertyBrowserItem::getDefaultExpandedFromValueHandleType() const {
 		auto parent = valueHandle_.parent();
 
 		bool isTopLevelLuaValueGroup = parent.isObject() &&
-								  (valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaInputs_)
-									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaOutputs_)
+								  (valueHandle_.isRefToProp(&raco::user_types::LuaScript::inputs_)
+									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::outputs_)
 									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaModules_));
 
 		bool isFirstLevelChildOfInputOutputGroup = parent.isProperty() && 
 											       parent.parent().isObject() &&
-												   (parent.isRefToProp(&raco::user_types::LuaScript::luaInputs_) ||
-												    parent.isRefToProp(&raco::user_types::LuaScript::luaOutputs_));
+												   (parent.isRefToProp(&raco::user_types::LuaScript::inputs_) ||
+												    parent.isRefToProp(&raco::user_types::LuaScript::outputs_));
 
 
 		bool isTableOrStruct = valueHandle_.type() == PrimitiveType::Table || valueHandle_.type() == PrimitiveType::Struct;

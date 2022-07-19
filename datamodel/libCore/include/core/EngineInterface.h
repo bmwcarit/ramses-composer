@@ -112,11 +112,15 @@ public:
 
 	// Parse luascripts using ramses logic and return set of in and out parameters with name and type.
 	// Returns true if script can be successfully parsed.
-	virtual bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
+	virtual bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
+
+	// Parse lua interface definition using ramses logic and return set of inout parameters with name and type.
+	// Returns true if script can be successfully parsed.
+	virtual bool parseLuaInterface(const std::string& luaScript, PropertyInterfaceList& outInputs, std::string& error) = 0;
 
 	// Parse luascript module using ramses logic.
 	// Returns true if module can be successfully parsed.
-	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, std::string& outError) = 0;
+	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) = 0;
 
 	// Extract module dependencies from lua script using ramses logic to parse the script.
 	//

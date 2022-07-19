@@ -49,20 +49,23 @@ TextureSamplerAdaptor::TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::sh
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::generateMipmaps_}, [this]() {
 			  tagDirty();
 		  }),
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::mipmapLevel_}, [this]() {
+			  tagDirty();
+		  }),
 		  sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject, [this]() {
 			  tagDirty();
 		  })} {}
 
 bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	errors->removeError({editorObject()->shared_from_this()});
-	errors->removeError({editorObject()->shared_from_this(), &user_types::Texture::uri_});
 	errors->removeError({editorObject()->shared_from_this(), &user_types::Texture::textureFormat_});
 
+	raco::ramses_base::PngDecodingInfo decodingInfo;
 	textureData_ = nullptr;
 	std::string uri = editorObject()->uri_.asString();
 	if (!uri.empty()) {
 		// do not clear errors here, this is done earlier in Texture
-		textureData_ = createTexture(errors);
+		textureData_ = createTexture(errors, decodingInfo);
 		if (!textureData_) {
 			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': Couldn't load png file from '{}'", editorObject()->objectName(), uri);
 			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::Texture::uri_}, "Image file could not be loaded.");
@@ -72,14 +75,16 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	if (!textureData_) {
 		textureData_ = getFallbackTexture();
 	} else {
-		std::string infoText;
+		auto selectedTextureFormat = static_cast<ramses::ETextureFormat>((*editorObject()->textureFormat_));
 
-		infoText += "Texture information\n\n";
+		std::string infoText = "Texture information\n\n";
+		infoText.append(fmt::format("Width: {} px\n", textureData_->getWidth()));
+		infoText.append(fmt::format("Height: {} px\n\n", textureData_->getHeight()));
+		infoText.append(fmt::format("PNG Bit depth: {}\n\n", decodingInfo.bitdepth));
 
-		infoText += fmt::format("Width: {} px\n", textureData_->getWidth());
-		infoText += fmt::format("Height: {} px\n\n", textureData_->getHeight());
-		infoText += fmt::format("Format: {}", ramsesTextureFormatToString(textureData_->getTextureFormat()));
-
+		infoText.append(fmt::format("Color channel flow\n"));
+		infoText.append(fmt::format("File -> Ramses -> Shader\n"));
+		infoText.append(fmt::format("{} -> {} -> {}", decodingInfo.pngColorChannels, decodingInfo.ramsesColorChannels, decodingInfo.shaderColorChannels));
 		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {editorObject()->shared_from_this()}, infoText);
 	}
 
@@ -101,52 +106,42 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors) {
-	std::string pngPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Texture::uri_});
-	unsigned int width = 0;
-	unsigned int height = 0;
-	std::vector<unsigned char> data;
+RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, raco::ramses_base::PngDecodingInfo& decodingInfo) {
+	if (*editorObject()->mipmapLevel_ < 1 || *editorObject()->mipmapLevel_ > 4) {
+		return getFallbackTexture();
+	}
 
-	auto rawBinaryData = raco::utils::file::readBinary(pngPath);
-
-	lodepng::State pngImportState;
-	pngImportState.decoder.color_convert = false;
-	lodepng_inspect(&width, &height, &pngImportState, rawBinaryData.data(), rawBinaryData.size());
-
-	auto& lodePngColorInfo = pngImportState.info_png.color;
+	std::vector<std::vector<unsigned char>> rawMipDatas;
+	std::vector<ramses::MipLevelData> mipDatas;
+	auto mipMapsOk = true;
 	auto selectedTextureFormat = static_cast<ramses::ETextureFormat>((*editorObject()->textureFormat_));
 
-	auto textureFormatCompatInfo = validateTextureColorTypeAndBitDepth(selectedTextureFormat, lodePngColorInfo.colortype, lodePngColorInfo.bitdepth);
-	if (textureFormatCompatInfo.errorLvl != raco::core::ErrorLevel::NONE) {
-		errors->addError(core::ErrorCategory::PARSE_ERROR, textureFormatCompatInfo.errorLvl, {editorObject()->shared_from_this(), &raco::user_types::Texture::textureFormat_}, textureFormatCompatInfo.errorMsg);
-		if (textureFormatCompatInfo.errorLvl == raco::core::ErrorLevel::ERROR) {
-			return nullptr;
+	for (auto level = 1; level <= *editorObject()->mipmapLevel_; ++level) {
+		auto uriPropName = (level > 1) ? fmt::format("level{}{}", level, "uri") : "uri";
+
+		auto levelMipData = raco::ramses_base::decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo);
+		if (levelMipData.empty()) {
+			mipMapsOk = false;
 		}
+
+		rawMipDatas.emplace_back(levelMipData);
 	}
 
-	auto ret = textureFormatCompatInfo.conversionNeeded
-		? lodepng::decode(data, width, height, rawBinaryData, static_cast<LodePNGColorType>(ramsesTextureFormatToPngFormat(selectedTextureFormat)), lodePngColorInfo.bitdepth)
-		: lodepng::decode(data, width, height, pngImportState, rawBinaryData);
-	if (ret != 0) {
-		return nullptr;
+	if (!mipMapsOk) {
+		return getFallbackTexture();
 	}
 
-	if (selectedTextureFormat == ramses::ETextureFormat::RG8) {
-		data = raco::ramses_base::generateColorDataWithoutBlueChannel(data);
+	for (auto i = 0; i < rawMipDatas.size(); ++i) {
+		auto& rawMipData = rawMipDatas[i];
+
+		// PNG has top left origin. Flip it vertically if required to match U/V origin
+		if (*editorObject()->flipTexture_) {
+			flipDecodedPicture(rawMipData, raco::ramses_base::ramsesTextureFormatToChannelAmount(selectedTextureFormat), decodingInfo.width * std::pow(0.5, i), decodingInfo.height * std::pow(0.5, i), decodingInfo.bitdepth);
+		}
+		mipDatas.emplace_back(static_cast<uint32_t>(rawMipData.size()), rawMipData.data());
 	}
 
-	// PNG has top left origin. Flip it vertically if required to match U/V origin
-	if (*editorObject()->flipTexture_) {
-		flipDecodedPicture(data, raco::ramses_base::ramsesTextureFormatToChannelAmount(selectedTextureFormat), width, height, lodePngColorInfo.bitdepth);
-	}
-
-	if (lodePngColorInfo.bitdepth == 16) {
-		raco::ramses_base::normalize16BitColorData(data);
-	}
-
-	ramses::MipLevelData mipLevelData(static_cast<uint32_t>(data.size()), data.data());
-
-	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), selectedTextureFormat, width, height, 1, &mipLevelData, *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), selectedTextureFormat, decodingInfo.width, decodingInfo.height, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {

@@ -34,6 +34,7 @@ private:
 	
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;
+	components::Subscription stdModuleSubscription_;
 };
 
 };	// namespace raco::ramses_adaptor

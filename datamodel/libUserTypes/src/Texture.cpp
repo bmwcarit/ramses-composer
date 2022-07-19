@@ -14,10 +14,56 @@
 
 namespace raco::user_types {
 
+void Texture::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
+	BaseObject::onAfterValueChanged(context, value);
+
+	if (value.isRefToProp(&Texture::mipmapLevel_)) {
+		validateURIs(context);
+		validateMipmapLevel(context);
+	} else if (value.isRefToProp(&Texture::generateMipmaps_)) {
+		validateMipmapLevel(context);
+	}
+}
+
 void Texture::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError({shared_from_this()});
-	validateURI(context, {shared_from_this(), &Texture::uri_});
+	validateURIs(context);
+
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
+}
+
+void Texture::validateURIs(BaseContext& context) {
+	context.errors().removeError({shared_from_this(), &Texture::uri_});
+	context.errors().removeError({shared_from_this(), &Texture::level2uri_});
+	context.errors().removeError({shared_from_this(), &Texture::level3uri_});
+	context.errors().removeError({shared_from_this(), &Texture::level4uri_});
+
+	validateURI(context, {shared_from_this(), &Texture::uri_});
+
+	if (*mipmapLevel_ > 1) {
+		validateURI(context, {shared_from_this(), &Texture::level2uri_});
+	}
+
+	if (*mipmapLevel_ > 2) {
+		validateURI(context, {shared_from_this(), &Texture::level3uri_});
+	}
+
+	if (*mipmapLevel_ > 3) {
+		validateURI(context, {shared_from_this(), &Texture::level4uri_});
+	}
+}
+
+void Texture::validateMipmapLevel(BaseContext& context) {
+	auto mipmapLevelValue = ValueHandle{shared_from_this(), &raco::user_types::Texture::mipmapLevel_};
+	context.errors().removeError(mipmapLevelValue);
+
+	if (*mipmapLevel_ < 1 || *mipmapLevel_ > 4) {
+		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, mipmapLevelValue,
+			"Invalid mipmap level - only mipmap levels 1 to 4 are allowed.");
+	} else if (*generateMipmaps_ && *mipmapLevel_ != 1) {
+		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, mipmapLevelValue,
+			"Mipmap level larger than 1 specified while auto-generation flag is on - Ramses will ignore the auto-generation flag and still try to use the manually specified URIs.");
+	}
 }
 
 }  // namespace raco::user_types

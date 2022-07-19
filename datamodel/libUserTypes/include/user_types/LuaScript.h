@@ -11,6 +11,7 @@
 
 #include "user_types/BaseObject.h"
 #include "user_types/SyncTableWithEngineInterface.h"
+#include "user_types/LuaStandardModuleSelection.h"
 
 #include <map>
 
@@ -18,12 +19,12 @@ namespace raco::user_types {
 
 class LuaScript : public BaseObject {
 public:
-	static inline const TypeDescriptor typeDescription = { "LuaScript", false };
+	static inline const TypeDescriptor typeDescription = {"LuaScript", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
-	LuaScript(LuaScript const& other) : BaseObject(other), uri_(other.uri_), luaModules_(other.luaModules_), luaInputs_(other.luaInputs_), luaOutputs_(other.luaOutputs_) {
+	LuaScript(LuaScript const& other) : BaseObject(other), uri_(other.uri_), stdModules_(other.stdModules_), luaModules_(other.luaModules_), inputs_(other.inputs_) {
 		fillPropertyDescription();
 	}
 
@@ -34,21 +35,24 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("uri", &uri_);
+		properties_.emplace_back("stdModules", &stdModules_);
 		properties_.emplace_back("luaModules", &luaModules_);
-		properties_.emplace_back("luaInputs", &luaInputs_);
-		properties_.emplace_back("luaOutputs", &luaOutputs_);
+		properties_.emplace_back("inputs", &inputs_);
+		properties_.emplace_back("outputs", &outputs_);
 	}
 
 	void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
-	
+
 	void updateFromExternalFile(BaseContext& context) override;
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
+	Property<LuaStandardModuleSelection, DisplayNameAnnotation> stdModules_{{}, {"Standard Modules"}};
+
 	Property<Table, DisplayNameAnnotation> luaModules_{{}, DisplayNameAnnotation("Modules")};
-	Property<Table, DisplayNameAnnotation> luaInputs_ {{}, DisplayNameAnnotation("Inputs")};
-	Property<Table, DisplayNameAnnotation> luaOutputs_{{}, DisplayNameAnnotation("Outputs")};
+	Property<Table, DisplayNameAnnotation, LinkEndAnnotation> inputs_{{}, DisplayNameAnnotation("Inputs"), {}};
+	Property<Table, DisplayNameAnnotation> outputs_{{}, DisplayNameAnnotation("Outputs")};
 
 private:
 	void syncLuaScript(BaseContext& context, bool syncModules);
@@ -62,4 +66,4 @@ private:
 
 using SLuaScript = std::shared_ptr<LuaScript>;
 
-}
+}  // namespace raco::user_types

@@ -115,7 +115,8 @@ private:
 	raco::components::Subscription subscription_;
 	raco::components::Subscription errorSubscription_;
 	raco::components::Subscription linkValidityChangeSub_;
-	raco::components::Subscription linkLifecycleSub_;
+	raco::components::Subscription linkLifecycleStartSub_;
+	raco::components::Subscription linkLifecycleEndSub_;
 	raco::components::Subscription changeChildrenSub_;
 	raco::core::CommandInterface* commandInterface_;
 	raco::components::SDataChangeDispatcher dispatcher_;

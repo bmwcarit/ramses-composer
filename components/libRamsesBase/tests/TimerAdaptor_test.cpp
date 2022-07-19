@@ -78,60 +78,60 @@ TEST_F(TimerAdaptorTest, InputZeroOutputNotZero) {
 	dispatch();
 	dispatch();
 
-	ASSERT_EQ((ValueHandle{timer, &Timer::tickerInput_}.asInt64()), 0);
-	ASSERT_NE((ValueHandle{timer, &Timer::tickerOutput_}.asInt64()), 0);
+	ASSERT_EQ((ValueHandle{timer, {"inputs", "ticker_us"}}.asInt64()), 0);
+	ASSERT_NE((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), 0);
 }
 
 TEST_F(TimerAdaptorTest, InputNotZeroGetsPropagated) {
 	auto timer{commandInterface.createObject(Timer::typeDescription.typeName)};
 	int64_t val = 233212;
 
-	commandInterface.set({timer, &Timer::tickerInput_}, val);
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, val);
 	dispatch();
 	dispatch();
 
-	ASSERT_EQ((ValueHandle{timer, &Timer::tickerOutput_}.asInt64()), val);
+	ASSERT_EQ((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), val);
 }
 
 TEST_F(TimerAdaptorTest, InputNotZeroBackToZeroOutputNotZero) {
 	auto timer{commandInterface.createObject(Timer::typeDescription.typeName)};
 
-	commandInterface.set({timer, &Timer::tickerInput_}, int64_t{233212});
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{233212});
 	dispatch();
 	dispatch();
 
-	commandInterface.set({timer, &Timer::tickerInput_}, int64_t{0});
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{0});
 	dispatch();
 	dispatch();
 
-	ASSERT_NE((ValueHandle{timer, &Timer::tickerOutput_}.asInt64()), int64_t{0});
+	ASSERT_NE((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), int64_t{0});
 }
 
 TEST_F(TimerAdaptorTest, InputBelowZeroNoError) {
 	auto timer{commandInterface.createObject(Timer::typeDescription.typeName)};
 
-	commandInterface.set({timer, &Timer::tickerInput_}, int64_t{-1});
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{-1});
 	dispatch();
 	dispatch();
 
 	ASSERT_FALSE(commandInterface.errors().hasError(timer));
-	ASSERT_EQ((ValueHandle{timer, &Timer::tickerOutput_}.asInt64()), int64_t{-1});
+	ASSERT_EQ((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), int64_t{-1});
 }
 
 TEST_F(TimerAdaptorTest, InputNotIncreasingNoError) {
 	auto timer{commandInterface.createObject(Timer::typeDescription.typeName)};
 
-	commandInterface.set({timer, &Timer::tickerInput_}, int64_t{2});
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{2});
 	dispatch();
 	dispatch();
 
-	commandInterface.set({timer, &Timer::tickerInput_}, int64_t{1});
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{1});
 	dispatch();
 	dispatch();
 
 	ASSERT_FALSE(commandInterface.errors().hasError(timer));
 
-	commandInterface.set({timer, &Timer::tickerInput_}, int64_t{0});
+	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{0});
 	dispatch();
 	dispatch();
 	ASSERT_FALSE(commandInterface.errors().hasError(timer));

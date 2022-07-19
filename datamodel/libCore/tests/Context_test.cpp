@@ -97,7 +97,7 @@ TEST_F(ContextTest, Complex) {
 
 	EXPECT_EQ(script->size(), 5);
 
-	double val = *ValueHandle(script, &MockLuaScript::luaInputs_).get("in_array_struct")[1].get("bar").asVec3f().y;
+	double val = *ValueHandle(script, &MockLuaScript::inputs_).get("in_array_struct")[1].get("bar").asVec3f().y;
 	EXPECT_EQ(val, 0);
 
 	ValueHandle s(script);
@@ -810,7 +810,7 @@ TEST_F(ContextTest, ShallowCopyNodeWithLink_pasteSameParent) {
 	auto node = create<Node>("node", root);
 	auto lua = create_lua("lua", "scripts/types-scalar.lua", root);
 
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, node, {"translation"});
+	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, node, {"translation"});
 
 	auto clipboard = context.copyObjects({node});
 	ASSERT_EQ(1, project.links().size());
@@ -824,7 +824,7 @@ TEST_F(ContextTest, ShallowCopyNodeWithLink_pasteRoot) {
 	auto node = create<Node>("node", root);
 	auto lua = create_lua("lua", "scripts/types-scalar.lua", root);
 
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, node, {"translation"});
+	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, node, {"translation"});
 
 	auto clipboard = context.copyObjects({node});
 	ASSERT_EQ(1, project.links().size());

@@ -217,12 +217,8 @@ void MeshNodeAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes)
 const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::string>& names) {
 	if (names.size() > 1) {
 		if (appearanceBinding_) {
-			const rlogic::Property* prop{appearanceBinding_->getInputs()};
 			// Remove the first 3 nesting levels of the handle: materials/slot #/uniforms container:
-			for (size_t i{3}; i < names.size(); i++) {
-				prop = prop->getChild(names.at(i));
-			}
-			return prop;
+			return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), names, 3);
 		}
 		return nullptr;
 	}

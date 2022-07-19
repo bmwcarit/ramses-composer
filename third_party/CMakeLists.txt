@@ -90,21 +90,21 @@ set(ramses-sdk_ENABLE_TCP_SUPPORT OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(ramses-logic/external/ramses/ EXCLUDE_FROM_ALL)
 
-# replace ramses-logic RAMSES_TARGET with an INTERFACE ONLY LIBRARY
-# needed so we can choose which ramses-shared-lib to link against
-# on HeadlessApp or RaCoEditor level, by doing this we can no longer build
-# all targets in the project (e.g. the ramses-logic dynamic target will fail)
-add_library(ramses-api INTERFACE)
-target_link_libraries(ramses-api
-INTERFACE
-    ramses-client-api
-    ramses-framework-api
-)
+if (CMAKE_SYSTEM_NAME STREQUAL Windows)
+    # es-3-0 / 4-5 / 4-2-core
+    add_library(raco::ramses-lib ALIAS ramses-shared-lib-windows-wgl-4-5)
+endif()
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    add_library(raco::ramses-lib ALIAS ramses-shared-lib-x11-egl-es-3-0)
+endif()
+
+add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
+
 
 set(ramses-logic_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(ramses-logic_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(ramses-logic_BUILD_TOOLS ON CACHE BOOL "" FORCE)
 set(ramses-logic_ALLOW_RAMSES_BUILD OFF CACHE BOOL "" FORCE)
-set(ramses-logic_RAMSES_TARGET "ramses-api" CACHE STRING "" FORCE)
+set(ramses-logic_RAMSES_TARGET "raco::ramses-lib" CACHE STRING "" FORCE)
 set(ramses-logic_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 add_subdirectory(ramses-logic/ EXCLUDE_FROM_ALL)
 
@@ -128,51 +128,18 @@ endfunction()
 if (CMAKE_SYSTEM_NAME STREQUAL Windows)
     # es-3-0 / 4-5 / 4-2-core
     add_ramses_logic_target(ramses-logic-shared-lib-windows-wgl-4-5 ramses-shared-lib-windows-wgl-4-5)
-
     add_library(raco::ramses-logic-lib ALIAS ramses-logic-shared-lib-windows-wgl-4-5)
-    add_library(raco::ramses-lib ALIAS ramses-shared-lib-windows-wgl-4-5)
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     add_ramses_logic_target(ramses-logic-shared-lib-x11-egl-es-3-0 ramses-shared-lib-x11-egl-es-3-0)
-
     add_library(raco::ramses-logic-lib ALIAS ramses-logic-shared-lib-x11-egl-es-3-0)
-    add_library(raco::ramses-lib ALIAS ramses-shared-lib-x11-egl-es-3-0)
 endif()
 
 add_ramses_logic_target(ramses-logic-shared-lib-client-only ramses-shared-lib-client-only)
 add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-client-only)
-add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
-
-add_subdirectory(ramses-logic/tools/ramses-logic-utils)
-add_subdirectory(ramses-logic/tools/ramses-logic-viewer)
-folderize_target(ramses-logic-viewer "third_party/ramses-logic")
-target_include_directories(ramses-logic-viewer PRIVATE
-    ramses-logic/lib
-    ramses-logic/tools/ramses-logic-utils
-)
-
-# unlink original "rlogic::ramses-logic" targets from ramses-logic-viewer to make it work with our own ramses and ramses-logic .dlls
-get_target_property(VIEWER_LINKED_LIBS ramses-logic-viewer LINK_LIBRARIES)
-list(REMOVE_ITEM VIEWER_LINKED_LIBS rlogic::ramses-logic rlogic::ramses-logic-static)
-set_property(TARGET ramses-logic-viewer PROPERTY LINK_LIBRARIES ${VIEWER_LINKED_LIBS})
-set_property(TARGET ramses-logic-viewer PROPERTY CXX_STANDARD 17)
-
-target_link_libraries(ramses-logic-viewer PRIVATE
-    raco::ramses-lib
-    raco::ramses-logic-lib-client-only
-)
-
-IF (MSVC)
-    # /bigobj is needed to compile LogicViewer.cpp
-    target_compile_options(ramses-logic-viewer PRIVATE "/bigobj")
-endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8)
-        target_compile_definitions(ramses-logic-viewer PRIVATE RLOGIC_STD_FILESYSTEM_EXPERIMENTAL)
-    endif()
-
     find_program(LINUXDEPLOYQT linuxdeployqt)
 		if(EXISTS "${LINUXDEPLOYQT}")
             add_custom_command(OUTPUT  ${CMAKE_BINARY_DIR}/ramses-logic-viewer

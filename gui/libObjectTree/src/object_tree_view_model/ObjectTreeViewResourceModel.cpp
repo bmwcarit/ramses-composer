@@ -23,6 +23,7 @@ namespace raco::object_tree::model {
 ObjectTreeViewResourceModel::ObjectTreeViewResourceModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes)
 	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectStore, allowedCreatableUserTypes, true) {}
 
+
 bool ObjectTreeViewResourceModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {
 	// ignore index: resources always get pasted at top level.
 	return ObjectTreeViewDefaultModel::pasteObjectAtIndex({}, pasteAsExtref, outError, serializedObjects);

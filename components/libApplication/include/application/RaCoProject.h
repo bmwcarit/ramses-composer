@@ -46,7 +46,7 @@ public:
 	 * @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	 * @exception ExtrefError
 	 */
-	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack);
+	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack, bool logErrors = true);
 	
 	QString name() const;
 
@@ -92,6 +92,7 @@ private:
 	raco::components::Subscription imageSubdirectoryUpdateSubscription_;
 	raco::components::Subscription meshSubdirectoryUpdateSubscription_;
 	raco::components::Subscription scriptSubdirectoryUpdateSubscription_;
+	raco::components::Subscription interfaceSubdirectoryUpdateSubscription_;
 	raco::components::Subscription shaderSubdirectoryUpdateSubscription_;
 
 	std::shared_ptr<raco::core::BaseContext> context_;

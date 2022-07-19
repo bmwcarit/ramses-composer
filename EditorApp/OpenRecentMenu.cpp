@@ -14,7 +14,7 @@
 #include "utils/u8path.h"
 #include <QSettings>
 
-OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open Recent", parent} {
+OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open &Recent", parent} {
 	QObject::connect(this, &QMenu::aboutToShow, this, [this]() {
 		refreshRecentFileMenu();
 	});
@@ -50,16 +50,19 @@ void OpenRecentMenu::refreshRecentFileMenu() {
 	while (actions().size() > 0) {
 		removeAction(actions().at(0));
 	}
+	int index = 0;
 	for (const auto& file : recentFiles) {
-		auto* action = addAction(file);
+		index = (index + 1) % 10;
+		auto actionText = QString::fromStdString("&" + std::to_string(index) + ". ") + file;
+		auto* action = addAction(actionText);
 
 		auto fileString = file.toStdString();
 		if (!raco::utils::u8path(fileString).exists()) {
 			action->setEnabled(false);
-			action->setText(file + " (unavailable)");
+			action->setText(actionText + " (unavailable)");
 		} else if (!raco::utils::u8path(fileString).userHasReadAccess()) {
 			action->setEnabled(false);
-			action->setText(file + " (no read access)");
+			action->setText(actionText + " (no read access)");
 		}
 		QObject::connect(action, &QAction::triggered, this, [this, file]() {
 			Q_EMIT openProject(file);

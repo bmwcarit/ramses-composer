@@ -54,32 +54,11 @@ void OrthographicCameraAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& l
 
 const rlogic::Property* OrthographicCameraAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector)
 {
-	using raco::user_types::Node;
-	using raco::user_types::property_name;
-
-	static std::map<std::string_view, std::string_view> propertyNameToFrustrumPropertyName{
-		{ "nearPlane", "nearPlane" },
-		{ "farPlane", "farPlane" },
-		{ "leftPlane", "leftPlane" },
-		{ "rightPlane", "rightPlane" },
-		{ "bottomPlane", "bottomPlane" },
-		{ "topPlane", "topPlane" },
-	};
 	if (auto p = BaseCameraAdaptorHelpers::getProperty(cameraBinding_.get(), propertyNamesVector)) {
 		return p;
 	}
-	if (propertyNamesVector.size() == 1 && propertyNamesVector[0] == "frustum") {
-		return cameraBinding_->getInputs()->getChild("frustum");
-	}
-	if (propertyNamesVector.size() == 2 && propertyNamesVector[0] == "frustum") {
-		std::string propName = propertyNamesVector[1];
-		if (propertyNameToFrustrumPropertyName.find(propName) != propertyNameToFrustrumPropertyName.end()) {
-			auto const ramsesFrustrumProperties = cameraBinding_->getInputs()->getChild("frustum");
-			assert(ramsesFrustrumProperties != nullptr);
-			auto const ramsesFrustrumProperty = ramsesFrustrumProperties->getChild(propertyNameToFrustrumPropertyName.at(propName));
-			assert(ramsesFrustrumProperty != nullptr);
-			return ramsesFrustrumProperty;
-		}
+	if (propertyNamesVector.size() >= 1 && propertyNamesVector[0] == "frustum") {
+		return ILogicPropertyProvider::getPropertyRecursive(cameraBinding_->getInputs(), propertyNamesVector);
 	}
 	return SpatialAdaptor::getProperty(propertyNamesVector);
 }

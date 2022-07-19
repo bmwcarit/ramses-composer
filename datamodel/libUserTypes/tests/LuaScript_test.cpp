@@ -103,7 +103,7 @@ TEST_F(LuaScriptTest, inputs_are_correctly_built) {
 	auto scriptPath = test_path().append("scripts/struct.lua").string();
 	commandInterface.set(uri, scriptPath);
 	
-	ValueHandle luaInputs{s.get("luaInputs")};
+	ValueHandle luaInputs{s.get("inputs")};
 	EXPECT_EQ(1, luaInputs.size());
 	const auto structInput { luaInputs[0] };
 	EXPECT_EQ("struct", structInput.getPropName());
@@ -137,10 +137,10 @@ end
 	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'run' function defined!");
 	commandInterface.set(uriHandle, scriptWhitespaceOnlyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'interface' function defined!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'run' function defined!");
 	commandInterface.set(uriHandle, scriptEmptyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
-	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'interface' function defined!");
+	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myScript] No 'run' function defined!");
 }
 
 TEST_F(LuaScriptTest, arrayIsCorrectlyBuilt) {
@@ -169,18 +169,18 @@ end
 
 	commandInterface.set({script, {"uri"}}, scriptFile);
 	
-	ValueHandle luaInputs{script, {"luaInputs"}};
+	ValueHandle luaInputs{script, {"inputs"}};
 	EXPECT_EQ(1, luaInputs.size());
 	const auto structInput { luaInputs[0] };
 	EXPECT_EQ("float_array", structInput.getPropName());
 	EXPECT_EQ(PrimitiveType::Table, structInput.type());
 	EXPECT_EQ(5, structInput.size());
 
-	EXPECT_EQ(script->luaInputs_->get("float_array")->asTable().propertyNames(), std::vector<std::string>({"1", "2", "3", "4", "5"}));
+	EXPECT_EQ(script->inputs_->get("float_array")->asTable().propertyNames(), std::vector<std::string>({"1", "2", "3", "4", "5"}));
 
 	commandInterface.set({script, {"uri"}}, scriptFile_2);
 
-	EXPECT_EQ(script->luaInputs_->get("float_array")->asTable().propertyNames(), std::vector<std::string>({"1", "2", "3"}));
+	EXPECT_EQ(script->inputs_->get("float_array")->asTable().propertyNames(), std::vector<std::string>({"1", "2", "3"}));
 }
 
 TEST_F(LuaScriptTest, outArrayOfStructs) {
@@ -200,7 +200,7 @@ end
 )");
 	commandInterface.set(s.get("uri"), scriptFile);
 
-	ValueHandle luaInputs{s.get("luaInputs")};
+	ValueHandle luaInputs{s.get("inputs")};
 	EXPECT_EQ(1, luaInputs.size());
 	ValueHandle array{luaInputs.get("array")};
 	EXPECT_EQ(5, array.size());
@@ -217,8 +217,8 @@ TEST_F(LuaScriptTest, restore_cached_struct_member) {
 	auto lua = create<LuaScript>("script");
 	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/struct.lua").string());
 
-	commandInterface.set({lua, {"luaInputs", "struct", "a"}}, 2.0);
-	ValueHandle inputs{lua, {"luaInputs"}};
+	commandInterface.set({lua, {"inputs", "struct", "a"}}, 2.0);
+	ValueHandle inputs{lua, {"inputs"}};
 
 	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/nosuchfile.lua").string());
 	ASSERT_EQ(inputs.size(), 0);
@@ -251,8 +251,8 @@ end
 )");
 	commandInterface.set(s.get("uri"), scriptFile);
 
-	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
-	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
+	ASSERT_EQ(newScript->inputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
+	ASSERT_EQ(newScript->outputs_->propertyNames(), std::vector<std::string>({"aa", "zz"}));
 
 	auto scriptFile2 = makeFile("script2.lua", R"(
 function interface(IN,OUT)
@@ -274,8 +274,8 @@ end
 )");
 
 	commandInterface.set(s.get("uri"), scriptFile2);
-	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
-	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+	ASSERT_EQ(newScript->inputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
+	ASSERT_EQ(newScript->outputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
 }
 
 TEST_F(LuaScriptTest, modules_in_uri_are_rejected) {
@@ -322,8 +322,8 @@ end
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
-	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
-	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->inputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->outputs_->propertyNames().empty());
 }
 
 TEST_F(LuaScriptTest, module_loaded_after_assigned_module_objects) {
@@ -403,8 +403,8 @@ return anothermodule
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
-	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
-	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+	ASSERT_EQ(newScript->inputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
+	ASSERT_EQ(newScript->outputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
 
 	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, std::string());
 
@@ -414,8 +414,8 @@ return anothermodule
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas", "module", "anothermodule"}));
-	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
-	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->inputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->outputs_->propertyNames().empty());
 }
 
 TEST_F(LuaScriptTest, module_caching) {
@@ -552,21 +552,21 @@ return coalaModule
 	commandInterface.set(scriptUri, scriptFile);
 	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(newScript->luaModules_->propertyNames().empty());
-	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
-	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->inputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->outputs_->propertyNames().empty());
 
 	commandInterface.set(scriptUri, scriptFile2);
 	commandInterface.set(s.get("luaModules").get("coalas"), module);
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_EQ(newScript->luaModules_->propertyNames(), std::vector<std::string>({"coalas"}));
-	ASSERT_EQ(newScript->luaInputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
-	ASSERT_EQ(newScript->luaOutputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
+	ASSERT_EQ(newScript->inputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
+	ASSERT_EQ(newScript->outputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
 
 	commandInterface.set(scriptUri, scriptFile);
 	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(newScript->luaModules_->propertyNames().empty());
-	ASSERT_TRUE(newScript->luaInputs_->propertyNames().empty());
-	ASSERT_TRUE(newScript->luaOutputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->inputs_->propertyNames().empty());
+	ASSERT_TRUE(newScript->outputs_->propertyNames().empty());
 }
 
 TEST_F(LuaScriptTest, module_amount_to_zero) {
@@ -827,4 +827,56 @@ end
 
 	commandInterface.set(uriHandle, scriptFile2);
 	ASSERT_EQ(script->luaModules_->size(), 0);
+}
+
+TEST_F(LuaScriptTest, error_script_stdmodule_missing) {
+	auto script = create_lua("lua", "scripts/using-math.lua");
+
+	ASSERT_FALSE(commandInterface.errors().hasError({script}));
+
+	commandInterface.set({script, {"stdModules", "math"}}, false);
+	ASSERT_TRUE(commandInterface.errors().hasError({script}));
+
+	commandInterface.set({script, {"stdModules", "math"}}, true);
+	commandInterface.set({script, {"stdModules", "debug"}}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({script}));
+}
+
+TEST_F(LuaScriptTest, error_module_stdmodule_missing) {
+	auto module = create_lua_module("lua", "scripts/module-using-math.lua");
+
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+
+	commandInterface.set({module, {"stdModules", "math"}}, false);
+	ASSERT_TRUE(commandInterface.errors().hasError({module}));
+
+	commandInterface.set({module, {"stdModules", "math"}}, true);
+	commandInterface.set({module, {"stdModules", "debug"}}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+}
+
+TEST_F(LuaScriptTest, error_script_using_module_stdmodule_missing) {
+	auto script = create_lua("lua", "scripts/using-module-using-math.lua");
+	auto module = create_lua_module("lua", "scripts/module-using-math.lua");
+	commandInterface.set({script, {"luaModules", "cangaroo"}}, module);
+
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script, {"luaModules", "cangaroo"}}));
+
+	commandInterface.set({module, {"stdModules", "math"}}, false);
+	ASSERT_TRUE(commandInterface.errors().hasError({module}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script}));
+	ASSERT_TRUE(commandInterface.errors().hasError({script, {"luaModules", "cangaroo"}}));
+
+	commandInterface.set({module, {"stdModules", "math"}}, true);
+	commandInterface.set({module, {"stdModules", "debug"}}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script, {"luaModules", "cangaroo"}}));
+
+	commandInterface.set({script, {"stdModules", "math"}}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script}));
+	ASSERT_FALSE(commandInterface.errors().hasError({script, {"luaModules", "cangaroo"}}));
 }

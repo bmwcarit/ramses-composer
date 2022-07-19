@@ -45,6 +45,7 @@ protected Q_SLOTS:
 	void setLinkState(const LinkState& linkstate);
 
 private:
+	void addLinkEndpointMenuItems(const std::vector<raco::core::SLink>& startingLinks, QMenu* endsMenu, QString& requestedLinkEndObj);
 	std::map<std::string, std::string> generateSortedLinkPoints(const std::vector<raco::core::SLink> links);
 
 	bool validDropTarget_ { false };

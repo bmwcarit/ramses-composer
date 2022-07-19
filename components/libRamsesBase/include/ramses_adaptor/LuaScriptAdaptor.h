@@ -47,6 +47,7 @@ private:
 	components::Subscription inputSubscription_;
 	components::Subscription childrenSubscription_;
 	components::Subscription parentNameSubscription_;
+	components::Subscription stdModuleSubscription_;
 	components::Subscription moduleSubscription_;
 
 

@@ -35,6 +35,7 @@
 #include "user_types/Texture.h"
 
 #include "testing/TestEnvironmentCore.h"
+#include "testing/TestUtil.h"
 
 #include <gtest/gtest.h>
 
@@ -82,7 +83,8 @@ struct MigrationTest : public TestEnvironmentCore {
 
 		// Perform deserialization to IR and migration by hand to check output of migration code:
 		auto deserializedIR{raco::serialization::deserializeProjectToIR(document, filename.toStdString())};
-		raco::serialization::migrateProject(deserializedIR);
+		auto& factory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+		raco::serialization::migrateProject(deserializedIR, factory);
 		checkPropertyTypes(deserializedIR);
 
 		std::vector<std::string> pathStack;
@@ -221,10 +223,10 @@ TEST_F(MigrationTest, migrate_from_V12) {
 	ASSERT_EQ(meshnode_mesh_no_mat->materials_->size(), 1);
 
 	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
-	checkLinks(*racoproject->project(), {{{lua, {"luaOutputs", "int"}}, {pcam, {"viewport", "offsetY"}}},
-											{{lua, {"luaOutputs", "float"}}, {pcam, {"frustum", "nearPlane"}}},
-											{{lua, {"luaOutputs", "int"}}, {ocam, {"viewport", "offsetY"}}},
-											{{lua, {"luaOutputs", "float"}}, {ocam, {"frustum", "leftPlane"}}}});
+	checkLinks(*racoproject->project(), {{{lua, {"outputs", "int"}}, {pcam, {"viewport", "offsetY"}}},
+											{{lua, {"outputs", "float"}}, {pcam, {"frustum", "nearPlane"}}},
+											{{lua, {"outputs", "int"}}, {ocam, {"viewport", "offsetY"}}},
+											{{lua, {"outputs", "float"}}, {ocam, {"frustum", "leftPlane"}}}});
 }
 
 TEST_F(MigrationTest, migrate_from_V13) {
@@ -419,7 +421,7 @@ TEST_F(MigrationTest, migrate_from_V29) {
 	auto animation = raco::core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<raco::user_types::Animation>();
 	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
 
-	EXPECT_TRUE(lua->luaOutputs_->hasProperty("flag"));
+	EXPECT_TRUE(lua->outputs_->hasProperty("flag"));
 	EXPECT_EQ(racoproject->project()->links().size(), 0);
 
 	EXPECT_FALSE(animation->hasProperty("play"));
@@ -461,6 +463,150 @@ TEST_F(MigrationTest, migrate_V30_to_V34) {
 	EXPECT_EQ(*layer_incl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Inclusive));
 }
 
+TEST_F(MigrationTest, migrate_from_V35) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V35.rca").string()));
+
+	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
+	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
+	auto global_lua = raco::core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<raco::user_types::LuaScript>();
+
+	auto prefab_lua_types = raco::select<raco::user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_array = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "array");
+
+	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
+	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
+	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
+
+	auto inst_lua_types = raco::select<raco::user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = raco::select<raco::user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_array = raco::select<raco::user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "array");
+
+	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst->objectID()));
+
+	EXPECT_EQ(inst_int_types->inputs_->get("float")->asDouble(), 0.25);
+	EXPECT_EQ(inst_int_types->inputs_->get("integer")->asInt(), 8);
+	EXPECT_EQ(inst_int_types->inputs_->get("integer64")->asInt64(), 9);
+
+	for (auto& link : racoproject->project()->links()) {
+		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp()));
+	}
+
+	EXPECT_EQ(nullptr, Queries::getLink(*racoproject->project(), {prefab_int_array, {"inputs", "float_array", "1"}}));
+	
+	auto inst_link = Queries::getLink(*racoproject->project(), {inst_int_array, {"inputs", "float_array", "1"}});
+	EXPECT_TRUE(inst_link != nullptr);
+	EXPECT_EQ(inst_link->startProp(), PropertyDescriptor(inst_lua_types, {"outputs", "bar"}));
+}
+
+TEST_F(MigrationTest, migrate_from_V35_extref) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V35_extref.rca").string()));
+
+	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
+	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
+	auto global_lua = raco::core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<raco::user_types::LuaScript>();
+
+	auto prefab_lua_types = raco::select<raco::user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+
+	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
+	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
+	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
+
+	auto inst_lua_types = raco::select<raco::user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = raco::select<raco::user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+
+	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst->objectID()));
+
+	EXPECT_EQ(inst_int_types->inputs_->get("float")->asDouble(), 0.25);
+	EXPECT_EQ(inst_int_types->inputs_->get("integer")->asInt(), 8);
+	EXPECT_EQ(inst_int_types->inputs_->get("integer64")->asInt64(), 9);
+
+	for (auto& link : racoproject->project()->links()) {
+		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp()));
+	}
+}
+
+TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V35_extref_nested.rca").string()));
+	auto racoproject = &application.activeRaCoProject();
+
+	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
+	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
+	auto global_lua = raco::core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<raco::user_types::LuaScript>();
+
+	auto prefab_lua_types = raco::select<raco::user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+
+	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
+	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
+	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
+
+	auto inst_nested = Queries::findByName(inst->children_->asVector<SEditorObject>(), "inst_nested");
+
+	auto inst_lua_types = raco::select<raco::user_types::LuaScript>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = raco::select<raco::user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_array = raco::select<raco::user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "array");
+
+	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst_nested->objectID()));
+
+	EXPECT_EQ(inst_int_types->inputs_->get("float")->asDouble(), 0.25);
+
+	for (auto& link : racoproject->project()->links()) {
+		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp()));
+	}
+
+	auto inst_link = Queries::getLink(*racoproject->project(), {inst_int_array, {"inputs", "float_array", "1"}});
+	EXPECT_TRUE(inst_link != nullptr);
+	EXPECT_EQ(inst_link->startProp(), PropertyDescriptor(inst_lua_types, {"outputs", "bar"}));
+}
+
+TEST_F(MigrationTest, migrate_from_V39) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V39.rca").string()));
+	auto racoproject = &application.activeRaCoProject();
+	auto instances = racoproject->project()->instances();
+	const auto DELTA = 0.001;
+
+	auto luascript = raco::core::Queries::findByName(instances, "LuaScript");
+	ASSERT_NE(ValueHandle(luascript, {"inputs", "integer64"}).asInt64(), int64_t{0});
+
+	auto luascript1 = raco::core::Queries::findByName(instances, "LuaScript (1)");
+	ASSERT_NEAR(ValueHandle(luascript1, {"inputs", "vector3f", "x"}).asDouble(), 0.54897, DELTA);
+	ASSERT_NEAR(ValueHandle(luascript1, {"inputs", "vector3f", "y"}).asDouble(), 1.09794, DELTA);
+	ASSERT_NEAR(ValueHandle(luascript1, {"inputs", "vector3f", "z"}).asDouble(), 3.0, DELTA);
+
+	auto luainterface = raco::core::Queries::findByName(instances, "LuaInterface");
+	ASSERT_EQ(ValueHandle(luainterface, {"inputs", "integer"}).asInt(), 2);
+
+	auto luainterface1 = raco::core::Queries::findByName(instances, "LuaInterface (1)");
+	ASSERT_EQ(ValueHandle(luainterface1, {"inputs", "integer"}).asInt(), 2);
+
+	auto luascript2 = raco::core::Queries::findByName(instances, "LuaScript (2)");
+	ASSERT_NEAR(ValueHandle(luascript2, {"outputs", "ovector3f", "x"}).asDouble(), 0.53866, DELTA);
+	ASSERT_NEAR(ValueHandle(luascript2, {"outputs", "ovector3f", "y"}).asDouble(), 1.07732, DELTA);
+	ASSERT_NEAR(ValueHandle(luascript2, {"outputs", "ovector3f", "z"}).asDouble(), 3.0, DELTA);
+
+	auto node = raco::core::Queries::findByName(instances, "Node");
+	ASSERT_TRUE(ValueHandle(node, {"visibility"}).asBool());
+	ASSERT_NEAR(ValueHandle(node, {"scaling", "x"}).asDouble(), 0.54897, DELTA);
+	ASSERT_NEAR(ValueHandle(node, {"scaling", "y"}).asDouble(), 1.09794, DELTA);
+	ASSERT_NEAR(ValueHandle(node, {"scaling", "z"}).asDouble(), 3.0, DELTA);
+
+	auto meshNode = raco::core::Queries::findByName(instances, "MeshNode");
+	ASSERT_TRUE(ValueHandle(meshNode, {"visibility"}).asBool());
+	ASSERT_NEAR(ValueHandle(meshNode, {"scaling", "x"}).asDouble(), 0.54897, DELTA);
+	ASSERT_NEAR(ValueHandle(meshNode, {"scaling", "y"}).asDouble(), 1.09794, DELTA);
+	ASSERT_NEAR(ValueHandle(meshNode, {"scaling", "z"}).asDouble(), 3.0, DELTA);
+
+	auto timer = raco::core::Queries::findByName(instances, "Timer");
+	ASSERT_EQ(ValueHandle(timer, {"inputs", "ticker_us"}).asInt64(), int64_t{0});
+	ASSERT_NE(ValueHandle(timer, {"outputs", "ticker_us"}).asInt64(), int64_t{0});
+
+	ASSERT_EQ(racoproject->project()->links().size(), 12);
+	for (auto& link : racoproject->project()->links()) {
+		ASSERT_TRUE(link->isValid());
+	}
+}
 
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.

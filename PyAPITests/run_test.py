@@ -11,7 +11,7 @@ import sys
 import unittest
   
 if __name__ == "__main__":
-    test_prog = unittest.main(module=sys.argv[0], exit=False, verbosity=2)
+    test_prog = unittest.main(module=sys.argv[1], argv=sys.argv[1:], exit=False, verbosity=2)
     success = test_prog.result.wasSuccessful()
     exit(not success)
     

@@ -29,6 +29,21 @@ class Errors;
 class ValueHandle;
 class EngineInterface;
 
+/**
+ * @brief The CommandInterface is the user-level API for modifying the data model in a safe way.
+ * 
+ * main characteristics
+ * - all side-effects including Prefab update and undo stack push are taken care of.
+ * - the consistency of the data model is ensured internally
+ * - all operations are checked and an exception is thrown if an invalid operation is attempted.
+ * - changes are recorded to allow notifying the UI and engine update code
+ * - no UI/engine updates are triggered directly
+ * - the CommandInterface is used directly by the UI and the Python API to modify the data model.
+ * - the CommandInterface uses the BaseContext internally to perform the operations and adds
+ *   - Prefab update
+ *   - undo stack push
+ *   - checking of operations for validity
+*/
 class CommandInterface {
 public:
 	CommandInterface(BaseContext* context, UndoStack* undostack);

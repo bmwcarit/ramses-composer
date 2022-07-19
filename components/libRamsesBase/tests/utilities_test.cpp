@@ -39,9 +39,9 @@ TEST(Rotation, spatialProperties_areEqual_afterSync) {
 	auto nodeBinding = backend.logicEngine().createRamsesNodeBinding(*ramsesNode);
 
 	auto dataNode = std::make_shared<Node>();
-    dataNode->scale_->x = 10.0;
-    dataNode->scale_->y = 15.0;
-    dataNode->scale_->z = 4.0;
+    dataNode->scaling_->x = 10.0;
+    dataNode->scaling_->y = 15.0;
+    dataNode->scaling_->z = 4.0;
     dataNode->translation_->x = -10.0;
     dataNode->translation_->y = 8.0;
     dataNode->translation_->z = 3.0;

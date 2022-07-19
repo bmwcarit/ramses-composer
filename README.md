@@ -111,10 +111,11 @@ The linux build needs newer versions of CMake and Qt than available from the Ubu
 Installing Qt into /usr/local/opt/Qt/5.15.2 can be done like this:
 ```console
 apt-get install python3-pip
-python3 -m pip install --uprade pip
+python3 -m pip install --upgrade pip
 python3 -m pip install aqtinstall
 python3 -m aqt install --outputdir /usr/local/opt/Qt 5.15.2 linux desktop
 ```
+Alternatively you can use the [official Qt installer](https://www.qt.io/download-qt-installer).
 
 The environment variable QTBASEDIR needs to be set to the Qt base directory when running CMake, e.g. to /usr/local/opt/Qt in the example above.
 

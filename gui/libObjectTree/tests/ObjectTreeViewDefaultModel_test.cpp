@@ -17,6 +17,7 @@
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "user_types/Animation.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaInterface.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
@@ -30,14 +31,17 @@ using namespace raco::core;
 using namespace raco::object_tree::model;
 using namespace raco::user_types;
 
-ObjectTreeViewDefaultModelTest::ObjectTreeViewDefaultModelTest() : viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dataChangeDispatcher_, nullptr,
-																	   {raco::user_types::Animation::typeDescription.typeName,
-																		   raco::user_types::Node::typeDescription.typeName,
-																		   raco::user_types::MeshNode::typeDescription.typeName,
-																		   raco::user_types::PrefabInstance::typeDescription.typeName,
-																		   raco::user_types::OrthographicCamera::typeDescription.typeName,
-																		   raco::user_types::PerspectiveCamera::typeDescription.typeName,
-																		   raco::user_types::LuaScript::typeDescription.typeName})} {}
+ObjectTreeViewDefaultModelTest::ObjectTreeViewDefaultModelTest()
+	: viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, application_.dataChangeDispatcher(), externalProjectStore_,
+		  {raco::user_types::Animation::typeDescription.typeName,
+			  raco::user_types::Node::typeDescription.typeName,
+			  raco::user_types::MeshNode::typeDescription.typeName,
+			  raco::user_types::PrefabInstance::typeDescription.typeName,
+			  raco::user_types::OrthographicCamera::typeDescription.typeName,
+			  raco::user_types::PerspectiveCamera::typeDescription.typeName,
+			  raco::user_types::LuaScript::typeDescription.typeName,
+			  raco::user_types::LuaInterface::typeDescription.typeName})} {
+}
 
 
 void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &obj, const QModelIndex &objIndex, const ObjectTreeViewDefaultModel &viewModel_) {
@@ -424,7 +428,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveInitiatedFromContext) {
 	ASSERT_TRUE(rootNodeChildren.empty());
 
 	commandInterface.moveScenegraphChildren({childNode}, {rootNode});
-	dataChangeDispatcher_->dispatch(recorder);
+	application_.dataChangeDispatcher()->dispatch(recorder);
 	
 	rootNodeChildren = rootNode->children_->asVector<SEditorObject>();
 	ASSERT_EQ(rootNodeChildren.size(), 1);
@@ -488,6 +492,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveMovingObjectsAround) {
 	checkRootChildenOrder({1, 2, 3});
 
 	moveScenegraphChildren({movedChild}, {});
+	checkRootChildenOrder({2, 3});
+
+	moveScenegraphChildren({movedChild}, {}, 3);
 	checkRootChildenOrder({2, 3});
 }
 
@@ -611,11 +618,11 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionExcludingPare
 	auto child1Index = viewModel_->indexFromTreeNodeID(childNode1->objectID());
 	auto child2Index = viewModel_->indexFromTreeNodeID(childNode2->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({child1Index, child2Index}), 2);
-	ASSERT_TRUE(project.instances().size() == 1);
+ASSERT_TRUE(project.instances().size() == 1);
 
-	ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
-	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
+ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
+ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
+ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPrefabInstanceChild) {
@@ -624,9 +631,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 	auto prefabChild = create<Node>("prefabChild");
 	auto node = create<Node>("node");
 	auto nodeChild = create<Node>("nodeChild");
-	commandInterface.set({prefabInstance, {"template"}}, prefab);
-	commandInterface.moveScenegraphChildren({nodeChild}, node);
-	commandInterface.moveScenegraphChildren({prefabChild}, prefab);
+	commandInterface.set({ prefabInstance, {"template"} }, prefab);
+	commandInterface.moveScenegraphChildren({ nodeChild }, node);
+	commandInterface.moveScenegraphChildren({ prefabChild }, prefab);
 	viewModel_->buildObjectTree();
 	auto prefabInstanceChild = prefabInstance->children_->asVector<SEditorObject>()[0]->as<Node>();
 
@@ -634,8 +641,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 	auto nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
 	auto prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
 	auto prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
-			
-	ASSERT_EQ(deleteObjectsAtIndices({prefabInstanceChildIndex}), 0);
+
+	ASSERT_EQ(deleteObjectsAtIndices({ prefabInstanceChildIndex }), 0);
 	nodeIndex = viewModel_->indexFromTreeNodeID(node->objectID());
 	nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
 	prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
@@ -645,7 +652,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 	ASSERT_TRUE(prefabInstanceIndex.isValid());
 	ASSERT_TRUE(prefabInstanceChildIndex.isValid());
 
-	ASSERT_EQ(deleteObjectsAtIndices({prefabInstanceChildIndex, nodeIndex}), 2);
+	ASSERT_EQ(deleteObjectsAtIndices({ prefabInstanceChildIndex, nodeIndex }), 2);
 	nodeIndex = viewModel_->indexFromTreeNodeID(node->objectID());
 	nodeChildIndex = viewModel_->indexFromTreeNodeID(nodeChild->objectID());
 	prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
@@ -654,8 +661,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 	ASSERT_FALSE(nodeChildIndex.isValid());
 	ASSERT_TRUE(prefabInstanceIndex.isValid());
 	ASSERT_TRUE(prefabInstanceChildIndex.isValid());
-		
-	ASSERT_EQ(deleteObjectsAtIndices({prefabInstanceIndex, prefabInstanceChildIndex}), 2);
+
+	ASSERT_EQ(deleteObjectsAtIndices({ prefabInstanceIndex, prefabInstanceChildIndex }), 2);
 	prefabInstanceIndex = viewModel_->indexFromTreeNodeID(prefabInstance->objectID());
 	prefabInstanceChildIndex = viewModel_->indexFromTreeNodeID(prefabInstanceChild->objectID());
 	ASSERT_FALSE(prefabInstanceIndex.isValid());
@@ -665,13 +672,14 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 
 TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexEmptyIndex) {
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex({});
-	std::vector<std::string> allowedTypesAssert {Animation::typeDescription.typeName,
+	std::vector<std::string> allowedTypesAssert{ Animation::typeDescription.typeName,
 		Node::typeDescription.typeName,
 		MeshNode::typeDescription.typeName,
 		PrefabInstance::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
-		LuaScript::typeDescription.typeName};
+		LuaScript::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName };
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -680,9 +688,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexEmptyIndex) {
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexInvalidParent) {
-	auto prefabInstance = createNodes(PrefabInstance::typeDescription.typeName, {"prefabInstance"}).front();
-	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {"luaScript"}).front();
-	auto animation = createNodes(Animation::typeDescription.typeName, {"animation"}).front();
+	auto prefabInstance = createNodes(PrefabInstance::typeDescription.typeName, { "prefabInstance" }).front();
+	auto luaScript = createNodes(LuaScript::typeDescription.typeName, { "luaScript" }).front();
+	auto animation = createNodes(Animation::typeDescription.typeName, { "animation" }).front();
 
 	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(prefabInstance->objectID())).empty());
 	ASSERT_TRUE(viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(luaScript->objectID())).empty());
@@ -690,7 +698,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexInvalidParent) {
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
-	auto node = createNodes(Node::typeDescription.typeName, {"node"}).front();
+	auto node = createNodes(Node::typeDescription.typeName, { "node" }).front();
 
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(node->objectID()));
 	std::vector<std::string> allowedTypesAssert{Animation::typeDescription.typeName,
@@ -699,7 +707,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 		PrefabInstance::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
-		LuaScript::typeDescription.typeName};
+		LuaScript::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName};
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -708,7 +717,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsSceneGraphObjectsAreAllowedWithEmptyIndex) {
-	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+	for (const auto& [typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = context.createObject(typeName);
 		if (Queries::isNotResource(newObj) && typeName != Prefab::typeDescription.typeName) {
 			ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
@@ -726,9 +735,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombin
 				auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
 				auto pastingSomethingUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
 				auto pastingSomethingUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
+				auto pastingSomethingUnderLuaInterface = sceneGraphNodeInScene->as<LuaInterface>();
 				auto pastingSomethingUnderAnimaton = sceneGraphNodeInScene->as<Animation>();
 
-				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript || pastingSomethingUnderAnimaton) {
+				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript || pastingSomethingUnderLuaInterface || pastingSomethingUnderAnimaton) {
 					ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, newObj));
 				} else {
 					ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, newObj));
@@ -898,9 +908,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckPrefabInstanceCombination
 		auto sceneObjIndex = viewModel_->indexFromTreeNodeID(sceneGraphNodeInScene->objectID());
 		auto pastingPrefabInstanceUnderPrefabInstance = sceneGraphNodeInScene->as<PrefabInstance>();
 		auto pastingPrefabInstanceUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
+		auto pastingPrefabInstanceUnderLuaInterface = sceneGraphNodeInScene->as<LuaInterface>();
 		auto pastingPrefabInstanceUnderAnimation = sceneGraphNodeInScene->as<Animation>();
 
-		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript || pastingPrefabInstanceUnderAnimation) {
+		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript || pastingPrefabInstanceUnderLuaInterface || pastingPrefabInstanceUnderAnimation) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, prefabInstance));
 		} else {
 			ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, prefabInstance));
@@ -961,10 +972,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedSceneGraphWithResour
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 
 	commandInterface.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({meshNode}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
@@ -975,10 +986,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPr
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
 	commandInterface.set(raco::core::ValueHandle{prefabInstance, {"template"}}, prefab);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({prefabInstance}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
@@ -987,10 +998,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPr
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsLuaScriptIsAllowedAsExtRefOnTopLevel) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
 	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
@@ -1005,11 +1016,11 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsEx
 
 	externalParentNode->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
 	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
 	ASSERT_EQ(cutObjs, "");
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
@@ -1020,10 +1031,10 @@ TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedAsChild) 
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
 	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID(localParentNode->objectID()), parsedObjs, sourceProjectTopLevelObjectIds, true));
@@ -1036,11 +1047,44 @@ TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedWhenChild
 	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	moveScenegraphChildren({luaScript}, externalParentNode);
 	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({luaScript}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, CanNotMoveTopLevelObjectThatIsAlreadyInModel) {
+	auto node = create<Node>("node");
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
+
+	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(node->objectID())});
+	ASSERT_FALSE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, {}));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, CanNotMoveNodesInsidePrefabInstance) {
+	auto node = create<Node>("node");
+	auto prefab = create<Prefab>("prefab");
+	auto prefabInstance = create<PrefabInstance>("prefabInstance");
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
+
+	moveScenegraphChildren({node}, prefab);
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
+
+	commandInterface.set({prefabInstance, &raco::user_types::PrefabInstance::template_}, prefab);
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
+
+	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(prefabInstance->children_->asVector<SEditorObject>().front()->objectID())});
+	ASSERT_FALSE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, {}));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, CanCopyAndPasteObjectThatIsAlreadyInModel) {
+	auto node = createNodes(Node::typeDescription.typeName, {Node::typeDescription.typeName}).front();
+	auto copiedObjs = commandInterface.copyObjects({node});
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
+
+	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
+	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
 }

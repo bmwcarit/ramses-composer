@@ -110,11 +110,11 @@ void PreviewContentWidget::setFilteringMode(PreviewFilteringMode filteringMode) 
 }
 
 
-void PreviewContentWidget::commit() {
+void PreviewContentWidget::commit(bool forceUpdate) {
 	const auto& currentState = ramsesPreview_->currentState();
 	auto& nextState = ramsesPreview_->nextState();
-	if (nextState != currentState && nextState.sceneId == currentState.sceneId) {
-		ramsesPreview_->commit();
+	if (forceUpdate || nextState != currentState && nextState.sceneId == currentState.sceneId) {
+		ramsesPreview_->commit(forceUpdate);
 	}
 }
 

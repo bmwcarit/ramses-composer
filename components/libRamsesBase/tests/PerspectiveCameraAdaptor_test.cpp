@@ -36,13 +36,13 @@ end
 
 )");
 	context.set({luaScript, {"uri"}}, uriPath);
-	context.set({luaScript, {"luaInputs", "in_value", "x"}}, 5.0f);
+	context.set({luaScript, {"inputs", "in_value", "x"}}, 5.0f);
 	dispatch();
 
 	auto camera = commandInterface.createObject(PerspectiveCamera::typeDescription.typeName, "Camera");
 	dispatch();
 
-	commandInterface.addLink({luaScript, {"luaOutputs", "out_value"}}, {camera, {"rotation"}});
+	commandInterface.addLink({luaScript, {"outputs", "out_value"}}, {camera, {"rotation"}});
 	dispatch();
 
 	commandInterface.set({camera, {"frustum", "aspectRatio"}}, 7.0);

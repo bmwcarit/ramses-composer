@@ -167,6 +167,7 @@ void RaCoProject::generateAllProjectSubfolders() {
 	generateProjectSubfolder(settings->defaultResourceDirectories_->imageSubdirectory_.asString());
 	generateProjectSubfolder(settings->defaultResourceDirectories_->meshSubdirectory_.asString());
 	generateProjectSubfolder(settings->defaultResourceDirectories_->scriptSubdirectory_.asString());
+	generateProjectSubfolder(settings->defaultResourceDirectories_->interfaceSubdirectory_.asString());
 	generateProjectSubfolder(settings->defaultResourceDirectories_->shaderSubdirectory_.asString());
 
 	applyDefaultCachedPaths();
@@ -181,6 +182,7 @@ void RaCoProject::applyDefaultCachedPaths() {
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Image, raco::utils::u8path(defaultFolders->imageSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Mesh, raco::utils::u8path(defaultFolders->meshSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, raco::utils::u8path(defaultFolders->scriptSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+	PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, raco::utils::u8path(defaultFolders->interfaceSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Shader, raco::utils::u8path(defaultFolders->shaderSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 }
 
@@ -204,6 +206,12 @@ void RaCoProject::subscribeDefaultCachedPathChanges(const raco::components::SDat
 		[project, settings]() {
 			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->scriptSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, path);
+		});
+
+	interfaceSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_},
+		[project, settings]() {
+			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->interfaceSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
+			PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, path);
 		});
 
 	shaderSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_},
@@ -246,6 +254,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, prefs.imageSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, prefs.meshSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, prefs.scriptSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, prefs.interfaceSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, prefs.shaderSubdirectory.toStdString());
 
 	if (createDefaultScene) {
@@ -273,7 +282,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	return result;
 }
 
-std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack) {
+std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack, bool logErrors) {
 	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
 	QFileInfo path(filename);
@@ -339,7 +348,6 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		auto absPath = raco::utils::u8path(info.path).normalizedAbsolutePath(p.currentFolder());
 		p.addExternalProjectMapping(id, absPath.string(), info.name);
 	}
-	LOG_INFO(raco::log_system::PROJECT, "Finished loading project from {}", absPath.toLatin1());
 
 	Consistency::checkProjectSettings(p);
 
@@ -358,7 +366,14 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		}
 	}
 
-	newProject->errors()->logAllErrors();
+	// Selectively log errors: 
+	// - we need to log errors when loading external projects here
+	// - we don't need to log errors here when called from RaCoApplication::switchActiveRacoProject; see comment there
+	if (logErrors) {
+		newProject->errors()->logAllErrors();
+	}
+
+	LOG_INFO(raco::log_system::PROJECT, "Finished loading project from {}", absPath.toLatin1());
 
 	return std::unique_ptr<RaCoProject>(newProject);
 }
@@ -637,7 +652,8 @@ bool RaCoProject::save(std::string& outError) {
 bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool setProjectName) {
 	auto oldPath = project_.currentPath();
 	auto oldProjectFolder = project_.currentFolder();
-	auto newPath = fileName.toStdString();
+	QString absPath = QFileInfo(fileName).absoluteFilePath();
+	auto newPath = absPath.toStdString();
 	if (newPath == oldPath) {
 		return save(outError);
 	} else {

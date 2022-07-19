@@ -18,6 +18,7 @@
 
 #include "user_types/Animation.h"
 #include "user_types/LuaScript.h"
+#include "user_types/LuaInterface.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
@@ -167,9 +168,19 @@ bool Queries::isValidReferenceTarget(Project const& project, const ValueHandle& 
 	if (!handle.constValueRef()->canSetRef(object)) {
 		return false;
 	}
+	auto handleRoot = handle.rootObject();
+
+	if (object) {
+		// Don't allow referencing any objects inside prefabs from objects not in the same prefab
+		// References from a Prefab to its children are of course allowed.
+		auto objPrefabRoot = PrefabOperations::findContainingPrefab(object->getParent());
+		if (objPrefabRoot && objPrefabRoot != PrefabOperations::findContainingPrefab(handleRoot)) {
+			return false;
+		}
+	}
 
 	if (handle.isRefToProp(&user_types::PrefabInstance::template_)) {
-		auto inst = handle.rootObject()->as<user_types::PrefabInstance>();
+		auto inst = handleRoot->as<user_types::PrefabInstance>();
 		// We can only create loops if the PrefabInstance is nested inside a Prefab:
 		if (auto prefab = PrefabOperations::findContainingPrefab(inst)) {
 			// Now the actual loop check:
@@ -189,16 +200,24 @@ bool Queries::isValidReferenceTarget(Project const& project, const ValueHandle& 
 }
 
 std::vector<SEditorObject> Queries::findAllValidReferenceTargets(Project const& project, const ValueHandle& handle) {
+	auto handleRoot = handle.rootObject();
+	auto handlePrefabRoot = PrefabOperations::findContainingPrefab(handleRoot);
+
 	std::vector<SEditorObject> valid;
 	for (auto obj : project.instances()) {
 		if (handle.constValueRef()->canSetRef(obj)) {
-			valid.push_back(obj);
+			// Don't allow referencing any objects inside prefabs from objects not in the same prefab
+			// References from a Prefab to its children are of course allowed.
+			auto objPrefabRoot = PrefabOperations::findContainingPrefab(obj->getParent());
+			if (!objPrefabRoot || handlePrefabRoot == objPrefabRoot) {
+				valid.push_back(obj);
+			}
 		}
 	}
 
 	// Special case: settings the "template" property of a PrefabInstance
 	// -> filter out prefabs which would create a prefab instantiation loop
-	auto inst = handle.rootObject()->as<user_types::PrefabInstance>();
+	auto inst = handleRoot->as<user_types::PrefabInstance>();
 	if (inst && handle.getPropName() == "template" && handle.depth() == 1) {
 		// We can only create loops if the PrefabInstance is nested inside a Prefab:
 		if (auto prefab = PrefabOperations::findContainingPrefab(inst)) {
@@ -299,7 +318,7 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 		return false;
 	}
 
-	if (object->as<user_types::LuaScript>() || object->as<user_types::Animation>()) {
+	if (object->as<user_types::LuaScript>() || object->as<user_types::LuaInterface>() || object->as<user_types::Animation>()) {
 		return false;
 	}
 
@@ -312,7 +331,9 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 }
 
 bool Queries::canPasteObjectAsExternalReference(const SEditorObject& editorObject, bool wasTopLevelObjectInSourceProject) {
-	return (editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>()) || editorObject->as<user_types::Prefab>() || (editorObject->as<user_types::LuaScript>() && wasTopLevelObjectInSourceProject);
+	return (editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>()) || 
+		editorObject->as<user_types::Prefab>() || 
+		((editorObject->as<user_types::LuaScript>() || editorObject->as<user_types::LuaInterface>()) && wasTopLevelObjectInSourceProject);
 }
 
 bool Queries::isProjectSettings(const SEditorObject& obj) {
@@ -358,7 +379,7 @@ bool Queries::isReadOnly(SEditorObject editorObj) {
 	}
 
 	// Prefab instance subtree is read-only with one exception:
-	// Lua scripts which are direct children of the prefab instance serve as the interface for the
+	// Lua interfaces which are direct children of the prefab instance serve as the interface for the
 	// prefab instance: their lua input properties are modifyable. 
 	if (PrefabOperations::findContainingPrefabInstance(editorObj->getParent()) && !PrefabOperations::isInterfaceObject(editorObj)) {
 		return true;
@@ -374,7 +395,7 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 	}
 
 	// Prefab instance subtree is read-only with one exception:
-	// Lua scripts which are direct children of the prefab instance serve as the interface for the 
+	// Lua interfaces which are direct children of the prefab instance serve as the interface for the 
 	// prefab instance: their lua input properties are modifyable. see exception below.
 	// This exception doesn't apply to prefab instance which are nested inside other prefab instances
 	if (PrefabOperations::findContainingPrefabInstance(handle.rootObject()->getParent()) && !PrefabOperations::isInterfaceProperty(handle)) {
@@ -384,15 +405,14 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 	auto meshnode = handle.rootObject()->as<user_types::MeshNode>();
 	if (meshnode) {
 		for (size_t matIndex = 0; matIndex < meshnode->numMaterialSlots(); matIndex ++) {
-			if ((meshnode->getMaterialOptionsHandle(matIndex).contains(handle) || meshnode->getUniformContainerHandle(matIndex).contains(handle)) &
+			if ((meshnode->getMaterialOptionsHandle(matIndex).contains(handle) || meshnode->getUniformContainerHandle(matIndex).contains(handle)) &&
 				!meshnode->materialPrivate(matIndex)) {
 				return true;
 			}
 		}
 	}
 
-	// Detect luascript output variables:
-	if (handle.query<LinkStartAnnotation>()) {
+	if (handle.query<LinkStartAnnotation>() && !handle.query<LinkEndAnnotation>()) {
 		return true;
 	}
 	if (!linkState) {
@@ -421,7 +441,7 @@ bool Queries::isHiddenInPropertyBrowser(const Project& project, const ValueHandl
 	auto meshnode = handle.rootObject()->as<user_types::MeshNode>();
 	if (meshnode) {
 		for (size_t matIndex = 0; matIndex < meshnode->numMaterialSlots(); matIndex++) {
-			if ((meshnode->getMaterialOptionsHandle(matIndex).contains(handle) || meshnode->getUniformContainerHandle(matIndex).contains(handle)) &
+			if ((meshnode->getMaterialOptionsHandle(matIndex).contains(handle) || meshnode->getUniformContainerHandle(matIndex).contains(handle)) &&
 				!meshnode->materialPrivate(matIndex)) {
 				return true;
 			}
@@ -773,6 +793,12 @@ bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const Pr
 		return false;
 	}
 
+    // Don't allow links ending on an interface script inside a Prefab. These links would not be propagated to the 
+	// PrefabInstance anyway.
+	if (PrefabOperations::isPrefabInterfaceProperty(end)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -829,12 +855,21 @@ bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start
 	return linkSatisfiesConstraints(startDesc, endDesc) && !project.createsLoop(startDesc, endDesc);
 }
 
+bool Queries::userCanRemoveLink(const Project& project, const PropertyDescriptor& end) {
+	if (Queries::isReadOnly(end.object())) {
+		return false;
+	}
+	return true;
+}
+
 bool Queries::linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
 	return linkSatisfiesConstraints(start, end) && !project.createsLoop(start, end);
 }
 
 bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
-	return isValidLinkStart(start) && isValidLinkEnd(end) && checkLinkCompatibleTypes(start, end) && linkWouldBeAllowed(project, start, end);
+	ValueHandle startHandle(start);
+	ValueHandle endHandle(end);
+	return startHandle && endHandle && isValidLinkStart(startHandle) && isValidLinkEnd(endHandle) && checkLinkCompatibleTypes(startHandle, endHandle) && linkWouldBeAllowed(project, start, end);
 }
 
 std::vector<SEditorObject> Queries::filterForNotResource(const std::vector<SEditorObject>& objects) {
@@ -963,14 +998,19 @@ std::vector<SEditorObject> Queries::filterForMoveableScenegraphChildren(Project 
 				return false;
 			}
 
-			// Prefab instance loop prevention
 			if (auto newParentPrefab = PrefabOperations::findContainingPrefab(newParent)) {
+				// Prefab instance loop prevention
 				if (wouldObjectInPrefabCauseLoop(object, newParentPrefab)) {
+					return false;
+				}
+
+				// LuaInterfaces must be top-level if inside a Prefab.
+				if (object->isType<LuaInterface>() && newParent != newParentPrefab) {
 					return false;
 				}
 			}
 
-			return (object->as<Node>() || object->as<LuaScript>() || object->as<Animation>());
+			return (object->as<Node>() || object->as<LuaScript>() || object->as<LuaInterface>() || object->as<Animation>());
 		});
 
 	return result;

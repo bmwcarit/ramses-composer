@@ -14,9 +14,12 @@ set(TEST_SOURCES
     AnimationAdaptor_test.cpp
     AnimationChannelAdaptor_test.cpp
     CubeMapAdaptor_test.cpp
+    EngineInterface_test.cpp
     RamsesBaseFixture.h
     LinkAdaptor_test.cpp
+    LinkOptimization_test.cpp
     LuaScriptAdaptor_test.cpp
+    LuaInterfaceAdaptor_test.cpp
     LuaScriptModuleAdaptor_test.cpp
     MaterialAdaptor_test.cpp
     MeshAdaptor_test.cpp

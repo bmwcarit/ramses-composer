@@ -30,9 +30,9 @@ SceneBackend::SceneBackend(ramses_base::BaseEngineBackend *engine, const SDataCh
 	logicEngine_{&engine->logicEngine()},
 	dispatcher_{dispatcher} {}
 
-void SceneBackend::setScene(Project* project, core::Errors *errors) {
+void SceneBackend::setScene(Project* project, core::Errors *errors, bool optimizeForExport) {
 	scene_.reset();
-	scene_ = std::make_unique<SceneAdaptor>(client_, logicEngine_, toSceneId(*project->settings()->sceneId_), project, dispatcher_, errors);
+	scene_ = std::make_unique<SceneAdaptor>(client_, logicEngine_, toSceneId(*project->settings()->sceneId_), project, dispatcher_, errors, optimizeForExport);
 }
 
 ramses::sceneId_t SceneBackend::toSceneId(int i) {

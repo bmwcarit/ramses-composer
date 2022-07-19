@@ -39,12 +39,12 @@ function run(IN,OUT)
 end
 	)");
 	context.set({luaScript, {"uri"}}, (test_path() / "lua_script.lua").string());
-	auto link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.set({luaScript, {"luaInputs", "x"}}, 5.0);
+	context.set({luaScript, {"inputs", "x"}}, 5.0);
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
@@ -73,12 +73,12 @@ function run(IN,OUT)
 end
 	)");
 	context.set({luaScript, {"uri"}}, (test_path() / "lua_script.lua").string());
-	auto link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.set({luaScript, {"luaInputs", "x"}}, 5.0);
+	context.set({luaScript, {"inputs", "x"}}, 5.0);
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
@@ -121,11 +121,11 @@ end
 	)");
 	context.set({luaScript, {"uri"}}, (test_path() / "lua_script.lua").string());
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	context.set({luaScript, {"luaInputs", "x"}}, 5.0);
+	context.set({luaScript, {"inputs", "x"}}, 5.0);
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
@@ -140,7 +140,7 @@ end
 	}
 
 	context.removeLink(link->endProp());
-	context.set({luaScript, {"luaInputs", "x"}}, 10.0);
+	context.set({luaScript, {"inputs", "x"}}, 10.0);
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
@@ -154,7 +154,7 @@ end
 		ASSERT_EQ(0.0f, z);
 	}
 
-	link = context.addLink({luaScript, {"luaOutputs", "translation"}}, {node, {"translation"}});
+	link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
@@ -204,7 +204,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	auto link = context.addLink({luaScriptOut, {"luaOutputs", "a"}}, {luaScriptIn, {"luaInputs","a"}});
+	auto link = context.addLink({luaScriptOut, {"outputs", "a"}}, {luaScriptIn, {"inputs","a"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 }
@@ -226,14 +226,14 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "x"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "x"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.set({luaScriptOut, {"luaInputs", "x", "x"}}, 0.3);
-	context.set({luaScriptOut, {"luaInputs", "x", "y"}}, -0.3);
-	context.set({luaScriptOut, {"luaInputs", "x", "z"}}, 1.0);
-	context.set({luaScriptOut, {"luaInputs", "x", "w"}}, -1.0);
+	context.set({luaScriptOut, {"inputs", "x", "x"}}, 0.3);
+	context.set({luaScriptOut, {"inputs", "x", "y"}}, -0.3);
+	context.set({luaScriptOut, {"inputs", "x", "z"}}, 1.0);
+	context.set({luaScriptOut, {"inputs", "x", "w"}}, -1.0);
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -265,21 +265,21 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec4"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec4"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.set({luaScriptOut, {"luaInputs", "vec4", "x"}}, 0.3);
-	context.set({luaScriptOut, {"luaInputs", "vec4", "y"}}, -0.3);
-	context.set({luaScriptOut, {"luaInputs", "vec4", "z"}}, 1.0);
-	context.set({luaScriptOut, {"luaInputs", "vec4", "w"}}, -1.0);
-	context.set({luaScriptOut, {"luaInputs", "vec3", "x"}}, 90.0);
-	context.set({luaScriptOut, {"luaInputs", "vec3", "y"}}, 180.0);
-	context.set({luaScriptOut, {"luaInputs", "vec3", "z"}}, 270.0);
+	context.set({luaScriptOut, {"inputs", "vec4", "x"}}, 0.3);
+	context.set({luaScriptOut, {"inputs", "vec4", "y"}}, -0.3);
+	context.set({luaScriptOut, {"inputs", "vec4", "z"}}, 1.0);
+	context.set({luaScriptOut, {"inputs", "vec4", "w"}}, -1.0);
+	context.set({luaScriptOut, {"inputs", "vec3", "x"}}, 90.0);
+	context.set({luaScriptOut, {"inputs", "vec3", "y"}}, 180.0);
+	context.set({luaScriptOut, {"inputs", "vec3", "z"}}, 270.0);
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec3"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec3"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -311,21 +311,21 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec3"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec3"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.set({luaScriptOut, {"luaInputs", "vec4", "x"}}, 0.3);
-	context.set({luaScriptOut, {"luaInputs", "vec4", "y"}}, -0.3);
-	context.set({luaScriptOut, {"luaInputs", "vec4", "z"}}, 1.0);
-	context.set({luaScriptOut, {"luaInputs", "vec4", "w"}}, -1.0);
-	context.set({luaScriptOut, {"luaInputs", "vec3", "x"}}, 90.0);
-	context.set({luaScriptOut, {"luaInputs", "vec3", "y"}}, 180.0);
-	context.set({luaScriptOut, {"luaInputs", "vec3", "z"}}, 270.0);
+	context.set({luaScriptOut, {"inputs", "vec4", "x"}}, 0.3);
+	context.set({luaScriptOut, {"inputs", "vec4", "y"}}, -0.3);
+	context.set({luaScriptOut, {"inputs", "vec4", "z"}}, 1.0);
+	context.set({luaScriptOut, {"inputs", "vec4", "w"}}, -1.0);
+	context.set({luaScriptOut, {"inputs", "vec3", "x"}}, 90.0);
+	context.set({luaScriptOut, {"inputs", "vec3", "y"}}, 180.0);
+	context.set({luaScriptOut, {"inputs", "vec3", "z"}}, 270.0);
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec4"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec4"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -364,7 +364,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -403,7 +403,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -435,8 +435,8 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec"}}, {node, {"rotation"}});
-	context.addLink({luaScriptOut, {"luaOutputs", "transl"}}, {node, {"translation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "transl"}}, {node, {"translation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -496,7 +496,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
@@ -548,7 +548,7 @@ end
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 
-	context.addLink({luaScriptOut, {"luaOutputs", "vec"}}, {node, {"rotation"}});
+	context.addLink({luaScriptOut, {"outputs", "vec"}}, {node, {"rotation"}});
 	ASSERT_NO_FATAL_FAILURE(dispatch());
 	ASSERT_TRUE(backend.logicEngine().update());
 

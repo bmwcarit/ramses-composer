@@ -93,7 +93,7 @@ TEST_F(SpinBoxFixture, spinboxExternalOutputValueUpdateNoThrow) {
 	auto changes = timerHelper.recorder.release();
 	timerHelper.dispatcher->dispatch(changes);
 
-	raco::core::ValueHandle timerOutputHandle{timer, &raco::user_types::Timer::tickerOutput_};
+	raco::core::ValueHandle timerOutputHandle{timer, {"outputs", "ticker_us"}};
 	raco::property_browser::PropertyBrowserModel model;
 	PropertyBrowserItem propertyBrowserItem{timerOutputHandle, timerHelper.dispatcher, &timerHelper.commandInterface, &model};
 	raco::property_browser::Int64Editor editor(&propertyBrowserItem);

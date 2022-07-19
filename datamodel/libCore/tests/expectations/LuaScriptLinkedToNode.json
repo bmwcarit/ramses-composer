@@ -1,7 +1,6 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 35,
     "links": [
         {
             "properties": {
@@ -20,7 +19,7 @@
                     "properties": [
                         {
                             "typeName": "String",
-                            "value": "luaOutputs"
+                            "value": "outputs"
                         },
                         {
                             "typeName": "String",
@@ -37,7 +36,9 @@
     "objects": [
         {
             "properties": {
-                "luaOutputs": {
+                "objectID": "lua_script_id",
+                "objectName": "lua_script",
+                "outputs": {
                     "order": [
                         "rotation3",
                         "rotation4",
@@ -214,8 +215,13 @@
                         }
                     }
                 },
-                "objectID": "lua_script_id",
-                "objectName": "lua_script",
+                "stdModules": {
+                    "base": true,
+                    "debug": true,
+                    "math": true,
+                    "string": true,
+                    "table": true
+                },
                 "uri": "SerializationTest/serializeObjects_luaScriptLinkedToNode/lua_script.lua"
             },
             "typeName": "LuaScript"
@@ -262,7 +268,7 @@
                         "value": 0
                     }
                 },
-                "scale": {
+                "scaling": {
                     "x": {
                         "annotations": [
                             {
@@ -338,15 +344,10 @@
                         "value": 0
                     }
                 },
-                "visible": true
+                "visibility": true
             },
             "typeName": "Node"
         }
-    ],
-    "racoVersion": [
-        1,
-        0,
-        1
     ],
     "rootObjectIDs": [
         "lua_script_id",

@@ -28,7 +28,7 @@
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
@@ -43,16 +43,16 @@
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
-     <string>Edit</string>
+     <string>&amp;Edit</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
-     <string>View</string>
+     <string>&amp;View</string>
     </property>
     <widget class="QMenu" name="menuLayouts">
      <property name="title">
-      <string>Layouts</string>
+      <string>La&amp;youts</string>
      </property>
      <widget class="QMenu" name="menuSavedLayoutList">
       <property name="title">
@@ -82,14 +82,14 @@
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
-     <string>Debug</string>
+     <string>&amp;Debug</string>
     </property>
     <addaction name="actionDumpObjectTree"/>
     <addaction name="actionOpenLogFileDirectory"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
-     <string>Help</string>
+     <string>&amp;Help</string>
     </property>
     <addaction name="actionAbout"/>
    </widget>
@@ -102,37 +102,37 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionNew">
    <property name="text">
-    <string>New</string>
+    <string>&amp;New</string>
    </property>
   </action>
   <action name="actionOpen">
    <property name="text">
-    <string>Open...</string>
+    <string>&amp;Open...</string>
    </property>
   </action>
   <action name="actionSave">
    <property name="text">
-    <string>Save</string>
+    <string>&amp;Save</string>
    </property>
   </action>
   <action name="actionSaveAs">
    <property name="text">
-    <string>Save As...</string>
+    <string>Save &amp;As...</string>
    </property>
   </action>
   <action name="actionExport">
    <property name="text">
-    <string>Export...</string>
+    <string>&amp;Export...</string>
    </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
-    <string>Preferences</string>
+    <string>&amp;Preferences</string>
    </property>
   </action>
   <action name="actionQuit">
    <property name="text">
-    <string>Quit</string>
+    <string>&amp;Quit</string>
    </property>
   </action>
   <action name="actionCopy">
@@ -147,47 +147,47 @@
   </action>
   <action name="actionNewPreview">
    <property name="text">
-    <string>New Preview</string>
+    <string>New &amp;Preview</string>
    </property>
   </action>
   <action name="actionNewPropertyBrowser">
    <property name="text">
-    <string>New Property Browser</string>
+    <string>New Property &amp;Browser</string>
    </property>
   </action>
   <action name="actionNewUndoView">
    <property name="text">
-    <string>New Undo View</string>
+    <string>New &amp;Undo View</string>
    </property>
   </action>
   <action name="actionNewSceneGraphTree">
    <property name="text">
-    <string>New Scene Graph</string>
+    <string>New Scene &amp;Graph</string>
    </property>
   </action>
   <action name="actionNewResourcesTree">
    <property name="text">
-    <string>New Resource View</string>
+    <string>New &amp;Resource View</string>
    </property>
   </action>
   <action name="actionNewPrefabTree">
    <property name="text">
-    <string>New Prefab View</string>
+    <string>New Pre&amp;fab View</string>
    </property>
   </action>
   <action name="actionNewProjectBrowser">
    <property name="text">
-    <string>New Project Browser</string>
+    <string>New Pro&amp;ject Browser</string>
    </property>
   </action>
   <action name="actionNewErrorView">
    <property name="text">
-    <string>New Error View</string>
+    <string>New &amp;Error View</string>
    </property>
   </action>
   <action name="actionProjectSettings">
    <property name="text">
-    <string>Project Settings</string>
+    <string>Project &amp;Settings</string>
    </property>
   </action>
   <action name="actionDumpObjectTree">
@@ -202,7 +202,7 @@
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>About...</string>
+    <string>&amp;About...</string>
    </property>
   </action>
   <action name="actionEnableRuntimeScriptPreview">
@@ -230,7 +230,7 @@
   </action>
   <action name="actionNewLogView">
    <property name="text">
-    <string>New Log View</string>
+    <string>New &amp;Log View</string>
    </property>
   </action>
  </widget>

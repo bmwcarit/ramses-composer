@@ -18,6 +18,7 @@
 #include "user_types/BaseObject.h"
 #include "user_types/BaseTexture.h"
 #include "user_types/CubeMap.h"
+#include "user_types/LuaInterface.h"
 #include "user_types/LuaScript.h"
 #include "user_types/LuaScriptModule.h"
 #include "user_types/Material.h"
@@ -92,6 +93,7 @@ UserObjectFactory::UserObjectFactory() {
 		PrefabInstance,
 		OrthographicCamera,
 		PerspectiveCamera,
+		LuaInterface,
 		LuaScript,
 		LuaScriptModule,
 		Texture,
@@ -117,7 +119,10 @@ UserObjectFactory::UserObjectFactory() {
 		ProjectSettings::DefaultResourceDirectories,
 		CameraViewport,
 		PerspectiveFrustum,
-		OrthographicFrustum>();
+		OrthographicFrustum,
+		LuaStandardModuleSelection,
+		TimerInput,
+		TimerOutput>();
 }
 
 UserObjectFactory& UserObjectFactory::getInstance() {

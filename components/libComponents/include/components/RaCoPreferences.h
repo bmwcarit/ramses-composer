@@ -35,6 +35,7 @@ public:
 	QString imageSubdirectory;
 	QString meshSubdirectory;
 	QString scriptSubdirectory;
+	QString interfaceSubdirectory;
 	QString shaderSubdirectory;
 };
 

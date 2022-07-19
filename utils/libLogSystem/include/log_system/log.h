@@ -34,6 +34,7 @@ constexpr const char* RAMSES_ADAPTOR {"RAMSES_ADAPTOR"};
 constexpr const char* DESERIALIZATION{"DESERIALIZATION"};
 constexpr const char* PROJECT{"PROJECT"};
 constexpr const char* MESH_LOADER{"MESH_LOADER"};
+constexpr const char* RAMSES{"RAMSES"};
 constexpr const char* RAMSES_LOGIC{"RAMSES_LOGIC"};
 constexpr const char* UTILS{"UTILS"};
 constexpr const char* DUMP{"DUMP"};

@@ -13,7 +13,9 @@
 #include "lodepng.h"
 #include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
+#include "user_types/CubeMap.h"
 #include "user_types/LuaScriptModule.h"
+#include "utils/FileUtils.h"
 #include "utils/MathUtils.h"
 
 #include <ramses-client-api/TextureEnums.h>
@@ -23,6 +25,110 @@
 #include <ramses-logic/LuaScript.h>
 #include <ramses-logic/Property.h>
 #include <sstream>
+
+namespace {
+
+LodePNGColorType ramsesTextureFormatToPngFormat(ramses::ETextureFormat textureFormat) {
+	std::map<ramses::ETextureFormat, LodePNGColorType> formats = {
+		{ramses::ETextureFormat::R8, LCT_GREY},
+
+		// no LCT_GREY_ALPHA for RG8 because it would not keep the RG channels as intended
+		{ramses::ETextureFormat::RG8, LCT_RGB},
+
+		{ramses::ETextureFormat::RGB8, LCT_RGB},
+		{ramses::ETextureFormat::RGBA8, LCT_RGBA},
+		{ramses::ETextureFormat::RGB16F, LCT_RGB},
+		{ramses::ETextureFormat::RGBA16F, LCT_RGBA},
+		{ramses::ETextureFormat::SRGB8, LCT_RGB},
+		{ramses::ETextureFormat::SRGB8_ALPHA8, LCT_RGBA}};
+
+	auto foundFormat = formats.find(textureFormat);
+
+	return (foundFormat == formats.end()) ? LCT_RGBA : foundFormat->second;
+}
+
+std::string pngColorTypeToColorInfo(int colorType) {
+	switch (colorType) {
+		case LCT_GREY:
+			return "R";
+		case LCT_GREY_ALPHA:
+			return "RG";
+		case LCT_PALETTE:
+		case LCT_RGB:
+			return "RGB";
+		case LCT_RGBA:
+			return "RGBA";
+		default:
+			return "Unknown";
+	}
+}
+
+std::string ramsesTextureFormatToRamsesColorInfo(int colorType, ramses::ETextureFormat textureFormat) {
+	static std::unordered_map<int, std::map<ramses::ETextureFormat, std::string>> colorInfos = {
+		{LCT_GREY,
+			{{ramses::ETextureFormat::R8, "R"},
+				{ramses::ETextureFormat::RG8, "RR"},
+				{ramses::ETextureFormat::RGB8, "RRR"},
+				{ramses::ETextureFormat::RGBA8, "RRR1"},
+				{ramses::ETextureFormat::SRGB8, "RRR"},
+				{ramses::ETextureFormat::SRGB8_ALPHA8, "RRR1"},
+				{ramses::ETextureFormat::RGB16F, "RRR"},
+				{ramses::ETextureFormat::RGBA16F, "RRR1"}}},
+		{LCT_GREY_ALPHA,
+			{{ramses::ETextureFormat::R8, "R"},
+				{ramses::ETextureFormat::RG8, "RG"},
+				{ramses::ETextureFormat::RGB8, "RRR"},
+				{ramses::ETextureFormat::RGBA8, "RRRG"},
+				{ramses::ETextureFormat::SRGB8, "RRR"},
+				{ramses::ETextureFormat::SRGB8_ALPHA8, "RRRG"},
+				{ramses::ETextureFormat::RGB16F, "RRR"},
+				{ramses::ETextureFormat::RGBA16F, "RRRG"}}},
+		{LCT_PALETTE,
+			{{ramses::ETextureFormat::R8, "R"},
+				{ramses::ETextureFormat::RG8, "RG"},
+				{ramses::ETextureFormat::RGB8, "RGB"},
+				{ramses::ETextureFormat::RGBA8, "RGB1"},
+				{ramses::ETextureFormat::SRGB8, "RGB"},
+				{ramses::ETextureFormat::SRGB8_ALPHA8, "RGB1"},
+				{ramses::ETextureFormat::RGB16F, "RGB"},
+				{ramses::ETextureFormat::RGBA16F, "RGB1"}}},
+		{LCT_RGB,
+			{{ramses::ETextureFormat::R8, "R"},
+				{ramses::ETextureFormat::RG8, "RG"},
+				{ramses::ETextureFormat::RGB8, "RGB"},
+				{ramses::ETextureFormat::RGBA8, "RGB1"},
+				{ramses::ETextureFormat::SRGB8, "RGB"},
+				{ramses::ETextureFormat::SRGB8_ALPHA8, "RGB1"},
+				{ramses::ETextureFormat::RGB16F, "RGB"},
+				{ramses::ETextureFormat::RGBA16F, "RGB1"}}},
+		{LCT_RGBA,
+			{{ramses::ETextureFormat::R8, "R"},
+				{ramses::ETextureFormat::RG8, "RG"},
+				{ramses::ETextureFormat::RGB8, "RGB"},
+				{ramses::ETextureFormat::RGBA8, "RGBA"},
+				{ramses::ETextureFormat::SRGB8, "RGB"},
+				{ramses::ETextureFormat::SRGB8_ALPHA8, "RGBA"},
+				{ramses::ETextureFormat::RGB16F, "RGB"},
+				{ramses::ETextureFormat::RGBA16F, "RGBA"}}}};
+
+	return colorInfos[colorType][textureFormat];
+}
+
+std::string ramsesColorInfoToShaderColorInfo(const std::string &ramsesColorInfo) {
+	if (ramsesColorInfo.size() == 3) {
+		return ramsesColorInfo + "1";
+	}
+	if (ramsesColorInfo.size() == 2) {
+		return ramsesColorInfo + "01";
+	}
+	if (ramsesColorInfo.size() == 1) {
+		return ramsesColorInfo + "001";
+	}
+
+	return ramsesColorInfo;
+}
+
+}  // namespace
 
 namespace raco::ramses_base {
 
@@ -36,6 +142,7 @@ std::map<std::string, ramses::EEffectUniformSemantic> defaultUniformSemantics = 
 	{"u_NMatrix", ramses::EEffectUniformSemantic::NormalMatrix},
 	{"u_CameraWorldPosition", ramses::EEffectUniformSemantic::CameraWorldPosition},
 	{"u_resolution", ramses::EEffectUniformSemantic::DisplayBufferResolution},
+	{"u_Resolution", ramses::EEffectUniformSemantic::DisplayBufferResolution},
 
 	// Camel case attribute names
 	{"uWorldMatrix", ramses::EEffectUniformSemantic::ModelMatrix},
@@ -75,8 +182,12 @@ std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::st
 	if (!shaderDefines.empty()) {
 		std::istringstream definesFile(shaderDefines.c_str());
 		std::string define;
+		// Parse shader text line by line - this currently does not work with multi-line (/* ... */) comments
 		while (std::getline(definesFile, define)) {
 			if (!define.empty() && define.rfind("//", 0) != 0) {
+				/// in Linux, if the file contains carriage returns, they are still contained in the line string
+				const auto itr = std::remove_if(define.begin(), define.end(), [](char c) { return std::isspace(c); });
+            	define.erase(itr, define.end());
 				description->addCompilerDefine(define.c_str());
 			}
 		}
@@ -131,10 +242,28 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 	return success;
 }
 
-
 rlogic::LuaConfig defaultLuaConfig() {
 	rlogic::LuaConfig config;
 	config.addStandardModuleDependency(rlogic::EStandardModule::All);
+	return config;
+}
+
+rlogic::LuaConfig createLuaConfig(const std::vector<std::string> &stdModules) {
+	rlogic::LuaConfig config;
+
+	std::map<std::string, rlogic::EStandardModule> stdModuleMap = {
+		{"base", rlogic::EStandardModule::Base},
+		{"string", rlogic::EStandardModule::String},
+		{"table", rlogic::EStandardModule::Table},
+		{"math", rlogic::EStandardModule::Math},
+		{"debug", rlogic::EStandardModule::Debug}};
+
+	for (const auto &moduleName : stdModules) {
+		auto it = stdModuleMap.find(moduleName);
+		if (it != stdModuleMap.end()) {
+			config.addStandardModuleDependency(it->second);
+		}
+	}
 	return config;
 }
 
@@ -242,6 +371,17 @@ spdlog::level::level_enum toSpdLogLevel(rlogic::ELogMessageType level) {
 	}
 }
 
+void installRamsesLogHandler(bool enableTrace) {
+	ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Off);
+	ramses::RamsesFramework::SetLogHandler([enableTrace](ramses::ELogLevel level, const std::string &context, const std::string &message) {
+		if (!enableTrace && level == ramses::ELogLevel::Trace) {
+			return;
+		}
+
+		SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES), toSpdLogLevel(level), message);
+	});
+}
+
 void installLogicLogHandler() {
 	rlogic::Logger::SetDefaultLogging(false);
 	rlogic::Logger::SetLogHandler([](rlogic::ELogMessageType level, std::string_view message) { SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES_LOGIC), toSpdLogLevel(level), message); });
@@ -255,8 +395,25 @@ void setLogicLogLevel(spdlog::level::level_enum level) {
 	rlogic::Logger::SetLogVerbosityLimit(toLogicLogLevel(level));
 }
 
+std::string pngColorTypeToString(int colorType) {
+	switch (colorType) {
+		case (LCT_GREY):
+			return "GREY";
+		case (LCT_GREY_ALPHA):
+			return "GREY_ALPHA";
+		case (LCT_PALETTE):
+			return "PALETTE";
+		case (LCT_RGB):
+			return "RGB";
+		case (LCT_RGBA):
+			return "RGBA";
+		default:
+			return "UNKNOWN";
+	}
+};
+
 PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat selectedTextureFormat, int colorType, int bitdepth) {
-	if (bitdepth != 8 && bitdepth != 16) {
+	if (colorType != LCT_PALETTE && bitdepth != 8 && bitdepth != 16) {
 		return {"Invalid bit depth (only 8 or 16 bits allowed).", raco::core::ErrorLevel::ERROR, false};
 	} else if (bitdepth == 8 && (selectedTextureFormat == ramses::ETextureFormat::RGB16F || selectedTextureFormat == ramses::ETextureFormat::RGBA16F)) {
 		return {"Invalid texture format for bit depth (only 8-bit-based formats allowed).", raco::core::ErrorLevel::ERROR, false};
@@ -264,7 +421,7 @@ PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat 
 		return {"Invalid texture format for bit depth (only 16-bit-based formats allowed).", raco::core::ErrorLevel::ERROR, false};
 	}
 
-	static std::map<std::pair<int, int>, std::set<ramses::ETextureFormat>> compatibleTextureFormats = {
+	static std::map<std::pair<LodePNGColorType, int>, std::set<ramses::ETextureFormat>> validTextureFormats = {
 		{{LCT_GREY, 8}, {ramses::ETextureFormat::R8}},
 		{{LCT_GREY_ALPHA, 8}, {ramses::ETextureFormat::RG8}},
 		{{LCT_RGB, 8}, {ramses::ETextureFormat::RGB8, ramses::ETextureFormat::SRGB8}},
@@ -275,54 +432,30 @@ PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat 
 		{{LCT_PALETTE, 8}, {}},
 	};
 
-	std::pair<int, int> pngFormat = {colorType, bitdepth};
-	if (compatibleTextureFormats.find(pngFormat) == compatibleTextureFormats.end()) {
+	std::pair<LodePNGColorType, int> pngFormat = {static_cast <LodePNGColorType>(colorType), bitdepth};
+	auto validTextureFormatIt = validTextureFormats.find(pngFormat);
+	if (validTextureFormatIt == validTextureFormats.end()) {
 		return {"Invalid PNG color type.", raco::core::ErrorLevel::ERROR, false};
 	}
-
-	auto compatiblePngFormat = compatibleTextureFormats[pngFormat].find(selectedTextureFormat);
-	if (compatiblePngFormat == compatibleTextureFormats[pngFormat].end()) {
-		auto colorTypeToString = [](auto colorType) {
-			switch (colorType) {
-				case (LCT_GREY):
-					return "GREY";
-				case (LCT_GREY_ALPHA):
-					return "GREY_ALPHA";
-				case (LCT_PALETTE):
-					return "PALETTE";
-				case (LCT_RGB):
-					return "RGB";
-				case (LCT_RGBA):
-					return "RGBA";
-				default:
-					return "UNKNOWN";
-			}
-		};
-
-		return {fmt::format("Selected format {} is not equal to PNG color type {} - image will be converted.", ramsesTextureFormatToString(selectedTextureFormat), colorTypeToString(colorType)), raco::core::ErrorLevel::WARNING, true};
+	if (validTextureFormatIt->second.find(selectedTextureFormat) != validTextureFormatIt->second.end()) {
+		return {"", raco::core::ErrorLevel::NONE, false};
 	}
 
-	return {"", raco::core::ErrorLevel::NONE, false};
-}
-
-int ramsesTextureFormatToPngFormat(ramses::ETextureFormat textureFormat) {
-	std::map<ramses::ETextureFormat, int> formats = {
-		{ramses::ETextureFormat::R8, LCT_GREY},
-
-		// no LCT_GREY_ALPHA for RG8 because it would not keep the RG channels as intended
-		{ramses::ETextureFormat::RG8, LCT_RGB},
-
-		{ramses::ETextureFormat::RGB8, LCT_RGB},
-		{ramses::ETextureFormat::RGBA8, LCT_RGBA},
-		{ramses::ETextureFormat::RGB16F, LCT_RGB},
-		{ramses::ETextureFormat::RGBA16F, LCT_RGBA},
-		{ramses::ETextureFormat::SRGB8, LCT_RGB},
-		{ramses::ETextureFormat::SRGB8_ALPHA8, LCT_RGBA}
+	static std::map<std::pair<LodePNGColorType, int>, std::set<ramses::ETextureFormat>> downConvertableTextureFormats = {
+		{{LCT_GREY, 8}, {}},
+		{{LCT_GREY_ALPHA, 8}, {ramses::ETextureFormat::R8}},
+		{{LCT_RGB, 8}, {ramses::ETextureFormat::R8, ramses::ETextureFormat::RG8}},
+		{{LCT_RGBA, 8}, {ramses::ETextureFormat::R8, ramses::ETextureFormat::RG8, ramses::ETextureFormat::RGB8, ramses::ETextureFormat::SRGB8}},
+		{{LCT_RGB, 16}, {}},
+		{{LCT_RGBA, 16}, {ramses::ETextureFormat::RGB16F}},
+		{{LCT_PALETTE, 8}, {ramses::ETextureFormat::R8, ramses::ETextureFormat::RG8, ramses::ETextureFormat::RGB8, ramses::ETextureFormat::RGBA8, ramses::ETextureFormat::SRGB8, ramses::ETextureFormat::SRGB8_ALPHA8}},
 	};
 
-	auto foundFormat = formats.find(textureFormat);
-
-	return (foundFormat == formats.end()) ? LCT_RGBA : foundFormat->second;
+	auto downConvertableTextureFormat = downConvertableTextureFormats[pngFormat].find(selectedTextureFormat);
+	if (downConvertableTextureFormat != downConvertableTextureFormats[pngFormat].end()) {
+		return {fmt::format("Selected format {} is not equal to PNG color type {} - image will be converted.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::INFORMATION, true};
+	}
+	return {fmt::format("[Deprecated Warning - this will be an error in a future version] Selected format {} is not equal to PNG color type {} - empty channels will be created.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::WARNING, true};
 }
 
 std::string ramsesTextureFormatToString(ramses::ETextureFormat textureFormat) {
@@ -348,7 +481,7 @@ int ramsesTextureFormatToChannelAmount(ramses::ETextureFormat textureFormat) {
 	}
 }
 
-void normalize16BitColorData(std::vector<unsigned char>& data) {
+void normalize16BitColorData(std::vector<unsigned char> &data) {
 	// convert 16-bit byte data to 16-bit float data
 	// see ramses/integration/TestContent/src/Texture2DFormatScene.cpp in Ramses repo for example data
 	assert(data.size() % 2 == 0);
@@ -360,7 +493,7 @@ void normalize16BitColorData(std::vector<unsigned char>& data) {
 	}
 }
 
-std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector<unsigned char>& data) {
+std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector<unsigned char> &data) {
 	auto rgSize = data.size() - (data.size() / 3);
 	std::vector<unsigned char> dataWithoutBlue(rgSize);
 	auto j = 0;
@@ -371,6 +504,96 @@ std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector
 	}
 
 	return dataWithoutBlue;
+}
+
+std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project &project, core::SEditorObject obj, const std::string &uriPropName, int level, PngDecodingInfo &decodingInfo) {
+	std::string uri = obj->get(uriPropName)->asString();
+	if (uri.empty()) {
+		return {};
+	}
+
+	auto selectedTextureFormat = static_cast<ramses::ETextureFormat>(obj->get("textureFormat")->asInt());
+	decodingInfo.convertedPngFormat = selectedTextureFormat;
+
+	std::vector<unsigned char> data;
+	unsigned int curWidth;
+	unsigned int curHeight;
+
+	std::string pngPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(project, {obj, {uriPropName}});
+	auto rawBinaryData = raco::utils::file::readBinary(pngPath);
+	lodepng::State pngImportState;
+	pngImportState.decoder.color_convert = false;
+	lodepng_inspect(&curWidth, &curHeight, &pngImportState, rawBinaryData.data(), rawBinaryData.size());
+
+	auto &lodePngColorInfo = pngImportState.info_png.color;
+	auto pngColorType = lodePngColorInfo.colortype;
+	decodingInfo.originalPngFormat = pngColorType;
+	decodingInfo.originalBitdepth = lodePngColorInfo.bitdepth;
+	decodingInfo.pngColorChannels = pngColorTypeToColorInfo(decodingInfo.originalPngFormat);
+	decodingInfo.ramsesColorChannels = ramsesTextureFormatToRamsesColorInfo(decodingInfo.originalPngFormat, decodingInfo.convertedPngFormat);
+	decodingInfo.shaderColorChannels = ramsesColorInfoToShaderColorInfo(decodingInfo.ramsesColorChannels);
+	auto textureFormatCompatInfo = raco::ramses_base::validateTextureColorTypeAndBitDepth(selectedTextureFormat, pngColorType, (pngColorType == LCT_PALETTE) ? 8 : lodePngColorInfo.bitdepth);
+
+	auto ret = textureFormatCompatInfo.conversionNeeded
+				   ? lodepng::decode(data, curWidth, curHeight, rawBinaryData, ramsesTextureFormatToPngFormat(selectedTextureFormat), (pngColorType == LCT_PALETTE) ? 8 : lodePngColorInfo.bitdepth)
+				   : lodepng::decode(data, curWidth, curHeight, pngImportState, rawBinaryData);
+
+	if (ret != 0) {
+		LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'", obj->getTypeDescription().typeName, obj->objectName(), uri);
+		errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, "Image file could not be loaded.");
+		return {};
+	} else {
+		if (&obj->getTypeDescription() == &raco::user_types::CubeMap::typeDescription && curWidth != curHeight) {
+			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "CubeMap '{}': non-square image '{}' for '{}'", obj->objectName(), uri, uriPropName);
+			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}},
+				fmt::format("Non-square image size {}x{}", curWidth, curHeight));
+			return {};
+		}
+
+
+		auto curBitDepth = pngImportState.info_png.color.bitdepth;
+
+		if (level == 1 && decodingInfo.width == -1) {
+			decodingInfo.width = curWidth;
+			decodingInfo.height = curHeight;
+			decodingInfo.bitdepth = curBitDepth;
+		}
+
+		int expectedWidth = decodingInfo.width * std::pow(0.5, level - 1);
+		int expectedHeight = decodingInfo.height * std::pow(0.5, level - 1);
+
+		if (curWidth != expectedWidth || expectedHeight != expectedHeight) {
+			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': incompatible image sizes", obj->objectName());
+			auto errorMsg = (decodingInfo.width == -1)
+								? "Level 1 mipmap not defined"
+								: fmt::format("Incompatible image size {}x{}, expected is {}x{}", curWidth, curHeight, expectedWidth, expectedHeight);
+			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, errorMsg);
+			return {};
+		}
+
+		if (curBitDepth != decodingInfo.bitdepth) {
+			auto errorMsg = fmt::format("Incompatible image bit depth {}, expected is {}", curBitDepth, decodingInfo.bitdepth);
+			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, errorMsg);
+			return {};
+		}
+
+		if (textureFormatCompatInfo.errorLvl != raco::core::ErrorLevel::NONE) {
+			errors->addError(core::ErrorCategory::PARSE_ERROR, textureFormatCompatInfo.errorLvl, {obj->shared_from_this(), {uriPropName}}, textureFormatCompatInfo.errorMsg);
+			if (textureFormatCompatInfo.errorLvl == raco::core::ErrorLevel::ERROR) {
+				return {};
+			}
+		} else {
+			errors->removeError({obj->shared_from_this(), {uriPropName}});
+		}
+
+		if (decodingInfo.bitdepth == 16) {
+			raco::ramses_base::normalize16BitColorData(data);
+		} else if (pngColorType != LCT_GREY_ALPHA && selectedTextureFormat == ramses::ETextureFormat::RG8) {
+			data = raco::ramses_base::generateColorDataWithoutBlueChannel(data);
+		}
+	}
+
+	return data;
 }
 
 }  // namespace raco::ramses_base

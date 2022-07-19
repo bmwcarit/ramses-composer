@@ -74,10 +74,7 @@ void ObjectTreeViewExternalProjectModel::addProject(const QString& projectPath) 
 }
 
 void ObjectTreeViewExternalProjectModel::removeProjectsAtIndices(const QModelIndexList& indices) {
-	std::set<std::string> projectsToRemove;
-	for (const auto& index : indices) {
-		projectsToRemove.emplace(indexToTreeNode(index)->getExternalProjectPath());
-	}
+	std::set<std::string> projectsToRemove = externalProjectPathsAtIndices(indices);
 
 	for (const auto& projectPath : projectsToRemove) {
 		externalProjectStore_->removeExternalProject(projectPath);

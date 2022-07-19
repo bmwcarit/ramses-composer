@@ -333,7 +333,7 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 				link->isValid_ = false;
 				changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
 				// recordValueChanged is needed to force the undo stack to save the current value of the endpoint property.
-				changeMultiplexer_.recordValueChanged(link->endProp());
+				changeMultiplexer_.recordValueChanged(ValueHandle(link->endProp()));
 			}
 			updateLinkErrors.insert(*link->endObject_);
 		}
@@ -694,13 +694,14 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		// Drop links if the start/end object doesn't exist, it violates prefab constraints or creates a loop.
 		// Keep links if the property doesn't exist or the types don't match: these links are only (temporarily) invalid.
 		if (*link->startObject_ && *link->endObject_ &&
-			discardedObjects.find((*link->endObject_)->objectID()) == discardedObjects.end() &&
-			Queries::linkWouldBeAllowed(*project_, link->startProp(), link->endProp())) {
-			link->isValid_ = Queries::linkWouldBeValid(*project_, link->startProp(), link->endProp());
-			project_->addLink(link);
-			changeMultiplexer_.recordAddLink(link->descriptor());
-		} else {
-			LOG_WARNING(log_system::CONTEXT, "Discard invalid link {}", link);
+			discardedObjects.find((*link->endObject_)->objectID()) == discardedObjects.end()) {
+			if (Queries::linkWouldBeAllowed(*project_, link->startProp(), link->endProp())) {
+				link->isValid_ = Queries::linkWouldBeValid(*project_, link->startProp(), link->endProp());
+				project_->addLink(link);
+				changeMultiplexer_.recordAddLink(link->descriptor());
+			} else {
+				LOG_WARNING(log_system::CONTEXT, "Discard invalid link {}", link);
+			}
 		}
 	}
 
@@ -730,7 +731,7 @@ void BaseContext::updateLinkValidity(SLink link) {
 		link->isValid_ = false;
 		changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
 		// recordValueChanged is needed to force the undo stack to save the current value of the endpoint property.
-		changeMultiplexer_.recordValueChanged(link->endProp());
+		changeMultiplexer_.recordValueChanged(ValueHandle(link->endProp()));
 	}
 
 	updateBrokenLinkErrors(*link->endObject_);
@@ -799,7 +800,7 @@ SEditorObject BaseContext::createObject(std::string type, std::string name, std:
 	return object;
 }
 
-void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
+void BaseContext::removeReferencesTo_If(SEditorObjectSet const& objects, std::function<bool(const ValueHandle& handle, SEditorObject object)> pred) {
 	SEditorObjectSet srcObjects;
 	for (auto obj : objects) {
 		for (auto srcWeakObj : obj->referencesToThis_) {
@@ -816,7 +817,7 @@ void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
 				bool step = true;
 				if (it->type() == PrimitiveType::Ref) {
 					auto refValue = it->asTypedRef<EditorObject>();
-					if (refValue && (objects.find(refValue) != objects.end())) {
+					if (refValue && (objects.find(refValue) != objects.end()) && pred(*it, refValue)) {
 						auto parent = it->parent();
 						if (parent && parent.depth() > 0 && parent.query<ArraySemanticAnnotation>()) {
 							it = erase(it);
@@ -832,6 +833,12 @@ void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
 			}
 		}
 	}
+}
+
+void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
+	removeReferencesTo_If(objects, [](const ValueHandle& handle, SEditorObject object) {
+		return true;
+	});
 }
 
 bool BaseContext::deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap) {
@@ -898,38 +905,31 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 			int oldChildIndex = oldParent->findChildIndex(object.get());
 
 			if (oldParent == newParent) {
-
-				// Moving the object to before itself or to before its successor is a NOP: 
 				if (oldChildIndex == insertBeforeIndex || oldChildIndex + 1 == insertBeforeIndex) {
+					// Moving the object to before itself or to before its successor is a NOP: 
 					++insertBeforeIndex;
 					continue;
-				}
-				// Special case: move inside the same object:
-				// if moving towards the end we need to adjust the insertion index since removing the
-				// object in its current position will shift the insertion index by one.
-				else if (insertBeforeIndex > oldChildIndex) {
+				} else if (insertBeforeIndex > oldChildIndex) {
+					// Special case: move inside the same object:
+					// if moving towards the end we need to adjust the insertion index since removing the
+					// object in its current position will shift the insertion index by one.
 					--insertBeforeIndex;
 				}
 			}
 
-			ValueHandle oldParentChildren{oldParent, &EditorObject::children_};
-			removeProperty(oldParentChildren, oldChildIndex);
+			removeProperty({oldParent, &EditorObject::children_}, oldChildIndex);
 		}
 
 		if (newParent) {
-			ValueBase* newChildEntry = newParent->children_->addProperty(PrimitiveType::Ref, insertBeforeIndex);
-			*newChildEntry = object;
-
-			int newChildIndex = newParent->findChildIndex(object.get());
-
-			ValueHandle newParentChildren{newParent, &EditorObject::children_};
-			object->onAfterAddReferenceToThis(newParentChildren[newChildIndex]);
-
-			callReferencedObjectChangedHandlers(object);
-
-			changeMultiplexer_.recordValueChanged(newParentChildren);
+			addProperty({newParent, &EditorObject::children_}, std::string(), std::make_unique<Value<SEditorObject>>(object), insertBeforeIndex);
 		}
 
+		if (insertBeforeIndex != -1) {
+			++insertBeforeIndex;
+		}
+	}
+
+	for (const auto& object : objects) {
 		// Remove links attached to the moved object subtree that are not allowed with the new parent by the prefab-related constraints.
 		std::vector<SLink> linksToRemove;
 		for (auto child : TreeIteratorAdaptor(object)) {
@@ -940,11 +940,12 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 				}
 			}
 		}
-
-		if (insertBeforeIndex != -1) {
-			++insertBeforeIndex;
-		}
 	}
+
+	SEditorObjectSet objectSet(objects.begin(), objects.end());
+	removeReferencesTo_If(objectSet, [this](const ValueHandle& handle, SEditorObject object) -> bool {
+		return !Queries::isValidReferenceTarget(*project_, handle, object);
+	});
 }
 
 void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
@@ -1079,7 +1080,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			set(valueHandle.get(propertyName).get("z"), vec3f[2]);
 		};
 
-		transformNode(newNodeHandle, "scale", meshScenegraphNode.transformations.scale);
+		transformNode(newNodeHandle, "scaling", meshScenegraphNode.transformations.scale);
 		transformNode(newNodeHandle, "rotation", meshScenegraphNode.transformations.rotation);
 		transformNode(newNodeHandle, "translation", meshScenegraphNode.transformations.translation);
 		LOG_DEBUG(log_system::CONTEXT, "All scenegraph node transformations applied.");
@@ -1167,7 +1168,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			} else if (animTargetProp == "rotation") {
 				linkEndProp = {linkEndNode, {"rotation"}};
 			} else if (animTargetProp == "scale") {
-				linkEndProp = {linkEndNode, {"scale"}};
+				linkEndProp = {linkEndNode, {"scaling"}};
 			} else if (animTargetProp == "weights") {
 				LOG_WARNING(log_system::CONTEXT, "Animation sampler of animation '{}' at index {} has animation target 'weights' which is unsupported - skipping link...", meshAnim.name, channelIndex);
 				continue;

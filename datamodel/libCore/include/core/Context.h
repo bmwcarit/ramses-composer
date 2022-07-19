@@ -33,11 +33,15 @@ class EngineInterface;
 
 class FileChangeCallback;
 
-// Contexts
-// - use context for every operation modifying the data model
-// - keeps track of dirty/modified objects (both for gui/engine and internally)
-// - ensures consistency of data model by invoking handlers etc
-
+/**
+ * @brief The BaseContext is used internally to perform data model changes while ensuring low-level consistency.
+ * 
+ * In detail
+ * - takes care of low-level side effects: these are the ones implemented by the EditorObject handler methods.
+ * - changes are recorded for undo stack operations and UI/engine updates
+ * - does not perform prefab update or undo stack push
+ * - does not trigger UI/engine updates directly
+*/
 class BaseContext {
 public:
 	BaseContext(Project* project, EngineInterface* engineInterface, UserObjectFactoryInterface* objectFactory, DataChangeRecorder* changeRecorder, Errors* errors);
@@ -183,6 +187,8 @@ private:
 	static bool deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap = true);
 
 	void callReferencedObjectChangedHandlers(SEditorObject const& changedObject);
+
+	void removeReferencesTo_If(SEditorObjectSet const& objects, std::function<bool(const ValueHandle& handle, SEditorObject object)> pred);
 	void removeReferencesTo(SEditorObjectSet const& objects);
 
 	template <void (EditorObject::*Handler)(ValueHandle const&) const>

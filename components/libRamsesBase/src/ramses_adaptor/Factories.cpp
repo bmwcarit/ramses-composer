@@ -13,6 +13,7 @@
 #include "ramses_adaptor/AnimationChannelAdaptor.h"
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
+#include "ramses_adaptor/LuaInterfaceAdaptor.h"
 #include "ramses_adaptor/LuaScriptModuleAdaptor.h"
 #include "ramses_adaptor/MaterialAdaptor.h"
 #include "ramses_adaptor/MeshAdaptor.h"
@@ -66,8 +67,9 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		{user_types::Timer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TimerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Timer>(obj)); }},
 
 		// LOGIC ENGINE
-		{user_types::LuaScript::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScript>(obj)); }}
-
+		{user_types::LuaScript::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScript>(obj)); }},
+		
+		{user_types::LuaInterface::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaInterfaceAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaInterface>(obj)); }}
 	};
 
 	if (factoryByTypename.find(obj->getTypeDescription().typeName) != factoryByTypename.end()) {

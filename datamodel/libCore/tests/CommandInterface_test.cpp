@@ -11,6 +11,10 @@
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
 
+#include "user_types/Node.h"
+#include "user_types/LuaScript.h"
+#include "user_types/Timer.h"
+
 #include "gtest/gtest.h"
 
 using namespace raco::core;
@@ -254,23 +258,29 @@ TEST_F(CommandInterfaceTest, set_ref_fail_prefab_loop_nested) {
 TEST_F(CommandInterfaceTest, set_fail_read_only_prop_lua_output) {
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
-	EXPECT_THROW(commandInterface.set({lua, {"luaOutputs", "ofloat"}}, 2.0), std::runtime_error);
+	EXPECT_THROW(commandInterface.set({lua, {"outputs", "ofloat"}}, 2.0), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, set_fail_read_only_prop_timer_output) {
+	auto timer = create<Timer>("timer");
+	
+	EXPECT_THROW(commandInterface.set({timer, {"outputs", "ticker_us"}}, int64_t{0}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, set_fail_linked) {
 	auto node = create<Node>("node");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
-	commandInterface.addLink({lua, {"luaOutputs", "obool"}}, {node, &Node::visible_});
+	commandInterface.addLink({lua, {"outputs", "obool"}}, {node, &Node::visibility_});
 	EXPECT_EQ(project.links().size(), 1);
-	EXPECT_THROW(commandInterface.set({node, &Node::visible_}, false), std::runtime_error);
+	EXPECT_THROW(commandInterface.set({node, &Node::visibility_}, false), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, set_fail_parent_linked) {
 	auto node = create<Node>("node");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
-	commandInterface.addLink({lua, {"luaOutputs", "ovector3f"}}, {node, &Node::translation_});
+	commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, &Node::translation_});
 	EXPECT_EQ(project.links().size(), 1);
 	EXPECT_THROW(commandInterface.set({node, {"translation", "x"}}, 2.0), std::runtime_error);
 }
@@ -282,7 +292,7 @@ TEST_F(CommandInterfaceTest, set_fail_prefab_instance_child) {
 	auto inst = create_prefabInstance("inst", prefab);
 	auto inst_node = inst->children_->get(0)->asRef();
 
-	EXPECT_THROW(commandInterface.set({inst_node, &Node::visible_}, false), std::runtime_error);
+	EXPECT_THROW(commandInterface.set({inst_node, &Node::visibility_}, false), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, set_int_fail_invalid_enum) {
@@ -413,7 +423,7 @@ TEST_F(CommandInterfaceTest, addLink_fail_no_start) {
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
 	commandInterface.deleteObjects({lua});
-	EXPECT_THROW(commandInterface.addLink({lua, {"luaOutputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_no_end) {
@@ -421,12 +431,12 @@ TEST_F(CommandInterfaceTest, addLink_fail_no_end) {
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
 	commandInterface.deleteObjects({node});
-	EXPECT_THROW(commandInterface.addLink({lua, {"luaOutputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_loop) {
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
-	EXPECT_THROW(commandInterface.addLink({lua, {"luaOutputs", "ofloat"}}, {lua, {"luaInputs", "float"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ofloat"}}, {lua, {"inputs", "float"}}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_end_object_readonly) {
@@ -437,33 +447,63 @@ TEST_F(CommandInterfaceTest, addLink_fail_end_object_readonly) {
 	auto inst = create_prefabInstance("inst", prefab);
 	auto inst_node = inst->children_->get(0)->asRef();
 
-	EXPECT_THROW(commandInterface.addLink({lua, {"luaOutputs", "ovector3f"}}, {inst_node, &Node::translation_}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {inst_node, &Node::translation_}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_lua_output_as_end) {
 	auto lua_start = create_lua("start", "scripts/types-scalar.lua");
 	auto lua_end = create_lua("end", "scripts/types-scalar.lua");
 
-	EXPECT_THROW(commandInterface.addLink({lua_start, {"luaOutputs", "ovector3f"}}, {lua_end, {"luaOutputs", "ovector3f"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink({lua_start, {"outputs", "ovector3f"}}, {lua_end, {"outputs", "ovector3f"}}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_parent_prop_linked) {
 	auto lua_start = create_lua("start", "scripts/struct-simple.lua");
 	auto lua_end = create_lua("end", "scripts/struct-simple.lua");
 
-	commandInterface.addLink({lua_start, {"luaOutputs", "s"}}, {lua_end, {"luaInputs", "s"}});
-	EXPECT_THROW(commandInterface.addLink({lua_start, {"luaOutputs", "s", "float"}}, {lua_end, {"luaInputs", "s", "float"}}), std::runtime_error);
+	commandInterface.addLink({lua_start, {"outputs", "s"}}, {lua_end, {"inputs", "s"}});
+	EXPECT_THROW(commandInterface.addLink({lua_start, {"outputs", "s", "float"}}, {lua_end, {"inputs", "s", "float"}}), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, addLink_fail_global_to_prefab) {
+	auto lua_global = create_lua("lua", "scripts/types-scalar.lua");
+	auto prefab = create<Prefab>("prefab");
+	auto lua_prefab = create_lua("lua", "scripts/types-scalar.lua", prefab);
+
+	EXPECT_THROW(commandInterface.addLink({lua_global, {"outputs", "ofloat"}}, {lua_prefab, {"inputs", "float"}}), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, addLink_fail_end_interface_prop) {
+	auto prefab = create<Prefab>("prefab");
+	auto lua = create_lua("lua", "scripts/types-scalar.lua", prefab);
+	auto intf = create_lua_interface("interface", "scripts/interface-scalar-types.lua", prefab);
+
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ofloat"}}, {intf, {"inputs", "float"}}), std::runtime_error);
+	EXPECT_NO_THROW(commandInterface.addLink({intf, {"inputs", "float"}}, {lua, {"inputs", "float"}}));
+}
 
 TEST_F(CommandInterfaceTest, removeLink_fail_no_end) {
 	auto node = create<Node>("node");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
-	auto [sprop, eprop] = link(lua, {"luaOutputs", "ovector3f"}, node, {"translation"});
+	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, node, {"translation"});
 	commandInterface.deleteObjects({node});
 	EXPECT_THROW(commandInterface.removeLink(eprop), std::runtime_error);
 }
+
+TEST_F(CommandInterfaceTest, removeLink_fail_end_object_readonly) {
+	auto prefab = create<Prefab>("prefab");
+	auto lua = create_lua("lua", "scripts/types-scalar.lua", prefab);
+	auto node = create<Node>("node", prefab);
+
+	auto inst = create_prefabInstance("inst", prefab);
+	auto inst_node = raco::select<raco::user_types::Node>(inst->children_->asVector<SEditorObject>(), "node");
+	auto inst_lua = raco::select<raco::user_types::Node>(inst->children_->asVector<SEditorObject>(), "lua");
+
+	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, node, {"translation"});
+	EXPECT_THROW(commandInterface.removeLink({inst_node, {"translation"}}), std::runtime_error);
+}
+
 
 TEST_F(CommandInterfaceTest, copy_objects_fail_deleted) {
 	auto node = create<Node>("node");

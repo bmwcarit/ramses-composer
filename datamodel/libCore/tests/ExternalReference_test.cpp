@@ -46,6 +46,7 @@ using namespace raco::core;
 using namespace raco::user_types;
 
 using raco::application::RaCoApplication;
+using raco::application::RaCoApplicationLaunchSettings;
 
 class ExtrefTest : public RacoBaseTest<> {
 public:
@@ -267,7 +268,10 @@ public:
 	}
 
 	void updateBase(const std::string &basePathName, std::function<void()> func) {
-		RaCoApplication base{backend, basePathName.c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = basePathName.c_str();
+
+		RaCoApplication base{backend, settings};
 		app = &base;
 		project = base.activeRaCoProject().project();
 		cmd = base.activeRaCoProject().commandInterface();
@@ -279,7 +283,10 @@ public:
 	}
 
 	void updateComposite(const std::string &pathName, std::function<void()> func) {
-		RaCoApplication app_{backend, pathName.c_str()};
+		RaCoApplicationLaunchSettings settings;
+		settings.initialProject = pathName.c_str();
+
+		RaCoApplication app_{backend, settings};
 		app = &app_;
 		project = app->activeRaCoProject().project();
 		cmd = app->activeRaCoProject().commandInterface();
@@ -777,7 +784,7 @@ end
 )");
 		auto luaSource = create_lua("luaSource", scriptFile);
 		auto luaSink = create_lua("luaSink", scriptFile);
-		cmd->addLink({luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}});
+		cmd->addLink({luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}});
 	});
 
 	setupComposite(basePathName, compositePathName, {"luaSink"}, [this]() {
@@ -1018,7 +1025,7 @@ function run(IN,OUT)
 end
 )");
 		auto lua = create_lua("prefab_lua", scriptFile, prefab);
-		cmd->addLink({lua, {"luaOutputs", "v"}}, {child, {"translation"}});
+		cmd->addLink({lua, {"outputs", "v"}}, {child, {"translation"}});
 	});
 
 	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
@@ -1027,7 +1034,7 @@ end
 		auto child = find("prefab_child");
 		auto lua = find("prefab_lua");
 		EXPECT_EQ(child->getParent(), node);
-		checkLinks({{{lua, {"luaOutputs", "v"}}, {child, {"translation"}}}});
+		checkLinks({{{lua, {"outputs", "v"}}, {child, {"translation"}}}});
 		auto inst = create_prefabInstance("inst", prefab);
 	});
 
@@ -1049,8 +1056,8 @@ end
 		auto inst_child = findLocal("prefab_child");
 		EXPECT_EQ(child->getParent(), prefab);
 		checkLinks({
-			{{lua, {"luaOutputs", "v"}}, {child, {"translation"}}}, 
-			{{inst_lua, {"luaOutputs", "v"}}, {inst_child, {"translation"}}}
+			{{lua, {"outputs", "v"}}, {child, {"translation"}}},
+			{{inst_lua, {"outputs", "v"}}, {inst_child, {"translation"}}}
 			});
 	});
 }
@@ -1195,64 +1202,6 @@ TEST_F(ExtrefTest, prefab_instance_update_camera_property) {
 	});
 }
 
-
-// Temporarily disable test: implementation of the feature was badly broken and the feature was effectively disabled.
-//TEST_F(ExtrefTest, prefab_instance_update_lua_new_property) {
-//	auto basePathName{(test_path() / "base.rca").string()};
-//	auto compositePathName{(test_path() / "composite.rca").string()};
-//
-//	TextFile scriptFile = makeFile("script.lua", R"(
-//function interface(IN,OUT)
-//	IN.i = Type:Int32()
-//end
-//function run(IN,OUT)
-//end
-//)");
-//
-//	setupBase(basePathName, [this, &scriptFile]() {
-//		auto prefab = create<Prefab>("prefab");
-//		auto lua = create<LuaScript>("prefab_lua", prefab);
-//		cmd->set({lua, {"uri"}}, scriptFile);
-//		cmd->set({lua, {"luaInputs", "i"}}, 7);
-//	});
-//
-//	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
-//		auto prefab = findExt("prefab");
-//		auto lua = findExt<LuaScript>("prefab_lua");
-//		ASSERT_EQ(prefab->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({lua}));
-//
-//		auto inst = create<PrefabInstance>("inst");
-//		cmd->set({inst, {"template"}}, prefab);
-//		auto inst_children = inst->children_->asVector<SEditorObject>();
-//		ASSERT_EQ(inst_children.size(), 1);
-//		auto inst_lua = inst_children[0]->as<LuaScript>();
-//		ASSERT_EQ(lua->luaInputs_->get("i")->asInt(), inst_lua->luaInputs_->get("i")->asInt());
-//
-//		cmd->set({inst_lua, {"luaInputs", "i"}}, 11);
-//	});
-//
-//	raco::utils::file::write(scriptFile.path.string(), R"(
-//function interface(IN,OUT)
-//	IN.i = Type:Int32()
-//	IN.f = Type:Float()
-//end
-//function run(IN,OUT)
-//end
-//)");
-//
-//	updateBase(basePathName, [this]() {
-//		auto lua = find("prefab_lua");
-//		cmd->set({lua, {"luaInputs", "f"}}, 13.0);
-//	});
-//
-//	updateComposite(compositePathName, [this]() {
-//		auto inst = find("inst");
-//		auto inst_lua = inst->children_->get(0)->asRef()->as<LuaScript>();
-//		ASSERT_EQ(inst_lua->luaInputs_->get("i")->asInt(), 11);
-//		ASSERT_EQ(inst_lua->luaInputs_->get("f")->asDouble(), 13.0);
-//	});
-//}
-
 TEST_F(ExtrefTest, prefab_instance_lua_update_link) {
 	auto basePathName{(test_path() / "base.rca").string()};
 	auto compositePathName{(test_path() / "composite.rca").string()};
@@ -1283,7 +1232,7 @@ end
 	updateBase(basePathName, [this]() {
 		auto node = find("prefab_child");
 		auto lua = find("prefab_lua");
-		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"translation"}});
+		cmd->addLink({lua, {"outputs", "v"}}, {node, {"translation"}});
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -1293,7 +1242,7 @@ end
 		ASSERT_EQ(prefab->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({node, lua}));
 
 		auto link = Queries::getLink(*project, {node, {"translation"}});
-		EXPECT_TRUE(link && link->startProp() == PropertyDescriptor(lua, {"luaOutputs", "v"}));
+		EXPECT_TRUE(link && link->startProp() == PropertyDescriptor(lua, {"outputs", "v"}));
 	});
 }
 
@@ -1314,7 +1263,7 @@ function run(IN,OUT)
 end
 )");
 		auto lua = create_lua("prefab_lua", scriptFile, prefab);
-		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"translation"}});
+		cmd->addLink({lua, {"outputs", "v"}}, {node, {"translation"}});
 	});
 
 	setupGeneric([this, basePathName]() {
@@ -1339,16 +1288,16 @@ end
 )");
 		auto start = create_lua("start", scriptFile);
 		auto end = create_lua("end", scriptFile);
-		cmd->addLink({start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}});
+		cmd->addLink({start, {"outputs", "v"}}, {end, {"inputs", "v"}});
 	});
 
 	setupGeneric([this, basePathName]() {
 		ASSERT_TRUE(pasteFromExt(basePathName, {"end"}, true));
 		auto start = findExt("start");
 		auto end = findExt("end");
-		checkLinks({{{start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}}});
+		checkLinks({{{start, {"outputs", "v"}}, {end, {"inputs", "v"}}}});
 		ASSERT_TRUE(pasteFromExt(basePathName, {"end"}, true));
-		checkLinks({{{start, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}}});
+		checkLinks({{{start, {"outputs", "v"}}, {end, {"inputs", "v"}}}});
 	});
 }
 
@@ -1367,20 +1316,20 @@ end
 		auto start = create_lua("start", scriptFile);
 		auto mid = create_lua("mid", scriptFile);
 		auto end = create_lua("end", scriptFile);
-		cmd->addLink({start, {"luaOutputs", "v"}}, {mid, {"luaInputs", "v"}});
-		cmd->addLink({mid, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}});
+		cmd->addLink({start, {"outputs", "v"}}, {mid, {"inputs", "v"}});
+		cmd->addLink({mid, {"outputs", "v"}}, {end, {"inputs", "v"}});
 	});
 
 	setupGeneric([this, basePathName]() {
 		ASSERT_TRUE(pasteFromExt(basePathName, {"mid"}, true));
 		auto start = findExt("start");
 		auto mid = findExt("mid");
-		checkLinks({{{start, {"luaOutputs", "v"}}, {mid, {"luaInputs", "v"}}}});
+		checkLinks({{{start, {"outputs", "v"}}, {mid, {"inputs", "v"}}}});
 		ASSERT_TRUE(pasteFromExt(basePathName, {"mid", "end"}, true));
 		auto end = findExt("end");
 		checkLinks({
-			{{start, {"luaOutputs", "v"}}, {mid, {"luaInputs", "v"}}},
-			{{mid, {"luaOutputs", "v"}}, {end, {"luaInputs", "v"}}}
+			{{start, {"outputs", "v"}}, {mid, {"inputs", "v"}}},
+			{{mid, {"outputs", "v"}}, {end, {"inputs", "v"}}}
 		});
 	});
 }
@@ -1635,7 +1584,7 @@ function run(IN,OUT)
 end
 )");
 		auto lua = create_lua("global_control", scriptFile);
-		cmd->addLink({lua, {"luaOutputs", "color"}}, {material, {"uniforms", "u_color"}});
+		cmd->addLink({lua, {"outputs", "color"}}, {material, {"uniforms", "u_color"}});
 	});
 
 	setupComposite(
@@ -1656,7 +1605,7 @@ end
 
 	updateBase(basePathName, [this]() {
 		auto lua = find("global_control");
-		cmd->set({lua, {"luaInputs", "scalar"}}, 0.5);
+		cmd->set({lua, {"inputs", "scalar"}}, 0.5);
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -1683,7 +1632,7 @@ function run(IN,OUT)
 end
 )");
 		auto lua = create_lua("global_control", scriptFile);
-		cmd->addLink({lua, {"luaOutputs", "color"}}, {material, {"uniforms", "u_color"}});
+		cmd->addLink({lua, {"outputs", "color"}}, {material, {"uniforms", "u_color"}});
 
 		TextFile masterScriptFile = makeFile("master.lua", R"(
 function interface(IN,OUT)
@@ -1695,7 +1644,7 @@ function run(IN,OUT)
 end
 )");
 		auto master = create_lua("master_control", masterScriptFile);
-		cmd->addLink({master, {"luaOutputs", "mat"}}, {lua, {"luaInputs", "scalar"}});
+		cmd->addLink({master, {"outputs", "mat"}}, {lua, {"inputs", "scalar"}});
 	});
 
 	setupComposite(basePathName, compositePathName, {"material"}, [this]() {
@@ -1707,7 +1656,7 @@ end
 
 	updateBase(basePathName, [this]() {
 		auto lua = find("master_control");
-		cmd->set({lua, {"luaInputs", "scalar"}}, 0.5);
+		cmd->set({lua, {"inputs", "scalar"}}, 0.5);
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -1735,7 +1684,7 @@ function run(IN,OUT)
 end
 )");
 		auto lua = create_lua("global_control", scriptFile);
-		cmd->addLink({lua, {"luaOutputs", "color"}}, {material, {"uniforms", "u_color"}});
+		cmd->addLink({lua, {"outputs", "color"}}, {material, {"uniforms", "u_color"}});
 	});
 
 	setupComposite(
@@ -1778,7 +1727,7 @@ end
 
 	updateBase(basePathName, [this]() {
 		auto lua = find("global_control");
-		cmd->set({lua, {"luaInputs", "scalar"}}, 0.5);
+		cmd->set({lua, {"inputs", "scalar"}}, 0.5);
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -1807,7 +1756,7 @@ function run(IN,OUT)
 end
 )");
 		auto lua = create_lua("global_control", scriptFile);
-		cmd->addLink({lua, {"luaOutputs", "color"}}, {material, {"uniforms", "u_color"}});
+		cmd->addLink({lua, {"outputs", "color"}}, {material, {"uniforms", "u_color"}});
 	});
 
 	setupComposite(
@@ -1852,7 +1801,7 @@ end
 		auto node = create<Node>("dummyNode");
 		auto lua = find("global_control");
 		cmd->moveScenegraphChildren({lua}, node);
-		cmd->set({lua, {"luaInputs", "scalar"}}, 0.5);
+		cmd->set({lua, {"inputs", "scalar"}}, 0.5);
 	});
 
 	updateComposite(compositePathName, [this]() {
@@ -2012,7 +1961,7 @@ end
 )");
 
 		cmd->set({lua, {"uri"}}, std::string("script.lua"));
-		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"translation"}});
+		cmd->addLink({lua, {"outputs", "v"}}, {node, {"translation"}});
 	});
 
 	setupGeneric([this, basePathName]() {
@@ -2024,24 +1973,24 @@ end
 		auto prefab_node = findExt<Node>("prefab_node");
 
 		EXPECT_EQ(*prefab_lua->uri_, std::string("script.lua"));
-		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}}});
+		checkLinks({{{prefab_lua, {"outputs", "v"}}, {prefab_node, {"translation"}}}});
 
 		auto inst = create<PrefabInstance>("inst");
 		cmd->set({inst, {"template"}}, prefab);
 		auto inst_lua = findChild<LuaScript>(inst);
 		auto inst_node = findChild<Node>(inst);
 		EXPECT_EQ(*inst_lua->uri_, std::string("script.lua"));
-		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}},
-			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"translation"}}}});
+		checkLinks({{{prefab_lua, {"outputs", "v"}}, {prefab_node, {"translation"}}},
+			{{inst_lua, {"outputs", "v"}}, {inst_node, {"translation"}}}});
 
 		auto pasted_inst = cmd->pasteObjects(cmd->copyObjects({inst}));
 		EXPECT_EQ(pasted_inst.size(), 1);
 		auto pasted_inst_lua = findChild<LuaScript>(pasted_inst[0]);
 		auto pasted_inst_node = findChild<Node>(pasted_inst[0]);
 		EXPECT_EQ(*pasted_inst_lua->uri_, std::string("script.lua"));
-		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"translation"}}},
-			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"translation"}}},
-			{{pasted_inst_lua, {"luaOutputs", "v"}}, {pasted_inst_node, {"translation"}}}});
+		checkLinks({{{prefab_lua, {"outputs", "v"}}, {prefab_node, {"translation"}}},
+			{{inst_lua, {"outputs", "v"}}, {inst_node, {"translation"}}},
+			{{pasted_inst_lua, {"outputs", "v"}}, {pasted_inst_node, {"translation"}}}});
 	});
 }
 
@@ -2068,7 +2017,7 @@ end
 
 		cmd->moveScenegraphChildren({node}, prefab);
 		cmd->moveScenegraphChildren({lua}, prefab);
-		cmd->addLink({lua, {"luaOutputs", "v"}}, {node, {"rotation"}});
+		cmd->addLink({lua, {"outputs", "v"}}, {node, {"rotation"}});
 	});
 
 	setupBase(basePathName2, [this, basePathName1, basePathName2]() {
@@ -2085,8 +2034,8 @@ end
 		auto inst_node = inst_children[0]->as<Node>();
 		auto inst_lua = inst_children[1]->as<LuaScript>();
 
-		checkLinks({{{prefab_lua, {"luaOutputs", "v"}}, {prefab_node, {"rotation"}}},
-			{{inst_lua, {"luaOutputs", "v"}}, {inst_node, {"rotation"}}}});
+		checkLinks({{{prefab_lua, {"outputs", "v"}}, {prefab_node, {"rotation"}}},
+			{{inst_lua, {"outputs", "v"}}, {inst_node, {"rotation"}}}});
 	});
 }
 
@@ -2310,15 +2259,15 @@ end
 		auto luaSource = findExt("luaSource");
 
 		auto luaSink = create_lua("luaSink", scriptFile);
-		cmd->addLink({luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}});
-		checkLinks({{{luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}}}});
+		cmd->addLink({luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}});
+		checkLinks({{{luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}}}});
 	});
 
 	updateBase(compositePathName, [this]() {
 		auto luaSource = findExt("luaSource");
 		auto luaSink = findLocal("luaSink");
-		checkLinks({{{luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}}}});
-		cmd->removeLink({luaSink, {"luaInputs", "v"}});
+		checkLinks({{{luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}}}});
+		cmd->removeLink({luaSink, {"inputs", "v"}});
 		EXPECT_EQ(project->links().size(), 0);
 	});
 
@@ -2348,7 +2297,7 @@ end
 		auto luaSource = findExt("luaSource");
 
 		auto luaSink = create_lua("luaSink", scriptFile);
-		cmd->addLink({luaSource, {"luaOutputs", "v"}}, {luaSink, {"luaInputs", "v"}});
+		cmd->addLink({luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}});
 
 		EXPECT_EQ(project->links().size(), 1);
 	});
@@ -2369,7 +2318,7 @@ TEST_F(ExtrefTest, timer_in_extref) {
 
 	setupBase(basePathName1, [this]() {
 		auto timer = create<Timer>("timer");
-		cmd->set({timer, &Timer::tickerInput_}, int64_t{300});
+		cmd->set({timer, {"inputs", "ticker_us"}}, int64_t{300});
 	});
 
 	setupBase(basePathName2, [this, basePathName1]() {
@@ -2377,8 +2326,8 @@ TEST_F(ExtrefTest, timer_in_extref) {
 		app->doOneLoop();
 
 		auto timer = findExt<Timer>("timer");
-		ASSERT_EQ((ValueHandle{timer, &Timer::tickerInput_}.asInt64()), int64_t{300});
-		ASSERT_EQ((ValueHandle{timer, &Timer::tickerOutput_}.asInt64()), int64_t{300});
+		ASSERT_EQ((ValueHandle{timer, {"inputs", "ticker_us"}}.asInt64()), int64_t{300});
+		ASSERT_EQ((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), int64_t{300});
 	});
 }
 
@@ -2396,15 +2345,11 @@ TEST_F(ExtrefTest, extref_timer_with_local_prefabinstance) {
 		auto timer = findExt<Timer>("timer");
 
 		TextFile scriptFile = makeFile("script.lua", R"(
-function interface(IN,OUT)
-	IN.v = Type:Int64()
-	OUT.v = Type:Int64()
-end
-function run(IN,OUT)
-	OUT.v = IN.v
+function interface(INOUT)
+	INOUT.v = Type:Int64()
 end
 )");
-		auto script1 = create<LuaScript>("script1");
+		auto script1 = create<LuaInterface>("script1");
 		cmd->set({script1, {"uri"}}, scriptFile);
 
 		auto prefab = create<Prefab>("prefab");
@@ -2415,10 +2360,10 @@ end
 		app->doOneLoop();
 
 		auto prefabInnerInstanceScript = prefabInst->children_->asVector<SEditorObject>().front();
-		cmd->addLink({timer, &Timer::tickerOutput_}, {prefabInnerInstanceScript, {"luaInputs", "v"}});
+		cmd->addLink({timer, {"outputs", "ticker_us"}}, {prefabInnerInstanceScript, {"inputs", "v"}});
 		app->doOneLoop();
 
-		ASSERT_NE((ValueHandle{prefabInnerInstanceScript, {"luaInputs", "v"}}.asInt64()), int64_t{0});
+		ASSERT_NE((ValueHandle{prefabInnerInstanceScript, {"inputs", "v"}}.asInt64()), int64_t{0});
 	});
 }
 
@@ -2433,15 +2378,11 @@ TEST_F(ExtrefTest, extref_timer_with_extref_prefab_local_instance) {
 
 	setupBase(basePathName2, [this, basePathName1]() {
 		TextFile scriptFile = makeFile("script.lua", R"(
-function interface(IN,OUT)
-	IN.v = Type:Int64()
-	OUT.v = Type:Int64()
-end
-function run(IN,OUT)
-	OUT.v = IN.v
+function interface(INOUT)
+	INOUT.v = Type:Int64()
 end
 )");
-		auto script1 = create<LuaScript>("script1");
+		auto script1 = create<LuaInterface>("script1");
 		cmd->set({script1, {"uri"}}, scriptFile);
 
 		auto prefab = create<Prefab>("prefab");
@@ -2459,9 +2400,9 @@ end
 		app->doOneLoop();
 
 		auto instanceScript = prefabInst->children_->asVector<SEditorObject>().front();
-		cmd->addLink({timer, &Timer::tickerOutput_}, {instanceScript, {"luaInputs", "v"}});
+		cmd->addLink({timer, {"outputs", "ticker_us"}}, {instanceScript, {"inputs", "v"}});
 		app->doOneLoop();
 
-		ASSERT_NE((ValueHandle{instanceScript, {"luaInputs", "v"}}.asInt64()), int64_t{0});
+		ASSERT_NE((ValueHandle{instanceScript, {"inputs", "v"}}.asInt64()), int64_t{0});
 	});
 }

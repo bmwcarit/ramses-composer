@@ -30,7 +30,7 @@ class SceneAdaptor {
 	using SEditorObjectSet = raco::core::SEditorObjectSet;
 
 public:
-	explicit SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors *errors);
+	explicit SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors *errors, bool optimizeForExport = false);
 
 	~SceneAdaptor();
 
@@ -58,6 +58,8 @@ public:
 	void readDataFromEngine(core::DataChangeRecorder &recorder);
 
 	void iterateAdaptors(std::function<void(ObjectAdaptor*)> func);
+
+	bool optimizeForExport() const;
 
 private:
 	void createLink(const core::LinkDescriptor& link);
@@ -87,6 +89,7 @@ private:
 	Project* project_;
 	core::Errors* errors_;
 	ramses_base::RamsesScene scene_{};
+	bool optimizeForExport_ = false;
 
 	// Fallback resources: used when MeshNode doesn't have valid shader program or mesh data
 	ramses_base::RamsesEffect defaultEffect_{};

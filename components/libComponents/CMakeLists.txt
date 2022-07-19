@@ -11,17 +11,17 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 raco_find_qt_components(Core)
 
 add_library(libComponents
-    include/components/Naming.h
-    include/components/EditorObjectFormatter.h
     include/components/DataChangeDispatcher.h src/DataChangeDispatcher.cpp
     include/components/DebugInstanceCounter.h
+    include/components/EditorObjectFormatter.h
     include/components/EditorObjectFormatter.h
     include/components/FileChangeListenerImpl.h src/FileChangeListenerImpl.cpp 
     include/components/FileChangeMonitorImpl.h 
     include/components/MeshCacheImpl.h src/MeshCacheImpl.cpp
+    include/components/Naming.h
+    include/components/QtFormatter.h
     include/components/RaCoNameConstants.h
     include/components/RaCoPreferences.h src/RaCoPreferences.cpp
-    include/components/QtFormatter.h
 )
 target_include_directories(libComponents PUBLIC include/)
 target_link_libraries(libComponents

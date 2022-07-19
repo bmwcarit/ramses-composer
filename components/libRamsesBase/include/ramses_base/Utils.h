@@ -11,9 +11,10 @@
 
 #include "core/EngineInterface.h"
 #include "core/Errors.h"
+#include "core/Project.h"
 #include "data_storage/Value.h"
-#include "ramses_base/LogicEngine.h"
 #include "log_system/log.h"
+#include "ramses_base/LogicEngine.h"
 #include <map>
 #include <optional>
 #include <ramses-client-api/EffectInputDataType.h>
@@ -25,7 +26,7 @@
 
 namespace raco::ramses_base {
 
-std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines );
+std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines);
 
 using PropertyInterfaceList = raco::core::PropertyInterfaceList;
 // Parse shaders using Ramses and return set of uniforms with name and type.
@@ -33,6 +34,7 @@ using PropertyInterfaceList = raco::core::PropertyInterfaceList;
 bool parseShaderText(ramses::Scene& scene, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& outError);
 
 rlogic::LuaConfig defaultLuaConfig();
+rlogic::LuaConfig createLuaConfig(const std::vector<std::string>& stdModules);
 
 ramses::RamsesVersion getRamsesVersion();
 rlogic::RamsesLogicVersion getLogicEngineVersion();
@@ -40,6 +42,7 @@ rlogic::RamsesLogicVersion getLogicEngineVersion();
 std::string getRamsesVersionString();
 std::string getLogicEngineVersionString();
 
+void installRamsesLogHandler(bool enableTrace);
 void installLogicLogHandler();
 void setRamsesLogLevel(spdlog::level::level_enum level);
 void setLogicLogLevel(spdlog::level::level_enum level);
@@ -50,10 +53,23 @@ struct PngCompatibilityInfo {
 	bool conversionNeeded;
 };
 
+struct PngDecodingInfo {
+	int width = -1;
+	int height = -1;
+	int bitdepth = -1;
+	int originalBitdepth = -1;
+	int originalPngFormat = -1;
+	ramses::ETextureFormat convertedPngFormat = ramses::ETextureFormat::Invalid;
+	std::string pngColorChannels;
+	std::string ramsesColorChannels;
+	std::string shaderColorChannels;
+};
+
 PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat selectedTextureFormat, int colorType, int bitdepth);
-int ramsesTextureFormatToPngFormat(ramses::ETextureFormat textureFormat);
 std::string ramsesTextureFormatToString(ramses::ETextureFormat textureFormat);
+std::string pngColorTypeToString(int colorType);
 int ramsesTextureFormatToChannelAmount(ramses::ETextureFormat textureFormat);
 void normalize16BitColorData(std::vector<unsigned char>& data);
 std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector<unsigned char>& data);
+std::vector<unsigned char> decodeMipMapData(core::Errors* errors, core::Project& project, core::SEditorObject obj, const std::string& uriPropName, int level, PngDecodingInfo& decodingInfo);
 };	// namespace raco::ramses_base

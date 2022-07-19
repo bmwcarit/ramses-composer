@@ -51,6 +51,7 @@ public:
 	const QIcon typePrefabExternal{":typePrefabExternalIcon"};
 	const QIcon typePrefabInstance{":typePrefabInstanceIcon"};
 	const QIcon typeLuaScriptModule{":typeLuaScriptModuleIcon"};
+	const QIcon typeLuaInterface{":typeLuaInterfaceIcon"};
 	const QIcon typeAnimationChannel{":typeAnimationChannelIcon"};
 	const QIcon typeAnimation{":typeAnimationIcon"};
 	const QIcon typeTimer{":typeTimerIcon"};

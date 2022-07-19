@@ -42,22 +42,22 @@ print("\n")
 
 # getting properties
 
-print("descriptor: ", obj.visible)
-print("descriptor: ", getattr(obj, "visible"))
+print("descriptor: ", obj.visibility)
+print("descriptor: ", getattr(obj, "visibility"))
 
-print("value = ", obj.visible.value())
+print("value = ", obj.visibility.value())
 print("\n")
 
 # setting properties
 
-obj.visible = False
-setattr(obj, "visible", False)
+obj.visibility = False
+setattr(obj, "visibility", False)
 
 # nested properties 
 
 print("descriptor: ", obj.translation.x)
 obj.translation.x = 42.0
-setattr(obj.scale, "z", 5.5) 
+setattr(obj.scaling, "z", 5.5) 
 print("\n")
 
 
@@ -104,7 +104,7 @@ obj = raco.instances()[0]
 
 print(" -- Create Link -- \n")
 
-link = raco.addLink(lua.luaOutputs.vec, obj.translation)
+link = raco.addLink(lua.outputs.vec, obj.translation)
 
 print("created Link: ", link)
 print("  link start = ", link.start)
@@ -112,7 +112,7 @@ print("  link end   = ", link.end)
 print("  link valid = ", link.valid)
 print("\n")
 
-raco.addLink(lua.luaOutputs.vec, obj.rotation)
+raco.addLink(lua.outputs.vec, obj.rotation)
 
 raco.removeLink(obj.translation)
 

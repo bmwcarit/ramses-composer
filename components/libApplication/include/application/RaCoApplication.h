@@ -34,9 +34,15 @@ class SceneBackend;
 
 namespace raco::application {
 
+struct RaCoApplicationLaunchSettings {
+	QString initialProject{};
+	bool createDefaultScene{true};
+	bool enableRamsesTrace{false};
+};
+
 class RaCoApplication {
 public:
-	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject = {}, bool createDefaultScene = true);
+	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings = {});
 
 	RaCoProject& activeRaCoProject();
 	const RaCoProject& activeRaCoProject() const;
@@ -52,7 +58,8 @@ public:
 		const std::string& logicExport,
 		bool compress,
 		std::string& outError, 
-		bool forceExportWithErrors = false) const;
+		bool forceExportWithErrors = false);
+
 
 	void doOneLoop();
 
@@ -73,9 +80,13 @@ public:
 
 	QString generateApplicationTitle() const;
 
+	bool rendererDirty_ = false;
+
 private:
 	// Needs to access externalProjectsStore_ directly:
 	friend class ::ObjectTreeViewExternalProjectModelTest;
+
+	bool exportProjectImpl(const std::string& ramsesExport,	const std::string& logicExport,	bool compress, std::string& outError, bool forceExportWithErrors) const;
 
 	ramses_base::BaseEngineBackend* engine_;
 

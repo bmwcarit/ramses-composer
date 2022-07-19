@@ -16,7 +16,6 @@
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "core/Context.h"
-#include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/BaseEngineBackend.h"
 #include "user_types/Animation.h"
@@ -32,17 +31,18 @@ extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
 
 namespace raco::application {
 
-RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const QString& initialProject, bool createDefaultScene)
+RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings)
 	: engine_{&engine},
 	  dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  dataChangeDispatcherEngine_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  scenesBackend_{new ramses_adaptor::SceneBackend(&engine, dataChangeDispatcherEngine_)},
 	  externalProjectsStore_(this) {
+	ramses_base::installRamsesLogHandler(settings.enableRamsesTrace);
 	ramses_base::installLogicLogHandler();
 	// Preferences need to be initalized before we have a fist initial project
 	raco::components::RaCoPreferences::init();
 
-	switchActiveRaCoProject(initialProject, createDefaultScene);
+	switchActiveRaCoProject(settings.initialProject, settings.createDefaultScene);
 }
 
 RaCoProject& RaCoApplication::activeRaCoProject() {
@@ -79,7 +79,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDe
 	dataChangeDispatcher_->assertEmpty();
 
 	std::vector<std::string> stack;
-	activeProject_ = file.isEmpty() ? RaCoProject::createNew(this, createDefaultScene) : RaCoProject::loadFromFile(file, this, stack);
+	activeProject_ = file.isEmpty() ? RaCoProject::createNew(this, createDefaultScene) : RaCoProject::loadFromFile(file, this, stack, false);
 
 	externalProjectsStore_.setActiveProject(activeProject_.get());
 
@@ -88,23 +88,41 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDe
 	activeProject_->applyDefaultCachedPaths();
 	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
 
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
 	startTime_ = std::chrono::high_resolution_clock::now();
 	doOneLoop();
+
+	// Log all errors after the engine update to make sure that errors created by the adaptor classes are logged.
+	activeProject_->errors()->logAllErrors();
 }
 
-bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) const {
+bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) {
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), true);
+	logicEngineNeedsUpdate_ = true;
+	doOneLoop();
+
+	bool status = exportProjectImpl(ramsesExport, logicExport, compress, outError, forceExportWithErrors);
+
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
+	logicEngineNeedsUpdate_ = true;
+	rendererDirty_ = true;
+
+	return status;
+}
+
+bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) const {
 	// Flushing the scene prevents inconsistent states being saved which could lead to unexpected bevahiour after loading the scene:
 	scenesBackend_->flush();
 
-	// we currently only support export of active project currently
-	if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
-		outError = "Export failed: scene contains Composer errors";
-		return false;
-	}
-	if (!sceneBackend()->sceneValid()) {
-		outError = "Export failed: scene contains Ramses errors";
-		return false;
+	if (!forceExportWithErrors) {
+		if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
+			outError = "Export failed: scene contains Composer errors";
+			return false;
+		}
+		if (!sceneBackend()->sceneValid()) {
+			outError = "Export failed: scene contains Ramses errors";
+			return false;
+		}
 	}
 	auto status = scenesBackend_->currentScene()->saveToFile(ramsesExport.c_str(), compress);
 	if (status != ramses::StatusOK) {
@@ -136,7 +154,7 @@ R"___({{
 void RaCoApplication::doOneLoop() {
 	// write data into engine
 	if (ramses_adaptor::SceneBackend::toSceneId(*activeRaCoProject().project()->settings()->sceneId_) != scenesBackend_->currentSceneId()) {
-		scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors());
+		scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
 	}
 
 	for (const auto& timerNode : engine_->logicEngine().getCollection<rlogic::TimerNode>()) {

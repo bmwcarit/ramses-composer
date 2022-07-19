@@ -20,6 +20,8 @@ class MaterialTest : public TestEnvironmentCore {
 public:
 	std::string shaderWhitespaceOnlyFile;
 	std::string shaderEmptyFile;
+	std::string shaderDefinesFile;
+	std::string shaderWithErrorIfDefineFile;
 
 	SEditorObject material;
 
@@ -32,6 +34,8 @@ public:
 		TestEnvironmentCore::SetUp();
 		shaderWhitespaceOnlyFile = makeFile("whitespace.glsl", " ");
 		shaderEmptyFile = makeFile("empty.glsl", "");
+		shaderDefinesFile = makeFile("shaderdefines.def", "OINK\n\nBLUBB");
+		shaderWithErrorIfDefineFile = makeFile("shaderwithdefineerror.glsl", "#ifdef OINK\n#error MyError\n#endif\nvoid main() {}");
 
 		material = commandInterface.createObject(Material::typeDescription.typeName);
 
@@ -83,15 +87,20 @@ TEST_F(MaterialTest, errorEmptyGeometryShader) {
 	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] geometry shader Shader Parsing Error:\nERROR: #version: geometry shaders require es profile with version 310 or non-es profile with version 150 or above\nERROR: 0:1: '' : array size must be a positive integer\nERROR: 0:1: '' : compilation terminated \nINTERNAL ERROR: Unable to parse built-ins\nERROR: 1 compilation errors.  No code generated.\n\n\n");
 }
 
-TEST_F(MaterialTest, errorEmptyDefines) {
-	commandInterface.set(vertexUriHandle, (test_path() / "shaders/basic.vert").string());
-	commandInterface.set(fragmentUriHandle, (test_path() / "shaders/basic.frag").string());
-	ASSERT_FALSE(commandInterface.errors().hasError(material));
-
+TEST_F(MaterialTest, shaderDefines) {
+	commandInterface.set(vertexUriHandle, shaderWithErrorIfDefineFile);
+	commandInterface.set(fragmentUriHandle, shaderWithErrorIfDefineFile);
 	commandInterface.set(definesUriHandle, shaderEmptyFile);
+	ASSERT_FALSE(commandInterface.errors().hasError(material));
+	ASSERT_FALSE(commandInterface.errors().hasError(vertexUriHandle));
+	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
+	commandInterface.set(definesUriHandle, shaderDefinesFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(material));
-	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] vertex shader Shader Parsing Error:\nERROR: 2:1: '#define' : must be followed by macro name \nERROR: 2:1: '' : compilation terminated \nERROR: 2 compilation errors.  No code generated.\n\n\n");
+	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] vertex shader Shader Parsing Error:\nERROR: 2:2: '#error' : MyError  \nERROR: 2:3: '' : missing #endif \nERROR: 2:3: '' : compilation terminated \nERROR: 3 compilation errors.  No code generated.\n\n\n");
+	ASSERT_FALSE(commandInterface.errors().hasError(vertexUriHandle));
+	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
 	commandInterface.set(definesUriHandle, shaderWhitespaceOnlyFile);
-	ASSERT_TRUE(commandInterface.errors().hasError(material));
-	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] vertex shader Shader Parsing Error:\nERROR: 2:1: '#define' : must be followed by macro name \nERROR: 2:1: '' : compilation terminated \nERROR: 2 compilation errors.  No code generated.\n\n\n");
+	ASSERT_FALSE(commandInterface.errors().hasError(material));
+	ASSERT_FALSE(commandInterface.errors().hasError(vertexUriHandle));
+	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
 }

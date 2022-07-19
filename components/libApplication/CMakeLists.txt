@@ -11,9 +11,9 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 raco_find_qt_components(Core)
 
 add_library(libApplication
+    include/application/ExternalProjectsStore.h src/ExternalProjectsStore.cpp
     include/application/RaCoApplication.h src/RaCoApplication.cpp
     include/application/RaCoProject.h src/RaCoProject.cpp
-    include/application/ExternalProjectsStore.h src/ExternalProjectsStore.cpp
 )
 target_include_directories(libApplication PUBLIC include/)
 target_link_libraries(libApplication

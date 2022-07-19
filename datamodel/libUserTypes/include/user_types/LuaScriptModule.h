@@ -10,6 +10,7 @@
 #pragma once
 
 #include "user_types/BaseObject.h"
+#include "user_types/LuaStandardModuleSelection.h"
 
 #include <map>
 #include <set>
@@ -29,7 +30,7 @@ public:
 		"math",
 		"debug"};
 
-	LuaScriptModule(LuaScriptModule const& other) : BaseObject(other), uri_(other.uri_) {
+	LuaScriptModule(LuaScriptModule const& other) : BaseObject(other), uri_(other.uri_), stdModules_(other.stdModules_) {
 		fillPropertyDescription();
 	}
 
@@ -40,17 +41,23 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("uri", &uri_);
+		properties_.emplace_back("stdModules", &stdModules_);
 	}
 
 	void updateFromExternalFile(BaseContext& context) override;
+	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 
 	bool isValid() const;
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua)"}, DisplayNameAnnotation("URI")};
 
+	Property<LuaStandardModuleSelection, DisplayNameAnnotation> stdModules_{{}, {"Standard Modules"}};
+
 	const std::string& currentScriptContents() const;
 
 private:
+	void sync(BaseContext& context);
+
 	std::string currentScriptContents_;
 	bool isValid_ = false;
 };

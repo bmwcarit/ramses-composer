@@ -33,7 +33,7 @@ private:
 	std::array<components::Subscription, 9> subscriptions_;
 	raco::ramses_base::RamsesTextureCube textureData_;
 
-	std::map<std::string, std::vector<unsigned char>> generateMipmapData(core::Errors* errors, int level, int& width, int& height, int& bitdepth);
+	std::map<std::string, std::vector<unsigned char>> generateMipmapData(core::Errors* errors, int level, raco::ramses_base::PngDecodingInfo& decodingInfo);
 };
 
 };  // namespace raco::ramses_adaptor

@@ -31,24 +31,8 @@ void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> edit
 }
 
 const rlogic::Property* BaseCameraAdaptorHelpers::getProperty(rlogic::RamsesCameraBinding* cameraBinding, const std::vector<std::string>& propertyNamesVector) {
-	static std::map<std::string_view, std::string_view> propertyNameToViewportPropertyName{
-		{ "offsetX", "offsetX" },
-		{ "offsetY", "offsetY" },
-		{ "width", "width" },
-		{ "height", "height" }
-	};
-	if (propertyNamesVector.size() == 1 && propertyNamesVector[0] == "viewport") {
-		return cameraBinding->getInputs()->getChild("viewport");	
-	}
-	if (propertyNamesVector.size() == 2 && propertyNamesVector[0] == "viewport") {
-		std::string const propName = propertyNamesVector[1];
-		if (propertyNameToViewportPropertyName.find(propName) != propertyNameToViewportPropertyName.end()) {
-			auto ramsesViewportProperties = cameraBinding->getInputs()->getChild("viewport");
-			assert(ramsesViewportProperties != nullptr);
-			auto ramsesViewportProperty = ramsesViewportProperties->getChild(propertyNameToViewportPropertyName.at(propName));
-			assert(ramsesViewportProperty != nullptr);
-			return ramsesViewportProperty;
-		}
+	if (propertyNamesVector.size() >= 1 && propertyNamesVector[0] == "viewport") {
+		return ILogicPropertyProvider::getPropertyRecursive(cameraBinding->getInputs(), propertyNamesVector);
 	}
 	return nullptr;
 }

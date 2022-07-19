@@ -10,78 +10,120 @@
 #include "ramses_adaptor/LinkAdaptor.h"
 
 #include "core/CoreFormatter.h"
+#include "core/PrefabOperations.h"
 #include "core/Queries.h"
 #include "log_system/log.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
+#include "user_types/SyncTableWithEngineInterface.h"
+#include "user_types/LuaInterface.h"
 
 namespace raco::ramses_adaptor {
 
 namespace {
 
-LinkAdaptor::UniqueEngineLink engineLink(rlogic::LogicEngine* engine, const rlogic::Property& origin, const rlogic::Property& dest) {
+LinkAdaptor::UniqueEngineLink createEngineLink(rlogic::LogicEngine* engine, const rlogic::Property& origin, const rlogic::Property& dest) {
 	if (engine->link(origin, dest)) {
-		LOG_TRACE(log_system::RAMSES_ADAPTOR, "create: {}:{}->{}:{}", fmt::ptr(&origin), origin.getName(), fmt::ptr(&dest), dest.getName());
+		LOG_TRACE(log_system::RAMSES_ADAPTOR, "Create LogicEngine link: {}:{}->{}:{}", fmt::ptr(&origin), origin.getName(), fmt::ptr(&dest), dest.getName());
 		return {new LinkAdaptor::EngineLink{&origin, &dest}, [engine](LinkAdaptor::EngineLink* link) {
 					bool success = engine->unlink(*link->origin, *link->dest);
-					LOG_TRACE(log_system::RAMSES_ADAPTOR, "destroy: {}->{} ({})", fmt::ptr(link->origin), fmt::ptr(link->dest), success);
+					LOG_TRACE(log_system::RAMSES_ADAPTOR, "Destroy LogicEngine link: {}->{} ({})", fmt::ptr(link->origin), fmt::ptr(link->dest), success);
 					assert(success);
 				}};
 	} else {
-		LOG_WARNING(log_system::RAMSES_ADAPTOR, "failed: {}->{}", fmt::ptr(&origin), fmt::ptr(&dest));
+		LOG_WARNING(log_system::RAMSES_ADAPTOR, "Create LogicEngine link failed: {}->{}", fmt::ptr(&origin), fmt::ptr(&dest));
 		assert(false);
 		return {};
 	}
 }
 
-inline const void eachLinkableProperty(const rlogic::Property& a, const rlogic::Property& b, const std::function<void(const rlogic::Property&, const rlogic::Property&)>& fn) {
-	auto aType = a.getType();
-	auto bType = b.getType();
-	assert(aType == bType);
-	if (aType == rlogic::EPropertyType::Struct) {
-		assert(a.getChildCount() == b.getChildCount());
-		for (int i = 0; i < a.getChildCount(); i++) {
-			const auto& nextA{*a.getChild(i)};
-			eachLinkableProperty(nextA, *b.getChild(nextA.getName()), fn);
+std::optional<core::PropertyDescriptor> followLinkChain(const core::Project& project, core::PropertyDescriptor prop) {
+	while (prop.object()->isType<user_types::LuaInterface>()) {
+		core::ValueHandle current{prop};
+		auto link = core::Queries::getLink(project, current.getDescriptor());
+
+		while (!link && current && current.depth() > 0) {
+			current = current.parent();
+			if (current && current.depth() > 0) {
+				link = core::Queries::getLink(project, current.getDescriptor());
+			}
 		}
-	} else if (aType == rlogic::EPropertyType::Array) {
-		assert(a.getChildCount() == b.getChildCount());
-		for (int i = 0; i < a.getChildCount(); i++) {
-			eachLinkableProperty(*a.getChild(i), *b.getChild(i), fn);
+
+		if (!link) {
+			return prop;
 		}
-	} else {
-		fn(a, b);
-	} 
+		if (!link->isValid()) {
+			return std::nullopt;
+		}
+
+		std::vector<std::string> propNames = link->startPropertyNamesVector();
+		std::copy(prop.propertyNames().begin() + current.depth(), prop.propertyNames().end(), std::back_inserter(propNames));
+
+		prop = core::PropertyDescriptor(*link->startObject_, propNames);
+
+		if (!core::ValueHandle(prop)) {
+			return std::nullopt;
+		}
+	}
+	return prop;
 }
 
-}  // namespace
+}// namespace
 
 LinkAdaptor::LinkAdaptor(const core::LinkDescriptor& link, SceneAdaptor* sceneAdaptor) : editorLink_{link}, sceneAdaptor_{sceneAdaptor} {
 	connect();
 }
 
 void LinkAdaptor::lift() {
-	LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}", editorLink_);
-	engineLink_.clear();
+	LOG_TRACE(log_system::RAMSES_ADAPTOR, "Lift editor link: {}", editorLink_);
+	engineLinks_.clear();
+}
+
+void LinkAdaptor::connectHelper(const core::PropertyDescriptor& start, const rlogic::Property& endEngineProp) {
+	core::ValueHandle startHandle(start);
+
+	auto engineType = endEngineProp.getType();
+	if (engineType == rlogic::EPropertyType::Struct || engineType == rlogic::EPropertyType::Array) {
+		for (size_t index = 0; index < endEngineProp.getChildCount(); index++) {
+			auto endChild = endEngineProp.getChild(index);
+			std::string propName = user_types::dataModelPropNameForLogicEnginePropName(std::string(endChild->getName()), index);
+			connectHelper(start.child(propName), *endChild);
+		}
+	} else {
+		std::optional<core::PropertyDescriptor> startPropOpt = start;
+		if (sceneAdaptor_->optimizeForExport()) {
+			startPropOpt = followLinkChain(sceneAdaptor_->project(), start);
+		}
+		if (startPropOpt) {
+			auto startProp = startPropOpt.value();
+			auto startAdaptor(sceneAdaptor_->lookupAdaptor(startProp.object()));
+			if (startAdaptor) {
+				auto startEngineProp = dynamic_cast<ILogicPropertyProvider*>(startAdaptor)->getProperty(startProp.propertyNames());
+				if (startEngineProp) {
+					auto engineLink = createEngineLink(&sceneAdaptor_->logicEngine(), *startEngineProp, endEngineProp);
+					if (engineLink) {
+						engineLinks_.emplace_back(std::move(engineLink));
+					}
+				}
+			}
+		}
+	}
 }
 
 void LinkAdaptor::connect() {
-	LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}", editorLink_);
-	engineLink_.clear();
+	LOG_TRACE(log_system::RAMSES_ADAPTOR, "Connect editor link: {}", editorLink_);
+	engineLinks_.clear();
 
-	auto originAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.start.object())};
+	if (sceneAdaptor_->optimizeForExport() && editorLink_.end.object()->isType<user_types::LuaInterface>()) {
+		return;
+	}
+
 	auto destAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.end.object())};
 
-	if (originAdaptor && destAdaptor && editorLink_.isValid) {
-		auto startProp = dynamic_cast<ILogicPropertyProvider*>(originAdaptor)->getProperty(editorLink_.start.propertyNames());
-		auto endProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
-		if (startProp && endProp) {
-			eachLinkableProperty(*startProp, *endProp,
-				[this](const rlogic::Property& a, const rlogic::Property& b) {
-					engineLink_.push_back(engineLink(&sceneAdaptor_->logicEngine(), a, b));
-				});
+	if (editorLink_.isValid && destAdaptor) {
+		auto endEngineProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
+		if (endEngineProp) {
+			connectHelper(editorLink_.start, *endEngineProp);
 		}
-	} else {
-		LOG_TRACE(log_system::RAMSES_ADAPTOR, "Ramses logic link {}.{}->{}.{} could not be created", editorLink_.start.object()->objectName(), fmt::join(editorLink_.start.propertyNames(), "."), editorLink_.end.object()->objectName(), fmt::join(editorLink_.end.propertyNames(), "."));
 	}
 }
 

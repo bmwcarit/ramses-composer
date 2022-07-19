@@ -72,6 +72,7 @@ ramses::dataConsumerId_t RendererBackend::internalDataConsumerId() {
 
 void RendererBackend::doOneLoop() const {
 	renderer().doOneLoop();
+	renderer().dispatchEvents(*eventHandler_);
 }
 
 }  // namespace raco::ramses_widgets

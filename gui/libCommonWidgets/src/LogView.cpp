@@ -85,6 +85,7 @@ LogView::LogView(LogViewModel* model, QWidget* parent) : model_(model) {
 	filterCategoryBox->addItem(raco::log_system::DESERIALIZATION, raco::log_system::DESERIALIZATION);
 	filterCategoryBox->addItem(raco::log_system::PROJECT, raco::log_system::PROJECT);
 	filterCategoryBox->addItem(raco::log_system::MESH_LOADER, raco::log_system::MESH_LOADER);
+	filterCategoryBox->addItem(raco::log_system::RAMSES, raco::log_system::RAMSES);
 	filterCategoryBox->addItem(raco::log_system::RAMSES_LOGIC, raco::log_system::RAMSES_LOGIC);
 	QObject::connect(filterCategoryBox, qOverload<int>(&QComboBox::activated), this, [this, filterCategoryBox](int index) {
 		auto filter = filterCategoryBox->itemData(index, Qt::UserRole).toString();

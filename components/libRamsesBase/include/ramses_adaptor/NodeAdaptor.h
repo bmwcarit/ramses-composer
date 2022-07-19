@@ -58,10 +58,10 @@ public:
 				  }
 			  })},
 		  subscriptions_{
-			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visible"), [this]() { this->tagDirty(); }),
+			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visibility"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("children"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("translation"), [this](auto) { this->tagDirty(); }),
-			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("scale"), [this](auto) { this->tagDirty(); }),
+			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("scaling"), [this](auto) { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("rotation"), [this](auto) { this->tagDirty(); })} {
 		raco::core::PropertyDescriptor rotation{this->editorObject(), std::vector<std::string>{"rotation"}};
 		if (auto link = raco::core::Queries::getLink(sceneAdaptor->project(), rotation)) {
@@ -98,19 +98,7 @@ public:
 	}
 	
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override {
-		using raco::user_types::Node;
-		using raco::user_types::property_name;
-
-		static std::map<std::string_view, std::string_view> propertyNameToEngineName{
-			{property_name<&Node::translation_>::value, engine_property_name<&Node::translation_>::value},
-			{property_name<&Node::visible_>::value, engine_property_name<&Node::visible_>::value},
-			{property_name<&Node::rotation_>::value, engine_property_name<&Node::rotation_>::value},
-			{property_name<&Node::scale_>::value, engine_property_name<&Node::scale_>::value},
-		};
-		std::string propName = propertyNamesVector[0];
-		assert(propertyNamesVector.size() == 1);
-		assert(propertyNameToEngineName.find(propName) != propertyNameToEngineName.end());
-		return nodeBinding_->getInputs()->getChild(propertyNameToEngineName.at(propName));
+		return nodeBinding_->getInputs()->getChild(propertyNamesVector[0]);
 	}
 	
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override {
@@ -169,7 +157,7 @@ private:
 	}
 
 	void syncVisibility() {
-		auto visible = core::ValueHandle{this->editorObject()}.get("visible").as<bool>();
+		auto visible = core::ValueHandle{this->editorObject()}.get("visibility").as<bool>();
 		if (((*this->ramsesObject()).getVisibility() == ramses::EVisibilityMode::Visible) != visible) {
 			(*this->ramsesObject()).setVisibility(visible ? ramses::EVisibilityMode::Visible : ramses::EVisibilityMode::Invisible);
 		}

@@ -243,14 +243,14 @@ TEST_F(CubeMapAdaptorFixture, textureFormat8BitPalette) {
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::uriTop_}, (test_path() / "images" / "text-back-palette.png").string());
 	dispatch();
 
-	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::WARNING},
+	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::ERROR},
-									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::WARNING}});
+									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::INFORMATION}});
 }
 
 TEST_F(CubeMapAdaptorFixture, textureFormatR8) {
@@ -306,7 +306,7 @@ TEST_F(CubeMapAdaptorFixture, textureFormatRG8) {
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::uriTop_}, (test_path() / "images" / "green_512_gray_alpha.png").string());
 	dispatch();
 
-	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::WARNING},
+	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::WARNING},
 									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::WARNING},
@@ -327,8 +327,8 @@ TEST_F(CubeMapAdaptorFixture, textureFormatRGB8) {
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::uriTop_}, (test_path() / "images" / "text-back.png").string());
 	dispatch();
 
-	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::WARNING},
+	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::WARNING},
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::ERROR},
@@ -348,13 +348,13 @@ TEST_F(CubeMapAdaptorFixture, textureFormatRGBA8) {
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::uriTop_}, (test_path() / "images" / "green_512.png").string());
 	dispatch();
 
-	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::WARNING},
+	checkTextureFormats(cubemap, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::INFORMATION},
+									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::ERROR},
-									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::WARNING},
+									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::NONE}});
 }
 
@@ -394,7 +394,7 @@ TEST_F(CubeMapAdaptorFixture, textureFormatRGBA16From16i) {
 									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::ERROR},
-									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::WARNING},
+									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::ERROR}});
@@ -415,7 +415,7 @@ TEST_F(CubeMapAdaptorFixture, textureFormatRGBA16From16f) {
 									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::ERROR},
-									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::WARNING},
+									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::ERROR}});
@@ -449,7 +449,7 @@ TEST_F(CubeMapAdaptorFixture, textureFormatChangeValidToInvalid) {
 	// R8
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::textureFormat_}, static_cast<int>(ramses::ETextureFormat::R8));
 	dispatch();
-	assertLevel1Errors(cubemap, raco::core::ErrorLevel::WARNING);
+	assertLevel1Errors(cubemap, raco::core::ErrorLevel::INFORMATION);
 
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::uriBack_}, (test_path() / "images" / "green_512_16f.png").string());
 	commandInterface.set({cubemap, &raco::user_types::CubeMap::uriBottom_}, (test_path() / "images" / "green_512_16f.png").string());

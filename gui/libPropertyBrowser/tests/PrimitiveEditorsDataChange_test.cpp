@@ -93,7 +93,7 @@ INSTANTIATE_TEST_SUITE_P(
 			"BoolEditor",
 			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::BoolEditor(item, nullptr); },
 			Node::typeDescription.typeName,
-			{"visible"},
+			{"visibility"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, false); }},
 		TestParam{
 			"DoubleEditor",

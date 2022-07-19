@@ -32,4 +32,7 @@ void syncTableWithEngineInterface(raco::core::BaseContext& context, const Proper
 template <class... Args>
 raco::data_storage::ValueBase* createDynamicProperty(raco::core::EnginePrimitive type);
 
+std::string dataModelPropNameForLogicEnginePropName(const std::string& propName, size_t index);
+
+
 }  // namespace raco::user_types

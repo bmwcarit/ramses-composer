@@ -162,7 +162,7 @@
                 "value": 0
             }
         },
-        "scale": {
+        "scaling": {
             "x": {
                 "annotations": [
                     {
@@ -238,7 +238,7 @@
                 "value": 0
             }
         },
-        "visible": true
+        "visibility": true
     },
     "typeName": "MeshNode"
 }

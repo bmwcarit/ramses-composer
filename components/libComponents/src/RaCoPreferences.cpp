@@ -31,6 +31,7 @@ bool RaCoPreferences::save() {
 	settings.setValue("imageSubdirectory", imageSubdirectory);
 	settings.setValue("meshSubdirectory", meshSubdirectory);
 	settings.setValue("scriptSubdirectory", scriptSubdirectory);
+	settings.setValue("interfaceSubdirectory", interfaceSubdirectory);
 	settings.setValue("shaderSubdirectory", shaderSubdirectory);
 
 	settings.sync();
@@ -49,6 +50,7 @@ void RaCoPreferences::load() {
 	imageSubdirectory = settings.value("imageSubdirectory", "images").toString();
 	meshSubdirectory = settings.value("meshSubdirectory", "meshes").toString();
 	scriptSubdirectory = settings.value("scriptSubdirectory", "scripts").toString();
+	interfaceSubdirectory = settings.value("interfaceSubdirectory", "interfaces").toString();
 	shaderSubdirectory = settings.value("shaderSubdirectory", "shaders").toString();
 }
 

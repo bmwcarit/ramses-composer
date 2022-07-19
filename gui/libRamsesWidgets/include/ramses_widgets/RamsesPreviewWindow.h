@@ -59,7 +59,7 @@ public:
 
 	const State& currentState();
 	State& nextState();
-	void commit();
+	void commit(bool forceUpdate = false);
 
 private:
 	void* windowHandle_;

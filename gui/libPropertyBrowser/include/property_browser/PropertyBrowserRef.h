@@ -58,6 +58,7 @@ private:
 	PropertyBrowserItem* parent_;
 	raco::components::Subscription subscription_;
 	raco::components::Subscription lifecycleSub_;
+	raco::components::Subscription childMoveSub_;
 	std::vector<raco::components::Subscription> objectNames_;
 };
 

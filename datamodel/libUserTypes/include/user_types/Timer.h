@@ -14,14 +14,93 @@
 
 namespace raco::user_types {
 
-class Timer : public BaseObject {
+class TimerInput : public StructBase {
 public:
-	static inline const TypeDescriptor typeDescription = { "Timer", true };
+	static inline const TypeDescriptor typeDescription = {"TimerInput", false};
+
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
-	Timer(Timer const& other) : BaseObject(other), tickerInput_(other.tickerInput_), tickerOutput_(other.tickerOutput_) {
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	TimerInput(const TimerInput& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(),
+		  ticker_us_(other.ticker_us_) {
+		fillPropertyDescription();
+	}
+
+	TimerInput() : StructBase() {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("ticker_us", &ticker_us_);
+	}
+
+	void copyAnnotationData(const TimerInput& other) {
+		ticker_us_.copyAnnotationData(other.ticker_us_);
+	}
+
+	TimerInput& operator=(const TimerInput& other) {
+		ticker_us_ = other.ticker_us_;
+		return *this;
+	}
+
+public:
+	Property<int64_t, DisplayNameAnnotation, LinkEndAnnotation> ticker_us_{false, {"Ticker Input"}, {}};
+};
+
+class TimerOutput : public StructBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"TimerOutput", false};
+
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	TimerOutput(const TimerOutput& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(),
+		  ticker_us_(other.ticker_us_) {
+		fillPropertyDescription();
+	}
+
+	TimerOutput() : StructBase() {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("ticker_us", &ticker_us_);
+	}
+
+	void copyAnnotationData(const TimerOutput& other) {
+		ticker_us_.copyAnnotationData(other.ticker_us_);
+	}
+
+	TimerOutput& operator=(const TimerOutput& other) {
+		ticker_us_ = other.ticker_us_;
+		return *this;
+	}
+
+public:
+	Property<int64_t, DisplayNameAnnotation, LinkStartAnnotation> ticker_us_{false, {"Ticker Output"}, {}};
+};
+
+
+class Timer : public BaseObject {
+public:
+	static inline const TypeDescriptor typeDescription = {"Timer", true};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	Timer(Timer const& other) : BaseObject(other), inputs_(other.inputs_), outputs_(other.outputs_) {
 		fillPropertyDescription();
 	}
 
@@ -31,14 +110,16 @@ public:
 	}
 
 	void fillPropertyDescription() {
-		properties_.emplace_back("tickerInput", &tickerInput_);
-		properties_.emplace_back("tickerOutput", &tickerOutput_);
+		properties_.emplace_back("inputs", &inputs_);
+		properties_.emplace_back("outputs", &outputs_);
 	}
 
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 
-	Property<int64_t, DisplayNameAnnotation, LinkEndAnnotation> tickerInput_{false, {"Ticker Input"}, {}};
-	Property<int64_t, DisplayNameAnnotation, LinkStartAnnotation> tickerOutput_{false, {"Ticker Output"}, {}};
+
+	// use single struct instead
+	Property<TimerInput, DisplayNameAnnotation> inputs_{{}, DisplayNameAnnotation("Inputs")};
+	Property<TimerOutput, DisplayNameAnnotation> outputs_{{}, DisplayNameAnnotation("Outputs")};
 
 };
 

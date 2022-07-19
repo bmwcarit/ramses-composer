@@ -71,6 +71,7 @@ set(RACO_PYTHON_EXAMPLE_SCRIPTS
 	python/purge_links.py
 	python/use_pip_to_install_module.py
 	python/use_pip_to_uninstall_module.py
+	python/migrate_recursive.py
 )
 
 foreach(relpath ${RACO_PYTHON_EXAMPLE_SCRIPTS})

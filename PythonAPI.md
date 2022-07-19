@@ -14,9 +14,9 @@ the RamsesComposer Python API using an embedded Python interpreter. An initial p
 option which will be loaded before the python script is started. The '--export' and '--compress' commandline options will be ignored 
 if the '-r' commandline option is present.
 
-The commandline options not recognized by RaCoHeadless are collected and passed on to the python script where they are accessible in `sys.argv`.
-For example invoking `RaCoHeadless -r test.py abc -l 2 def` will run the script 'test.py', set the log level to 2 and  pass the list `['abc', 'def']`
-to python as `sys.argv`.
+The commandline options not recognized by RaCoHeadless are collected and passed on to the python script where they are accessible in `sys.argv`. 
+The first element of `sys.argv` is the python script path. For example invoking `RaCoHeadless -r test.py abc -l 2 def` will run the script 'test.py', 
+set the log level to 2 and  pass the list `['test.py', 'abc', 'def']` to python as `sys.argv`.
 
 The Python API is contained in the "raco" Python module which needs to be imported explicity. 
 
@@ -44,6 +44,12 @@ Please be aware that virtualenv or venv are known to cause problems if used with
 
 > save(path)
 >> Save the active project under the given `path`.
+
+> projectPath()
+>> Get the path of the active project. Returns an empty string if there is no active project loaded.
+
+> externalProjects()
+>> Get a list of the absolute paths of all externally referenced projects.
 
 > export(ramses_path, logic_path, compress)
 >> Export the active project. The paths of the Ramses and RamsesLogic files need to be specified. Additionallly compression can be enabled using the `compress` flag.
@@ -87,8 +93,8 @@ Member functions:
 >> 	Returns the internal object ID of the object as a string. The object ID is automatically generated and can't be changed.
 	
 Properties can be accessed like python class members using either the dot notation or the getattr/setattr functions.
-To obtain a property `getattr(node, "visible")` or `node.visible` will return the 'visible' property of the 'node' object as a PropertyDescriptor. 
-Changing properties is possible using the dot notation, e.g. `node.visible = True`, or using the setattr function, e.g. `setattr(node, 'visible', True)`.
+To obtain a property `getattr(node, "visibility")` or `node.visibility` will return the 'visibility' property of the 'node' object as a PropertyDescriptor.
+Changing properties is possible using the dot notation, e.g. `node.visibility = True`, or using the setattr function, e.g. `setattr(node, 'visibility', True)`.
 
 
 ## Properties
@@ -99,7 +105,7 @@ link-related operations.
 PropertyDescriptors can also be used almost like normal Python objects. 
 
 The printed representation includes the type and the full path of the property starting with the object name itself, e.g. 
-`<Property[Bool]: 'lua.luaInputs.struct.in_bool'>`.
+`<Property[Bool]: 'lua.inputs.struct.in_bool'>`.
 
 ### Global Functions:
 
@@ -108,6 +114,9 @@ The printed representation includes the type and the full path of the property s
 	
 ### Member Functions
 	
+> object()
+>> Return the object the property is contained in.
+
 > typeName()
 >> Returns the name of the property type as a string. 
 	
@@ -118,15 +127,15 @@ The printed representation includes the type and the full path of the property s
 >> Returns the value of the property for scalar properties (numbers, bool, string, references). Returns None for properties which have substructure.
 	
 Read and write access to substructure of complex properties is performed as for objects, i.e. with dot notation or the getattr/setattr functions.
-`getattr(lua.luaInputs, 'bool')` or `lua.luaInputs.bool` will return a PropertyDescriptor for the nested property. Setting a property is possible with
-`lua.luaInputs.bool = True` or `setattr(lua.luaInputs, 'bool', True)`.
+`getattr(lua.inputs, 'bool')` or `lua.inputs.bool` will return a PropertyDescriptor for the nested property. Setting a property is possible with
+`lua.inputs.bool = True` or `setattr(lua.inputs, 'bool', True)`.
 
 
 ## Links
 
 Links are represented by LinkDescriptors. 
 
-The printed representation includes the property paths including the object names of both the start end endpoints of the link as well as the link validity flag, e.g. `<Link: start='lua.luaOutputs.vec' end='my_node.rotation' valid='true'>`.
+The printed representation includes the property paths including the object names of both the start end endpoints of the link as well as the link validity flag, e.g. `<Link: start='lua.outputs.vec' end='my_node.rotation' valid='true'>`.
 
 ### Member variables
 

@@ -40,9 +40,11 @@ public:
 	void readDataFromEngine(core::DataChangeRecorder &recorder);
 
 protected:
+	void connectHelper(const core::PropertyDescriptor& start, const rlogic::Property& endEngineProp);
+
 	SceneAdaptor* sceneAdaptor_;
 	core::LinkDescriptor editorLink_;
-	std::vector<UniqueEngineLink> engineLink_;
+	std::vector<UniqueEngineLink> engineLinks_;
 };
 using SharedLinkAdaptor = std::shared_ptr<LinkAdaptor>;
 

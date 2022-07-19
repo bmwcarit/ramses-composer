@@ -1,6 +1,6 @@
 {
     "properties": {
-        "luaInputs": {
+        "inputs": {
             "order": [
                 "ref"
             ],
@@ -21,6 +21,13 @@
         },
         "objectID": "mesh_id",
         "objectName": "mesh",
+        "stdModules": {
+            "base": true,
+            "debug": true,
+            "math": true,
+            "string": true,
+            "table": true
+        },
         "uri": ""
     },
     "typeName": "LuaScript"

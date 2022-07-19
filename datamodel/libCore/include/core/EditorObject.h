@@ -182,6 +182,12 @@ public:
 
 	static std::string normalizedObjectID(std::string const& id);
 
+	// Object IDs are calculated in the following cases
+	// - PrefabInstance children:
+	//   PrefabInstance child ID = Xor(PrefabInstance, Prefab child ID
+	// - Prefab/PrefabInstance LuaInterface objects generated during migration
+	//   calculated from the corresponding LuaScript object by xoring with '1'
+	//   LuaInterface ID = Xor(LuaScript ID, 0x01)
 	static std::string XorObjectIDs(std::string const& id1, std::string const& id2);
 
 	void fillPropertyDescription() {
@@ -280,11 +286,13 @@ private:
 template<>
 struct std::iterator_traits<raco::core::EditorObject::ChildIterator> {
 	using value_type = raco::core::SEditorObject;
+	using reference = raco::core::SEditorObject&;
 	using iterator_category = std::forward_iterator_tag;
 };
 
 template<>
 struct std::iterator_traits<raco::core::TreeIterator> {
 	using value_type = raco::core::SEditorObject;
+	using reference = raco::core::SEditorObject&;
 	using iterator_category = std::forward_iterator_tag;
 };

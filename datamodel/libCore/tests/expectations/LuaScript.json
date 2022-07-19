@@ -2,6 +2,13 @@
     "properties": {
         "objectID": "lua_script_id",
         "objectName": "lua_script",
+        "stdModules": {
+            "base": true,
+            "debug": true,
+            "math": true,
+            "string": true,
+            "table": true
+        },
         "uri": ""
     },
     "typeName": "LuaScript"

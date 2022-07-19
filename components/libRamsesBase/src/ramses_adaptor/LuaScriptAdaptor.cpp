@@ -37,6 +37,10 @@ LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<u
 			  recreateStatus_ = true;
 		  }
 	  })),
+	  stdModuleSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScript::stdModules_}, [this](auto) {
+		  tagDirty();
+		  recreateStatus_ = true;
+	  })},
 	  moduleSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScript::luaModules_}, [this](auto) {
 		  tagDirty();
 		  recreateStatus_ = true;
@@ -46,7 +50,7 @@ LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<u
 }
 
 void LuaScriptAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
-	return logicNodes.push_back(rlogicLuaScript());
+	logicNodes.push_back(rlogicLuaScript());
 }
 
 void LuaScriptAdaptor::setupParentSubscription() {
@@ -63,7 +67,7 @@ void LuaScriptAdaptor::setupParentSubscription() {
 }
 
 void LuaScriptAdaptor::setupInputValuesSubscription() {
-	inputSubscription_ = sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScript::luaInputs_}, [this](auto) {
+	inputSubscription_ = sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaScript::inputs_}, [this](auto) {
 		// Only normal tag dirty here; don't set recreateStatus_
 		tagDirty();
 	});
@@ -89,7 +93,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 		luaScript_.reset();
 		if (!scriptContent.empty()) {
 			std::vector<raco::ramses_base::RamsesLuaModule> modules;
-			auto luaConfig = raco::ramses_base::defaultLuaConfig();
+			auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
 			const auto& moduleDeps = editorObject_->luaModules_.asTable();
 			for (auto i = 0; i < moduleDeps.size(); ++i) {
 				if (auto moduleRef = moduleDeps.get(i)->asRef()) {
@@ -105,7 +109,7 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 	}
 
 	if (luaScript_) {
-		core::ValueHandle luaInputs{editorObject_, &user_types::LuaScript::luaInputs_};
+		core::ValueHandle luaInputs{editorObject_, &user_types::LuaScript::inputs_};
 		auto success = setLuaInputInEngine(luaScript_->getInputs(), luaInputs);
 		LOG_WARNING_IF(log_system::RAMSES_ADAPTOR, !success, "Script set properties failed: {}", LogicEngineErrors{sceneAdaptor_->logicEngine()});
 	}
@@ -117,22 +121,14 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 
 void LuaScriptAdaptor::readDataFromEngine(core::DataChangeRecorder &recorder) {
 	if (luaScript_) {
-		core::ValueHandle luaOutputs{editorObject_, &user_types::LuaScript::luaOutputs_};
+		core::ValueHandle luaOutputs{editorObject_, &user_types::LuaScript::outputs_};
 		getOutputFromEngine(*luaScript_->getOutputs(), luaOutputs, recorder);
 	}
 }
 
 const rlogic::Property* LuaScriptAdaptor::getProperty(const std::vector<std::string>& names) {
-	const rlogic::Property* prop{names.at(0) == "luaInputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
-	for (size_t i{1}; i < names.size(); i++) {
-		if ( prop->getType()==rlogic::EPropertyType::Array) {
-			// convert 1-bases Editor index back to 0-based index
-			prop = prop->getChild(std::stoi(names.at(i))-1);
-		} else {
-			prop = prop->getChild(names.at(i));
-		}
-	}
-	return prop;
+	const rlogic::Property* prop{names.at(0) == "inputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
+	return ILogicPropertyProvider::getPropertyRecursive(prop, names, 1);
 }
 
 void LuaScriptAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {

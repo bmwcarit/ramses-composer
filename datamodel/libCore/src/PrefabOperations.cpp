@@ -18,6 +18,7 @@
 
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/LuaInterface.h"
 
 #include <unordered_set>
 
@@ -63,7 +64,7 @@ SPrefabInstance PrefabOperations::findOuterContainingPrefabInstance(SEditorObjec
 }
 
 bool PrefabOperations::isInterfaceObject(SEditorObject object) {
-	if (!object->as<LuaScript>()) {
+	if (!object->as<LuaInterface>()) {
 		return false;
 	}
 	auto inst = PrefabOperations::findOuterContainingPrefabInstance(object);
@@ -71,7 +72,19 @@ bool PrefabOperations::isInterfaceObject(SEditorObject object) {
 }
 
 bool PrefabOperations::isInterfaceProperty(const ValueHandle& prop) {
-	return isInterfaceObject(prop.rootObject()) && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs";
+	return isInterfaceObject(prop.rootObject()) && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "inputs";
+}
+
+bool PrefabOperations::isPrefabInterfaceObject(SEditorObject object) {
+	if (!object->as<LuaInterface>()) {
+		return false;
+	}
+	auto prefab = PrefabOperations::findContainingPrefab(object);
+	return prefab && object->getParent() == prefab;
+}
+
+bool PrefabOperations::isPrefabInterfaceProperty(const PropertyDescriptor& prop) {
+	return isPrefabInterfaceObject(prop.object()) && prop.propertyNames().size() >= 1 && prop.propertyNames()[0] == "inputs";
 }
 
 
@@ -145,6 +158,20 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 		return obj;
 	};
 
+	auto isPrefabInstanceInterfaceObject = [instance](SEditorObject object) -> bool {
+		return object->getParent() == instance && object->isType<LuaInterface>();
+	};
+
+	auto isPrefabInterfaceObject = [prefab](SEditorObject object) -> bool {
+		return object->getParent() == prefab && object->isType<LuaInterface>();
+	};
+
+	// Check if a property of a prefab child object is an interface property.
+	auto isPrefabInterfaceProperty = [isPrefabInterfaceObject, prefab](const ValueHandle& prop) {
+		return isPrefabInterfaceObject(prop.rootObject()) && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "inputs";
+	};
+
+
 	// Delete prefab instance children who don't have corresponding prefab children
 	{
 		std::vector<SEditorObject> toRemove;
@@ -174,22 +201,22 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 
 	for (const auto& instLinkCont : instLinks) {
 		for (const auto& instLink : instLinkCont.second) {
-			if (!lookupLink(instLink, prefabLinks, translateRefToPrefabFunc)) {
-				// Don't remove links ending on top-level lua scripts:
-				// These are the only changeably properties in the prefab instance children.
-				auto instEndObject = *instLink->endObject_;
-				if (instEndObject->as<user_types::LuaScript>() && instEndObject->getParent() == instance) {
-					continue;
-				}
+			// Don't remove links ending on top-level lua interfaces:
+			// These are the only changeably properties in the prefab instance children.
+			if (!isPrefabInstanceInterfaceObject(*instLink->endObject_)) {
+				if (!lookupLink(instLink, prefabLinks, translateRefToPrefabFunc)) {
+					context.project()->removeLink(instLink);
+					localChanges.recordRemoveLink(instLink->descriptor());
 
-				context.project()->removeLink(instLink);
-				localChanges.recordRemoveLink(instLink->descriptor());
+					// If we remove links we need to start propagating the property value again.
+					// To ensure this we create a changed value entry to be processed below.
+					auto instEndObject = *instLink->endObject_;
+					auto prefabEndObject = mapToPrefab[instEndObject];
 
-				auto prefabEndObject = mapToPrefab[instEndObject];
-
-				ValueHandle prefabEndHandle = ValueHandle::translatedHandle(ValueHandle(instLink->endProp()), prefabEndObject);
-				if (prefabEndHandle) {
-					allChangedValues.insert(prefabEndHandle);
+					ValueHandle prefabEndHandle = ValueHandle::translatedHandle(ValueHandle(instLink->endProp()), prefabEndObject);
+					if (prefabEndHandle) {
+						allChangedValues.insert(prefabEndHandle);
+					}
 				}
 			}
 		}
@@ -222,23 +249,20 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			&localChanges, true, false);
 	}
 
-	// Check if a property of a prefab child object is an interface property.
-	auto isInterfaceProperty = [prefab](const ValueHandle& prop) {
-		return prop.rootObject()->getParent() == prefab && prop.rootObject()->as<LuaScript>() && prop.depth() >= 1 && prop.getPropertyNamesVector()[0] == "luaInputs";
-	};
 
 	// Update prefab children objects which have creation records in the context model changes but we already have a corresponding 
 	// prefabinstance child object. These have not been created and updated above. They may contain properties without value changed
 	// records which we still need to update.
 	// - Since the prefab instance child object already exists we do not update interface properties here.
 	// - This might lead to duplicate work if the properties we update here also have a value changed entry in the model changes.
+	// Use case: the save file optimization will remove extref Prefab contents but not the local prefab instance interface scripts.
 	for (auto object : context.modelChanges().getCreatedObjects()) {
 		if (prefabChildren.find(object) != prefabChildren.end()) {
 			auto instChild = mapToInstance.find(object)->second;
 			UndoHelpers::updateEditorObject(
 				object.get(), instChild, translateRefFunc,
-				[object, &isInterfaceProperty](const std::string& propName) {
-					return propName == "objectID" || isInterfaceProperty({object, {propName}});
+				[object, &isPrefabInterfaceProperty](const std::string& propName) {
+					return propName == "objectID" || isPrefabInterfaceProperty({object, {propName}});
 				},
 				*context.objectFactory(),
 				&localChanges, true, false);
@@ -264,7 +288,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 				auto inst = it->second;
 				ValueHandle instProp = ValueHandle::translatedHandle(prop, inst);
 
-				if (!isInterfaceProperty(prop)) {
+				if (!isPrefabInterfaceProperty(prop)) {
 					UndoHelpers::updateSingleValue(prop.valueRef(), instProp.valueRef(), instProp, translateRefFunc, &localChanges, true);
 				}
 			}
@@ -273,26 +297,19 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 
 	for (const auto& prefabLinkCont : prefabLinks) {
 		for (const auto& prefabLink : prefabLinkCont.second) {
-			auto instLink = lookupLink(prefabLink, instLinks, translateRefFunc);
-			if (!instLink) {
-				// Create links
-
-				// Special case for links ending on top-level lua scripts: only add links if the lua script is among the created objects.
-				auto prefabEndObject = *prefabLink->endObject_;
-				if (prefabEndObject->as<user_types::LuaScript>() && prefabEndObject->getParent() == prefab &&
-					std::find_if(createdObjects.begin(), createdObjects.end(), [prefabEndObject](auto item) {
-						return item.first == prefabEndObject;
-					}) == createdObjects.end()) {
-					continue;
+			// Don't propagate links ending on interface scripts:
+			if (!isPrefabInterfaceObject(*prefabLink->endObject_)) {
+				auto instLink = lookupLink(prefabLink, instLinks, translateRefFunc);
+				if (!instLink) {
+					// Create link
+					auto destLink = Link::cloneLinkWithTranslation(prefabLink, translateRefFunc);
+					context.project()->addLink(destLink);
+					localChanges.recordAddLink(destLink->descriptor());
+				} else if (instLink->isValid() != prefabLink->isValid()) {
+					// update link validity
+					instLink->isValid_ = prefabLink->isValid();
+					localChanges.recordChangeValidityOfLink(instLink->descriptor());
 				}
-
-				auto destLink = Link::cloneLinkWithTranslation(prefabLink, translateRefFunc);
-				context.project()->addLink(destLink);
-				localChanges.recordAddLink(destLink->descriptor());
-			} else if (instLink->isValid() != prefabLink->isValid()) {
-				// update link validity
-				instLink->isValid_ = prefabLink->isValid();
-				localChanges.recordChangeValidityOfLink(instLink->descriptor());
 			}
 		}
 	}

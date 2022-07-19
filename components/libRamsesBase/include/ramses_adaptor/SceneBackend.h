@@ -37,7 +37,7 @@ public:
 	using SDataChangeDispatcher = raco::components::SDataChangeDispatcher;
 
 	explicit SceneBackend(ramses_base::BaseEngineBackend* engine, const SDataChangeDispatcher& dispatcher);
-	void setScene(Project* project, core::Errors *errors);
+	void setScene(Project* project, core::Errors* errors, bool optimizeForExport);
 	void reset();
 	void flush();
 	void readDataFromEngine(core::DataChangeRecorder &recorder);

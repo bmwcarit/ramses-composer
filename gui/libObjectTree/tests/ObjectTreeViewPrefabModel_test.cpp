@@ -13,13 +13,14 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
+#include "user_types/LuaInterface.h"
 
 using namespace raco::user_types;
 
 class ObjectTreeViewPrefabModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewPrefabModelTest() : ObjectTreeViewDefaultModelTest() {
-		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewPrefabModel(&commandInterface, dataChangeDispatcher_, nullptr,
+		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewPrefabModel(&commandInterface, application_.dataChangeDispatcher(), nullptr,
 			{Animation::typeDescription.typeName,
 				Node::typeDescription.typeName,
 				MeshNode::typeDescription.typeName,
@@ -27,7 +28,8 @@ public:
 				PrefabInstance::typeDescription.typeName,
 				OrthographicCamera::typeDescription.typeName,
 				PerspectiveCamera::typeDescription.typeName,
-				LuaScript::typeDescription.typeName}));
+				LuaScript::typeDescription.typeName,
+				LuaInterface::typeDescription.typeName}));
 	}
 };
 
@@ -67,7 +69,8 @@ TEST_F(ObjectTreeViewPrefabModelTest, TypesAllowedIntoIndexNode) {
 		PrefabInstance::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
-		LuaScript::typeDescription.typeName};
+		LuaScript::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName};
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -139,10 +142,10 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedSceneGraphWithResourc
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 
 	commandInterface.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({meshNode}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
@@ -154,10 +157,10 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedSceneGraphWithResourc
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
 	commandInterface.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto copiedObjs = commandInterface.copyObjects({meshNode}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID(prefab->objectID()), parsedObjs, sourceProjectTopLevelObjectIds));
@@ -168,10 +171,10 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPre
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
 	commandInterface.set(raco::core::ValueHandle{prefabInstance, {"template"}}, prefab);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto cutObjs = commandInterface.cutObjects({prefabInstance}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(cutObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
@@ -183,13 +186,13 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsAllowedInEmpt
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
 	commandInterface.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	commandInterface.moveScenegraphChildren({meshNode}, prefab);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto copiedObjs = commandInterface.copyObjects({prefab}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
@@ -201,13 +204,13 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsNotAllowedUnd
 	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"prefab", "prefab2"});
 
 	commandInterface.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	commandInterface.moveScenegraphChildren({meshNode}, prefabs.front());
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto copiedObjs = commandInterface.copyObjects({prefabs.front()}, true);
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex(viewModel_->indexFromTreeNodeID(prefabs[1]->objectID()), parsedObjs, sourceProjectTopLevelObjectIds));
@@ -243,9 +246,9 @@ TEST_F(ObjectTreeViewPrefabModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {
 	ASSERT_FALSE(viewModel_->canCopyAtIndices({extRefGroupIndex}));
 	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({extRefGroupIndex}));
 
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 	auto copiedObjs = commandInterface.copyObjects({extRefPrefab});
-	dataChangeDispatcher_->dispatch(recorder.release());
+	application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 	auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));

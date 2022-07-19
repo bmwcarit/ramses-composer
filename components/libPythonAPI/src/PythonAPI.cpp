@@ -67,6 +67,9 @@ py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 					case raco::core::EngineEnumeration::TextureMagSamplingMethod:
 						return py::cast(static_cast<ramses::ETextureSamplingMethod>(handle.asInt()));
 
+					case raco::core::EngineEnumeration::TextureFormat:
+						return py::cast(static_cast<ramses::ETextureFormat>(handle.asInt()));
+
 					case raco::core::EngineEnumeration::RenderBufferFormat:
 						return py::cast(static_cast<ramses::ERenderBufferFormat>(handle.asInt()));
 
@@ -203,6 +206,16 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.value("Linear_MipMapNearest", ramses::ETextureSamplingMethod_Linear_MipMapNearest)
 		.value("Linear_MipMapLinear", ramses::ETextureSamplingMethod_Linear_MipMapLinear);
 
+	py::enum_<ramses::ETextureFormat>(m, "ETextureFormat")
+		.value("R8", ramses::ETextureFormat::R8)
+		.value("RG8", ramses::ETextureFormat::RG8)
+		.value("RGB8", ramses::ETextureFormat::RGB8)
+		.value("RGBA8", ramses::ETextureFormat::RGBA8)
+		.value("RGB16F", ramses::ETextureFormat::RGB16F)
+		.value("RGBA16F", ramses::ETextureFormat::RGBA16F)
+		.value("SRGB8", ramses::ETextureFormat::SRGB8)
+		.value("SRGB8_ALPHA8", ramses::ETextureFormat::SRGB8_ALPHA8);
+
 	py::enum_<ramses::ERenderBufferFormat>(m, "ERenderBufferFormat")
 		.value("RGBA4", ramses::ERenderBufferFormat_RGBA4)
 		.value("R8", ramses::ERenderBufferFormat_R8)
@@ -231,11 +244,16 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 
 
 	m.def("load", [](std::string path) {
-		try {
-			app->switchActiveRaCoProject(QString::fromStdString(path), false);
-		} catch (std::exception& e) {
+		if (!path.empty()) {
+			try {
+				app->switchActiveRaCoProject(QString::fromStdString(path), false);
+			} catch (std::exception& e) {
+				app->switchActiveRaCoProject(QString(), false);
+				throw e;
+			}
+		} else {
 			app->switchActiveRaCoProject(QString(), false);
-			throw e;
+			throw std::runtime_error("Load project: file name is empty.");
 		}
 	});
 
@@ -252,6 +270,19 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		} else {
 			throw std::runtime_error(fmt::format("Can not save project: externally referenced projects not clean."));
 		}
+	});
+
+	m.def("projectPath", [](){
+		return app->activeProjectPath();
+	});
+	
+	m.def("externalProjects", []() {
+		py::list externalPaths;
+		for (auto const & [ id, info ] : app->activeRaCoProject().project()->externalProjectsMap()) {
+			auto absPath = raco::utils::u8path(info.path).normalizedAbsolutePath(app->activeRaCoProject().project()->currentFolder());
+			externalPaths.append(py::cast(absPath.string()));
+		}
+		return externalPaths;
 	});
 
 	m.def("export", [](std::string ramsesExport, std::string logicExport, bool compress) {
@@ -285,6 +316,7 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 			python_set_value(desc.child(name), value);
 		})
 		.def(py::self == py::self)
+		.def("object", &raco::core::PropertyDescriptor::object)
 		.def("typeName", [](const raco::core::PropertyDescriptor& desc) -> py::object {
 			auto handle = raco::core::ValueHandle(desc);
 			if (handle) {
@@ -397,7 +429,7 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 	});
 
 	m.def("addLink", [](const raco::core::PropertyDescriptor& start, const raco::core::PropertyDescriptor& end) -> py::object {
-		if (auto newLink = app->activeRaCoProject().commandInterface()->addLink(start, end)) {
+		if (auto newLink = app->activeRaCoProject().commandInterface()->addLink(raco::core::ValueHandle(start), raco::core::ValueHandle(end))) {
 			app->doOneLoop();
 			return py::cast(newLink->descriptor());
 		}

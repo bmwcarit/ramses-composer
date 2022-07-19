@@ -1,6 +1,6 @@
 {
     "properties": {
-        "luaInputs": {
+        "inputs": {
             "order": [
                 "float_array"
             ],
@@ -107,6 +107,13 @@
         },
         "objectID": "lua_script_id",
         "objectName": "lua_script",
+        "stdModules": {
+            "base": true,
+            "debug": true,
+            "math": true,
+            "string": true,
+            "table": true
+        },
         "uri": "SerializationTest/serializeLuaScriptInFloatArray/testData/in-float-array.lua"
     },
     "typeName": "LuaScript"

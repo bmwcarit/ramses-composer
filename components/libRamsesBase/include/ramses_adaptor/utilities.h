@@ -157,7 +157,7 @@ struct Scaling final : public Vec3f {
 	template <typename DataType>
 	static Scaling from(const std::shared_ptr<DataType>& node) {
 		static_assert(std::is_base_of<user_types::EditorObject, DataType>::value);
-		return {static_cast<float>(node->scale_->x.asDouble()), static_cast<float>(node->scale_->y.asDouble()), static_cast<float>(node->scale_->z.asDouble())};
+		return {static_cast<float>(node->scaling_->x.asDouble()), static_cast<float>(node->scaling_->y.asDouble()), static_cast<float>(node->scaling_->z.asDouble())};
 	}
 };
 
@@ -523,16 +523,5 @@ inline void setCullMode(ramses::Appearance* appearance, const core::ValueHandle&
 inline bool isArrayOfStructs(const rlogic::Property& property) {
 	return property.getType() == rlogic::EPropertyType::Array && property.getChildCount() > 0 && property.getChild(0)->getType() == rlogic::EPropertyType::Struct;
 }
-
-template <auto T>
-struct engine_property_name { static constexpr std::string_view value{}; };
-template <>
-struct engine_property_name<&user_types::Node::visible_> { static constexpr std::string_view value{"visibility"}; };
-template <>
-struct engine_property_name<&user_types::Node::translation_> { static constexpr std::string_view value{"translation"}; };
-template <>
-struct engine_property_name<&user_types::Node::rotation_> { static constexpr std::string_view value{"rotation"}; };
-template <>
-struct engine_property_name<&user_types::Node::scale_> { static constexpr std::string_view value{"scaling"}; };
 
 };	// namespace raco::ramses_adaptor

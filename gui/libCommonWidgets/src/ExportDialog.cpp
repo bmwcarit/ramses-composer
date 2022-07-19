@@ -166,6 +166,8 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	QObject::connect(ramsesEdit_, &QLineEdit::textChanged, this, &ExportDialog::updateButtonStates);
 	QObject::connect(logicEdit_, &QLineEdit::textChanged, this, &ExportDialog::updateButtonStates);
 	updateButtonStates();
+
+	setAttribute(Qt::WA_DeleteOnClose);
 }
 
 void ExportDialog::exportProject() {

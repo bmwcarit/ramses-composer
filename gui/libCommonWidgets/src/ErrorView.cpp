@@ -129,6 +129,13 @@ ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::compo
 		}
 	}
 
+	regenerateTable();
+
+	if (embeddedInExportView) {
+		// embedded Error View is in modal window that does not allow any scene/property change
+		return;
+	}
+
 	errorChangeSubscription_ = dispatcher->registerOnErrorChangedInScene([this]() {
 		regenerateTable();
 	});
@@ -143,7 +150,6 @@ ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::compo
 		regenerateTable();
 	});
 
-	regenerateTable();
 }
 
 std::vector<std::string> ErrorView::rowToVector(const QModelIndex& rowIndex) const {

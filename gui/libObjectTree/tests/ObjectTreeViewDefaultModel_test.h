@@ -10,10 +10,12 @@
 #pragma once
 #include "gtest/gtest.h"
 
+#include "application/RaCoApplication.h"
 #include "core/Context.h"
 #include "core/Project.h"
 #include "core/Undo.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
+#include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "testing/TestEnvironmentCore.h"
 #include "user_types/CubeMap.h"
@@ -32,7 +34,7 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 
 		for (const auto &name : nodeNames) {
 			createdNodes.emplace_back(context.createObject(type, name));
-			dataChangeDispatcher_->dispatch(recorder.release());
+			application_.dataChangeDispatcher()->dispatch(recorder.release());
 		}
 
 		return createdNodes;
@@ -40,12 +42,12 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 
 	void moveScenegraphChildren(std::vector<raco::core::SEditorObject> const &objects, raco::core::SEditorObject parent, int row = -1) {
 		viewModel_->moveScenegraphChildren(objects, parent, row);
-		dataChangeDispatcher_->dispatch(recorder.release());
+		application_.dataChangeDispatcher()->dispatch(recorder.release());
 	}
 
 	size_t deleteObjectsAtIndices(const QModelIndexList& index) {
 		auto delObjAmount = viewModel_->deleteObjectsAtIndices({index});
-		dataChangeDispatcher_->dispatch(recorder.release());
+		application_.dataChangeDispatcher()->dispatch(recorder.release());
 		return delObjAmount;
 	}
 
@@ -54,8 +56,9 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 	}
 
    protected:
-	raco::components::SDataChangeDispatcher dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()};
 	std::vector<std::string> nodeNames_;
+	raco::application::RaCoApplication application_{backend};
+	raco::core::ExternalProjectsStoreInterface *externalProjectStore_{application_.externalProjects()};
 	std::unique_ptr<raco::object_tree::model::ObjectTreeViewDefaultModel> viewModel_;
 
 	ObjectTreeViewDefaultModelTest();
