@@ -72,6 +72,7 @@ public:
 	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
 	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void WriteAsset(std::string filePath);
+	void WriteBasicInfo(HmiWidget::TWidget* widget);
 
 private:
 	void ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);

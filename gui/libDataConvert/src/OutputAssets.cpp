@@ -1021,6 +1021,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
+	WriteBasicInfo(widget);
 	std::string animation_interal = ConvertAnimationInfo(widget);
 	ConvertCurveInfo(widget, animation_interal);
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
@@ -1037,6 +1038,29 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	outfile.open(filePath + "/widget.ptw", std::ios_base::out | std::ios_base::trunc);
 	outfile << output << std::endl;
 	outfile.close();
+}
+
+void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
+	TIdentifier* type = new TIdentifier;
+	type->set_valuestring("eWidgetType_Generate");
+	widget->set_allocated_type(type);
+	TIdentifier* prototype = new TIdentifier;
+	prototype->set_valuestring("eWidgetType_Model");
+	widget->set_allocated_prototype(prototype);
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("WidgetNameHint");
+	externalModelValue->set_allocated_key(key);
+	TVariant* variant = new TVariant;
+	variant->set_asciistring("WIDGET_SCENE");
+	externalModelValue->set_allocated_variant(variant);
+	externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier* key1 = new TIdentifier;
+	key1->set_valuestring("eParam_ModelResourceId");
+	externalModelValue->set_allocated_key(key1);
+	TVariant* variant1 = new TVariant;
+	variant1->set_resourceid("scene.ptx");
+	externalModelValue->set_allocated_variant(variant1);
 }
 
 void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform) {
