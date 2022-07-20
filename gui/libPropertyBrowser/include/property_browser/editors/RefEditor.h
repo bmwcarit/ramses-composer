@@ -28,6 +28,7 @@ public:
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
 	bool unexpectedEmptyReference() const noexcept;
+	void setNodeDataMaterialChanged(int index);
 
 protected:
 	Q_SLOT void updateItems(const PropertyBrowserRef::ComboBoxItems& items);

@@ -54,6 +54,12 @@ public:
 	const QIcon typeAnimationChannel{":typeAnimationChannelIcon"};
 	const QIcon typeAnimation{":typeAnimationIcon"};
 	const QIcon typeTimer{":typeTimerIcon"};
+    const QIcon typeZoom{":typeZoomIcon"};
+    const QIcon animationNext{":typeAnimationNextIcon"};
+    const QIcon animationPrevious{":typeAnimationPreviousIcon"};
+    const QIcon animationStart{":typeAnimationStartIcon"};
+    const QIcon animationStop{":typeAnimationStopIcon"};
+    const QIcon appLogo{":applicationLogo"};
 
 	static const Icons& instance();
 

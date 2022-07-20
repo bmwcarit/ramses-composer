@@ -20,6 +20,14 @@ add_library(libPropertyBrowser
     include/property_browser/PropertySubtreeView.h src/PropertySubtreeView.cpp
     include/property_browser/WidgetFactory.h src/WidgetFactory.cpp
 
+    include/property_browser_extend/PropertyBrowserNodeWidget.h  src/property_browser_extend/PropertyBrowserNodeWidget.cpp
+    include/property_browser_extend/PropertyBrowserMeshWidget.h src/property_browser_extend/PropertyBrowserMeshWidget.cpp
+    include/property_browser_extend/PropertyBrowserCustomWidget.h src/property_browser_extend/PropertyBrowserCustomWidget.cpp
+    include/property_browser_extend/PropertyBrowserCustomView.h src/property_browser_extend/PropertyBrowserCustomView.cpp
+    include/property_browser_extend/PropertyBrowserCurveBindingWidget.h src/property_browser_extend/PropertyBrowserCurveBindingWidget.cpp
+    include/property_browser_extend/PropertyBrowserCurveBindingView.h src/property_browser_extend/PropertyBrowserCurveBindingView.cpp
+    include/property_browser_extend/controls/ExpandControlNoItemButton.h  src/property_browser_extend/controls/ExpandControlNoItemButton.cpp
+
     include/property_browser/editors/BoolEditor.h src/editors/BoolEditor.cpp
     include/property_browser/editors/DoubleEditor.h src/editors/DoubleEditor.cpp
     include/property_browser/editors/EnumerationEditor.h src/editors/EnumerationEditor.cpp
@@ -32,11 +40,13 @@ add_library(libPropertyBrowser
     include/property_browser/editors/TagContainerEditor.h src/editors/TagContainerEditor.cpp
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
     include/property_browser/editors/VecNTEditor.h src/editors/VecNTEditor.cpp
+    include/property_browser/editors/SearchEditor.h src/editors/SearchEditor.cpp
     
     include/property_browser/controls/ExpandButton.h src/controls/ExpandButton.cpp
     include/property_browser/controls/MouseWheelGuard.h src/controls/MouseWheelGuard.cpp
     include/property_browser/controls/ScalarSlider.h src/controls/ScalarSlider.cpp
     include/property_browser/controls/SpinBox.h src/controls/SpinBox.cpp
+    include/property_browser/controls/ResultTree.h src/controls/ResultTree.cpp
 
     src/ErrorBox.h src/ErrorBox.cpp
     src/editors/TagContainerEditor/TagContainerEditor_Popup.h src/editors/TagContainerEditor/TagContainerEditor_Popup.cpp
@@ -61,6 +71,11 @@ PUBLIC
     raco::UserTypes
     raco::Components
     raco::CommonWidgets
+    raco::TimeAxis
+    raco::node_logic
+    raco::material_logic
+    raco::GuiData
+    raco::signal
     Qt5::Widgets
 PRIVATE
     raco::Style

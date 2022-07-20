@@ -24,15 +24,15 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 		auto* undoAction = menu->addAction("Undo");
 		undoAction->setShortcut(QKeySequence::Undo);
 		undoAction->setEnabled(racoApplication->activeRaCoProject().undoStack()->canUndo());
-		QObject::connect(undoAction, &QAction::triggered, this, [menu, racoApplication]() {
-			globalUndoCallback(racoApplication);
+        QObject::connect(undoAction, &QAction::triggered, this, [menu, racoApplication, objectTreeDockManager]() {
+            globalUndoCallback(racoApplication, objectTreeDockManager);
 		});
 
 		auto* redoAction = menu->addAction("Redo");
 		redoAction->setShortcut(QKeySequence::Redo);
 		redoAction->setEnabled(racoApplication->activeRaCoProject().undoStack()->canRedo());
-		QObject::connect(redoAction, &QAction::triggered, this, [menu, racoApplication]() {
-			globalRedoCallback(racoApplication);
+        QObject::connect(redoAction, &QAction::triggered, this, [menu, racoApplication, objectTreeDockManager]() {
+            globalRedoCallback(racoApplication, objectTreeDockManager);
 		});
 
 		sub_ = racoApplication->dataChangeDispatcher()->registerOnUndoChanged([racoApplication, undoAction, redoAction]() {
@@ -74,22 +74,30 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 	});
 }
 
-void EditMenu::globalUndoCallback(raco::application::RaCoApplication* racoApplication) {
+void EditMenu::globalUndoCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager *objectTreeDockManager) {
 	if (racoApplication->activeRaCoProject().undoStack()->canUndo()) {
 		racoApplication->activeRaCoProject().undoStack()->undo();
 	}
+    if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
+        auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
+        focusedTreeView->globalOpreations();
+    }
 }
 
-void EditMenu::globalRedoCallback(raco::application::RaCoApplication* racoApplication) {
+void EditMenu::globalRedoCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager *objectTreeDockManager) {
 	if (racoApplication->activeRaCoProject().undoStack()->canRedo()) {
 		racoApplication->activeRaCoProject().undoStack()->redo();
 	}
+    if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
+        auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
+        focusedTreeView->globalOpreations();
+    }
 }
 
 void EditMenu::globalCopyCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager) {
 	if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
 		auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
-		focusedTreeView->globalCopyCallback();
+        focusedTreeView->globalCopyCallback();
 	}
 }
 

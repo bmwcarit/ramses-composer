@@ -19,6 +19,7 @@
 #include "property_browser/controls/MouseWheelGuard.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
+#include "NodeData/nodeManager.h"
 
 #include <QComboBox>
 #include <QEvent>
@@ -50,9 +51,13 @@ RefEditor::RefEditor(
 	QObject::connect(ref_, &PropertyBrowserRef::indexChanged, comboBox_, &QComboBox::setCurrentIndex);
 	QObject::connect(ref_, &PropertyBrowserRef::itemsChanged, this, &RefEditor::updateItems);
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), ref_, &PropertyBrowserRef::setIndex);
-	QObject::connect(comboBox_, qOverload<int>(&QComboBox::currentIndexChanged), [this](auto index) {
+	QObject::connect(comboBox_, qOverload<int>(&QComboBox::currentIndexChanged), [this, item](auto index) {
 		emptyReference_ = (index == PropertyBrowserRef::EMPTY_REF_INDEX);
 		goToRefObjectButton_->setDisabled(emptyReference_);
+		if (item->displayName() == "material") {
+			setNodeDataMaterialChanged(index);
+		}
+
 		comboBox_->setToolTip(comboBox_->itemData(index, Qt::ToolTipRole).toString());
 	});
 	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
@@ -69,6 +74,16 @@ RefEditor::RefEditor(
 		comboBox_->setEnabled(item_->editable());
 		goToRefObjectButton_->setEnabled(!emptyReference_);
 	});
+}
+
+void RefEditor::setNodeDataMaterialChanged(int index) {
+	raco::guiData::NodeData* pNode = raco::guiData::NodeDataManager::GetInstance().getActiveNode();
+
+	if (index && pNode->getMaterialName() != ref_->items().at(index).objName.toStdString()) {  // is't empty
+		pNode->uniformClear();
+		pNode->setMaterialName(ref_->items().at(index).objName.toStdString());
+		pNode->setMaterialIsChanged(true);
+	}
 }
 
 void RefEditor::updateItems(const PropertyBrowserRef::ComboBoxItems& items) {

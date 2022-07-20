@@ -12,6 +12,10 @@
 #include "components/DataChangeDispatcher.h"
 #include "components/DebugInstanceCounter.h"
 #include "ramses_widgets/RendererBackend.h"
+#include "core/CommandInterface.h"
+#include "user_types/PerspectiveCamera.h"
+#include "ramses_base/RamsesHandles.h"
+#include "style/Icons.h"
 #include <QLabel>
 #include <QMainWindow>
 #include <QToolButton>
@@ -53,19 +57,38 @@ public:
 		const QSize& sceneSize,
 		raco::core::Project* project,
 		raco::components::SDataChangeDispatcher dispatcher,
+		raco::core::CommandInterface* commandInterface,
 		QWidget* parent = nullptr);
 	~PreviewMainWindow();
 	void displayScene(ramses::sceneId_t sceneId, core::Vec4f const& backgroundColor);
+	void setAxesIconLabel(QLabel * axesIcon);
+	void setAxesIcon(const bool& z_up);
+	void sceneScaleUpdate(bool zup, float scaleValue, bool scaleUp);
 
 public Q_SLOTS:
 	void setViewport(const QSize& sceneSize);
+	void setAxes(const bool& z_up);
 	void commit();
+	void updateAxesIconLabel();
+	void setEnableDisplayGrid(bool enable);
+	void sceneUpdate(bool z_up);
 
 private:
 	std::unique_ptr<Ui::PreviewMainWindow> ui_;
 	PreviewContentWidget* previewWidget_;
 	PreviewScrollAreaWidget* scrollAreaWidget_;
 	QLabel* sceneIdLabel_;
+	raco::core::Project* project_;
+	raco::core::CommandInterface* commandInterface_;
+	raco::ramses_adaptor::SceneBackend* sceneBackend_;
+	bool zUp_;
+	QLabel* axesIcon_;
+	QSize sceneSize_;
+	bool updateAxesIconLabel_;
+	float scaleValue_;
+	int mode_;
+	bool haveInited_;
+    QLabel *upLabel_{nullptr};
 };
 
 }  // namespace raco::ramses_widgets

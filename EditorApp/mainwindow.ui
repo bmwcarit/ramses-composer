@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>400</width>
-     <height>21</height>
+     <height>17</height>
     </rect>
    </property>
    <property name="contextMenuPolicy">
@@ -36,6 +36,7 @@
     <addaction name="actionSaveAs"/>
     <addaction name="separator"/>
     <addaction name="actionExport"/>
+    <addaction name="actionExportBMWAssets"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
     <addaction name="separator"/>
@@ -74,6 +75,11 @@
     <addaction name="actionNewUndoView"/>
     <addaction name="actionNewErrorView"/>
     <addaction name="actionNewLogView"/>
+    <addaction name="separator"/>
+    <addaction name="actionNewAnimation"/>
+    <addaction name="actionNewCurve"/>
+    <addaction name="actionNewProperty"/>
+    <addaction name="actionNewTimeAxisView"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -231,6 +237,46 @@
   <action name="actionNewLogView">
    <property name="text">
     <string>New Log View</string>
+   </property>
+  </action>
+  <action name="actionNewAnimation">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>New Animation</string>
+   </property>
+   <property name="toolTip">
+    <string>New Animation</string>
+   </property>
+  </action>
+  <action name="actionNewCurve">
+   <property name="text">
+    <string>New Curve</string>
+   </property>
+   <property name="toolTip">
+    <string>New Curve</string>
+   </property>
+  </action>
+  <action name="actionNewProperty">
+   <property name="text">
+    <string>New Property</string>
+   </property>
+  </action>
+  <action name="actionNewTimeAxisView">
+   <property name="text">
+    <string>New Time Axis View</string>
+   </property>
+  </action>
+  <action name="actionExportBMWAssets">
+   <property name="text">
+    <string>Export BMW Assets</string>
+   </property>
+   <property name="toolTip">
+    <string>BMW Asset</string>
    </property>
   </action>
  </widget>

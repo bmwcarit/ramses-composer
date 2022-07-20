@@ -66,8 +66,9 @@ namespace raco::serialization {
  * 34: Replaced RenderLayer invertMaterialFilter bool by materialFilterMode int property.
  * 35: Removed redundant information from .rca file.
  *     This needed changes in the loading code so the files can't be loaded with older version anymore.
+ * 36: Added z_up to the ProjectSettings
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 35;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 36;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR);
 

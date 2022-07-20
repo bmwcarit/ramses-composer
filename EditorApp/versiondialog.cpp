@@ -10,6 +10,7 @@
 #include "versiondialog.h"
 #include "ui_versiondialog.h"
 #include "ramses_base/Utils.h"
+#include <QDebug>
 
 #ifndef RAMSES_VERSION
 #define RAMSES_VERSION "?.?.?"
@@ -32,8 +33,8 @@ VersionDialog::VersionDialog(QWidget *parent) :
     ui(new Ui::VersionDialog)
 {
     ui->setupUi(this);
-	ui->ramsesComposerVersion->setText(QString(RACO_OSS_VERSION));
-	ui->ramsesComposerCommit->setText(QString(RACO_OSS_COMMIT));
+	ui->ramsesComposerVersion->setText(QString("1.0.1"));
+	ui->ramsesComposerCommit->setText(QString("d2e924"));
 	ui->ramsesVersion->setText(QString::fromStdString(raco::ramses_base::getRamsesVersionString()));
 	ui->ramsesBuiltVersion->setText(QString(RAMSES_VERSION));
 	ui->logicEngineVersion->setText(QString::fromStdString(raco::ramses_base::getLogicEngineVersionString()));

@@ -162,7 +162,7 @@ std::string TextureSamplerAdaptor::createDefaultTextureDataName() {
 }
 
 void TextureSamplerAdaptor::flipDecodedPicture(std::vector<unsigned char>& rawPictureData, unsigned int availableChannels, unsigned int width, unsigned int height, unsigned int bitdepth) {
-	unsigned lineSize = width * availableChannels * (bitdepth / 8);
+    unsigned lineSize = width * availableChannels * (bitdepth / 8);
 	for (unsigned y = 0; y < height / 2; y++) {
 		unsigned lineIndex = y * lineSize;
 		unsigned swapIndex = (height - y - 1) * lineSize;
@@ -188,8 +188,8 @@ std::vector<unsigned char>& TextureSamplerAdaptor::getFallbackTextureData(bool f
 
 		file.close();
 
-		unsigned int width;
-		unsigned int height;
+        unsigned int width{0};
+        unsigned int height{0};
 		lodepng::decode(fallbackTextureData_[0], width, height, sBuffer);
 		fallbackTextureData_[1] = fallbackTextureData_[0];
 		flipDecodedPicture(fallbackTextureData_[1], 4, width, height, 8);

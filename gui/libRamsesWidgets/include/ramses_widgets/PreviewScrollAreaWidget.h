@@ -25,10 +25,16 @@ public:
 		BEST_FIT,
 		ORIGINAL_FIT
 	};
+	enum class AutoPreviewMode {
+		ROAM,
+		PREVIEW
+	};
+
 	explicit PreviewScrollAreaWidget(const QSize& sceneSize, QWidget* parent = nullptr);
 
 	bool isGlobalPositionInsidePreview(const QPoint& p);
 	std::optional<QPoint> globalPositionToPreviewPosition(const QPoint& p);
+	void setForceUpdateFlag(bool forceUpdate);
 
 public Q_SLOTS:
 	void setAutoSizing(const AutoSizing mode);
@@ -38,6 +44,8 @@ public Q_SLOTS:
 	void autoSizingOriginalFit();
 	void autoSizingOff();
 	void setViewport(const QSize& sceneSize);
+	void autoModeRoam();
+	void autoModePreview();
 
 private Q_SLOTS:
 	void setScaleValue(const double value);
@@ -50,8 +58,9 @@ Q_SIGNALS:
 		const QSize viewportSize,
 		const QSize virtualSize,
 		const QSize targetSize) const;
-	void scaleChanged(const double scale);
+	void scaleChanged(const double scale, const bool scaleUp);
 	void autoSizingChanged(const AutoSizing mode);
+	void autoPreviewOrRoamModeChanged(const AutoPreviewMode mode);
 
 protected:
 	void resizeEvent(QResizeEvent* event) override;
@@ -66,10 +75,13 @@ private:
 	QSize scaledSize() const noexcept;
 
 	AutoSizing sizeMode_{AutoSizing::BEST_FIT};
+	AutoPreviewMode previewMode_{AutoPreviewMode::ROAM};
 	double scaleValue_{1.0};
 	QPoint mousePivot_{0, 0};
 	QPoint viewportPosition_{0, 0};
 	QSize sceneSize_;
+	bool forceUpdate_;
+	float s_scaleValue;
 };
 
 }  // namespace raco::ramses_widgets

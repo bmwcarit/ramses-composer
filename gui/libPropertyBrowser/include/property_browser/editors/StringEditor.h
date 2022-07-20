@@ -61,4 +61,30 @@ protected:
 	StringEditorLineEdit* lineEdit_;
 };
 
+class StringNoItemEditor : public QWidget {
+    Q_OBJECT
+public:
+    explicit StringNoItemEditor(QWidget* parent = nullptr);
+    bool updatedInBackground() const;
+    void setEnable(bool bEnabled);
+    QString getLineText() {
+        return lineEdit_->text();
+    }
+
+public Q_SLOTS:
+    void setText(const QString& t);
+
+
+Q_SIGNALS:
+    void changedText(QString);
+
+
+protected:
+    bool editingStartedByUser();
+
+    bool updatedInBackground_ = false;
+    core::ErrorLevel errorLevel_{core::ErrorLevel::NONE};
+    QLineEdit* lineEdit_;
+};
+
 }  // namespace raco::property_browser

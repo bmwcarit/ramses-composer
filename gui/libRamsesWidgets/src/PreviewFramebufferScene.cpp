@@ -85,13 +85,13 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 		1, 2, 3};
 
 	const uint32_t indexSize = static_cast<uint32_t>(sizeof(uint32_t) * index_data.size());
-	indexDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::UInt32, indexSize, index_data.data());
+	indexDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::UInt32, index_data.size(), index_data.data());
 
 	const uint32_t vertexSize = static_cast<uint32_t>(sizeof(float) * vertex_data.size());
-	vertexDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector3F, vertexSize, vertex_data.data());
+	vertexDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector3F, vertex_data.size() / 3, vertex_data.data());
 
 	const uint32_t uvSize = static_cast<uint32_t>(sizeof(float) * uv_data.size());
-	uvDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector2F, uvSize, uv_data.data());
+	uvDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector2F, uv_data.size() / 2, uv_data.data());
 
 	geometryBinding_ = ramsesGeometryBinding(scene_.get(), effect_);
 	(*geometryBinding_)->setIndices(*indexDataBuffer_.get());

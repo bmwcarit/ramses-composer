@@ -18,6 +18,7 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <unordered_set>
+#include <QtWidgets/qradiobutton.h>
 
 class QGridLayout;
 
@@ -33,6 +34,9 @@ public:
 	QPushButton* deselectAllButton_;
 	QHBoxLayout* massSelectButtonLayout_;
 	QDialogButtonBox* dialogButtonBox_;
+	QRadioButton* yAxesUpButton_;
+	QRadioButton* zAxesUpButton_;
+	QHBoxLayout* axesDirectionButtonLayout_;
 
 private:
 	void iterateThroughChildren(QTreeWidgetItem* item, const std::function<void(QTreeWidgetItem*)> &func);

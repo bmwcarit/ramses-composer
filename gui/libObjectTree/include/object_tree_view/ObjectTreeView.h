@@ -9,8 +9,10 @@
  */
 #pragma once
 
+#include "MeshData/MeshDataManager.h"
 #include "core/EditorObject.h"
-
+#include "node_logic/NodeLogic.h"
+#include "signal/SignalProxy.h"
 #include <QAbstractItemModel>
 #include <QTreeView>
 #include <unordered_set>
@@ -36,6 +38,19 @@ public:
 	std::set<ValueHandle> getSelectedHandles() const;
 	QString getViewTitle() const;
 
+	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
+    void getOneMeshHandle(QModelIndex index);
+    bool getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData);
+    bool getOneMaterialHandle(ValueHandle &valueHandle);
+    void getOneMaterials(QModelIndex index, std::map<std::string, core::ValueHandle> &materialHandleMap);
+    std::map<std::string, core::ValueHandle> updateNodeTree();
+	std::map<std::string, core::ValueHandle> updateResource();
+    std::map<std::string, core::ValueHandle> updateMaterial();
+    void updateMeshData();
+    int attriElementSize(raco::guiData::VertexAttribDataType type);
+    void convertGltfAnimation();
+    bool getAnimationHandle(QModelIndex index, core::ValueHandle &valueHandle);
+
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
 	bool canCopyAtIndices(const QModelIndexList &indices);
@@ -52,11 +67,14 @@ Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void newObjectTreeItemsSelected(const std::set<ValueHandle> &handles);
-	void externalObjectSelected();
+    void externalObjectSelected();
+    void setResourceHandles(const std::map<std::string, core::ValueHandle>& map);
+    void updateNodeHandles(const QString &title, const std::map<std::string, core::ValueHandle> &map);
 
 public Q_SLOTS:
 	void resetSelection();
 	void globalCopyCallback();
+    void globalOpreations();
 	void cut();
 	void duplicateObjects();
 	void globalPasteCallback(const QModelIndex &index, bool asExtRef = false);
@@ -65,6 +83,9 @@ public Q_SLOTS:
 	void expandAllParentsOfObject(const QString &objectID);
 	void expanded(const QModelIndex &index);
 	void collapsed(const QModelIndex &index);
+    void getResourceHandles();
+    void fillMeshData();
+    void deleteAnimationHandle(std::string id);
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;
@@ -81,6 +102,7 @@ protected:
 	void mousePressEvent(QMouseEvent *event) override;
 
 	std::vector<SEditorObject> indicesToSEditorObjects(const QModelIndexList &index) const;
+	core::SEditorObject indexToSEditorObject(const QModelIndex &index) const;
 	std::string indexToTreeNodeID(const QModelIndex &index) const;
 	QModelIndex indexFromTreeNodeID(const std::string &id) const;
 

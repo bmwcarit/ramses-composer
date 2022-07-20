@@ -14,19 +14,29 @@
 #include <QStyle>
 #include <QWidget>
 #include <QLabel>
+#include <QClipboard>
+#include <QStandardItemModel>
+#include <QComboBox>
 
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
 #include "property_browser/PropertySubtreeChildrenContainer.h"
+#include "property_browser/controls/ExpandButton.h"
+#include "CurveData/CurveManager.h"
+#include "NodeData/nodeManager.h"
+#include "AnimationData/animationData.h"
+#include "signal/SignalProxy.h"
 
+using namespace raco::signal;
+using namespace raco::guiData;
 namespace raco::property_browser {
 class PropertyControl;
-
 class EmbeddedPropertyBrowserView final : public QFrame {
 public:
 	explicit EmbeddedPropertyBrowserView(PropertyBrowserItem* item, QWidget* parent);
 };
+
 
 class PropertySubtreeView final : public QWidget {
 	Q_OBJECT
@@ -34,19 +44,34 @@ class PropertySubtreeView final : public QWidget {
 public:
 	explicit PropertySubtreeView(PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent);
 	PropertyBrowserItem const* item() { return item_; }
+	void mousePressEvent(QMouseEvent* event);
+	void setUniformControls(PropertyBrowserItem* item, PropertyBrowserHBoxLayout* labelLayout);
+	std::vector<Uniform> Item2Uniform(PropertyBrowserItem* item);
+	bool materialChanged();
+
+
 public Q_SLOTS:
 	void playStructureChangeAnimation();
 	void setLabelAreaWidth(int offset);
 	void updateChildrenContainer();
+    void slotTreeMenu(const QPoint &pos);
+    void slotInsertKeyFrame();
+    void slotCopyProperty();
+	void updateUniformCombox();
+	void delUniformButtonClicked();
+	bool isShowUniform(QString name);
+	void slotUniformNameChanged(QString s);
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
 	int getLabelAreaWidthHint() const;
 	Q_SLOT void updateError();
+
 private:
 	void recalculateLabelWidth();
 	void collectTabWidgets(QObject* item, QWidgetList& tabWidgets);
 	void recalculateTabOrder();
+    bool isValidValueHandle(QStringList list, raco::core::ValueHandle handle);
 
 	PropertyBrowserItem* item_{nullptr};
 	PropertyBrowserModel* model_ {nullptr};
@@ -55,8 +80,19 @@ private:
 	QLabel* label_{nullptr};
 	QWidget* propertyControl_{nullptr};
 	PropertySubtreeChildrenContainer* childrenContainer_{nullptr};
+    QAction* insertKeyFrameAction_{nullptr};
+    QAction* copyProperty_{nullptr};
+
 	int labelWidth_{0};
 	float highlight_{0};
+	// remove uniform attribute
+	QPushButton* uniformDelButton_{nullptr};
+	// Insert uniform attribute
+	QComboBox* uniformComBox_{nullptr};
+	bool isUniform_{false};
+	bool isChecked_{false};
+	QPalette palette_;
+	QWidget* labelContainer_;
 };
 
 }  // namespace raco::property_browser

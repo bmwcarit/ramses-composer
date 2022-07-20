@@ -50,6 +50,8 @@ void ObjectTreeDock::addTreeView(ObjectTreeView *treeView) {
 
 	assert(!savedTreeViews_.contains(treeViewTitle));
 
+    connect(this, &ObjectTreeDock::selectObject, treeView, &ObjectTreeView::selectObject);
+
 	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, [this](const auto &handles) {
 		Q_EMIT newObjectTreeItemsSelected(handles, this);
 	});

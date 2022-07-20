@@ -22,6 +22,8 @@ PreviewScrollAreaWidget::PreviewScrollAreaWidget(const QSize& sceneSize, QWidget
 	: QAbstractScrollArea{parent}, sceneSize_{sceneSize} {
 	connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, &PreviewScrollAreaWidget::updateViewport);
 	connect(verticalScrollBar(), &QScrollBar::valueChanged, this, &PreviewScrollAreaWidget::updateViewport);
+	forceUpdate_ = false;
+	s_scaleValue = 1.0f;
 }
 
 void PreviewScrollAreaWidget::setAutoSizing(const AutoSizing mode) {
@@ -61,6 +63,20 @@ void PreviewScrollAreaWidget::resizeEvent(QResizeEvent* /*event*/) {
 	updateViewport();
 }
 
+void PreviewScrollAreaWidget::autoModeRoam() {
+	if (previewMode_ != AutoPreviewMode::ROAM) {
+		previewMode_ = AutoPreviewMode::ROAM;
+		Q_EMIT autoPreviewOrRoamModeChanged(AutoPreviewMode::ROAM);
+	}
+}
+
+void PreviewScrollAreaWidget::autoModePreview() {
+	if (previewMode_ != AutoPreviewMode::PREVIEW) {
+		previewMode_ = AutoPreviewMode::PREVIEW;
+		Q_EMIT autoPreviewOrRoamModeChanged(AutoPreviewMode::PREVIEW);
+	}
+}
+
 std::optional<QPoint> PreviewScrollAreaWidget::globalPositionToPreviewPosition(const QPoint& p) {
 	auto localPosition = viewport()->mapFromGlobal(p);
 	auto result = QPoint{
@@ -82,15 +98,19 @@ void PreviewScrollAreaWidget::wheelEvent(QWheelEvent* event) {
 	auto virtSize = scaledSize();
 	double centreX = static_cast<double>(horizontalScrollBar()->value() + mousePivot_.x()) / virtSize.width();
 	double centerY = static_cast<double>(verticalScrollBar()->value() + mousePivot_.y()) / virtSize.height();
-	if (sizeMode_ != AutoSizing::OFF) {
-		sizeMode_ = AutoSizing::OFF;
-		scaleValue_ = pow(2, ceil(log(scaleValue_) / log(2)));
-	}
+	// if (sizeMode_ != AutoSizing::OFF) {
+	// 	sizeMode_ = AutoSizing::OFF;
+	// 	s_scaleValue = pow(2, ceil(log(s_scaleValue) / log(2)));
+	// }
+	bool scaleUp = true;
 	if (event->angleDelta().y() > 0) {
-		scaleValue_ *= 2.0;
+		s_scaleValue *= 1.05;
 	} else {
-		scaleValue_ *= 0.5;
+		s_scaleValue *= 0.95;
+		scaleUp = false;
 	}
+	Q_EMIT scaleChanged(s_scaleValue, scaleUp);
+	scaleValue_ = 1.0;
 	virtSize = scaledSize();
 
 	updateScrollbarSize(virtSize);
@@ -172,8 +192,9 @@ void PreviewScrollAreaWidget::updateViewport() {
 	const QPoint viewportOffset{horizontalScrollBar()->value(), verticalScrollBar()->value()};
 
 	Q_EMIT viewportRectChanged(areaSize, viewportPosition_, viewportOffset, viewportSize, widgetSize, sceneSize_);
-	Q_EMIT scaleChanged(scaleValue_);
+	// Q_EMIT scaleChanged(scaleValue_);
 	Q_EMIT autoSizingChanged(sizeMode_);
+	Q_EMIT autoPreviewOrRoamModeChanged(previewMode_);
 }
 
 void PreviewScrollAreaWidget::updateScrollbarSize(const QSize& widgetSize) noexcept {
@@ -190,10 +211,14 @@ QSize PreviewScrollAreaWidget::scaledSize() const noexcept {
 
 void PreviewScrollAreaWidget::setViewport(const QSize& sceneSize) {
 	QSize size = sceneSize.boundedTo({4096, 4096}).expandedTo({1, 1});
-	if (sceneSize_ != size) {
+	if (sceneSize_ != size || forceUpdate_) {
 		sceneSize_ = size;
 		updateViewport();
 	}
+}
+
+void PreviewScrollAreaWidget::setForceUpdateFlag(bool forceUpdate) {
+	forceUpdate_ = forceUpdate;
 }
 
 }  // namespace raco::ramses_widgets

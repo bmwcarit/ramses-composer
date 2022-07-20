@@ -14,6 +14,12 @@
 #include "object_tree_view/ObjectTreeDockManager.h"
 #include "ramses_widgets/RendererBackend.h"
 #include "common_widgets/log_model/LogViewModel.h"
+#include "node_logic/NodeLogic.h"
+#include "curve/CurveNameWidget.h"
+#include "material_logic/materalLogic.h"
+#include "data_Convert/ProgramManager.h"
+#include "curve/CurveLogic.h"
+#include "gltf_Animation/GltfAnimationManager.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -49,6 +55,10 @@ public:
 		static inline const char* UNDO_STACK{"Undo Stack"};
 		static inline const char* ERROR_VIEW{"Error View"};
 		static inline const char* LOG_VIEW{"Log View"};
+		static inline const char* ANIMATION_VIEW{"animation View"};
+		static inline const char* CURVE_VIEW{"Curve View"};
+		static inline const char* PROPERTY_VIEW{"property View"};
+		static inline const char* TIME_AXIS_VIEW{"Time Axis View"};
 	};
 
 	explicit MainWindow(
@@ -57,13 +67,17 @@ public:
 		QWidget* parent = nullptr);
 	~MainWindow();
 
+    void initLogic();
 	void setNewPreviewMenuEntryEnabled(bool enabled);
 	void updateApplicationTitle();
 	void updateSavedLayoutMenu();
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
-
+	void slotCreateCurveAndBinding(QString property, QString curve, QVariant value);
+	void slotCreateCurve(QString property, QString curve, QVariant value);
+    void setResourceHandles(const std::map<std::string, raco::core::ValueHandle> &map);
+    void updateNodeHandles(const QString &title, const std::map<std::string, raco::core::ValueHandle> &map);
 protected:
 	void timerEvent(QTimerEvent* event) override;
 	void closeEvent(QCloseEvent* event) override;
@@ -74,19 +88,25 @@ protected:
 	void restoreCachedLayout();
 	void restoreCustomLayout(const QString& layoutName);
 	void regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks);
-	void saveDockManagerCustomLayouts();
+    void saveDockManagerCustomLayouts();
 
 protected Q_SLOTS:
 	void openProject(const QString& file = {});
 	bool saveActiveProject();
+	bool exportBMWAssets();
 	bool saveAsActiveProject();
 	void importScene();
 	void resetDockManager();
 	void updateActiveProjectConnection();
 
 Q_SIGNALS:
+    void getResourceHandles();
+    void updateMeshData();
 	void viewportChanged(const QSize& sceneSize);
 
+    void axesChanged(const bool& z_up);
+    void displayGridChanged(const bool& enable);
+    void sceneUpdated(const bool& z_up);
 private:
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;
@@ -96,8 +116,14 @@ private:
 	raco::application::RaCoApplication* racoApplication_;
 	raco::object_tree::view::ObjectTreeDockManager treeDockManager_;
 	raco::common_widgets::TimingsModel timingsModel_{this};
+    raco::dataConvert::ProgramManager programManager_;
 	QMetaObject::Connection activeProjectFileConnection_;
 	raco::common_widgets::LogViewModel* logViewModel_;
+	raco::node_logic::NodeLogic* nodeLogic_{nullptr};
+    CurveLogic *curveLogic_{nullptr};
+	CurveNameWidget* curveNameWidget_{nullptr};
+	raco::material_logic::MateralLogic* materialLogic_{nullptr};
+    GltfAnimationManager *gltfAnimationMgr_{nullptr};
 
 	int renderTimerId_ = 0;
 };

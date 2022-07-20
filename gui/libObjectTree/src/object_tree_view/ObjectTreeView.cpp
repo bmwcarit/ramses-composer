@@ -15,13 +15,16 @@
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "core/UserObjectFactoryInterface.h"
+#include "user_types/Mesh.h"
 #include "user_types/Node.h"
+#include "user_types/Material.h"
 
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
+#include "MeshData/MeshDataManager.h"
 #include "utils/u8path.h"
 
 #include <QContextMenuEvent>
@@ -34,6 +37,7 @@
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
+#include <QDebug>
 
 namespace raco::object_tree::view {
 
@@ -84,6 +88,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemExpansionStates);
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemSelectionStates);
+    connect(treeModel_, &raco::object_tree::model::ObjectTreeViewDefaultModel::editNodeOpreations, this, &ObjectTreeView::globalOpreations);
 
 	setColumnWidth(ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, width() / 3);
 
@@ -94,12 +99,268 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	auto duplicateShortcut = new QShortcut({"Ctrl+D"}, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
+
+    QObject::connect(&signalProxy::GetInstance(), &signalProxy::sigDeleteAniamtionNode, this, &ObjectTreeView::deleteAnimationHandle);
 }
 
 std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 	auto selectedObjects = indicesToSEditorObjects(selectionModel()->selectedIndexes());
 
 	return std::set<ValueHandle>(selectedObjects.begin(), selectedObjects.end());
+}
+
+void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap) {
+	if (!model()->hasChildren(index)) {
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		NodeData tempNode;
+		std::string str;
+		str = tempHandle[0].getPropertyPath();
+		tempNode.setName(str);
+		str = tempHandle[0].asString();
+		NodeNameHandleReMap.emplace(str, tempHandle);
+		tempNode.setObjectID(str);
+
+		tempNode.setParent(parent);
+
+        NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
+        if (data) {
+            tempNode.setNodeExtend(data->NodeExtendRef());
+        }
+
+		parent->childMapRef().emplace(tempNode.getName(), std::move(tempNode));
+	} else {
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		NodeData tempNode;
+		std::string str;
+		str = tempHandle[0].getPropertyPath();
+		tempNode.setName(str);
+		str = tempHandle[0].asString();
+		tempNode.setObjectID(str);
+		tempNode.setParent(parent);
+
+        NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
+        if (data) {
+            tempNode.setNodeExtend(data->NodeExtendRef());
+        }
+
+		parent->childMapRef().emplace(tempNode.getName(), tempNode);
+		NodeData *pNode = &(parent->childMapRef().find(tempNode.getName())->second);
+		for (int i{0}; i < model()->rowCount(index); i++) {
+			QModelIndex tempIndex = model()->index(i, 0, index);
+			core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+			getOnehandle(tempIndex, pNode, nodeDataManager, NodeNameHandleReMap);
+		}
+
+		NodeNameHandleReMap.emplace(tempNode.objectID(), tempHandle);
+    }
+}
+
+void ObjectTreeView::getOneMeshHandle(QModelIndex index) {
+    if (!model()->hasChildren(index)) {
+        core::ValueHandle tempHandle = indexToSEditorObject(index);
+        raco::guiData::MeshData mesh;
+        std::string objectID = tempHandle[0].asString();;
+        if (getOneMeshData(tempHandle, mesh)) {
+            MeshDataManager::GetInstance().addMeshData(objectID, mesh);
+        }
+    } else {
+        for (int i{0}; i < model()->rowCount(index); i++) {
+            QModelIndex tempIndex = model()->index(i, 0, index);
+            core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+            raco::guiData::MeshData mesh;
+            std::string objectID = tempHandle[0].asString();;
+            if (getOneMeshData(tempHandle, mesh)) {
+                MeshDataManager::GetInstance().addMeshData(objectID, mesh);
+            }
+            getOneMeshHandle(tempIndex);
+        }
+    }
+}
+bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData) {
+    if (valueHandle.hasProperty("mesh")) {
+        raco::core::ValueHandle tempHandle = valueHandle.get("mesh");
+        if (tempHandle.type() == core::PrimitiveType::Ref) {
+            raco::core::ValueHandle meshHandle = tempHandle.asRef();
+            if (meshHandle != NULL) {
+                // fill meshData
+                raco::user_types::Mesh *mesh = dynamic_cast<raco::user_types::Mesh *>(meshHandle.rootObject().get());
+
+                meshData.setNumTriangles(mesh->meshData()->numTriangles());
+                meshData.setNumVertices(mesh->meshData()->numVertices());
+                meshData.setIndices(mesh->meshData()->getIndices());
+                for (int i{0}; i < mesh->meshData()->numAttributes(); i++) {
+                    raco::guiData::Attribute attribute;
+                    attribute.name = mesh->meshData()->attribName(i);
+                    attribute.type = static_cast<raco::guiData::VertexAttribDataType>(mesh->meshData()->attribDataType(i));
+
+                    auto firstPos = mesh->meshData()->attribBuffer(i);
+                    auto posElementAmount = mesh->meshData()->attribElementCount(i);
+                    attribute.data.resize(posElementAmount * attriElementSize(attribute.type));
+                    std::memcpy(&attribute.data[0], firstPos, posElementAmount * attriElementSize(attribute.type) * sizeof(float));
+                    meshData.addAttribute(attribute);
+                }
+                if (meshHandle.hasProperty("objectName") && meshHandle.hasProperty("uri")) {
+                    std::string objectName = meshHandle.get("objectName").asString();
+                    meshData.setMeshName(objectName);
+
+                    std::string uri = "meshes/" + objectName + ".ctm";
+                    meshData.setMeshUri(uri);
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool hasMaterial(raco::core::ValueHandle handle, std::string &id) {
+    if (handle.hasProperty("materials")) {
+        raco::core::ValueHandle tempHandle = handle.get("materials");
+        if (tempHandle != NULL && tempHandle.hasProperty("material")) {
+            tempHandle = tempHandle.get("material");
+            id = tempHandle[0].asString();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ObjectTreeView::getOneMaterialHandle(ValueHandle &valueHandle) {
+    if (valueHandle.hasProperty("materials")) {
+        valueHandle = valueHandle.get("materials");
+        if (valueHandle != NULL && valueHandle.hasProperty("material")) {
+            valueHandle = valueHandle.get("material");
+            if (valueHandle.type() == core::PrimitiveType::Table) {
+                valueHandle = valueHandle[0];
+                if (valueHandle.type() == core::PrimitiveType::Ref) {
+                    valueHandle = valueHandle.asRef();
+                    if (valueHandle != NULL) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void ObjectTreeView::getOneMaterials(QModelIndex index, std::map<std::string, core::ValueHandle> &materialHandleMap) {
+    if (!model()->hasChildren(index)) {
+        core::ValueHandle tempHandle = indexToSEditorObject(index);
+        std::string objectID = tempHandle[0].asString();;
+        if (getOneMaterialHandle(tempHandle)) {
+            materialHandleMap.emplace(objectID, tempHandle);
+        }
+    } else {
+        for (int i{0}; i < model()->rowCount(index); i++) {
+            QModelIndex tempIndex = model()->index(i, 0, index);
+            core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+            std::string objectID = tempHandle[0].asString();;
+            if (getOneMaterialHandle(tempHandle)) {
+                materialHandleMap.emplace(objectID, tempHandle);
+            }
+            getOneMaterials(tempIndex, materialHandleMap);
+        }
+    }
+}
+
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
+	std::map<std::string, core::ValueHandle> NodeNameHandleReMap;
+	raco::guiData::NodeDataManager &nodeDataManager = raco::guiData::NodeDataManager::GetInstance();
+//	if (nodeDataManager.root().childMapRef().size())
+//        nodeDataManager.deleteNode(nodeDataManager.root().childMapRef().begin()->second);
+
+    NodeData *parent = new NodeData;
+
+	int row = model()->rowCount();
+	for (int i{0}; i < row; ++i) {
+		QModelIndex index = model()->index(i, 0);
+        getOnehandle(index, parent, nodeDataManager, NodeNameHandleReMap);
+	}
+
+    nodeDataManager.clearNodeData();
+    nodeDataManager.setRoot(*parent);
+    nodeDataManager.setActiveNode(parent);
+
+	return NodeNameHandleReMap;
+}
+
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
+	std::map<std::string, core::ValueHandle> ResHandleReMap;
+	int row = model()->rowCount();
+	for (int i{0}; i < row; ++i) {
+		QModelIndex index = model()->index(i, 0);
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		// 设置node的名字
+        std::string str = tempHandle[0].asString();
+		ResHandleReMap.emplace(str, tempHandle);
+//		// 设置node的 ID
+//		str = tempHandle[0].asString();
+	}
+    return ResHandleReMap;
+}
+
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateMaterial() {
+    std::map<std::string, core::ValueHandle> materialHandleReMap;
+    int row = model()->rowCount();
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        getOneMaterials(index, materialHandleReMap);
+    }
+    return materialHandleReMap;
+}
+
+void ObjectTreeView::updateMeshData() {
+    MeshDataManager::GetInstance().clearMesh();
+    int row = model()->rowCount();
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        getOneMeshHandle(index);
+    }
+}
+
+int ObjectTreeView::attriElementSize(VertexAttribDataType type) {
+    switch (type) {
+        case VertexAttribDataType::VAT_Float2:
+            return 2;
+        case VertexAttribDataType::VAT_Float3:
+            return 3;
+        case VertexAttribDataType::VAT_Float4:
+            return 4;
+        case VertexAttribDataType::VAT_Float:  // Falls through
+            return 1;
+        default:  // NOLINT(clang-diagnostic-covered-switch-default)
+            return 0;
+    }
+}
+
+void ObjectTreeView::convertGltfAnimation() {
+    int row = model()->rowCount();
+    raco::core::ValueHandle valueHandle;
+    for (int i{0}; i < row; ++i) {
+        QModelIndex index = model()->index(i, 0);
+        if (getAnimationHandle(index, valueHandle)) {
+            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(valueHandle);
+        }
+    }
+}
+
+bool ObjectTreeView::getAnimationHandle(QModelIndex index, raco::core::ValueHandle &valueHandle) {
+    if (!model()->hasChildren(index)) {
+        core::ValueHandle tempHandle = indexToSEditorObject(index);
+        if (tempHandle.rootObject().get()->getTypeDescription().typeName.compare("Animation") == 0) {
+            valueHandle = tempHandle;
+            return true;
+        }
+    } else {
+        for (int i{0}; i < model()->rowCount(index); i++) {
+            QModelIndex tempIndex = model()->index(i, 0, index);
+            if (getAnimationHandle(tempIndex, valueHandle)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void ObjectTreeView::globalCopyCallback() {
@@ -109,6 +370,19 @@ void ObjectTreeView::globalCopyCallback() {
 			treeModel_->copyObjectsAtIndices(selectedIndices, false);
 		}
 	}
+}
+
+void ObjectTreeView::globalOpreations() {
+	// TBD
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
+    }
+    QTime dieTime = QTime::currentTime().addMSecs(5);
+    while( QTime::currentTime() < dieTime ) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+    }
+    std::map<std::string, core::ValueHandle> handleMap = updateNodeTree();
+    Q_EMIT updateNodeHandles(viewTitle_, handleMap);
 }
 
 void ObjectTreeView::shortcutDelete() {
@@ -141,6 +415,30 @@ void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
 	if (objectIndex.isValid()) {
 		expandAllParentsOfObject(objectIndex);
 	}
+}
+
+void ObjectTreeView::getResourceHandles() {
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
+    }
+    std::map<std::string, core::ValueHandle> handleMap = updateMaterial();
+    Q_EMIT setResourceHandles(handleMap);
+}
+
+void ObjectTreeView::fillMeshData() {
+    if (viewTitle_.compare("Scene Graph") != 0) {
+        return;
+    }
+    updateMeshData();
+}
+
+void ObjectTreeView::deleteAnimationHandle(std::string id) {
+    auto index = indexFromTreeNodeID(id);
+    auto delObjAmount = treeModel_->deleteObjectsAtIndices(QModelIndexList() << index);
+
+    if (delObjAmount > 0) {
+        selectionModel()->Q_EMIT selectionChanged({}, {});
+    }
 }
 
 void ObjectTreeView::expanded(const QModelIndex &index) {
@@ -270,6 +568,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
+                convertGltfAnimation();
 			}
 		});
 		actionImport->setEnabled(canInsertMeshAsset);
@@ -406,6 +705,14 @@ std::vector<core::SEditorObject> ObjectTreeView::indicesToSEditorObjects(const Q
 	return treeModel_->indicesToSEditorObjects(itemIndices);
 }
 
+core::SEditorObject ObjectTreeView::indexToSEditorObject(const QModelIndex &index) const {
+	auto itemIndex = index;
+	if (proxyModel_) {
+		itemIndex = proxyModel_->mapToSource(index);
+	}
+	return treeModel_->indexToSEditorObject(itemIndex);
+}
+
 std::string ObjectTreeView::indexToTreeNodeID(const QModelIndex &index) const {
 	auto itemIndex = index;
 	if (proxyModel_) {
@@ -422,7 +729,6 @@ QModelIndex ObjectTreeView::indexFromTreeNodeID(const std::string &id) const {
 
 	return index;
 }
-
 
 QModelIndexList ObjectTreeView::getSelectedIndices(bool sorted) const {
 	auto selectedIndices = selectionModel()->selectedRows();

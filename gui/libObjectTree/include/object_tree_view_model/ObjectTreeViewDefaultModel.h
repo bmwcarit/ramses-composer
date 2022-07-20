@@ -100,7 +100,8 @@ public:
 
 Q_SIGNALS:
 	void repaintRequested();
-	void meshImportFailed(const std::string &filePath, const std::string &error);
+    void meshImportFailed(const std::string &filePath, const std::string &error);
+    void editNodeOpreations();
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const core::EditorObject::TypeDescriptor &typeDesc, const std::string &nodeName = "", const QModelIndex &parent = QModelIndex());
