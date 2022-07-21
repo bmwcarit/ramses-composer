@@ -259,6 +259,27 @@ void PropertySubtreeView::slotTreeMenu(const QPoint &pos) {
     }
 }
 
+QString PropertySubtreeView::setCurveName(QString name) {
+	QStringList list = name.split(".");
+	QString resultName = list[0];
+	if (list[list.size() - 1] == "x" || list[list.size() - 1] == "y" || list[list.size() - 1] == "z") {
+		resultName += "." + list[list.size() - 2];
+	}
+	resultName += "." + list[list.size() - 1];
+	return resultName;
+}
+
+QString PropertySubtreeView::setPropertyName(QString name) {
+	QStringList list = name.split(".");
+	QString resultName;
+	if (list[list.size() - 1] == "x" || list[list.size() - 1] == "y" || list[list.size() - 1] == "z") {
+		resultName = list[list.size() - 2] + "." + list[list.size() - 1];
+		return resultName;
+	}
+	resultName = list[list.size() - 1];
+	return resultName;
+}
+
 void PropertySubtreeView::slotInsertKeyFrame() {
     raco::core::ValueHandle valueHandle = item_->valueHandle();
     bool isResource = valueHandle.rootObject().get()->getTypeDescription().isResource;
@@ -276,13 +297,15 @@ void PropertySubtreeView::slotInsertKeyFrame() {
                 property = QString::fromStdString(valueHandle.getPropertyPath());
                 property = property.section(".", 1);
             }
-
+			property = setPropertyName(property);
             // is have active animation
             std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
             if (sampleProperty == std::string()) {
                 return;
             }
-            QString curve = QString::fromStdString(sampleProperty) + "_" + propertyPath;
+
+			propertyPath = setCurveName(propertyPath);
+            QString curve = QString::fromStdString(sampleProperty) + "." + propertyPath;
 
             double value{0};
             if (valueHandle.type() == raco::core::PrimitiveType::Double) {
@@ -296,8 +319,6 @@ void PropertySubtreeView::slotInsertKeyFrame() {
                 Q_EMIT item_->model()->sigCreateCurve(property, QString::fromStdString(it->second), value);
                 return;
             }
-
-            // If there is no corresponding binding
             Q_EMIT item_->model()->sigCreateCurveAndBinding(property, curve, value);
         }
     }

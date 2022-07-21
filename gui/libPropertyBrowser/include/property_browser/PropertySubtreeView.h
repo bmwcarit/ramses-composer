@@ -55,6 +55,8 @@ public Q_SLOTS:
 	void setLabelAreaWidth(int offset);
 	void updateChildrenContainer();
     void slotTreeMenu(const QPoint &pos);
+	QString setCurveName(QString name);
+	QString setPropertyName(QString name);
     void slotInsertKeyFrame();
     void slotCopyProperty();
 	void updateUniformCombox();

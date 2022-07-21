@@ -554,6 +554,7 @@ void initCustomPropertyProerty(QJsonObject& jsonObj, raco::guiData::NodeData& no
 	}
 }
 void initCurveBinding(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
+	std::map<std::string, std::map<std::string, std::string>> map = node.NodeExtendRef().curveBindingRef().bindingMap();
 	for (auto cuvebindList : node.NodeExtendRef().curveBindingRef().bindingMap()) {
         QJsonArray curveBindingAry;
 		for (auto curveProP : cuvebindList.second) {

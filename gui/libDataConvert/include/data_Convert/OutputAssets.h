@@ -48,6 +48,7 @@ public:
 	TEBlendOperation matchBlendOperation(BlendOperation blendOpera);
 	TEFace matchFaceCulling(Culling cull);
 	TEWinding matchWinding(WindingType wind);
+	void setMaterialDefaultRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode);
 	void setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode);
 	void uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform);
 	TETextureFilter matchFilter(Filter filter);

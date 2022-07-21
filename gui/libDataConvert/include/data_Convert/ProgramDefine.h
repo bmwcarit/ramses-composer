@@ -95,6 +95,6 @@
 #define JSON_RESOURCE               QString("resource")
 #define JSON_GENERATE_MIPMAPS       QString("generateMipMaps")
 #define JSON_MATERIAL_REF			QString("materialReference")
-#define PTX_SCENE_NAME				QString("sceneName")
+#define PTX_SCENE_NAME				QString("Scene")
 
 #endif // PROGRAMDEFINE_H

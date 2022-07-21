@@ -233,11 +233,18 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     hmiNode.set_renderorder(0);
 	hmiNode.set_childsortorderrank(0);
 
+
+	if (nodeName == "PerspectiveCamera") {
+		return;
+	}
     // mesh
-	HmiScenegraph::TMesh mesh;
-	setPtxTMesh(childNode, mesh);
-	HmiScenegraph::TMesh* it = hmiNode.add_mesh();
-	*it = mesh;
+	MeshData meshData;
+	if (raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData)) {
+		HmiScenegraph::TMesh mesh;
+		setPtxTMesh(childNode, mesh);
+		HmiScenegraph::TMesh* it = hmiNode.add_mesh();
+		*it = mesh;
+	}
 }
 
 void OutputPtx::setRootSRT(HmiScenegraph::TNode* hmiNode) {
@@ -424,6 +431,36 @@ TEWinding OutputPtx::matchWinding(WindingType wind) {
 			break;
 	}
 	return result;
+}
+// TODO
+void OutputPtx::setMaterialDefaultRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode) {
+	// winding and culling
+	rRenderMode->set_winding(TEWinding::TEWinding_CounterClockWise);
+	rRenderMode->set_culling(TEFace::TEFace_None);
+	// tblending
+	HmiScenegraph::TBlendMode* tblending = new HmiScenegraph::TBlendMode();
+	Blending blending = renderMode.getBlending();
+	// operation
+	tblending->set_blendoperationcolor(TEBlendOperation::TEBlendOperation_Add);
+	tblending->set_blendoperationalpha(TEBlendOperation::TEBlendOperation_Add);
+	// factor
+	tblending->set_sourcealphafactor(TEBlendFactor::TEBlendFactor_One);
+	tblending->set_sourcecolorfactor(TEBlendFactor::TEBlendFactor_SourceAlpha);
+	tblending->set_destinationalphafactor(TEBlendFactor::TEBlendFactor_InverseSourceAlpha);
+	tblending->set_destinationcolorfactor(TEBlendFactor::TEBlendFactor_InverseSourceAlpha);
+
+	rRenderMode->set_allocated_blending(tblending);
+	rRenderMode->set_depthcompare(TECompareFunction::TECompareFunction_Always);
+
+	rRenderMode->set_depthwrite(false);
+	// ColorWrite
+	HmiScenegraph::TRenderMode_TColorWrite* tColorWrite = new HmiScenegraph::TRenderMode_TColorWrite();
+	ColorWrite colorWrite = renderMode.getColorWrite();
+	tColorWrite->set_alpha(true);
+	tColorWrite->set_blue(true);
+	tColorWrite->set_green(true);
+	tColorWrite->set_red(true);
+	rRenderMode->set_allocated_colorwrite(tColorWrite);
 }
 
 void OutputPtx::setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode) {
@@ -681,6 +718,7 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 		// RenderMode
 		HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
 		RenderMode renderMode = data.getRenderMode();
+		// setRenderMode
 		setMaterialRenderMode(renderMode, rRenderMode);
 		tMaterial.set_allocated_rendermode(rRenderMode);
 
@@ -960,7 +998,8 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 		provider->set_allocated_variant(variant);
 		paramnode->set_allocated_provider(provider);
 		nodeParam->set_allocated_node(paramnode);
-		for (auto cuvebindList : node.NodeExtendRef().curveBindingRef().bindingMap()) {
+		auto animationList = node.NodeExtendRef().curveBindingRef().bindingMap();
+		for (auto cuvebindList : animationList) {
 			for (auto curveProP : cuvebindList.second) {
 				if (curveProP.first.find("translation") == 0) {
 					if (nodeParam->has_transform()) {

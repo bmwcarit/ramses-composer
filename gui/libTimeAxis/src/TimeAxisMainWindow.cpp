@@ -13,7 +13,6 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     QWidget(parent),
     commandInterface_(commandInterface) {
 
-//    QWidget *mainWidget = new QWidget(this);
     hTitleLayout = new QHBoxLayout(this);
     vBoxLayout_ = new QVBoxLayout(this);
     hBoxLayout = new QHBoxLayout(this);
@@ -39,7 +38,6 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     vBoxLayout_->setStretchFactor(titleWidget_, 1);
     vBoxLayout_->setStretchFactor(hBoxLayout, 7);
     this->setLayout(vBoxLayout_);
-//    setCentralWidget(mainWidget);
 
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAxis_From_NodeUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAixs_From_CurveUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
@@ -55,12 +53,10 @@ void TimeAxisMainWindow::startOrStopAnimation() {
     if (animationStarted_) {
         startBtn_->setFlat(true);
         startBtn_->setIcon(Icons::instance().animationStart);
-//        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStart);}");
         timeAxisWidget_->stopAnimation();
     } else {
         startBtn_->setFlat(true);
         startBtn_->setIcon(Icons::instance().animationStop);
-//        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStop);}");
         timeAxisWidget_->startAnimation();
     }
     animationStarted_ = !animationStarted_;
@@ -87,7 +83,7 @@ void TimeAxisMainWindow::slotTreeMenu(const QPoint &pos) {
 	} else {
 		pasteAction_->setVisible(true);
 	}
-    m_Menu.exec(QCursor::pos());  //显示菜单
+    m_Menu.exec(QCursor::pos());  // show menu
 }
 
 void TimeAxisMainWindow::slotLoad() {
@@ -140,7 +136,7 @@ void TimeAxisMainWindow::slotCreateNew() {
         return;
     }
 
-    QString strDefault = "Default Node" + QString::number(UUID_);
+    QString strDefault = "Animation" + QString::number(UUID_);
 	if (animationDataManager::GetInstance().IsHaveAnimation(strDefault.toStdString())){
         UUID_++;
         slotCreateNew();
