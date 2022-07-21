@@ -79,7 +79,7 @@ RefEditor::RefEditor(
 void RefEditor::setNodeDataMaterialChanged(int index) {
 	raco::guiData::NodeData* pNode = raco::guiData::NodeDataManager::GetInstance().getActiveNode();
 
-	if (index && pNode->getMaterialName() != ref_->items().at(index).objName.toStdString()) {  // is't empty
+	if ((index > 0) && pNode->getMaterialName() != ref_->items().at(index).objName.toStdString()) {  // is't empty
 		pNode->uniformClear();
 		pNode->setMaterialName(ref_->items().at(index).objName.toStdString());
 		pNode->setMaterialIsChanged(true);

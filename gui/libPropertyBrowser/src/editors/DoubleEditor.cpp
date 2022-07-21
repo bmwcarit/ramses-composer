@@ -26,6 +26,9 @@ namespace raco::property_browser {
 
 bool nodeDataSync(std::string propName, double value, std::string parentName = "") {
 	raco::guiData::NodeData* pNode = raco::guiData::NodeDataManager::GetInstance().getActiveNode();
+	if (pNode->getName() == "") {
+		return false;
+	}
 
 	if (propName == "x" || propName == "y" || propName == "z") {
 		if (parentName == "translation" || parentName == "scale" || parentName == "rotation") {

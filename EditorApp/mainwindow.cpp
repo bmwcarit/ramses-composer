@@ -671,7 +671,7 @@ bool MainWindow::saveActiveProject() {
 			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
 				recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 				updateApplicationTitle();
-				programManager_.writeProgram(QString::fromStdString(racoApplication_->activeProjectPath()));
+				programManager_.writeProgram2Json(QString::fromStdString(racoApplication_->activeProjectPath()));
 				return true;
 			} else {
 				updateApplicationTitle();	
@@ -732,7 +732,7 @@ bool MainWindow::saveAsActiveProject() {
             updateApplicationTitle();
 			programManager_.setOpenedProjectPath(openedProjectPath);
             programManager_.setRelativePath(QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()));
-			programManager_.writeProgram(newPath);
+			programManager_.writeProgram2Json(newPath);
 			return true;
 		} else {
 			updateApplicationTitle();
@@ -894,7 +894,22 @@ void MainWindow::updateNodeHandles(const QString &title, const std::map<std::str
     }
 }
 
+QString MainWindow::curveNameSuffix(QString curveName) {
+	int curveNameSuffix = 1;
+	while (true) {
+		if (CurveManager::GetInstance().hasCurve(curveName.toStdString())) {
+			curveName += "-" + QString::number(curveNameSuffix);
+			curveNameSuffix++;
+		} else {
+			return curveName;
+		}
+	}
+}
+
 void MainWindow::slotCreateCurveAndBinding(QString property, QString curve, QVariant value) {
+	if (CurveManager::GetInstance().hasCurve(curve.toStdString())) {
+		curve = curveNameSuffix(curve);
+	}
     if (curveNameWidget_) {
         curveNameWidget_->setBindingData(property, curve);
         if (curveNameWidget_->exec() == QDialog::Accepted) {
