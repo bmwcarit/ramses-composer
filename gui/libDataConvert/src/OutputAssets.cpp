@@ -875,7 +875,7 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		TDataProvider* provider2 = new TDataProvider;
 		TVariant* variant1 = new TVariant;
 		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(float(animation.second.GetEndTime()));
+		numeric->set_float_(float(animation.second.GetUpdateInterval()));
 		variant1->set_allocated_numeric(numeric);
 		provider2->set_allocated_variant(variant1);
 
@@ -951,12 +951,21 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 	if (0 != node.getBindingySize()) {
 		HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
 		TIdentifier* identifier = new TIdentifier;
-		identifier->set_valuestring(node.getName());
+		if (0 == node.getMaterialName().compare("")) {
+			identifier->set_valuestring(node.getName());
+		} else {
+			identifier->set_valuestring(node.getName() + "Shape");
+		}
 		nodeParam->set_allocated_identifier(identifier);
 		TDataBinding* paramnode = new TDataBinding;
 		TDataProvider* provider = new TDataProvider;
 		TVariant* variant = new TVariant;
-		variant->set_asciistring(node.getName());
+		if (0 == node.getMaterialName().compare("")) {
+			variant->set_asciistring(node.getName());
+		}else {
+			variant->set_asciistring(node.getName() + "Shape");
+		}
+		
 		provider->set_allocated_variant(variant);
 		paramnode->set_allocated_provider(provider);
 		nodeParam->set_allocated_node(paramnode);
