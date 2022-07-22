@@ -40,8 +40,14 @@ void NodeLogic::Analyzing(NodeData *pNode) {
 }
 
 bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHandle) {
+
     QString qstrPropety = QString::fromStdString(property);
     QStringList list = qstrPropety.split(".");
+	if (!list.isEmpty() && list[0] == "uniforms") {
+		property = "materials.material." + property;
+		qstrPropety = QString::fromStdString(property);
+		list = qstrPropety.split(".");
+	}
 
     auto func = [&](core::ValueHandle &tempHandle, std::string tempProp)->bool {
           if (tempHandle.hasProperty(tempProp)) {

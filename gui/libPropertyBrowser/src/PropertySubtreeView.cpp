@@ -32,6 +32,7 @@
 #include <QPropertyAnimation>
 #include <QResizeEvent>
 #include <QStandardItemModel>
+#include <QMessageBox>
 
 namespace raco::property_browser {
 
@@ -271,12 +272,17 @@ QString PropertySubtreeView::setCurveName(QString name) {
 
 QString PropertySubtreeView::setPropertyName(QString name) {
 	QStringList list = name.split(".");
-	QString resultName;
-	if (list[list.size() - 1] == "x" || list[list.size() - 1] == "y" || list[list.size() - 1] == "z") {
+	QString resultName = "";
+	// Set rotation, scaling, displacement attribute parameters
+	if (list.size() > 1 && list[list.size() - 1] == "x" || list[list.size() - 1] == "y" || list[list.size() - 1] == "z") {
 		resultName = list[list.size() - 2] + "." + list[list.size() - 1];
 		return resultName;
+	} else if (list.size() > 2 && list[list.size() - 2] == "uniforms") {
+		resultName = list[list.size() - 2] + "." + list[list.size() - 1];
+		return resultName;
+	} else {
+		QMessageBox warningBox(QMessageBox::Warning, "Warning", "This property is not available as an animated property.", QMessageBox::Yes);
 	}
-	resultName = list[list.size() - 1];
 	return resultName;
 }
 
@@ -298,6 +304,9 @@ void PropertySubtreeView::slotInsertKeyFrame() {
                 property = property.section(".", 1);
             }
 			property = setPropertyName(property);
+			if (property == "") {
+				return;
+			}
             // is have active animation
             std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
             if (sampleProperty == std::string()) {
