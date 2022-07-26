@@ -1,5 +1,13 @@
 #include "gltf_Animation/GltfAnimationManager.h"
+#include "utils/MathUtils.h"
 
+
+double fixRotationValue(double value) {
+    if (value == -180) {
+        value = 180;
+    }
+    return value;
+}
 
 GltfAnimationManager::GltfAnimationManager(raco::core::CommandInterface *commandInterface, QObject *parent)
     : QObject{parent} ,
@@ -17,10 +25,10 @@ void GltfAnimationManager::slotUpdateGltfAnimation(const raco::core::ValueHandle
     std::string animation;
     for (int i{0}; i < valueHandle.size(); ++i) {
         raco::core::ValueHandle tempHandle = valueHandle[i];
-        if (tempHandle.getPropName().compare("objectName") == 0) {
+        if (tempHandle.getPropName().compare(GLTF_OBJECT_NAME) == 0) {
             animation = tempHandle.asString();
         }
-        if (tempHandle.getPropName().compare("animationChannels") == 0) {
+        if (tempHandle.getPropName().compare(GLTF_ANIMATION_CHANNELS) == 0) {
             if (tempHandle.type() == raco::core::PrimitiveType::Table) {
                 for (int j{0}; j < tempHandle.size(); ++j) {
                     raco::core::ValueHandle aniHandle = tempHandle[j];
@@ -33,7 +41,7 @@ void GltfAnimationManager::slotUpdateGltfAnimation(const raco::core::ValueHandle
                 }
             }
         }
-        if (tempHandle.getPropName().compare("animationOutputs") == 0) {
+        if (tempHandle.getPropName().compare(GLTF_ANIMATION_OUTPUTS) == 0) {
             if (tempHandle.type() == raco::core::PrimitiveType::Table) {
                 for (int j{0}; j < tempHandle.size(); ++j) {
                     raco::core::ValueHandle aniHandle = tempHandle[j];
@@ -47,7 +55,7 @@ void GltfAnimationManager::slotUpdateGltfAnimation(const raco::core::ValueHandle
                     }
                     if (sortedLinkEnds.size() > 0) {
                         auto it = sortedLinkEnds.begin();
-                        animationNodes_.emplace(it->first, it->second);
+                        animationNodes_.push_back(it->first);
                     }
                 }
             }
@@ -71,10 +79,10 @@ void GltfAnimationManager::updateGltfAnimation(std::string animation) {
         Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateActiveAnimation_From_AnimationLogic(curAnimation_);
         Q_EMIT raco::signal::signalProxy::GetInstance().sigInitAnimationView();
         //
-        auto nodeIt = animationNodes_.begin();
         for (int i{0}; i < animationChannels_.size(); ++i) {
             raco::user_types::AnimationChannel *aniChannel = animationChannels_.at(i);
-            std::string path = nodeIt->first;
+            int samplerIndex = aniChannel->samplerIndex_.asInt();
+            std::string path = animationNodes_.at(i);
             QString qstrNode = QString::fromStdString(path).section("/", -1);
             std::string node = qstrNode.split(".").at(0).toStdString();
             std::string property = qstrNode.split(".").at(1).toStdString();
@@ -88,7 +96,6 @@ void GltfAnimationManager::updateGltfAnimation(std::string animation) {
                 // insert curves
                 updateOneGltfCurve(nodeData, keyFrames, propertyData, interpolation, property, node);
             }
-            nodeIt++;
         }
     }
     Q_EMIT raco::signal::signalProxy::GetInstance().sigInitCurveView();
@@ -117,12 +124,12 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
         return;
     }
 
-    std::string propX = property + ".x";
-    std::string propY = property + ".y";
-    std::string propZ = property + ".z";
-    std::string curveX = curAnimation_.toStdString() + "_" + node + "." + propX;
-    std::string curveY = curAnimation_.toStdString() + "_" + node + "." + propY;
-    std::string curveZ = curAnimation_.toStdString() + "_" + node + "." + propZ;
+    std::string propX = property + PROP_X;
+    std::string propY = property + PROP_Y;
+    std::string propZ = property + PROP_Z;
+    std::string curveX = curAnimation_.toStdString() + SYMBOL_UNDERLINE + node + SYMBOL_POINT + propX;
+    std::string curveY = curAnimation_.toStdString() + SYMBOL_UNDERLINE + node + SYMBOL_POINT + propY;
+    std::string curveZ = curAnimation_.toStdString() + SYMBOL_UNDERLINE + node + SYMBOL_POINT + propZ;
 
     float lastX{0};
     float lastY{0};
@@ -135,6 +142,20 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
         int keyFrame = qRound(keyFrames.at(i) * 24);
         std::vector<float> data = propertyData.at(i);
 
+        // calculate rotation property data
+        if (data.size() == 4) {
+            auto rotation = raco::utils::math::quaternionToXYZDegrees(data[0], data[1], data[2], data[3]);
+
+            insertBindingItem(propX, curveX);
+            insertBindingItem(propY, curveY);
+            insertBindingItem(propZ, curveZ);
+            insertCurve(keyFrame, fixRotationValue(rotation[0]), curveX, interpolation);
+            insertCurve(keyFrame, fixRotationValue(rotation[1]), curveY, interpolation);
+            insertCurve(keyFrame, fixRotationValue(rotation[2]), curveZ, interpolation);
+            continue;
+        }
+
+        // insert translation/scale property data
         if (data[0] != lastX || i == 0) {
             insertBindingItem(propX, curveX);
             insertCurve(keyFrame, data[0], curveX, interpolation);
@@ -154,6 +175,7 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
             invalidIndexZ++;
         }
     }
+    // handle invalid property data
     if (invalidIndexX == 1) {
         nodeData->NodeExtendRef().curveBindingRef().deleteBindingDataItem(curAnimation_.toStdString(), propX, curveX);
         if (raco::guiData::CurveManager::GetInstance().getCurve(curveX)) {

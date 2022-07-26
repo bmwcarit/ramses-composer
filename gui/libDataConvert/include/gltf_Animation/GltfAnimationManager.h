@@ -10,6 +10,15 @@
 #include "AnimationData/animationData.h"
 #include "CurveData/CurveManager.h"
 
+#define SYMBOL_POINT        std::string(".")
+#define SYMBOL_UNDERLINE    std::string("_")
+#define PROP_X              std::string(".x")
+#define PROP_Y              std::string(".y")
+#define PROP_Z              std::string(".z")
+#define GLTF_OBJECT_NAME            std::string("objectName")
+#define GLTF_ANIMATION_CHANNELS     std::string("animationChannels")
+#define GLTF_ANIMATION_OUTPUTS      std::string("animationOutputs")
+
 class GltfAnimationManager : public QObject {
     Q_OBJECT
 public:
@@ -24,7 +33,7 @@ private:
 private:
     raco::core::CommandInterface* commandInterface_{nullptr};
     std::vector<raco::user_types::AnimationChannel *> animationChannels_;
-    std::map<std::string, std::string> animationNodes_;
+    std::vector<std::string> animationNodes_;
     QString curAnimation_;
 };
 

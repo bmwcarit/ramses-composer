@@ -35,6 +35,7 @@ void PointPropertyView::slotLeftTangentChanged() {
     if (point_) {
         double value = leftTangEditor_->text().toDouble();
         point_->setLeftTagent(value);
+        Q_EMIT sigUpdateCurve();
     }
 }
 
@@ -42,6 +43,7 @@ void PointPropertyView::slotRightTangentChanged() {
     if (point_) {
         double value = rightTangEditor_->text().toDouble();
         point_->setRightTagent(value);
+        Q_EMIT sigUpdateCurve();
     }
 }
 
@@ -58,6 +60,7 @@ void PointPropertyView::initView() {
     typeComboBox_->addItem(QString("Liner"));
     typeComboBox_->addItem(QString("HERMIT_SPLINE"));
     typeComboBox_->addItem(QString("BESIER_SPLINE"));
+    typeComboBox_->addItem(QString("STEP"));
 
     keyFrameSpinBox_ = new QSpinBox(this);
     keyFrameSpinBox_->setRange(INT_MIN, INT_MAX);
@@ -108,9 +111,17 @@ void PointPropertyView::initView() {
             rightTangEditor_->setEnabled(true);
             break;
         }
+        case STEP: {
+            typeComboBox_->setCurrentIndex(STEP);
+            leftTangEditor_->setEnabled(true);
+            rightTangEditor_->setEnabled(true);
+            break;
+        }
         }
 
         connect(typeComboBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index) {
+            point_->setInterPolationType(static_cast<EInterPolationType>(index));
+            Q_EMIT sigUpdateCurve();
             if (index == 0) {
                 leftTangEditor_->setEnabled(false);
                 rightTangEditor_->setEnabled(false);

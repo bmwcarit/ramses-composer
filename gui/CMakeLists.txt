@@ -9,6 +9,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ]]
     
 add_subdirectory(libCommonWidgets)
+add_subdirectory(libCommonEditors)
 add_subdirectory(libObjectTree)
 add_subdirectory(libPropertyBrowser)
 add_subdirectory(libRamsesWidgets)

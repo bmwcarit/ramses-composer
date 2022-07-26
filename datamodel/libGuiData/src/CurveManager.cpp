@@ -65,10 +65,33 @@ std::list<Curve *> CurveManager::search(const std::string &curveNmae) {
     return tempCurveList;
 }
 
-bool CurveManager::getCurveValue(std::string curve, int keyFrame, double &value) {
+bool CurveManager::getCurveValue(std::string curve, int keyFrame, EInterPolationType type, double &value) {
     if (getCurve(curve)) {
         Curve* tempCurve = getCurve(curve);
-        if (tempCurve->getDataValue(keyFrame, value)) {
+        switch (type) {
+        case LINER: {
+            if (tempCurve->getDataValue(keyFrame, value)) {
+                return true;
+            }
+            break;
+        }
+        case STEP: {
+            if (tempCurve->getStepValue(keyFrame, value)) {
+                return true;
+            }
+            break;
+        }
+        default:
+            return false;
+        }
+    }
+    return false;
+}
+
+bool CurveManager::getPointType(std::string curve, int keyFrame, EInterPolationType &type) {
+    if (getCurve(curve)) {
+        Curve* tempCurve = getCurve(curve);
+        if (tempCurve->getPointType(keyFrame, type)) {
             return true;
         }
     }

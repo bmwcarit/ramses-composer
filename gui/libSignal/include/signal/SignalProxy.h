@@ -2,6 +2,7 @@
 #define SIGNAL_H
 
 #include "core/CommandInterface.h"
+#include "time_axis/TimeAxisCommon.h"
 #include <QObject>
 #include <QDebug>
 namespace raco::signal {
@@ -64,6 +65,10 @@ Q_SIGNALS:
     void sigUpdateGltfAnimation(const raco::core::ValueHandle &handle);
     //
     void sigDeleteAniamtionNode(const std::string id);
+    //
+//    void sigUpdateWorkerPoint(QMap<std::string, QList<raco::time_axis::PointF>> keyFrameMap, QMap<std::string, QList<QPair<QPointF, QPointF>>> workerMap);
+    //
+    void sigVisualCurveViewResize(int curX, int curY, double frameWidth, double valueWidth);
 
 signals:
 

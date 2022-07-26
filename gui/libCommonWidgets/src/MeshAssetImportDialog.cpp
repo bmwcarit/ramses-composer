@@ -86,15 +86,38 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	yAxesUpButton_ = new QRadioButton(this);
 	zAxesUpButton_ = new QRadioButton(this);
 	yAxesUpButton_->setChecked(true);
-	axesDirectionButtonLayout_ = new QHBoxLayout(nullptr);
-	axesDirectionButtonLayout_->addWidget(new QLabel("Assets Axes Direction:"));
-	axesDirectionButtonLayout_->addStretch();
+    QButtonGroup *axesButtonGroup = new QButtonGroup(this);
+    axesButtonGroup->addButton(yAxesUpButton_);
+    axesButtonGroup->addButton(zAxesUpButton_);
+    axesDirectionButtonLayout_ = new QHBoxLayout(nullptr);
+    axesDirectionButtonLayout_->addWidget(new QLabel("Assets Axes Direction:"));
+    axesDirectionButtonLayout_->addStretch();
 	axesDirectionButtonLayout_->addWidget(yAxesUpButton_);
-	axesDirectionButtonLayout_->addWidget(new QLabel("+Y up, +Z forward"));
-	axesDirectionButtonLayout_->addStretch();
+    axesDirectionButtonLayout_->addWidget(new QLabel("+Y up, +Z forward"));
+    axesDirectionButtonLayout_->addStretch();
 	axesDirectionButtonLayout_->addWidget(zAxesUpButton_);
-	axesDirectionButtonLayout_->addWidget(new QLabel("+Z up, -Y forward"));
-	axesDirectionButtonLayout_->addStretch();
+    axesDirectionButtonLayout_->addWidget(new QLabel("+Z up, -Y forward"));
+    axesDirectionButtonLayout_->addStretch();
+
+    animationNodeButton_ = new QRadioButton(this);
+    animationKeyFrameButton_ = new QRadioButton(this);
+    QButtonGroup *animationButtonGroup = new QButtonGroup(this);
+    animationButtonGroup->addButton(animationNodeButton_);
+    animationButtonGroup->addButton(animationKeyFrameButton_);
+    animationKeyFrameButton_->setChecked(true);
+    animationModeButtonLayout_ = new QHBoxLayout(nullptr);
+    animationModeButtonLayout_->addWidget(new QLabel("Animation Mode:"));
+    animationModeButtonLayout_->addStretch();
+    animationModeButtonLayout_->addWidget(animationKeyFrameButton_);
+    animationModeButtonLayout_->addWidget(new QLabel("Animation Key"));
+    animationModeButtonLayout_->addStretch();
+    animationModeButtonLayout_->addWidget(animationNodeButton_);
+    animationModeButtonLayout_->addWidget(new QLabel("Animation Node"));
+    animationModeButtonLayout_->addStretch();
+
+    selButtonLayout_ = new QVBoxLayout(nullptr);
+    selButtonLayout_->addLayout(axesDirectionButtonLayout_);
+    selButtonLayout_->addLayout(animationModeButtonLayout_);
 
 	dialogButtonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};
 	dialogButtonBox_->button(QDialogButtonBox::Ok)->setText("Import");
@@ -107,14 +130,14 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	layout_ = new QGridLayout{this};
 	layout_->setRowStretch(0, 0);
 	layout_->setRowStretch(1, 1);
-	layout_->setRowStretch(2, 1);
-	layout_->setRowStretch(3, 1);
+    layout_->setRowStretch(2, 1);
+    layout_->setRowStretch(3, 1);
 
 	layout_->addWidget(new QLabel("Check/Uncheck the external assets that you would like to import into the scene.", 0));
 	layout_->addWidget(widget_, 1, 0);
 	layout_->addLayout(massSelectButtonLayout_, 2, 0);
-	layout_->addLayout(axesDirectionButtonLayout_, 3, 0);
-	layout_->addWidget(dialogButtonBox_, 4, 0);
+    layout_->addLayout(selButtonLayout_, 3, 0);
+    layout_->addWidget(dialogButtonBox_, 4, 0);
 
 	for (auto i = 0; i < sceneGraph_.nodes.size(); ++i) {
 		auto& node = sceneGraph_.nodes[i].value();
@@ -171,7 +194,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		auto& anim = sceneGraph_.animations[animIndex].value();
 		auto animItem = animTreeList_[animIndex] = new QTreeWidgetItem({QString::fromStdString(anim.name), QString::fromStdString(raco::user_types::Animation::typeDescription.typeName)});
 		animItem->setIcon(0, raco::style::Icons::instance().typeAnimation);
-		animItem->setCheckState(0, Qt::CheckState::Checked);
+        animItem->setCheckState(0, Qt::CheckState::Checked);
 		widget_->addTopLevelItem(animItem);
 
 		for (auto samplerIndex = 0; samplerIndex < sceneGraph_.animationSamplers[animIndex].size(); ++samplerIndex) {
