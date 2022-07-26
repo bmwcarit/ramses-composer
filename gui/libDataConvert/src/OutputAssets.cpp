@@ -1,5 +1,5 @@
 ﻿
-#include "data_Convert/OutputPtx.h"
+#include "data_Convert/OutputAssets.h"
 #include "data_Convert/ProgramDefine.h"
 #include "PropertyData/PropertyType.h"
 #include "style/Icons.h"
@@ -199,9 +199,10 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 		nodeName = nodeName.substr(0, nodeName.length() - 9);
 	hmiNode.set_name(nodeName);
 
-    if (nodeName == "PerspectiveCamera") {
-		setPtxTCamera(childNode, hmiNode);
-    }
+	// Do not export camera data for now
+  //  if (nodeName == "PerspectiveCamera") {
+		//setPtxTCamera(childNode, hmiNode);
+  //  }
 
 	if (childNode->hasSystemData("scale")) {
 		TVector3f* scale = new TVector3f();
@@ -232,11 +233,18 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     hmiNode.set_renderorder(0);
 	hmiNode.set_childsortorderrank(0);
 
+
+	if (nodeName == "PerspectiveCamera") {
+		return;
+	}
     // mesh
-	HmiScenegraph::TMesh mesh;
-	setPtxTMesh(childNode, mesh);
-	HmiScenegraph::TMesh* it = hmiNode.add_mesh();
-	*it = mesh;
+	MeshData meshData;
+	if (raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData)) {
+		HmiScenegraph::TMesh mesh;
+		setPtxTMesh(childNode, mesh);
+		HmiScenegraph::TMesh* it = hmiNode.add_mesh();
+		*it = mesh;
+	}
 }
 
 void OutputPtx::setRootSRT(HmiScenegraph::TNode* hmiNode) {
@@ -423,6 +431,36 @@ TEWinding OutputPtx::matchWinding(WindingType wind) {
 			break;
 	}
 	return result;
+}
+// TODO
+void OutputPtx::setMaterialDefaultRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode) {
+	// winding and culling
+	rRenderMode->set_winding(TEWinding::TEWinding_CounterClockWise);
+	rRenderMode->set_culling(TEFace::TEFace_None);
+	// tblending
+	HmiScenegraph::TBlendMode* tblending = new HmiScenegraph::TBlendMode();
+	Blending blending = renderMode.getBlending();
+	// operation
+	tblending->set_blendoperationcolor(TEBlendOperation::TEBlendOperation_Add);
+	tblending->set_blendoperationalpha(TEBlendOperation::TEBlendOperation_Add);
+	// factor
+	tblending->set_sourcealphafactor(TEBlendFactor::TEBlendFactor_One);
+	tblending->set_sourcecolorfactor(TEBlendFactor::TEBlendFactor_SourceAlpha);
+	tblending->set_destinationalphafactor(TEBlendFactor::TEBlendFactor_InverseSourceAlpha);
+	tblending->set_destinationcolorfactor(TEBlendFactor::TEBlendFactor_InverseSourceAlpha);
+
+	rRenderMode->set_allocated_blending(tblending);
+	rRenderMode->set_depthcompare(TECompareFunction::TECompareFunction_Always);
+
+	rRenderMode->set_depthwrite(false);
+	// ColorWrite
+	HmiScenegraph::TRenderMode_TColorWrite* tColorWrite = new HmiScenegraph::TRenderMode_TColorWrite();
+	ColorWrite colorWrite = renderMode.getColorWrite();
+	tColorWrite->set_alpha(true);
+	tColorWrite->set_blue(true);
+	tColorWrite->set_green(true);
+	tColorWrite->set_red(true);
+	rRenderMode->set_allocated_colorwrite(tColorWrite);
 }
 
 void OutputPtx::setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode) {
@@ -680,6 +718,7 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 		// RenderMode
 		HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
 		RenderMode renderMode = data.getRenderMode();
+		// setRenderMode
 		setMaterialRenderMode(renderMode, rRenderMode);
 		tMaterial.set_allocated_rendermode(rRenderMode);
 
@@ -874,7 +913,7 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		TDataProvider* provider2 = new TDataProvider;
 		TVariant* variant1 = new TVariant;
 		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(float(animation.second.GetEndTime()));
+		numeric->set_float_(float(animation.second.GetUpdateInterval()));
 		variant1->set_allocated_numeric(numeric);
 		provider2->set_allocated_variant(variant1);
 
@@ -950,16 +989,26 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 	if (0 != node.getBindingySize()) {
 		HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
 		TIdentifier* identifier = new TIdentifier;
-		identifier->set_valuestring(node.getName());
+		if (0 == node.getMaterialName().compare("")) {
+			identifier->set_valuestring(node.getName());
+		} else {
+			identifier->set_valuestring(node.getName() + "Shape");
+		}
 		nodeParam->set_allocated_identifier(identifier);
 		TDataBinding* paramnode = new TDataBinding;
 		TDataProvider* provider = new TDataProvider;
 		TVariant* variant = new TVariant;
-		variant->set_asciistring(node.getName());
+		if (0 == node.getMaterialName().compare("")) {
+			variant->set_asciistring(node.getName());
+		}else {
+			variant->set_asciistring(node.getName() + "Shape");
+		}
+		
 		provider->set_allocated_variant(variant);
 		paramnode->set_allocated_provider(provider);
 		nodeParam->set_allocated_node(paramnode);
-		for (auto cuvebindList : node.NodeExtendRef().curveBindingRef().bindingMap()) {
+		auto animationList = node.NodeExtendRef().curveBindingRef().bindingMap();
+		for (auto cuvebindList : animationList) {
 			for (auto curveProP : cuvebindList.second) {
 				if (curveProP.first.find("translation") == 0) {
 					if (nodeParam->has_transform()) {
@@ -1020,6 +1069,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
+	WriteBasicInfo(widget);
 	std::string animation_interal = ConvertAnimationInfo(widget);
 	ConvertCurveInfo(widget, animation_interal);
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
@@ -1036,6 +1086,29 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	outfile.open(filePath + "/widget.ptw", std::ios_base::out | std::ios_base::trunc);
 	outfile << output << std::endl;
 	outfile.close();
+}
+
+void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
+	TIdentifier* type = new TIdentifier;
+	type->set_valuestring("eWidgetType_Generate");
+	widget->set_allocated_type(type);
+	TIdentifier* prototype = new TIdentifier;
+	prototype->set_valuestring("eWidgetType_Model");
+	widget->set_allocated_prototype(prototype);
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("WidgetNameHint");
+	externalModelValue->set_allocated_key(key);
+	TVariant* variant = new TVariant;
+	variant->set_asciistring("WIDGET_SCENE");
+	externalModelValue->set_allocated_variant(variant);
+	externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier* key1 = new TIdentifier;
+	key1->set_valuestring("eParam_ModelResourceId");
+	externalModelValue->set_allocated_key(key1);
+	TVariant* variant1 = new TVariant;
+	variant1->set_resourceid("scene.ptx");
+	externalModelValue->set_allocated_variant(variant1);
 }
 
 void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform) {

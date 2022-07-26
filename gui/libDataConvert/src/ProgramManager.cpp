@@ -1,5 +1,6 @@
 ﻿#include "data_Convert/ProgramManager.h"
 #include "data_Convert/ProgramDefine.h"
+#include "PropertyData/PropertyType.h"
 
 #include "proto/Numeric.pb.h"
 #include "proto/Common.pb.h"
@@ -275,6 +276,198 @@ void initSystemProerty(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
 	}
     jsonObj.insert(JSON_SCALE, scale);
 }
+
+QString uniformType2String(UniformType type) {
+	QString result = "null";
+	switch (type) {
+		case raco::guiData::Null:
+			result = "null";
+			break;
+		case raco::guiData::Bool:
+			result = "bool";
+			break;
+		case raco::guiData::Int:
+			result = "int";
+			break;
+		case raco::guiData::Double:
+			result = "double";
+			break;
+		case raco::guiData::String:
+			result = "string";
+			break;
+		case raco::guiData::Ref:
+			result = "ref";
+			break;
+		case raco::guiData::Table:
+			result = "table";
+			break;
+		case raco::guiData::Vec2f:
+			result = "vec2f";
+			break;
+		case raco::guiData::Vec3f:
+			result = "vec3f";
+			break;
+		case raco::guiData::Vec4f:
+			result = "vec4f";
+			break;
+		case raco::guiData::Vec2i:
+			result = "vec2i";
+			break;
+		case raco::guiData::Vec3i:
+			result = "vec3i";
+			break;
+		case raco::guiData::Vec4i:
+			result = "vec4i";
+			break;
+		case raco::guiData::Struct:
+			result = "struct";
+			break;
+		default:
+			break;
+	}
+	return result;
+}
+
+void uniformValueAdd(Uniform &un ,QJsonObject &uniformJson) {
+	UniformType type = un.getType();
+	switch (type) {
+		case raco::guiData::Null: {
+			uniformJson.insert("value", 0);
+			break;
+		}
+		case raco::guiData::Bool: {
+			bool temp = std::any_cast<bool>(un.getValue());
+			uniformJson.insert("value", temp);
+			break;
+        }
+		case raco::guiData::Int: {
+			int temp = std::any_cast<int>(un.getValue());
+			uniformJson.insert("value", temp);
+			break;
+        }
+		case raco::guiData::Double: {
+			double temp = std::any_cast<double>(un.getValue());
+			uniformJson.insert("value", temp);
+			break;
+		}
+		case raco::guiData::String: {
+			std::string temp = std::any_cast<std::string>(un.getValue());
+			uniformJson.insert("value", QString::fromStdString(temp));
+			break;
+		}
+		case raco::guiData::Ref:
+			break;
+		case raco::guiData::Table:
+			break;
+		case raco::guiData::Vec2f: {
+			Vec2 temp = std::any_cast<Vec2>(un.getValue());
+			QJsonArray array;
+			QJsonObject objX;
+			objX.insert("x", temp.x);
+			array.append(objX);
+			QJsonObject objY;
+			objY.insert("y", temp.y);
+			array.append(objY);
+			uniformJson.insert("value", array);
+			break;
+		}
+		case raco::guiData::Vec3f: {
+			Vec3 temp = std::any_cast<Vec3>(un.getValue());
+			QJsonArray array;
+			QJsonObject objX;
+			objX.insert("x", temp.x);
+			array.append(objX);
+			QJsonObject objY;
+			objY.insert("y", temp.y);
+			array.append(objY);
+			QJsonObject objZ;
+			objZ.insert("z", temp.z);
+			array.append(objZ);
+			uniformJson.insert("value", array);
+			break;
+		}
+		case raco::guiData::Vec4f: {
+			Vec4 temp = std::any_cast<Vec4>(un.getValue());
+			QJsonArray array;
+			QJsonObject objX;
+			objX.insert("x", temp.x);
+			array.append(objX);
+			QJsonObject objY;
+			objY.insert("y", temp.y);
+			array.append(objY);
+			QJsonObject objZ;
+			objZ.insert("z", temp.z);
+			array.append(objZ);
+			QJsonObject objW;
+			objW.insert("w", temp.w);
+			array.append(objW);
+			uniformJson.insert("value", array);
+			break;
+		}
+		case raco::guiData::Vec2i: {
+			Vec2int temp = std::any_cast<Vec2int>(un.getValue());
+			QJsonArray array;
+			QJsonObject objX;
+			objX.insert("x", temp.x);
+			array.append(objX);
+			QJsonObject objY;
+			objY.insert("y", temp.y);
+			array.append(objY);
+			uniformJson.insert("value", array);
+			break;
+		}
+		case raco::guiData::Vec3i: {
+			Vec3int temp = std::any_cast<Vec3int>(un.getValue());
+			QJsonArray array;
+			QJsonObject objX;
+			objX.insert("x", temp.x);
+			array.append(objX);
+			QJsonObject objY;
+			objY.insert("y", temp.y);
+			array.append(objY);
+			QJsonObject objZ;
+			objZ.insert("z", temp.z);
+			array.append(objZ);
+			uniformJson.insert("value", array);
+			break;
+		}
+		case raco::guiData::Vec4i: {
+			Vec4int temp = std::any_cast<Vec4int>(un.getValue());
+			QJsonArray array;
+			QJsonObject objX;
+			objX.insert("x", temp.x);
+			array.append(objX);
+			QJsonObject objY;
+			objY.insert("y", temp.y);
+			array.append(objY);
+			QJsonObject objZ;
+			objZ.insert("z", temp.z);
+			array.append(objZ);
+			QJsonObject objW;
+			objW.insert("w", temp.w);
+			array.append(objW);
+			uniformJson.insert("value", array);
+			break;
+		}
+		case raco::guiData::Struct:
+			break;
+		default:
+			break;
+	}
+
+}
+
+void initUniformPropertyProerty(QJsonArray &jsonObj, raco::guiData::NodeData &node) {
+	auto uniforms = node.getUniforms();
+	for (auto &un : uniforms) {
+		QJsonObject uniformJson;
+		uniformJson.insert("name",QString::fromStdString(un.getName()));
+		uniformJson.insert("type", uniformType2String(un.getType()));
+		uniformValueAdd(un, uniformJson);
+		jsonObj.append(uniformJson);
+    }
+}
+
 void initCustomPropertyProerty(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
 	auto customMap = node.NodeExtendRef().customPropRef().customTypeMapRef();
 	for (auto customProp : customMap) {
@@ -361,6 +554,7 @@ void initCustomPropertyProerty(QJsonObject& jsonObj, raco::guiData::NodeData& no
 	}
 }
 void initCurveBinding(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
+	std::map<std::string, std::map<std::string, std::string>> map = node.NodeExtendRef().curveBindingRef().bindingMap();
 	for (auto cuvebindList : node.NodeExtendRef().curveBindingRef().bindingMap()) {
         QJsonArray curveBindingAry;
 		for (auto curveProP : cuvebindList.second) {
@@ -375,6 +569,9 @@ void initCurveBinding(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
 void InitNodeJson(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
     jsonObj.insert(JSON_NAME, QString::fromStdString(node.getName()));
     jsonObj.insert(JSON_OBJECTID, QString::fromStdString(node.objectID()));
+	if (node.getMaterialName() != "") {
+		jsonObj.insert(JSON_MATERIAL_REF, QString::fromStdString(node.getMaterialName()));
+    }
 	if (node.systemDataMapSize() != 0) {
 		QJsonObject sysTemProperty;
 		initSystemProerty(sysTemProperty, node);
@@ -386,6 +583,13 @@ void InitNodeJson(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
 		initCustomPropertyProerty(customProperty, node);
         jsonObj.insert(JSON_CUSTOM_PROPERTY, customProperty);
 	}
+
+    if (0 != node.getUniformsSize()) {
+		QJsonArray uniformProperty;
+		initUniformPropertyProerty(uniformProperty, node);
+		jsonObj.insert(JSON_UNIFORM, uniformProperty);
+    }
+
 	if (0 != node.getBindingySize()) {
 		QJsonObject curveBinding;
 		initCurveBinding(curveBinding, node);
@@ -697,6 +901,82 @@ void readJsonFillSystemProperty(QJsonObject jsonObj, NodeData &node) {
     node.insertSystemData("scale", vec3);
 }
 
+void readUniforms2NodeData(QJsonObject JsonUniform, Uniform &un) {
+	un.setName(JsonUniform.value("name").toString().toStdString());
+	UniformType type = UniformType::Bool;
+	QString jsonType = JsonUniform.value("type").toString();
+	if (jsonType.compare("null") == 0) {
+		un.setType(UniformType::Null);
+		un.setValue(0);
+	} else if (jsonType.compare("bool") == 0) {
+		un.setType(UniformType::Bool);
+		bool temp = JsonUniform.value("value").toBool();
+		un.setValue(temp);
+	} else if (jsonType.compare("int") == 0) {
+		un.setType(UniformType::Int);
+		int temp = JsonUniform.value("value").toInt();
+		un.setValue(temp);
+	} else if (jsonType.compare("double") == 0) {
+		un.setType(UniformType::Double);
+		double temp = JsonUniform.value("value").toDouble();
+		un.setValue(temp);
+	} else if (jsonType.compare("string") == 0) {
+		un.setType(UniformType::String);
+		QString temp = JsonUniform.value("value").toString();
+		un.setValue(temp.toStdString());
+	} else if (jsonType.compare("vec2f") == 0) {
+		un.setType(UniformType::Vec2f);
+		QJsonArray array = JsonUniform.value("value").toArray();
+		Vec2 tempValue;
+		tempValue.x = array[0].toObject().value("x").toDouble();
+		tempValue.y = array[1].toObject().value("y").toDouble();
+		un.setValue(tempValue);
+	} else if (jsonType.compare("vec3f") == 0) {
+		un.setType(UniformType::Vec3f);
+		QJsonArray array = JsonUniform.value("value").toArray();
+		Vec3 tempValue;
+		tempValue.x = array[0].toObject().value("x").toDouble();
+		tempValue.y = array[1].toObject().value("y").toDouble();
+		tempValue.z = array[2].toObject().value("z").toDouble();
+		un.setValue(tempValue);
+	} else if (jsonType.compare("vec4f") == 0) {
+		un.setType(UniformType::Vec3f);
+		QJsonArray array = JsonUniform.value("value").toArray();
+		Vec4 tempValue;
+		tempValue.x = array[0].toObject().value("x").toDouble();
+		tempValue.y = array[1].toObject().value("y").toDouble();
+		tempValue.z = array[2].toObject().value("z").toDouble();
+		tempValue.w = array[3].toObject().value("w").toDouble();
+		un.setValue(tempValue);
+	} else if (jsonType.compare("vec2i") == 0) {
+		un.setType(UniformType::Vec2i);
+		QJsonArray array = JsonUniform.value("value").toArray();
+		Vec2int tempValue;
+		tempValue.x = array[0].toObject().value("x").toInt();
+		tempValue.y = array[1].toObject().value("y").toInt();
+		un.setValue(tempValue);
+	} else if (jsonType.compare("vec3i") == 0) {
+		un.setType(UniformType::Vec3i);
+		QJsonArray array = JsonUniform.value("value").toArray();
+		Vec3int tempValue;
+		tempValue.x = array[0].toObject().value("x").toInt();
+		tempValue.y = array[1].toObject().value("y").toInt();
+		tempValue.z = array[2].toObject().value("z").toInt();
+		un.setValue(tempValue);
+	} else if (jsonType.compare("vec4i") == 0) {
+		un.setType(UniformType::Vec4i);
+		QJsonArray array = JsonUniform.value("value").toArray();
+		Vec4int tempValue;
+		tempValue.x = array[0].toObject().value("x").toInt();
+		tempValue.y = array[1].toObject().value("y").toInt();
+		tempValue.z = array[2].toObject().value("z").toInt();
+		tempValue.w = array[3].toObject().value("w").toInt();
+		un.setValue(tempValue);
+	} else {
+		qDebug() << "ERROR Type !";
+	}
+}
+
 void readJsonFillCustomProperty(QJsonObject jsonObj, NodeData &node) {
     QMap<QString, QVariant> varMap = jsonObj.toVariantMap();
     for (auto it : varMap.toStdMap()) {
@@ -736,6 +1016,7 @@ void readJsonFillAnimationData(QJsonObject jsonObj) {
 void readJsonFilleNodeData(QJsonObject jsonObj, NodeData &node) {
     node.setName(jsonObj.value(JSON_NAME).toString().toStdString());
     node.setObjectID(jsonObj.value(JSON_OBJECTID).toString().toStdString());
+    node.setMaterialName(jsonObj.value(JSON_MATERIAL_REF).toString().toStdString());
 
     if (jsonObj.contains(JSON_BASIC_PROPERTY)) {
         QJsonObject systemObj = jsonObj.value(JSON_BASIC_PROPERTY).toObject();
@@ -745,6 +1026,15 @@ void readJsonFilleNodeData(QJsonObject jsonObj, NodeData &node) {
         QJsonObject customObj = jsonObj.value(JSON_CUSTOM_PROPERTY).toObject();
         readJsonFillCustomProperty(customObj, node);
     }
+	if (jsonObj.contains(JSON_UNIFORM)) {
+		QJsonArray uniformsArr = jsonObj.value(JSON_UNIFORM).toArray();
+		for (int i{0}; i < uniformsArr.size(); ++i) {
+			Uniform un;
+			readUniforms2NodeData(uniformsArr[i].toObject(), un);
+			node.insertUniformData(un);
+		}
+	}
+
     if (jsonObj.contains(JSON_CURVEBINDING)) {
         QJsonObject curveBindingObj = jsonObj.value(JSON_CURVEBINDING).toObject();
         readJsonFillCurveBinding(curveBindingObj, node);
@@ -803,50 +1093,6 @@ void readJsonFillPropertyData(QJsonObject jsonObj) {
     }
 }
 
-void writeAsset(std::string filePath) {
-	filePath = filePath.substr(0, filePath.find(".rca"));
-	HmiWidget::TWidgetCollection widgetCollection;
-	HmiWidget::TWidget* widget = widgetCollection.add_widget();
-
-	TIdentifier *type = new TIdentifier;
-	type->set_valuestring("eWidgetType_Generate");
-	widget->set_allocated_type(type);
-
-	TIdentifier *prototype = new TIdentifier;
-	prototype->set_valuestring("eWidgetType_Model");
-	widget->set_allocated_prototype(prototype);
-
-	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	TIdentifier *key = new TIdentifier;
-	key->set_valuestring("WidgetNameHint");
-	externalModelValue->set_allocated_key(key);
-	TVariant *variant = new TVariant;
-	variant->set_asciistring("WIDGET_SCENE");
-	externalModelValue->set_allocated_variant(variant);
-
-	externalModelValue = widget->add_externalmodelvalue();
-	TIdentifier *key1 = new TIdentifier;
-	key1->set_valuestring("eParam_ModelResourceId");
-	externalModelValue->set_allocated_key(key1);
-	TVariant *variant1 = new TVariant;
-	variant1->set_resourceid("scene.ptx");
-	externalModelValue->set_allocated_variant(variant1);
-
-	std::string output;
-	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
-	std::cout << output << std::endl;
-
-    QDir* folder = new QDir;
-    if (!folder->exists(QString::fromStdString(filePath))) {
-		bool ok = folder->mkpath(QString::fromStdString(filePath));
-	}
-	delete folder;
-	std::ofstream outfile;
-	outfile.open(filePath +"/widget.ptw", std::ios_base::out | std::ios_base::trunc);
-	outfile << output << std::endl;
-	outfile.close();
-}
-
 int attriIndex(std::vector<Attribute> attrs, std::string aName) {
     for (int i{0}; i < attrs.size(); i++) {
         auto attrIt = attrs.at(i);
@@ -867,9 +1113,6 @@ bool ProgramManager::writeProgram(QString filePath) {
 		result = false;
     }
 
-	// Output Asset file
-	writeAsset(filePath.toStdString());
-
 	// Output Ptx file
 	if (!outputPtx_.writeProgram2Ptx(filePath.toStdString(), openedProjectPath_)) {
 		qDebug() << "Write Ptx file ERROR!";
@@ -880,7 +1123,25 @@ bool ProgramManager::writeProgram(QString filePath) {
 	outputPtw_.WriteAsset(filePath.toStdString());
 
     // Output ctm file
-    writeCTMFile();
+	writeCTMFile(filePath.toStdString());
+
+	return result;
+}
+
+bool ProgramManager::writeBMWAssets(QString filePath) {
+	bool result = true;
+
+	// Output Ptx file
+	if (!outputPtx_.writeProgram2Ptx(filePath.toStdString(), openedProjectPath_)) {
+		qDebug() << "Write Ptx file ERROR!";
+		result = false;
+	}
+
+	// Output Asset file
+	outputPtw_.WriteAsset(filePath.toStdString());
+
+	// Output ctm file
+	writeCTMFile(filePath.toStdString());
 
 	return result;
 }
@@ -893,15 +1154,17 @@ void ProgramManager::setOpenedProjectPath(QString path) {
 	openedProjectPath_ = path;
 }
 
-bool ProgramManager::writeCTMFile() {
-    QDir folder(relativePath_ + "/meshes");
+bool ProgramManager::writeCTMFile(std::string filePathStr) {
+	filePathStr = filePathStr.substr(0, filePathStr.find(".rca"));
+	QString tempPath = QString::fromStdString(filePathStr);
+	QDir folder(tempPath + "/meshes");
     if (!folder.exists()) {
-        folder.mkpath(relativePath_ + "/meshes");
+		folder.mkpath(tempPath + "/meshes");
     }
 
     for (const auto &meshIt : MeshDataManager::GetInstance().getMeshDataMap()) {
         MeshData mesh = meshIt.second;
-        std::string path = relativePath_.toStdString() + "/" + mesh.getMeshUri();
+		std::string path = tempPath.toStdString() + "/" + mesh.getMeshUri();
         CTMuint aVerCount = mesh.getNumVertices();
         CTMuint aTriCount = mesh.getNumTriangles();
 

@@ -37,10 +37,10 @@ enum WindingType{
 };
 
 enum Culling {
+	CU_None,
 	CU_Front,
 	CU_Back,
-	CU_FrontAndBack,
-	CU_None
+	CU_FrontAndBack
 };
 // Depth Function
 enum DepthCompare {

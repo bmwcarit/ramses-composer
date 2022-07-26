@@ -71,6 +71,7 @@ public:
 	void setNewPreviewMenuEntryEnabled(bool enabled);
 	void updateApplicationTitle();
 	void updateSavedLayoutMenu();
+	QString curveNameSuffix(QString curveName);
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
@@ -93,6 +94,7 @@ protected:
 protected Q_SLOTS:
 	void openProject(const QString& file = {});
 	bool saveActiveProject();
+	bool exportBMWAssets();
 	bool saveAsActiveProject();
 	void importScene();
 	void resetDockManager();

@@ -1,5 +1,5 @@
-#ifndef OUTPUTPTX_H
-#define OUTPUTPTX_H
+#ifndef OUTPUT_ASSETS_H
+#define OUTPUT_ASSETS_H
 
 #include <QDebug>
 #include <QFile>
@@ -48,6 +48,7 @@ public:
 	TEBlendOperation matchBlendOperation(BlendOperation blendOpera);
 	TEFace matchFaceCulling(Culling cull);
 	TEWinding matchWinding(WindingType wind);
+	void setMaterialDefaultRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode);
 	void setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode);
 	void uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform);
 	TETextureFilter matchFilter(Filter filter);
@@ -72,6 +73,7 @@ public:
 	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
 	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void WriteAsset(std::string filePath);
+	void WriteBasicInfo(HmiWidget::TWidget* widget);
 
 private:
 	void ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
@@ -87,4 +89,4 @@ private:
 };
 }
 
-#endif // OUTPUTPTX_H
+#endif // OUTPUT_ASSETS_H

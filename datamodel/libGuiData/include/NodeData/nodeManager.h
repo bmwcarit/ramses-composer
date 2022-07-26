@@ -228,6 +228,10 @@ public:
 		return uniforms_;
 	}
 
+	int getUniformsSize() {
+		return uniforms_.size();
+	}
+
 	void uniformClear() {
 		uniforms_.clear();
 	}

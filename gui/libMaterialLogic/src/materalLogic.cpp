@@ -40,7 +40,7 @@ void MateralLogic::Analyzing() {
 		core::ValueHandle valueHandle = it.second;
         if (valueHandle.hasProperty("options")) {
             initMaterialProperty(valueHandle, materialData, shader);
-			raco::user_types::Material *material = dynamic_cast<raco::user_types::Material *>(valueHandle.rootObject().get());
+			raco::user_types::Material* material = dynamic_cast<raco::user_types::Material *>(valueHandle.rootObject().get());
 			raco::core::PropertyInterfaceList attritesArr = material->attributes();
             for (auto &it : attritesArr) {
 				raco::guiData::Attribute attribute;

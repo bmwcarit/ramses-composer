@@ -410,6 +410,9 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		ui->actionSaveAs->setShortcut(QKeySequence::SaveAs);
 		ui->actionSaveAs->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveAsActiveProject);
+
+		ui->actionExportBMWAssets->setShortcutContext(Qt::ApplicationShortcut);
+		QObject::connect(ui->actionExportBMWAssets, &QAction::triggered, this, &MainWindow::exportBMWAssets);
 	}
 
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {
@@ -668,7 +671,7 @@ bool MainWindow::saveActiveProject() {
 			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
 				recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 				updateApplicationTitle();
-				programManager_.writeProgram(QString::fromStdString(racoApplication_->activeProjectPath()));
+				programManager_.writeProgram2Json(QString::fromStdString(racoApplication_->activeProjectPath()));
 				return true;
 			} else {
 				updateApplicationTitle();	
@@ -676,6 +679,31 @@ bool MainWindow::saveActiveProject() {
 			}
 			
 		}
+	} else {
+		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
+	}
+	return false;
+}
+
+bool MainWindow::exportBMWAssets() {
+	if (racoApplication_->canSaveActiveProject()) {
+		QString openedProjectPath = QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string());
+		bool setProjectName = racoApplication_->activeProjectPath().empty();
+
+		auto newPath = QFileDialog::getSaveFileName(this, "Export BMW Assets", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*)");
+		if (newPath.isEmpty()) {
+			return false;
+		}
+
+		Q_EMIT getResourceHandles();
+		Q_EMIT updateMeshData();
+		recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
+		updateActiveProjectConnection();
+		updateApplicationTitle();
+		programManager_.setOpenedProjectPath(openedProjectPath);
+		programManager_.setRelativePath(QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()));
+		programManager_.writeBMWAssets(newPath);
+		return true;
 	} else {
 		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 	}
@@ -704,7 +732,7 @@ bool MainWindow::saveAsActiveProject() {
             updateApplicationTitle();
 			programManager_.setOpenedProjectPath(openedProjectPath);
             programManager_.setRelativePath(QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()));
-			programManager_.writeProgram(newPath);
+			programManager_.writeProgram2Json(newPath);
 			return true;
 		} else {
 			updateApplicationTitle();
@@ -866,7 +894,22 @@ void MainWindow::updateNodeHandles(const QString &title, const std::map<std::str
     }
 }
 
+QString MainWindow::curveNameSuffix(QString curveName) {
+	int curveNameSuffix = 1;
+	while (true) {
+		if (CurveManager::GetInstance().hasCurve(curveName.toStdString())) {
+			curveName += "-" + QString::number(curveNameSuffix);
+			curveNameSuffix++;
+		} else {
+			return curveName;
+		}
+	}
+}
+
 void MainWindow::slotCreateCurveAndBinding(QString property, QString curve, QVariant value) {
+	if (CurveManager::GetInstance().hasCurve(curve.toStdString())) {
+		curve = curveNameSuffix(curve);
+	}
     if (curveNameWidget_) {
         curveNameWidget_->setBindingData(property, curve);
         if (curveNameWidget_->exec() == QDialog::Accepted) {
