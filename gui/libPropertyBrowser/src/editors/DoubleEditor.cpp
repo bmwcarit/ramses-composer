@@ -24,24 +24,107 @@
 namespace raco::property_browser {
 
 
-bool nodeDataSync(std::string propName, double value, std::string parentName = "") {
+bool nodeDataSync(std::string propName, double value, std::string parentName = "", std::string parentParentName = "") {
 	raco::guiData::NodeData* pNode = raco::guiData::NodeDataManager::GetInstance().getActiveNode();
 	if (pNode->getName() == "") {
 		return false;
 	}
 
-	if (propName == "x" || propName == "y" || propName == "z") {
-		if (parentName == "translation" || parentName == "scale" || parentName == "rotation") {
-			Vec3 parent = std::any_cast<Vec3>(pNode->getSystemData(parentName));
-			if (propName == "x") {
-				parent.x = value;
-			} else if (propName == "y") {
-				parent.y = value;
-			} else {
-				parent.z = value;
+	if (parentName == "translation" || parentName == "scale" || parentName == "rotation") {
+		Vec3 parent = std::any_cast<Vec3>(pNode->getSystemData(parentName));
+		if (propName == "x") {
+			parent.x = value;
+		} else if (propName == "y") {
+			parent.y = value;
+		} else {
+			parent.z = value;
+		}
+		pNode->modifySystemData(parentName, parent);
+		return true;
+	} else if (parentParentName == "uniforms") {
+		for (auto& un : pNode->getUniforms()) {
+			if (parentName == un.getName()) {
+				raco::guiData::UniformType type = un.getType();
+				switch (type) {
+					case raco::guiData::Vec2f: {
+						Vec2 parent = std::any_cast<Vec2>(un.getValue());
+						if (propName == "x") {
+							parent.x = value;
+						} else if (propName == "y") {
+							parent.y = value;
+						}
+						pNode->modifyUniformData(parentName, parent);
+						break;
+					}
+					case raco::guiData::Vec3f: {
+						Vec3 parent = std::any_cast<Vec3>(un.getValue());
+						if (propName == "x") {
+							parent.x = value;
+						} else if (propName == "y") {
+							parent.y = value;
+						} else if (propName == "z") {
+							parent.z = value;
+						}
+						pNode->modifyUniformData(parentName, parent);
+						break;
+					}
+					case raco::guiData::Vec4f: {
+						Vec4 parent = std::any_cast<Vec4>(un.getValue());
+						if (propName == "x") {
+							parent.x = value;
+						} else if (propName == "y") {
+							parent.y = value;
+						} else if (propName == "z") {
+							parent.z = value;
+						} else if (propName == "w") {
+							parent.w = value;
+						}
+						pNode->modifyUniformData(parentName, parent);
+						break;
+					}
+					case raco::guiData::Vec2i: {
+						Vec2int parent = std::any_cast<Vec2int>(un.getValue());
+						if (propName == "x") {
+							parent.x = value;
+						} else if (propName == "y") {
+							parent.y = value;
+						}
+						pNode->modifyUniformData(parentName, parent);
+						break;
+					}
+					case raco::guiData::Vec3i: {
+						Vec3int parent = std::any_cast<Vec3int>(un.getValue());
+						if (propName == "x") {
+							parent.x = value;
+						} else if (propName == "y") {
+							parent.y = value;
+						} else if (propName == "z") {
+							parent.z = value;
+						}
+						pNode->modifyUniformData(parentName, parent);
+						break;
+					}
+					case raco::guiData::Vec4i: {
+						Vec4int parent = std::any_cast<Vec4int>(un.getValue());
+						if (propName == "x") {
+							parent.x = value;
+						} else if (propName == "y") {
+							parent.y = value;
+						} else if (propName == "z") {
+							parent.z = value;
+						} else if (propName == "w") {
+							parent.w = value;
+						}
+						pNode->modifyUniformData(parentName, parent);
+						break;
+					}
+					default:
+						break;
+				}
+
+				pNode->modifyUniformData(propName, value);
+				return true;
 			}
-			pNode->modifySystemData(parentName, parent);
-			return true;
 		}
 	} else {
 		for (auto& un : pNode->getUniforms()) {
@@ -77,19 +160,31 @@ DoubleEditor::DoubleEditor(
 		QObject::connect(spinBox, &DoubleSpinBox::valueEdited, item, [item](double value) {
 			item->set(value);
 			std::string propName = item->valueHandle().getPropName();
-			if (propName == "x" || propName == "y" || propName == "z") {
+			// sync data into NodeData
+			if (propName == "x" || propName == "y" || propName == "z" || propName == "w") {
 				std::string parentPropName = item->parentItem()->valueHandle().getPropName();
-				nodeDataSync(propName, value, parentPropName);
+				if (!item->parentItem()->parentItem()->isRoot()) {
+					std::string parentParentPropName = item->parentItem()->parentItem()->valueHandle().getPropName();
+					nodeDataSync(propName, value, parentPropName, parentParentPropName);
+				} else {
+					nodeDataSync(propName, value, parentPropName);
+				}
 			} else {
 				nodeDataSync(propName, value);
 			}
+
 		});
 		QObject::connect(slider, &DoubleSlider::valueEdited, item, [item](double value) {
 			item->set(value);
 			std::string propName = item->valueHandle().getPropName();
-			if (propName == "x" || propName == "y" || propName == "z") {
+			if (propName == "x" || propName == "y" || propName == "z" || propName == "w") {
 				std::string parentPropName = item->parentItem()->valueHandle().getPropName();
-				nodeDataSync(propName, value, parentPropName);
+				if (!item->parentItem()->parentItem()->isRoot()) {
+					std::string parentParentPropName = item->parentItem()->parentItem()->valueHandle().getPropName();
+					nodeDataSync(propName, value, parentPropName, parentParentPropName);
+				} else {
+					nodeDataSync(propName, value, parentPropName);
+				}
 			} else {
 				nodeDataSync(propName, value);
 			}

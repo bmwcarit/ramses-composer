@@ -11,6 +11,7 @@ add_library(libDataConvert
     include/data_Convert/ProgramDefine.h
     include/data_Convert/ProgramManager.h src/ProgramManager.cpp
     include/data_Convert/OutputAssets.h src/OutputAssets.cpp
+    include/data_Convert/InputAssets.h src/InputAssets.cpp
     include/proto/Common.pb.h src/Common.pb.cpp
     include/proto/HmiBase.pb.h src/HmiBase.pb.cpp
     include/proto/HmiWidget.pb.h src/HmiWidget.pb.cpp

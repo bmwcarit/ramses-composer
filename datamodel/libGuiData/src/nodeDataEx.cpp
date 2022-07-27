@@ -22,7 +22,6 @@ bool CurveBinding::insertAnimation(std::string &sampleProp, std::map<std::string
     return true ;
 }
 
-
 bool CurveBinding::deleteAnimation(std::string &sampleProp) {
     auto iter = bindingMap_.find(sampleProp);
     if(iter == bindingMap_.end()){

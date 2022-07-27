@@ -23,6 +23,7 @@
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
 #include "data_Convert/OutputAssets.h"
+#include "data_Convert/InputAssets.h"
 #include "MeshData/MeshDataManager.h"
 #include "openctm.h"
 #include "openctmpp.h"
@@ -42,6 +43,7 @@ class ProgramManager : public QObject {
 public:
 	bool writeProgram(QString filePath);
 	bool writeBMWAssets(QString filePath);
+	bool readBMWAssets(QString filePath);
 	bool writeProgram2Json(QString filePath);
     void setRelativePath(QString path);
 	void setOpenedProjectPath(QString path);
@@ -58,6 +60,8 @@ private:
     QMap<QString, QJsonArray> aryMap_;
     OutputPtx outputPtx_;
 	OutputPtw outputPtw_;
+
+    InputPtx inputPtx_;
 };
 }
 

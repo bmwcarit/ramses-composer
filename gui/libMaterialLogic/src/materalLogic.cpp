@@ -1,6 +1,7 @@
 #include "material_logic/materalLogic.h"
 #include "MaterialData/materialManager.h"
 #include "user_types/Material.h"
+#include "PropertyData/PropertyType.h"
 
 namespace raco::material_logic { 
 MateralLogic::MateralLogic(QObject *parent)
@@ -319,6 +320,86 @@ void MateralLogic::setTexturePorperty(core::ValueHandle valueHandle, MaterialDat
     MaterialManager::GetInstance().addBitmap(bitMapKey, bitMap);
 }
 
+bool vec2UniformValue(std::vector<std::any> valueVec, std::any& uniformValue, UniformType type) {
+	bool result = false;
+	if (valueVec.size() <= 1) {
+		return result;
+    }
+	std::any value = valueVec.at(0);
+	switch (type) {
+		case raco::guiData::Vec2f: {
+			Vec2 unValue;
+			if (value.type() == typeid(double) && valueVec.size() == 2) {
+				unValue.x = std::any_cast<double>(valueVec.at(0));
+				unValue.y = std::any_cast<double>(valueVec.at(1));
+				uniformValue = unValue;
+				result = true;
+			}
+			break;
+		}
+		case raco::guiData::Vec3f: {
+			Vec3 unValue;
+			if (value.type() == typeid(double) && valueVec.size() == 3) {
+				unValue.x = std::any_cast<double>(valueVec.at(0));
+				unValue.y = std::any_cast<double>(valueVec.at(1));
+				unValue.z = std::any_cast<double>(valueVec.at(2));
+				uniformValue = unValue;
+				result = true;
+			}
+			break;
+		}
+		case raco::guiData::Vec4f:{
+			Vec4 unValue;
+			if (value.type() == typeid(double) && valueVec.size() == 4) {
+				unValue.x = std::any_cast<double>(valueVec.at(0));
+				unValue.y = std::any_cast<double>(valueVec.at(1));
+				unValue.z = std::any_cast<double>(valueVec.at(2));
+				unValue.w = std::any_cast<double>(valueVec.at(3));
+				uniformValue = unValue;
+				result = true;
+			}
+			break;
+	    }
+		case raco::guiData::Vec2i: {
+			Vec2int unValue;
+			if (value.type() == typeid(int) && valueVec.size() == 2) {
+				unValue.x = std::any_cast<int>(valueVec.at(0));
+				unValue.y = std::any_cast<int>(valueVec.at(1));
+				uniformValue = unValue;
+				result = true;
+			}
+			break;
+		}
+		case raco::guiData::Vec3i: {
+			Vec3int unValue;
+			if (value.type() == typeid(int) && valueVec.size() == 3) {
+				unValue.x = std::any_cast<int>(valueVec.at(0));
+				unValue.y = std::any_cast<int>(valueVec.at(1));
+				unValue.z = std::any_cast<int>(valueVec.at(2));
+				uniformValue = unValue;
+				result = true;
+			}
+			break;
+		}
+		case raco::guiData::Vec4i: {
+			Vec4int unValue;
+			if (value.type() == typeid(int) && valueVec.size() == 4) {
+				unValue.x = std::any_cast<int>(valueVec.at(0));
+				unValue.y = std::any_cast<int>(valueVec.at(1));
+				unValue.z = std::any_cast<int>(valueVec.at(2));
+				unValue.w = std::any_cast<int>(valueVec.at(3));
+				uniformValue = unValue;
+				result = true;
+			}
+			break;
+		}
+		default:
+			break;
+	}
+
+	return result;
+}
+
 void MateralLogic::setUniformsMultiElementProperty(core::ValueHandle valueHandle, MaterialData &materialData, UniformType type) {
     using PrimitiveType = core::PrimitiveType;
     Uniform tempUniform;
@@ -349,7 +430,10 @@ void MateralLogic::setUniformsMultiElementProperty(core::ValueHandle valueHandle
             }
         };
     }
-    tempUniform.setValue(valueVec);
-    materialData.addUniform(tempUniform);
+	std::any uniformValue;
+    if (vec2UniformValue(valueVec, uniformValue, type)) {
+		tempUniform.setValue(uniformValue);
+		materialData.addUniform(tempUniform);
+    }
 }
 }

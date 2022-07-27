@@ -535,7 +535,6 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 	MeshDescriptor meshDesc;
 	meshDesc.absPath = filePath.toStdString();
 	meshDesc.bakeAllSubmeshes = false;
-
 	auto selectedObject = indexToSEditorObject(selectedIndex);
 
     if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {

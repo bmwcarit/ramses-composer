@@ -274,11 +274,16 @@ QString PropertySubtreeView::setPropertyName(QString name) {
 	QStringList list = name.split(".");
 	QString resultName = "";
 	// Set rotation, scaling, displacement attribute parameters
-	if (list.size() > 1 && list[list.size() - 1] == "x" || list[list.size() - 1] == "y" || list[list.size() - 1] == "z") {
+	if (list.size() > 1 && list.contains("translation") || list.contains("rotation") || list.contains("scale")) {
 		resultName = list[list.size() - 2] + "." + list[list.size() - 1];
 		return resultName;
-	} else if (list.size() > 2 && list[list.size() - 2] == "uniforms") {
-		resultName = list[list.size() - 2] + "." + list[list.size() - 1];
+	} else if (list.size() > 2 && list.contains("uniforms")) {
+		int index = list.indexOf("uniforms");
+		for (int i = index; i < list.size(); ++i) {
+			resultName += list[i];
+			resultName += ".";
+		}
+		resultName = resultName.left(resultName.length() - 1);
 		return resultName;
 	} else {
 		QMessageBox warningBox(QMessageBox::Warning, "Warning", "This property is not available as an animated property.", QMessageBox::Yes);
