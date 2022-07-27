@@ -37,6 +37,7 @@
     <addaction name="separator"/>
     <addaction name="actionExport"/>
     <addaction name="actionExportBMWAssets"/>
+    <addaction name="actionImportBMWAssets"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
     <addaction name="separator"/>
@@ -274,6 +275,14 @@
   <action name="actionExportBMWAssets">
    <property name="text">
     <string>Export BMW Assets</string>
+   </property>
+   <property name="toolTip">
+    <string>BMW Asset</string>
+   </property>
+  </action>
+  <action name="actionImportBMWAssets">
+   <property name="text">
+    <string>Import BMW Assets</string>
    </property>
    <property name="toolTip">
     <string>BMW Asset</string>

@@ -760,22 +760,46 @@ void initUniformJson(MaterialData materialData, QJsonObject& jsonObj) {
             valueObj.insert(JSON_STRING, QString::fromStdString(std::any_cast<std::string>(any)));
             break;
         }
-        case Vec2i:
-        case Vec3i:
-        case Vec4i: {
-            std::vector<std::any> vec = std::any_cast<std::vector<std::any>>(any);
-            for (std::any data : vec) {
-                valueObj.insert(JSON_INT, std::any_cast<int>(data));
-            }
-            break;
-        }
-        case Vec2f:
-        case Vec3f:
+		case Vec2i: {
+			Vec2int vec = std::any_cast<Vec2int>(any);
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.x));
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.y));
+			break;
+		}
+		case Vec3i: {
+			Vec3int vec = std::any_cast<Vec3int>(any);
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.x));
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.y));
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.z));
+			break;
+		}
+		case Vec4i: {
+			Vec4int vec = std::any_cast<Vec4int>(any);
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.x));
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.y));
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.z));
+			valueObj.insert(JSON_FLOAT, std::any_cast<int>(vec.w));
+			break;
+		}
+        case Vec2f: {
+			Vec2 vec = std::any_cast<Vec2>(any);
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.x));
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.y));
+			break;
+		}
+		case Vec3f: {
+			Vec3 vec = std::any_cast<Vec3>(any);
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.x));
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.y));
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.z));
+			break;
+		}
         case Vec4f: {
-            std::vector<std::any> vec = std::any_cast<std::vector<std::any>>(any);
-            for (std::any data : vec) {
-                valueObj.insert(JSON_FLOAT, std::any_cast<double>(data));
-            }
+			Vec4 vec = std::any_cast<Vec4>(any);
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.x));
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.y));
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.z));
+			valueObj.insert(JSON_FLOAT, std::any_cast<float>(vec.w));
             break;
         }
         }
@@ -940,7 +964,7 @@ void readUniforms2NodeData(QJsonObject JsonUniform, Uniform &un) {
 		tempValue.z = array[2].toObject().value("z").toDouble();
 		un.setValue(tempValue);
 	} else if (jsonType.compare("vec4f") == 0) {
-		un.setType(UniformType::Vec3f);
+		un.setType(UniformType::Vec4f);
 		QJsonArray array = JsonUniform.value("value").toArray();
 		Vec4 tempValue;
 		tempValue.x = array[0].toObject().value("x").toDouble();
@@ -1142,6 +1166,24 @@ bool ProgramManager::writeBMWAssets(QString filePath) {
 
 	// Output ctm file
 	writeCTMFile(filePath.toStdString());
+
+	return result;
+}
+
+bool ProgramManager::readBMWAssets(QString assetsFilePath) {
+	bool result = true;
+
+	// Input Ptx file
+	if (!assetsLogic_.readProgram2Ptx(assetsFilePath.toStdString())) {
+		qDebug() << "Write Ptx file ERROR!";
+		result = false;
+	}
+
+	//// Output Asset file
+	//outputPtw_.WriteAsset(filePath.toStdString());
+
+	//// Output ctm file
+	//writeCTMFile(filePath.toStdString());
 
 	return result;
 }

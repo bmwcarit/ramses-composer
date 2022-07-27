@@ -413,6 +413,9 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 
 		ui->actionExportBMWAssets->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionExportBMWAssets, &QAction::triggered, this, &MainWindow::exportBMWAssets);
+
+		ui->actionImportBMWAssets->setShortcutContext(Qt::ApplicationShortcut);
+		QObject::connect(ui->actionImportBMWAssets, &QAction::triggered, this, &MainWindow::importBMWAssets);
 	}
 
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {
@@ -708,6 +711,17 @@ bool MainWindow::exportBMWAssets() {
 		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 	}
 	return false;
+}
+
+bool MainWindow::importBMWAssets() {
+
+	auto assetsPath = QFileDialog::getExistingDirectory(this, "Import BMW Assets", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()));
+	if (assetsPath.isEmpty()) {
+		return false;
+	}
+
+	programManager_.readBMWAssets(assetsPath);
+	return true;
 }
 
 bool MainWindow::saveAsActiveProject() {

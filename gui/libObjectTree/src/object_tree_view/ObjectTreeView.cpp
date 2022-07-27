@@ -184,6 +184,9 @@ bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::Mesh
             if (meshHandle != NULL) {
                 // fill meshData
                 raco::user_types::Mesh *mesh = dynamic_cast<raco::user_types::Mesh *>(meshHandle.rootObject().get());
+				if (mesh->meshData() == NULL) {
+					return false;
+				}
 
                 meshData.setNumTriangles(mesh->meshData()->numTriangles());
                 meshData.setNumVertices(mesh->meshData()->numVertices());

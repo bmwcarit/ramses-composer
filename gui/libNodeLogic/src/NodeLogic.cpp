@@ -43,7 +43,7 @@ bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHan
 
     QString qstrPropety = QString::fromStdString(property);
     QStringList list = qstrPropety.split(".");
-	if (!list.isEmpty() && list[0] == "uniforms") {
+	if (!list.isEmpty() && list.contains("uniforms")) {
 		property = "materials.material." + property;
 		qstrPropety = QString::fromStdString(property);
 		list = qstrPropety.split(".");
