@@ -22,11 +22,7 @@ enum MOUSEACTION {
     MOUSE_RIGHT_EXTEND = 3, //鼠标点击滚动条，向右扩展
     MOUSE_LEFT_MOVE = 4, //鼠标点击滚动条，向左移动
     MOUSE_RIGHT_MOVE = 5, //鼠标点击滚动条，向右移动
-    MOUSE_TOP_EXTEND = 6, //鼠标点击滚动条，向上扩展
-    MOUSE_BUTTOM_EXTEND = 7, //鼠标点击滚动条，向下扩展
-    MOUSE_TOP_MOVE = 8, //鼠标点击滚动条，向上移动
-    MOUSE_BUTTOM_MOVE = 9, //鼠标点击滚动条，向下移动
-    MOUSE_NO_ACTION = 10
+    MOUSE_NO_ACTION = 6
 };
 
 enum ANIMATIONACTION {

@@ -119,6 +119,7 @@ void CurveTree::slotAddPointPropertyView(const QModelIndex &index) {
 
                 PointPropertyView *view = new PointPropertyView(childItem->getCurve(), childItem->getPoint(), this);
                 connect(view, &PointPropertyView::sigRefreshCurveView, this, &CurveTree::sigRefreshCurveView);
+                connect(view, &PointPropertyView::sigUpdateCurve, this, &CurveTree::sigUpdateCurve);
                 setIndexWidget(model()->index(n, 0, index), view);
                 pointProViewList_.push_back(view);
             }

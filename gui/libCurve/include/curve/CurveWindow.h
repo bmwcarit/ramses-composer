@@ -21,6 +21,7 @@ public:
 
 public Q_SLOTS:
     void slotRefreshCurveView();
+    void slotUpdateCurve();
 private:
     raco::core::CommandInterface *commandInterface_;
     CurveTree* curveTree_{nullptr};

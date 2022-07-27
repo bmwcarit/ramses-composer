@@ -111,7 +111,7 @@ public Q_SLOTS:
 	virtual bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref = false, std::string* outError = nullptr, const std::string& serializedObjects = RaCoClipboard::get());
 	virtual std::vector<core::SEditorObject> duplicateObjectsAtIndices(const QModelIndexList& indices);
 	void moveScenegraphChildren(const std::vector<core::SEditorObject>& objects, core::SEditorObject parent, int row = -1);
-	void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex);
+    void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex, bool &keyAnimation);
 	void deleteUnusedResources();
 
 protected:
