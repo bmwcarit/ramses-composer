@@ -54,8 +54,8 @@ private:
     int keyFrame_;
     EInterPolationType interPolationType_{LINER};
     std::any data_{0.0}; //当前只考虑FLOAT type *
-    std::any leftTagent_{45.0};
-    std::any rightTagent_{135.0};
+    std::any leftTagent_{0.0};
+    std::any rightTagent_{0.0};
 };
 
 class Curve
@@ -86,6 +86,10 @@ public:
     Point* getPoint(int keyFrame);
     // 通过当前帧获取对应曲线数据参数
     bool getDataValue(int curFrame, double &value);
+    //
+    bool getStepValue(int curFrame, double &value);
+    //
+    bool getPointType(int curFrame, EInterPolationType &type);
     // 根据当前frame计算线的值
     double calculateLinerValue(Point* firstPoint, Point* secondPoint, double curFrame);
     // 修改Point keyframe

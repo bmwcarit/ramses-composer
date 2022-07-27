@@ -17,6 +17,7 @@
 #include <QLineEdit>
 #include <QTreeWidget>
 #include <QVBoxLayout>
+#include <QButtonGroup>
 #include <unordered_set>
 #include <QtWidgets/qradiobutton.h>
 
@@ -37,6 +38,10 @@ public:
 	QRadioButton* yAxesUpButton_;
 	QRadioButton* zAxesUpButton_;
 	QHBoxLayout* axesDirectionButtonLayout_;
+    QRadioButton* animationNodeButton_;
+    QRadioButton* animationKeyFrameButton_;
+    QHBoxLayout* animationModeButtonLayout_;
+    QVBoxLayout* selButtonLayout_;
 
 private:
 	void iterateThroughChildren(QTreeWidgetItem* item, const std::function<void(QTreeWidgetItem*)> &func);

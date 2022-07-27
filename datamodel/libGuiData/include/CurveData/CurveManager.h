@@ -29,7 +29,9 @@ public:
     // 模糊搜索
     std::list<Curve*> search(const std::string& curveNmae);
     //
-    bool getCurveValue(std::string curve, int keyFrame, double &value);
+    bool getCurveValue(std::string curve, int keyFrame, EInterPolationType type, double &value);
+    //
+    bool getPointType(std::string curve, int keyFrame, EInterPolationType &type);
     // 获取 Curve list
     std::list<Curve*> getCurveList();
 private:

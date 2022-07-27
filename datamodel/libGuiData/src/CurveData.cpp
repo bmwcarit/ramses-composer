@@ -123,7 +123,6 @@ bool Curve::delPoint(int keyFrame) {
 std::list<Point *> Curve::getPointList() {
     return pointList_;
 }
-
 Point *Curve::getPoint(int keyFrame) {
     Point* point{nullptr};
     auto it = pointList_.begin();
@@ -177,37 +176,110 @@ bool Curve::getDataValue(int curFrame, double &value) {
     return false;
 }
 
+bool Curve::getStepValue(int curFrame, double &value) {
+    std::any any;
+
+    auto pointIt = pointList_.begin();
+    while (pointIt != pointList_.end()) {
+        auto pointItTemp = pointIt;
+        pointIt++;
+        std::any any;
+        if (pointIt != pointList_.end()) {
+            if (curFrame < (*pointIt)->getKeyFrame()) {
+                any = (*pointItTemp)->getDataValue();
+            } else if (curFrame == (*pointIt)->getKeyFrame()) {
+                any = (*pointIt)->getDataValue();
+            }
+            if (any.type() == typeid(double)) {
+                value = std::any_cast<double>(any);
+            }
+            return true;
+        }
+        if (pointIt == pointList_.end()) {
+            auto pointEnd = pointIt;
+            pointEnd--;
+            if (curFrame > (*pointEnd)->getKeyFrame()) {
+                any = (*pointEnd)->getDataValue();
+                if (any.type() == typeid(double)) {
+                    value = *any._Cast<double>();
+                }
+                return true;
+            }
+        }
+        if (pointItTemp == pointList_.begin()) {
+            if (curFrame < (*pointItTemp)->getKeyFrame()) {
+                any = (*pointItTemp)->getDataValue();
+                if (any.type() == typeid(double)) {
+                    value = *any._Cast<double>();
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Curve::getPointType(int curFrame, EInterPolationType &type) {
+    auto pointIt = pointList_.begin();
+    while (pointIt != pointList_.end()) {
+        auto pointItTemp = pointIt;
+        pointIt++;
+        if (pointIt != pointList_.end()) {
+            if (curFrame <= (*pointIt)->getKeyFrame() && curFrame >= (*pointItTemp)->getKeyFrame()) {
+                type = (*pointItTemp)->getInterPolationType();
+                return true;
+            }
+        }
+        if (pointIt == pointList_.end()) {
+            auto pointEnd = pointIt;
+            pointEnd--;
+            if (curFrame > (*pointEnd)->getKeyFrame()) {
+                type = (*pointEnd)->getInterPolationType();
+                return true;
+            }
+        }
+        if (pointItTemp == pointList_.begin()) {
+            if (curFrame < (*pointItTemp)->getKeyFrame()) {
+                type = (*pointItTemp)->getInterPolationType();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 double Curve::calculateLinerValue(Point *firstPoint, Point *secondPoint, double curFrame) {
     if (firstPoint == nullptr || secondPoint == nullptr) {
         return false;
     }
 
     EInterPolationType type = secondPoint->getInterPolationType();
-    switch (type) {
-    case LINER: {
-        double firstPointValue{0};
-        double secondPointValue{0};
-        if (firstPoint->getDataValue().has_value() && secondPoint->getDataValue().has_value()) {
-            if (firstPoint->getDataValue().type() == typeid(double)) {
-                firstPointValue = std::any_cast<double>(firstPoint->getDataValue());
-                secondPointValue = std::any_cast<double>(secondPoint->getDataValue());
-            } else if (firstPoint->getDataValue().type() == typeid(float)) {
-                firstPointValue = std::any_cast<float>(firstPoint->getDataValue());
-                secondPointValue = std::any_cast<float>(secondPoint->getDataValue());
-            }
+    double firstPointValue{0};
+    double secondPointValue{0};
+    if (firstPoint->getDataValue().has_value() && secondPoint->getDataValue().has_value()) {
+        if (firstPoint->getDataValue().type() == typeid(double)) {
+            firstPointValue = std::any_cast<double>(firstPoint->getDataValue());
+            secondPointValue = std::any_cast<double>(secondPoint->getDataValue());
+        } else if (firstPoint->getDataValue().type() == typeid(float)) {
+            firstPointValue = std::any_cast<float>(firstPoint->getDataValue());
+            secondPointValue = std::any_cast<float>(secondPoint->getDataValue());
         }
-        double t = (curFrame - firstPoint->getKeyFrame()) / (secondPoint->getKeyFrame() - firstPoint->getKeyFrame()) * (secondPointValue - firstPointValue) + firstPointValue;
-        return t;
     }
-    case HERMIT_SPLINE: {
-		return 0;
-    }
-    case BESIER_SPLINE: {
-		return 0;
-    }
-	default:
-		return 0;
-    }
+    double t = (curFrame - firstPoint->getKeyFrame()) / (secondPoint->getKeyFrame() - firstPoint->getKeyFrame()) * (secondPointValue - firstPointValue) + firstPointValue;
+    return t;
+//    switch (type) {
+//    case LINER: {
+//        return 0;
+//    }
+//    case HERMIT_SPLINE: {
+//		return 0;
+//    }
+//    case BESIER_SPLINE: {
+//		return 0;
+//    }
+//	default:
+//		return 0;
+//    }
 }
 
 bool Curve::modifyPointKeyFrame(const int &keyFrame, const int &modifyKeyFrame) {
