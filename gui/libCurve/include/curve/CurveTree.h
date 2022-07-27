@@ -60,6 +60,7 @@ public Q_SLOTS:
     void slotCollapsePointPropertyView(const QModelIndex &index);
 Q_SIGNALS:
     void sigRefreshCurveView();
+    void sigUpdateCurve();
     void sigInsertPoint(QPoint pos);
     void sigDeletePoint(QPoint pos);
     void sigDeleteCurve(QPoint pos);

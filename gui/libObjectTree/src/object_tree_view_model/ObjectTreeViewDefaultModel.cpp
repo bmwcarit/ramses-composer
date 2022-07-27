@@ -531,7 +531,7 @@ void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEdito
     Q_EMIT editNodeOpreations();
 }
 
-void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex) {
+void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex, bool &keyAnimation) {
 	MeshDescriptor meshDesc;
 	meshDesc.absPath = filePath.toStdString();
 	meshDesc.bakeAllSubmeshes = false;
@@ -540,23 +540,24 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
     if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {
 		auto importDialog = new raco::common_widgets::MeshAssetImportDialog(*sceneGraph, nullptr);
 		auto importStatus = importDialog->exec();
+        keyAnimation = importDialog->animationKeyFrameButton_->isChecked();
 		if (importStatus == QDialog::Accepted && selectedObject != nullptr) {
 			bool projectZup = project()->settings()->axes_.asBool();
 			ValueHandle translation_y{selectedObject, &user_types::Node::translation_, &core::Vec3f::y};
 			ValueHandle translation_z{selectedObject, &user_types::Node::translation_, &core::Vec3f::z};
-			ValueHandle rotation_x{selectedObject, &user_types::Node::rotation_, &core::Vec3f::x};
+            ValueHandle rotation_x{selectedObject, &user_types::Node::rotation_, &core::Vec3f::x};
 			float y = translation_y.as<float>();
 			float z = translation_z.as<float>();
 			float rot_x = rotation_x.as<float>();
-			if (importDialog->yAxesUpButton_->isChecked() && projectZup) {
-				commandInterface_->set(translation_y, -z);
-				commandInterface_->set(translation_z, y);
-				commandInterface_->set(rotation_x, rot_x + 90.0);
-			} else if (importDialog->zAxesUpButton_->isChecked() && !projectZup) {
-				commandInterface_->set(translation_y, z);
-				commandInterface_->set(translation_z, -y);
-				commandInterface_->set(rotation_x, rot_x - 90.0);
-			}
+            if (importDialog->yAxesUpButton_->isChecked() && projectZup) {
+                commandInterface_->set(translation_y, -z);
+                commandInterface_->set(translation_z, y);
+                commandInterface_->set(rotation_x, rot_x + 90.0);
+            } else if (importDialog->zAxesUpButton_->isChecked() && !projectZup) {
+                commandInterface_->set(translation_y, z);
+                commandInterface_->set(translation_z, -y);
+                commandInterface_->set(rotation_x, rot_x - 90.0);
+            }
 			commandInterface_->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, selectedObject);
 		}
 	} else {

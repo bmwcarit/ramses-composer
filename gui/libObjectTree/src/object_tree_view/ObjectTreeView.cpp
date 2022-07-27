@@ -570,8 +570,11 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
 			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
 			if (!file.isEmpty()) {
-				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
-                convertGltfAnimation();
+                bool keyAnimation;
+                treeModel_->importMeshScenegraph(file, insertionTargetIndex, keyAnimation);
+                if (keyAnimation) {
+                    convertGltfAnimation();
+                }
 			}
 		});
 		actionImport->setEnabled(canInsertMeshAsset);

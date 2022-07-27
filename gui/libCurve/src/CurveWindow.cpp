@@ -14,6 +14,7 @@ CurveWindow::CurveWindow(raco::components::SDataChangeDispatcher dispatcher,
     this->setLayout(hLayout);
 	slotRefreshCurveView();
     connect(curveTree_, &CurveTree::sigRefreshCurveView, this, &CurveWindow::slotRefreshCurveView);
+    connect(curveTree_, &CurveTree::sigUpdateCurve, this, &CurveWindow::slotUpdateCurve);
     connect(curveLogic, &CurveLogic::sigRefreshCurveView, this, &CurveWindow::slotRefreshCurveView);
 }
 
@@ -33,5 +34,9 @@ void CurveWindow::slotRefreshCurveView() {
 
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAixs_From_CurveUI();
     Q_EMIT signalProxy::GetInstance().sigCheckCurveBindingValid_From_CurveUI();
+}
+
+void CurveWindow::slotUpdateCurve() {
+    Q_EMIT signalProxy::GetInstance().sigRepaintTimeAixs_From_CurveUI();
 }
 }

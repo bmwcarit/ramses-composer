@@ -22,6 +22,7 @@ public:
 
 Q_SIGNALS:
     void sigRefreshCurveView();
+    void sigUpdateCurve();
 
 public Q_SLOTS:
     void slotKeyFrameChanged();
