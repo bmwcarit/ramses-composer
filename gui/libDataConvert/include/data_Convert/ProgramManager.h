@@ -23,7 +23,7 @@
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
 #include "data_Convert/OutputAssets.h"
-#include "data_Convert/InputAssets.h"
+#include "data_Convert/AssetsLogic.h"
 #include "MeshData/MeshDataManager.h"
 #include "openctm.h"
 #include "openctmpp.h"
@@ -61,7 +61,7 @@ private:
     OutputPtx outputPtx_;
 	OutputPtw outputPtw_;
 
-    InputPtx inputPtx_;
+    AssetsLogic assetsLogic_;
 };
 }
 

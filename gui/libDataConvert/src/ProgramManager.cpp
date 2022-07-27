@@ -1174,7 +1174,7 @@ bool ProgramManager::readBMWAssets(QString assetsFilePath) {
 	bool result = true;
 
 	// Input Ptx file
-	if (!inputPtx_.readProgram2Ptx(assetsFilePath.toStdString())) {
+	if (!assetsLogic_.readProgram2Ptx(assetsFilePath.toStdString())) {
 		qDebug() << "Write Ptx file ERROR!";
 		result = false;
 	}
