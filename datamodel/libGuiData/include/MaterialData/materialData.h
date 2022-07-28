@@ -525,6 +525,10 @@ public:
         return textures_;
     }
 
+    void clearTexture() {
+        textures_.clear();
+    }
+
     void addUniform(Uniform uniform) {
         uniforms_.push_back(uniform);
     }

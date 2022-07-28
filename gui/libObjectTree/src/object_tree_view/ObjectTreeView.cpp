@@ -26,6 +26,7 @@
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "MeshData/MeshDataManager.h"
 #include "utils/u8path.h"
+#include "user_types/Texture.h"
 
 #include <QContextMenuEvent>
 #include <QFileDialog>
@@ -313,6 +314,21 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateMaterial() {
     return materialHandleReMap;
 }
 
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateTexture() {
+	std::map<std::string, core::ValueHandle> textureHandleReMap;
+	int row = model()->rowCount();
+	for (int i{0}; i < row; ++i) {
+		QModelIndex index = model()->index(i, 0);
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		std::string str = tempHandle[0].asString();
+		std::string path = tempHandle[0].getPropertyPath();
+		if (&tempHandle.rootObject()->getTypeDescription() == &raco::user_types::Texture::typeDescription) {
+			textureHandleReMap.emplace(str, tempHandle);
+		}
+	}
+	return textureHandleReMap;
+}
+
 void ObjectTreeView::updateMeshData() {
     MeshDataManager::GetInstance().clearMesh();
     int row = model()->rowCount();
@@ -420,12 +436,20 @@ void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
 	}
 }
 
-void ObjectTreeView::getResourceHandles() {
+void ObjectTreeView::getMaterialResHandles() {
     if (viewTitle_.compare("Scene Graph") != 0) {
         return;
     }
     std::map<std::string, core::ValueHandle> handleMap = updateMaterial();
-    Q_EMIT setResourceHandles(handleMap);
+    Q_EMIT setMaterialResHandles(handleMap);
+}
+
+void ObjectTreeView::getTextureResHandles() {
+	if (viewTitle_.compare("Resources") != 0) {
+		return;
+	}
+	std::map<std::string, core::ValueHandle> handleMap = updateTexture();
+	Q_EMIT setTextureResHandles(handleMap);
 }
 
 void ObjectTreeView::fillMeshData() {

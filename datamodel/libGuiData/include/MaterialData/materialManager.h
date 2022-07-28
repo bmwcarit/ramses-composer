@@ -29,6 +29,11 @@ public:
     bool getBitmap(std::string name, Bitmap &bitmap);
     std::map<std::string, Bitmap> getBitmapDataMap();
 
+    bool addTexture(std::string name, TextureData texture);
+	bool deleteTexture(std::string name);
+	bool getTexture(std::string name, TextureData &texture);
+	std::map<std::string, TextureData> getTextureDataMap();
+
     void addCurUniform(Uniform uniform);
 	bool deleteCurUniform(std::string name);
 	std::vector<Uniform> getCurUniformArr();
@@ -45,9 +50,11 @@ private:
     MaterialManager();
 
 private:
+    // nodeObjectID， Material
     std::map<std::string, MaterialData> materialDataMap_;
     std::map<std::string, Shader> shaderMap_;// vertex and fragment
     std::map<std::string, Bitmap> bitmapMap_;
+	std::map<std::string, TextureData> textureMap_;  // <name , texture>
 	std::vector<Uniform> currentUniforms_;
 };
 }

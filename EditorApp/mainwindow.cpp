@@ -234,9 +234,11 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 	QObject::connect(dockModel, &raco::object_tree::model::ObjectTreeViewDefaultModel::meshImportFailed, mainWindow, &MainWindow::showMeshImportErrorMessage);
 	dockModel->buildObjectTree();
 	auto newTreeView = new raco::object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
-	QObject::connect(mainWindow, &MainWindow::getResourceHandles, newTreeView, &raco::object_tree::view::ObjectTreeView::getResourceHandles);
+	QObject::connect(mainWindow, &MainWindow::getMaterialResHandles, newTreeView, &raco::object_tree::view::ObjectTreeView::getMaterialResHandles);
+	QObject::connect(mainWindow, &MainWindow::getTextureResHandles, newTreeView, &raco::object_tree::view::ObjectTreeView::getTextureResHandles);
     QObject::connect(mainWindow, &MainWindow::updateMeshData, newTreeView, &raco::object_tree::view::ObjectTreeView::updateMeshData);
-	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::setResourceHandles, mainWindow, &MainWindow::setResourceHandles);
+	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::setMaterialResHandles, mainWindow, &MainWindow::setMaterialResHandles);
+	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::setTextureResHandles, mainWindow, &MainWindow::setTextureResHandles);
 	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::updateNodeHandles, mainWindow, &MainWindow::updateNodeHandles);
 
 	QString tempTitle(title);
@@ -698,7 +700,8 @@ bool MainWindow::exportBMWAssets() {
 			return false;
 		}
 
-		Q_EMIT getResourceHandles();
+		Q_EMIT getMaterialResHandles();
+		Q_EMIT getTextureResHandles();
 		Q_EMIT updateMeshData();
 		recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 		updateActiveProjectConnection();
@@ -735,8 +738,6 @@ bool MainWindow::saveAsActiveProject() {
 			return false;
         }
 
-        Q_EMIT getResourceHandles();
-        Q_EMIT updateMeshData();
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		std::string errorMsg;
 		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
@@ -894,11 +895,18 @@ void MainWindow::updateActiveProjectConnection() {
 	}
 }
 
-void MainWindow::setResourceHandles(const std::map<std::string, ValueHandle> &map) {
+void MainWindow::setMaterialResHandles(const std::map<std::string, raco::core::ValueHandle>& mMap) {
     if (materialLogic_) {
-        materialLogic_->setResourcesHandleReMap(map);
+		materialLogic_->setMaterialResourcesHandleReMap(mMap);
         materialLogic_->Analyzing();
     }
+}
+
+void MainWindow::setTextureResHandles(const std::map<std::string, raco::core::ValueHandle>& mMap) {
+	if (materialLogic_) {
+		materialLogic_->setTextureResourcesHandleReMap(mMap);
+		materialLogic_->AnalyzingTexture();
+	}
 }
 
 void MainWindow::updateNodeHandles(const QString &title, const std::map<std::string, raco::core::ValueHandle> &map) {

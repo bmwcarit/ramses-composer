@@ -32,11 +32,18 @@
 using namespace raco::guiData;
 
 namespace raco::dataConvert {
+
+struct NodeWithMaterial {
+	std::string nodeTextureName;
+	MaterialData material;
+};
+
 class OutputPtx : public QObject {
     Q_OBJECT
 public:
 	bool writeProgram2Ptx(std::string filePath, QString relativePath);
 	void writeNodePtx(NodeData* pNode, HmiScenegraph::TNode* parent);
+	void setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& materialData);
     void setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
     void setPtxTCamera(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
 	void setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& mesh);
@@ -65,6 +72,7 @@ Q_SIGNALS:
 
 private:
 	bool isOutputError_{false};
+	std::vector<NodeWithMaterial> nodeWithMaterial_;
 };
 
 class OutputPtw{

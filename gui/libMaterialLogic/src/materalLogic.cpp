@@ -21,7 +21,7 @@ void MateralLogic::setPtxName(Shader &shader) {
 	shader.setPtxShaderName(shader.getName());
 }
 
-void setIsDefaultMaterial(std::string id,MaterialData& materialData) {
+void setIsDefaultMaterial(std::string id, MaterialData& materialData) {
 	std::map<std::string, MaterialData> materialMap = MaterialManager::GetInstance().getMaterialDataMap();
 	for (auto &it : materialMap) {
 		if (it.second.getObjectName() == materialData.getObjectName()) {
@@ -33,9 +33,21 @@ void setIsDefaultMaterial(std::string id,MaterialData& materialData) {
 }
 
 
+void MateralLogic::AnalyzingTexture() {
+	for (const auto &it : textureResourcesHandleReMap_) {
+		MaterialData materialData;
+        TextureData textureData;
+		core::ValueHandle valueHandle = it.second;
+		setTexturePorperty(valueHandle ,materialData, textureData);
+		textureData.setBitmapRef(textureData.getName());
+		textureData.setUniformName("");
+		MaterialManager::GetInstance().addTexture(textureData.getName(), textureData);
+	}
+}
+
 void MateralLogic::Analyzing() {
 	MaterialManager::GetInstance().clearData();
-    for (const auto &it : resourcesHandleReMap_) {
+    for (const auto &it : materialResourcesHandleReMap_) {
         MaterialData materialData;
         Shader shader;
 		core::ValueHandle valueHandle = it.second;
@@ -49,7 +61,8 @@ void MateralLogic::Analyzing() {
 				attribute.type = static_cast<raco::guiData::VertexAttribDataType>(it.type);
 				materialData.addUsedAttribute(attribute);
             }
-			setIsDefaultMaterial(it.first,materialData);
+			//setIsDefaultMaterial(it.first,materialData);
+
             MaterialManager::GetInstance().addMaterialData(it.first, materialData);
 			setPtxName(shader);
             MaterialManager::GetInstance().addShader(shader.getName(), shader);

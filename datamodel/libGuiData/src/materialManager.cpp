@@ -103,6 +103,37 @@ std::map<std::string, Bitmap> MaterialManager::getBitmapDataMap() {
     return bitmapMap_;
 }
 
+bool MaterialManager::addTexture(std::string name, TextureData texture) {
+	auto it = textureMap_.find(name);
+	if (it != textureMap_.end()) {
+		return false;
+	}
+	textureMap_.emplace(name, texture);
+	return true;
+}
+
+bool MaterialManager::deleteTexture(std::string name) {
+	auto it = textureMap_.find(name);
+	if (it == textureMap_.end()) {
+		return false;
+	}
+	textureMap_.erase(it);
+	return true;
+}
+
+bool MaterialManager::getTexture(std::string name, TextureData &texture) {
+	auto it = textureMap_.find(name);
+	if (it == textureMap_.end()) {
+		return false;
+	}
+	texture = it->second;
+	return true;
+}
+
+std::map<std::string, TextureData> MaterialManager::getTextureDataMap() {
+	return textureMap_;
+}
+
 void MaterialManager::addCurUniform(Uniform uniform) {
 	currentUniforms_.push_back(uniform);
 }
@@ -147,6 +178,7 @@ void MaterialManager::clearData() {
 	materialDataMap_.clear();
 	shaderMap_.clear();
 	bitmapMap_.clear();
+	textureMap_.clear();
 }
 
 void MaterialManager::traverseMaterialData() {

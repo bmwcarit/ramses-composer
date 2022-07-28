@@ -191,6 +191,28 @@ void OutputPtx::setPtxTCamera(NodeData* childNode, HmiScenegraph::TNode& hmiNode
 	hmiNode.set_allocated_camera(camera);
 }
 
+void OutputPtx::setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& data) {
+	data.setObjectName(childNode->getName() + "_" + data.getObjectName());
+	TextureData texData;
+	for (auto& textureData : data.getTextures()) {
+		std::string textureProperty = textureData.getUniformName();
+		std::vector<Uniform> Uniforms = childNode->getUniforms();
+		for (auto& un : Uniforms) {
+			if (un.getName() == textureProperty && un.getType() == UniformType::String && un.getValue().type() == typeid(std::string)) {
+				std::string textureName = std::any_cast<std::string>(un.getValue());
+				if (textureName != textureData.getName()) {
+					raco::guiData::MaterialManager::GetInstance().getTexture(textureName, texData);
+					texData.setUniformName(textureProperty);
+
+					data.clearTexture();
+					data.addTexture(texData);
+				}
+				return;
+			}
+		}
+	}
+}
+
 void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     std::string nodeName = childNode->getName();
 	int index = nodeName.rfind(".objectID");
@@ -233,10 +255,15 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     hmiNode.set_renderorder(0);
 	hmiNode.set_childsortorderrank(0);
 
+	MaterialData materialData;
+	if (raco::guiData::MaterialManager::GetInstance().getMaterialData(childNode->objectID(), materialData)) {
 
-	if (nodeName == "PerspectiveCamera") {
-		return;
+		setMaterialTextureByNodeUniforms(childNode, materialData);
+
+		raco::guiData::MaterialManager::GetInstance().deleteMateialData(childNode->objectID());
+		raco::guiData::MaterialManager::GetInstance().addMaterialData(childNode->objectID(), materialData);
 	}
+
     // mesh
 	MeshData meshData;
 	if (raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData)) {
@@ -706,10 +733,6 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 	std::map<std::string, MaterialData> materialMap = raco::guiData::MaterialManager::GetInstance().getMaterialDataMap();
 	std::set<std::string> setNameArr;
 	for (auto& material : materialMap) {
-		// whether it has been stored?
-		if (isStored(material.second.getObjectName(), setNameArr)) {
-			continue;
-		}
 		MaterialData data = material.second;
 		HmiScenegraph::TMaterial tMaterial;
 		// name
@@ -839,6 +862,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 		return false;
 	}
 	file.resize(0);
+	nodeWithMaterial_.clear();
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;

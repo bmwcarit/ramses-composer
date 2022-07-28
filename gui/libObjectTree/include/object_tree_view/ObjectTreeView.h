@@ -46,6 +46,7 @@ public:
     std::map<std::string, core::ValueHandle> updateNodeTree();
 	std::map<std::string, core::ValueHandle> updateResource();
     std::map<std::string, core::ValueHandle> updateMaterial();
+	std::map<std::string, core::ValueHandle> updateTexture();
     void updateMeshData();
     int attriElementSize(raco::guiData::VertexAttribDataType type);
     void convertGltfAnimation();
@@ -68,7 +69,8 @@ Q_SIGNALS:
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void newObjectTreeItemsSelected(const std::set<ValueHandle> &handles);
     void externalObjectSelected();
-    void setResourceHandles(const std::map<std::string, core::ValueHandle>& map);
+    void setMaterialResHandles(const std::map<std::string, core::ValueHandle>& map);
+	void setTextureResHandles(const std::map<std::string, core::ValueHandle> &map);
     void updateNodeHandles(const QString &title, const std::map<std::string, core::ValueHandle> &map);
 
 public Q_SLOTS:
@@ -83,7 +85,8 @@ public Q_SLOTS:
 	void expandAllParentsOfObject(const QString &objectID);
 	void expanded(const QModelIndex &index);
 	void collapsed(const QModelIndex &index);
-    void getResourceHandles();
+    void getMaterialResHandles();
+	void getTextureResHandles();
     void fillMeshData();
     void deleteAnimationHandle(std::string id);
 	
