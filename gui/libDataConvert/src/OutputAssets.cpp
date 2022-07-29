@@ -11,6 +11,14 @@
 namespace raco::dataConvert {
 using namespace raco::style;
 
+std::string delUniformNamePrefix(std::string nodeName) {
+	int index = nodeName.rfind("uniforms.");
+	if (-1 != index) {
+		nodeName = nodeName.substr(9, nodeName.length());
+	}
+	return nodeName;
+}
+
 std::string OutputPtx::delNodeNameSuffix(std::string nodeName) {
 	int index = nodeName.rfind(".objectID");
 	if (-1 != index)
@@ -170,10 +178,19 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 
 			// TODO: uniforms for mesh
 			for (auto& uniform : node->getUniforms()) {
-				HmiScenegraph::TUniform tUniform;
-				uniformTypeValue(uniform, tUniform);
-				HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
-				*itMesh = tUniform;
+				auto animations = node->NodeExtendRef().curveBindingRef().bindingMap();
+				for (auto& animation : animations) {
+					for (auto& property : animation.second) {
+						std::string properName = delUniformNamePrefix(property.first);
+						if (properName == uniform.getName()) {
+							HmiScenegraph::TUniform tUniform;
+							uniformTypeValue(uniform, tUniform);
+							HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
+							*itMesh = tUniform;
+							break;
+						}
+					}
+				}
 			}
 		}
 	}
