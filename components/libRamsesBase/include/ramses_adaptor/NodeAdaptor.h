@@ -98,7 +98,10 @@ public:
 	}
 	
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override {
-		return nodeBinding_->getInputs()->getChild(propertyNamesVector[0]);
+		if (nodeBinding_) {
+			return nodeBinding_->getInputs()->getChild(propertyNamesVector[0]);
+		}
+		return nullptr;
 	}
 	
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override {

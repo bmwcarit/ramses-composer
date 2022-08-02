@@ -31,14 +31,14 @@ void TimerAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) co
 }
 
 const rlogic::Property* TimerAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
-	const auto& propGroup = propertyNamesVector.front();
-
-	if (propGroup == "inputs") {
-		return timerNode_->getInputs()->getChild("ticker_us");
-	} else {
-		return timerNode_->getOutputs()->getChild("ticker_us");
+	if (timerNode_) {
+		const auto& propGroup = propertyNamesVector.front();
+		if (propGroup == "inputs") {
+			return timerNode_->getInputs()->getChild("ticker_us");
+		} else {
+			return timerNode_->getOutputs()->getChild("ticker_us");
+		}
 	}
-
 	return nullptr;
 }
 

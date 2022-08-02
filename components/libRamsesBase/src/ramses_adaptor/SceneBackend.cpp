@@ -160,6 +160,10 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 		sceneItems.emplace_back("LuaScript", script->getName().data(), -1);
 	}
 
+	for (const auto* interface: logicEngine_->getCollection<rlogic::LuaInterface>()) {
+		sceneItems.emplace_back("LuaInterface", interface->getName().data(), -1);
+	}
+
 	for (const auto* dataArray : logicEngine_->getCollection<rlogic::DataArray>()) {
 		sceneItems.emplace_back("DataArray", dataArray->getName().data(), -1);
 	}
@@ -181,6 +185,10 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesCameraBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesCamera()];
 		sceneItems.emplace_back("CameraBinding", binding->getName().data(), parentIdx);
+	}
+
+	for (const auto* timer : logicEngine_->getCollection<rlogic::TimerNode>()) {
+		sceneItems.emplace_back("Timer", timer->getName().data(), -1);
 	}
 
 	return sceneItems;

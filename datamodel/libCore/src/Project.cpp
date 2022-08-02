@@ -128,8 +128,6 @@ SLink Project::findLinkByObjectID(const std::map<std::string, std::set<SLink>>& 
 }
 
 void Project::removeLink(SLink link) {
-	linkGraph_.removeLink(link);
-
 	const auto& startObjID = link->startObject_.asRef()->objectID();
 	linkStartPoints_[startObjID].erase(link);
 	if (linkStartPoints_[startObjID].empty()) {
@@ -143,6 +141,8 @@ void Project::removeLink(SLink link) {
 	}
 
 	links_.erase(std::find(links_.begin(), links_.end(), link));
+
+	linkGraph_.removeLink(*this, link);
 }
 
 void Project::removeAllLinks() {
@@ -363,13 +363,10 @@ void Project::LinkGraph::addLink(SLink link) {
 	graph[*link->startObject_].insert(*link->endObject_);
 }
 
-void Project::LinkGraph::removeLink(SLink link) {
-	auto it = graph.find(*link->startObject_);
-	if (it != graph.end()) {
-		it->second.erase(*link->endObject_);
-		if (it->second.empty()) {
-			graph.erase(it);
-		}
+void Project::LinkGraph::removeLink(const Project& project, const SLink link) {
+	graph.clear();
+	for (auto& projectLink : project.links()) {
+		addLink(projectLink);
 	}
 }
 

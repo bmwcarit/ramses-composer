@@ -46,7 +46,7 @@ raco_package_add_headless_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-raco_package_add_test_resouces(
+raco_package_add_test_resources(
     libRamsesBase_test "${CMAKE_SOURCE_DIR}/resources"
     images/blue_1024.png
     images/blue_1024_16i.png

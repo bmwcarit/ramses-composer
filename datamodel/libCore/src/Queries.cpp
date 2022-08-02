@@ -24,6 +24,7 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Timer.h"
 
 #include <algorithm>
 #include <cassert>
@@ -102,10 +103,15 @@ std::vector<SEditorObject> Queries::findAllUnreferencedObjects(Project const& pr
 	// are referenced by them, but given that this function is mainly used to delete "unused" resources it
 	// seems to be better to return fewer rather than more objects.
 	for (auto instance : project.instances()) {
+		auto links = getLinksConnectedToObject(project, instance, true, false);
+		if (!links.empty()) {
+			referenced.insert(instance);
+		}
+
 		if (instance->isType<user_types::RenderPass>()) {
 			// Render passes cannot be referenced by anything - don't count them as unreferenced.
 			referenced.insert(instance);
-		}		
+		}
 		if (auto renderLayer = instance->as<user_types::RenderLayer>()) {
 			auto const& renderableTags = renderLayer->renderableTags();
 			auto materialTags = renderLayer->materialFilterTags();

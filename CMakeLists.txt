@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 1.1.0)
+project(RaCoOS VERSION 1.1.1)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -284,11 +284,13 @@ if(PACKAGE_TESTS)
 		deploy_gui_shared_dlls(${TESTNAME})
 		deploy_ramses_client_only_shared_dlls(${TESTNAME})
 	endmacro()
-	function(raco_package_add_test_resouces TESTNAME SOURCE_DIRECTORY)
+	function(raco_package_test_resources_process TESTNAME SOURCE_DIRECTORY)
 		foreach(fname ${ARGN}) 
 			set_property(GLOBAL APPEND PROPERTY "${TESTNAME}_RESOURCE_FILES" "${fname}")
 			set_property(GLOBAL APPEND PROPERTY "${TESTNAME}_RESOURCE_DIRECTORIES" "${SOURCE_DIRECTORY}")
 		endforeach(fname)
+	endfunction()
+	function(raco_package_test_resources_add_compile_definitions TESTNAME)
 		get_property("${TESTNAME}_RESOURCE_FILES" GLOBAL PROPERTY "${TESTNAME}_RESOURCE_FILES")
 		get_property("${TESTNAME}_RESOURCE_DIRECTORIES" GLOBAL PROPERTY "${TESTNAME}_RESOURCE_DIRECTORIES")
 
@@ -298,6 +300,14 @@ if(PACKAGE_TESTS)
 		#message("${TESTNAME} ==> ${RESOURCES_DIRECTORY_LIST}")
 		target_compile_definitions(${TESTNAME} PRIVATE RACO_LOCAL_TEST_RESOURCES_FILE_LIST="${RESOURCES_FILE_LIST}")
 		target_compile_definitions(${TESTNAME} PRIVATE RACO_LOCAL_TEST_RESOURCES_DIRECTORY_LIST="${RESOURCES_DIRECTORY_LIST}")
+	endfunction()
+	# Do not call raco_package_add_test_resources multiple times for the same TESTNAME.
+	# We must avoid multiple calls to raco_package_test_resources_add_compile_definitions since each adds another compiler flag
+	# leading to platform dependent behaviour, i.e. the compiler picks one over the others.
+	# Instead call raco_package_test_resources_process multiple times and then add a single call to raco_package_test_resources_add_compile_definitions
+	function(raco_package_add_test_resources TESTNAME SOURCE_DIRECTORY)
+		raco_package_test_resources_process(${TESTNAME} ${SOURCE_DIRECTORY} ${ARGN})
+		raco_package_test_resources_add_compile_definitions(${TESTNAME})
 	endfunction()
 	macro(add_racocommand_test TESTNAME WORKINGDIR)
 		if(WIN32)

@@ -39,7 +39,7 @@ raco_package_add_headless_test(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-raco_package_add_test_resouces(
+raco_package_add_test_resources(
     libCore_test "${CMAKE_SOURCE_DIR}/resources"
     shaders/basic.frag
     shaders/basic.vert
@@ -80,7 +80,7 @@ raco_package_add_headless_test(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-raco_package_add_test_resouces(
+raco_package_add_test_resources(
     libSerialization_test "${CMAKE_CURRENT_SOURCE_DIR}"
     expectations/Node.json
     expectations/NodeRotated.json
@@ -113,6 +113,9 @@ raco_package_add_test_resouces(
     testData/simple_texture.frag
     testData/simple_texture.vert
     testData/DuckCM.png
+    testData/InterpolationTest/InterpolationTest.gltf
+    testData/InterpolationTest/interpolation.bin
+    testData/InterpolationTest/l.jpg
 
     migrationTestData/V1.rca
     migrationTestData/V9.rca
@@ -141,6 +144,7 @@ raco_package_add_test_resouces(
     migrationTestData/V35_extref.rca
     migrationTestData/V35_extref_nested.rca
     migrationTestData/V39.rca
+    migrationTestData/V40.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

@@ -48,7 +48,7 @@ const rlogic::Property* PerspectiveCameraAdaptor::getProperty(const std::vector<
 	if (auto p = BaseCameraAdaptorHelpers::getProperty(cameraBinding_.get(), propertyNamesVector)) {
 		return p;
 	}
-	if (propertyNamesVector.size() >= 1 && propertyNamesVector[0] == "frustum") {
+	if (cameraBinding_ && propertyNamesVector.size() >= 1 && propertyNamesVector[0] == "frustum") {
 		return ILogicPropertyProvider::getPropertyRecursive(cameraBinding_->getInputs(), propertyNamesVector);
 	}
 	return SpatialAdaptor::getProperty(propertyNamesVector);

@@ -27,8 +27,8 @@ public:
 	Animation(Animation const& other)
 		: BaseObject(other),
 		  progress_(other.progress_),
-		  animationChannels(other.animationChannels),
-		  animationOutputs(other.animationOutputs)
+		  animationChannels_(other.animationChannels_),
+		  outputs_(other.outputs_)
 	{
 		fillPropertyDescription();
 	}
@@ -40,8 +40,8 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("progress", &progress_);
-		properties_.emplace_back("animationChannels", &animationChannels);
-		properties_.emplace_back("animationOutputs", &animationOutputs);
+		properties_.emplace_back("animationChannels", &animationChannels_);
+		properties_.emplace_back("outputs", &outputs_);
 	}
 
 	void onBeforeDeleteObject(Errors& errors) const override;
@@ -56,8 +56,8 @@ public:
 
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> progress_{0.0, {"Progress"}, {0.0, 1.0}, {}};
 
-	Property<Table, DisplayNameAnnotation> animationChannels{{}, {"Animation Channels"}};
-	Property<Table, DisplayNameAnnotation> animationOutputs{{}, {"Outputs"}};
+	Property<Table, DisplayNameAnnotation> animationChannels_{{}, {"Animation Channels"}};
+	Property<Table, DisplayNameAnnotation> outputs_{{}, {"Outputs"}};
 };
 
 using SAnimation = std::shared_ptr<Animation>;

@@ -38,6 +38,8 @@ private:
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;
 	components::Subscription inputSubscription_;
+	components::Subscription linksLifecycleSubscription_;
+	components::Subscription linkValidityChangeSubscription_;
 
 	// Flag to keep track if a change needs to recreate the lua script in the logicengine
 	// or if it is sufficient to just update the input properties.

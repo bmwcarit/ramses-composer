@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 40,
+    "fileVersion": 41,
     "instances": [
         {
             "properties": {
@@ -1486,7 +1486,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "1400800002074"
+                    "ticker_us": "602356459012"
                 }
             },
             "typeName": "Timer"
@@ -1958,18 +1958,18 @@
     ],
     "logicEngineVersion": [
         1,
-        0,
-        3
+        1,
+        0
     ],
     "racoVersion": [
         1,
-        0,
-        1
+        1,
+        0
     ],
     "ramsesVersion": [
         27,
         0,
-        119
+        121
     ],
     "structPropMap": {
         "BlendOptions": {
@@ -2058,10 +2058,10 @@
     "userTypePropMap": {
         "Animation": {
             "animationChannels": "Table::DisplayNameAnnotation",
-            "animationOutputs": "Table::DisplayNameAnnotation",
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
+            "outputs": "Table::DisplayNameAnnotation",
             "progress": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
         },
         "AnimationChannel": {

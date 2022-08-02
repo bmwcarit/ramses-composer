@@ -24,6 +24,18 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.1.1] Lua Interface, Timer, and Animation Bugfixes
+
+### Fixes
+* Fixed `migrate_recursive.py` python script to avoid early exit in projects whose external projects graph has multiple paths to some external project.
+* Fixed warning about unlinked LuaInterface outputs when exporting by optimizing away LuaInterface objects in the LogicEngine which are unnecessary.
+* Fixed crash when attempting to create a link between an empty LuaInterface and an empty LuaScript, both with empty uri.
+* Prevent creation of link loops after removing link when multiple links between the same objects are present.
+* Fixed links starting on Animation output properties not working in LogicEngine.
+* Renamed Animation "animationOutputs" property to "outputs" for consistency with LuaScript and Timer property naming.
+* Fixed Timer objects being deleted all the time by "Delete Unused Resources" despite potential links to and from the Timer.
+
+
 ## [1.1.0] Lua Interfaces, various UI improvements
 * **File version number has changed. Files saved with RaCo 1.1.0 cannot be opened by previous versions.**
 * **Check the suggested migration procedure below for the LuaInterfaces introduced in RamsesComposer 1.1.0 to avoid unnecessary issues.**

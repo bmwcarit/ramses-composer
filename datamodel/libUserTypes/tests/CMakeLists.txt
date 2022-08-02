@@ -21,6 +21,7 @@ set(TEST_SOURCES
     LuaScriptModule_test.cpp
     LuaInterface_test.cpp
     Texture_test.cpp
+    Timer_test.cpp
 )
 
 set(TEST_LIBRARIES
@@ -34,12 +35,15 @@ raco_package_add_headless_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-raco_package_add_test_resouces(
+raco_package_add_test_resources(
     libUserTypes_test "${CMAKE_SOURCE_DIR}/resources"
     meshes/AnimatedMorphCube/AnimatedMorphCube.bin
     meshes/AnimatedMorphCube/AnimatedMorphCube.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck.gltf
     meshes/CesiumMilkTruck/CesiumMilkTruck_data.bin
+    meshes/InterpolationTest/InterpolationTest.gltf
+    meshes/InterpolationTest/interpolation.bin
+    meshes/InterpolationTest/l.jpg
     meshes/Duck.glb
     meshes/meshless.gltf
     scripts/array.lua
@@ -50,6 +54,7 @@ raco_package_add_test_resouces(
     scripts/using-math.lua
     scripts/module-using-math.lua
     scripts/using-module-using-math.lua
+    scripts/types-scalar.lua
     shaders/basic.vert
     shaders/basic.frag
 )

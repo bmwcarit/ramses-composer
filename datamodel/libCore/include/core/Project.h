@@ -156,7 +156,7 @@ private:
 		LinkGraph(const Project& project);
 
 		void addLink(SLink link);
-		void removeLink(SLink link);
+		void removeLink(const Project& project, SLink link);
 
 		void removeAllLinks();
 

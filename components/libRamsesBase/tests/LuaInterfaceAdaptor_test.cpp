@@ -35,6 +35,24 @@ function interface(INOUT)
 end
 )___");
 	}
+
+	TextFile emptyInterfaceFile() {
+		return makeFile("interface.lua",
+			R"___(
+function interface(INOUT)
+end
+)___");
+	}
+
+	TextFile emptyScriptFile() {
+		return makeFile("script.lua",
+			R"___(
+function interface(IN, OUT)
+end
+function run(IN, OUT)
+end
+)___");
+	}
 };
 
 TEST_F(LuaInterfaceAdaptorFixture, defaultConstruction) {
@@ -155,6 +173,85 @@ TEST_F(LuaInterfaceAdaptorFixture, change_property_value) {
 
 	ASSERT_EQ(engineObject->getOutputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(engineObject->getOutputs()->getChild("string")->get<std::string>(), std::string("asdf"));
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, link_invalid_interface_to_invalid_script) {
+	auto start = create<LuaInterface>("start");
+	auto end = create<LuaScript>("end");
+	
+	commandInterface.addLink({start, {"inputs"}}, {end, {"inputs"}});
+	checkLinks({{{start, {"inputs"}}, {end, {"inputs"}}}});
+
+	// test shouldn't crash here
+	dispatch();
+
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
+	auto ramsesEnd = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
+	EXPECT_EQ(ramsesStart, nullptr);
+	EXPECT_EQ(ramsesEnd, nullptr);
+
+	// TODO check that logicengine contains no links
+	// needs logicengine support functions!
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, link_invalid_interface_to_invalid_interface) {
+	auto start = create<LuaInterface>("start");
+	auto end = create<LuaInterface>("end");
+
+	commandInterface.addLink({start, {"inputs"}}, {end, {"inputs"}});
+	checkLinks({{{start, {"inputs"}}, {end, {"inputs"}}}});
+
+	// test shouldn't crash here
+	dispatch();
+
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
+	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end-" + end->objectID()).c_str());
+	EXPECT_EQ(ramsesStart, nullptr);
+	EXPECT_EQ(ramsesEnd, nullptr);
+
+	// TODO check that logicengine contains no links
+	// needs logicengine support functions!
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, link_empty_interface_to_empty_script) {
+	auto interfaceFile = emptyInterfaceFile();
+	auto scriptFile = emptyScriptFile();
+	auto start = create_lua_interface("start", interfaceFile);
+	auto end = create_lua("end", scriptFile);
+
+	commandInterface.addLink({start, {"inputs"}}, {end, {"inputs"}});
+	checkLinks({{{start, {"inputs"}}, {end, {"inputs"}}}});
+
+	// test shouldn't crash here
+	dispatch();
+
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
+	auto ramsesEnd = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
+	EXPECT_NE(ramsesStart, nullptr);
+	EXPECT_NE(ramsesEnd, nullptr);
+
+	// TODO check that logicengine contains no links
+	// needs logicengine support functions!
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, link_empty_interface_to_empty_interface) {
+	auto interfaceFile = emptyInterfaceFile();
+	auto start = create_lua_interface("start", interfaceFile);
+	auto end = create_lua_interface("end", interfaceFile);
+
+	commandInterface.addLink({start, {"inputs"}}, {end, {"inputs"}});
+	checkLinks({{{start, {"inputs"}}, {end, {"inputs"}}}});
+
+	// test shouldn't crash here
+	dispatch();
+
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
+	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end-" + end->objectID()).c_str());
+	EXPECT_NE(ramsesStart, nullptr);
+	EXPECT_NE(ramsesEnd, nullptr);
+
+	// TODO check that logicengine contains no links
+	// needs logicengine support functions!
 }
 
 TEST_F(LuaInterfaceAdaptorFixture, link_individual_propagate_values) {

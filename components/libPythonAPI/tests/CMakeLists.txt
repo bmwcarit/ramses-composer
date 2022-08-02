@@ -26,7 +26,7 @@ raco_package_add_headless_test(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-raco_package_add_test_resouces(
+raco_package_add_test_resources(
     libPythonAPI_test "${CMAKE_SOURCE_DIR}/resources"
     example_scene.rca
     empty.rca

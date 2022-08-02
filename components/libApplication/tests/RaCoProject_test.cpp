@@ -328,8 +328,8 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadAnimationKeepsChannelAmount) {
 	auto importedAnim = raco::core::Queries::findByName(anims, "Wheels");
 	auto userAnim = raco::core::Queries::findByName(anims, "userAnim");
 
-	ASSERT_EQ(userAnim->as<raco::user_types::Animation>()->animationChannels.asTable().size(), raco::user_types::Animation::ANIMATION_CHANNEL_AMOUNT);
-	ASSERT_EQ(importedAnim->as<raco::user_types::Animation>()->animationChannels.asTable().size(), 2);
+	ASSERT_EQ(userAnim->as<raco::user_types::Animation>()->animationChannels_.asTable().size(), raco::user_types::Animation::ANIMATION_CHANNEL_AMOUNT);
+	ASSERT_EQ(importedAnim->as<raco::user_types::Animation>()->animationChannels_.asTable().size(), 2);
 }
 
 TEST_F(RaCoProjectFixture, saveAsMeshRerootRelativeURIHierarchyUp) {
@@ -920,6 +920,8 @@ TEST_F(RaCoProjectFixture, readOnlyProject_appTitleSuffix) {
 	}
 }
 
+#endif
+
 TEST_F(RaCoProjectFixture, loadDoubleModuleReferenceWithoutError) {
 	// RAOS-819: If a script references two modules make sure we/ramses-logic does not log an error even though the scripts are all correct.
 	class CaptureLog : public spdlog::sinks::base_sink<std::mutex> {
@@ -949,6 +951,3 @@ TEST_F(RaCoProjectFixture, loadDoubleModuleReferenceWithoutError) {
 	ASSERT_FALSE(logsink->containsError());
 	raco::log_system::unregisterSink(logsink);
 }
-
-
-#endif

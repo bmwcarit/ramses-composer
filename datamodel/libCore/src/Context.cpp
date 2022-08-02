@@ -1178,7 +1178,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			}
 
 			auto animChannelOutputName = linkStartAnim->as<user_types::Animation>()->createAnimChannelOutputName(channel.samplerIndex, sceneChannels[animationIndex][channel.samplerIndex]->objectName());
-			auto linkStart = ValueHandle{linkStartAnim, {"animationOutputs", animChannelOutputName}};
+			auto linkStart = ValueHandle{linkStartAnim, {"outputs", animChannelOutputName}};
 			if (raco::core::Queries::linkWouldBeValid(*project(), linkStart.getDescriptor(), linkEndProp.getDescriptor())) {
 				addLink(linkStart, linkEndProp);
 			} else {

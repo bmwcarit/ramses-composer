@@ -20,7 +20,7 @@ def check_broken_links():
 
 def update_external_projects(project_path, processed = set()):
     if project_path in processed:
-        return
+        return True
     print("'%s': loading..." % project_path)
     raco.load(project_path)
     
@@ -45,6 +45,8 @@ def update_external_projects(project_path, processed = set()):
     print("'%s': done!" % project_path)
     processed.add(project_path)
     return status
-
-update_external_projects(raco.projectPath())
+    
+    
+if not update_external_projects(raco.projectPath()):
+    sys.exit(1)
     

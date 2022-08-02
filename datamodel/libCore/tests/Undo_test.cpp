@@ -725,8 +725,8 @@ TEST_P(UndoTestWithIDParams, animation_with_animation_channel) {
 		auto anim = context.createObject(Animation::typeDescription.typeName, "anim", animID);
 		undoStack.push("Create animation object");
 
-		EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 0);
-		commandInterface.set(ValueHandle(anim, &Animation::animationChannels)[0], channel); 
+		EXPECT_EQ(anim->get("outputs")->asTable().size(), 0);
+		commandInterface.set(ValueHandle(anim, &Animation::animationChannels_)[0], channel); 
 		},
 
 		[this]() {
@@ -734,7 +734,7 @@ TEST_P(UndoTestWithIDParams, animation_with_animation_channel) {
 
 		[this]() {
 			auto anim = getInstance<Animation>("anim");
-			EXPECT_EQ(anim->get("animationOutputs")->asTable().size(), 1);
+			EXPECT_EQ(anim->get("outputs")->asTable().size(), 1);
 		});
 }
 

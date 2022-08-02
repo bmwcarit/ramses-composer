@@ -10,6 +10,7 @@
 #include "ramses_adaptor/LuaInterfaceAdaptor.h"
 
 #include "utils/FileUtils.h"
+#include "core/Queries.h"
 
 namespace raco::ramses_adaptor {
 
@@ -26,6 +27,25 @@ LuaInterfaceAdaptor::LuaInterfaceAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 	  subscription_{sceneAdaptor_->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() {
 		  tagDirty();
 		  recreateStatus_ = true;
+	  })},
+	  linksLifecycleSubscription_{sceneAdaptor_->dispatcher()->registerOnLinksLifeCycle(
+		  [this](const core::LinkDescriptor& link) {
+			  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
+				  tagDirty();
+				  recreateStatus_ = true; 
+			  }
+		  }, 
+		  [this](const core::LinkDescriptor& link) {
+			  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
+				  tagDirty();
+				  recreateStatus_ = true;
+			  }
+		  })},
+	  linkValidityChangeSubscription_{sceneAdaptor_->dispatcher()->registerOnLinkValidityChange([this](const core::LinkDescriptor& link) {
+		  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
+			  tagDirty();
+			  recreateStatus_ = true;
+		  }
 	  })} {
 }
 
@@ -62,8 +82,11 @@ bool LuaInterfaceAdaptor::sync(core::Errors* errors) {
 		auto interfaceText = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaInterface::uri_}));
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), interfaceText);
 		ramsesInterface_.reset();
-		if (!interfaceText.empty()) {
 
+		if (!interfaceText.empty() &&
+			(!sceneAdaptor_->optimizeForExport() || 
+				!raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false).empty() &&
+				raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true).empty())) {
 			ramsesInterface_ = raco::ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
 		}
 	}

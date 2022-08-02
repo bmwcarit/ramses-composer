@@ -35,7 +35,7 @@ raco_package_add_gui_test(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-raco_package_add_test_resouces(
+raco_package_add_test_resources(
     libPropertyBrowser_test "${CMAKE_SOURCE_DIR}/resources"
     meshes/Duck.glb
 )

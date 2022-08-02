@@ -73,8 +73,9 @@ namespace raco::serialization {
  * 38: Texture: added custom mipmap functionality (+ 3 URIs, 1 int property)
  * 39: Added interfaceSubdirectory to the default resource folder struct in the ProjectSettings.
  * 40: Renamed 6 user type properties
+ * 41: Renamed Animation property: "animationOutputs" -> "outputs"
  */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 40;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 41;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

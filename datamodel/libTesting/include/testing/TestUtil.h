@@ -90,7 +90,7 @@ inline auto createAnimatedScene(ContextOrCommandInterface& context, const raco::
 	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	context.set({animChannel, {"uri"}}, (path / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string());
 
-	auto link = context.addLink({anim, {"animationOutputs", "Ch0.anim_ch"}}, {node, {"translation"}});
+	auto link = context.addLink({anim, {"outputs", "Ch0.anim_ch"}}, {node, {"translation"}});
 	return std::make_tuple(
 		std::dynamic_pointer_cast<user_types::Animation>(anim),
 		std::dynamic_pointer_cast<user_types::AnimationChannel>(animChannel),

@@ -29,15 +29,13 @@
 
 namespace {
 
-QStandardItemModel* createSummaryModel(const raco::core::SceneBackendInterface* backend, QObject* parent) {
+QStandardItemModel* createSummaryModel(const std::vector<raco::core::SceneBackendInterface::SceneItemDesc>& sceneItems, QObject* parent) {
 	auto* listViewModel = new QStandardItemModel{parent};
 	listViewModel->setColumnCount(2);
 	listViewModel->setHorizontalHeaderItem(0, new QStandardItem{"Type"});
 	listViewModel->setHorizontalHeaderItem(1, new QStandardItem{"Name"});
 
-	auto sceneItems = backend->getSceneItemDescriptions();
-
-	std::map<raco::core::SceneBackendInterface::SceneItemDesc*, QStandardItem*> parents{};
+	std::map<const raco::core::SceneBackendInterface::SceneItemDesc*, QStandardItem*> parents{};
 	for (auto& item : sceneItems) {
 		using ItemList = QList<QStandardItem*>;
 		auto* col0 = new QStandardItem{QString::fromStdString(item.type_)};
@@ -104,8 +102,12 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	auto* tabWidget = new QTabWidget(summaryBox);
 	summaryBoxLayout->addWidget(tabWidget);
 
+	std::string message;
+	std::vector<core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	auto sceneStatus = application->getExportSceneDescriptionAndStatus(sceneDescription, message);
+
 	auto* listView = new QTreeView{tabWidget};
-	listView->setModel(createSummaryModel(application->sceneBackend(), listView));
+	listView->setModel(createSummaryModel(sceneDescription, listView));
 	listView->setMinimumHeight(500);
 	tabWidget->addTab(listView, QString{"Scene ID: %1"}.arg(application->sceneBackend()->currentSceneIdValue()));
 
@@ -132,22 +134,14 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 		}
 	}
 
-	if (!application->sceneBackend()->sceneValid()) {
+	if (sceneStatus != raco::core::ErrorLevel::NONE) {
 		auto* textBox = new QTextEdit(summaryBox);
 		textBox->setAcceptRichText(false);
 
-		QString message(application->sceneBackend()->getValidationReport(core::ErrorLevel::ERROR).c_str());
-		if (!message.isEmpty()) {
-			textBox->setText(message);
-			tabWidget->setCurrentIndex(tabWidget->addTab(textBox, "Ramses Errors"));
-			hasErrors_ = true;
-		} else {
-			message = QString::fromStdString(application->sceneBackend()->getValidationReport(core::ErrorLevel::WARNING));
-			if (!message.isEmpty()) {
-				textBox->setText(message);
-				tabWidget->setCurrentIndex(tabWidget->addTab(textBox, "Ramses Warnings"));
-			}
-		}
+		textBox->setText(QString::fromStdString(message));
+		hasErrors_ = sceneStatus == raco::core::ErrorLevel::ERROR;
+
+		tabWidget->setCurrentIndex(tabWidget->addTab(textBox, sceneStatus == raco::core::ErrorLevel::ERROR ? "Ramses Errors" : "Ramses Warnings"));
 	}
 
 	buttonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};

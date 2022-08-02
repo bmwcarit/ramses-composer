@@ -301,6 +301,24 @@ TEST_F(LinkTest, lua_loop_detection) {
 	}
 }
 
+TEST_F(LinkTest, lua_loop_detection_after_remove_link) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto [sprop1, eprop1] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
+	auto [sprop2, eprop2] = link(start, {"outputs", "ointeger"}, end, {"inputs", "integer"});
+	checkLinks({{sprop1, eprop1, true},
+		{sprop2, eprop2, true}});
+
+	EXPECT_EQ(Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"})).size(), 0);
+
+	context.removeLink(eprop2);
+	EXPECT_EQ(Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"})).size(), 0);
+	
+	context.removeLink(eprop1);
+	EXPECT_NE(Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"})).size(), 0);
+}
+
+
 TEST_F(LinkTest, removal_del_start_obj) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/types-scalar.lua");

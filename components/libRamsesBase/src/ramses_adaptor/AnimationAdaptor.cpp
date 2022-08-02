@@ -32,10 +32,12 @@ void AnimationAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes
 }
 
 const rlogic::Property* AnimationAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
-	if (propertyNamesVector.size() > 1 && propertyNamesVector[0] == "outputs") {
-		return ILogicPropertyProvider::getPropertyRecursive((*animNode_)->getOutputs(), propertyNamesVector, 1);
-	} else if (propertyNamesVector.size() == 1) {
-		return (*animNode_)->getInputs()->getChild(propertyNamesVector.front());
+	if (animNode_->get()) {
+		if (propertyNamesVector.size() > 1 && propertyNamesVector[0] == "outputs") {
+			return ILogicPropertyProvider::getPropertyRecursive((*animNode_)->getOutputs(), propertyNamesVector, 1);
+		} else if (propertyNamesVector.size() == 1) {
+			return (*animNode_)->getInputs()->getChild(propertyNamesVector.front());
+		}
 	}
 	return nullptr;
 }
@@ -53,7 +55,7 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 
 	std::vector<raco::ramses_base::RamsesAnimationChannelHandle> newChannelHandles;
 
-	const auto &channelTable = editorObject_->animationChannels.asTable();
+	const auto &channelTable = editorObject_->animationChannels_.asTable();
 	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
 		auto channel = channelTable.get(channelIndex)->asRef();
 		auto channelAdaptor = sceneAdaptor_->lookup<raco::ramses_adaptor::AnimationChannelAdaptor>(channel);
@@ -92,7 +94,7 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 }
 
 void AnimationAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
-	core::ValueHandle animOutputs{editorObject_, &user_types::Animation::animationOutputs};
+	core::ValueHandle animOutputs{editorObject_, &user_types::Animation::outputs_};
 	getOutputFromEngine(*(*animNode_)->getOutputs(), animOutputs, recorder);
 }
 
@@ -103,7 +105,8 @@ void AnimationAdaptor::updateGlobalAnimationSettings() {
 void AnimationAdaptor::updateGlobalAnimationStats(core::Errors* errors) {
 	auto duration = (*animNode_)->getOutputs()->getChild("duration")->get<float>().value();
 	auto infoText = fmt::format("Total Duration: {:.2f} s", duration);
-	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, {editorObject_->shared_from_this(), {"animationOutputs"}}, infoText);
+	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, 
+		{editorObject_->shared_from_this(), &user_types::Animation::outputs_}, infoText);
 }
 
 };	// namespace raco::ramses_adaptor

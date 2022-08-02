@@ -1067,6 +1067,27 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			}
 		}
 	}
+
+	// File version 41: Renamed Animation property: "animationOutputs" -> "outputs"
+	if (deserializedIR.fileVersion < 41) {
+
+		for (auto& link : deserializedIR.links) {
+				auto linkStartProps = link->startPropertyNamesVector();
+				if (linkStartProps.at(0) == "animationOutputs") {
+					linkStartProps[0] = "outputs";
+					link->startProp_->set<std::string>(linkStartProps);
+				}
+		}
+
+		for (const auto& dynObj : deserializedIR.objects) {
+			const auto& typeName = dynObj->serializationTypeName();
+			if (typeName == "Animation") {
+				auto oldOutputs = dynObj->extractProperty("animationOutputs");
+				auto newOutputs = dynObj->addProperty("outputs", new Property<Table, DisplayNameAnnotation>{{}, DisplayNameAnnotation("Outputs")}, -1);
+				*newOutputs = *oldOutputs;
+			}
+		}
+	}
 }
 
 }  // namespace raco::serialization

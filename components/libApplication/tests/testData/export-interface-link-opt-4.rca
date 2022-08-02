@@ -1,0 +1,2289 @@
+{
+    "externalProjects": {
+    },
+    "fileVersion": 41,
+    "instances": [
+        {
+            "properties": {
+                "instanceCount": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 20,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 1
+                },
+                "mesh": null,
+                "objectID": "11c31b23-b865-4f3b-819b-1535d23863c1",
+                "objectName": "MeshNode",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 94155.671875
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scaling": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "visibility": true
+            },
+            "typeName": "MeshNode"
+        },
+        {
+            "properties": {
+                "camera": "bb73ec3c-c336-4181-8b94-08485062800e",
+                "clearColor": {
+                    "w": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "enableClearColor": true,
+                "enableClearDepth": true,
+                "enableClearStencil": true,
+                "enabled": true,
+                "layer0": "e1ff07d7-d989-4c1b-81d8-2c320a77ffce",
+                "layer1": null,
+                "layer2": null,
+                "layer3": null,
+                "layer4": null,
+                "layer5": null,
+                "layer6": null,
+                "layer7": null,
+                "objectID": "1dea0981-5d20-49b7-a293-3aed1357a697",
+                "objectName": "MainRenderPass",
+                "order": 1,
+                "target": null
+            },
+            "typeName": "RenderPass"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "Angle",
+                        "someInt",
+                        "timer"
+                    ],
+                    "properties": {
+                        "Angle": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "someInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "110"
+                        },
+                        "timer": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "1381663024667"
+                        }
+                    }
+                },
+                "objectID": "292fad6f-ff96-0333-2b73-6aa04b9149de",
+                "objectName": "script1",
+                "outputs": {
+                    "order": [
+                        "Rotation",
+                        "someInt",
+                        "timer"
+                    ],
+                    "properties": {
+                        "Rotation": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 8
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "properties": {
+                                "x": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "y": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "z": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                }
+                            },
+                            "typeName": "Vec3f::EngineTypeAnnotation::LinkStartAnnotation"
+                        },
+                        "someInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation",
+                            "value": "110"
+                        },
+                        "timer": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation",
+                            "value": "1381663024667"
+                        }
+                    }
+                },
+                "stdModules": {
+                    "base": true,
+                    "debug": true,
+                    "math": true,
+                    "string": true,
+                    "table": true
+                },
+                "uri": "scripts/script1.lua"
+            },
+            "typeName": "LuaScript"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "Angle",
+                        "someInt",
+                        "timer"
+                    ],
+                    "properties": {
+                        "Angle": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "someInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "110"
+                        },
+                        "timer": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "1381663024667"
+                        }
+                    }
+                },
+                "objectID": "292fad6f-ff96-0333-2b73-6aa04b9149df",
+                "objectName": "script1",
+                "uri": "interfaces/script1.lua"
+            },
+            "typeName": "LuaInterface"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "testFloat",
+                        "testInt",
+                        "timer1",
+                        "timer2"
+                    ],
+                    "properties": {
+                        "testFloat": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "testInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "110"
+                        },
+                        "timer1": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "1381611924752"
+                        },
+                        "timer2": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "8863922564"
+                        }
+                    }
+                },
+                "objectID": "4d141cec-332e-4745-aa89-4cd0acbde9fe",
+                "objectName": "intf-global",
+                "uri": "interfaces/script2.lua"
+            },
+            "typeName": "LuaInterface"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "Angle",
+                        "someInt",
+                        "timer"
+                    ],
+                    "properties": {
+                        "Angle": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 110
+                        },
+                        "someInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "110"
+                        },
+                        "timer": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "8559606556"
+                        }
+                    }
+                },
+                "objectID": "53d633a1-cfd9-4ebb-925d-34767ce8a2ae",
+                "objectName": "script1",
+                "outputs": {
+                    "order": [
+                        "Rotation",
+                        "someInt",
+                        "timer"
+                    ],
+                    "properties": {
+                        "Rotation": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 8
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "properties": {
+                                "x": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "y": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                },
+                                "z": {
+                                    "annotations": [
+                                        {
+                                            "properties": {
+                                                "max": 1,
+                                                "min": 0
+                                            },
+                                            "typeName": "RangeAnnotationDouble"
+                                        }
+                                    ],
+                                    "value": 0
+                                }
+                            },
+                            "typeName": "Vec3f::EngineTypeAnnotation::LinkStartAnnotation"
+                        },
+                        "someInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation",
+                            "value": "0"
+                        },
+                        "timer": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation",
+                            "value": "0"
+                        }
+                    }
+                },
+                "stdModules": {
+                    "base": true,
+                    "debug": true,
+                    "math": true,
+                    "string": true,
+                    "table": true
+                },
+                "uri": "scripts/script1.lua"
+            },
+            "typeName": "LuaScript"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "Angle",
+                        "someInt",
+                        "timer"
+                    ],
+                    "properties": {
+                        "Angle": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": 110
+                        },
+                        "someInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "110"
+                        },
+                        "timer": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "8559606556"
+                        }
+                    }
+                },
+                "objectID": "53d633a1-cfd9-4ebb-925d-34767ce8a2af",
+                "objectName": "script1",
+                "uri": "interfaces/script1.lua"
+            },
+            "typeName": "LuaInterface"
+        },
+        {
+            "properties": {
+                "backgroundColor": {
+                    "w": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "defaultResourceFolders": {
+                    "imageSubdirectory": "images",
+                    "interfaceSubdirectory": "interfaces",
+                    "meshSubdirectory": "meshes",
+                    "scriptSubdirectory": "scripts",
+                    "shaderSubdirectory": "shaders"
+                },
+                "enableTimerFlag": false,
+                "objectID": "551918d6-68bb-430f-ad2c-ad7094fd2b38",
+                "objectName": "",
+                "runTimer": false,
+                "saveAsZip": false,
+                "sceneId": {
+                    "annotations": [
+                        {
+                            "properties": {
+                                "max": 1024,
+                                "min": 1
+                            },
+                            "typeName": "RangeAnnotationInt"
+                        }
+                    ],
+                    "value": 123
+                },
+                "viewport": {
+                    "i1": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 4096,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 1440
+                    },
+                    "i2": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 4096,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 720
+                    }
+                }
+            },
+            "typeName": "ProjectSettings"
+        },
+        {
+            "properties": {
+                "children": {
+                    "properties": [
+                        {
+                            "typeName": "Ref",
+                            "value": "292fad6f-ff96-0333-2b73-6aa04b9149de"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "292fad6f-ff96-0333-2b73-6aa04b9149df"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "8cec077d-d77a-077f-3f84-8f19535968e7"
+                        }
+                    ]
+                },
+                "objectID": "7af99ece-304f-4d88-b92e-5ed63779eb70",
+                "objectName": "PrefabInstance",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scaling": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "template": "92894c73-f172-4f80-be9c-4d07b0dabca8",
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "visibility": true
+            },
+            "typeName": "PrefabInstance"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "testFloat",
+                        "testInt",
+                        "timer1",
+                        "timer2"
+                    ],
+                    "properties": {
+                        "testFloat": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "testInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "110"
+                        },
+                        "timer1": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "1381663024667"
+                        },
+                        "timer2": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "1381663024667"
+                        }
+                    }
+                },
+                "objectID": "8cec077d-d77a-077f-3f84-8f19535968e7",
+                "objectName": "script2",
+                "uri": "interfaces/script2.lua"
+            },
+            "typeName": "LuaInterface"
+        },
+        {
+            "properties": {
+                "children": {
+                    "properties": [
+                        {
+                            "typeName": "Ref",
+                            "value": "53d633a1-cfd9-4ebb-925d-34767ce8a2ae"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "f61599b3-e735-4af7-86aa-d1cf64208396"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "11c31b23-b865-4f3b-819b-1535d23863c1"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "53d633a1-cfd9-4ebb-925d-34767ce8a2af"
+                        },
+                        {
+                            "typeName": "Ref",
+                            "value": "f61599b3-e735-4af7-86aa-d1cf64208397"
+                        }
+                    ]
+                },
+                "objectID": "92894c73-f172-4f80-be9c-4d07b0dabca8",
+                "objectName": "Prefab"
+            },
+            "typeName": "Prefab"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "ticker_us": "0"
+                },
+                "objectID": "b8458b35-0df3-444b-89ee-e3e9aa17fb70",
+                "objectName": "Timer",
+                "outputs": {
+                    "ticker_us": "1381663024667"
+                }
+            },
+            "typeName": "Timer"
+        },
+        {
+            "properties": {
+                "frustum": {
+                    "aspectRatio": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 4,
+                                    "min": 0.5
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 2
+                    },
+                    "farPlane": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 10000,
+                                    "min": 100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1000
+                    },
+                    "fieldOfView": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 120,
+                                    "min": 10
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 35
+                    },
+                    "nearPlane": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 1,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0.1
+                    }
+                },
+                "objectID": "bb73ec3c-c336-4181-8b94-08485062800e",
+                "objectName": "PerspectiveCamera",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scaling": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 10
+                    }
+                },
+                "viewport": {
+                    "height": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 720
+                    },
+                    "offsetX": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": -7680
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "offsetY": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": -7680
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "width": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 7680,
+                                    "min": 0
+                                },
+                                "typeName": "RangeAnnotationInt"
+                            }
+                        ],
+                        "value": 1440
+                    }
+                },
+                "visibility": true
+            },
+            "typeName": "PerspectiveCamera"
+        },
+        {
+            "properties": {
+                "children": {
+                    "properties": [
+                        {
+                            "typeName": "Ref",
+                            "value": "7af99ece-304f-4d88-b92e-5ed63779eb70"
+                        }
+                    ]
+                },
+                "objectID": "da7008b6-d17d-4fcf-a237-fedd01cf5ebd",
+                "objectName": "Node",
+                "rotation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 360,
+                                    "min": -360
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "scaling": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": 0.1
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 1
+                    }
+                },
+                "tags": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "render_main"
+                        }
+                    ]
+                },
+                "translation": {
+                    "x": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "y": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    },
+                    "z": {
+                        "annotations": [
+                            {
+                                "properties": {
+                                    "max": 100,
+                                    "min": -100
+                                },
+                                "typeName": "RangeAnnotationDouble"
+                            }
+                        ],
+                        "value": 0
+                    }
+                },
+                "visibility": true
+            },
+            "typeName": "Node"
+        },
+        {
+            "properties": {
+                "materialFilterMode": 1,
+                "objectID": "e1ff07d7-d989-4c1b-81d8-2c320a77ffce",
+                "objectName": "MainRenderLayer",
+                "renderableTags": {
+                    "order": [
+                        "render_main"
+                    ],
+                    "properties": {
+                        "render_main": {
+                            "typeName": "Int",
+                            "value": 0
+                        }
+                    }
+                },
+                "sortOrder": 0
+            },
+            "typeName": "RenderLayer"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "testFloat",
+                        "testInt",
+                        "timer1",
+                        "timer2"
+                    ],
+                    "properties": {
+                        "testFloat": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "testInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "0"
+                        },
+                        "timer1": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "0"
+                        },
+                        "timer2": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkEndAnnotation",
+                            "value": "0"
+                        }
+                    }
+                },
+                "objectID": "f61599b3-e735-4af7-86aa-d1cf64208396",
+                "objectName": "script2",
+                "stdModules": {
+                    "base": true,
+                    "debug": true,
+                    "math": true,
+                    "string": true,
+                    "table": true
+                },
+                "uri": "scripts/script2.lua"
+            },
+            "typeName": "LuaScript"
+        },
+        {
+            "properties": {
+                "inputs": {
+                    "order": [
+                        "testFloat",
+                        "testInt",
+                        "timer1",
+                        "timer2"
+                    ],
+                    "properties": {
+                        "testFloat": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 5
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Double::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": 0
+                        },
+                        "testInt": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "0"
+                        },
+                        "timer1": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "0"
+                        },
+                        "timer2": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "engineType": 18
+                                    },
+                                    "typeName": "EngineTypeAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkStartAnnotation"
+                                },
+                                {
+                                    "typeName": "LinkEndAnnotation"
+                                }
+                            ],
+                            "typeName": "Int64::EngineTypeAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+                            "value": "0"
+                        }
+                    }
+                },
+                "objectID": "f61599b3-e735-4af7-86aa-d1cf64208397",
+                "objectName": "script2",
+                "uri": "interfaces/script2.lua"
+            },
+            "typeName": "LuaInterface"
+        }
+    ],
+    "links": [
+        {
+            "properties": {
+                "endObject": "8cec077d-d77a-077f-3f84-8f19535968e7",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "testInt"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "292fad6f-ff96-0333-2b73-6aa04b9149de",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "outputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "someInt"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "8cec077d-d77a-077f-3f84-8f19535968e7",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "timer2"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "292fad6f-ff96-0333-2b73-6aa04b9149de",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "outputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "timer"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "292fad6f-ff96-0333-2b73-6aa04b9149de",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "292fad6f-ff96-0333-2b73-6aa04b9149df",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "292fad6f-ff96-0333-2b73-6aa04b9149df",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "Angle"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "4d141cec-332e-4745-aa89-4cd0acbde9fe",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "testFloat"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "53d633a1-cfd9-4ebb-925d-34767ce8a2ae",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "53d633a1-cfd9-4ebb-925d-34767ce8a2af",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "292fad6f-ff96-0333-2b73-6aa04b9149df",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "timer"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "b8458b35-0df3-444b-89ee-e3e9aa17fb70",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "outputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "ticker_us"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "8cec077d-d77a-077f-3f84-8f19535968e7",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "timer1"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "b8458b35-0df3-444b-89ee-e3e9aa17fb70",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "outputs"
+                        },
+                        {
+                            "typeName": "String",
+                            "value": "ticker_us"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        },
+        {
+            "properties": {
+                "endObject": "f61599b3-e735-4af7-86aa-d1cf64208396",
+                "endProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        }
+                    ]
+                },
+                "isValid": true,
+                "startObject": "f61599b3-e735-4af7-86aa-d1cf64208397",
+                "startProp": {
+                    "properties": [
+                        {
+                            "typeName": "String",
+                            "value": "inputs"
+                        }
+                    ]
+                }
+            },
+            "typeName": "Link"
+        }
+    ],
+    "logicEngineVersion": [
+        1,
+        1,
+        0
+    ],
+    "racoVersion": [
+        1,
+        1,
+        0
+    ],
+    "ramsesVersion": [
+        27,
+        0,
+        121
+    ],
+    "structPropMap": {
+        "BlendOptions": {
+            "blendColor": "Vec4f::DisplayNameAnnotation",
+            "blendFactorDestAlpha": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "blendFactorDestColor": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "blendFactorSrcAlpha": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "blendFactorSrcColor": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "blendOperationAlpha": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "blendOperationColor": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "cullmode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "depthFunction": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "depthwrite": "Bool::DisplayNameAnnotation"
+        },
+        "CameraViewport": {
+            "height": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
+            "offsetX": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
+            "offsetY": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
+            "width": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "DefaultResourceDirectories": {
+            "imageSubdirectory": "String::DisplayNameAnnotation::URIAnnotation",
+            "interfaceSubdirectory": "String::DisplayNameAnnotation::URIAnnotation",
+            "meshSubdirectory": "String::DisplayNameAnnotation::URIAnnotation",
+            "scriptSubdirectory": "String::DisplayNameAnnotation::URIAnnotation",
+            "shaderSubdirectory": "String::DisplayNameAnnotation::URIAnnotation"
+        },
+        "LuaStandardModuleSelection": {
+            "base": "Bool::DisplayNameAnnotation",
+            "debug": "Bool::DisplayNameAnnotation",
+            "math": "Bool::DisplayNameAnnotation",
+            "string": "Bool::DisplayNameAnnotation",
+            "table": "Bool::DisplayNameAnnotation"
+        },
+        "OrthographicFrustum": {
+            "bottomPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "farPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "leftPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "nearPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "rightPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "topPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
+        },
+        "PerspectiveFrustum": {
+            "aspectRatio": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "farPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "fieldOfView": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "nearPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
+        },
+        "TimerInput": {
+            "ticker_us": "Int64::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "TimerOutput": {
+            "ticker_us": "Int64::DisplayNameAnnotation::LinkStartAnnotation"
+        },
+        "Vec2f": {
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec2i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        },
+        "Vec3f": {
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "z": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec3i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i3": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        },
+        "Vec4f": {
+            "w": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "x": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "y": "Double::DisplayNameAnnotation::RangeAnnotationDouble",
+            "z": "Double::DisplayNameAnnotation::RangeAnnotationDouble"
+        },
+        "Vec4i": {
+            "i1": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i2": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i3": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "i4": "Int::DisplayNameAnnotation::RangeAnnotationInt"
+        }
+    },
+    "userTypePropMap": {
+        "Animation": {
+            "animationChannels": "Table::DisplayNameAnnotation",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "outputs": "Table::DisplayNameAnnotation",
+            "progress": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
+        },
+        "AnimationChannel": {
+            "animationIndex": "Int::DisplayNameAnnotation",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "samplerIndex": "Int::DisplayNameAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+        },
+        "CubeMap": {
+            "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "generateMipmaps": "Bool::DisplayNameAnnotation",
+            "level2uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "level2uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "mipmapLevel": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "textureFormat": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "uriBack": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriBottom": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriFront": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriRight": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
+        },
+        "LuaInterface": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "inputs": "Table::DisplayNameAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+        },
+        "LuaScript": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "inputs": "Table::DisplayNameAnnotation::LinkEndAnnotation",
+            "luaModules": "Table::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "outputs": "Table::DisplayNameAnnotation",
+            "stdModules": "LuaStandardModuleSelection::DisplayNameAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+        },
+        "LuaScriptModule": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "stdModules": "LuaStandardModuleSelection::DisplayNameAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+        },
+        "Material": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "options": "BlendOptions::DisplayNameAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "uniforms": "Table::DisplayNameAnnotation",
+            "uriDefines": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriFragment": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriGeometry": "String::URIAnnotation::DisplayNameAnnotation",
+            "uriVertex": "String::URIAnnotation::DisplayNameAnnotation"
+        },
+        "Mesh": {
+            "bakeMeshes": "Bool::DisplayNameAnnotation",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "materialNames": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "meshIndex": "Int::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+        },
+        "MeshNode": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "instanceCount": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "materials": "Table::DisplayNameAnnotation",
+            "mesh": "Mesh::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "Node": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "OrthographicCamera": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "frustum": "OrthographicFrustum::DisplayNameAnnotation::LinkEndAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "viewport": "CameraViewport::DisplayNameAnnotation::LinkEndAnnotation",
+            "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "PerspectiveCamera": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "frustum": "PerspectiveFrustum::DisplayNameAnnotation::LinkEndAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "viewport": "CameraViewport::DisplayNameAnnotation::LinkEndAnnotation",
+            "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "Prefab": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation"
+        },
+        "PrefabInstance": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "rotation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "template": "Prefab::DisplayNameAnnotation",
+            "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "ProjectSettings": {
+            "backgroundColor": "Vec4f::DisplayNameAnnotation",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "defaultResourceFolders": "DefaultResourceDirectories::DisplayNameAnnotation",
+            "enableTimerFlag": "Bool::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "runTimer": "Bool::HiddenProperty",
+            "saveAsZip": "Bool::DisplayNameAnnotation",
+            "sceneId": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "viewport": "Vec2i::DisplayNameAnnotation"
+        },
+        "RenderBuffer": {
+            "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "format": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "height": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "width": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
+        },
+        "RenderLayer": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "materialFilterMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "materialFilterTags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "renderableTags": "Table::RenderableTagContainerAnnotation::HiddenProperty::DisplayNameAnnotation",
+            "sortOrder": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation"
+        },
+        "RenderPass": {
+            "camera": "BaseCamera::DisplayNameAnnotation",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "clearColor": "Vec4f::DisplayNameAnnotation",
+            "enableClearColor": "Bool::DisplayNameAnnotation",
+            "enableClearDepth": "Bool::DisplayNameAnnotation",
+            "enableClearStencil": "Bool::DisplayNameAnnotation",
+            "enabled": "Bool::DisplayNameAnnotation",
+            "layer0": "RenderLayer::DisplayNameAnnotation",
+            "layer1": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "layer2": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "layer3": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "layer4": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "layer5": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "layer6": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "layer7": "RenderLayer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "order": "Int::DisplayNameAnnotation",
+            "target": "RenderTarget::DisplayNameAnnotation::EmptyReferenceAllowable"
+        },
+        "RenderTarget": {
+            "buffer0": "RenderBuffer::DisplayNameAnnotation",
+            "buffer1": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "buffer2": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "buffer3": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "buffer4": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "buffer5": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "buffer6": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "buffer7": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation"
+        },
+        "Texture": {
+            "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "flipTexture": "Bool::DisplayNameAnnotation",
+            "generateMipmaps": "Bool::DisplayNameAnnotation",
+            "level2uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "level3uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "level4uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "mipmapLevel": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "textureFormat": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
+        },
+        "Timer": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "inputs": "TimerInput::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "outputs": "TimerOutput::DisplayNameAnnotation"
+        }
+    }
+}

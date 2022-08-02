@@ -608,6 +608,17 @@ TEST_F(MigrationTest, migrate_from_V39) {
 	}
 }
 
+TEST_F(MigrationTest, migrate_from_V40) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V40.rca").string()));
+	auto racoproject = &application.activeRaCoProject();
+	auto instances = racoproject->project()->instances();
+
+	auto node = raco::core::Queries::findByName(instances, "Node");
+	auto animation = raco::core::Queries::findByName(instances, "Animation");
+
+	checkLinks(*racoproject->project(), {{{animation, {"outputs", "Ch0.AnimationChannel"}}, {node, {"translation"}}, true}});
+}
+
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.
 	// Should detect changes in data model with missing migration code.

@@ -96,6 +96,35 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDe
 	activeProject_->errors()->logAllErrors();
 }
 
+core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector<core::SceneBackendInterface::SceneItemDesc>& outDescription, std::string& outMessage) {
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), true);
+	logicEngineNeedsUpdate_ = true;
+	doOneLoop();
+
+	outDescription = scenesBackend_->getSceneItemDescriptions();
+
+	core::ErrorLevel errorLevel = core::ErrorLevel::NONE;
+	std::string message;
+	if (!scenesBackend_->sceneValid()) {
+		message = sceneBackend()->getValidationReport(core::ErrorLevel::ERROR);
+		if (!message.empty()) {
+			errorLevel = core::ErrorLevel::ERROR;
+		} else {
+			message = sceneBackend()->getValidationReport(core::ErrorLevel::WARNING);
+			if (!message.empty()) {
+				errorLevel = core::ErrorLevel::WARNING;
+			}
+		}
+	}
+	outMessage = message;
+
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
+	logicEngineNeedsUpdate_ = true;
+	rendererDirty_ = true;
+
+	return errorLevel;
+}
+
 bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) {
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), true);
 	logicEngineNeedsUpdate_ = true;

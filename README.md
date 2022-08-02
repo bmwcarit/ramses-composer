@@ -171,7 +171,7 @@ raco_package_add_headless_test(libRamsesBase_test
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}  # set working directory for test
 )
-raco_package_add_test_resouces(libRamsesBase_test
+raco_package_add_test_resources(libRamsesBase_test
 ${CMAKE_CURRENT_SOURCE_DIR} # source directory for the resources below
     res/basic.frag
     res/basic.vert

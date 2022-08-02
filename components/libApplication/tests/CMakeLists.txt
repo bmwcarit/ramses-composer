@@ -28,7 +28,7 @@ raco_package_add_headless_test(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-raco_package_add_test_resouces(
+raco_package_test_resources_process(
     libApplication_test "${CMAKE_SOURCE_DIR}/resources"
     shaders/basic.frag
     shaders/basic.vert
@@ -53,11 +53,21 @@ raco_package_add_test_resouces(
     scripts/runtime-error.lua
 )
 
-raco_package_add_test_resouces(
+raco_package_test_resources_process(
     libApplication_test "${CMAKE_CURRENT_SOURCE_DIR}/testData"
     loadDoubleModuleReferenceWithoutError.rca
     scripts/m1.lua
     scripts/m2.lua
     scripts/s.lua
+    export-interface-link-opt-1.rca
+    export-interface-link-opt-2.rca
+    export-interface-link-opt-3.rca
+    export-interface-link-opt-4.rca
+    scripts/script1.lua
+    scripts/script2.lua
+    interfaces/script1.lua
+    interfaces/script2.lua
+    interfaces/global.lua
  )
  
+raco_package_test_resources_add_compile_definitions(libApplication_test)

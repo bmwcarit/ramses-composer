@@ -127,8 +127,11 @@ void LuaScriptAdaptor::readDataFromEngine(core::DataChangeRecorder &recorder) {
 }
 
 const rlogic::Property* LuaScriptAdaptor::getProperty(const std::vector<std::string>& names) {
-	const rlogic::Property* prop{names.at(0) == "inputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
-	return ILogicPropertyProvider::getPropertyRecursive(prop, names, 1);
+	if (luaScript_ && names.size() >= 1) {
+		const rlogic::Property* prop{names.at(0) == "inputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
+		return ILogicPropertyProvider::getPropertyRecursive(prop, names, 1);
+	}	
+	return nullptr;
 }
 
 void LuaScriptAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {

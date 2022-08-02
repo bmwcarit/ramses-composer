@@ -28,7 +28,7 @@ void Animation::onAfterContextActivated(BaseContext& context) {
 	// Animation objects with less than ANIMATION_CHANNEL_AMOUNT channels created by BaseContext::insertAssetScenegraph
 	// will then be loaded incorrectly.
 	// We would need to fix the serialization if we want to move the setChannelAmount to the constructor.
-	if (animationChannels.asTable().size() == 0) {
+	if (animationChannels_.asTable().size() == 0) {
 		setChannelAmount(ANIMATION_CHANNEL_AMOUNT);
 	}
 	syncOutputInterface(context);
@@ -39,7 +39,7 @@ void Animation::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle
 }
 
 void Animation::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	const auto &channelTable = animationChannels.asTable();
+	const auto &channelTable = animationChannels_.asTable();
 	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
 		if (value == ValueHandle{shared_from_this(), {"animationChannels", fmt::format("Channel {}", channelIndex)}}) {
 			syncOutputInterface(context);
@@ -57,7 +57,7 @@ void Animation::syncOutputInterface(BaseContext& context) {
 
 	OutdatedPropertiesStore dummyCache{};
 
-	auto &channelTable = animationChannels.asTable();
+	auto &channelTable = animationChannels_.asTable();
 	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
 		context.errors().removeError({shared_from_this(), {"animationChannels", fmt::format("Channel {}", channelIndex)}});
 		auto channelRef = channelTable[channelIndex]->asRef();
@@ -73,7 +73,7 @@ void Animation::syncOutputInterface(BaseContext& context) {
 		}
 	}
 
-	syncTableWithEngineInterface(context, outputs, ValueHandle(shared_from_this(), &Animation::animationOutputs), dummyCache, true, false);
+	syncTableWithEngineInterface(context, outputs, ValueHandle(shared_from_this(), &Animation::outputs_), dummyCache, true, false);
 	context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 }
@@ -83,9 +83,9 @@ std::string Animation::createAnimChannelOutputName(int channelIndex, const std::
 }
 
 void Animation::setChannelAmount(int amount) {
-	animationChannels->clear();
+	animationChannels_->clear();
 	for (auto i = 0; i < amount; ++i) {
-		animationChannels->addProperty(fmt::format("Channel {}", i), new Value<SAnimationChannel>());
+		animationChannels_->addProperty(fmt::format("Channel {}", i), new Value<SAnimationChannel>());
 	}
 }
 

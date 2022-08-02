@@ -14,6 +14,7 @@
 #include "components/DataChangeDispatcher.h"
 #include "core/ChangeRecorder.h"
 #include "core/Project.h"
+#include "core/SceneBackendInterface.h"
 #include <memory>
 
 #include "core/ExtrefOperations.h"
@@ -21,7 +22,7 @@
 class ObjectTreeViewExternalProjectModelTest;
 
 namespace raco::core {
-class SceneBackendInterface;
+enum class ErrorLevel;
 }
 
 namespace raco::ramses_base {
@@ -52,6 +53,12 @@ public:
 	// @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	// @exception ExtrefError
 	void switchActiveRaCoProject(const QString& file, bool createDefaultScene = true);
+
+	// Get scene description and Ramses/RamsesLogic validation status and error message with the scene
+	// being setup as if exported.
+	// 
+	// The export setup includes enabling link optimization.
+	core::ErrorLevel getExportSceneDescriptionAndStatus(std::vector<core::SceneBackendInterface::SceneItemDesc>& outDescription, std::string& outMessage); 
 
 	bool exportProject(
 		const std::string& ramsesExport,

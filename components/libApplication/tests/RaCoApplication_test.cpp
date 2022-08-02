@@ -82,6 +82,34 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 	ASSERT_TRUE(success);
 }
 
+TEST_F(RaCoApplicationFixture, export_interface_link_opt_1) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-1.rca").string()));
+
+	std::string error;
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-1.ramses").string(), (test_path() / "export-interface-link-opt-1.rlogic").string(), false, error, false));
+}
+
+TEST_F(RaCoApplicationFixture, export_interface_link_opt_2) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-2.rca").string()));
+
+	std::string error;
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-2.ramses").string(), (test_path() / "export-interface-link-opt-2.rlogic").string(), false, error, false));
+}
+
+TEST_F(RaCoApplicationFixture, export_interface_link_opt_3) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-3.rca").string()));
+
+	std::string error;
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-3.ramses").string(), (test_path() / "export-interface-link-opt-3.rlogic").string(), false, error, false));
+}
+
+TEST_F(RaCoApplicationFixture, export_interface_link_opt_4) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-4.rca").string()));
+
+	std::string error;
+	EXPECT_FALSE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
+}
+
 TEST_F(RaCoApplicationFixture, cant_delete_ProjectSettings) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());

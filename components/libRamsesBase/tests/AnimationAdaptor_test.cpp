@@ -157,7 +157,7 @@ TEST_F(AnimationAdaptorTest, animNode_multiple_channels) {
 	context.set({anim, {"animationChannels", "Channel 2"}}, animChannel3);
 	dispatch();
 
-	ASSERT_EQ(anim->get("animationOutputs")->asTable().size(), 3);
+	ASSERT_EQ(anim->get("outputs")->asTable().size(), 3);
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.keyframes"), nullptr);
 	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.keyframes")->getUserId(), animChannel1->objectIDAsRamsesLogicID());
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name 1.timestamps"), nullptr);
@@ -206,7 +206,7 @@ TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
 	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut"), nullptr);
 }
 
-TEST_F(AnimationAdaptorTest, link_with_luascript_output) {
+TEST_F(AnimationAdaptorTest, link_lua_to_animation) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
 	std::string uriPath{(test_path() / "script.lua").string()};
@@ -236,184 +236,29 @@ end
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getInputs()->getChild("progress")->get<float>(), 2.0);
 }
 
-TEST_F(AnimationAdaptorTest, link_with_meshNode_mesh_changed) {
+TEST_F(AnimationAdaptorTest, link_animation_to_node) {
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
 	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
+	auto node = context.createObject(Node::typeDescription.typeName, "Node");
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
 	dispatch();
 
-	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
+	auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), "Node");
+	float x, y, z;
+
+	ramsesNode->getTranslation(x, y, z);
+	EXPECT_EQ(x, 0.0);
+
+	commandInterface.addLink({anim, {"outputs", "Ch0.Animation Sampler Name"}}, {node, {"translation"}});
 	dispatch();
 
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, (test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string());
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ramsesNode->getTranslation(x, y, z);
+	EXPECT_EQ(x, 1.0);
 }
 
-TEST_F(AnimationAdaptorTest, link_with_meshNode_submesh_index_changed) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	dispatch();
-
-	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
-	dispatch();
-
-	commandInterface.set({mesh, {"meshIndex"}}, 1);
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-}
-
-TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_data_changed_valid_type) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	dispatch();
-
-	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
-	dispatch();
-
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 1);
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-}
-
-TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_data_changed_invalid_type) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	dispatch();
-
-	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
-	dispatch();
-
-	// changing from vec3f output to vec4f output
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 3);
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_FALSE(commandInterface.project()->links().front()->isValid());
-}
-
-TEST_F(AnimationAdaptorTest, link_with_meshNode_channel_removed) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	dispatch();
-
-	commandInterface.addLink({anim, {"animationOutputs", "Ch0.Animation Sampler Name"}}, {meshNode, {"translation"}});
-	dispatch();
-
-	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, SEditorObject());
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_FALSE(commandInterface.project()->links().front()->isValid());
-
-	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-}
-
-TEST_F(AnimationAdaptorTest, anim_in_prefab_prefabinstance_link_inside_prefabinstance) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
-	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	auto prefab = context.createObject(Prefab::typeDescription.typeName, "Prefab");
-	auto prefabInstance = context.createObject(PrefabInstance::typeDescription.typeName, "PrefabInstance");
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
-	dispatch();
-
-	commandInterface.moveScenegraphChildren({anim}, prefab);
-	commandInterface.moveScenegraphChildren({meshNode}, prefab);
-	commandInterface.set({anim, {"animationChannels", "Channel 1"}}, animChannel);
-	commandInterface.set({mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-
-	commandInterface.addLink({anim, {"animationOutputs", "Ch1.Animation Sampler Name"}}, {meshNode, {"translation"}});
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-
-	commandInterface.set({prefabInstance, {"template"}}, prefab);
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 2);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-	ASSERT_TRUE(commandInterface.project()->links().back()->isValid());
-
-	commandInterface.set({prefabInstance, {"template"}}, SEditorObject());
-	dispatch();
-
-	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-}
