@@ -751,48 +751,94 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 	std::set<std::string> setNameArr;
 	for (auto& material : materialMap) {
 		MaterialData data = material.second;
-		HmiScenegraph::TMaterial tMaterial;
-		// name
-		tMaterial.set_name(data.getObjectName());
+		NodeMaterial nodeMaterial;
+		if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(material.first, nodeMaterial) && nodeMaterial.isPrivate()) {
+			HmiScenegraph::TMaterial tMaterial;
+			// name
+			tMaterial.set_name(data.getObjectName());
 
-		// RenderMode
-		HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
-		RenderMode renderMode = data.getRenderMode();
-		// setRenderMode
-		setMaterialRenderMode(renderMode, rRenderMode);
-		tMaterial.set_allocated_rendermode(rRenderMode);
+			// RenderMode
+			HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
+			RenderMode renderMode = nodeMaterial.getRenderMode();
+			// setRenderMode
+			setMaterialRenderMode(renderMode, rRenderMode);
+			tMaterial.set_allocated_rendermode(rRenderMode);
 
-		// shaderReference
-		std::string shaderPtxName = getShaderPtxNameByShaderName(data.getShaderRef());
-		tMaterial.set_shaderreference(shaderPtxName);
+			// shaderReference
+			std::string shaderPtxName = getShaderPtxNameByShaderName(data.getShaderRef());
+			tMaterial.set_shaderreference(shaderPtxName);
 
-		for (auto& textureData : data.getTextures()) {
-			HmiScenegraph::TTexture tTextture;
-			if (textureData.getName() == "empty") {
-				messageBoxError(data.getObjectName());
+			for (auto& textureData : data.getTextures()) {
+				HmiScenegraph::TTexture tTextture;
+				if (textureData.getName() == "empty") {
+					messageBoxError(data.getObjectName());
+				}
+				tTextture.set_name(textureData.getName());
+				tTextture.set_bitmapreference(textureData.getBitmapRef());
+				tTextture.set_minfilter(matchFilter(textureData.getMinFilter()));
+				tTextture.set_magfilter(matchFilter(textureData.getMagFilter()));
+				tTextture.set_anisotropicsamples(textureData.getAnisotropicSamples());
+				tTextture.set_wrapmodeu(matchWrapMode(textureData.getWrapModeU()));
+				tTextture.set_wrapmodev(matchWrapMode(textureData.getWrapModeV()));
+				tTextture.set_uniformname(textureData.getUniformName());
+				HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
+				*textureIt = tTextture;
 			}
-			tTextture.set_name(textureData.getName());
-			tTextture.set_bitmapreference(textureData.getBitmapRef());
-			tTextture.set_minfilter(matchFilter(textureData.getMinFilter()));
-			tTextture.set_magfilter(matchFilter(textureData.getMagFilter()));
-			tTextture.set_anisotropicsamples(textureData.getAnisotropicSamples());
-			tTextture.set_wrapmodeu(matchWrapMode(textureData.getWrapModeU()));
-			tTextture.set_wrapmodev(matchWrapMode(textureData.getWrapModeV()));
-			tTextture.set_uniformname(textureData.getUniformName());
-			HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
-			*textureIt = tTextture;
-		}
 
-		// uniforms
-		for (auto& uniform : data.getUniforms()) {
-			HmiScenegraph::TUniform tUniform;
-			uniformTypeValue(uniform, tUniform);
-			HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
-			*tUniformIt = tUniform;
-		}
+			// uniforms
+			for (auto& uniform : nodeMaterial.getUniforms()) {
+				HmiScenegraph::TUniform tUniform;
+				uniformTypeValue(uniform, tUniform);
+				HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
+				*tUniformIt = tUniform;
+			}
 
-		HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
-		*materialIt = tMaterial;
+			HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
+			*materialIt = tMaterial;
+		} else {
+			HmiScenegraph::TMaterial tMaterial;
+			// name
+			tMaterial.set_name(data.getObjectName());
+
+			// RenderMode
+			HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
+			RenderMode renderMode = data.getRenderMode();
+			// setRenderMode
+			setMaterialRenderMode(renderMode, rRenderMode);
+			tMaterial.set_allocated_rendermode(rRenderMode);
+
+			// shaderReference
+			std::string shaderPtxName = getShaderPtxNameByShaderName(data.getShaderRef());
+			tMaterial.set_shaderreference(shaderPtxName);
+
+			for (auto& textureData : data.getTextures()) {
+				HmiScenegraph::TTexture tTextture;
+				if (textureData.getName() == "empty") {
+					messageBoxError(data.getObjectName());
+				}
+				tTextture.set_name(textureData.getName());
+				tTextture.set_bitmapreference(textureData.getBitmapRef());
+				tTextture.set_minfilter(matchFilter(textureData.getMinFilter()));
+				tTextture.set_magfilter(matchFilter(textureData.getMagFilter()));
+				tTextture.set_anisotropicsamples(textureData.getAnisotropicSamples());
+				tTextture.set_wrapmodeu(matchWrapMode(textureData.getWrapModeU()));
+				tTextture.set_wrapmodev(matchWrapMode(textureData.getWrapModeV()));
+				tTextture.set_uniformname(textureData.getUniformName());
+				HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
+				*textureIt = tTextture;
+			}
+
+			// uniforms
+			for (auto& uniform : data.getUniforms()) {
+				HmiScenegraph::TUniform tUniform;
+				uniformTypeValue(uniform, tUniform);
+				HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
+				*tUniformIt = tUniform;
+			}
+
+			HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
+			*materialIt = tMaterial;
+		}
 	}
 }
 
@@ -954,7 +1000,7 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		TDataProvider* provider2 = new TDataProvider;
 		TVariant* variant1 = new TVariant;
 		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(float(animation.second.GetUpdateInterval()));
+		numeric->set_float_(1000.0 / float(animation.second.GetUpdateInterval()));
 		variant1->set_allocated_numeric(numeric);
 		provider2->set_allocated_variant(variant1);
 
@@ -1432,7 +1478,7 @@ void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWid
 	TDataBinding* name = new TDataBinding;
 	TDataProvider* namePrivder = new TDataProvider;
 	TVariant* variant = new TVariant;
-	variant->set_asciistring(curveProP.first);
+	variant->set_asciistring(delUniformNamePrefix(curveProP.first));
 	namePrivder->set_allocated_variant(variant);
 	name->set_allocated_provider(namePrivder);
 	uniform->set_allocated_name(name);

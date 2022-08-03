@@ -41,6 +41,37 @@ std::map<std::string, MaterialData> MaterialManager::getMaterialDataMap() {
     return materialDataMap_;
 }
 
+bool MaterialManager::addNodeMaterial(std::string key, NodeMaterial nodeMaterial) {
+	auto it = nodeMaterialDataMap_.find(key);
+	if (it != nodeMaterialDataMap_.end()) {
+		return false;
+	}
+	nodeMaterialDataMap_.emplace(key, nodeMaterial);
+	return true;
+}
+
+bool MaterialManager::deleteNodeMateial(std::string key) {
+	auto it = nodeMaterialDataMap_.find(key);
+	if (it == nodeMaterialDataMap_.end()) {
+		return false;
+	}
+	nodeMaterialDataMap_.erase(it);
+	return true;
+}
+
+bool MaterialManager::getNodeMaterial(std::string key, NodeMaterial &nodeMaterial) {
+	auto it = nodeMaterialDataMap_.find(key);
+	if (it == nodeMaterialDataMap_.end()) {
+		return false;
+	}
+	nodeMaterial = it->second;
+	return true;
+}
+
+std::map<std::string, NodeMaterial> MaterialManager::getNodeMaterialMap() {
+	return nodeMaterialDataMap_;
+}
+
 bool MaterialManager::addShader(std::string name, Shader shader) {
     auto it = shaderMap_.find(name);
     if (it != shaderMap_.end()) {
@@ -176,6 +207,7 @@ bool MaterialManager::hasUniform(std::string name) {
 
 void MaterialManager::clearData() {
 	materialDataMap_.clear();
+	nodeMaterialDataMap_.clear();
 	shaderMap_.clear();
 	bitmapMap_.clear();
 	textureMap_.clear();

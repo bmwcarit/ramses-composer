@@ -30,9 +30,6 @@ public:
 	void initBasicProperty(raco::core::ValueHandle valueHandle, NodeData *pNode);
 	void Analyzing(NodeData *pNode);
 
-	void setUniformProperty(raco::core::ValueHandle valueHandle, NodeData *PropertyTree, bool bVec = false);
-
-	void setMaterial(raco::core::ValueHandle valueHandle, NodeData *material);
     bool getValueHanlde(std::string property, core::ValueHandle &valueHandle);
 
     void setProperty(core::ValueHandle handle, std::string property, float value);

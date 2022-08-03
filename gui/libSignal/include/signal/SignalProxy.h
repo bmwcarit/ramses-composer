@@ -62,7 +62,7 @@ Q_SIGNALS:
     //
     void sigValueHandleChanged_From_NodeUI(const raco::core::ValueHandle &handle);
     //
-    void sigUpdateGltfAnimation(const raco::core::ValueHandle &handle);
+    void sigUpdateGltfAnimation(const raco::core::ValueHandle &handle, QString fileName);
     //
     void sigDeleteAniamtionNode(const std::string id);
     //

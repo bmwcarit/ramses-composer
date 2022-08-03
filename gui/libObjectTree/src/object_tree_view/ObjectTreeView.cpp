@@ -235,13 +235,9 @@ bool ObjectTreeView::getOneMaterialHandle(ValueHandle &valueHandle) {
         if (valueHandle != NULL && valueHandle.hasProperty("material")) {
             valueHandle = valueHandle.get("material");
             if (valueHandle.type() == core::PrimitiveType::Table) {
-                valueHandle = valueHandle[0];
-                if (valueHandle.type() == core::PrimitiveType::Ref) {
-                    valueHandle = valueHandle.asRef();
                     if (valueHandle != NULL) {
                         return true;
                     }
-                }
             }
         }
     }
@@ -271,8 +267,6 @@ void ObjectTreeView::getOneMaterials(QModelIndex index, std::map<std::string, co
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
 	std::map<std::string, core::ValueHandle> NodeNameHandleReMap;
 	raco::guiData::NodeDataManager &nodeDataManager = raco::guiData::NodeDataManager::GetInstance();
-//	if (nodeDataManager.root().childMapRef().size())
-//        nodeDataManager.deleteNode(nodeDataManager.root().childMapRef().begin()->second);
 
     NodeData *parent = new NodeData;
 
@@ -295,11 +289,9 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
 	for (int i{0}; i < row; ++i) {
 		QModelIndex index = model()->index(i, 0);
 		core::ValueHandle tempHandle = indexToSEditorObject(index);
-		// 设置node的名字
+		// ID
         std::string str = tempHandle[0].asString();
 		ResHandleReMap.emplace(str, tempHandle);
-//		// 设置node的 ID
-//		str = tempHandle[0].asString();
 	}
     return ResHandleReMap;
 }
@@ -353,13 +345,13 @@ int ObjectTreeView::attriElementSize(VertexAttribDataType type) {
     }
 }
 
-void ObjectTreeView::convertGltfAnimation() {
+void ObjectTreeView::convertGltfAnimation(QString fileName) {
     int row = model()->rowCount();
     raco::core::ValueHandle valueHandle;
     for (int i{0}; i < row; ++i) {
         QModelIndex index = model()->index(i, 0);
         if (getAnimationHandle(index, valueHandle)) {
-            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(valueHandle);
+            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(valueHandle, fileName);
         }
     }
 }
@@ -597,7 +589,8 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
                 bool keyAnimation;
                 treeModel_->importMeshScenegraph(file, insertionTargetIndex, keyAnimation);
                 if (keyAnimation) {
-                    convertGltfAnimation();
+					QString fileName = file.section("/",-1);
+                    convertGltfAnimation(fileName);
                 }
 			}
 		});

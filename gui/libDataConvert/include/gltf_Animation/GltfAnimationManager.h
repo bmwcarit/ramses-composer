@@ -25,7 +25,7 @@ public:
     explicit GltfAnimationManager(raco::core::CommandInterface* commandInterface, QObject *parent = nullptr);
     void commandInterface(raco::core::CommandInterface* commandInterface);
 public Q_SLOTS:
-    void slotUpdateGltfAnimation(const raco::core::ValueHandle &valueHandle);
+    void slotUpdateGltfAnimation(const raco::core::ValueHandle &valueHandle, QString name);
 private:
     void updateGltfAnimation(std::string animation);
     void updateOneGltfCurve(raco::guiData::NodeData *nodeData, std::vector<float> keyFrames, std::vector<std::vector<float>> propertyData, raco::core::MeshAnimationInterpolation interpolation, std::string property, std::string node);
