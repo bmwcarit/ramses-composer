@@ -45,7 +45,7 @@ target_link_libraries(RaCoEditor
 	raco::LogSystem
 	raco::PropertyBrowser
 	raco::CommonWidgets
-        raco::CommonEditors
+        # raco::CommonEditors
 	raco::Style
 	raco::Utils
 	raco::Core 

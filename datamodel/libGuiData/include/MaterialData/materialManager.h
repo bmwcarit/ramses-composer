@@ -19,6 +19,11 @@ public:
     bool getMaterialData(std::string key, MaterialData &materialData);
     std::map<std::string, MaterialData> getMaterialDataMap();
 
+    bool addNodeMaterial(std::string key, NodeMaterial nodeMaterial);
+	bool deleteNodeMateial(std::string key);
+	bool getNodeMaterial(std::string key, NodeMaterial &nodeMaterial);
+	std::map<std::string, NodeMaterial> getNodeMaterialMap();
+
     bool addShader(std::string name, Shader shader);
     bool deleteShader(std::string name, Shader shader);
     bool getShader(std::string name, Shader &shader);
@@ -28,6 +33,11 @@ public:
     bool deleteBitmap(std::string name, Bitmap bitmap);
     bool getBitmap(std::string name, Bitmap &bitmap);
     std::map<std::string, Bitmap> getBitmapDataMap();
+
+    bool addTexture(std::string name, TextureData texture);
+	bool deleteTexture(std::string name);
+	bool getTexture(std::string name, TextureData &texture);
+	std::map<std::string, TextureData> getTextureDataMap();
 
     void addCurUniform(Uniform uniform);
 	bool deleteCurUniform(std::string name);
@@ -45,9 +55,13 @@ private:
     MaterialManager();
 
 private:
+    // nodeObjectID， Material
     std::map<std::string, MaterialData> materialDataMap_;
+	// nodeObjectID， NodeMaterialData
+	std::map<std::string, NodeMaterial> nodeMaterialDataMap_;
     std::map<std::string, Shader> shaderMap_;// vertex and fragment
     std::map<std::string, Bitmap> bitmapMap_;
+	std::map<std::string, TextureData> textureMap_;  // <name , texture>
 	std::vector<Uniform> currentUniforms_;
 };
 }

@@ -21,7 +21,7 @@ void MateralLogic::setPtxName(Shader &shader) {
 	shader.setPtxShaderName(shader.getName());
 }
 
-void setIsDefaultMaterial(std::string id,MaterialData& materialData) {
+void setIsDefaultMaterial(std::string id, MaterialData& materialData) {
 	std::map<std::string, MaterialData> materialMap = MaterialManager::GetInstance().getMaterialDataMap();
 	for (auto &it : materialMap) {
 		if (it.second.getObjectName() == materialData.getObjectName()) {
@@ -33,29 +33,119 @@ void setIsDefaultMaterial(std::string id,MaterialData& materialData) {
 }
 
 
-void MateralLogic::Analyzing() {
-	MaterialManager::GetInstance().clearData();
-    for (const auto &it : resourcesHandleReMap_) {
-        MaterialData materialData;
-        Shader shader;
+void MateralLogic::AnalyzingTexture() {
+	for (const auto &it : textureResourcesHandleReMap_) {
+		MaterialData materialData;
+        TextureData textureData;
 		core::ValueHandle valueHandle = it.second;
-        if (valueHandle.hasProperty("options")) {
-            initMaterialProperty(valueHandle, materialData, shader);
-			raco::user_types::Material* material = dynamic_cast<raco::user_types::Material *>(valueHandle.rootObject().get());
-			raco::core::PropertyInterfaceList attritesArr = material->attributes();
-            for (auto &it : attritesArr) {
-				raco::guiData::Attribute attribute;
-				attribute.name = it.name;
-				attribute.type = static_cast<raco::guiData::VertexAttribDataType>(it.type);
-				materialData.addUsedAttribute(attribute);
-            }
-			setIsDefaultMaterial(it.first,materialData);
-            MaterialManager::GetInstance().addMaterialData(it.first, materialData);
-			setPtxName(shader);
-            MaterialManager::GetInstance().addShader(shader.getName(), shader);
-        }
-    }
+		setTexturePorperty(valueHandle ,materialData, textureData);
+		textureData.setBitmapRef(textureData.getName());
+		textureData.setUniformName("");
+		MaterialManager::GetInstance().addTexture(textureData.getName(), textureData);
+	}
+}
+
+
+bool getDefaultMaterialData(raco::core::ValueHandle &valueHandle) {
+	valueHandle = valueHandle[0];
+	if (valueHandle.type() == core::PrimitiveType::Ref) {
+		valueHandle = valueHandle.asRef();
+		if (valueHandle != NULL) {
+			return true;
+		}
+	}
+	return false;
+}
+// Analyzing default Material
+void MateralLogic::AnalyzingMaterialData() {
+	for (const auto &it : materialResourcesHandleReMap_) {
+		MaterialData materialData;
+		Shader shader;
+		core::ValueHandle valueHandle = it.second;
+		if (getDefaultMaterialData(valueHandle)) {
+			if (valueHandle.hasProperty("options")) {
+				initMaterialProperty(valueHandle, materialData, shader);
+				raco::user_types::Material *material = dynamic_cast<raco::user_types::Material *>(valueHandle.rootObject().get());
+				raco::core::PropertyInterfaceList attritesArr = material->attributes();
+				for (auto &it : attritesArr) {
+					raco::guiData::Attribute attribute;
+					attribute.name = it.name;
+					attribute.type = static_cast<raco::guiData::VertexAttribDataType>(it.type);
+					materialData.addUsedAttribute(attribute);
+				}
+
+				MaterialManager::GetInstance().addMaterialData(it.first, materialData);
+				setPtxName(shader);
+				MaterialManager::GetInstance().addShader(shader.getName(), shader);
+			}
+		}
+	}
 	MaterialManager::GetInstance().traverseMaterialData();
+}
+
+void MateralLogic::Analyzing() {
+	// clear cache data
+	MaterialManager::GetInstance().clearData();
+	// analyzing default Material
+	AnalyzingMaterialData();
+	// analyzing node Material
+	AnalyzingNodeMaterial();
+}
+
+void MateralLogic::initNodeMaterialProperty(core::ValueHandle valueHandle, NodeMaterial &nodeMaterial) {
+	using PrimitiveType = core::PrimitiveType;	// "material" "private"   "options"  "uniforms"
+	if (valueHandle != NULL) {
+		for (int i{0}; i < valueHandle.size(); i++) {
+			if (!valueHandle[i].isObject()) {
+				raco::core::ValueHandle tempHandle = valueHandle[i];
+				std::string propName = tempHandle.getPropName();
+				if (QString::fromStdString(propName).compare("material") == 0) {
+					if (tempHandle.type() == PrimitiveType::Ref) {
+						tempHandle = tempHandle.asRef();
+						if (tempHandle != NULL) {
+							for (int j{0}; j < tempHandle.size(); ++j) {
+								raco::core::ValueHandle value = tempHandle[j];
+								std::string name = value.getPropName();
+								if (QString::fromStdString(name).compare("objectName") == 0) {
+									std::string name = value.asString();
+									nodeMaterial.setObjectName(value.asString());
+									break;
+								}
+							}
+						}
+					}
+				}
+				if (QString::fromStdString(propName).compare("private") == 0) {
+					if (tempHandle.type() == PrimitiveType::Bool) {
+						nodeMaterial.setIsPrivate(tempHandle.asBool());
+					}
+				}
+				if (QString::fromStdString(propName).compare("options") == 0) {
+					MaterialData materialData;
+					setOptionsProperty(tempHandle, materialData);
+					nodeMaterial.setRenderMode(materialData.getRenderMode());
+				}
+				if (QString::fromStdString(propName).compare("uniforms") == 0) {
+					MaterialData materialData;
+					setUniformsProperty(tempHandle, materialData);
+					for (auto &un : materialData.getUniforms()) {
+						nodeMaterial.addUniform(un);
+					}
+				}
+				initNodeMaterialProperty(tempHandle, nodeMaterial);
+			}
+		}
+	}
+}
+
+
+void MateralLogic::AnalyzingNodeMaterial() {
+	for (const auto &it : materialResourcesHandleReMap_) {
+		core::ValueHandle valueHandle = it.second;
+		NodeMaterial nodeMaterial;
+		initNodeMaterialProperty(valueHandle, nodeMaterial);
+		MaterialManager::GetInstance().addNodeMaterial(it.first, nodeMaterial);
+	}
 }
 
 void MateralLogic::initMaterialProperty(core::ValueHandle valueHandle, MaterialData &materialData, Shader &shader) {

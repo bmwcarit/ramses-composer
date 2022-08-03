@@ -19,15 +19,14 @@ void GltfAnimationManager::commandInterface(raco::core::CommandInterface *comman
     commandInterface_ = commandInterface;
 }
 
-void GltfAnimationManager::slotUpdateGltfAnimation(const raco::core::ValueHandle &valueHandle) {
+void GltfAnimationManager::slotUpdateGltfAnimation(const raco::core::ValueHandle &valueHandle, QString fileName) {
     animationChannels_.clear();
     animationNodes_.clear();
-    std::string animation;
+	fileName.remove(QRegExp("\\s"));
+	std::string animation = fileName.section(".gltf", 0, 0).toStdString();
+
     for (int i{0}; i < valueHandle.size(); ++i) {
         raco::core::ValueHandle tempHandle = valueHandle[i];
-        if (tempHandle.getPropName().compare(GLTF_OBJECT_NAME) == 0) {
-            animation = tempHandle.asString();
-        }
         if (tempHandle.getPropName().compare(GLTF_ANIMATION_CHANNELS) == 0) {
             if (tempHandle.type() == raco::core::PrimitiveType::Table) {
                 for (int j{0}; j < tempHandle.size(); ++j) {
