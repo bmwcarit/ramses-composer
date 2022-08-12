@@ -106,8 +106,8 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_up) {
 	commandInterface.set({ start, {"inputs", "string"} }, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid-" + mid->objectID()).c_str());
+	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
 	auto endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject == nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
@@ -135,8 +135,8 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_up) {
 
 	dispatch();
 
-	startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid-" + mid->objectID()).c_str());
+	startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
 	endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
@@ -178,8 +178,8 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_same) {
 	commandInterface.set({ start, {"inputs", "string"} }, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid-" + mid->objectID()).c_str());
+	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
 	auto endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject == nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
@@ -207,8 +207,8 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_same) {
 
 	dispatch();
 
-	startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid-" + mid->objectID()).c_str());
+	startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
 	endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 
 	ASSERT_TRUE(startEngineObject != nullptr);
@@ -243,9 +243,9 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_down) {
 	commandInterface.set({ start_b, {"inputs", "float"} }, 2.0);
 
 	dispatch();
-	auto startAEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_a-" + start_a->objectID()).c_str());
-	auto startBEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_b-" + start_b->objectID()).c_str());
-	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid-" + mid->objectID()).c_str());
+	auto startAEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_a").c_str());
+	auto startBEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_b").c_str());
+	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
 	auto endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startAEngineObject == nullptr);
 	ASSERT_TRUE(startBEngineObject == nullptr);
@@ -258,9 +258,9 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_down) {
 
 	dispatch();
 
-	startAEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_a-" + start_a->objectID()).c_str());
-	startBEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_b-" + start_b->objectID()).c_str());
-	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid-" + mid->objectID()).c_str());
+	startAEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_a").c_str());
+	startBEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_b").c_str());
+	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
 	endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startAEngineObject != nullptr);
 	ASSERT_TRUE(startBEngineObject != nullptr);

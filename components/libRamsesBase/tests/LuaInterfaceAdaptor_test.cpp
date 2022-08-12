@@ -11,6 +11,10 @@
 
 #include "RamsesBaseFixture.h"
 
+#include "user_types/Node.h"
+#include "user_types/Prefab.h"
+#include "user_types/PrefabInstance.h"
+
 #include "ramses_adaptor/LuaInterfaceAdaptor.h"
 
 using namespace raco::user_types;
@@ -84,9 +88,58 @@ TEST_F(LuaInterfaceAdaptorFixture, valid_text) {
 	dispatch();
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 1);
 
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + interface->objectID()).c_str());
+	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 	ASSERT_EQ(engineObject->getUserId(), interface->objectIDAsRamsesLogicID());
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, name_prefab_inst) {
+	auto interfaceFile = defaultFile();
+
+	auto prefab = create<Prefab>("prefab");
+	auto interface = create_lua_interface("interface", interfaceFile, prefab);
+	 
+	auto inst = create_prefabInstance("inst", prefab);
+	
+	dispatch();
+
+	auto engineObj = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
+	ASSERT_TRUE(engineObj != nullptr);
+
+	commandInterface.set({inst, &PrefabInstance::objectName_}, std::string("asdf"));
+	dispatch();
+
+	engineObj = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
+	ASSERT_TRUE(engineObj == nullptr);
+	engineObj = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "asdf.interface");
+	ASSERT_TRUE(engineObj != nullptr);
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, name_prefab_inst_nested) {
+	auto interfaceFile = defaultFile();
+
+	auto prefab = create<Prefab>("prefab");
+	auto interface = create_lua_interface("interface", interfaceFile, prefab);
+
+	auto prefab_outer = create<Prefab>("prefab_outer");
+	auto inst_inner = create_prefabInstance("inst_inner", prefab, prefab_outer);
+
+	auto inst = create_prefabInstance("inst", prefab_outer);
+	auto inst_nested = inst->children_->asVector<SEditorObject>()[0]->as<PrefabInstance>();
+	auto intf_nested = inst_nested->children_->asVector<SEditorObject>()[0];
+
+	dispatch();
+
+	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + intf_nested->objectID()).c_str());
+	ASSERT_TRUE(engineObject != nullptr);
+
+	//commandInterface.set({inst, &PrefabInstance::template_}, prefab);
+	//dispatch();
+
+	//engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + intf_nested->objectID()).c_str());
+	//ASSERT_TRUE(engineObject == nullptr);
+	//engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
+	//ASSERT_TRUE(engineObject != nullptr);
 }
 
 TEST_F(LuaInterfaceAdaptorFixture, change_name) {
@@ -96,7 +149,7 @@ TEST_F(LuaInterfaceAdaptorFixture, change_name) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 1);
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + interface->objectID()).c_str());
+	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 	ASSERT_EQ(engineObject->getUserId(), interface->objectIDAsRamsesLogicID());
 
@@ -104,8 +157,8 @@ TEST_F(LuaInterfaceAdaptorFixture, change_name) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 1);
-	ASSERT_EQ(select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + interface->objectID()).c_str()), nullptr);
-	engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("newName-" + interface->objectID()).c_str());
+	ASSERT_EQ(select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str()), nullptr);
+	engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("newName").c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 	ASSERT_EQ(engineObject->getUserId(), interface->objectIDAsRamsesLogicID());
 }
@@ -115,7 +168,7 @@ TEST_F(LuaInterfaceAdaptorFixture, change_property_value) {
 	auto interface = create_lua_interface("interface", interfaceFile);
 	dispatch();
 
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + interface->objectID()).c_str());
+	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
 
 	ASSERT_EQ(engineObject->getInputs()->getChild("float")->get<float>(), 0.0);
 	ASSERT_EQ(engineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 0.0);
@@ -185,7 +238,7 @@ TEST_F(LuaInterfaceAdaptorFixture, link_invalid_interface_to_invalid_script) {
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
 	auto ramsesEnd = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
 	EXPECT_EQ(ramsesStart, nullptr);
 	EXPECT_EQ(ramsesEnd, nullptr);
@@ -204,8 +257,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_invalid_interface_to_invalid_interface) 
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end-" + end->objectID()).c_str());
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	EXPECT_EQ(ramsesStart, nullptr);
 	EXPECT_EQ(ramsesEnd, nullptr);
 
@@ -225,7 +278,7 @@ TEST_F(LuaInterfaceAdaptorFixture, link_empty_interface_to_empty_script) {
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
 	auto ramsesEnd = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
 	EXPECT_NE(ramsesStart, nullptr);
 	EXPECT_NE(ramsesEnd, nullptr);
@@ -245,8 +298,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_empty_interface_to_empty_interface) {
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end-" + end->objectID()).c_str());
+	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	EXPECT_NE(ramsesStart, nullptr);
 	EXPECT_NE(ramsesEnd, nullptr);
 
@@ -272,8 +325,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_individual_propagate_values) {
 	commandInterface.set({start, {"inputs", "string"}}, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	auto endEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end-" + end->objectID()).c_str());
+	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto endEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
@@ -346,8 +399,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_container_propagate_values) {
 	commandInterface.set({start, {"inputs", "string"}}, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start-" + start->objectID()).c_str());
-	auto endEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end-" + end->objectID()).c_str());
+	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto endEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 

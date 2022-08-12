@@ -31,6 +31,7 @@ public:
 	bool sync(core::Errors* errors) override;
 
 private:
+	void setupParentSubscription();
 	std::string generateRamsesObjectName() const;
 
 	ramses_base::RamsesLuaInterface ramsesInterface_;
@@ -38,6 +39,8 @@ private:
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;
 	components::Subscription inputSubscription_;
+	components::Subscription childrenSubscription_;
+	components::Subscription parentNameSubscription_;
 	components::Subscription linksLifecycleSubscription_;
 	components::Subscription linkValidityChangeSubscription_;
 

@@ -10,7 +10,9 @@
 #include "ramses_adaptor/LuaInterfaceAdaptor.h"
 
 #include "utils/FileUtils.h"
+#include "core/PrefabOperations.h"
 #include "core/Queries.h"
+#include "user_types/PrefabInstance.h"
 
 namespace raco::ramses_adaptor {
 
@@ -28,6 +30,13 @@ LuaInterfaceAdaptor::LuaInterfaceAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 		  tagDirty();
 		  recreateStatus_ = true;
 	  })},
+	  childrenSubscription_(sceneAdaptor_->dispatcher()->registerOnPropertyChange("children", [this](core::ValueHandle handle) {
+		  if (parent_ != editorObject_->getParent()) {
+			  setupParentSubscription();
+			  tagDirty();
+			  recreateStatus_ = true;
+		  }
+	  })),
 	  linksLifecycleSubscription_{sceneAdaptor_->dispatcher()->registerOnLinksLifeCycle(
 		  [this](const core::LinkDescriptor& link) {
 			  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
@@ -47,6 +56,20 @@ LuaInterfaceAdaptor::LuaInterfaceAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 			  recreateStatus_ = true;
 		  }
 	  })} {
+	setupParentSubscription();
+}
+
+void LuaInterfaceAdaptor::setupParentSubscription() {
+	parent_ = editorObject_->getParent();
+
+	if (parent_ && parent_->as<user_types::PrefabInstance>()) {
+		parentNameSubscription_ = sceneAdaptor_->dispatcher()->registerOn({parent_, &user_types::LuaScript::objectName_}, [this]() {
+			tagDirty();
+			recreateStatus_ = true;
+		});
+	} else {
+		parentNameSubscription_ = components::Subscription{};
+	}
 }
 
 void LuaInterfaceAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
@@ -72,7 +95,15 @@ void LuaInterfaceAdaptor::onRuntimeError(core::Errors& errors, std::string const
 
 
 std::string LuaInterfaceAdaptor::generateRamsesObjectName() const {
-	return editorObject_->objectName() + "-" + editorObject_->objectID();
+	auto prefabInstOuter = raco::core::PrefabOperations::findOuterContainingPrefabInstance(editorObject_);
+	if (prefabInstOuter) {
+		if (prefabInstOuter == parent_) {
+			return parent_->objectName() + "." + editorObject_->objectName();
+		} else {
+			return editorObject_->objectName() + "-" + editorObject_->objectID();
+		}
+	}
+	return editorObject_->objectName();
 }
 
 bool LuaInterfaceAdaptor::sync(core::Errors* errors) {

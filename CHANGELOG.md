@@ -24,6 +24,15 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.1.2] Lua Interface Naming Bugfix
+
+### Fixes
+* Change names of LuaInterface objects in the LogicEngine to match the conventions used for LuaScripts. In particular
+    * LuaInterface objects outside any PrefabInstance use the LuaInterface name in the LogicEngine.
+    * LuaInterfaces which are direct children of a non-nested PrefabInstance are named `<PrefabInstance name>.<LuaInterface name>`
+    * All other LuaInterfaces have the object ID of the LuaInterface object appended `<LuaInterface name>-<LuaInterface object ID>`.
+
+
 ## [1.1.1] Lua Interface, Timer, and Animation Bugfixes
 
 ### Fixes
