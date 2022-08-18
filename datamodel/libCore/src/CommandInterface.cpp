@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -53,7 +53,6 @@ EngineInterface& CommandInterface::engineInterface() {
 UndoStack& CommandInterface::undoStack() {
 	return *undoStack_;
 }
-
 
 bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 	if (!handle) {
@@ -460,7 +459,7 @@ std::vector<SEditorObject> CommandInterface::duplicateObjects(const std::vector<
 	return duplicatedObjs;
 }
 
-SLink CommandInterface::addLink(const ValueHandle& start, const ValueHandle& end) {
+SLink CommandInterface::addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak) {
 	if (start && !context_->project()->isInstance(start.rootObject())) {
 		throw std::runtime_error(fmt::format("Link starting object '{}' not in project", start.rootObject()->objectName()));
 	}
@@ -468,10 +467,10 @@ SLink CommandInterface::addLink(const ValueHandle& start, const ValueHandle& end
 		throw std::runtime_error(fmt::format("Link end object '{}' not in project", end.rootObject()->objectName()));
 	}
 
-	if (Queries::userCanCreateLink(*context_->project(), start, end)) {
-		auto link = context_->addLink(start, end);
+	if (Queries::userCanCreateLink(*context_->project(), start, end, isWeak)) {
+		auto link = context_->addLink(start, end, isWeak);
 		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Create link from '{}' to '{}'",
+		undoStack_->push(fmt::format("Create {} link from '{}' to '{}'", isWeak ? "weak" : "strong",
 			start.getPropertyPath(), end.getPropertyPath()));
 		return link;
 	} else {
@@ -503,6 +502,5 @@ size_t CommandInterface::deleteUnreferencedResources() {
 	}
 	return 0;
 }
-
 
 }  // namespace raco::core

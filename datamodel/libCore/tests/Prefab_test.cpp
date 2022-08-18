@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -293,14 +293,9 @@ TEST_F(PrefabTest, link_broken_inside_prefab_status_gets_propagated_to_instances
 	auto inst = create<PrefabInstance>("inst");
 	commandInterface.set({inst, {"template"}}, prefab);
 
-	auto node = create<Node>("node");
-	commandInterface.moveScenegraphChildren({node}, prefab);
-
-	auto luaPrefabGlobal = create<LuaScript>("luaPrefab");
-	commandInterface.moveScenegraphChildren({luaPrefabGlobal}, prefab);
-
-	auto luaPrefabNodeChild = create<LuaScript>("luaPrefabNode");
-	commandInterface.moveScenegraphChildren({luaPrefabNodeChild}, node);
+	auto node = create<Node>("node", prefab);
+	auto luaPrefabGlobal = create<LuaScript>("luaPrefab", prefab);
+	auto luaPrefabNodeChild = create<LuaScript>("luaPrefabNode", node);
 
 	commandInterface.set({luaPrefabGlobal, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	commandInterface.set({luaPrefabNodeChild, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
@@ -979,4 +974,134 @@ TEST_F(PrefabTest, prefab_is_valid_ref_target_for_prefabinstance) {
 
 	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {inst, &raco::user_types::PrefabInstance::template_});
 	ASSERT_EQ(refTargets, std::vector<SEditorObject>{prefab});
+}
+
+
+TEST_F(PrefabTest, link_strong_to_weak_transition) {
+	auto prefab = create<Prefab>("prefab");
+	auto start = create_lua("start", "scripts/types-scalar.lua", prefab);
+	auto end = create_lua("end", "scripts/types-scalar.lua", prefab);
+	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+
+	auto inst = create_prefabInstance("inst", prefab);
+	auto inst_start = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "start");
+	auto inst_end = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "end");
+
+	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
+		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, true, false}});
+
+	EXPECT_TRUE(project.createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+	EXPECT_TRUE(project.createsLoop({inst_end, {"outputs", "ofloat"}}, {inst_start, {"inputs", "float"}}));
+
+	// Use context here to perform prefab update only after both operations are complete
+	context.removeLink({end, {"inputs", "float"}});
+	context.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
+	raco::core::PrefabOperations::globalPrefabUpdate(context);
+
+	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, true},
+		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, true, true}});
+
+	EXPECT_FALSE(project.createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+	EXPECT_FALSE(project.createsLoop({inst_end, {"outputs", "ofloat"}}, {inst_start, {"inputs", "float"}}));
+}
+
+
+TEST_F(PrefabTest, link_strong_valid_to_weak_invalid_transition) {
+	auto prefab = create<Prefab>("prefab");
+	auto start = create_lua("start", "scripts/types-scalar.lua", prefab);
+	auto end = create_lua("end", "scripts/types-scalar.lua", prefab);
+	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+
+	auto inst = create_prefabInstance("inst", prefab);
+	auto inst_start = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "start");
+	auto inst_end = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "end");
+
+	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
+		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, true, false}});
+
+	EXPECT_TRUE(project.createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+	EXPECT_TRUE(project.createsLoop({inst_end, {"outputs", "ofloat"}}, {inst_start, {"inputs", "float"}}));
+
+	// Use context here to perform prefab update only after both operations are complete
+	context.removeLink({end, {"inputs", "float"}});
+	context.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
+	context.set(ValueHandle{end, {"uri"}}, (test_path() / "scripts/SimpleScript.lua").string());
+	raco::core::PrefabOperations::globalPrefabUpdate(context);
+
+	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, false, true},
+		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, false, true}});
+
+	EXPECT_FALSE(project.createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+	EXPECT_FALSE(project.createsLoop({inst_end, {"outputs", "ofloat"}}, {inst_start, {"inputs", "float"}}));
+}
+
+
+TEST_F(PrefabTest, prefab_update_from_optimized_saved_file) {
+	raco::ramses_base::HeadlessEngineBackend backend{};
+
+	std::string root_id;
+	std::string node_id;
+	std::string camera_id;
+	std::string lua_id;
+
+	{
+		raco::application::RaCoApplication app{backend};
+		auto& cmd = *app.activeRaCoProject().commandInterface();
+
+		auto prefab = create<Prefab>(cmd, "prefab");
+		auto root = create<Node>(cmd, "root", prefab);
+		auto camera = create<PerspectiveCamera>(cmd, "camera", root);
+		auto node = create<Node>(cmd, "node", root);
+		auto lua = create<LuaScript>(cmd, "lua", root);
+
+		auto inst = create_prefabInstance(cmd, "inst", prefab);
+		auto inst_root = inst->children_->asVector<SEditorObject>()[0];
+		auto inst_camera = inst_root->children_->asVector<SEditorObject>()[0];
+		auto inst_node = inst_root->children_->asVector<SEditorObject>()[1];
+		auto inst_lua = inst_root->children_->asVector<SEditorObject>()[2];
+
+		auto renderpass = create<RenderPass>(cmd, "renderpass");
+		cmd.set({renderpass, &RenderPass::camera_}, inst_camera);
+
+		root_id = inst_root->objectID();
+		node_id = inst_node->objectID();
+		camera_id = inst_camera->objectID();
+		lua_id = inst_lua->objectID();
+
+		std::string msg;
+		app.activeRaCoProject().saveAs(QString::fromStdString((test_path() / "test.rca").string()), msg);
+	}
+
+	{
+		raco::application::RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "test.rca").string().c_str();
+		raco::application::RaCoApplication app{backend, settings};
+
+		auto& project = *app.activeRaCoProject().project();
+
+		auto root = project.getInstanceByID(root_id);
+		auto camera = project.getInstanceByID(camera_id);
+		auto node = project.getInstanceByID(node_id);
+		auto lua = project.getInstanceByID(lua_id);
+
+		ASSERT_TRUE(root != nullptr);
+		ASSERT_TRUE(camera != nullptr);
+		ASSERT_TRUE(node != nullptr);
+		ASSERT_TRUE(lua != nullptr);
+
+		EXPECT_EQ(root, camera->getParent());
+		EXPECT_EQ(root, node->getParent());
+		EXPECT_EQ(root, lua->getParent());
+
+		auto count_id_func = [](const Project& project, std::string objectID) {
+			return std::count_if(project.instances().begin(), project.instances().end(), [objectID](SEditorObject obj) {
+				return obj->objectID() == objectID;
+			});
+		};
+
+		EXPECT_EQ(count_id_func(project, root_id), 1);
+		EXPECT_EQ(count_id_func(project, camera_id), 1);
+		EXPECT_EQ(count_id_func(project, node_id), 1);
+		EXPECT_EQ(count_id_func(project, lua_id), 1);
+	}
 }

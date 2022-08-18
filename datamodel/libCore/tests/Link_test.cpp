@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -226,15 +226,15 @@ TEST_F(LinkTest, lua_lua_compatibility_int64) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
-	auto allowed64 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "integer64"}));
-	std::set<ValueHandle> refAllowed64{
-		{start, {"outputs", "ointeger64"}}};
+	auto allowed64 = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "integer64"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> refAllowed64{
+		{{start, {"outputs", "ointeger64"}}, true, true}};
 
 	EXPECT_EQ(allowed64, refAllowed64);
 
-	auto allowed32 = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "integer"}));
-	std::set<ValueHandle> refAllowed32{
-		{start, {"outputs", "ointeger"}}};
+	auto allowed32 = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "integer"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> refAllowed32{
+		{{start, {"outputs", "ointeger"}}, true, true}};
 
 	EXPECT_EQ(allowed32, refAllowed32);
 }
@@ -243,11 +243,11 @@ TEST_F(LinkTest, lua_lua_compatibility_float) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
-	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "float"}));
-	std::set<ValueHandle> refAllowed{
-		{start, {"outputs", "ofloat"}},
-		{start, {"outputs", "foo"}},
-		{start, {"outputs", "bar"}}};
+	auto allowed = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "s", "float"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+		{{start, {"outputs", "ofloat"}}, true, true},
+		{{start, {"outputs", "foo"}}, true, true},
+		{{start, {"outputs", "bar"}}, true, true}};
 
 	EXPECT_EQ(allowed, refAllowed);
 }
@@ -256,10 +256,34 @@ TEST_F(LinkTest, lua_lua_compatibility_struct) {
 	auto start = create_lua("start", "scripts/struct-simple.lua");
 	auto end = create_lua("end", "scripts/struct-simple.lua");
 
-	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(end, {"inputs", "s"}));
+	auto allowed = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "s"}));
 
-	EXPECT_EQ(allowed, std::set<ValueHandle>({{start, {"outputs", "s"}}}));
+	std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{{{start, {"outputs", "s"}}, true, true}};
+	EXPECT_EQ(allowed, refAllowed);
 }
+
+TEST_F(LinkTest, loop_weak_after_strong) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto [start_out, end_in] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"});
+	checkLinks({{start_out, end_in, true, false}});
+
+	auto [end_out, start_in] = link(end, {"outputs", "ofloat"}, start, {"inputs", "float"}, true);
+	checkLinks({{start_out, end_in, true, false},
+		{end_out, start_in, true, true}});
+}
+
+TEST_F(LinkTest, loop_strong_after_weak) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	auto [start_out, end_in] = link(start, {"outputs", "ofloat"}, end, {"inputs", "float"}, true);
+	checkLinks({{start_out, end_in, true, true}});
+
+	auto [end_out, start_in] = link(end, {"outputs", "ofloat"}, start, {"inputs", "float"}, false);
+	checkLinks({{start_out, end_in, true, true},
+		{end_out, start_in, true, false}});
+}
+
 
 TEST_F(LinkTest, lua_loop_detection) {
 	auto start = create_lua("start", "scripts/types-scalar.lua");
@@ -269,8 +293,13 @@ TEST_F(LinkTest, lua_loop_detection) {
 
 	// 2 lua scripts, connected graph -> no links allowed
 	{
-		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
-		EXPECT_EQ(allowed.size(), 0);
+		auto allowed = Queries::allLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
+		std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+			{{end, {"outputs", "ofloat"}}, false, true},
+			{{end, {"outputs", "foo"}}, false, true},
+			{{end, {"outputs", "bar"}}, false, true}};
+
+		EXPECT_EQ(allowed, refAllowed);
 	}
 
 	auto start2 = create_lua("start 2", "scripts/types-scalar.lua");
@@ -280,14 +309,17 @@ TEST_F(LinkTest, lua_loop_detection) {
 
 	// 4 lua scripts, graph not connected, links allowed between the 2 disconnected subgraphs
 	{
-		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
-		std::set<ValueHandle> refAllowed{
-			{start2, {"outputs", "ofloat"}},
-			{start2, {"outputs", "foo"}},
-			{start2, {"outputs", "bar"}},
-			{end2, {"outputs", "ofloat"}},
-			{end2, {"outputs", "foo"}},
-			{end2, {"outputs", "bar"}}};
+		auto allowed = Queries::allLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
+		std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+			{{end, {"outputs", "ofloat"}}, false, true},
+			{{end, {"outputs", "foo"}}, false, true},
+			{{end, {"outputs", "bar"}}, false, true},
+			{{start2, {"outputs", "ofloat"}}, true, true},
+			{{start2, {"outputs", "foo"}}, true, true},
+			{{start2, {"outputs", "bar"}}, true, true},
+			{{end2, {"outputs", "ofloat"}}, true, true},
+			{{end2, {"outputs", "foo"}}, true, true},
+			{{end2, {"outputs", "bar"}}, true, true}};
 		EXPECT_EQ(allowed, refAllowed);
 	}
 
@@ -296,8 +328,18 @@ TEST_F(LinkTest, lua_loop_detection) {
 
 	// 4 lua scripts, graph connected again, no links allowed
 	{
-		auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
-		EXPECT_EQ(allowed.size(), 0);
+		auto allowed = Queries::allLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
+		std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+			{{end, {"outputs", "ofloat"}}, false, true},
+			{{end, {"outputs", "foo"}}, false, true},
+			{{end, {"outputs", "bar"}}, false, true},
+			{{start2, {"outputs", "ofloat"}}, false, true},
+			{{start2, {"outputs", "foo"}}, false, true},
+			{{start2, {"outputs", "bar"}}, false, true},
+			{{end2, {"outputs", "ofloat"}}, false, true},
+			{{end2, {"outputs", "foo"}}, false, true},
+			{{end2, {"outputs", "bar"}}, false, true}};
+		EXPECT_EQ(allowed, refAllowed);
 	}
 }
 
@@ -309,13 +351,37 @@ TEST_F(LinkTest, lua_loop_detection_after_remove_link) {
 	checkLinks({{sprop1, eprop1, true},
 		{sprop2, eprop2, true}});
 
-	EXPECT_EQ(Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"})).size(), 0);
+	{
+		auto allowed = Queries::allLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
+		std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+			{{end, {"outputs", "ofloat"}}, false, true},
+			{{end, {"outputs", "foo"}}, false, true},
+			{{end, {"outputs", "bar"}}, false, true}};
+
+		EXPECT_EQ(allowed, refAllowed);
+	}
 
 	context.removeLink(eprop2);
-	EXPECT_EQ(Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"})).size(), 0);
+	{
+		auto allowed = Queries::allLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
+		std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+			{{end, {"outputs", "ofloat"}}, false, true},
+			{{end, {"outputs", "foo"}}, false, true},
+			{{end, {"outputs", "bar"}}, false, true}};
+
+		EXPECT_EQ(allowed, refAllowed);
+	}
 	
 	context.removeLink(eprop1);
-	EXPECT_NE(Queries::allowedLinkStartProperties(project, ValueHandle(start, {"inputs", "float"})).size(), 0);
+	{
+		auto allowed = Queries::allLinkStartProperties(project, ValueHandle(start, {"inputs", "float"}));
+		std::set<std::tuple<ValueHandle, bool, bool>> refAllowed{
+			{{end, {"outputs", "ofloat"}}, true, true},
+			{{end, {"outputs", "foo"}}, true, true},
+			{{end, {"outputs", "bar"}}, true, true}};
+
+		EXPECT_EQ(allowed, refAllowed);
+	}
 }
 
 
@@ -767,7 +833,7 @@ TEST_F(LinkTest, lua_restore_two_scripts_prevent_loop_when_changing_output_uri) 
 	checkLinks({{sprop, eprop, false}});
 
 	// Broken link hinders further links and thus loops
-	auto allowed = Queries::allowedLinkStartProperties(project, ValueHandle(linkBase, {"outputs", "out_float"}));
+	auto allowed = Queries::allLinkStartProperties(project, ValueHandle(linkBase, {"outputs", "out_float"}));
 	EXPECT_EQ(allowed.size(), 0);
 
 	change_uri(linkBase, "scripts/types-scalar.lua");

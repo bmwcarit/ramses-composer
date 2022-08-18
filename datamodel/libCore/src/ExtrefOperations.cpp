@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -259,6 +259,15 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 			if (!localLink) {
 				// create link
 				auto localLink = Link::cloneLinkWithTranslation(extLink, translateToLocal);
+				project->addLink(localLink);
+				localChanges.recordAddLink(localLink->descriptor());
+			} else if (*localLink->isWeak_ != *extLink->isWeak_) {
+				// strong <-> weak link transitions are handled as removal and creation operation
+				// the Project::removeLink/addLink calls are needed to update the link graph map correctly.
+				project->removeLink(localLink);
+				localChanges.recordRemoveLink(localLink->descriptor());
+				localLink->isWeak_ = *extLink->isWeak_;
+				localLink->isValid_ = *extLink->isValid_;
 				project->addLink(localLink);
 				localChanges.recordAddLink(localLink->descriptor());
 			} else if (*localLink->isValid_ != *extLink->isValid_) {

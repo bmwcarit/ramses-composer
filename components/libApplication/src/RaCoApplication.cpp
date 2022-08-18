@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,16 +13,18 @@
 
 #include "utils/u8path.h"
 
+#include "core/Context.h"
+#include "core/Handles.h"
+#include "components/TracePlayer.h"
+#include "core/Context.h"
 #include "core/PathManager.h"
 #include "core/Project.h"
-#include "core/Context.h"
+#include "core/ProjectMigration.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/BaseEngineBackend.h"
 #include "user_types/Animation.h"
-#include "core/ProjectMigration.h"
 
 #include <ramses_base/LogicEngineFormatter.h>
-#include "core/Handles.h"
 
 #ifdef OS_WINDOWS
 // see: https://doc.qt.io/qt-5/qfileinfo.html#ntfs-permissions
@@ -42,7 +44,13 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const R
 	// Preferences need to be initalized before we have a fist initial project
 	raco::components::RaCoPreferences::init();
 
+	runningInUI_ = settings.runningInUI;
+
 	switchActiveRaCoProject(settings.initialProject, settings.createDefaultScene);
+}
+
+RaCoApplication::~RaCoApplication() {
+	/* an implicit destructor would force users of RaCoApplication class to include the definition of SceneBackend (due to unique_ptr) */
 }
 
 RaCoProject& RaCoApplication::activeRaCoProject() {
@@ -163,7 +171,7 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const s
 	// Use JSON format for the metadata string to allow future extensibility
 	// CAREFUL: only include data here which we are certain all users agree to have included in the exported files.
 	metadata.setMetadataString(fmt::format(
-R"___({{
+		R"___({{
 	"generator" : "{}"
 }})___",
 		QCoreApplication::applicationName().toStdString()));
@@ -193,22 +201,19 @@ void RaCoApplication::doOneLoop() {
 		}
 	}
 
-	auto elapsedTime = std::chrono::high_resolution_clock::now() - startTime_;
-	auto elapsedMsec = std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count();
-
-	auto activeProjectRunsTimer = activeRaCoProject().project()->settings()->runTimer_.asBool();
-	if (activeProjectRunsTimer) {
-		auto loadedScripts = engine_->logicEngine().getCollection<rlogic::LuaScript>();
-		for (auto* loadedScript : loadedScripts) {
-			if (loadedScript->getInputs()->hasChild("time_ms")) {
-				loadedScript->getInputs()->getChild("time_ms")->set(static_cast<int32_t>(elapsedMsec));
-			}
-		}
+	int64_t elapsedMsec;
+	if (getTime_) {
+		elapsedMsec = getTime_();
+	} else {
+		auto elapsedTime = std::chrono::high_resolution_clock::now() - startTime_;
+		elapsedMsec = std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count();
 	}
+
+	activeProject_->tracePlayer().refresh(elapsedMsec);
 
 	auto dataChanges = activeProject_->recorder()->release();
 	dataChangeDispatcherEngine_->dispatch(dataChanges);
-	if (activeProjectRunsTimer || logicEngineNeedsUpdate_ || !dataChanges.getAllChangedObjects(true, true, true).empty()) {
+	if (logicEngineNeedsUpdate_ || !dataChanges.getAllChangedObjects(true, true, true).empty()) {
 		if (!engine_->logicEngine().update()) {
 			LOG_ERROR_IF(raco::log_system::RAMSES_BACKEND, !engine_->logicEngine().getErrors().empty(), "{}", LogicEngineErrors{engine_->logicEngine()});
 		}
@@ -271,6 +276,14 @@ QString RaCoApplication::generateApplicationTitle() const {
 #endif
 	}
 	return windowTitle;
+}
+
+bool RaCoApplication::isRunningInUI() const {
+	return runningInUI_;
+}
+
+void RaCoApplication::overrideTime(std::function<int64_t()> getTime) {
+	getTime_ = getTime;
 }
 
 core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {

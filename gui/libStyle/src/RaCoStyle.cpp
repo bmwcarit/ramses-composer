@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -165,12 +165,12 @@ QIcon RaCoStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *o
 
 QPixmap RaCoStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *opt) const {
 	if (iconMode == QIcon::Mode::Disabled) {
-		auto darkenedPixmap = pixmap;
-		QPainter pixMapDarkener(&darkenedPixmap);
-		pixMapDarkener.setCompositionMode(QPainter::CompositionMode_SourceIn);
-		pixMapDarkener.fillRect(QRect({0, 0}, pixmap.size()), QBrush(Colors::color(Colormap::iconDisabled)));
-
-		return darkenedPixmap;
+		QPixmap transparentPixmap(pixmap.size());
+		transparentPixmap.fill(Qt::transparent);
+		QPainter p(&transparentPixmap);
+		p.setOpacity(DISABLED_ICON_ALPHA);
+		p.drawPixmap(0, 0, pixmap);
+		return transparentPixmap;
 	}
 
 	return QProxyStyle::generatedIconPixmap(iconMode, pixmap, opt);
@@ -432,6 +432,10 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 					if (const QAbstractSpinBox *spin = qobject_cast<const QAbstractSpinBox *>(le->parent())) {
 						bounds.adjust(0, 0, 10, 0);
 					}
+				}
+				if (widget->parent() && dynamic_cast<QComboBox *>(widget->parent())) {
+					// avoid duplicate rounded border drawing when the lineEdit is a combobox child.
+					bounds.adjust(-5, 0, 5, 0);
 				}
 
 				drawRoundedRect(bounds, p, backBrush, &opt->palette.brush(QPalette::Window));

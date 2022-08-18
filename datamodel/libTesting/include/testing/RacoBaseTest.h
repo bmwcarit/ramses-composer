@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -76,7 +76,10 @@ public:
 		EXPECT_EQ(refLinks.size(), project.links().size());
 		for (const auto& refLink : refLinks) {
 			auto projectLink = raco::core::Queries::getLink(project, refLink.endProp());
-			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
+			EXPECT_TRUE(projectLink);
+			EXPECT_TRUE(projectLink->startProp() == refLink.startProp());
+			EXPECT_TRUE(projectLink->isValid() == refLink.isValid());
+			EXPECT_TRUE(*projectLink->isWeak_ == *refLink.isWeak_);
 		}
 	}
 

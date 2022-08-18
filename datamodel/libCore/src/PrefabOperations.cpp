@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -234,6 +234,13 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			context.project()->addInstance(newInstChild);
 			localChanges.recordCreateObject(newInstChild);
 			createdObjects.emplace_back(prefabChild, newInstChild);
+			
+			// If we add an object we must also update the children property of the scenegraph parent
+			// Normally this property should already be present in the model changes, but
+			// since the save file optimization may remove objects this is not guaranteed directly after loading.
+			if (prefabChild->getParent()) {
+				allChangedValues.insert(ValueHandle(prefabChild->getParent(), &EditorObject::children_));
+			}
 		}
 	}
 
@@ -305,6 +312,15 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 					auto destLink = Link::cloneLinkWithTranslation(prefabLink, translateRefFunc);
 					context.project()->addLink(destLink);
 					localChanges.recordAddLink(destLink->descriptor());
+				} else if (*instLink->isWeak_ != *prefabLink->isWeak_) {
+					// strong <-> weak link transitions are handled as removal and creation operation
+					// the Project::removeLink/addLink calls are needed to update the link graph map correctly.
+					context.project()->removeLink(instLink);
+					localChanges.recordRemoveLink(instLink->descriptor());
+					instLink->isWeak_ = *prefabLink->isWeak_;
+					instLink->isValid_ = prefabLink->isValid();
+					context.project()->addLink(instLink);
+					localChanges.recordAddLink(instLink->descriptor());
 				} else if (instLink->isValid() != prefabLink->isValid()) {
 					// update link validity
 					instLink->isValid_ = prefabLink->isValid();

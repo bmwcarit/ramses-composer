@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -425,16 +425,6 @@ TEST_F(RaCoProjectFixture, idChange) {
 	app.activeRaCoProject().commandInterface()->set({app.activeRaCoProject().project()->settings(), {"sceneId"}}, 1024);
 	app.doOneLoop();
 	ASSERT_EQ(1024u, app.sceneBackend()->currentSceneIdValue());
-}
-
-TEST_F(RaCoProjectFixture, enableTimerFlagChange) {
-	RaCoApplication app{backend};
-	const auto PROJECT_PATH = QString::fromStdString((test_path() / "project.rca").string());
-	app.activeRaCoProject().commandInterface()->set({app.activeRaCoProject().project()->settings(), {"enableTimerFlag"}}, true);
-	std::string msg;
-	ASSERT_TRUE(app.activeRaCoProject().saveAs(PROJECT_PATH, msg));
-	app.switchActiveRaCoProject(PROJECT_PATH);
-	ASSERT_EQ(app.activeRaCoProject().project()->settings()->enableTimerFlag_.asBool(), true);
 }
 
 TEST_F(RaCoProjectFixture, restoredLinkWorksInLogicEngine) {

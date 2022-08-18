@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -33,11 +33,13 @@ constexpr const char* RAMSES_BACKEND {"RAMSES_BACKEND"};
 constexpr const char* RAMSES_ADAPTOR {"RAMSES_ADAPTOR"};
 constexpr const char* DESERIALIZATION{"DESERIALIZATION"};
 constexpr const char* PROJECT{"PROJECT"};
+constexpr const char* PYTHON{"PYTHON"};
 constexpr const char* MESH_LOADER{"MESH_LOADER"};
 constexpr const char* RAMSES{"RAMSES"};
 constexpr const char* RAMSES_LOGIC{"RAMSES_LOGIC"};
 constexpr const char* UTILS{"UTILS"};
 constexpr const char* DUMP{"DUMP"};
+constexpr const char* TRACE_PLAYER{"TRACE_PLAYER"};
 
 constexpr size_t MAX_LOG_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 constexpr size_t MAX_LOG_FILE_AMOUNT = 25;

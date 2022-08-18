@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "fileVersion": 41,
+    "fileVersion": 43,
     "instances": [
         {
             "properties": {
@@ -485,9 +485,9 @@
                     }
                 },
                 "uriDefines": "",
-                "uriFragment": "../testData/simple_texture.frag",
+                "uriFragment": "../../../../../raco-oss-ref/datamodel/libCore/tests/testData/simple_texture.frag",
                 "uriGeometry": "",
-                "uriVertex": "../testData/simple_texture.vert"
+                "uriVertex": "../../../../../raco-oss-ref/datamodel/libCore/tests/testData/simple_texture.vert"
             },
             "typeName": "Material"
         },
@@ -576,9 +576,9 @@
                     }
                 },
                 "uriDefines": "",
-                "uriFragment": "../testData/simple_texture.frag",
+                "uriFragment": "../../../../../raco-oss-ref/datamodel/libCore/tests/testData/simple_texture.frag",
                 "uriGeometry": "",
-                "uriVertex": "../testData/simple_texture.vert"
+                "uriVertex": "../../../../../raco-oss-ref/datamodel/libCore/tests/testData/simple_texture.vert"
             },
             "typeName": "Material"
         },
@@ -1052,10 +1052,8 @@
                     "scriptSubdirectory": "scripts",
                     "shaderSubdirectory": "shaders"
                 },
-                "enableTimerFlag": false,
                 "objectID": "71454add-eb56-4288-9057-825539914bed",
                 "objectName": "test-offscreen-tex-uniform-migration-material",
-                "runTimer": false,
                 "saveAsZip": false,
                 "sceneId": {
                     "annotations": [
@@ -1486,7 +1484,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "602356459012"
+                    "ticker_us": "1885853931337"
                 }
             },
             "typeName": "Timer"
@@ -1850,7 +1848,7 @@
                 "meshIndex": 0,
                 "objectID": "a11461f9-239e-4fb5-8a4e-aa55cd177039",
                 "objectName": "Mesh",
-                "uri": "../testData/duck.glb"
+                "uri": "../../../../../raco-oss-ref/datamodel/libCore/tests/testData/duck.glb"
             },
             "typeName": "Mesh"
         },
@@ -1964,7 +1962,7 @@
     "racoVersion": [
         1,
         1,
-        0
+        1
     ],
     "ramsesVersion": [
         27,
@@ -2221,10 +2219,8 @@
             "backgroundColor": "Vec4f::DisplayNameAnnotation",
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "defaultResourceFolders": "DefaultResourceDirectories::DisplayNameAnnotation",
-            "enableTimerFlag": "Bool::HiddenProperty",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "runTimer": "Bool::HiddenProperty",
             "saveAsZip": "Bool::DisplayNameAnnotation",
             "sceneId": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "viewport": "Vec2i::DisplayNameAnnotation"

@@ -1,0 +1,4032 @@
+[
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 0.0,
+					"desiredDistanceSteps" : 0,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 0
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 8.6111116409301758,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 0,
+					"laneMarkingDisplayRight" : 0,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 4294967295,
+					"laneMarkingLaneInputIdRight" : 4294967295,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 4294967295,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 4294967295,
+						"inputId" : 4294967295,
+						"isEnabled" : false,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 4294967295,
+						"inputId" : 4294967295,
+						"isEnabled" : false,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 0,
+					"focusRequestPossible" : false,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 891000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 500
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 58.849441528320312,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 33.430000305175781,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 4294967295,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 56.071140289306641,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.669998168945312,
+						"rawReferencePointY" : -0.059999998658895493,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 8.6111116409301758,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 0,
+					"laneMarkingDisplayRight" : 0,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 4294967295,
+					"laneMarkingLaneInputIdRight" : 4294967295,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 4294967295,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 4294967295,
+						"inputId" : 4294967295,
+						"isEnabled" : false,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 4294967295,
+						"inputId" : 4294967295,
+						"isEnabled" : false,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 891000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 1000
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 58.849441528320312,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 33.430000305175781,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 56.071140289306641,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.669998168945312,
+						"rawReferencePointY" : -0.059999998658895493,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.830001831054688,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -9.856348991394043,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.939999580383301,
+						"rawReferencePointY" : 3.2599999904632568,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 8.6111116409301758,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 891000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 1500
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 58.849441528320312,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 33.430000305175781,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 56.143306732177734,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.729999542236328,
+						"rawReferencePointY" : -0.05000000074505806,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.775001525878906,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -9.9044589996337891,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.970000267028809,
+						"rawReferencePointY" : 3.1600000858306885,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 8.6111116409301758,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 932000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 2000
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 58.849441528320312,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 33.424999237060547,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 56.179386138916016,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.759998321533203,
+						"rawReferencePointY" : -0.059999998658895493,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.810001373291016,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -9.6939802169799805,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.789999961853027,
+						"rawReferencePointY" : 3.2100000381469727,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 8.6111116409301758,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 932000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 2500
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 34.250999450683594,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 31.270000457763672,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483646,
+						"laneInputId" : 113,
+						"length" : 7.1999998092651367,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 5,
+						"objectDisplayId" : 39,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 2939,
+						"positionX" : 53.899997711181641,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 73.400001525878906,
+						"rawReferencePointY" : -3.75,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 33.424999237060547,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 32.696998596191406,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.759998321533203,
+						"rawReferencePointY" : -0.059999998658895493,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.810001373291016,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -5.6419997215270996,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.789999961853027,
+						"rawReferencePointY" : 3.2100000381469727,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 32.947048187255859,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 932000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 3000
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 34.250999450683594,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 31.264999389648438,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483646,
+						"laneInputId" : 113,
+						"length" : 7.1999998092651367,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 5,
+						"objectDisplayId" : 39,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 2939,
+						"positionX" : 53.843997955322266,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 73.319999694824219,
+						"rawReferencePointY" : -3.7100000381469727,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 33.424999237060547,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 32.71099853515625,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.779998779296875,
+						"rawReferencePointY" : -0.039999999105930328,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.814998626708984,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -5.5999994277954102,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.729999542236328,
+						"rawReferencePointY" : 3.2100000381469727,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 32.947048187255859,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 932000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 3500
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 34.250999450683594,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 31.264999389648438,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483646,
+						"laneInputId" : 113,
+						"length" : 7.1999998092651367,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 5,
+						"objectDisplayId" : 39,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 2939,
+						"positionX" : 53.801998138427734,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 73.260002136230469,
+						"rawReferencePointY" : -3.7200000286102295,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 33.424999237060547,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 32.724998474121094,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.799999237060547,
+						"rawReferencePointY" : -0.019999999552965164,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.790000915527344,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -5.5580000877380371,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.670000076293945,
+						"rawReferencePointY" : 3.2400000095367432,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 32.947048187255859,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 932000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 4000
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 34.264999389648438,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 31.264999389648438,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483646,
+						"laneInputId" : 113,
+						"length" : 7.1999998092651367,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 5,
+						"objectDisplayId" : 39,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 2939,
+						"positionX" : 53.801998138427734,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 73.260002136230469,
+						"rawReferencePointY" : -3.7200000286102295,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 33.424999237060547,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 32.724998474121094,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.799999237060547,
+						"rawReferencePointY" : -0.019999999552965164,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.790000915527344,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -5.5580000877380371,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.670000076293945,
+						"rawReferencePointY" : 3.2400000095367432,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 32.947048187255859,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 932000000,
+						"seconds" : 79241
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 4500
+		}
+	},
+	{
+		"SceneData" : 
+		{
+			"saInfo" : 
+			{
+				"ACC" : 
+				{
+					"desiredDistance" : 34.264999389648438,
+					"desiredDistanceSteps" : 2,
+					"desiredDistanceStepsButtonPressedCounter" : 0,
+					"followingState" : 0,
+					"handsOffOptionState" : 0,
+					"state" : 1
+				},
+				"DetectedObjects" : 
+				[
+					{
+						"absoluteVelocityX" : 31.260000228881836,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483646,
+						"laneInputId" : 113,
+						"length" : 7.1999998092651367,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 5,
+						"objectDisplayId" : 39,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 2939,
+						"positionX" : 53.787998199462891,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 73.239997863769531,
+						"rawReferencePointY" : -3.75,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 33.424999237060547,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483647,
+						"laneInputId" : 123,
+						"length" : 3.9000000953674316,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 3,
+						"objectDisplayId" : 2,
+						"objectHighlightReason" : 1,
+						"objectInputId" : 3013,
+						"positionX" : 32.767002105712891,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 44.860000610351562,
+						"rawReferencePointY" : -0.029999999329447746,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 34.790000915527344,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : true,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 2147483648,
+						"laneInputId" : 126,
+						"length" : 7.4899997711181641,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 3047,
+						"positionX" : -5.4530000686645508,
+						"positionY" : 0.0,
+						"rawReferencePointX" : -11.520000457763672,
+						"rawReferencePointY" : 3.2400000095367432,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					{
+						"absoluteVelocityX" : 0.0,
+						"classificationLocked" : false,
+						"height" : 0.0,
+						"isEnabled" : false,
+						"keepInHudHighlight" : false,
+						"laneDisplayIndex" : 4294967295,
+						"laneInputId" : 4294967295,
+						"length" : 0.0,
+						"noLaneChangeAnimation" : false,
+						"objectClassification" : 0,
+						"objectDisplayId" : 4294967295,
+						"objectHighlightReason" : 0,
+						"objectInputId" : 4294967295,
+						"positionX" : 0.0,
+						"positionY" : 0.0,
+						"rawReferencePointX" : 0.0,
+						"rawReferencePointY" : 0.0,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				],
+				"EgoVehicle" : 
+				{
+					"absoluteVelocityX" : 32.947048187255859,
+					"inputLaneId" : 4294967295,
+					"laneDisplayIndex" : 2147483647,
+					"positionY" : 0.0
+				},
+				"EgoVehicleConfig" : 
+				{
+					"length" : 1.0,
+					"width" : 1.0
+				},
+				"EmergencyCorridor" : 
+				{
+					"laneDisplayIndex" : 4294967295,
+					"laneInputId" : 4294967295,
+					"positionY" : 0.0,
+					"width" : 0.0
+				},
+				"LSA" : 
+				{
+					"laneMarkingDisplayLeft" : 1,
+					"laneMarkingDisplayRight" : 1,
+					"laneMarkingLaneDisplayIndexLeft" : 2147483647,
+					"laneMarkingLaneDisplayIndexRight" : 2147483647,
+					"laneMarkingLaneInputIdLeft" : 123,
+					"laneMarkingLaneInputIdRight" : 123,
+					"lsaDropCounter" : 0,
+					"maneuver" : 0
+				},
+				"LaneChangeHint" : 
+				{
+					"gapLaneDisplayIndex" : 4294967295,
+					"gapLaneInputId" : 4294967295,
+					"objectDisplayIdBack" : 4294967295,
+					"objectDisplayIdFront" : 4294967295
+				},
+				"Lanes" : 
+				{
+					"ego" : 
+					{
+						"displayIndex" : 2147483647,
+						"inputId" : 123,
+						"isEnabled" : true,
+						"showInHud" : true,
+						"width" : 0.0
+					},
+					"neighborLeft" : 
+					{
+						"displayIndex" : 2147483648,
+						"inputId" : 126,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					},
+					"neighborRight" : 
+					{
+						"displayIndex" : 2147483646,
+						"inputId" : 113,
+						"isEnabled" : true,
+						"showInHud" : false,
+						"width" : 0.0
+					}
+				},
+				"SceneMeta" : 
+				{
+					"beginProcessingTimeStamp" : 
+					{
+						"isValid" : false,
+						"nanoseconds" : 0,
+						"seconds" : 0
+					},
+					"displayState" : 1,
+					"drivingModeLevel" : 1,
+					"focusRequestPossible" : true,
+					"isLivingMode" : false,
+					"isTrailerActive" : false,
+					"operatingState" : 0,
+					"timeStamp" : 
+					{
+						"isValid" : true,
+						"nanoseconds" : 92000000,
+						"seconds" : 79242
+					}
+				}
+			}
+		},
+		"TracePlayerData" : 
+		{
+			"timestamp(ms)" : 5000
+		}
+	}
+]

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -146,7 +146,7 @@ public:
 	void insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	// Link operations
-	SLink addLink(const ValueHandle& start, const ValueHandle& end);
+	SLink addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak = false);
 	void removeLink(const PropertyDescriptor& end);
 
 	void performExternalFileReload(const std::vector<SEditorObject>& objects);

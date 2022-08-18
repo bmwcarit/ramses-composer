@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of Ramses Composer
-# (see https://github.com/GENIVI/ramses-composer).
+# (see https://github.com/bmwcarit/ramses-composer).
 #
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 # If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # 
 import raco
+import os
 
 def scenegraphRoots():
     return [obj for obj in raco.instances() if obj.parent() == None]
@@ -86,11 +87,11 @@ print("\n ----- LuaScript -----\n")
 
 lua = raco.create("LuaScript", "lua")
 
-print("Lua withut uri:")
+print("Lua without uri:")
 printObject(lua)
 print("\n")
 
-lua.uri = R"C:\Users\MarcusWeber\OneDrive - Paradox Cat GmbH\Documents\RamsesComposer\scripts\through.lua"
+lua.uri = os.getcwd() + "/scripts/types-scalar.lua"
 
 print("Lua with uri:")
 printObject(lua)
@@ -104,15 +105,16 @@ obj = raco.instances()[0]
 
 print(" -- Create Link -- \n")
 
-link = raco.addLink(lua.outputs.vec, obj.translation)
+link = raco.addLink(lua.outputs.ovector3f, obj.translation)
 
 print("created Link: ", link)
 print("  link start = ", link.start)
 print("  link end   = ", link.end)
 print("  link valid = ", link.valid)
+print("  link weak  = ", link.weak)
 print("\n")
 
-raco.addLink(lua.outputs.vec, obj.rotation)
+raco.addLink(lua.outputs.ovector3f, obj.rotation, True)
 
 raco.removeLink(obj.translation)
 

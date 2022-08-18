@@ -2,30 +2,31 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "core/Context.h"
 
+#include "core/CodeControlledPropertyModifier.h"
+#include "core/CoreFormatter.h"
 #include "core/EditorObject.h"
 #include "core/ErrorItem.h"
 #include "core/Errors.h"
-#include "core/ExtrefOperations.h"
 #include "core/ExternalReferenceAnnotation.h"
+#include "core/ExtrefOperations.h"
 #include "core/Iterators.h"
 #include "core/Link.h"
-#include "core/PrefabOperations.h"
 #include "core/MeshCacheInterface.h"
+#include "core/PrefabOperations.h"
 #include "core/Project.h"
 #include "core/PropertyDescriptor.h"
 #include "core/Queries.h"
+#include "core/Serialization.h"
 #include "core/Undo.h"
 #include "core/UserObjectFactoryInterface.h"
-#include "core/CoreFormatter.h"
 #include "log_system/log.h"
-#include "core/Serialization.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/Mesh.h"
@@ -695,7 +696,7 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		// Keep links if the property doesn't exist or the types don't match: these links are only (temporarily) invalid.
 		if (*link->startObject_ && *link->endObject_ &&
 			discardedObjects.find((*link->endObject_)->objectID()) == discardedObjects.end()) {
-			if (Queries::linkWouldBeAllowed(*project_, link->startProp(), link->endProp())) {
+			if (Queries::linkWouldBeAllowed(*project_, link->startProp(), link->endProp(), *link->isWeak_)) {
 				link->isValid_ = Queries::linkWouldBeValid(*project_, link->startProp(), link->endProp());
 				project_->addLink(link);
 				changeMultiplexer_.recordAddLink(link->descriptor());
@@ -1179,8 +1180,9 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 
 			auto animChannelOutputName = linkStartAnim->as<user_types::Animation>()->createAnimChannelOutputName(channel.samplerIndex, sceneChannels[animationIndex][channel.samplerIndex]->objectName());
 			auto linkStart = ValueHandle{linkStartAnim, {"outputs", animChannelOutputName}};
-			if (raco::core::Queries::linkWouldBeValid(*project(), linkStart.getDescriptor(), linkEndProp.getDescriptor())) {
-				addLink(linkStart, linkEndProp);
+			if (Queries::linkWouldBeAllowed(*project(), linkStart.getDescriptor(), linkEndProp.getDescriptor(), false) &&
+				Queries::linkWouldBeValid(*project(), linkStart.getDescriptor(), linkEndProp.getDescriptor())) {
+				addLink(linkStart, linkEndProp, false);
 			} else {
 				LOG_WARNING(log_system::CONTEXT, "Output property '{}' of Node '{}' can't be linked with Animation '{}' - either the property is already linked or types are incompatible", animTargetProp, linkEndProp.rootObject()->objectName(), linkStartAnim->objectName());
 			}
@@ -1190,13 +1192,13 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	LOG_INFO(log_system::CONTEXT, "Animations imported.");
 }
 
-SLink BaseContext::addLink(const ValueHandle& start, const ValueHandle& end) {
+SLink BaseContext::addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak) {
 	// Remove existing links ending on the property or any nested child properties
 	for (auto link : Queries::getLinksConnectedToPropertySubtree(*project_, end, false, true)) {
 		removeLink(link->endProp());
 	}
 
-	auto link = std::make_shared<Link>(start.getDescriptor(), end.getDescriptor());
+	auto link = std::make_shared<Link>(start.getDescriptor(), end.getDescriptor(), true, isWeak);
 
 	project_->addLink(link);
 	changeMultiplexer_.recordAddLink(link->descriptor());

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,10 +17,6 @@
 #include <string>
 #include <vector>
 
-namespace raco::ramses_adaptor {
-class ReadFromEngineManager;
-}
-
 namespace raco::core {
 
 using namespace raco::data_storage;
@@ -32,7 +28,7 @@ template <typename AnnoType>
 class AnnotationValueHandle;
 
 class BaseContext;
-
+class CodeControlledPropertyModifier;
 class ValueHandle;
 class EditorObject;
 class ValueTreeIterator;
@@ -222,7 +218,7 @@ public:
 
 private:
 	friend class BaseContext;
-	friend class raco::ramses_adaptor::ReadFromEngineManager;
+	friend class CodeControlledPropertyModifier;
 	friend class PrefabOperations;
 
 	ValueBase* valueRef() const;

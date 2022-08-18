@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -76,6 +76,7 @@ void DataChangeRecorder::LinkMap::insertOrUpdateLink(const LinkDescriptor& link)
 		if (addedLinkIt != addedLinksForEndObj.end()) {
 			auto savedLink = addedLinksForEndObj.extract(addedLinkIt);
 			savedLink.value().isValid = link.isValid;
+			savedLink.value().isWeak = link.isWeak;
 			addedLinksForEndObj.insert(std::move(savedLink));
 		} else {
 			linkMap_[linkEndObjId].insert(link);
@@ -93,6 +94,7 @@ bool DataChangeRecorder::LinkMap::updateLinkIfSaved(const LinkDescriptor& link) 
 		if (addedLinkIt != addedLinksForEndObj.end()) {
 			auto savedLink = addedLinksForEndObj.extract(addedLinkIt);
 			savedLink.value().isValid = link.isValid;
+			savedLink.value().isWeak = link.isWeak;
 			addedLinksForEndObj.insert(std::move(savedLink));
 
 			return true;

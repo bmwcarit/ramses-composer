@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of Ramses Composer
-# (see https://github.com/GENIVI/ramses-composer).
+# (see https://github.com/bmwcarit/ramses-composer).
 #
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 # If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -282,6 +282,7 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(link.start, lua.outputs.ovector3f)
         self.assertEqual(link.end, node.translation)
         self.assertTrue(link.valid)
+        self.assertFalse(link.weak)
         
         queried_link = raco.getLink(node.translation)
         self.assertEqual(link, queried_link)
@@ -289,6 +290,25 @@ class GeneralTests(unittest.TestCase):
         
         raco.removeLink(node.translation)
         self.assertEqual(raco.links(), [])
+
+    def test_addLink_weak(self):
+        lua_start = raco.create("LuaScript", "start")
+        lua_start.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        lua_end = raco.create("LuaScript", "end")
+        lua_end.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+        
+        link_strong = raco.addLink(lua_start.outputs.ofloat, lua_end.inputs.float)
+        link_weak = raco.addLink(lua_end.outputs.ofloat, lua_start.inputs.float, True)
+        self.assertFalse(link_strong.weak)
+        self.assertTrue(link_weak.weak)
+        
+        self.assertEqual(len(raco.links()), 2)
+        queried_link_strong = raco.getLink(lua_end.inputs.float)
+        self.assertEqual(link_strong, queried_link_strong)
+        queried_link_weak = raco.getLink(lua_start.inputs.float)
+        self.assertEqual(link_weak, queried_link_weak)
+
     
     def test_getLink_fail(self):
         node = raco.create("Node", "node")

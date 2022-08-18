@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -39,11 +39,13 @@ struct RaCoApplicationLaunchSettings {
 	QString initialProject{};
 	bool createDefaultScene{true};
 	bool enableRamsesTrace{false};
+	bool runningInUI{false};
 };
 
 class RaCoApplication {
 public:
 	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings = {});
+	~RaCoApplication();
 
 	RaCoProject& activeRaCoProject();
 	const RaCoProject& activeRaCoProject() const;
@@ -67,7 +69,6 @@ public:
 		std::string& outError, 
 		bool forceExportWithErrors = false);
 
-
 	void doOneLoop();
 
 	void resetSceneBackend();
@@ -86,6 +87,13 @@ public:
 	raco::core::EngineInterface* engine();
 
 	QString generateApplicationTitle() const;
+
+	bool isRunningInUI() const;
+
+	// Take control of the time measuring inside the app. By default, RaCo will measure the elapsed wall time. By calling this function
+	// RaCo instead will use the time given by the lambda. The returned value is the elapsed time in milliseconds since the application
+	// was started and can never decrease.
+	void overrideTime(std::function<int64_t()> getTime);
 
 	bool rendererDirty_ = false;
 
@@ -109,8 +117,11 @@ private:
 	ExternalProjectsStore externalProjectsStore_;
 
 	bool logicEngineNeedsUpdate_ = false;
+	bool runningInUI_ = false;
 
 	std::chrono::high_resolution_clock::time_point startTime_;
+	
+	std::function<int64_t()> getTime_;
 };
 
 }  // namespace raco::application

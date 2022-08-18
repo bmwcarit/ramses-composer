@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -192,12 +192,15 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return layer;
 	}
 
-	raco::user_types::SPrefabInstance create_prefabInstance(const std::string& name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {
-		auto inst = create<raco::user_types::PrefabInstance>(name, parent);
-		commandInterface.set({inst, {"template"}}, prefab);
+	raco::user_types::SPrefabInstance create_prefabInstance(raco::core::CommandInterface& cmd, const std::string& name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {
+		auto inst = create<raco::user_types::PrefabInstance>(cmd, name, parent);
+		cmd.set({inst, {"template"}}, prefab);
 		return inst;
 	}
 
+	raco::user_types::SPrefabInstance create_prefabInstance(const std::string& name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {
+		return create_prefabInstance(commandInterface, name, prefab, parent);
+	}
 
 	void checkUndoRedo(std::function<void()> operation, std::function<void()> preCheck, std::function<void()> postCheck) {
 		RacoBaseTest<BaseClass>::checkUndoRedo(commandInterface, operation, preCheck, postCheck);
@@ -208,10 +211,10 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		RacoBaseTest<BaseClass>::checkUndoRedoMultiStep(commandInterface, operations, checks);
 	}
 
-	std::pair<raco::core::PropertyDescriptor, raco::core::PropertyDescriptor> link(raco::user_types::SEditorObject startObj, std::vector<std::string> startProp, raco::user_types::SEditorObject endObj, std::vector<std::string> endProp) {
+	std::pair<raco::core::PropertyDescriptor, raco::core::PropertyDescriptor> link(raco::user_types::SEditorObject startObj, std::vector<std::string> startProp, raco::user_types::SEditorObject endObj, std::vector<std::string> endProp, bool isWeak = false) {
 		raco::core::PropertyDescriptor start{startObj, startProp};
 		raco::core::PropertyDescriptor end{endObj, endProp};
-		commandInterface.addLink(raco::core::ValueHandle(start), raco::core::ValueHandle(end));
+		commandInterface.addLink(raco::core::ValueHandle(start), raco::core::ValueHandle(end), isWeak);
 		return {start, end};
 	}
 

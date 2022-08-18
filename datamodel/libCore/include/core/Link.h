@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,6 +36,7 @@ struct LinkDescriptor {
 	PropertyDescriptor start;
 	PropertyDescriptor end;
 	bool isValid{true};
+	bool isWeak{false};
 
 	static bool lessThanByObjectID(const LinkDescriptor& lhs, const LinkDescriptor& rhs);
 };
@@ -48,12 +49,17 @@ bool operator<(const LinkDescriptor& lhs, const LinkDescriptor& rhs);
 // Link objects represent links between EditorObject properties in the data model
 // - Link objects do not possess an identity beyond their content, i.e. they have value semantic
 // - only the start and end object and property names participate in comparison and establish an identity
-//   relation between links. The isValid flag is ignored in comparisons
+//   relation between links. The isValid/isWeak flags are ignored in comparisons
 // - links must start and end on existing objects in the data model
 // - links may start/end on properties which don't exist (but the objects must exist).
 //   this can occur for links on lua in/out properties or uniforms
 // - link validity can change when the set of dynamic properties of objects changes.
 //   currently this concerns lua in/out properties and meshnode uniform properties.
+// - weak links do not affect link loop detection in the data model or the engine update order graph.
+//   they can be used to build loops. 
+// - weak link status can not change; instead links need to be removed and created again.
+// - weak links may not start/end on LuaInterface objects since this would interfere with link optimiation 
+//   on export.
 //
 class Link : public ClassWithReflectedMembers {
 public:
@@ -67,9 +73,8 @@ public:
 
 	// Needs to be default constructible for deserialization
 	Link();
-	Link(const Link& other) : ClassWithReflectedMembers(getProperties()), startObject_(other.startObject_), startProp_(other.startProp_), endObject_(other.endObject_), endProp_(other.endProp_), isValid_(other.isValid_) {}
-
-	Link(const PropertyDescriptor& start, const PropertyDescriptor& end, bool isValid = true);
+	Link(const Link& other);
+	Link(const PropertyDescriptor& start, const PropertyDescriptor& end, bool isValid = true, bool isWeak = false);
 
 	bool isValid() const;
 
@@ -101,6 +106,7 @@ public:
 	Property<Table, ArraySemanticAnnotation> endProp_ {{}, {}};
 
 	Value<bool> isValid_{true};
+	Value<bool> isWeak_{false};
 };
 
 // Compare links but use object id and not SEditorObject pointer itself to compare start/end objects.

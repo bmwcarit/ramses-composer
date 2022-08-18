@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -84,8 +84,6 @@ public:
 													sceneId_(other.sceneId_),
 													viewport_(other.viewport_),
 													backgroundColor_(other.backgroundColor_),
-													runTimer_(other.runTimer_),
-													enableTimerFlag_(other.enableTimerFlag_),
 													saveAsZip_(other.saveAsZip_) {
 		fillPropertyDescription();
 	}
@@ -102,8 +100,6 @@ public:
 		properties_.emplace_back("viewport", &viewport_);
 		properties_.emplace_back("backgroundColor", &backgroundColor_);
 		properties_.emplace_back("defaultResourceFolders", &defaultResourceDirectories_);
-		properties_.emplace_back("enableTimerFlag", &enableTimerFlag_);
-		properties_.emplace_back("runTimer", &runTimer_);
 		properties_.emplace_back("saveAsZip", &saveAsZip_);
 	}
 
@@ -113,10 +109,6 @@ public:
 	Property<bool, DisplayNameAnnotation> saveAsZip_{false, {"Save As Zipped File"}};
 
 	Property<DefaultResourceDirectories, DisplayNameAnnotation> defaultResourceDirectories_{{}, {"Default Resource Folders"}};
-
-	// Properties related to timer running hack - remove these properties and all related code when proper animations have been implemented
-	Property<bool, HiddenProperty> enableTimerFlag_{false, HiddenProperty()};
-	Property<bool, HiddenProperty> runTimer_{false, HiddenProperty()};
 };
 
 }  // namespace raco::core

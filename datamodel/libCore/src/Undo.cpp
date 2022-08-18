@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -348,6 +348,16 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 			auto destLink = Link::cloneLinkWithTranslation(srcLink, translateRef);
 			dest->addLink(destLink);
 			changes.recordAddLink(destLink->descriptor());
+			extrefDirty = extrefDirty || (*srcLink->endObject_)->query<ExternalReferenceAnnotation>();
+		} else if (*srcLink->isWeak_ != *foundDestLink->isWeak_) {
+			// strong <-> weak link transitions are handled as removal and creation operation
+			// the Project::removeLink/addLink calls are needed to update the link graph map correctly.
+			dest->removeLink(foundDestLink);
+			changes.recordRemoveLink(foundDestLink->descriptor());
+			foundDestLink->isWeak_ = *srcLink->isWeak_;
+			foundDestLink->isValid_ = srcLink->isValid();
+			dest->addLink(foundDestLink);
+			changes.recordAddLink(foundDestLink->descriptor());
 			extrefDirty = extrefDirty || (*srcLink->endObject_)->query<ExternalReferenceAnnotation>();
 		} else if (srcLink->isValid() != foundDestLink->isValid()) {
 			// set validity of dest link to validity of src link

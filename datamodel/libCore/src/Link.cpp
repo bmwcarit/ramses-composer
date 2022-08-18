@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,16 +13,26 @@
 
 namespace raco::core {
 
-Link::Link(): ClassWithReflectedMembers(getProperties())
-{
+Link::Link() : ClassWithReflectedMembers(getProperties()) {
 }
 
-Link::Link(const PropertyDescriptor& start, const PropertyDescriptor& end, bool isValid) : ClassWithReflectedMembers(getProperties()) {
+Link::Link(const Link& other)
+	: ClassWithReflectedMembers(getProperties()),
+	  startObject_(other.startObject_),
+	  startProp_(other.startProp_),
+	  endObject_(other.endObject_),
+	  endProp_(other.endProp_),
+	  isValid_(other.isValid_),
+	  isWeak_(other.isWeak_) {
+}
+
+Link::Link(const PropertyDescriptor& start, const PropertyDescriptor& end, bool isValid, bool isWeak) : ClassWithReflectedMembers(getProperties()) {
 	*startObject_ = start.object();
 	startProp_->set(start.propertyNames());
 	*endObject_ = end.object();
 	endProp_->set(end.propertyNames());
 	isValid_ = isValid;
+	isWeak_ = isWeak;
 }
 
 bool Link::isValid() const {
@@ -34,11 +44,12 @@ std::vector<std::pair<std::string, ValueBase*>> Link::getProperties() {
 		{"startProp", &startProp_},
 		{"endObject", &endObject_},
 		{"endProp", &endProp_},
-		{"isValid", &isValid_}};
+		{"isValid", &isValid_},
+		{"isWeak", &isWeak_}};
 }
 
 LinkDescriptor Link::descriptor() const {
-	return LinkDescriptor{startProp(),endProp(), isValid()};
+	return LinkDescriptor{startProp(), endProp(), isValid(), *isWeak_};
 }
 
 std::vector<std::string> Link::startPropertyNamesVector() const {

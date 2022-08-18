@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -12,7 +12,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ![](styles/ramses-composer-logo.png)
 
 The authoring tool for the RAMSES rendering ecosystem.
-Find the [user manual here](https://github.com/GENIVI/ramses-composer-docs).
+Find the [user manual here](https://github.com/bmwcarit/ramses-composer-docs).
 Find a broader overview of [the Ramses SDK here](https://ramses-sdk.readthedocs.io/).
 
 
@@ -21,7 +21,7 @@ Find a broader overview of [the Ramses SDK here](https://ramses-sdk.readthedocs.
 To build Ramses Composer you first need to checkout and initialize it's dependencies:
 
 ```console
-> git clone https://github.com/GENIVI/ramses-composer ramses-composer
+> git clone https://github.com/bmwcarit/ramses-composer ramses-composer
 > cd ramses-composer
 \raco> git submodule update --init --recursive
 ```
@@ -181,7 +181,7 @@ This example will create the setup for having a working directory with the speci
 
 ## Third Party Components
 
-The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/GENIVI/ramses-composer/releases/download/v0.8.1/qt-src-5.15.2.tgz). 
+The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/bmwcarit/ramses-composer/releases/download/v0.8.1/qt-src-5.15.2.tgz). 
 
 Ramses Composer uses a number of third party libraries:
 

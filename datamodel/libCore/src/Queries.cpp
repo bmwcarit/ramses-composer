@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -394,7 +394,6 @@ bool Queries::isReadOnly(SEditorObject editorObj) {
 	return false;
 }
 
-
 bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool linkState) {
 	if (Queries::isReadOnly(handle.rootObject())) {
 		return true;
@@ -432,6 +431,11 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 	if (parent && parent.depth() > 0) {
 		return isReadOnly(project, parent);
 	}
+
+	if (project.isCodeCtrldObj(handle.rootObject())) {
+		return true;
+	}
+
 	return false;
 }
 
@@ -809,38 +813,6 @@ bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const Pr
 }
 
 
-std::set<ValueHandle> Queries::allowedLinkStartProperties(const Project& project, const ValueHandle& end) {
-	PropertyDescriptor endDesc{end.getDescriptor()};
-	std::set<ValueHandle> result;
-	for (auto instance : project.instances()) {
-		if (instance != end.rootObject()) {
-			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
-				PropertyDescriptor propDesc{prop.getDescriptor()};
-				if (prop.query<LinkStartAnnotation>() && checkLinkCompatibleTypes(prop, end) && linkSatisfiesConstraints(propDesc,endDesc) && !project.createsLoop(propDesc, endDesc)) {
-					result.insert(prop);
-				}
-			}
-		}
-	}
-	return result;
-}
-
-std::set<std::pair<ValueHandle, bool>> Queries::allLinkStartProperties(const Project& project, const ValueHandle& end) {
-	PropertyDescriptor endDesc{end.getDescriptor()};
-	std::set<std::pair<ValueHandle, bool>> result;
-	for (auto instance : project.instances()) {
-		if (instance != end.rootObject()) {
-			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
-				PropertyDescriptor propDesc{prop.getDescriptor()};
-				if (prop.query<LinkStartAnnotation>() && checkLinkCompatibleTypes(prop, end) && linkSatisfiesConstraints(propDesc, endDesc)) {
-					result.insert({ prop, project.createsLoop(propDesc, endDesc) });
-				}
-			}
-		}
-	}
-	return result;
-}
-
 bool Queries::isValidLinkEnd(const ValueHandle& endProperty) {
 	return endProperty.isProperty() && endProperty.query<LinkEndAnnotation>();
 }
@@ -849,16 +821,25 @@ bool Queries::isValidLinkStart(const ValueHandle& startProperty) {
 	return startProperty.isProperty() && startProperty.query<LinkStartAnnotation>();
 }
 
-bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& end) {
-	if (!(start && end && isValidLinkEnd(end) && isValidLinkStart(start) && checkLinkCompatibleTypes(start, end))) {
+bool Queries::linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end, bool isWeak) {
+	if (isWeak && (start.object() == end.object() ||
+					  start.object()->isType<user_types::LuaInterface>() || end.object()->isType<user_types::LuaInterface>())) {
 		return false;
 	}
-	if (Queries::isReadOnly(project, end, true)) {
-		return false;
-	}
-	PropertyDescriptor startDesc{start.getDescriptor()};
-	PropertyDescriptor endDesc{end.getDescriptor()};
-	return linkSatisfiesConstraints(startDesc, endDesc) && !project.createsLoop(startDesc, endDesc);
+	return linkSatisfiesConstraints(start, end) &&
+		   (isWeak || !project.createsLoop(start, end));
+}
+
+bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
+	ValueHandle startHandle(start);
+	ValueHandle endHandle(end);
+	return startHandle && endHandle && isValidLinkStart(startHandle) && isValidLinkEnd(endHandle) && checkLinkCompatibleTypes(startHandle, endHandle);
+}
+
+bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& end, bool isWeak) {
+	return Queries::linkWouldBeAllowed(project, start.getDescriptor(), end.getDescriptor(), isWeak) &&
+		   Queries::linkWouldBeValid(project, start.getDescriptor(), end.getDescriptor()) &&
+		   !Queries::isReadOnly(project, end, true);
 }
 
 bool Queries::userCanRemoveLink(const Project& project, const PropertyDescriptor& end) {
@@ -868,14 +849,24 @@ bool Queries::userCanRemoveLink(const Project& project, const PropertyDescriptor
 	return true;
 }
 
-bool Queries::linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
-	return linkSatisfiesConstraints(start, end) && !project.createsLoop(start, end);
-}
-
-bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
-	ValueHandle startHandle(start);
-	ValueHandle endHandle(end);
-	return startHandle && endHandle && isValidLinkStart(startHandle) && isValidLinkEnd(endHandle) && checkLinkCompatibleTypes(startHandle, endHandle) && linkWouldBeAllowed(project, start, end);
+std::set<std::tuple<ValueHandle, bool, bool>> Queries::allLinkStartProperties(const Project& project, const ValueHandle& end) {
+	PropertyDescriptor endDesc{end.getDescriptor()};
+	std::set<std::tuple<ValueHandle, bool, bool>> result;
+	for (auto instance : project.instances()) {
+		if (instance != end.rootObject()) {
+			for (auto const& prop : ValueTreeIteratorAdaptor(ValueHandle(instance))) {
+				PropertyDescriptor propDesc{prop.getDescriptor()};
+				if (Queries::linkWouldBeValid(project, propDesc, endDesc)) {
+					bool allowedWeak = Queries::linkWouldBeAllowed(project, propDesc, endDesc, true);
+					bool allowedStrong = Queries::linkWouldBeAllowed(project, propDesc, endDesc, false);
+					if (allowedWeak || allowedStrong) {
+						result.insert({prop, allowedStrong, allowedWeak});
+					}
+				}
+			}
+		}
+	}
+	return result;
 }
 
 std::vector<SEditorObject> Queries::filterForNotResource(const std::vector<SEditorObject>& objects) {

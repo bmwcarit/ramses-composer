@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -19,6 +19,8 @@
 #include "common_widgets/LogView.h"
 #include "common_widgets/MeshAssetImportDialog.h"
 #include "common_widgets/PreferencesView.h"
+#include "common_widgets/RunScriptDialog.h"
+#include "common_widgets/TracePlayerWidget.h"
 #include "common_widgets/UndoView.h"
 #include "core/Context.h"
 #include "core/EditorObject.h"
@@ -73,6 +75,10 @@
 #include "versiondialog.h"
 #include "utils/u8path.h"
 
+#include "python_api/PythonAPI.h"
+#include "DockAreaWidget.h"
+#include "DockSplitter.h"
+#include "ads_globals.h"
 
 #include <DockWidget.h>
 #include <IconProvider.h>
@@ -89,6 +95,7 @@
 #include <QShortcut>
 #include <QShortcutEvent>
 #include <QTimer>
+#include <algorithm>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -210,8 +217,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 		RenderBuffer::typeDescription.typeName,
 		RenderTarget::typeDescription.typeName,
 		RenderLayer::typeDescription.typeName,
-		RenderPass::typeDescription.typeName
-	};
+		RenderPass::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewResourceModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(
@@ -258,7 +264,7 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 		ads::LeftDockWidgetArea, mainWindow, dockManager, treeDockManager, nullptr);
 }
 
-ads::CDockAreaWidget* createAndAddUndoView(raco::application::RaCoApplication* application, const char *dockObjName, raco::application::RaCoProject* project, MainWindow* mainWindow, RaCoDockManager* dockManager, ads::CDockAreaWidget* dockArea = nullptr) {
+ads::CDockAreaWidget* createAndAddUndoView(raco::application::RaCoApplication* application, const char* dockObjName, raco::application::RaCoProject* project, MainWindow* mainWindow, RaCoDockManager* dockManager, ads::CDockAreaWidget* dockArea = nullptr) {
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::UNDO_STACK, mainWindow);
 	dock->setWidget(new raco::common_widgets::UndoView(project->undoStack(), application->dataChangeDispatcher(), mainWindow));
 	dock->setObjectName(dockObjName);
@@ -282,7 +288,48 @@ ads::CDockAreaWidget* createAndAddLogView(MainWindow* mainWindow, raco::applicat
 	return dockManager->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
 }
 
-void createInitialWidgets(MainWindow* mainWindow, raco::ramses_widgets::RendererBackend& rendererBackend, raco::application::RaCoApplication* application,  RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager) {
+ads::CDockAreaWidget* createAndAddTracePlayer(MainWindow* mainWindow, RaCoDockManager* dockManager, raco::components::TracePlayer* tracePlayer) {
+	if (auto existingTraceplayerDock{dockManager->findDockWidget(MainWindow::DockWidgetTypes::TRACE_PLAYER)}) {
+		return existingTraceplayerDock->dockAreaWidget();
+	}
+
+	auto* newTraceplayerDock{createDockWidget(MainWindow::DockWidgetTypes::TRACE_PLAYER, mainWindow)};
+	newTraceplayerDock->setMinimumSizeHintMode(ads::CDockWidget::eMinimumSizeHintMode::MinimumSizeHintFromContent);
+
+	auto* traceplayerWidget{new raco::common_widgets::TracePlayerWidget(newTraceplayerDock->objectName(), tracePlayer)};
+	newTraceplayerDock->setWidget(traceplayerWidget, ads::CDockWidget::ForceNoScrollArea);
+
+	ads::CDockWidget* existingPreviewDock{nullptr};
+	constexpr auto isRamsesPreviewWidget{
+		[](const ads::CDockWidget* dockWidget) { return dockWidget->windowTitle() == MainWindow::DockWidgetTypes::RAMSES_PREVIEW; }};
+	const auto& dockWidgetsMap{dockManager->dockWidgetsMap()};
+	if (const auto itr = std::find_if(dockWidgetsMap.begin(), dockWidgetsMap.end(), isRamsesPreviewWidget); itr != dockWidgetsMap.end()) {
+		existingPreviewDock = *itr;
+	}
+
+	// this prevents the whole dock area from auto resizing by ADS when TracePlayer is added to the top of Preview
+	struct LockDockAreaWidth {
+		QWidget* target_;
+		LockDockAreaWidth(QWidget* target, ads::CDockWidget* host) : target_{target} {
+			if (host) {
+				target->setFixedWidth(host->width());
+			}
+		}
+		~LockDockAreaWidth() {
+			target_->setMinimumWidth(0);
+			target_->setMaximumWidth(QWIDGETSIZE_MAX);
+		}
+	} lockDockAreaWidth{traceplayerWidget, existingPreviewDock};
+
+	ads::CDockAreaWidget* previewDockArea{nullptr};
+	if (existingPreviewDock) {
+		previewDockArea = existingPreviewDock->dockAreaWidget();
+	}
+
+	return dockManager->addDockWidget(ads::TopDockWidgetArea, newTraceplayerDock, previewDockArea);
+}
+
+void createInitialWidgets(MainWindow* mainWindow, raco::ramses_widgets::RendererBackend& rendererBackend, raco::application::RaCoApplication* application, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager) {
 	createAndAddPreview(mainWindow, "defaultPreview", dockManager, rendererBackend, application);
 
 	auto leftDockArea = createAndAddSceneGraphTree(mainWindow, "defaultSceneGraph", dockManager, treeDockManager, application);
@@ -313,7 +360,6 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 
 	// Shortcuts
 	{
-		
 		auto undoShortcut = new QShortcut(QKeySequence::Undo, this, nullptr, nullptr, Qt::ApplicationShortcut);
 		QObject::connect(undoShortcut, &QShortcut::activated, this, [this]() {
 			EditMenu::globalUndoCallback(racoApplication_);
@@ -332,7 +378,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		QObject::connect(pasteShortcut, &QShortcut::activated, this, [this]() {
 			EditMenu::globalPasteCallback(racoApplication_, &treeDockManager_);
 		});
-		
+
 		ui->actionSave->setShortcut(QKeySequence::Save);
 		ui->actionSave->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionSave, &QAction::triggered, this, &MainWindow::saveActiveProject);
@@ -342,8 +388,29 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		QObject::connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveAsActiveProject);
 	}
 
+	QObject::connect(ui->actionRunScript, &QAction::triggered, [this]() {
+		auto *dialog = new raco::common_widgets::RunScriptDialog(pythonScriptCache_, pythonScriptArgumentCache_);
+
+		QObject::connect(dialog, &raco::common_widgets::RunScriptDialog::pythonScriptRunRequested, [this](const QString &scriptPath, const QStringList &arguments) {
+			std::vector<std::string> pos_argv_s;
+			pos_argv_s.emplace_back(scriptPath.toStdString());
+			for (auto arg : arguments) {
+				pos_argv_s.emplace_back(arg.toStdString());
+			}
+			std::vector<const char*> pos_argv_cp;
+			for (auto& s : pos_argv_s) {
+				pos_argv_cp.emplace_back(s.c_str());
+			}
+
+			raco::python_api::runPythonScript(racoApplication_, QCoreApplication::applicationFilePath().toStdWString(), scriptPath.toStdString(), pos_argv_cp);
+		});
+
+		dialog->exec();
+	});
+
+
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {
-		auto file = QFileDialog::getOpenFileName(this, "Open", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
+		auto file = QFileDialog::getOpenFileName(this, "Open", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca);; All files (*.*)");
 		if (file.size() > 0) {
 			openProject(file);
 		}
@@ -375,7 +442,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	QObject::connect(ui->actionNewUndoView, &QAction::triggered, [this]() { createAndAddUndoView(racoApplication_, EditorObject::normalizedObjectID("").c_str(), &racoApplication_->activeRaCoProject(), this, dockManager_); });
 	QObject::connect(ui->actionNewErrorView, &QAction::triggered, [this]() { createAndAddErrorView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, logViewModel_); });
 	QObject::connect(ui->actionNewLogView, &QAction::triggered, [this]() { createAndAddLogView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, logViewModel_); });
-	QObject::connect(ui->actionRestoreDefaultLayout, &QAction::triggered, [this](){
+	QObject::connect(ui->actionRestoreDefaultLayout, &QAction::triggered, [this]() {
 		resetDockManager();
 		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
 	});
@@ -404,10 +471,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		saveDockManagerCustomLayouts();
 	});
 
+	QObject::connect(ui->actionTracePlayer, &QAction::triggered, [this]() { createAndAddTracePlayer(this, dockManager_, &racoApplication_->activeRaCoProject().tracePlayer()); });
 	QObject::connect(ui->actionProjectSettings, &QAction::triggered, [this]() { createAndAddProjectSettings(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, &racoApplication_->activeRaCoProject(), racoApplication_->dataChangeDispatcher(), racoApplication_->activeRaCoProject().commandInterface()); });
-	QObject::connect(ui->actionEnableRuntimeScriptPreview, &QAction::toggled, [this](const bool toggled) {
-		racoApplication_->activeRaCoProject().project()->settings()->runTimer_ = toggled;
-	});
 
 	configureDebugActions(ui, this, racoApplication_->activeRaCoProject().commandInterface());
 	// Help actions
@@ -417,6 +482,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	});
 
 	QObject::connect(this, &MainWindow::objectFocusRequestedForTreeDock, &treeDockManager_, &raco::object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
+
+	updateProjectSavedConnection();
 
 	restoreSettings();
 	restoreCachedLayout();
@@ -540,14 +607,7 @@ void MainWindow::openProject(const QString& file) {
 
 	updateApplicationTitle();
 	updateActiveProjectConnection();
-
-	if (racoApplication_->activeRaCoProject().project()->settings()->enableTimerFlag_.asBool() == true) {
-		ui->menuDebug->addAction(ui->actionEnableRuntimeScriptPreview);
-		ui->actionEnableRuntimeScriptPreview->setChecked(racoApplication_->activeRaCoProject().project()->settings()->runTimer_.asBool());
-	} else {
-		ui->menuDebug->removeAction(ui->actionEnableRuntimeScriptPreview);
-		racoApplication_->activeRaCoProject().project()->settings()->runTimer_ = false;
-	}
+	updateProjectSavedConnection();
 }
 
 MainWindow::~MainWindow() {
@@ -570,8 +630,6 @@ bool MainWindow::saveActiveProject() {
 		} else {
 			std::string errorMsg;
 			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
-				recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
-				updateApplicationTitle();	
 				return true;
 			} else {
 				updateApplicationTitle();	
@@ -595,10 +653,8 @@ bool MainWindow::saveAsActiveProject() {
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		std::string errorMsg;
 		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
-			recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
-
 			updateActiveProjectConnection();
-			updateApplicationTitle();		
+			updateProjectSavedConnection();
 			return true;
 		} else {
 			updateApplicationTitle();
@@ -612,7 +668,7 @@ bool MainWindow::saveAsActiveProject() {
 
 void MainWindow::importScene() {
 	auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, racoApplication_->activeProjectFolder());
-	auto filePath = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
+	auto filePath = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb);; All files (*.*)");
 	if (!filePath.isEmpty()) {
 		MeshDescriptor meshDesc;
 		meshDesc.absPath = filePath.toStdString();
@@ -717,6 +773,8 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 			createAndAddErrorView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
 		} else if (savedDockType == DockWidgetTypes::LOG_VIEW) {
 			createAndAddLogView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
+		} else if (savedDockType == DockWidgetTypes::TRACE_PLAYER) {
+			createAndAddTracePlayer(this, dockManager_, &racoApplication_->activeRaCoProject().tracePlayer());
 		} else {
 			assert(false && "Unknown Dock Type detected");
 		}
@@ -735,6 +793,14 @@ void MainWindow::updateActiveProjectConnection() {
 			updateApplicationTitle();
 		});
 	}
+}
+
+void MainWindow::updateProjectSavedConnection() {
+	QObject::disconnect(projectSavedConnection_);
+	projectSavedConnection_ = QObject::connect(&racoApplication_->activeRaCoProject(), &raco::application::RaCoProject::projectSuccessfullySaved, [this]() {
+		recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
+		updateApplicationTitle();
+	});
 }
 
 void MainWindow::focusToObject(const QString& objectID) {

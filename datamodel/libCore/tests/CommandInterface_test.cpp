@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -437,6 +437,7 @@ TEST_F(CommandInterfaceTest, addLink_fail_no_end) {
 TEST_F(CommandInterfaceTest, addLink_fail_loop) {
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ofloat"}}, {lua, {"inputs", "float"}}), std::runtime_error);
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ofloat"}}, {lua, {"inputs", "float"}}, true), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_end_object_readonly) {

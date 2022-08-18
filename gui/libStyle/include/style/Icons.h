@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -55,8 +55,24 @@ public:
 	const QIcon typeAnimationChannel{":typeAnimationChannelIcon"};
 	const QIcon typeAnimation{":typeAnimationIcon"};
 	const QIcon typeTimer{":typeTimerIcon"};
+	const QIcon browse{":browseIcon"};
+	const QIcon info{":infoIcon"};
+	const QIcon refresh{":refreshIcon"};
+	const QIcon refreshNeeded{":refreshNeededIcon"};
+	const QIcon loopingInactive{":loopingInactiveIcon"};
+	const QIcon loopingActive{":loopingActiveIcon"};
+	const QIcon playInactive{":playInactiveIcon"};
+	const QIcon playActive{":playActiveIcon"};
+	const QIcon pauseInactive{":pauseInactiveIcon"};
+	const QIcon pauseActive{":pauseActiveIcon"};
+	const QIcon stopInactive{":stopInactiveIcon"};
+	const QIcon stopActive{":stopActiveIcon"};
+	const QIcon skipNext{":skipNextIcon"};
+	const QIcon skipPrevious{":skipPreviousIcon"};
+	const QIcon singleArrowLeft{":singleArrowLeft"};
+	const QIcon doubleArrowLeft{":doubleArrowLeft"};
 
-	static const Icons& instance();
+	static const Icons &instance();
 
 	Icons(const Icons &) = delete;
 	Icons &operator=(const Icons &) = delete;

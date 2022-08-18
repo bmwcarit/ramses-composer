@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -22,6 +22,7 @@ add_library(libComponents
     include/components/QtFormatter.h
     include/components/RaCoNameConstants.h
     include/components/RaCoPreferences.h src/RaCoPreferences.cpp
+    include/components/TracePlayer.h src/TracePlayer.cpp
 )
 target_include_directories(libComponents PUBLIC include/)
 target_link_libraries(libComponents

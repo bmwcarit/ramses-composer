@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -20,7 +20,6 @@ Colors::Colors() noexcept {
 		{Colormap::text, QColor(255, 255, 255)},
 		{Colormap::grayEditDisabled, QColor(30, 30, 30)},
 		{Colormap::textDisabled, QColor(200, 200, 200)},
-		{Colormap::iconDisabled, QColor(180, 180, 180)},
 
 		// additional colors for custom widgets and custom roles/states
 		{Colormap::updatedInBackground, QColor(45, 100, 150)},

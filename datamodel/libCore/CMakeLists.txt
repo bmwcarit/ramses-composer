@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,7 @@ add_library(libCore
 	include/core/BasicAnnotations.h
 	include/core/BasicTypes.h
 	include/core/ChangeRecorder.h src/ChangeRecorder.cpp
+	include/core/CodeControlledPropertyModifier.h
 	include/core/CommandInterface.h src/CommandInterface.cpp
 	include/core/Consistency.h src/Consistency.cpp
 	include/core/Context.h src/Context.cpp

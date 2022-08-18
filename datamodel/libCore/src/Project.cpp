@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -32,6 +32,7 @@ Project::Project(const std::vector<SEditorObject>& instances) : instances_{insta
 bool Project::removeInstances(SEditorObjectSet const& objects, bool gcExternalProjectMap) {
 	for (const auto& object : objects) {
 		instances_.erase(std::find(instances_.begin(), instances_.end(), object));
+		codeCtrldObjs_.erase(object);
 		instanceMap_.erase(object->objectID());
 	}
 	if (gcExternalProjectMap) {
@@ -41,7 +42,9 @@ bool Project::removeInstances(SEditorObjectSet const& objects, bool gcExternalPr
 }
 
 void Project::addInstance(SEditorObject object) {
-	assert(instanceMap_.find(object->objectID()) == instanceMap_.end());
+	if (instanceMap_.find(object->objectID()) != instanceMap_.end()) {
+		throw std::runtime_error(fmt::format("duplicate object {} with id {}", object->objectName(), object->objectID()));
+	}
 	instances_.push_back(object);
 	instanceMap_[object->objectID()] = object;
 }
@@ -352,6 +355,34 @@ void Project::setExternalReferenceUpdateFailed(bool status) {
 	externalReferenceUpdateFailed_ = status;
 }
 
+void Project::lockCodeCtrldObjs(const SEditorObjectSet& editorObjs) {
+	for (const auto& editorObj : editorObjs) {
+		if (isCodeCtrldObj(editorObj)) {
+			assert(false && "Object is already locked!");
+			return;
+		}
+		codeCtrldObjs_.insert(editorObj);
+	}
+}
+
+SEditorObjectSet Project::unlockCodeCtrldObjs(const SEditorObjectSet& editorObjs) {
+	SEditorObjectSet unlockedObjs;
+
+	for (const auto& editorObj : editorObjs) {
+		if (isCodeCtrldObj(editorObj)) {
+			unlockedObjs.insert(editorObj);
+			codeCtrldObjs_.erase(editorObj);
+		} else {
+			/* do nothing; object was deleted or unlocked */
+		}
+	}
+
+	return unlockedObjs;
+}
+
+bool Project::isCodeCtrldObj(const SEditorObject& editorObj) const {
+	return (codeCtrldObjs_.find(editorObj) != codeCtrldObjs_.end());
+}
 
 Project::LinkGraph::LinkGraph(const Project& project) {
 	for (auto &link : project.links()) {
@@ -360,7 +391,9 @@ Project::LinkGraph::LinkGraph(const Project& project) {
 }
 
 void Project::LinkGraph::addLink(SLink link) {
-	graph[*link->startObject_].insert(*link->endObject_);
+	if (!*link->isWeak_) {
+		graph[*link->startObject_].insert(*link->endObject_);
+	}
 }
 
 void Project::LinkGraph::removeLink(const Project& project, const SLink link) {

@@ -2,15 +2,15 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #pragma once
 
-#include "core/Serialization.h"
 #include "core/ProxyObjectFactory.h"
+#include "core/Serialization.h"
 
 namespace raco::serialization {
 /**
@@ -74,8 +74,11 @@ namespace raco::serialization {
  * 39: Added interfaceSubdirectory to the default resource folder struct in the ProjectSettings.
  * 40: Renamed 6 user type properties
  * 41: Renamed Animation property: "animationOutputs" -> "outputs"
- */
-constexpr int RAMSES_PROJECT_FILE_VERSION = 41;
+ * 42: Added isWeak flag to links.
+ * 43: Removed enableTimerFlag and runTimer properties in ProjectSettings.
+*/
+
+constexpr int RAMSES_PROJECT_FILE_VERSION = 43;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

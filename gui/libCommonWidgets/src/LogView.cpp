@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -84,6 +84,7 @@ LogView::LogView(LogViewModel* model, QWidget* parent) : model_(model) {
 	filterCategoryBox->addItem(raco::log_system::RAMSES_ADAPTOR, raco::log_system::RAMSES_ADAPTOR);
 	filterCategoryBox->addItem(raco::log_system::DESERIALIZATION, raco::log_system::DESERIALIZATION);
 	filterCategoryBox->addItem(raco::log_system::PROJECT, raco::log_system::PROJECT);
+	filterCategoryBox->addItem(raco::log_system::PYTHON, raco::log_system::PYTHON);
 	filterCategoryBox->addItem(raco::log_system::MESH_LOADER, raco::log_system::MESH_LOADER);
 	filterCategoryBox->addItem(raco::log_system::RAMSES, raco::log_system::RAMSES);
 	filterCategoryBox->addItem(raco::log_system::RAMSES_LOGIC, raco::log_system::RAMSES_LOGIC);

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -51,10 +51,10 @@ public:
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> mipmapLevel_{1, {"Mipmap Level"}, {1, 4}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation("Level 1 URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation{"Level 2 URI"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation{"Level 3 URI"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uri_{std::string{}, {"Image files(*.png)"}, DisplayNameAnnotation{"Level 4 URI"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation("Level 1 URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI"}};
 
 private:
 	void validateURIs(BaseContext& context);

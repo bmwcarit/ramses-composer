@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,11 +13,12 @@
 #include "Handles.h"
 #include "Link.h"
 #include "core/ProjectSettings.h"
-#include "log_system/log.h"
 #include "core/Serialization.h"
-#include <regex>
+#include "log_system/log.h"
 #include <map>
+#include <regex>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace raco::core {
 
@@ -142,6 +143,12 @@ public:
 	// Repair project by removing duplicate links
 	void deduplicateLinks();
 
+	// Lock/unlock code-controlled objects in the Project
+	void lockCodeCtrldObjs(const SEditorObjectSet& editorObjs);
+	SEditorObjectSet unlockCodeCtrldObjs(const SEditorObjectSet& editorObjs);
+	// Check if the object is code-controlled
+	bool isCodeCtrldObj(const SEditorObject& editorObj) const;
+
 private:
 	// Needed because undo/redo needs to set the complete externalProjectsMap_ at once but
 	// we don't want public functions to allow anybody to do that.
@@ -151,6 +158,12 @@ private:
 
 	void removeAllLinks();
 
+
+	/**
+	 * @brief Maintains the connection graph of all non-weak links in the project and implements loop detection.
+	 * 
+	 * Weak links are not relevant for loop detection and are therefore not included in the link graph.
+	*/
 	class LinkGraph {
 	public:
 		LinkGraph(const Project& project);
@@ -198,6 +211,8 @@ private:
 
 	static inline const std::regex NAMING_PATTERN{"(.*)\\s+\\((\\d+)\\)"};
 
+	// List of all code-controlled objects.
+	std::unordered_set<SEditorObject> codeCtrldObjs_{};
 };
 
 }  // namespace raco::core

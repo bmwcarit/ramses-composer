@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -879,6 +879,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		}
 	}
 
+
 	// File version 36: LuaInterfaces instead of LuaScripts as Prefab/PrefabInstance interfaces
 	if (deserializedIR.fileVersion < 36) {
 
@@ -1085,6 +1086,19 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				auto oldOutputs = dynObj->extractProperty("animationOutputs");
 				auto newOutputs = dynObj->addProperty("outputs", new Property<Table, DisplayNameAnnotation>{{}, DisplayNameAnnotation("Outputs")}, -1);
 				*newOutputs = *oldOutputs;
+			}
+		}
+	}
+
+	if (deserializedIR.fileVersion < 43) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "ProjectSettings") {
+				if (dynObj->hasProperty("runTimer")) {
+					dynObj->removeProperty("runTimer");
+				}
+				if (dynObj->hasProperty("enableTimerFlag")) {
+					dynObj->removeProperty("enableTimerFlag");
+				}
 			}
 		}
 	}

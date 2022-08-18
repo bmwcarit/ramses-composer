@@ -1,0 +1,261 @@
+[
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 2,
+                "CarPaint_ID": 1,
+                "Door_F_L_isOpen": false,
+                "Door_F_R_isOpen": false,
+                "Door_B_L_isOpen": false,
+                "Door_B_R_isOpen": false,
+                "Tailgate_isOpen": false,
+                "extra_property": 1
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1000
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 1,
+                "CarPaint_ID": 1
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1100
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CarPaint_ID": 2
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1200
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 2
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1300
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CarPaint_ID": 5
+            },
+            "ExtraLuaScript": {
+                "dummy_struct": {
+                    "dummy_prop#1": 22,
+                    "dummy_prop#2": 23
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1400
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 3
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1500
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_F_L_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1600
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_F_R_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1700
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_B_L_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1800
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_B_R_isOpen": true,
+                "CarPaint_ID": 4
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1900
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 4,
+                "Door_F_L_isOpen": false,
+                "Door_F_R_isOpen": false,
+                "Door_B_L_isOpen": false,
+                "Door_B_R_isOpen": false
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2000
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CarPaint_ID": 6
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2100
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 5
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2200
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CarPaint_ID": 3
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2300
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 6
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2400
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Tailgate_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2500
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_B_R_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2600
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_B_L_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2700
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_F_R_isOpen": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2800
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_F_L_isOpen": true,
+                "CarPaint_ID": 7
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2900
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 7,
+                "Door_F_L_isOpen": false,
+                "Door_F_R_isOpen": false,
+                "Door_B_R_isOpen": false,
+                "Tailgate_isOpen": false
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 3000
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "Door_B_L_isOpen": false,
+                "extra_property": 57468
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 3100
+        }
+    },
+    {
+        "SceneData": {
+            "SceneControls": {
+                "CameraPerspective_ID": 1,
+                "Extra_Struct": {
+                    "extra_child1" : false,
+                    "extra_child2" : 33
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 3200
+        }
+    }
+]

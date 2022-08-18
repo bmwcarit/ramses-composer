@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -44,7 +44,7 @@ public Q_SLOTS:
 		std::unique_ptr<raco::application::RaCoApplication> app;
 
 		try {
-			app = std::make_unique<raco::application::RaCoApplication>(backend, raco::application::RaCoApplicationLaunchSettings{projectFile_, false, true});
+			app = std::make_unique<raco::application::RaCoApplication>(backend, raco::application::RaCoApplicationLaunchSettings{projectFile_, false, true, false});
 		} catch (const raco::application::FutureFileVersion& error) {
 			LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 			app.reset();
@@ -71,31 +71,7 @@ public Q_SLOTS:
 					pos_argv_cp.emplace_back(s.c_str());
 				}
 
-				if (raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString())) {
-					py::scoped_interpreter pyGuard{true, static_cast<int>(pos_argv_cp.size()), pos_argv_cp.data()};
-
-					raco::python_api::setup(app.get());
-					LOG_INFO(raco::log_system::COMMON, "running python script {}", pythonScriptPath_.toStdString());
-					try {
-						py::eval_file(pythonScriptPath_.toStdString().c_str());
-					} catch (py::error_already_set& e) {
-						if (e.matches(PyExc_SystemExit)) {
-							exitCode_ = py::cast<int>(e.value().attr("code"));
-							LOG_ERROR(raco::log_system::COMMON, "Exit called from Python: exit code '{}'", exitCode_);
-						} else {
-							LOG_ERROR(raco::log_system::COMMON, "Python exception:\n{}", e.what());
-							exitCode_ = 1;
-						}
-					} catch (std::exception& e) {
-						LOG_ERROR(raco::log_system::COMMON, "Error thrown in Python script:\n{}", e.what());
-						// TODO exit code
-						// how do we get here?
-						// need a test
-					}
-				} else {
-					LOG_ERROR(raco::log_system::COMMON, "Failed to prepare the Python environment.");
-					exitCode_ = 1;
-				}
+				exitCode_ = raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath_.toStdString(), pos_argv_cp);
 			} else if (!exportPath_.isEmpty()) {
 				QString ramsesPath = exportPath_ + "." + raco::names::FILE_EXTENSION_RAMSES_EXPORT;
 				QString logicPath = exportPath_ + "." + raco::names::FILE_EXTENSION_LOGIC_EXPORT;
@@ -269,17 +245,17 @@ int main(int argc, char* argv[]) {
 			if (raco::utils::u8path(path.filePath().toStdString()).userHasReadAccess()) {
 				pythonScriptPath = path.absoluteFilePath();
 			} else {
-				LOG_ERROR(raco::log_system::COMMON, "Python script file could not be read {}", path.filePath().toStdString());
+				LOG_ERROR(raco::log_system::PYTHON, "Python script file could not be read {}", path.filePath().toStdString());
 				// TODO needs test
 				exit(1);
 			}
 		} else {
-			LOG_ERROR(raco::log_system::COMMON, "Python script file not found {}", path.filePath().toStdString());
+			LOG_ERROR(raco::log_system::PYTHON, "Python script file not found {}", path.filePath().toStdString());
 			exit(1);
 		}
 	}
 
-	LOG_INFO(raco::log_system::COMMON, "positional arguments = {}", parser.positionalArguments().join(", ").toStdString());
+	LOG_INFO(raco::log_system::PYTHON, "positional arguments = {}", parser.positionalArguments().join(", ").toStdString());
 
 	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, compressExport, parser.positionalArguments());
 	QObject::connect(task, &Worker::finished, &QCoreApplication::exit);

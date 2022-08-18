@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -54,7 +54,10 @@ public:
 		EXPECT_EQ(refLinks.size(), project->links().size());
 		for (const auto &refLink : refLinks) {
 			auto projectLink = raco::core::Queries::getLink(*project, refLink.endProp());
-			EXPECT_TRUE(projectLink && projectLink->startProp() == refLink.startProp() && projectLink->isValid() == refLink.isValid());
+			EXPECT_TRUE(projectLink);
+			EXPECT_TRUE(projectLink->startProp() == refLink.startProp());
+			EXPECT_TRUE(projectLink->isValid() == refLink.isValid());
+			EXPECT_TRUE(*projectLink->isWeak_ == *refLink.isWeak_);
 		}
 	}
 
@@ -2404,5 +2407,114 @@ end
 		app->doOneLoop();
 
 		ASSERT_NE((ValueHandle{instanceScript, {"inputs", "v"}}.asInt64()), int64_t{0});
+	});
+}
+
+TEST_F(ExtrefTest, link_strong_to_weak_transition) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto start = create_lua("start", "scripts/types-scalar.lua");
+		auto end = create_lua("end", "scripts/types-scalar.lua");
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+	});
+
+	setupComposite(basePathName, compositePathName, {"start", "end"}, [this]() {
+		auto start = findExt("start");
+		auto end = findExt("end");
+		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false}});
+		EXPECT_TRUE(project->createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+
+		auto local_start = create_lua("local_start", "scripts/types-scalar.lua");
+		auto local_end = create_lua("local_end", "scripts/types-scalar.lua");
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{local_start, {"inputs", "float"}});
+		cmd->addLink(ValueHandle{end, {"outputs", "ofloat"}}, ValueHandle{local_end, {"inputs", "float"}});
+	});
+
+	updateBase(basePathName, [this]() {
+		auto start = find("start");
+		auto end = find("end");
+		cmd->removeLink({end, {"inputs", "float"}});
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
+	});
+
+	updateComposite(compositePathName, [this]() {
+		auto start = findExt("start");
+		auto end = findExt("end");
+
+		auto local_start = find("local_start");
+		auto local_end = find("local_end");
+
+		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, true},
+			{{start, {"outputs", "ofloat"}}, {local_start, {"inputs", "float"}}, true, false},
+			{{end, {"outputs", "ofloat"}}, {local_end, {"inputs", "float"}}, true, false}});
+		EXPECT_FALSE(project->createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+	});
+}
+
+TEST_F(ExtrefTest, link_strong_valid_to_weak_invalid_transition) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto start = create_lua("start", "scripts/types-scalar.lua");
+		auto end = create_lua("end", "scripts/types-scalar.lua");
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+	});
+
+	setupComposite(basePathName, compositePathName, {"start", "end"}, [this]() {
+		auto start = findExt("start");
+		auto end = findExt("end");
+		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false}});
+		EXPECT_TRUE(project->createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+
+		auto local_start = create_lua("local_start", "scripts/types-scalar.lua");
+		auto local_end = create_lua("local_end", "scripts/types-scalar.lua");
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{local_start, {"inputs", "float"}});
+		cmd->addLink(ValueHandle{end, {"outputs", "ofloat"}}, ValueHandle{local_end, {"inputs", "float"}});
+	});
+
+	updateBase(basePathName, [this]() {
+		auto start = find("start");
+		auto end = find("end");
+		cmd->removeLink({end, {"inputs", "float"}});
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
+		cmd->set(ValueHandle{end, {"uri"}}, (test_path() / "scripts/SimpleScript.lua").string());
+	});
+
+	updateComposite(compositePathName, [this]() {
+		auto start = findExt("start");
+		auto end = findExt("end");
+
+		auto local_start = find("local_start");
+		auto local_end = find("local_end");
+
+		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, false, true},
+			{{start, {"outputs", "ofloat"}}, {local_start, {"inputs", "float"}}, true, false},
+			{{end, {"outputs", "ofloat"}}, {local_end, {"inputs", "float"}}, true, false}});
+		EXPECT_FALSE(project->createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
+	});
+}
+
+TEST_F(ExtrefTest, link_weak_cycle) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto start = create_lua("start", "scripts/types-scalar.lua");
+		auto end = create_lua("end", "scripts/types-scalar.lua");
+		cmd->addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+		cmd->addLink(ValueHandle{end, {"outputs", "ofloat"}}, ValueHandle{start, {"inputs", "float"}}, true);
+
+		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
+			{{end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, true, true}});
+	});
+
+	setupComposite(basePathName, compositePathName, {"start", "end"}, [this]() {
+		auto start = findExt("start");
+		auto end = findExt("end");
+		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
+			{{end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, true, true}});
 	});
 }

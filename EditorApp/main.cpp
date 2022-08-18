@@ -2,11 +2,15 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+// Needs to be first
+#include <raco_pybind11_embed.h>
+
 #include "mainwindow.h"
 
 #include "application/RaCoApplication.h"
@@ -21,8 +25,12 @@
 #include "utils/CrashDump.h"
 #include "utils/u8path.h"
 
+#include "python_api/PythonAPI.h"
+
 #include <QApplication>
 #include <QCommandLineParser>
+
+namespace py = pybind11;
 
 void createStdOutConsole();
 
@@ -64,8 +72,8 @@ int main(int argc, char* argv[]) {
 					  << "console",
 		"Open with std out console.");
 	QCommandLineOption forwardCommandLineArgs(
-		QStringList() << "r"
-					  << "ramses-framework-arguments",
+		QStringList() << "a"
+					  << "framework-arguments",
 		"Override arguments passed to the ramses framework.",
 		"default-args");
 	QCommandLineOption noDumpFileCheckOption(
@@ -81,11 +89,17 @@ int main(int argc, char* argv[]) {
 		QStringList() << "t"
 					  << "trace-messages-ramses",
 		"Enable trace-level Ramses log messages.");
+	QCommandLineOption pyrunOption(
+		QStringList() << "r"
+					  << "run",
+		"Run Python script. Specify arguments for python script by writing '--' before arguments.",
+		"script-path");
 	parser.addOption(consoleOption);
 	parser.addOption(forwardCommandLineArgs);
 	parser.addOption(noDumpFileCheckOption);
 	parser.addOption(loadProjectAction);
 	parser.addOption(ramsesTraceLogMessageAction);
+	parser.addOption(pyrunOption);
 
 	// apply global style, must be done before application instance
 	QApplication::setStyle(new raco::style::RaCoStyle());
@@ -96,7 +110,26 @@ int main(int argc, char* argv[]) {
 	// force use of style palette, required on Linux
 	a.setPalette(a.style()->standardPalette());
 
-	parser.process(QCoreApplication::arguments());
+	auto args = QCoreApplication::arguments();
+	std::vector<std::string> pythonArguments;
+
+	{
+		auto parsingPythonArgs = false;
+		auto argsIt = args.begin();
+		while (argsIt != args.end()) {
+			if (*argsIt == "--") {
+				parsingPythonArgs = true;
+				++argsIt;
+			} else if (parsingPythonArgs) {
+				pythonArguments.emplace_back(argsIt->toStdString());
+				argsIt = args.erase(argsIt);
+			} else {
+				++argsIt;
+			}
+		}
+	}
+
+	parser.process(args);
 
 	bool noDumpFiles = parser.isSet(noDumpFileCheckOption);
 	raco::utils::crashdump::installCrashDumpHandler(noDumpFiles);
@@ -109,15 +142,29 @@ int main(int argc, char* argv[]) {
 	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
 	raco::log_system::init(raco::core::PathManager::logFileEditorName().internalPath().native());
 
-	const QStringList args = parser.positionalArguments();
+	const QStringList positionalArgs = parser.positionalArguments();
 
 	// support both loading with named parameter for compatibility with headless version and
 	// loading with positional parameter drag&drop onto desktop icon
 	QString projectFile{};
 	if (parser.isSet(loadProjectAction)) {
 		projectFile = QFileInfo(parser.value(loadProjectAction)).absoluteFilePath();
-	} else if (args.size() > 0) {
-		projectFile = QFileInfo(args.at(0)).absoluteFilePath();
+	} else if (positionalArgs.size() > 0) {
+		projectFile = QFileInfo(positionalArgs.at(0)).absoluteFilePath();
+	}
+
+	QString pythonScriptPath{};
+	if (parser.isSet(pyrunOption)) {
+		QFileInfo path(parser.value(pyrunOption));
+		if (path.exists()) {
+			if (raco::utils::u8path(path.filePath().toStdString()).userHasReadAccess()) {
+				pythonScriptPath = path.absoluteFilePath();
+			} else {
+				LOG_ERROR(raco::log_system::PYTHON, "Python script file could not be read {}", path.filePath().toStdString());
+			}
+		} else {
+			LOG_ERROR(raco::log_system::PYTHON, "Python script file not found {}", path.filePath().toStdString());
+		}
 	}
 
 	// set font, must be done after application instance
@@ -129,7 +176,7 @@ int main(int argc, char* argv[]) {
 	std::unique_ptr<raco::application::RaCoApplication> app;
 
 	try {
-		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, raco::application::RaCoApplicationLaunchSettings{projectFile, true, parser.isSet(ramsesTraceLogMessageAction)});
+		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, raco::application::RaCoApplicationLaunchSettings{projectFile, true, parser.isSet(ramsesTraceLogMessageAction), true});
 	} catch (const raco::application::FutureFileVersion& error) {
 		LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 		app.reset();
@@ -143,6 +190,18 @@ int main(int argc, char* argv[]) {
 
 	if (app) {
 		MainWindow w{app.get(), &rendererBackend};
+
+		if (!pythonScriptPath.isEmpty()) {
+			auto pythonScriptPathStr = pythonScriptPath.toStdString();
+			std::vector<const char*> pos_argv_cp;
+			pos_argv_cp.emplace_back(pythonScriptPathStr.c_str());
+			for (auto& s : pythonArguments) {
+				pos_argv_cp.emplace_back(s.c_str());
+			}
+
+			raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath.toStdString(), pos_argv_cp);
+		}
+
 		w.show();
 
 		return a.exec();

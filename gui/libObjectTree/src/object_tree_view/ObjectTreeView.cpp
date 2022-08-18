@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -271,7 +271,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 		auto actionImport = treeViewMenu->addAction("Import glTF Assets...", [this, insertionTargetIndex]() {
 			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
-			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb)");
+			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb);; All files (*.*)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
 			}
@@ -356,7 +356,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	if (externalProjectModel) {
 		treeViewMenu->addSeparator();
 		treeViewMenu->addAction("Add Project...", [this, externalProjectModel]() {
-			auto projectFile = QFileDialog::getOpenFileName(this, tr("Import Project"), raco::components::RaCoPreferences::instance().userProjectsDirectory, tr("Ramses Composer Assembly (*.rca)"));
+			auto projectFile = QFileDialog::getOpenFileName(this, tr("Import Project"), raco::components::RaCoPreferences::instance().userProjectsDirectory, tr("Ramses Composer Assembly (*.rca);; All files (*.*)"));
 			if (projectFile.isEmpty()) {
 				return;
 			}

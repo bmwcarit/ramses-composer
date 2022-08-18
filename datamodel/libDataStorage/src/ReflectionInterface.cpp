@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -27,7 +27,13 @@ ValueBase* ReflectionInterface::operator[](size_t index)
 	return get(index);
 }
 
+const ValueBase* ReflectionInterface::operator[](std::string const& propertyName) const {
+	return get(propertyName);
+}
 
+const ValueBase* ReflectionInterface::operator[](size_t index) const {
+	return get(index);
+}
 
 ValueBase* ClassWithReflectedMembers::get(std::string const& propertyName) {
 	auto it = std::find_if(properties_.begin(), properties_.end(),

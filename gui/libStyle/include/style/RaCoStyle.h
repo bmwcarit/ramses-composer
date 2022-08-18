@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -27,6 +27,8 @@ protected:
 	static constexpr int CORNER_RADIUS = 8;
 	// additional indent for text in rounded input fields
 	static constexpr int CORNER_SPACING = 4;
+	// transparency value for "disabled" icons
+	static inline constexpr auto DISABLED_ICON_ALPHA = 0.6;
 
 public:
 	RaCoStyle();

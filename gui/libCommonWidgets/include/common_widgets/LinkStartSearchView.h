@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -28,8 +28,10 @@ namespace raco::common_widgets {
 
 class LinkStartViewItem final : public QStandardItem {
 public:
-	explicit LinkStartViewItem(const QString& s, const core::ValueHandle& handle);
+	explicit LinkStartViewItem(const QString& s, const core::ValueHandle& handle, bool allowedStrong, bool allowedWeak);
 	core::ValueHandle handle_;
+	bool allowedStrong_;
+	bool allowedWeak_;
 };
 
 class LinkStartItemModel final : public QStandardItemModel {
@@ -64,6 +66,10 @@ public:
 	Q_SIGNAL void activated(const QModelIndex& index);
 	Q_SIGNAL void selectionChanged(bool valid);
 	const core::ValueHandle& handleFromIndex(const QModelIndex& index) const;
+
+	bool allowedStrong(const QModelIndex& index) const;
+	bool allowedWeak(const QModelIndex& index) const;
+
 	bool hasValidSelection() const noexcept;
 	QModelIndex selection() const noexcept;
 

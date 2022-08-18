@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -85,9 +85,9 @@ public:
 		QObject::connect(&closeButton_, &QPushButton::clicked, this, &QWidget::close);
 		QObject::connect(&deleteButton_, &QPushButton::clicked, this, [this, item]() { item->removeLink(); close(); });
 		QObject::connect(&list_, &LinkStartSearchView::selectionChanged, &acceptButton_, &QPushButton::setEnabled);
-		QObject::connect(&acceptButton_, &QPushButton::clicked, this, [this, item]() { item->setLink(list_.handleFromIndex(list_.selection())); close(); });
-		QObject::connect(&list_, &LinkStartSearchView::clicked, this, [this, item](const QModelIndex& index) { item->setLink(list_.handleFromIndex(index)); close(); });
-		QObject::connect(&list_, &LinkStartSearchView::activated, this, [this, item](const QModelIndex& index) { item->setLink(list_.handleFromIndex(index)); close(); });
+		QObject::connect(&acceptButton_, &QPushButton::clicked, this, &LinkEditorPopup::createLink);
+		QObject::connect(&list_, &LinkStartSearchView::clicked, this, &LinkEditorPopup::createLink);
+		QObject::connect(&list_, &LinkStartSearchView::activated, this, &LinkEditorPopup::createLink);
 
 		// center horizontally on link button and keep on screen
 		search_.setMinimumWidth(500);
@@ -100,6 +100,11 @@ public:
 		move( x, y );
 
 		show();
+	}
+
+	void createLink() {
+		item_->setLink(list_.handleFromIndex(list_.selection()), !list_.allowedStrong(list_.selection()) && list_.allowedWeak(list_.selection()));
+		close();
 	}
 
 protected:
@@ -123,8 +128,7 @@ protected:
 			close();
 		} else if (key == Qt::Key_Enter || key == Qt::Key_Return) {
 			if (list_.hasValidSelection()) {
-				item_->setLink(list_.handleFromIndex(list_.selection()));
-				close();
+				createLink();
 			} else if (search_.text().size() == 0 && item_->linkText().size() > 0) {
 				item_->removeLink();
 				close();
@@ -240,7 +244,7 @@ void LinkEditor::setLinkState(const LinkState& linkstate) {
 
 		if (startingLinks.empty()) {
 			goToLinkButton_->setDisabled(false);
-			goToLinkButton_->setIcon(Icons::instance().goToLeft);
+			goToLinkButton_->setIcon(*endingLink->isWeak_ ? Icons::instance().singleArrowLeft : Icons::instance().doubleArrowLeft);
 			goToLinkButton_->setToolTip(QString("Go to link start (%1)").arg(QString::fromStdString(linkStartPropName)));
 
 			QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj]() {
@@ -315,7 +319,7 @@ std::map<std::string, std::string> LinkEditor::generateSortedLinkPoints(const st
 void LinkEditor::dragEnterEvent(QDragEnterEvent* event) {
 	if (event->mimeData()->hasFormat(MimeTypes::VALUE_HANDLE_PATH) && event->mimeData()->hasFormat(MimeTypes::EDITOR_OBJECT_ID)) {
 		if (auto handle{core::Queries::findByIdAndPath(*item_->project(), event->mimeData()->data(MimeTypes::EDITOR_OBJECT_ID).toStdString(), event->mimeData()->data(MimeTypes::VALUE_HANDLE_PATH).toStdString())}) {
-			if (core::Queries::userCanCreateLink(*item_->project(), handle, item_->valueHandle())) {
+			if (core::Queries::userCanCreateLink(*item_->project(), handle, item_->valueHandle(), false)) {
 				event->acceptProposedAction();
 				validDropTarget_ = true;
 			}
@@ -329,7 +333,7 @@ void LinkEditor::dragLeaveEvent(QDragLeaveEvent* event) {
 
 void LinkEditor::dropEvent(QDropEvent* event) {
 	if (auto handle{core::Queries::findByIdAndPath(*item_->project(), event->mimeData()->data(MimeTypes::EDITOR_OBJECT_ID).toStdString(), event->mimeData()->data(MimeTypes::VALUE_HANDLE_PATH).toStdString())}) {
-		item_->setLink(handle);
+		item_->setLink(handle, false);
 	}
 	validDropTarget_ = false;
 }

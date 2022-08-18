@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -30,17 +30,38 @@ The python interface currently allows access only to the active project. The act
 
 A few example scripts can be found in the 'python' folder in the installation zip file.
 
+Any python output will be logged.
+
 The Python environment used by RaCoHeadless is shipped with Ramses Composer, isolated from any Python installations on the system and can be found in the bin/python... folder. 
 It is possible to use pip to install custom packages to that environment, for an example see the python/use_pip_to_install_module.py script.
 Please be aware that virtualenv or venv are known to cause problems if used with the RaCoHeadless Python environment - particularly in Linux.
+
+# RaCoEditor Python API Reference
+
+The "-r" commandline option of the RaCoEditor application also allows to run non-interactive python scripts for the UI version of Ramses Composer.
+The script will be run before the editor window appears.
+To specify position arguments for the Python script, use "--" so filenames (before "--") can be separated from python arguments (after "--").
+
+Examples:
+* "RamsesComposer.exe -r script.py test.rca" will load test.rca, pass no parameters to python
+* "RamsesComposer.exe -r script.py -- a b c" will load no project, pass 3 parameters to python
+* "RamsesComposer.exe -r script.py test.rca -- a b c" will load test.rca, pass 3 parameters to python
+
+Aside from that, all information from the RaCoHeadless Python API Reference also applies here.
+
+While the editor window is open, a python script can also be run on the current project.
+The menu bar option "File" -> "Run Script" will launch a "Run Script" dialog where a path to the script as well as command line arguments can be specified.
+Scripts with functions that load or reset the current project are currently disabled in the "Run Script" dialog due to UI incompatibilities.
 
 ## General Functions 
 
 > reset()
 >> Create a new project which is empty except a newly created ProjectSettings object.
+>> This function is currently disabled when using the "Run Dialog" script.
 
 > load(path)
 >> Load the project with the given `path` and replace the active project with it.
+>> This function is currently disabled when using the "Run Dialog" script.
 
 > save(path)
 >> Save the active project under the given `path`.
@@ -135,7 +156,7 @@ Read and write access to substructure of complex properties is performed as for 
 
 Links are represented by LinkDescriptors. 
 
-The printed representation includes the property paths including the object names of both the start end endpoints of the link as well as the link validity flag, e.g. `<Link: start='lua.outputs.vec' end='my_node.rotation' valid='true'>`.
+The printed representation includes the property paths including the object names of both the start end endpoints of the link as well as the link validity and weak flags, e.g. `<Link: start='lua.outputs.vec' end='my_node.rotation' valid='true' weak='false'>`.
 
 ### Member variables
 
@@ -148,6 +169,9 @@ The printed representation includes the property paths including the object name
 > valid
 >> 	The current link validity. Only valid links are created in the LogicEngine. Invalid links are kept for caching purposes and can become
 	active if LuaScript properties change or if links on parent properties are changed. Link validity can not be set directly by the user.
+
+> weak
+>> Flag indicating a weak link.
 	
 The member variables of a LinkDescriptor can't be changed. Modification of links is only possible with the addLink and removeLink functions described below.
 
@@ -173,8 +197,8 @@ The member variables of a LinkDescriptor can't be changed. Modification of links
 > getLink(property)
 >> 	Given a PropertyDescriptor this will return a LinkDescriptor if the property has a link ending on it or `None` if there is no link.
  	
-> addLink(start, end)
->> 	Creates a link between two properties given their PropertyDescriptors.
+> addLink(start, end[, isWeak])
+>> 	Creates a link between two properties given their PropertyDescriptors. Weak links can be created using an optional boolean flag. By default strong link are created.
  	
 > removeLink(end)
 >> 	Removes a link given the PropertyDescriptor of the link endpoint.

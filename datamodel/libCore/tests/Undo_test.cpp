@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -460,9 +460,54 @@ TEST_F(UndoTest, no_change_records_for_deleted_objects) {
 	checkLinks(refLinks);
 
 	undoStack.setIndex(index);
-	
+
 	auto changedSet = recorder.getAllChangedObjects();
 	EXPECT_TRUE(changedSet.find(end) == changedSet.end());
+}
+
+TEST_F(UndoTest, link_strong_to_weak_transition) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+
+	checkJump(
+		[this, start, end]() {
+			commandInterface.removeLink({end, {"inputs", "float"}});
+			commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
+		},
+		[this, start, end]() {
+			std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false}}};
+			checkLinks(refLinks);
+			EXPECT_FALSE(Queries::linkWouldBeAllowed(project, {end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, false));
+		},
+		[this, start, end]() {
+			std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, true}}};
+			checkLinks(refLinks);
+			EXPECT_TRUE(Queries::linkWouldBeAllowed(project, {end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, false));
+		});
+}
+
+TEST_F(UndoTest, link_strong_valid_to_weak_invalid_transition) {
+	auto start = create_lua("start", "scripts/types-scalar.lua");
+	auto end = create_lua("end", "scripts/types-scalar.lua");
+	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
+
+	checkJump(
+		[this, start, end]() {
+			commandInterface.removeLink({end, {"inputs", "float"}});
+			commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
+			commandInterface.set(ValueHandle{end, {"uri"}}, (test_path() / "scripts/SimpleScript.lua").string());
+		},
+		[this, start, end]() {
+			std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false}}};
+			checkLinks(refLinks);
+			EXPECT_FALSE(Queries::linkWouldBeAllowed(project, {end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, false));
+		},
+		[this, start, end]() {
+			std::vector<Link> refLinks{{{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, false, true}}};
+			checkLinks(refLinks);
+			EXPECT_TRUE(Queries::linkWouldBeAllowed(project, {end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, false));
+		});
 }
 
 TEST_F(UndoTest, link_broken_changed_output) {

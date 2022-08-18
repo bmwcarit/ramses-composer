@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -252,8 +252,8 @@ raco::core::Queries::LinkState PropertyBrowserItem::linkState() const noexcept {
 	return core::Queries::linkState(*commandInterface_->project(), valueHandle_);
 }
 
-void PropertyBrowserItem::setLink(const core::ValueHandle& start) noexcept {
-	commandInterface_->addLink(start, valueHandle_);
+void PropertyBrowserItem::setLink(const core::ValueHandle& start, bool isWeak) noexcept {
+	commandInterface_->addLink(start, valueHandle_, isWeak);
 }
 
 void PropertyBrowserItem::removeLink() noexcept {
@@ -264,6 +264,9 @@ std::string PropertyBrowserItem::linkText(bool fullLinkPath) const noexcept {
 	if (auto link{raco::core::Queries::getLink(*commandInterface_->project(), valueHandle_.getDescriptor())}) {
 		auto propertyDesc = link->startProp();
 		auto propertyPath = (fullLinkPath) ? propertyDesc.getFullPropertyPath() : propertyDesc.getPropertyPath();
+		if (*link->isWeak_) {
+			propertyPath += " (weak)";
+		}
 		if (!link->isValid()) {
 			propertyPath += " (broken)";
 		}

@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,6 +24,34 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.2.0] Trace player, weak links, and running Python script in GUI application
+* **File version number has changed. Files saved with RaCo 1.1.2 cannot be opened by previous versions.**
+
+### Added
+* Added ability to run Python scripts in the UI version.
+    * Use the new command line argument "-r" to run Python scripts before the UI appears.
+    * During UI usage, you can run Python scripts using the new dialog "File" -> "Run Script..."
+        * Note that Python functions "load()" and "reset()" have been temporarily disabled for this particular use case as they are currently incompatible with scene switches in the UI.
+* Added TracePlayer
+    * TracePlayer is used for simulation and debugging purposes, where a recorded, or manually defined, animation scenario in a RaCo trace file (.rctrace) can be loaded and played in the scene.
+    * rctrace files are JSON based files that should contain so called frames of scene properties data in consecutive timestamps snapshots.
+    * TracePlayer parses frames periodically based on RaCo application update time and updates the corresponding LuaScript or LuaInterface object(s) in the scene.
+    * For more details with an example, see the TracePlayer section in the Ramses Composer documentation.
+* Added support for weak links. Weak links are ignored in the LogicEngine Lua dependency graph which determines the Lua execution order.
+    * Weak links can be created in the UI when a loop would be created with a strong link.
+    * Strong/weak links are indicated in the property browser by double/single left arrows next to the link menu button.
+    * The Python API addLink received an additional argument to allow creating weak links.
+* Added "all file" filter for file dialogs that load files (e.g. URIs).
+
+### Changes
+* Changed "ramses-framework-arguments" ("-r") command line argument to "framework-arguments" ("-a").
+* Icons in read-only state (e.g. link icons of properties in the Property Browser) will retain their color now.
+* Removed lua script time_ms hack.
+
+### Fixes
+* Fixed incorrect update of PrefabInstance contents when loading a scene with a camera inside a PrefabInstance referenced by a RenderPass.
+
+
 ## [1.1.2] Lua Interface Naming Bugfix
 
 ### Fixes
@@ -43,6 +71,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * Fixed links starting on Animation output properties not working in LogicEngine.
 * Renamed Animation "animationOutputs" property to "outputs" for consistency with LuaScript and Timer property naming.
 * Fixed Timer objects being deleted all the time by "Delete Unused Resources" despite potential links to and from the Timer.
+
 
 
 ## [1.1.0] Lua Interfaces, various UI improvements
@@ -411,7 +440,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 * A broken render target now stops a render pass rendering to it from rendering, instead of rendering to the default framebuffer.
     * Also: the render pass shows a warning that it won't render due to the broken render target.
 * A render target now displays an error if some of its render buffers are either not valid or not set.
-    * This is due to https://github.com/COVESA/ramses/issues/52
+    * This is due to https://github.com/bmwcarit/ramses/issues/52
 * A render target now displays an error if its first render buffer is not set.
 * The sampling parameters are hidden for depth buffers.
 * Fixed absolute paths for .ramses & .rlogic files not being recognized in the "Export Project" dialog.
@@ -533,7 +562,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Changes
 * Update from ramses-logic 0.6.0 to ramses-logic 0.6.1
 * Update from ramses 27.0.102 to ramses 27.0.103
-* Removed RACO_CONVENTIONS.md - superseded with the Ramses Composer documentation repository: https://github.com/GENIVI/ramses-composer-docs
+* Removed RACO_CONVENTIONS.md - superseded with the Ramses Composer documentation repository: https://github.com/bmwcarit/ramses-composer-docs
 * PrefabInstance interface scripts (LuaScripts on PrefabInstance top level) now get exported with the object name "<Prefab Instance name>.<LuaScript name>".
 * The folder and library structure has been cleaned up.
 * LuaScripts that have no parent are not displayed in the Resource tree anymore.

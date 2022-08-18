@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -42,6 +42,7 @@ set_target_properties(RaCoEditor PROPERTIES OUTPUT_NAME "RamsesComposer" RUNTIME
 add_dependencies(RaCoEditor RaCoResources RaCoPrepareReleaseFolder)
 
 target_link_libraries(RaCoEditor
+PUBLIC
 	raco::LogSystem
 	raco::PropertyBrowser
 	raco::CommonWidgets
@@ -52,6 +53,9 @@ target_link_libraries(RaCoEditor
 	raco::ObjectTree
 	Qt5::Widgets
 	qtadvanceddocking
+	raco::PythonAPI
+PRIVATE
+    raco::pybind11
 )
 add_compile_definitions(RaCoEditor PRIVATE CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 

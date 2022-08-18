@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -135,10 +135,10 @@ public:
 
 	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriVertex_{std::string(), {"Vertex shader files(*.glsl *.vert)"}, DisplayNameAnnotation("Vertex URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriGeometry_{std::string(), {"Geometry shader files(*.glsl *.geom)"}, DisplayNameAnnotation("Geometry URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFragment_{std::string(), {"Fragment shader files(*.glsl *.frag)"}, DisplayNameAnnotation("Fragment URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriDefines_{std::string(), {"Shader define files(*.def)"}, DisplayNameAnnotation("Defines URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriVertex_{std::string(), {"Vertex shader files(*.glsl *.vert);; All files (*.*)"}, DisplayNameAnnotation("Vertex URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriGeometry_{std::string(), {"Geometry shader files(*.glsl *.geom);; All files (*.*)"}, DisplayNameAnnotation("Geometry URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFragment_{std::string(), {"Fragment shader files(*.glsl *.frag);; All files (*.*)"}, DisplayNameAnnotation("Fragment URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriDefines_{std::string(), {"Shader define files(*.def);; All files (*.*)"}, DisplayNameAnnotation("Defines URI")};
 
 	Property<BlendOptions, DisplayNameAnnotation> options_{{}, {"Options"}};
 

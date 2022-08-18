@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,7 +11,7 @@
 
 namespace raco::common_widgets {
 
-LinkStartViewItem::LinkStartViewItem(const QString& s, const core::ValueHandle& handle) : QStandardItem{s}, handle_{handle} {
+LinkStartViewItem::LinkStartViewItem(const QString& s, const core::ValueHandle& handle, bool allowedStrong, bool allowedWeak) : QStandardItem{s}, handle_{handle}, allowedStrong_(allowedStrong), allowedWeak_(allowedWeak) {
 	setDragEnabled(true);
 
 	setToolTip(QString::fromStdString(handle_.getDescriptor().getFullPropertyPath()));
@@ -102,14 +102,22 @@ const core::ValueHandle& LinkStartSearchView::handleFromIndex(const QModelIndex&
 	return (dynamic_cast<const LinkStartViewItem*>(model_.itemFromIndex(index)))->handle_;
 }
 
+bool LinkStartSearchView::allowedStrong(const QModelIndex& index) const {
+	return (dynamic_cast<const LinkStartViewItem*>(model_.itemFromIndex(index)))->allowedStrong_;
+}
+
+bool LinkStartSearchView::allowedWeak(const QModelIndex& index) const {
+	return (dynamic_cast<const LinkStartViewItem*>(model_.itemFromIndex(index)))->allowedWeak_;
+}
+
 void LinkStartSearchView::rebuild() noexcept {
 	model_.clear();
-	for (const auto& start : core::Queries::allLinkStartProperties(*project_, end_)) {
-		QString title{start.first.getPropertyPath().c_str()};
-		if (start.second)
-			title.append(" (loop)");
-		auto* item{new LinkStartViewItem{title, start.first}};
-		item->setEnabled(!start.second);
+	for (const auto& [handle, strong, weak] : core::Queries::allLinkStartProperties(*project_, end_)) {
+		QString title{handle.getPropertyPath().c_str()};
+		if (weak && !strong) {
+			title.append(" (weak)");
+		}
+		auto* item{new LinkStartViewItem{title, handle, strong, weak}};
 		model_.appendRow(item);
 	}
 }

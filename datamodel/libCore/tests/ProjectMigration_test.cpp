@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -463,6 +463,7 @@ TEST_F(MigrationTest, migrate_V30_to_V34) {
 	EXPECT_EQ(*layer_incl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Inclusive));
 }
 
+
 TEST_F(MigrationTest, migrate_from_V35) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V35.rca").string()));
 
@@ -489,7 +490,7 @@ TEST_F(MigrationTest, migrate_from_V35) {
 	EXPECT_EQ(inst_int_types->inputs_->get("integer64")->asInt64(), 9);
 
 	for (auto& link : racoproject->project()->links()) {
-		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp()));
+		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp(), false));
 	}
 
 	EXPECT_EQ(nullptr, Queries::getLink(*racoproject->project(), {prefab_int_array, {"inputs", "float_array", "1"}}));
@@ -523,7 +524,7 @@ TEST_F(MigrationTest, migrate_from_V35_extref) {
 	EXPECT_EQ(inst_int_types->inputs_->get("integer64")->asInt64(), 9);
 
 	for (auto& link : racoproject->project()->links()) {
-		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp()));
+		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp(), false));
 	}
 }
 
@@ -553,7 +554,7 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 	EXPECT_EQ(inst_int_types->inputs_->get("float")->asDouble(), 0.25);
 
 	for (auto& link : racoproject->project()->links()) {
-		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp()));
+		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp(), false));
 	}
 
 	auto inst_link = Queries::getLink(*racoproject->project(), {inst_int_array, {"inputs", "float_array", "1"}});
@@ -618,6 +619,25 @@ TEST_F(MigrationTest, migrate_from_V40) {
 
 	checkLinks(*racoproject->project(), {{{animation, {"outputs", "Ch0.AnimationChannel"}}, {node, {"translation"}}, true}});
 }
+
+TEST_F(MigrationTest, migrate_from_V41) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V41.rca").string()));
+
+	auto start = raco::core::Queries::findByName(racoproject->project()->instances(), "start")->as<raco::user_types::LuaScript>();
+	auto end = raco::core::Queries::findByName(racoproject->project()->instances(), "end")->as<raco::user_types::LuaScript>();
+
+	checkLinks(*racoproject->project(), {{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false}});
+}
+
+TEST_F(MigrationTest, migrate_to_V43) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V41.rca").string()));
+
+	auto settings = raco::core::Queries::findByName(racoproject->project()->instances(), "V41")->as<raco::core::ProjectSettings>();
+
+	EXPECT_FALSE(settings->hasProperty("enableTimerFlag"));
+	EXPECT_FALSE(settings->hasProperty("runTimer"));
+}
+
 
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.

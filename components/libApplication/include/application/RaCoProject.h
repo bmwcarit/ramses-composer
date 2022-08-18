@@ -2,27 +2,31 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #pragma once
 
+#include "components/DataChangeDispatcher.h"
 #include "components/MeshCacheImpl.h"
 #include "components/Naming.h"
 #include "core/CommandInterface.h"
 #include "core/Context.h"
 #include "core/Errors.h"
 #include "core/Project.h"
-#include "core/Undo.h"
 #include "core/Serialization.h"
+#include "core/Undo.h"
 #include "user_types/UserObjectFactory.h"
 #include <QObject>
 #include <exception>
 #include <functional>
-#include "components/DataChangeDispatcher.h"
+#include <memory>
 
+namespace raco::components {
+class TracePlayer;
+}
 namespace raco::application {
 
 class RaCoApplication;
@@ -64,6 +68,7 @@ public:
 	raco::core::CommandInterface* commandInterface();
 	raco::core::UndoStack* undoStack();
 	raco::core::MeshCache* meshCache();
+	raco::components::TracePlayer& tracePlayer();
 
 	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
@@ -72,6 +77,7 @@ public:
 	
 Q_SIGNALS:
 	void activeProjectFileChanged();
+	void projectSuccessfullySaved();
 
 private:
 	// @exception ExtrefError
@@ -104,6 +110,7 @@ private:
 	raco::core::MeshCache* meshCache_;
 	raco::core::UndoStack undoStack_;
 	raco::core::CommandInterface commandInterface_;
+	std::unique_ptr<raco::components::TracePlayer> tracePlayer_;
 };
 
 }  // namespace raco::application

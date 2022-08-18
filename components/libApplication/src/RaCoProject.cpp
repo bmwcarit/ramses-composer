@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,6 +24,7 @@
 #include "application/RaCoApplication.h"
 #include "components/RaCoPreferences.h"
 #include "components/RaCoNameConstants.h"
+#include "components/TracePlayer.h"
 #include "core/ProjectMigration.h"
 #include "core/Serialization.h"
 #include "core/SerializationKeys.h"
@@ -117,6 +118,8 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 		updateActiveFileListener();
 	}
 	dirty_ = false;
+
+	tracePlayer_ = std::make_unique<raco::components::TracePlayer>(*project(), context_->uiChanges(), *undoStack());
 }
 
 void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath) {
@@ -646,6 +649,7 @@ bool RaCoProject::save(std::string& outError) {
 
 	dirty_ = false;
 	LOG_INFO(raco::log_system::PROJECT, "Finished saving project to {}", path);
+	Q_EMIT projectSuccessfullySaved();
 	return true;
 }
 
@@ -711,6 +715,10 @@ UndoStack* RaCoProject::undoStack() {
 
 MeshCache* RaCoProject::meshCache() {
 	return meshCache_;
+}
+
+raco::components::TracePlayer& RaCoProject::tracePlayer() {
+	return *tracePlayer_;
 }
 
 }  // namespace raco::application

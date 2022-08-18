@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -49,6 +49,7 @@ public:
 		static inline const char* UNDO_STACK{"Undo Stack"};
 		static inline const char* ERROR_VIEW{"Error View"};
 		static inline const char* LOG_VIEW{"Log View"};
+		static inline const char* TRACE_PLAYER{"Trace Player"};
 	};
 
 	explicit MainWindow(
@@ -84,6 +85,7 @@ protected Q_SLOTS:
 	void importScene();
 	void resetDockManager();
 	void updateActiveProjectConnection();
+	void updateProjectSavedConnection();
 
 Q_SIGNALS:
 	void viewportChanged(const QSize& sceneSize);
@@ -100,7 +102,10 @@ private:
 	raco::object_tree::view::ObjectTreeDockManager treeDockManager_;
 	raco::common_widgets::TimingsModel timingsModel_{this};
 	QMetaObject::Connection activeProjectFileConnection_;
+	QMetaObject::Connection projectSavedConnection_;
 	raco::common_widgets::LogViewModel* logViewModel_;
+	std::map<QString, qint64> pythonScriptCache_;
+	std::map<QString, qint64> pythonScriptArgumentCache_;
 
 	int renderTimerId_ = 0;
 };

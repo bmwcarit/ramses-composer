@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,8 +21,8 @@ namespace raco::ramses_adaptor {
 
 namespace {
 
-LinkAdaptor::UniqueEngineLink createEngineLink(rlogic::LogicEngine* engine, const rlogic::Property& origin, const rlogic::Property& dest) {
-	if (engine->link(origin, dest)) {
+LinkAdaptor::UniqueEngineLink createEngineLink(rlogic::LogicEngine* engine, const rlogic::Property& origin, const rlogic::Property& dest, bool isWeak) {
+	if (isWeak ? engine->linkWeak(origin, dest) : engine->link(origin, dest)) {
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "Create LogicEngine link: {}:{}->{}:{}", fmt::ptr(&origin), origin.getName(), fmt::ptr(&dest), dest.getName());
 		return {new LinkAdaptor::EngineLink{&origin, &dest}, [engine](LinkAdaptor::EngineLink* link) {
 					bool success = engine->unlink(*link->origin, *link->dest);
@@ -78,7 +78,7 @@ void LinkAdaptor::lift() {
 	engineLinks_.clear();
 }
 
-void LinkAdaptor::connectHelper(const core::PropertyDescriptor& start, const rlogic::Property& endEngineProp) {
+void LinkAdaptor::connectHelper(const core::PropertyDescriptor& start, const rlogic::Property& endEngineProp, bool isWeak) {
 	core::ValueHandle startHandle(start);
 
 	auto engineType = endEngineProp.getType();
@@ -86,7 +86,7 @@ void LinkAdaptor::connectHelper(const core::PropertyDescriptor& start, const rlo
 		for (size_t index = 0; index < endEngineProp.getChildCount(); index++) {
 			auto endChild = endEngineProp.getChild(index);
 			std::string propName = user_types::dataModelPropNameForLogicEnginePropName(std::string(endChild->getName()), index);
-			connectHelper(start.child(propName), *endChild);
+			connectHelper(start.child(propName), *endChild, isWeak);
 		}
 	} else {
 		std::optional<core::PropertyDescriptor> startPropOpt = start;
@@ -99,7 +99,7 @@ void LinkAdaptor::connectHelper(const core::PropertyDescriptor& start, const rlo
 			if (startAdaptor) {
 				auto startEngineProp = dynamic_cast<ILogicPropertyProvider*>(startAdaptor)->getProperty(startProp.propertyNames());
 				if (startEngineProp) {
-					auto engineLink = createEngineLink(&sceneAdaptor_->logicEngine(), *startEngineProp, endEngineProp);
+					auto engineLink = createEngineLink(&sceneAdaptor_->logicEngine(), *startEngineProp, endEngineProp, isWeak);
 					if (engineLink) {
 						engineLinks_.emplace_back(std::move(engineLink));
 					}
@@ -122,7 +122,7 @@ void LinkAdaptor::connect() {
 	if (editorLink_.isValid && destAdaptor) {
 		auto endEngineProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
 		if (endEngineProp) {
-			connectHelper(editorLink_.start, *endEngineProp);
+			connectHelper(editorLink_.start, *endEngineProp, editorLink_.isWeak);
 		}
 	}
 }

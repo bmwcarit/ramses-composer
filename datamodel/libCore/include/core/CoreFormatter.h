@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -121,12 +121,13 @@ template <>
 struct fmt::formatter<raco::core::SLink> : formatter<string_view> {
 	template <typename FormatContext>
 	auto format(const raco::core::SLink& link, FormatContext& ctx) {
-		return fmt::format_to(ctx.out(), "Link {{ start: {}#{} end: {}#{} valid: {}}}",
+		return fmt::format_to(ctx.out(), "Link {{ start: {}#{} end: {}#{} valid: {} weak: {}}}",
 			ObjectNameOnly{*link->startObject_},
 			fmt::join(link->startProp_->asVector<std::string>(), "."),
 			ObjectNameOnly{*link->endObject_},
 			fmt::join(link->endProp_->asVector<std::string>(), "."),
-			*link->isValid_);
+			*link->isValid_,
+			*link->isWeak_);
 	}
 };
 

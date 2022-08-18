@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -565,4 +565,42 @@ end
 	ASSERT_TRUE(commandInterface.project()->links()[0]->isValid());
 	nodeBinding = backend.logicEngine().findByName<rlogic::RamsesNodeBinding>("node_NodeBinding");
 	ASSERT_EQ(nodeBinding->getRotationType(), rlogic::ERotationType::Quaternion);
+}
+
+TEST_F(LinkAdaptorFixture, link_weak) {
+	auto scriptFile = makeFile("lua_script.lua", R"(
+function interface(IN,OUT)
+	IN.x = Type:Float()
+	IN.y = Type:Float()
+	OUT.x = Type:Float()
+	OUT.y = Type:Float()
+end
+function run(IN,OUT)
+	OUT.x = IN.x + 1
+	OUT.y = IN.y
+end
+	)");
+	auto start = create_lua("start", scriptFile);
+	auto end = create_lua("end", scriptFile);
+
+	commandInterface.addLink({start, {"outputs", "x"}}, {end, {"inputs", "x"}}, false);
+	commandInterface.addLink({end, {"outputs", "x"}}, {start, {"inputs", "y"}}, true);
+	commandInterface.set({start, {"inputs", "x"}}, 2.0);
+
+	ASSERT_TRUE(dispatch());
+	
+	auto startEngineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "start");
+	auto endEngineObj = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
+
+	ASSERT_EQ(startEngineObj->getInputs()->getChild("x")->get<float>(), 2.0);
+	ASSERT_EQ(startEngineObj->getInputs()->getChild("y")->get<float>(), 4.0);
+	ASSERT_EQ(startEngineObj->getOutputs()->getChild("x")->get<float>(), 3.0);
+	ASSERT_EQ(startEngineObj->getOutputs()->getChild("y")->get<float>(), 0.0);
+
+	ASSERT_TRUE(dispatch());
+
+	ASSERT_EQ(startEngineObj->getInputs()->getChild("x")->get<float>(), 2.0);
+	ASSERT_EQ(startEngineObj->getInputs()->getChild("y")->get<float>(), 4.0);
+	ASSERT_EQ(startEngineObj->getOutputs()->getChild("x")->get<float>(), 3.0);
+	ASSERT_EQ(startEngineObj->getOutputs()->getChild("y")->get<float>(), 4.0);
 }

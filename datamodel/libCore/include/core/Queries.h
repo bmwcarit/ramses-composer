@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -152,14 +152,11 @@ namespace Queries {
 	// Returns empty string if no broken links found.
 	std::string getBrokenLinksErrorMessage(const Project& project, SEditorObject obj);
 
-	// Get all properties that are allowed as the start of a link ending on the given end property.
-	// Includes type compatibility checks and loop detection.
-	std::set<ValueHandle> allowedLinkStartProperties(const Project& project, const ValueHandle& end);
 	/** Get all properties that are allowed as the start of a link ending on the given end property.
 	 * Includes type compatibility checks.
-	 * @returns pair of [ValueHandle] and bool inidicator if a loop will be created.
+	 * @returns tuple of ([ValueHandle], isAllowedStrong, isAllowedWeak) with flags indicating if the link is allowed as strong/weak link.
 	 */
-	std::set<std::pair<ValueHandle, bool>> allLinkStartProperties(const Project& project, const ValueHandle& end);
+	std::set<std::tuple<ValueHandle, bool, bool>> allLinkStartProperties(const Project& project, const ValueHandle& end);
 
 	bool linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end);
 
@@ -169,15 +166,15 @@ namespace Queries {
 	bool isValidLinkStart(const ValueHandle& startProperty);
 
 	// Check if two properties can be linked together
-	bool userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& link);
+	bool userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& link, bool isWeak);
 
 	// Check if a link ending on a property could be removed
 	bool userCanRemoveLink(const Project& project, const PropertyDescriptor& end);
 
 	// Check if a link is allowed to exist in the data model.
-	bool linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end);
+	bool linkWouldBeAllowed(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end, bool isWeak);
 
-	// Check if a link between properties would be valid.
+	// Check if a link between properties would be valid independently of whether it is allowed in the data model.
 	bool linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end);
 
 };

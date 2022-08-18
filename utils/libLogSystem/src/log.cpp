@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -97,10 +97,12 @@ void init(spdlog::filename_t logFileName) {
 	spdlog::register_logger(makeLogger(RAMSES_ADAPTOR));
 	spdlog::register_logger(makeLogger(DESERIALIZATION));
 	spdlog::register_logger(makeLogger(PROJECT));
+	spdlog::register_logger(makeLogger(PYTHON));
 	spdlog::register_logger(makeLogger(DEFAULT));
 	spdlog::register_logger(makeLogger(MESH_LOADER));
 	spdlog::register_logger(makeLogger(RAMSES));
 	spdlog::register_logger(makeLogger(RAMSES_LOGIC));
+	spdlog::register_logger(makeLogger(TRACE_PLAYER));
 	spdlog::set_default_logger(spdlog::get(DEFAULT));
 	spdlog::set_pattern("%^[%L] [%D %T:%f] [%n] [%s:%#] [%!] %v");
 

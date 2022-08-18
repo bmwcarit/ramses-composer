@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,6 +11,7 @@
 #pragma once
 
 #include "components/DataChangeDispatcher.h"
+#include "core/CodeControlledPropertyModifier.h"
 #include "core/CoreFormatter.h"
 #include "core/EditorObject.h"
 #include "core/Handles.h"
@@ -242,120 +243,6 @@ inline bool setLuaInputInEngine(rlogic::Property* property, const core::ValueHan
 	return success;
 }
 
-class ReadFromEngineManager {
-public:
-	template <typename Type>
-	static void setValueFromEngineValue(const core::ValueHandle& valueHandle, Type newValue, core::DataChangeRecorder& recorder) {
-		auto oldValue = valueHandle.as<Type>();
-		if (oldValue != newValue) {
-			valueHandle.valueRef()->set(static_cast<Type>(newValue));
-			recorder.recordValueChanged(valueHandle);
-		}
-	}
-
-	static void setVec2f(const core::ValueHandle& handle, double x, double y, core::DataChangeRecorder& recorder) {
-		raco::core::Vec2f& v = dynamic_cast<raco::core::Vec2f&>(handle.valueRef()->asStruct());
-
-		if (*v.x != x) {
-			v.x = x;
-			recorder.recordValueChanged(handle[0]);
-		}
-		if (*v.y != y) {
-			v.y = y;
-			recorder.recordValueChanged(handle[1]);
-		}
-	}
-
-	static void setVec3f(const core::ValueHandle& handle, double x, double y, double z, core::DataChangeRecorder& recorder) {
-		raco::core::Vec3f& v = dynamic_cast<raco::core::Vec3f&>(handle.valueRef()->asStruct());
-
-		if (*v.x != x) {
-			v.x = x;
-			recorder.recordValueChanged(handle[0]);
-		}
-		if (*v.y != y) {
-			v.y = y;
-			recorder.recordValueChanged(handle[1]);
-		}
-		if (*v.z != z) {
-			v.z = z;
-			recorder.recordValueChanged(handle[2]);
-		}
-	}
-
-	static void setVec4f(const core::ValueHandle& handle, double x, double y, double z, double w, core::DataChangeRecorder& recorder) {
-		raco::core::Vec4f& v = dynamic_cast<raco::core::Vec4f&>(handle.valueRef()->asStruct());
-
-		if (*v.x != x) {
-			v.x = x;
-			recorder.recordValueChanged(handle[0]);
-		}
-		if (*v.y != y) {
-			v.y = y;
-			recorder.recordValueChanged(handle[1]);
-		}
-		if (*v.z != z) {
-			v.z = z;
-			recorder.recordValueChanged(handle[2]);
-		}
-		if (*v.w != w) {
-			v.w = w;
-			recorder.recordValueChanged(handle[3]);
-		}
-	}
-
-	static void setVec2i(const core::ValueHandle& handle, int x, int y, core::DataChangeRecorder& recorder) {
-		raco::core::Vec2i& v = dynamic_cast<raco::core::Vec2i&>(handle.valueRef()->asStruct());
-
-		if (*v.i1_ != x) {
-			v.i1_ = x;
-			recorder.recordValueChanged(handle[0]);
-		}
-		if (*v.i2_ != y) {
-			v.i2_ = y;
-			recorder.recordValueChanged(handle[1]);
-		}
-	}
-
-	static void setVec3i(const core::ValueHandle& handle, int x, int y, int z, core::DataChangeRecorder& recorder) {
-		raco::core::Vec3i& v = dynamic_cast<raco::core::Vec3i&>(handle.valueRef()->asStruct());
-
-		if (*v.i1_ != x) {
-			v.i1_ = x;
-			recorder.recordValueChanged(handle[0]);
-		}
-		if (*v.i2_ != y) {
-			v.i2_ = y;
-			recorder.recordValueChanged(handle[1]);
-		}
-		if (*v.i3_ != z) {
-			v.i3_ = z;
-			recorder.recordValueChanged(handle[2]);
-		}
-	}
-
-	static void setVec4i(const core::ValueHandle& handle, int x, int y, int z, int w, core::DataChangeRecorder& recorder) {
-		raco::core::Vec4i& v = dynamic_cast<raco::core::Vec4i&>(handle.valueRef()->asStruct());
-
-		if (*v.i1_ != x) {
-			v.i1_ = x;
-			recorder.recordValueChanged(handle[0]);
-		}
-		if (*v.i2_ != y) {
-			v.i2_ = y;
-			recorder.recordValueChanged(handle[1]);
-		}
-		if (*v.i3_ != z) {
-			v.i3_ = z;
-			recorder.recordValueChanged(handle[2]);
-		}
-		if (*v.i4_ != w) {
-			v.i4_ = w;
-			recorder.recordValueChanged(handle[3]);
-		}
-	}
-};
-
 
 void getOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
 
@@ -376,51 +263,51 @@ inline void getOutputFromEngine(const rlogic::Property& property, const core::Va
 	if (valueHandle.isVec3f() && property.getType() == rlogic::EPropertyType::Vec4f) {
 		auto [x, y, z, w] = property.get<rlogic::vec4f>().value();
 		auto [eulerX, eulerY, eulerZ] = raco::utils::math::quaternionToXYZDegrees(x, y, z, w);
-		ReadFromEngineManager::setVec3f(valueHandle, eulerX, eulerY, eulerZ, recorder);
+		core::CodeControlledPropertyModifier::setVec3f(valueHandle, eulerX, eulerY, eulerZ, recorder);
 		return;
 	}
 
 	switch (valueHandle.type()) {
 		case PrimitiveType::Double: {
-			ReadFromEngineManager::setValueFromEngineValue<double>(valueHandle, property.get<float>().value(), recorder);
+			core::CodeControlledPropertyModifier::setPrimitive<double>(valueHandle, property.get<float>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Int: {
-			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<int>().value(), recorder);
+			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<int>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Int64: {
-			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<int64_t>().value(), recorder);
+			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<int64_t>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Bool: {
-			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<bool>().value(), recorder);
+			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<bool>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::String: {
-			ReadFromEngineManager::setValueFromEngineValue(valueHandle, property.get<std::string>().value(), recorder);
+			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<std::string>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Struct: {
 			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
 			if (typeDesc == &core::Vec2f::typeDescription) {
 				auto [x, y] = property.get<rlogic::vec2f>().value();
-				ReadFromEngineManager::setVec2f(valueHandle, x, y, recorder);
+				core::CodeControlledPropertyModifier::setVec2f(valueHandle, x, y, recorder);
 			} else if (typeDesc == &core::Vec3f::typeDescription) {
 				auto [x, y, z] = property.get<rlogic::vec3f>().value();
-				ReadFromEngineManager::setVec3f(valueHandle, x, y, z, recorder);
+				core::CodeControlledPropertyModifier::setVec3f(valueHandle, x, y, z, recorder);
 			} else if (typeDesc == &core::Vec4f::typeDescription) {
 				auto [x, y, z, w] = property.get<rlogic::vec4f>().value();
-				ReadFromEngineManager::setVec4f(valueHandle, x, y, z, w, recorder);
+				core::CodeControlledPropertyModifier::setVec4f(valueHandle, x, y, z, w, recorder);
 			} else if (typeDesc == &core::Vec2i::typeDescription) {
 				auto [i1, i2] = property.get<rlogic::vec2i>().value();
-				ReadFromEngineManager::setVec2i(valueHandle, i1, i2, recorder);
+				core::CodeControlledPropertyModifier::setVec2i(valueHandle, i1, i2, recorder);
 			} else if (typeDesc == &core::Vec3i::typeDescription) {
 				auto [i1, i2, i3] = property.get<rlogic::vec3i>().value();
-				ReadFromEngineManager::setVec3i(valueHandle, i1, i2, i3, recorder);
+				core::CodeControlledPropertyModifier::setVec3i(valueHandle, i1, i2, i3, recorder);
 			} else if (typeDesc == &core::Vec4i::typeDescription) {
 				auto [i1, i2, i3, i4] = property.get<rlogic::vec4i>().value();
-				ReadFromEngineManager::setVec4i(valueHandle, i1, i2, i3, i4, recorder);
+				core::CodeControlledPropertyModifier::setVec4i(valueHandle, i1, i2, i3, i4, recorder);
 			} else {
 				getComplexLuaOutputFromEngine(property, valueHandle, recorder);	
 			}

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,6 +15,7 @@
 #endif
 
 #include <raco_pybind11_embed.h>
+#include <pybind11/iostream.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
@@ -39,6 +40,8 @@ namespace py = pybind11;
 
 namespace {
 raco::application::RaCoApplication* app;
+std::string pythonStdoutBuffer;
+std::string pythonStderrBuffer;
 
 py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 	switch (handle.type()) {
@@ -150,6 +153,47 @@ void python_set_value(const raco::core::PropertyDescriptor& desc, py::object val
 
 }  // namespace
 
+PYBIND11_EMBEDDED_MODULE(raco_py_io, m) {
+	struct raco_py_stdout {
+		raco_py_stdout() = default;
+		raco_py_stdout(const raco_py_stdout&) = default;
+		raco_py_stdout(raco_py_stdout&&) = default;
+	};
+
+	struct raco_py_stderr {
+		raco_py_stderr() = default;
+		raco_py_stderr(const raco_py_stderr&) = default;
+		raco_py_stderr(raco_py_stderr&&) = default;
+	};
+
+	py::class_<raco_py_stdout> raco_py_stdout(m, "raco_py_stdout");
+	raco_py_stdout.def_static("write", [](py::object buffer) {
+		pythonStdoutBuffer.append(buffer.cast<std::string>());
+	});
+	raco_py_stdout.def_static("flush", []() {
+		LOG_INFO(raco::log_system::PYTHON, pythonStdoutBuffer);
+		pythonStdoutBuffer.clear();
+	});
+
+	py::class_<raco_py_stderr> raco_py_stderr(m, "raco_py_stderr");
+	raco_py_stderr.def_static("write", [](py::object buffer) {
+		pythonStderrBuffer.append(buffer.cast<std::string>());
+	});
+	raco_py_stderr.def_static("flush", []() {
+		if (!pythonStderrBuffer.empty()) {
+			LOG_ERROR(raco::log_system::PYTHON, pythonStderrBuffer);
+			pythonStderrBuffer.clear();
+		}
+	});
+
+	m.def("hook_stdout", []() {
+		auto py_sys = py::module::import("sys");
+		auto pyIo = py::module::import("raco_py_io");
+		py_sys.attr("stdout") = pyIo.attr("raco_py_stdout");
+		py_sys.attr("stderr") = pyIo.attr("raco_py_stderr");
+	});
+}
+
 PYBIND11_EMBEDDED_MODULE(raco, m) {
 	py::enum_<ramses::ECullMode>(m, "ECullMode")
 		.value("Disabled", ramses::ECullMode_Disabled)
@@ -244,6 +288,10 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 
 
 	m.def("load", [](std::string path) {
+		if (app->isRunningInUI()) {
+			throw std::runtime_error(fmt::format("Can not load project: project-switching Python functions currently not allowed in UI."));
+		}
+
 		if (!path.empty()) {
 			try {
 				app->switchActiveRaCoProject(QString::fromStdString(path), false);
@@ -258,6 +306,10 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 	});
 
 	m.def("reset", []() {
+		if (app->isRunningInUI()) {
+			throw std::runtime_error(fmt::format("Can not reset project: project-switching Python functions currently not allowed in UI."));
+		}
+
 		app->switchActiveRaCoProject(QString(), false);
 	});
 
@@ -371,12 +423,13 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 
 	py::class_<raco::core::LinkDescriptor>(m, "LinkDescriptor")
 		.def("__repr__", [](const raco::core::LinkDescriptor& desc) {
-			return fmt::format("<Link: start='{}' end='{}' valid='{}'>", desc.start.getPropertyPath(), desc.end.getPropertyPath(), desc.isValid);
+			return fmt::format("<Link: start='{}' end='{}' valid='{}' weak='{}'>", desc.start.getPropertyPath(), desc.end.getPropertyPath(), desc.isValid, desc.isWeak);
 		})
 		.def(py::self == py::self)
 		.def_readonly("start", &raco::core::LinkDescriptor::start)
 		.def_readonly("end", &raco::core::LinkDescriptor::end)
-		.def_readonly("valid", &raco::core::LinkDescriptor::isValid);
+		.def_readonly("valid", &raco::core::LinkDescriptor::isValid)
+		.def_readonly("weak", &raco::core::LinkDescriptor::isWeak);
 
 	m.def("instances", []() {
 		return app->activeRaCoProject().project()->instances();
@@ -436,6 +489,14 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		return py::none();
 	});
 
+	m.def("addLink", [](const raco::core::PropertyDescriptor& start, const raco::core::PropertyDescriptor& end, bool isWeak) -> py::object {
+		if (auto newLink = app->activeRaCoProject().commandInterface()->addLink(raco::core::ValueHandle(start), raco::core::ValueHandle(end), isWeak)) {
+			app->doOneLoop();
+			return py::cast(newLink->descriptor());
+		}
+		return py::none();
+	});
+
 	m.def("removeLink", [](const raco::core::PropertyDescriptor& end) {
 		app->activeRaCoProject().commandInterface()->removeLink(end);
 		app->doOneLoop();
@@ -449,7 +510,7 @@ bool preparePythonEnvironment(std::wstring argv0, bool searchPythonFolderForTest
 	PyPreConfig_InitIsolatedConfig(&preconfig);
 	const auto status = Py_PreInitialize(&preconfig);
 	if (PyStatus_IsError(status) != 0) {
-		LOG_ERROR(raco::log_system::COMMON, "Py_PreInitialize failed. Error: '{}'", status.err_msg);
+		LOG_ERROR(raco::log_system::PYTHON, "Py_PreInitialize failed. Error: '{}'", status.err_msg);
 		return false;
 	}
 
@@ -509,11 +570,11 @@ bool preparePythonEnvironment(std::wstring argv0, bool searchPythonFolderForTest
 	static std::wstring programname = argv0;
 	std::string programnameUTF8(1024, 0);
 	programnameUTF8.resize(std::wcstombs(programnameUTF8.data(), programname.data(), programnameUTF8.size()));
-	LOG_INFO(raco::log_system::COMMON, "Calling Py_SetProgramName with '{}'", programnameUTF8);
+	LOG_INFO(raco::log_system::PYTHON, "Calling Py_SetProgramName with '{}'", programnameUTF8);
 	Py_SetProgramName(programname.data());
 	std::string pythonPathsUTF8(1024, 0);
 	pythonPathsUTF8.resize(std::wcstombs(pythonPathsUTF8.data(), pythonPaths.data(), pythonPathsUTF8.size()));
-	LOG_INFO(raco::log_system::COMMON, "Calling Py_SetPath with '{}'", pythonPathsUTF8);
+	LOG_INFO(raco::log_system::PYTHON, "Calling Py_SetPath with '{}'", pythonPathsUTF8);
 	Py_SetPath(pythonPaths.data());
 
 	return true;
@@ -525,7 +586,40 @@ void setup(raco::application::RaCoApplication* racoApp) {
 	const std::wstring pythonPaths = Py_GetPath();
 	std::string pythonPathsUTF8(1024, 0);
 	pythonPathsUTF8.resize(std::wcstombs(pythonPathsUTF8.data(), pythonPaths.data(), pythonPathsUTF8.size()));
-	LOG_INFO(raco::log_system::COMMON, "Python module search paths: {}", pythonPathsUTF8);
+	LOG_INFO(raco::log_system::PYTHON, "Python module search paths: {}", pythonPathsUTF8);
+
+	py::module::import("raco_py_io").attr("hook_stdout")();
+}
+
+int runPythonScript(raco::application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<const char*>& pos_argv_cp) {
+	if (raco::python_api::preparePythonEnvironment(applicationPath)) {
+		py::scoped_interpreter pyGuard{true, static_cast<int>(pos_argv_cp.size()), pos_argv_cp.data()};
+
+		raco::python_api::setup(app);
+		LOG_INFO(raco::log_system::PYTHON, "running python script {}", pythonScriptPath);
+		try {
+			py::eval_file(pythonScriptPath);
+		} catch (py::error_already_set& e) {
+			if (e.matches(PyExc_SystemExit)) {
+				auto exitCode = py::cast<int>(e.value().attr("code"));
+				LOG_ERROR(raco::log_system::PYTHON, "Exit called from Python: exit code '{}'", exitCode);
+				return py::cast<int>(e.value().attr("code"));
+			} else {
+				LOG_ERROR(raco::log_system::PYTHON, "Python exception:\n{}", e.what());
+				return 1;
+			}
+		} catch (std::exception& e) {
+			LOG_ERROR(raco::log_system::PYTHON, "Error thrown in Python script:\n{}", e.what());
+			return 1;
+			// TODO exit code
+			// how do we get here?
+			// need a test
+		}
+	} else {
+		LOG_ERROR(raco::log_system::PYTHON, "Failed to prepare the Python environment.");
+		return 1;
+	}
+	return 0;
 }
 
 }  // namespace raco::python_api

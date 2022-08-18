@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: MPL-2.0
  *
  * This file is part of Ramses Composer
- * (see https://github.com/GENIVI/ramses-composer).
+ * (see https://github.com/bmwcarit/ramses-composer).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -49,7 +49,7 @@ bool RenderTargetAdaptor::sync(core::Errors* errors) {
 	// But if we only add valid render buffers to the list of render buffers,
 	// it will shift all later render buffers to the front, changing their index
 	// (which is not what the shader will expect).
-	// This is a Ramses bug - see https://github.com/COVESA/ramses/issues/52
+	// This is a Ramses bug - see https://github.com/bmwcarit/ramses/issues/52
 	// If that occurs, refuse to create the render target to avoid any surprises for the user.
 	bool hasEmptySlots = false;
 	for (int bufferSlotIndex = 0; bufferSlotIndex < usertypebuffers.size(); ++bufferSlotIndex) {

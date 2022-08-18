@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MPL-2.0
 
 This file is part of Ramses Composer
-(see https://github.com/GENIVI/ramses-composer).
+(see https://github.com/bmwcarit/ramses-composer).
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -26,7 +26,9 @@ add_library(libCommonWidgets
     include/common_widgets/PropertyBrowserButton.h src/PropertyBrowserButton.cpp
     include/common_widgets/QtGuiFormatter.h
     include/common_widgets/RaCoClipboard.h src/RaCoClipboard.cpp
+    include/common_widgets/RunScriptDialog.h src/RunScriptDialog.cpp
     include/common_widgets/TimingsWidget.h
+    include/common_widgets/TracePlayerWidget.h src/TracePlayerWidget.cpp
     include/common_widgets/UndoView.h src/UndoView.cpp
 )
 
@@ -48,6 +50,7 @@ target_link_libraries(libCommonWidgets
         raco::Style
     PRIVATE
         raco::LogSystem
+        raco::Style
 )
 add_library(raco::CommonWidgets ALIAS libCommonWidgets)
 
