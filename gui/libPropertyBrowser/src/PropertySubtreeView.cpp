@@ -100,7 +100,7 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		labelLayout->addWidget(linkControl, 1);
 
 		if (item->displayName() == "uniforms") {
-			//setUniformControls(item, labelLayout);
+			setUniformControls(item, labelLayout);
 			std::vector<Uniform> uniforms = Item2Uniform(item);
 			raco::guiData::MaterialManager::GetInstance().curUniformClear();
 			NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
