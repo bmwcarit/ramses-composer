@@ -47,6 +47,7 @@ public:
 	using PropertyTypeMapType = std::tuple<
 		Property<std::string, URIAnnotation>,
 		Property<double, DisplayNameAnnotation, RangeAnnotation<double>>,
+		Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>,
 
 		Property<int, DisplayNameAnnotation, EnumerationAnnotation>,
 		Property<bool, DisplayNameAnnotation>,
@@ -134,7 +135,7 @@ public:
 	virtual data_storage::ValueBase* createValue(const std::string& type) const override;
 
 	const std::map<std::string, TypeDescriptor>& getTypes() const override;
-	bool isUserCreatable(const std::string& type) const override;
+	bool isUserCreatable(const std::string& type, int featureLevel) const override;
 	
 	const std::map<std::string, ValueCreationFunction>& getProperties() const;
 

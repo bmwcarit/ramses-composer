@@ -19,6 +19,7 @@ const char materialTypeName[] = "Material";
 const char luaScriptTypeName[] = "LuaScript";
 const char luaInterfaceTypeName[] = "LuaInterface";
 const char luaScriptModuleTypeName[] = "LuaScriptModule";
+const char anchorPointTypeName[] = "AnchorPoint";
 const char animationTypeName[] = "Animation";
 const char animationChannelTypeName[] = "AnimationChannel";
 const char textureSampler2DBaseTypeName[] = "TextureSampler2DBase";
@@ -49,5 +50,6 @@ const char defaultResourceDirectoriesTypeName[] = "DefaultResourceDirectories";
 const char luaStandardModuleSelectionTypeName[] = "LuaStandardModuleSelection";
 const char timerInputTypeName[] = "TimerInput";
 const char timerOutputTypeName[] = "TimerOutput";
+const char anchorPointOutputsTypeName[] = "AnchorPointOutputs";
 
 }

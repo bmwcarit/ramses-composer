@@ -29,6 +29,7 @@ add_library(libPropertyBrowser
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
     include/property_browser/editors/VecNTEditor.h src/editors/VecNTEditor.cpp
 
+    include/property_browser/PropertyBrowserEditorPopup.h src/PropertyBrowserEditorPopup.cpp
     include/property_browser/PropertyBrowserItem.h src/PropertyBrowserItem.cpp
     include/property_browser/PropertyBrowserLayouts.h
     include/property_browser/PropertyBrowserModel.h

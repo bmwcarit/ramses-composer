@@ -123,6 +123,7 @@ private:
 	PropertyBrowserModel* model_;
 	QList<PropertyBrowserItem*> children_;
 	bool expanded_;
+	bool editable_ = true;
 
 	bool getDefaultExpandedFromValueHandleType() const;
 };

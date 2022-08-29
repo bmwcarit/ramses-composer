@@ -30,7 +30,7 @@ PropertyBrowserRef::PropertyBrowserRef(PropertyBrowserItem* parent)
 	update();
 }
 
-const PropertyBrowserRef::ComboBoxItems& PropertyBrowserRef::items() const noexcept {
+const PropertyBrowserRef::RefItems& PropertyBrowserRef::items() const noexcept {
 	return items_;
 }
 
@@ -64,7 +64,7 @@ void PropertyBrowserRef::updateItems() noexcept {
 
 		for (const auto& instance : validReferenceTargets) {
 			auto projName = parent_->project()->getProjectNameForObject(instance, false);
-			const auto &objName = instance->objectName();
+			const auto& objName = instance->objectName();
 			std::string displayObjectName;
 			std::string tooltip;
 
@@ -74,9 +74,7 @@ void PropertyBrowserRef::updateItems() noexcept {
 				displayObjectName = objName;
 			}
 
-			if (auto prefabInstance = core::PrefabOperations::findContainingPrefabInstance(instance)) {
-				tooltip = raco::core::Queries::getFullObjectHierarchyPath(instance);
-			}
+			tooltip = raco::core::Queries::getFullObjectHierarchyPath(instance);
 
 			items_.push_back({displayObjectName.c_str(), instance->objectID().c_str(), tooltip.c_str()});
 			// This seems a little bit of an overkill

@@ -10,57 +10,12 @@
 #pragma once
 
 #include "user_types/BaseCamera.h"
+#include "user_types/Enumerations.h"
+#include "user_types/SyncTableWithEngineInterface.h"
+
+#include "core/EngineInterface.h"
 
 namespace raco::user_types {
-
-class PerspectiveFrustum : public StructBase {
-public:
-	static inline const TypeDescriptor typeDescription = {"PerspectiveFrustum", false};
-	TypeDescriptor const& getTypeDescription() const override {
-		return typeDescription;
-	}
-	bool serializationRequired() const override {
-		return true;
-	}
-
-	PerspectiveFrustum() : StructBase(getProperties()) {}
-
-	PerspectiveFrustum(const PerspectiveFrustum& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
-		: StructBase(getProperties()),
-		  near_(other.near_),
-		  far_(other.far_),
-		  fov_(other.fov_),
-		  aspect_(other.aspect_) {
-	}
-
-	PerspectiveFrustum& operator=(const PerspectiveFrustum& other) {
-		near_ = other.near_;
-		far_ = other.far_;
-		fov_ = other.fov_;
-		aspect_ = other.aspect_;
-		return *this;
-	}
-
-	void copyAnnotationData(const PerspectiveFrustum& other) {
-		near_.copyAnnotationData(other.near_);
-		far_.copyAnnotationData(other.far_);
-		fov_.copyAnnotationData(other.fov_);
-		aspect_.copyAnnotationData(other.aspect_);
-	}
-
-	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
-		return {
-			{"nearPlane", &near_},
-			{"farPlane", &far_},
-			{"fieldOfView", &fov_},
-			{"aspectRatio", &aspect_}};
-	}
-
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> near_{0.1, DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> far_{1000.0, DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> fov_{35.0, DisplayNameAnnotation("fieldOfView"), RangeAnnotation<double>(10.0, 120.0), {}};
-	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> aspect_{1440.0 / 720.0, DisplayNameAnnotation("aspectRatio"), RangeAnnotation<double>(0.5, 4.0), {}};
-};
 
 class PerspectiveCamera : public BaseCamera {
 public:
@@ -79,10 +34,21 @@ public:
 	}
 
 	void fillPropertyDescription() {
+		properties_.emplace_back("frustumType", &frustumType_);
 		properties_.emplace_back("frustum", &frustum_);
 	}
 
-	Property<PerspectiveFrustum, DisplayNameAnnotation, LinkEndAnnotation> frustum_{{}, {"Frustum"}, {}};
+	void onAfterContextActivated(BaseContext& context) override;
+	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
+
+
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation, FeatureLevel> frustumType_{static_cast<int>(EFrustumType::Aspect_FieldOfView), {"Frustum Type"}, {EngineEnumeration::FrustumType}, {2}};
+	Property<Table, DisplayNameAnnotation, LinkEndAnnotation> frustum_{{}, {"Frustum"}, {}};
+
+private:
+	void syncFrustum(BaseContext& context);
+
+	OutdatedPropertiesStore cachedFrustumValues_;
 };
 
 using SPerspectiveCamera = std::shared_ptr<PerspectiveCamera>;

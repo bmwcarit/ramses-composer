@@ -11,6 +11,7 @@
 
 #include "core/EditorObject.h"
 #include "core/BasicTypes.h"
+#include "core/Link.h"
 
 #include <vector>
 
@@ -105,7 +106,7 @@ public:
 		return typeDescription;
 	}
 
-	Foo(Foo const& other) : EditorObject(other), b_(other.b_), i_(other.i_), i64_(other.i64_), x_(other.x_), s_(other.s_), ref_(other.ref_), vec_(other.vec_), v2f_(other.v2f_), v3f_(other.v3f_), v4f_(other.v4f_), v2i_(other.v2i_), v3i_(other.v3i_), v4i_(other.v4i_) {
+	Foo(Foo const& other) : EditorObject(other), b_(other.b_), i_(other.i_), i64_(other.i64_), x_(other.x_), s_(other.s_), ref_(other.ref_), vec_(other.vec_), v2f_(other.v2f_), v3f_(other.v3f_), v4f_(other.v4f_), v2i_(other.v2i_), v3i_(other.v3i_), v4i_(other.v4i_), future_(other.future_), readOnly_(other.readOnly_) {
 		fillPropertyDescription();
 	}
 
@@ -127,12 +128,15 @@ public:
 		properties_.emplace_back("v2i", &v2i_);
 		properties_.emplace_back("v3i", &v3i_);
 		properties_.emplace_back("v4i", &v4i_);
+		properties_.emplace_back("future", &future_);
+		properties_.emplace_back("futureLinkable", &futureLinkable_);
+		properties_.emplace_back("readOnly", &readOnly_);
 	}
 
 	Value<bool> b_{false};
 	Value<int> i_{3};
 	Value<int64_t> i64_;
-	Value<double> x_{2.5};
+	Property<double, LinkStartAnnotation, LinkEndAnnotation> x_{2.5, {}, {}};
 	Value<std::string> s_{"cat"};
 	Value<SEditorObject> ref_;
 
@@ -146,6 +150,11 @@ public:
 	Value<Vec2i> v2i_{};
 	Value<Vec3i> v3i_{};
 	Value<Vec4i> v4i_{};
+
+	Property<double, LinkEndAnnotation> futureLinkable_{2, {0x12345678}};
+	Property<double, FeatureLevel> future_{1, {0x12345678}};
+
+	Property<int, ReadOnlyAnnotation> readOnly_{42, {}};
 
 	void onBeforeRemoveReferenceToThis(ValueHandle const& sourceReferenceProperty) const override {
 		onBeforeRemoveReferenceToThis_.push_back(sourceReferenceProperty);
@@ -219,4 +228,31 @@ public:
 
 	Value<StructWithRef> s_{};
 };
+
+class FutureType : public EditorObject {
+public:
+	static inline const TypeDescriptor typeDescription = {"FutureType", false, 0x12345678};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	FutureType(FutureType const& other) : EditorObject(other), s_(other.s_) {
+		fillPropertyDescription();
+	}
+
+	FutureType(std::string name = {}, std::string id = {}) : EditorObject(name, id) {
+		fillPropertyDescription();
+	}
+
+	FutureType() : EditorObject() {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("s", &s_);
+	}
+
+	Value<StructWithRef> s_{};
+};
+
 }  // namespace raco::user_types

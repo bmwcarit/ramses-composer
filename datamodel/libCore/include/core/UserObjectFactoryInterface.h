@@ -38,7 +38,7 @@ public:
 	 * Indicates if a specific type should be creatable by the user. (E.g. appeare in the right-click context menu of the object tree, or via the python api).
 	 * Currently only used for [ProjectSettings] which needs some special consideration in the UI and python api.
 	 */
-	virtual bool isUserCreatable(const std::string& type) const = 0;
+	virtual bool isUserCreatable(const std::string& type, int featureLevel) const = 0;
 };
 
 }

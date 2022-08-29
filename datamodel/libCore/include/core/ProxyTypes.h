@@ -41,7 +41,7 @@ using Node = Proxy<nodeTypeName>;
 using SNode = std::shared_ptr<Node>;
 
 extern const char meshNodeTypeName[];
-using MeshNode = Proxy<meshNodeTypeName>;
+using MeshNode = Proxy<meshNodeTypeName, Node>;
 using SMeshNode = std::shared_ptr<MeshNode>;
 
 extern const char materialTypeName[];
@@ -59,6 +59,10 @@ using SLuaInterface = std::shared_ptr<LuaInterface>;
 extern const char luaScriptModuleTypeName[];
 using LuaScriptModule = Proxy<luaScriptModuleTypeName>;
 using SLuaScriptModule = std::shared_ptr<LuaScriptModule>;
+
+extern const char anchorPointTypeName[];
+using AnchorPoint = Proxy<anchorPointTypeName>;
+using SAnchorPoint = std::shared_ptr<AnchorPoint>;
 
 extern const char animationTypeName[];
 using Animation = Proxy<animationTypeName>;
@@ -85,7 +89,7 @@ using CubeMap = Proxy<cubeMapTypeName>;
 using SCubeMap = std::shared_ptr<CubeMap>;
 
 extern const char baseCameraTypeName[];
-using BaseCamera = Proxy<baseCameraTypeName>;
+using BaseCamera = Proxy<baseCameraTypeName, Node>;
 using SBaseCamera = std::shared_ptr<BaseCamera>;
 
 extern const char perspectiveCameraTypeName[];
@@ -196,5 +200,8 @@ using TimerInput = StructProxy<timerInputTypeName>;
 
 extern const char timerOutputTypeName[];
 using TimerOutput = StructProxy<timerOutputTypeName>;
+
+extern const char anchorPointOutputsTypeName[];
+using AnchorPointOutputs = StructProxy<anchorPointOutputsTypeName>;
 
 }  // namespace raco::serialization::proxy

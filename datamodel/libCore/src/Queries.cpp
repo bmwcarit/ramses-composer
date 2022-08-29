@@ -16,6 +16,7 @@
 #include "core/Project.h"
 #include "core/PropertyDescriptor.h"
 
+#include "user_types/AnchorPoint.h"
 #include "user_types/Animation.h"
 #include "user_types/LuaScript.h"
 #include "user_types/LuaInterface.h"
@@ -108,8 +109,8 @@ std::vector<SEditorObject> Queries::findAllUnreferencedObjects(Project const& pr
 			referenced.insert(instance);
 		}
 
-		if (instance->isType<user_types::RenderPass>()) {
-			// Render passes cannot be referenced by anything - don't count them as unreferenced.
+		// RenderPass or AnchorPoint objects cannot be referenced by anything - don't count them as unreferenced.
+		if (instance->isType<user_types::RenderPass>() || instance->isType<user_types::AnchorPoint>()) {
 			referenced.insert(instance);
 		}
 		if (auto renderLayer = instance->as<user_types::RenderLayer>()) {
@@ -337,7 +338,7 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 }
 
 bool Queries::canPasteObjectAsExternalReference(const SEditorObject& editorObject, bool wasTopLevelObjectInSourceProject) {
-	return (editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>()) || 
+	return (editorObject->getTypeDescription().isResource && !editorObject->as<user_types::RenderPass>() && !editorObject->isType<user_types::AnchorPoint>()) || 
 		editorObject->as<user_types::Prefab>() || 
 		((editorObject->as<user_types::LuaScript>() || editorObject->as<user_types::LuaInterface>()) && wasTopLevelObjectInSourceProject);
 }
@@ -399,6 +400,10 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 		return true;
 	}
 
+	if (handle.query<ReadOnlyAnnotation>()) {
+		return true;
+	}
+
 	// Prefab instance subtree is read-only with one exception:
 	// Lua interfaces which are direct children of the prefab instance serve as the interface for the 
 	// prefab instance: their lua input properties are modifyable. see exception below.
@@ -444,7 +449,11 @@ bool Queries::isHiddenInPropertyBrowser(const Project& project, const ValueHandl
 	if (handle.query<TagContainerAnnotation>() || handle.query<RenderableTagContainerAnnotation>()) {
 		return false;
 	}
+
 	if (handle.query<HiddenProperty>()) {
+		return true;
+	}
+	if (auto anno = handle.query<FeatureLevel>(); anno && project.featureLevel() < *anno->featureLevel_) {
 		return true;
 	}
 
@@ -500,7 +509,7 @@ Queries::CurrentLinkState Queries::currentLinkState(const Project& project, cons
 
 Queries::LinkState Queries::linkState(const Project& project, ValueHandle const& handle) {
 	if (handle) {
-		return {Queries::currentLinkState(project, handle), Queries::isReadOnly(project, handle, true), Queries::isValidLinkEnd(handle)};
+		return {Queries::currentLinkState(project, handle), Queries::isReadOnly(project, handle, true), Queries::isValidLinkEnd(project, handle)};
 	}
 	return {CurrentLinkState::NOT_LINKED, true, false};
 }
@@ -813,8 +822,12 @@ bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const Pr
 }
 
 
-bool Queries::isValidLinkEnd(const ValueHandle& endProperty) {
-	return endProperty.isProperty() && endProperty.query<LinkEndAnnotation>();
+bool Queries::isValidLinkEnd(const Project& project, const ValueHandle& endProperty) {
+	if (endProperty.isProperty()) {
+		auto linkAnno = endProperty.query<LinkEndAnnotation>();
+		return linkAnno && *linkAnno->featureLevel_ <= project.featureLevel();
+	}
+	return false;
 }
 
 bool Queries::isValidLinkStart(const ValueHandle& startProperty) {
@@ -833,7 +846,7 @@ bool Queries::linkWouldBeAllowed(const Project& project, const PropertyDescripto
 bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end) {
 	ValueHandle startHandle(start);
 	ValueHandle endHandle(end);
-	return startHandle && endHandle && isValidLinkStart(startHandle) && isValidLinkEnd(endHandle) && checkLinkCompatibleTypes(startHandle, endHandle);
+	return startHandle && endHandle && isValidLinkStart(startHandle) && isValidLinkEnd(project, endHandle) && checkLinkCompatibleTypes(startHandle, endHandle);
 }
 
 bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& end, bool isWeak) {

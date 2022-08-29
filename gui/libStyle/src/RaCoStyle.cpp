@@ -240,11 +240,7 @@ void RaCoStyle::drawComplexControl(QStyle::ComplexControl control, const QStyleO
 		case CC_ComboBox:
 			if (const QStyleOptionComboBox *cmb = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
 				// draw common area for edit and button
-				if (saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
-					drawRoundedRect(option->rect, p, Colors::brush(Colormap::warningColor), &cmb->palette.brush(QPalette::Window));
-				} else {
-					drawRoundedRect(option->rect, p, cmb->palette.brush(QPalette::Base), &cmb->palette.brush(QPalette::Window));
-				}
+				drawRoundedRect(option->rect, p, cmb->palette.brush(QPalette::Base), &cmb->palette.brush(QPalette::Window));
 
 				if (cmb->subControls & SC_ComboBoxArrow) {
 					State flags = State_None;
@@ -412,12 +408,15 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 					qstyleoption_cast<const QStyleOptionFrame *>(option)) {
 				QBrush backBrush = opt->palette.brush(QPalette::Base);
 				// the hardcoded values need to correspond to enum core::ErrorLevel
-				if (saveGetProperty(widget, "errorLevel", 1).toInt() == 2)
+				if (saveGetProperty(widget, "errorLevel", 1).toInt() == 2 || saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
 					backBrush = Colors::brush(Colormap::warningColor);
-				if (saveGetProperty(widget, "errorLevel", 1).toInt() == 3)
+				}
+				if (saveGetProperty(widget, "errorLevel", 1).toInt() == 3) {
 					backBrush = Colors::brush(Colormap::errorColorDark);
-				if (saveGetProperty(widget, "updatedInBackground", 1).toBool())
+				}
+				if (saveGetProperty(widget, "updatedInBackground", 1).toBool()) {
 					backBrush = Colors::brush(Colormap::updatedInBackground);
+				}
 				auto outOfRange { saveGetProperty(widget, "outOfRange", 2).toInt() };
 				if (outOfRange != 0 ) {
 					if (outOfRange > 0) {

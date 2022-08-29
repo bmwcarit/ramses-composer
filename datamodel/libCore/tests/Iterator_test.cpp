@@ -79,6 +79,7 @@ TEST(IteratorTest, Property) {
 		{node, {"children"}},
 		{node, {"tags"}},
 		{node, {"visibility"}},
+		{node, {"enabled"}},
 		{node, {"translation"}},
 		{node, {"translation", "x"}},
 		{node, {"translation", "y"}},

@@ -21,6 +21,7 @@
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
+#include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
 #include "utils/u8path.h"
 
 #include <QContextMenuEvent>
@@ -39,7 +40,7 @@ namespace raco::object_tree::view {
 
 using namespace raco::object_tree::model;
 
-ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultModel *viewModel, QSortFilterProxyModel *sortFilterProxyModel, QWidget *parent)
+ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultModel *viewModel, ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel, QWidget *parent)
 	: QTreeView(parent), treeModel_(viewModel), proxyModel_(sortFilterProxyModel), viewTitle_(viewTitle) {
 	setAlternatingRowColors(true);
 	setContextMenuPolicy(Qt::CustomContextMenu);
@@ -52,12 +53,17 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	if (proxyModel_) {
 		proxyModel_->setSourceModel(treeModel_);
+
+		setSortingEnabled(proxyModel_->sortingEnabled());
 		QTreeView::setModel(proxyModel_);
 	} else {
 		QTreeView::setModel(treeModel_);
 	}
 
 	setTextElideMode(treeModel_->textElideMode());
+
+	// hidden column for data only used for filtering, enable to reveal object IDs
+	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_ID, true);
 
 	connect(this, &QTreeView::customContextMenuRequested, this, &ObjectTreeView::showContextMenu);
 	connect(this, &QTreeView::expanded, this, &ObjectTreeView::expanded);
@@ -193,7 +199,7 @@ QString ObjectTreeView::getViewTitle() const {
 	return viewTitle_;
 }
 
-void ObjectTreeView::requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent) {
+void ObjectTreeView::requestNewNode(const std::string& nodeType, const std::string &nodeName, const QModelIndex &parent) {
 	Q_EMIT dockSelectionFocusRequested(this);
 
 	selectedItemIDs_.clear();
@@ -228,8 +234,28 @@ bool ObjectTreeView::containsObject(const QString &objectID) const {
 	return treeModel_->indexFromTreeNodeID(objectID.toStdString()).isValid();
 }
 
-QSortFilterProxyModel* ObjectTreeView::proxyModel() const {
-	return proxyModel_;
+void ObjectTreeView::setFilterKeyColumn(int column) {
+	if (proxyModel_) {
+		proxyModel_->setFilterKeyColumn(column);
+	}
+}
+
+void ObjectTreeView::filterObjects(const QString &filterString) {
+	if (proxyModel_) {
+		auto filterStrings = filterString.split(" ", Qt::SkipEmptyParts);
+		for (auto &filterString : filterStrings) {
+			filterString = QRegularExpression::escape(filterString);
+		}
+		auto filterStringRegex = "(" + filterStrings.join("|") + ")";
+
+		proxyModel_->setFilterRegularExpression(filterStringRegex);
+		restoreItemExpansionStates();
+		viewport()->update();
+	}
+}
+
+bool ObjectTreeView::hasProxyModel() const {
+	return proxyModel_ != nullptr;
 }
 
 void ObjectTreeView::resetSelection() {
@@ -250,18 +276,15 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_));
 	auto prefabModel = (dynamic_cast<ObjectTreeViewPrefabModel *>(treeModel_));
 	auto resourceModel = (dynamic_cast<ObjectTreeViewResourceModel *>(treeModel_));
-	auto allTypes = treeModel_->objectFactory()->getTypes();
-	auto allowedCreatableUserTypes = treeModel_->typesAllowedIntoIndex(insertionTargetIndex);
-	auto canInsertMeshAsset = false;
+	bool canInsertMeshAsset = false;
+	bool haveCreatableTypes = false;
 
-	for (auto type : allowedCreatableUserTypes) {
-		if (allTypes.count(type) > 0 && treeModel_->objectFactory()->isUserCreatable(type)) {
-			auto typeDescriptor = allTypes[type];
-			auto actionCreate = treeViewMenu->addAction(QString::fromStdString("Create " + type), [this, typeDescriptor, insertionTargetIndex]() {
-				requestNewNode(typeDescriptor.description, "", insertionTargetIndex);
-			});
-		}
-		if (type == raco::user_types::Node::typeDescription.typeName) {
+	for (auto const& typeName : treeModel_->creatableTypes(insertionTargetIndex)) {
+		auto actionCreate = treeViewMenu->addAction(QString::fromStdString("Create " + typeName), [this, typeName, insertionTargetIndex]() {
+			requestNewNode(typeName, "", insertionTargetIndex);
+		});
+		haveCreatableTypes = true;
+		if (typeName == raco::user_types::Node::typeDescription.typeName) {
 			canInsertMeshAsset = true;
 		}
 	}
@@ -279,7 +302,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		actionImport->setEnabled(canInsertMeshAsset);
 	}
 
-	if (!externalProjectModel || !allowedCreatableUserTypes.empty()) {
+	if (!externalProjectModel || haveCreatableTypes) {
 		treeViewMenu->addSeparator();
 	}
 
@@ -301,10 +324,20 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	QAction* actionPaste;
 	if (treeModel_->canPasteIntoIndex(insertionTargetIndex, pasteObjects, sourceProjectTopLevelObjectIds)) {
 		actionPaste = treeViewMenu->addAction(
-			"Paste Here", [this, insertionTargetIndex]() { treeModel_->pasteObjectAtIndex(insertionTargetIndex); }, QKeySequence::Paste);
+			"Paste Here", [this, insertionTargetIndex]() { 
+				std::string error;
+				if (!treeModel_->pasteObjectAtIndex(insertionTargetIndex, false, &error)) {
+					QMessageBox::warning(this, "Paste Failed", fmt::format("Paste failed:\n\n{}", error).c_str());
+				}
+			}, QKeySequence::Paste);
 	} else if (treeModel_->canPasteIntoIndex({}, pasteObjects, sourceProjectTopLevelObjectIds)) {
 		actionPaste = treeViewMenu->addAction(
-			"Paste Into Project", [this]() { treeModel_->pasteObjectAtIndex(QModelIndex()); }, QKeySequence::Paste);
+			"Paste Into Project", [this]() { 
+				std::string error;
+				if (!treeModel_->pasteObjectAtIndex(QModelIndex(), false, &error)) {
+					QMessageBox::warning(this, "Paste Failed", fmt::format("Paste failed:\n\n{}", error).c_str());
+				}
+			}, QKeySequence::Paste);
 	} else {
 		actionPaste = treeViewMenu->addAction("Paste", [](){}, QKeySequence::Paste);
 		actionPaste->setEnabled(false);

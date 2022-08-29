@@ -24,6 +24,49 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.3.0] Ramses Logic feature level 2 support, relinking, search function, UI improvements
+
+* **File version number has changed. Files saved with RaCo 1.3.0 cannot be opened by previous versions.**
+* **Export now supports ramses-logic feature levels 1 and 2. Scenes exported with feature level 2 can't be opened with ramses-logic before v1.1.0 or with ramses-logic using feature level 1.**
+
+### Added
+* Added support for LogicEngine feature levels
+    * The current feature level of a project can be seen in the ProjectSettings object.
+    * An application feature level can be set using the '-f' command line option in both the GUI and the headless application. 
+    * Creating a new project will use the application feature level. If the application feature level is set to -1 the maximum supported feature level is used.
+    * Loading a project will set the current feature level to the project feature level if the application feature level is set to -1. If the application feature level is >=1 the project will be upgraded to the application feature level on load. Downgrading to a lower feature level is not possible.
+    * Loading a project will always upgrade all externally referenced project to the feature level of the loaded project.
+* Added support for the following features available at LogicEngine feature level 2
+    * Added new linkable `enabled` property to Nodes.
+    * Allow using planes for the frustum of perspective cameras. Switching is performed using a new `frustumType` property in the PerspectiveCamera. The properties in the frustum container of the camera will be changed accordingly.
+    * RenderPass property changes
+        * Added a new linkable `renderOnce` property.
+        * Renamed `order` to `renderOrder` to match the LogicEngine property name.
+        * Made the `enabled`, `renderOrder`, and `clearColor` properties linkable.
+    * Added the AnchorPoint user type.
+        * Anchor points are LogicEngine objects calculating the viewport coordinates and the depth of a node origin as seen by a camera.
+        * Anchor point objects can't be used as external references.
+        * See LogicEngine documentation for details.
+* Added improved reference editor. The new reference editor follows the same functionality as the link start point editor.
+	* Copied objects that are able to be used as references can be set as such a reference by right-clicking on the reference text box in the Property Editor.
+* Added tree view object filter ability.
+	* Search words can be separated by space to combine multiple searches.
+* Added in-place renaming option for tree views.
+* Automatically fill the shader paths when the first path is set following a simple naming convention based on file extensions. Two naming conventions are supported
+    * Extensions *.vert, *.geom, *.frag, *.def
+    * Extensions *.vert.glsl, *.geom.glsl, *.frag.glsl, *.def
+
+### Changes
+* Allow relinking of external projects during load when a project file is missing. 
+    * A warning message is shown and the user can choose to supply a new project file to load instead of the missing project.
+    * Only the loading process if affected, neither the main nor any external project are saved automatically.
+    * Due to the removal of redundant information during file save the new project path will only be saved if the external project is directly used by the current project.
+
+### Fixes
+* Fixed the ~11 seconds freezing in RaCo Editor, under Linux with Nvidia in performance mode, when the Preview dock is resized.
+* Fix trace player to update the outputs of LuaScript objects correctly when locking objects.
+
+
 ## [1.2.0] Trace player, weak links, and running Python script in GUI application
 * **File version number has changed. Files saved with RaCo 1.1.2 cannot be opened by previous versions.**
 

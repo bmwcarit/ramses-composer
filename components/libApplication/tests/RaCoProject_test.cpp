@@ -28,7 +28,7 @@
 
 class RaCoProjectFixture : public RacoBaseTest<> {
 public:
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 };
 
 using raco::application::RaCoApplication;
@@ -321,8 +321,8 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadAnimationKeepsChannelAmount) {
 
 	std::string msg;
 	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "anims.rca").string().c_str(), msg));
-	app.switchActiveRaCoProject("");
-	app.switchActiveRaCoProject(QString::fromStdString((test_path() / "anims.rca").string()));
+	app.switchActiveRaCoProject("", {});
+	app.switchActiveRaCoProject(QString::fromStdString((test_path() / "anims.rca").string()), {});
 
 	auto anims = raco::core::Queries::filterByTypeName(app.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
 	auto importedAnim = raco::core::Queries::findByName(anims, "Wheels");
@@ -589,7 +589,7 @@ TEST_F(RaCoProjectFixture, saveAsThenCreateNewProjectResetsCachedPaths) {
 	RaCoApplication app{backend};
 	std::string msg;
 	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString((test_path() / "newProject/project.rca").string()), msg));
-	app.switchActiveRaCoProject("");
+	app.switchActiveRaCoProject("", {});
 
 	const auto& defaultResourceDirectories = app.activeRaCoProject().project()->settings()->defaultResourceDirectories_;
 	auto imageSubdirectory = defaultResourceDirectories->imageSubdirectory_.asString();
@@ -615,8 +615,8 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadProjectProperlySetCachedPaths) {
 	RaCoApplication app{backend};
 	std::string msg;
 	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString((newProjectFolder / "project.rca").string()), msg));
-	app.switchActiveRaCoProject("");
-	app.switchActiveRaCoProject(QString::fromStdString((newProjectFolder  / "project.rca").string()));
+	app.switchActiveRaCoProject("", {});
+	app.switchActiveRaCoProject(QString::fromStdString((newProjectFolder / "project.rca").string()), {});
 
 	const auto& defaultResourceDirectories = app.activeRaCoProject().project()->settings()->defaultResourceDirectories_;
 	auto imageSubdirectory = defaultResourceDirectories->imageSubdirectory_.asString();
@@ -642,7 +642,7 @@ TEST_F(RaCoProjectFixture, loadingBrokenJSONFileThrowsException) {
     },
 	)");
 	RaCoApplication app{backend};
-	ASSERT_THROW(app.switchActiveRaCoProject(QString::fromStdString(jsonPath)), std::runtime_error);
+	ASSERT_THROW(app.switchActiveRaCoProject(QString::fromStdString(jsonPath), {}), std::runtime_error);
 }
 
 TEST_F(RaCoProjectFixture, saveLoadAsZip) {
@@ -934,9 +934,9 @@ TEST_F(RaCoProjectFixture, loadDoubleModuleReferenceWithoutError) {
 	raco::log_system::init();
 	const auto logsink = std::make_shared<CaptureLog>();
 	raco::log_system::registerSink(logsink);
-	std::vector<std::string> pathStack;
+	raco::core::LoadContext loadContext;
 	RaCoApplication app{backend};
-	auto project = app.activeRaCoProject().loadFromFile(QString::fromUtf8((test_path() / "loadDoubleModuleReferenceWithoutError.rca").string().data()), &app, pathStack);
+	auto project = app.activeRaCoProject().loadFromFile(QString::fromUtf8((test_path() / "loadDoubleModuleReferenceWithoutError.rca").string().data()), &app, loadContext);
 	ASSERT_TRUE(project != nullptr);
 	ASSERT_FALSE(logsink->containsError());
 	raco::log_system::unregisterSink(logsink);

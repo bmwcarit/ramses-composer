@@ -27,6 +27,7 @@ add_library(libRamsesBase
     include/ramses_base/Utils.h src/ramses_base/Utils.cpp
     src/ramses_base/EnumerationDescriptions.h
 
+    include/ramses_adaptor/AnchorPointAdaptor.h src/ramses_adaptor/AnchorPointAdaptor.cpp
     include/ramses_adaptor/AnimationAdaptor.h src/ramses_adaptor/AnimationAdaptor.cpp
     include/ramses_adaptor/AnimationChannelAdaptor.h src/ramses_adaptor/AnimationChannelAdaptor.cpp
     include/ramses_adaptor/BaseCameraAdaptorHelpers.h src/ramses_adaptor/BaseCameraAdaptorHelpers.cpp

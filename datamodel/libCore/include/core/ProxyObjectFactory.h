@@ -32,7 +32,8 @@ using raco::core::HiddenProperty;
 using raco::core::TagContainerAnnotation;
 using raco::core::ExpectEmptyReference;
 using raco::core::RenderableTagContainerAnnotation;
-
+using raco::core::FeatureLevel;
+using raco::core::ReadOnlyAnnotation;
 
 template <typename U, typename T>
 struct tuple_has_type {};
@@ -146,6 +147,7 @@ public:
 		Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation>,
 		Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation>,
 		Property<bool, DisplayNameAnnotation, LinkEndAnnotation>,
+		Property<bool, DisplayNameAnnotation, LinkEndAnnotation, FeatureLevel>,
 		Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation>,
 
 		// MeshNode
@@ -160,6 +162,7 @@ public:
 		Property<bool, HiddenProperty>,
 		Property<DefaultResourceDirectories, DisplayNameAnnotation>,
 		Property<std::string, DisplayNameAnnotation, URIAnnotation>,
+		Property<int, DisplayNameAnnotation, ReadOnlyAnnotation>,
 
 		// LuaScript
 		Property<Table, DisplayNameAnnotation, LinkEndAnnotation>,
@@ -179,6 +182,7 @@ public:
 
 		// PerspectiveCamera
 		Property<PerspectiveFrustum, DisplayNameAnnotation, LinkEndAnnotation>,
+		Property<int, DisplayNameAnnotation, EnumerationAnnotation, FeatureLevel>,
 
 		// PerspectiveFrustum
 		Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>,
@@ -195,6 +199,8 @@ public:
 		Property<SRenderLayer, DisplayNameAnnotation>,
 		Property<SRenderLayer, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<int, DisplayNameAnnotation>,
+		Property<int, DisplayNameAnnotation, LinkEndAnnotation>,
+		Property<Vec4f, DisplayNameAnnotation, LinkEndAnnotation>,
 
 		// RenderLayer
 		Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation>,
@@ -215,7 +221,13 @@ public:
 		Property<TimerInput, DisplayNameAnnotation>,
 		Property<TimerOutput, DisplayNameAnnotation>,
 		Property<int64_t, DisplayNameAnnotation, LinkEndAnnotation>,
-		Property<int64_t, DisplayNameAnnotation, LinkStartAnnotation>>;
+		Property<int64_t, DisplayNameAnnotation, LinkStartAnnotation>,
+
+		// AnchorPoint
+		Property<SNode, DisplayNameAnnotation>,
+		Property<AnchorPointOutputs, DisplayNameAnnotation>,
+		Property<double, DisplayNameAnnotation, LinkStartAnnotation>,
+		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>>;
 
 	static ProxyObjectFactory& getInstance();
 
@@ -223,7 +235,7 @@ public:
 	virtual data_storage::ValueBase* createValue(const std::string& type) const override;
 
 	const std::map<std::string, TypeDescriptor>& getTypes() const override;
-	bool isUserCreatable(const std::string& type) const override;
+	bool isUserCreatable(const std::string& type, int featureLevel) const override;
 
 	const std::map<std::string, ValueCreationFunction>& getProperties() const;
 

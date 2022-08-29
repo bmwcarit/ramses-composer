@@ -9,6 +9,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ]]
 
 add_library(libUserTypes
+	include/user_types/AnchorPoint.h
 	include/user_types/Animation.h src/Animation.cpp
 	include/user_types/AnimationChannel.h src/AnimationChannel.cpp
 	include/user_types/BaseCamera.h
@@ -27,7 +28,7 @@ add_library(libUserTypes
 	include/user_types/MeshNode.h src/MeshNode.cpp
 	include/user_types/Node.h
 	include/user_types/OrthographicCamera.h
-	include/user_types/PerspectiveCamera.h
+	include/user_types/PerspectiveCamera.h src/PerspectiveCamera.cpp
 	include/user_types/Prefab.h src/Prefab.cpp
 	include/user_types/PrefabInstance.h src/PrefabInstance.cpp
 	include/user_types/RenderBuffer.h

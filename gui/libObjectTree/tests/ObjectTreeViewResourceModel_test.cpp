@@ -13,6 +13,7 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
+#include "user_types/AnchorPoint.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/LuaScriptModule.h"
 #include "user_types/RenderBuffer.h"
@@ -28,6 +29,7 @@ public:
 	ObjectTreeViewResourceModelTest() : ObjectTreeViewDefaultModelTest() {
 		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewResourceModel(&commandInterface, application_.dataChangeDispatcher(), nullptr,
 			{
+				AnchorPoint::typeDescription.typeName,
 				AnimationChannel::typeDescription.typeName,
 				CubeMap::typeDescription.typeName,
 				Material::typeDescription.typeName,
@@ -45,6 +47,7 @@ public:
 TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex({});
 	std::vector<std::string> allowedTypesAssert {
+		AnchorPoint::typeDescription.typeName,
 		AnimationChannel::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
 		Material::typeDescription.typeName,
@@ -120,7 +123,7 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedOnTopLevel
 
 			auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copiedObjs);
 			ASSERT_EQ(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true),
-				&newObj->getTypeDescription() != &RenderPass::typeDescription);
+				!(newObj->isType<RenderPass>() || newObj->isType<AnchorPoint>()));
 		}
 	}
 }
@@ -148,7 +151,8 @@ TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsResourcesAreAllowedAsExtRef) 
 			application_.dataChangeDispatcher()->dispatch(recorder.release());
 
 			auto [parsedObjs, sourceProjectTopLevelObjectIds] = viewModel_->getObjectsAndRootIdsFromClipboardString(copyObjs);
-			ASSERT_EQ(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true), &newObj->getTypeDescription() != &RenderPass::typeDescription);			
+			ASSERT_EQ(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true),
+				!(newObj->isType<RenderPass>() || newObj->isType<AnchorPoint>()));
 		}
 	}
 }

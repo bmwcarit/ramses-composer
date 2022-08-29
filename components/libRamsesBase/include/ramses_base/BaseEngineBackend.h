@@ -26,9 +26,15 @@ namespace raco::ramses_base {
 class BaseEngineBackend {
 	Q_DISABLE_COPY(BaseEngineBackend)
 public:
+	static const rlogic::EFeatureLevel minFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_01;
+	static const rlogic::EFeatureLevel maxFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_02;
+
 	typedef std::unique_ptr<ramses::RamsesClient, std::function<void(ramses::RamsesClient*)>> UniqueClient;
 	typedef std::unique_ptr<ramses::Scene, std::function<void(ramses::Scene*)>> UniqueScene;
+	typedef std::unique_ptr<rlogic::LogicEngine> UniqueLogicEngine;
+	
 	BaseEngineBackend(
+		rlogic::EFeatureLevel featureLevel, 
 		const ramses::RamsesFrameworkConfig& frameworkConfig = ramses::RamsesFrameworkConfig{},
 		const char* applicationName = "Ramses Composer");
 	virtual ~BaseEngineBackend();
@@ -38,6 +44,9 @@ public:
 	LogicEngine& logicEngine();
 	raco::core::EngineInterface* coreInterface();
 
+	void setFeatureLevel(rlogic::EFeatureLevel newFeatureLevel);
+	rlogic::EFeatureLevel getFeatureLevel();
+
 	/**
 	 * Scene used for internal validation / creation of resource.
 	 * E.g. parsing a shader text.
@@ -46,7 +55,7 @@ public:
 
 private:
 	ramses::RamsesFramework framework_;
-	LogicEngine logicEngine_;
+	UniqueLogicEngine logicEngine_;
 	UniqueClient client_;
 	UniqueScene scene_;
 	CoreInterfaceImpl coreInterface_;

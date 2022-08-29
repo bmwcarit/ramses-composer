@@ -61,9 +61,25 @@ public:
 		return false;
 	}
 	HiddenProperty(const HiddenProperty& other) : AnnotationBase({}) {}
-	HiddenProperty() : AnnotationBase({}) {}
+	HiddenProperty() : AnnotationBase({}){}
 
 	HiddenProperty& operator=(const HiddenProperty& other) {
+		return *this;
+	}
+};
+
+class ReadOnlyAnnotation : public raco::data_storage::AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"ReadOnlyAnnotation", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	ReadOnlyAnnotation(const ReadOnlyAnnotation& other) : AnnotationBase({}) {}
+	ReadOnlyAnnotation() : AnnotationBase({}) {}
+	ReadOnlyAnnotation& operator=(const ReadOnlyAnnotation& other) {
 		return *this;
 	}
 };
@@ -168,6 +184,32 @@ public:
 	}
 
 	raco::data_storage::Value<std::string> emptyRefLabel_;
+};
+
+/**
+ * @brief Tag a property as enabled starting at a particular logic engine feature level.
+ * 
+ * Property with a feature level higher than the current project feature level must not be exposed to the user, are not readable or 
+ * writable from the Python API, and must not be used in the engine backend / adaptor classes.
+*/
+class FeatureLevel : public raco::data_storage::AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"FeatureLevel", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	FeatureLevel(const FeatureLevel& other) : AnnotationBase({{"featureLevel", &featureLevel_}}), featureLevel_(other.featureLevel_) {}
+	FeatureLevel(int featureLevel = 1) : AnnotationBase({{"featureLevel", &featureLevel_}}), featureLevel_(featureLevel) {}
+
+	FeatureLevel& operator=(const FeatureLevel& other) {
+		featureLevel_ = other.featureLevel_;
+		return *this;
+	}
+
+	raco::data_storage::Value<int> featureLevel_;
 };
 
 }  // namespace raco::data_storage

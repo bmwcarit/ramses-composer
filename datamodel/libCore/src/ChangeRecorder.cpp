@@ -15,6 +15,8 @@
 #include <iterator>
 #include <set>
 
+#include <cassert>
+
 namespace raco::core {
 
 bool DataChangeRecorder::LinkMap::contains(SLink link) const {
@@ -139,6 +141,7 @@ void DataChangeRecorder::recordDeleteObject(SEditorObject const& object) {
 }
 
 void DataChangeRecorder::recordValueChanged(ValueHandle const& value) {
+	assert(value.isProperty());
 	// Remove existing changed values nested inside value
 	const auto& objectID = value.rootObject()->objectID();
 

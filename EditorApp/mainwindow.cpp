@@ -37,7 +37,7 @@
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
-#include "object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.h"
+#include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
 #include "ramses_widgets/PreviewMainWindow.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserModel.h"
@@ -52,6 +52,7 @@
 #include "core/Serialization.h"
 #include "ui_mainwindow.h"
 
+#include "user_types/AnchorPoint.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/CubeMap.h"
@@ -181,16 +182,15 @@ void createAndAddProjectSettings(MainWindow* mainWindow, const char* dockObjName
 	dockManager->addDockWidget(ads::RightDockWidgetArea, dock);
 }
 
-ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel *dockModel, QSortFilterProxyModel* sortFilterModel, ads::DockWidgetArea area, MainWindow* mainWindow, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, ads::CDockAreaWidget* dockArea) {
+ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel* dockModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel* sortFilterModel, ads::DockWidgetArea area, MainWindow* mainWindow, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, ads::CDockAreaWidget* dockArea) {
 	auto* dockObjectView = new raco::object_tree::view::ObjectTreeDock(title, mainWindow);
 	QObject::connect(dockModel, &raco::object_tree::model::ObjectTreeViewDefaultModel::meshImportFailed, mainWindow, &MainWindow::showMeshImportErrorMessage);
 	dockModel->buildObjectTree();
 	auto newTreeView = new raco::object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
-	if (sortFilterModel) {
-		newTreeView->setSortingEnabled(true);
+	if (sortFilterModel && sortFilterModel->sortingEnabled()) {
 		newTreeView->sortByColumn(raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE, Qt::SortOrder::AscendingOrder);
 	}
-	dockObjectView->addTreeView(newTreeView);
+	dockObjectView->setTreeView(newTreeView);
 	treeDockManager.addTreeDock(dockObjectView);
 	dockModel->setParent(dockObjectView);
 
@@ -200,13 +200,14 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 
 ads::CDockAreaWidget* createAndAddProjectBrowser(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* racoApplication, ads::CDockAreaWidget* dockArea) {
 	auto* model = new raco::object_tree::model::ObjectTreeViewExternalProjectModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects());
-	return createAndAddObjectTree(MainWindow::DockWidgetTypes::PROJECT_BROWSER, dockObjName, model, new QSortFilterProxyModel,  ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
+	return createAndAddObjectTree(MainWindow::DockWidgetTypes::PROJECT_BROWSER, dockObjName, model, new raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel(mainWindow), ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
 ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* racoApplication, ads::CDockAreaWidget* dockArea) {
 	using namespace raco::user_types;
 
 	static const std::vector<std::string> allowedCreateableUserTypes{
+		AnchorPoint::typeDescription.typeName,
 		AnimationChannel::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
 		LuaScriptModule::typeDescription.typeName,
@@ -221,7 +222,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewResourceModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(
-		MainWindow::DockWidgetTypes::RESOURCES, dockObjName, model, new QSortFilterProxyModel,
+		MainWindow::DockWidgetTypes::RESOURCES, dockObjName, model, new raco::object_tree::model::ObjectTreeViewTopLevelSortFilterProxyModel(mainWindow),
 		ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
@@ -242,7 +243,7 @@ ads::CDockAreaWidget* createAndAddPrefabTree(MainWindow* mainWindow, const char*
 	auto* model = new raco::object_tree::model::ObjectTreeViewPrefabModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 
 	return createAndAddObjectTree(
-		MainWindow::DockWidgetTypes::PREFABS, dockObjName, model, new raco::object_tree::model::ObjectTreeViewTopLevelSortFilterProxyModel,
+		MainWindow::DockWidgetTypes::PREFABS, dockObjName, model, new raco::object_tree::model::ObjectTreeViewTopLevelSortFilterProxyModel(mainWindow),
 		ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
@@ -260,7 +261,7 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 		LuaInterface::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewDefaultModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
-	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, nullptr,
+	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, new raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel(mainWindow, false),
 		ads::LeftDockWidgetArea, mainWindow, dockManager, treeDockManager, nullptr);
 }
 
@@ -587,18 +588,38 @@ void MainWindow::openProject(const QString& file) {
 	delete dockManager_;
 	logViewModel_->clear();
 
+
+	killTimer(renderTimerId_);
+
 	try {
-		racoApplication_->switchActiveRaCoProject(file);
+		auto relinkCallback = [this](const std::string& projectPath) -> std::string {
+			auto answer = QMessageBox::warning(this, "External Project Not Found: Relink?",
+				fmt::format("External project '{}' was not found!\n\nSpecify replacement project and relink?", projectPath).c_str(),
+				QMessageBox::Yes | QMessageBox::No);
+			if (answer == QMessageBox::Yes) {
+				auto projectDirectory = raco::utils::u8path(projectPath).normalized().parent_path().string();
+				auto file = QFileDialog::getOpenFileName(this,
+					"Replace: " + QString::fromStdString(projectPath),
+					QString::fromStdString(projectDirectory),
+					"Ramses Composer Assembly (*.rca)");
+				return file.toStdString();
+			}
+			return std::string();
+		};
+		racoApplication_->switchActiveRaCoProject(file, relinkCallback, true, racoApplication_->applicationFeatureLevel());
 	} catch (const raco::application::FutureFileVersion& error) {
-		racoApplication_->switchActiveRaCoProject({});
+		racoApplication_->switchActiveRaCoProject({}, {});
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", raco::serialization::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
 	} catch (const ExtrefError& error) {
-		racoApplication_->switchActiveRaCoProject({});
+		racoApplication_->switchActiveRaCoProject({}, {});
 		QMessageBox::warning(this, "File Load Error", fmt::format("External reference update failed.\n\n{}", error.what()).c_str(), QMessageBox::Close);
 	} catch (const std::exception& e) {
-		racoApplication_->switchActiveRaCoProject({});
+		racoApplication_->switchActiveRaCoProject({}, {});
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file {} could not be loaded.\n\nReported error: {}\n\nCheck whether the file has been broken or corrupted.", fileString, e.what()).c_str(), QMessageBox::Close);
 	}
+
+	renderTimerId_ = startTimer(timerInterval60Fps);
+
 
 	// Recreate our layout with new context
 	dockManager_ = createDockManager(this);

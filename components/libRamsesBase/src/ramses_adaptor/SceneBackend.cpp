@@ -10,12 +10,14 @@
 #include "ramses_adaptor/SceneBackend.h"
 
 #include <ramses-client-api/Node.h>
+#include <ramses-client-api/RenderPass.h>
 #include <ramses-client-api/SceneGraphIterator.h>
 #include <ramses-client-api/SceneObjectIterator.h>
 #include <ramses-logic/LuaScript.h>
 #include <ramses-logic/RamsesAppearanceBinding.h>
 #include <ramses-logic/RamsesNodeBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>
+#include <ramses-logic/RamsesRenderPassBinding.h>
 
 #include "ramses_base/RamsesFormatter.h"
 #include "ramses_base/BaseEngineBackend.h"
@@ -25,14 +27,22 @@
 
 namespace raco::ramses_adaptor {
 
-SceneBackend::SceneBackend(ramses_base::BaseEngineBackend *engine, const SDataChangeDispatcher& dispatcher) 
-	: client_{&engine->client()},
-	logicEngine_{&engine->logicEngine()},
+SceneBackend::SceneBackend(ramses_base::BaseEngineBackend& engine, const SDataChangeDispatcher& dispatcher) 
+	: engine_(engine),
 	dispatcher_{dispatcher} {}
+
+ramses::RamsesClient* SceneBackend::client() const {
+	return &engine_.client();
+}
+
+ramses_base::LogicEngine* SceneBackend::logicEngine() const {
+	return &engine_.logicEngine();
+}
+
 
 void SceneBackend::setScene(Project* project, core::Errors *errors, bool optimizeForExport) {
 	scene_.reset();
-	scene_ = std::make_unique<SceneAdaptor>(client_, logicEngine_, toSceneId(*project->settings()->sceneId_), project, dispatcher_, errors, optimizeForExport);
+	scene_ = std::make_unique<SceneAdaptor>(client(), logicEngine(), toSceneId(*project->settings()->sceneId_), project, dispatcher_, errors, optimizeForExport);
 }
 
 ramses::sceneId_t SceneBackend::toSceneId(int i) {
@@ -69,11 +79,11 @@ void SceneBackend::readDataFromEngine(core::DataChangeRecorder& recorder) {
 
 
 bool SceneBackend::sceneValid() const {
-	return currentScene()->validate() == ramses::StatusOK && logicEngine_->validate().empty();
+	return currentScene()->validate() == ramses::StatusOK && logicEngine()->validate().empty();
 }
 
 std::string SceneBackend::getValidationReport(core::ErrorLevel minLevel) const {
-	auto logicErrors = logicEngine_->validate();
+	auto logicErrors = logicEngine()->validate();
 	std::string logicErrorMessages;
 	for (const auto& logicError : logicErrors) {
 		logicErrorMessages.append(logicError.message).append("\n");
@@ -114,7 +124,7 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 
 	std::vector<SceneItemDesc> sceneItems;
 
-	std::map<ramses::RamsesObject*, int> parents{};
+	std::map<const ramses::RamsesObject*, int> parents{};
 	for (const auto object : ramsesObjects) {
 		ramses::RamsesObject* ramsesParent = getParent(object);
 		int parentIndex = ramsesParent ? parents[ramsesParent] : -1;
@@ -152,43 +162,52 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 		}
 	}
 
-	for (const auto* module : logicEngine_->getCollection<rlogic::LuaModule>()) {
+	for (const auto* module : logicEngine()->getCollection<rlogic::LuaModule>()) {
 		sceneItems.emplace_back("LuaScriptModule", module->getName().data(), -1);
 	}
 
-	for (const auto* script : logicEngine_->getCollection<rlogic::LuaScript>()) {
+	for (const auto* script : logicEngine()->getCollection<rlogic::LuaScript>()) {
 		sceneItems.emplace_back("LuaScript", script->getName().data(), -1);
 	}
 
-	for (const auto* interface: logicEngine_->getCollection<rlogic::LuaInterface>()) {
+	for (const auto* interface: logicEngine()->getCollection<rlogic::LuaInterface>()) {
 		sceneItems.emplace_back("LuaInterface", interface->getName().data(), -1);
 	}
 
-	for (const auto* dataArray : logicEngine_->getCollection<rlogic::DataArray>()) {
+	for (const auto* dataArray : logicEngine()->getCollection<rlogic::DataArray>()) {
 		sceneItems.emplace_back("DataArray", dataArray->getName().data(), -1);
 	}
 
-	for (const auto* animation : logicEngine_->getCollection<rlogic::AnimationNode>()) {
+	for (const auto* animation : logicEngine()->getCollection<rlogic::AnimationNode>()) {
 		sceneItems.emplace_back("Animation", animation->getName().data(), -1);
 	}
 
-	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesAppearanceBinding>()) {
+	for (const auto* binding : logicEngine()->getCollection<rlogic::RamsesAppearanceBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesAppearance()];
 		sceneItems.emplace_back("AppearanceBinding", binding->getName().data(), parentIdx);
 	}
 
-	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesNodeBinding>()) {
+	for (const auto* binding : logicEngine()->getCollection<rlogic::RamsesNodeBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesNode()];
 		sceneItems.emplace_back("NodeBinding", binding->getName().data(), parentIdx);
 	}
 
-	for (const auto* binding : logicEngine_->getCollection<rlogic::RamsesCameraBinding>()) {
+	for (const auto* binding : logicEngine()->getCollection<rlogic::RamsesCameraBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesCamera()];
 		sceneItems.emplace_back("CameraBinding", binding->getName().data(), parentIdx);
 	}
 
-	for (const auto* timer : logicEngine_->getCollection<rlogic::TimerNode>()) {
+	for (const auto* binding : logicEngine()->getCollection<rlogic::RamsesRenderPassBinding>()) {
+		auto parentIdx = parents[&binding->getRamsesRenderPass()];
+		sceneItems.emplace_back("RenderPassBinding", binding->getName().data(), parentIdx);
+	}
+
+	for (const auto* timer : logicEngine()->getCollection<rlogic::TimerNode>()) {
 		sceneItems.emplace_back("Timer", timer->getName().data(), -1);
+	}
+
+	for (const auto* anchorPoint : logicEngine()->getCollection<rlogic::AnchorPoint>()) {
+		sceneItems.emplace_back("AnchorPoint", anchorPoint->getName().data(), -1);
 	}
 
 	return sceneItems;

@@ -40,7 +40,8 @@ public:
 		  layer6_(other.layer6_),
 		  layer7_(other.layer7_),
 		  enabled_(other.enabled_),
-		  order_(other.order_),
+		  renderOnce_(other.renderOnce_),
+		  renderOrder_(other.renderOrder_),
 		  clearColor_(other.clearColor_),
 		  enableClearColor_(other.enableClearColor_),
 		  enableClearDepth_(other.enableClearDepth_),
@@ -65,7 +66,8 @@ public:
 		properties_.emplace_back("layer7", &layer7_);
 
 		properties_.emplace_back("enabled", &enabled_);
-		properties_.emplace_back("order", &order_);
+		properties_.emplace_back("renderOnce", &renderOnce_);
+		properties_.emplace_back("renderOrder", &renderOrder_);
 		properties_.emplace_back("clearColor", &clearColor_);
 		properties_.emplace_back("enableClearColor", &enableClearColor_);
 		properties_.emplace_back("enableClearDepth", &enableClearDepth_);
@@ -86,10 +88,11 @@ public:
 	Property<SRenderLayer, DisplayNameAnnotation, ExpectEmptyReference> layer6_{{}, {"Layer 6"}, {}};
 	Property<SRenderLayer, DisplayNameAnnotation, ExpectEmptyReference> layer7_{{}, {"Layer 7"}, {}};
 
-	Property<bool, DisplayNameAnnotation> enabled_{true, {"Enabled"}};
-	Property<int, DisplayNameAnnotation> order_{1, {"Order"}};
+	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> enabled_{true, {"Enabled"}, {2}};
+	Property<bool, DisplayNameAnnotation, LinkEndAnnotation, FeatureLevel> renderOnce_{false, {"Render Once"}, {2}, {2}};
+	Property<int, DisplayNameAnnotation, LinkEndAnnotation> renderOrder_{1, {"Render Order"}, {2}};
 
-	Property<Vec4f, DisplayNameAnnotation> clearColor_{{}, {"Clear Color"}};
+	Property<Vec4f, DisplayNameAnnotation, LinkEndAnnotation> clearColor_{{}, {"Clear Color"}, {2}};
 
 	Property<bool, DisplayNameAnnotation> enableClearColor_{true, {"Enable Clear Color"}};
 	Property<bool, DisplayNameAnnotation> enableClearDepth_{true, {"Enable Clear Depth"}};

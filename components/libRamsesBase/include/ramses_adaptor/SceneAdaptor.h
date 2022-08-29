@@ -61,6 +61,8 @@ public:
 
 	bool optimizeForExport() const;
 
+	rlogic::EFeatureLevel featureLevel() const;
+
 private:
 	void createLink(const core::LinkDescriptor& link);
 	void changeLinkValidity(const core::LinkDescriptor& link, bool isValid);

@@ -35,8 +35,8 @@ ramses::RamsesFrameworkConfig& RendererBackend::ramsesFrameworkConfig(const std:
 	}
 }
 
-RendererBackend::RendererBackend(const std::string& frameworkArgs)
-	: BaseEngineBackend{ramsesFrameworkConfig(frameworkArgs)},
+RendererBackend::RendererBackend(rlogic::EFeatureLevel featureLevel, const std::string& frameworkArgs)
+	: BaseEngineBackend{featureLevel, ramsesFrameworkConfig(frameworkArgs)},
 	  renderer_{framework().createRenderer(ramses::RendererConfig{}), [=](ramses::RamsesRenderer* c) { framework().destroyRenderer(*c); }},
 	  eventHandler_{std::make_unique<SceneStateEventHandler>(*renderer_.get())} {
 	// Connect needs to be called after the renderer is created

@@ -16,9 +16,11 @@
 #include "core/Queries.h"
 #include "core/BasicAnnotations.h"
 #include "property_browser/PropertyBrowserRef.h"
-#include "user_types/RenderPass.h"
-#include "user_types/MeshNode.h"
+
 #include "user_types/EngineTypeAnnotation.h"
+#include "user_types/LuaScript.h"
+#include "user_types/MeshNode.h"
+#include "user_types/RenderPass.h"
 
 using raco::log_system::PROPERTY_BROWSER;
 using raco::data_storage::PrimitiveType;
@@ -44,6 +46,13 @@ PropertyBrowserItem::PropertyBrowserItem(
 			  syncChildrenWithValueHandle();
 		  }
 		  Q_EMIT valueChanged(valueHandle_);
+		  if (valueHandle_.isProperty()) {
+			  if (auto newEditable = editable(); newEditable != editable_) {
+				  editable_ = newEditable;
+				  Q_EMIT editableChanged(editable());
+				  Q_EMIT linkStateChanged(linkState());
+			  }
+		  }
 	  })},
 	  errorSubscription_{dispatcher->registerOnErrorChanged(valueHandle_, [this]() {
 		  Q_EMIT errorChanged(valueHandle_);
@@ -58,7 +67,11 @@ PropertyBrowserItem::PropertyBrowserItem(
 		refItem_ = new PropertyBrowserRef(this);
 	}
 	
-	bool linkEnd = raco::core::Queries::isValidLinkEnd(valueHandle_);
+	if (valueHandle_.isProperty()) {
+		editable_ = editable();
+	}
+
+	bool linkEnd = raco::core::Queries::isValidLinkEnd(*project(), valueHandle_);
 	bool linkStart = raco::core::Queries::isValidLinkStart(valueHandle_);
 	
 	auto linkValidityCallback = [this](const core::LinkDescriptor& link) {

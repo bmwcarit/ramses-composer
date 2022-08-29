@@ -13,6 +13,7 @@
 #include "common_widgets/RaCoClipboard.h"
 #include "core/Project.h"
 #include "core/Queries.h"
+#include "property_browser/PropertyBrowserEditorPopup.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
 #include "style/Colors.h"
@@ -32,126 +33,35 @@ namespace raco::property_browser {
 
 using namespace raco::style;
 
-class LinkEditorPopup : public QDialog {
+class LinkEditorPopup : public PropertyBrowserEditorPopup {
 public:
 	using LinkState = raco::core::Queries::LinkState;
 	using LinkStartSearchView = raco::common_widgets::LinkStartSearchView;
 
-	explicit LinkEditorPopup(PropertyBrowserItem* item, QWidget* anchor) : QDialog{anchor}, item_{item}, list_ {item_->dispatcher(), item_->project(), item->valueHandle(), this} {
-		setWindowFlags(Qt::Popup);
-		setAttribute(Qt::WA_DeleteOnClose);
-		setSizeGripEnabled(true);
-
+	LinkEditorPopup(PropertyBrowserItem* item, QWidget* anchor) : PropertyBrowserEditorPopup{item, anchor, new LinkStartSearchView(item->dispatcher(), item->project(), item->valueHandle(), anchor)} {
 		bool isLinked{item->linkText().size() > 0};
 
 		if (isLinked) {
-			currentLink_.setReadOnly(true);
-			currentLink_.setText(item->linkText().c_str());
+			currentRelation_.setReadOnly(true);
+			currentRelation_.setText(item->linkText().c_str());
 			deleteButton_.setFlat(true);
 			deleteButton_.setIcon(Icons::instance().remove);
 		} else {
-			currentLink_.setVisible(false);
+			currentRelation_.setVisible(false);
 			deleteButton_.setVisible(false);
 		}
-
-		acceptButton_.setFlat(true);
-		acceptButton_.setIcon(Icons::instance().done);
-		closeButton_.setFlat(true);
-		closeButton_.setIcon(Icons::instance().close);
-
-		frame_.setLineWidth(1);
-		frame_.setFrameStyle(QFrame::Panel | QFrame::Raised);
-
-		dataTypeLabel_.setAlignment(Qt::AlignCenter);
-		dataTypeLabel_.setText(QString::fromStdString(item->luaTypeName()));
-
-		outerLayout_.setContentsMargins(0, 0, 0, 0);
-		outerLayout_.addWidget(&frame_, 0, 0, 1, 1);
-		layout_.addWidget(&currentLink_, 0, 0, 1, 2);
-		layout_.addWidget(&deleteButton_, 0, 2);
-		layout_.addWidget(&search_, 1, 0, 1, 3);
-		layout_.addWidget(&list_, 2, 0, 1, 3);
-		layout_.addWidget(&acceptButton_, 3, 0);
-		layout_.addWidget(&dataTypeLabel_, 3, 1);
-		layout_.addWidget(&closeButton_, 3, 2);
-		layout_.setColumnStretch(1, 1);
-
-		search_.installEventFilter(this);
-		search_.setFocus();
-		acceptButton_.setEnabled(list_.hasValidSelection());
-
-		QObject::connect(dynamic_cast<QApplication*>(QApplication::instance()), &QApplication::focusChanged, this, [this](QWidget* old, QWidget* now) { if (now != this && !this->isAncestorOf(now)) close(); });
-		QObject::connect(&search_, &QLineEdit::textChanged, &list_, &LinkStartSearchView::setFilterByName);
-		QObject::connect(&closeButton_, &QPushButton::clicked, this, &QWidget::close);
-		QObject::connect(&deleteButton_, &QPushButton::clicked, this, [this, item]() { item->removeLink(); close(); });
-		QObject::connect(&list_, &LinkStartSearchView::selectionChanged, &acceptButton_, &QPushButton::setEnabled);
-		QObject::connect(&acceptButton_, &QPushButton::clicked, this, &LinkEditorPopup::createLink);
-		QObject::connect(&list_, &LinkStartSearchView::clicked, this, &LinkEditorPopup::createLink);
-		QObject::connect(&list_, &LinkStartSearchView::activated, this, &LinkEditorPopup::createLink);
-
-		// center horizontally on link button and keep on screen
-		search_.setMinimumWidth(500);
-		updateGeometry();
-		QPoint parentLocation = anchor->mapToGlobal(anchor->geometry().topLeft());
-		QSize size = sizeHint();
-		QRect screen = QApplication::desktop()->screenGeometry(anchor);
-		int x = std::min( parentLocation.x() - size.width() / 2, screen.x() + screen.width() - size.width());
-		int y = std::min( parentLocation.y(), screen.height()-size.height());
-		move( x, y );
-
-		show();
-	}
-
-	void createLink() {
-		item_->setLink(list_.handleFromIndex(list_.selection()), !list_.allowedStrong(list_.selection()) && list_.allowedWeak(list_.selection()));
-		close();
 	}
 
 protected:
-	bool eventFilter(QObject* obj, QEvent* event) {
-		if (&search_ == obj) {
-			if (event->type() == QEvent::KeyPress) {
-				QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-				if (keyEvent->key() == Qt::Key_Down) {
-					list_.setFocus();
-					return true;
-				}
-			}
-			return false;
-		}
-		return QDialog::eventFilter(obj, event);
+	void establishObjectRelation() override {
+		auto allowedStrong = dynamic_cast<LinkStartSearchView*>(list_)->allowedStrong(list_->selection());
+		auto allowedWeak = dynamic_cast<LinkStartSearchView*>(list_)->allowedWeak(list_->selection());
+		item_->setLink(list_->handleFromIndex(list_->selection()), !allowedStrong && allowedWeak);
 	}
 
-	void keyPressEvent(QKeyEvent* event) override {
-		auto key{event->key()};
-		if (key == Qt::Key_Escape) {
-			close();
-		} else if (key == Qt::Key_Enter || key == Qt::Key_Return) {
-			if (list_.hasValidSelection()) {
-				createLink();
-			} else if (search_.text().size() == 0 && item_->linkText().size() > 0) {
-				item_->removeLink();
-				close();
-			} else {
-				close();
-			}
-		} else if ((key == Qt::UpArrow || key == Qt::Key_Up)) {
-			search_.setFocus();
-		}
+	void removeObjectRelation() override {
+		item_->removeLink();
 	}
-
-private:
-	PropertyBrowserItem* item_;
-	QGridLayout outerLayout_{this};
-	QFrame frame_{this};
-	QGridLayout layout_{&frame_};
-	QLineEdit currentLink_{this};
-	QPushButton deleteButton_{this};
-	QLineEdit search_{this};
-	LinkStartSearchView list_;
-	QPushButton acceptButton_{this};
-	QPushButton closeButton_{this};
-	QLabel dataTypeLabel_{this};
 };
 
 LinkEditor::LinkEditor(

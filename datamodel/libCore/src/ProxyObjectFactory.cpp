@@ -62,6 +62,7 @@ namespace raco::serialization::proxy {
 		// Instead create a new proxy type in ProxyTypes.h and add that in the call below.
 		types_ = makeTypeMap<
 			ProjectSettings,
+			AnchorPoint,
 			Animation,
 			AnimationChannel,
 			CubeMap,
@@ -136,7 +137,7 @@ namespace raco::serialization::proxy {
 		return types_;
 	}
 
-	bool ProxyObjectFactory::isUserCreatable(const std::string& type) const {
+	bool ProxyObjectFactory::isUserCreatable(const std::string& type, int featureLevel) const {
 		return true;
 	}
 

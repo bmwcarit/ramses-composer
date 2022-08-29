@@ -114,6 +114,8 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 					return QVariant(QString::fromStdString(treeNode->getDisplayName()));
 				case COLUMNINDEX_TYPE:
 					return QVariant(QString::fromStdString(treeNode->getDisplayType()));
+				case COLUMNINDEX_ID:
+					return QVariant(QString::fromStdString(treeNode->getID()));
 				case COLUMNINDEX_PROJECT: {
 					return QVariant(QString::fromStdString(treeNode->getExternalProjectName()));
 				}
@@ -132,6 +134,8 @@ QVariant ObjectTreeViewDefaultModel::headerData(int section, Qt::Orientation ori
 					return QVariant("Name");
 				case COLUMNINDEX_TYPE:
 					return QVariant("Type");
+				case COLUMNINDEX_ID:
+					return QVariant("ID");
 				case COLUMNINDEX_PROJECT:
 					return QVariant("Project Name");
 			}
@@ -319,13 +323,16 @@ bool ObjectTreeViewDefaultModel::dropMimeData(const QMimeData* data, Qt::DropAct
 }
 
 Qt::ItemFlags ObjectTreeViewDefaultModel::flags(const QModelIndex& index) const {
-	Qt::ItemFlags defaultFlags = QAbstractItemModel::flags(index);
+	Qt::ItemFlags itemFlags = QAbstractItemModel::flags(index) | Qt::ItemIsDropEnabled;
 
 	if (auto obj = indexToSEditorObject(index); obj && !obj->query<ExternalReferenceAnnotation>()) {
-		return Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | defaultFlags;
-	} else {
-		return Qt::ItemIsDropEnabled | defaultFlags;
+		itemFlags |= Qt::ItemIsDragEnabled;
+		if (!Queries::isReadOnly(*project(), core::ValueHandle{obj, {"objectName"}}) && index.column() == COLUMNINDEX_NAME) {
+			itemFlags |= Qt::ItemIsEditable;
+		}
 	}
+
+	return itemFlags;
 }
 
 QMimeData* ObjectTreeViewDefaultModel::mimeData(const QModelIndexList& indices) const {
@@ -401,7 +408,17 @@ std::vector<SEditorObject> ObjectTreeViewDefaultModel::filterForTopLevelObjects(
 	return Queries::filterForTopLevelObjectsByTypeName(objects, allowedUserCreatableUserTypes_);
 }
 
-SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::TypeDescriptor& typeDesc, const std::string& nodeName, const QModelIndex& parent) {
+std::vector<std::string> ObjectTreeViewDefaultModel::creatableTypes(const QModelIndex& parent) const {
+	std::vector<std::string> result;
+	for (auto typeName : typesAllowedIntoIndex(parent)) {
+		if (objectFactory()->isUserCreatable(typeName, project()->featureLevel())) {
+			result.emplace_back(typeName);
+		}
+	}
+	return result;
+}
+
+SEditorObject ObjectTreeViewDefaultModel::createNewObject(const std::string& typeName, const std::string& nodeName, const QModelIndex& parent) {
 	SEditorObject parentObj = indexToSEditorObject(parent);
 
 	std::vector<SEditorObject> nodes;
@@ -409,8 +426,8 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const EditorObject::Ty
 		return obj->getParent() == parentObj;
 	});
 
-	auto name = project()->findAvailableUniqueName(nodes.begin(), nodes.end(), nullptr, nodeName.empty() ? raco::components::Naming::format(typeDesc.typeName) : nodeName);
-	auto newObj = commandInterface_->createObject(typeDesc.typeName, name, parent.isValid() ? parentObj : nullptr);
+	auto name = project()->findAvailableUniqueName(nodes.begin(), nodes.end(), nullptr, nodeName.empty() ? raco::components::Naming::format(typeName) : nodeName);
+	auto newObj = commandInterface_->createObject(typeName, name, parent.isValid() ? parentObj : nullptr);
 
 	return newObj;
 }
@@ -521,7 +538,9 @@ bool ObjectTreeViewDefaultModel::pasteObjectAtIndex(const QModelIndex& index, bo
 		commandInterface_->pasteObjects(serializedObjects, indexToSEditorObject(index), pasteAsExtref);
 	} catch (std::exception &error) {
 		success = false;
-		*outError = error.what();
+		if (outError) {
+			*outError = error.what();
+		}
 	}
 	return success;
 }
@@ -622,7 +641,7 @@ void raco::object_tree::model::ObjectTreeViewDefaultModel::updateTreeIndexes() {
 		invisibleRootIndex_);
 }
 
-UserObjectFactoryInterface* ObjectTreeViewDefaultModel::objectFactory() {
+UserObjectFactoryInterface* ObjectTreeViewDefaultModel::objectFactory() const {
 	return commandInterface_->objectFactory();
 }
 
@@ -666,6 +685,35 @@ std::set<std::string> ObjectTreeViewDefaultModel::externalProjectPathsAtIndices(
 		}
 	}
 	return projectPaths;
+}
+
+bool ObjectTreeViewDefaultModel::setData(const QModelIndex& index, const QVariant& value, int role) {
+	bool success{false};
+
+	if (auto obj = indexToSEditorObject(index)) {
+		if (Queries::isReadOnly(obj)) {
+			assert(false && "trying to set a read-only object!");
+			return false;
+		}
+
+		if (role == Qt::ItemDataRole::EditRole) {
+			commandInterface_->set(core::ValueHandle{obj, {"objectName"}}, value.toString().toStdString());
+			if (obj->objectName() == value.toString().toStdString()) {
+				success = true;
+			} else {
+				assert(false && "model failed to set object name!");
+				success = false;
+			}
+		}
+	} else {
+		success = QAbstractItemModel::setData(index, value, role);
+	}
+
+	if (success) {
+		Q_EMIT dataChanged(index, index);
+	}
+
+	return success;
 }
 
 }  // namespace raco::object_tree::model

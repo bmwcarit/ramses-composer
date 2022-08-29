@@ -179,6 +179,9 @@ const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco
 		case raco::core::EngineEnumeration::RenderLayerMaterialFilterMode:
 			return raco::user_types::enumerationRenderLayerMaterialFilterMode;
 
+		case raco::core::EngineEnumeration::FrustumType:
+			return raco::user_types::enumerationFrustumType;
+
 		default:
 			assert(false);
 			return enumerationEmpty;

@@ -82,6 +82,9 @@ py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 					case raco::core::EngineEnumeration::RenderLayerMaterialFilterMode:
 						return py::cast(static_cast<raco::user_types::ERenderLayerMaterialFilterMode>(handle.asInt()));
 
+					case raco::core::EngineEnumeration::FrustumType:
+						return py::cast(static_cast<raco::user_types::EFrustumType>(handle.asInt()));
+
 					default:
 						assert(false);
 						return py::none();
@@ -108,6 +111,9 @@ void checkProperty(const raco::core::PropertyDescriptor& desc) {
 	raco::core::ValueHandle handle{desc};
 	if (!handle || handle.constValueRef()->query<raco::core::HiddenProperty>()) {
 		throw std::runtime_error(fmt::format("Property '{}' doesn't exist in object '{}'", desc.getPropertyPath(), desc.object()->objectName()));
+	}
+	if (auto anno = handle.query<raco::core::FeatureLevel>(); anno && *anno->featureLevel_ > app->activeRaCoProject().project()->featureLevel()) {
+		throw std::runtime_error(fmt::format("Property {} inaccessible at feature level {}", handle.getPropertyPath(), app->activeRaCoProject().project()->featureLevel()));
 	}
 }
 
@@ -286,6 +292,9 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.value("Inclusive", raco::user_types::ERenderLayerMaterialFilterMode::Inclusive)
 		.value("Exclusive", raco::user_types::ERenderLayerMaterialFilterMode::Exclusive);
 
+	py::enum_<raco::user_types::EFrustumType>(m, "EFrustumType")
+		.value("Aspect_FoV", raco::user_types::EFrustumType::Aspect_FieldOfView)
+		.value("Planes", raco::user_types::EFrustumType::Planes);
 
 	m.def("load", [](std::string path) {
 		if (app->isRunningInUI()) {
@@ -294,13 +303,13 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 
 		if (!path.empty()) {
 			try {
-				app->switchActiveRaCoProject(QString::fromStdString(path), false);
+				app->switchActiveRaCoProject(QString::fromStdString(path), {}, false);
 			} catch (std::exception& e) {
-				app->switchActiveRaCoProject(QString(), false);
+				app->switchActiveRaCoProject(QString(), {} , false);
 				throw e;
 			}
 		} else {
-			app->switchActiveRaCoProject(QString(), false);
+			app->switchActiveRaCoProject(QString(), {} , false);
 			throw std::runtime_error("Load project: file name is empty.");
 		}
 	});
@@ -310,7 +319,7 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 			throw std::runtime_error(fmt::format("Can not reset project: project-switching Python functions currently not allowed in UI."));
 		}
 
-		app->switchActiveRaCoProject(QString(), false);
+		app->switchActiveRaCoProject(QString(), {}, false);
 	});
 
 	m.def("save", [](std::string path) {
@@ -399,7 +408,10 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 			std::vector<std::string> propNames;
 			for (size_t index = 0; index < obj->size(); index++) {
 				if (!obj->get(index)->query<raco::core::HiddenProperty>()) {
-					propNames.emplace_back(obj->name(index));
+					auto anno = obj->get(index)->query<raco::core::FeatureLevel>();
+					if (!anno || *anno->featureLevel_ <= app->activeRaCoProject().project()->featureLevel()) {
+						propNames.emplace_back(obj->name(index));
+					}
 				}
 			}
 			return py::cast(propNames);

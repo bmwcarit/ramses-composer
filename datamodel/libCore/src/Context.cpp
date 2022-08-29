@@ -448,7 +448,16 @@ std::string BaseContext::copyObjects(const std::vector<SEditorObject>& objects, 
 	auto allObjects{collectObjectsForCopyOrCutOperations(objects, deepCopy)};
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
-	return raco::serialization::serializeObjects(allObjects, rootObjectIDs, collectLinksForCopyOrCutOperation(*project_, allObjects), project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str();
+	return raco::serialization::serializeObjects(allObjects, 
+		rootObjectIDs, 
+		collectLinksForCopyOrCutOperation(*project_, allObjects), 
+		project_->currentFolder(), 
+		project_->currentFileName(),
+		project_->projectID(),
+		project_->projectName(),
+		project_->externalProjectsMap(),
+		originFolders, 
+		project_->featureLevel()).c_str();
 }
 
 std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, bool deepCut) {
@@ -456,7 +465,16 @@ std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, b
 	auto allLinks{collectLinksForCopyOrCutOperation(*project_, allObjects)};
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
-	std::string serialization{raco::serialization::serializeObjects(allObjects, rootObjectIDs, allLinks, project_->currentFolder(), project_->currentFileName(), project_->projectID(), project_->projectName(), project_->externalProjectsMap(), originFolders).c_str()};
+	std::string serialization{raco::serialization::serializeObjects(allObjects, 
+		rootObjectIDs, 
+		allLinks, 
+		project_->currentFolder(), 
+		project_->currentFileName(), 
+		project_->projectID(), 
+		project_->projectName(), 
+		project_->externalProjectsMap(), 
+		originFolders,
+		project_->featureLevel()).c_str()};
 	deleteObjects(Queries::filterForDeleteableObjects(*project_, allObjects));
 	return serialization;
 }
@@ -581,11 +599,15 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	if (!deserialization_opt) {
 		throw std::runtime_error("Paste Objects: data has invalid format.");
 	}
-
+	
 	auto& deserialization{*deserialization_opt};
 
 	if (deserialization.objects.size() == 0) {
 		return {};
+	}
+
+	if (deserialization.featureLevel > project_->featureLevel()) {
+		throw std::runtime_error(fmt::format("Pasted data feature level {} bigger than current project feature level {}", deserialization.featureLevel, project_->featureLevel()));
 	}
 
 	if (pasteAsExtref && project_->projectID() == deserialization.originProjectID) {
@@ -711,9 +733,10 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	if (pasteAsExtref) {
 		changeMultiplexer_.recordExternalProjectMapChanged();
 
-		std::vector<std::string> stack;
-		stack.emplace_back(project_->currentPath());
-		ExtrefOperations::updateExternalObjects(*this, project_, *externalProjectsStore_, stack);
+		LoadContext loadContext;
+		loadContext.featureLevel = project_->featureLevel();
+		loadContext.pathStack.emplace_back(project_->currentPath());
+		ExtrefOperations::updateExternalObjects(*this, project_, *externalProjectsStore_, loadContext);
 	}
 
 	return topLevelObjects;
@@ -1219,8 +1242,8 @@ void BaseContext::removeLink(const PropertyDescriptor& end) {
 	}
 }
 
-void BaseContext::updateExternalReferences(std::vector<std::string>& pathStack) {
-	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), pathStack);
+void BaseContext::updateExternalReferences(LoadContext& loadContext) {
+	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), loadContext);
 	PrefabOperations::globalPrefabUpdate(*this, true);
 }
 

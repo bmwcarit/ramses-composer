@@ -67,6 +67,19 @@ std::string Project::projectID() const {
 	return std::string();
 }
 
+int Project::featureLevel() const {
+	if (auto settingsObj = settings()) {
+		return *settingsObj->featureLevel_;
+	}
+	return 1;
+}
+
+void Project::setFeatureLevel(int featureLevel) {
+	if (auto settingsObj = settings()) {
+		settingsObj->featureLevel_ = featureLevel;
+	}
+}
+
 std::string Project::getProjectNameForObject(SEditorObject const& object, bool fallbackToLocalProject) const {
 	if (auto extrefAnno = object->query<ExternalReferenceAnnotation>()) {
 		return externalProjectsMap_.at(*extrefAnno->projectID_).name;
@@ -280,6 +293,12 @@ void Project::updateExternalProjectName(const std::string& projectID, const std:
 	if (it != externalProjectsMap_.end()) {
 		it->second.name = projectName;
 	}
+}
+
+void Project::updateExternalProjectPath(const std::string& projectID, const std::string& projectPath) {
+	auto projectName = lookupExternalProjectName(projectID);
+	removeExternalProjectMapping(projectID);
+	addExternalProjectMapping(projectID, projectPath, projectName);
 }
 
 void Project::removeExternalProjectMapping(const std::string& projectID) {

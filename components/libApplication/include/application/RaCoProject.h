@@ -15,6 +15,7 @@
 #include "core/CommandInterface.h"
 #include "core/Context.h"
 #include "core/Errors.h"
+#include "core/ExtrefOperations.h"
 #include "core/Project.h"
 #include "core/Serialization.h"
 #include "core/Undo.h"
@@ -45,12 +46,22 @@ public:
 	Q_DISABLE_COPY(RaCoProject);
 	~RaCoProject();
 
-	static std::unique_ptr<RaCoProject> createNew(RaCoApplication* app, bool createDefaultScene = true);
 	/**
+	 * @brief Create and initialize new scene
+	 * @param app Application object containing the global caches, dispatchers, and the external project store.
+	 * @param createDefaultScene Create default scene objects
+	 * @param featureLevel create scene with specified feature level; use max feature level if -1 is passed in.
+	 * @return 
+	*/
+	static std::unique_ptr<RaCoProject> createNew(RaCoApplication* app, bool createDefaultScene, int featureLevel);
+
+	/**
+	 * @brief Load scene
+	 * @param featureLevel update scene to given feature level if >0 and use feature level from file if -1
 	 * @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	 * @exception ExtrefError
 	 */
-	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack, bool logErrors = true);
+	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, core::LoadContext& loadContext, bool logErrors = true, int featureLevel = -1);
 	
 	QString name() const;
 
@@ -59,7 +70,7 @@ public:
 	bool saveAs(const QString& fileName, std::string& outError, bool setProjectName = false);
 
 	// @exception ExtrefError
-	void updateExternalReferences(std::vector<std::string>& pathStack);
+	void updateExternalReferences(core::LoadContext& loadContext);
 
 	raco::core::Project* project();
 	raco::core::Errors const* errors() const;
@@ -81,7 +92,7 @@ Q_SIGNALS:
 
 private:
 	// @exception ExtrefError
-	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, std::vector<std::string>& pathStack);
+	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, core::LoadContext& loadContext);
 
 	QJsonDocument serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 

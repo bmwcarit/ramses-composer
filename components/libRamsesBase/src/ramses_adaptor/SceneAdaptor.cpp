@@ -15,6 +15,7 @@
 #include "core/PrefabOperations.h"
 #include "core/Project.h"
 #include "core/Queries.h"
+#include "ramses_adaptor/AnchorPointAdaptor.h"
 #include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/Factories.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
@@ -188,6 +189,10 @@ bool SceneAdaptor::optimizeForExport() const {
 	return optimizeForExport_;
 }
 
+rlogic::EFeatureLevel SceneAdaptor::featureLevel() const {
+	return logicEngine_->getFeatureLevel();
+}
+
 void SceneAdaptor::updateRuntimeErrorList() {
 	auto logicEngineErrors = logicEngine().getErrors();
 	if (logicEngineErrors.empty()) {
@@ -291,6 +296,8 @@ void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 			static_cast<AnimationAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
 		} else if (editorObject->isType<user_types::Timer>()) {
 			static_cast<TimerAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
+		} else if (editorObject->isType<user_types::AnchorPoint>()) {
+			static_cast<AnchorPointAdaptor*>(adaptor.get())->readDataFromEngine(recorder);
 		}
 	}
 }
@@ -456,19 +463,19 @@ void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changed
 		rebuildSortedDependencyGraph(SEditorObjectSet(project_->instances().begin(), project_->instances().end()));
 		// Check if all render passes have a unique order index, otherwise Ramses renders them in arbitrary order.
 		errors_->removeIf([](core::ErrorItem const& error) {
-			return error.valueHandle().isRefToProp(&user_types::RenderPass::order_);
+			return error.valueHandle().isRefToProp(&user_types::RenderPass::renderOrder_);
 		});
 		auto renderPasses = core::Queries::filterByTypeName(project_->instances(), {user_types::RenderPass::typeDescription.typeName});
 		std::map<int, std::vector<user_types::SRenderPass>> orderIndices;
 		for (auto const& rpObj : renderPasses) {
 			auto rp = rpObj->as<user_types::RenderPass>();
-			orderIndices[rp->order_.asInt()].emplace_back(rp);
+			orderIndices[rp->renderOrder_.asInt()].emplace_back(rp);
 		}
 		for (auto const& oi : orderIndices) {
 			if (oi.second.size() > 1) {				
 				auto errorMsg = fmt::format("The render passes {} have the same order index and will be rendered in arbitrary order.", oi.second);
 				for (auto const& rp : oi.second) {
-					errors_->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, ValueHandle{rp, &user_types::RenderPass::order_}, errorMsg);
+					errors_->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, ValueHandle{rp, &user_types::RenderPass::renderOrder_}, errorMsg);
 				}
 			}
 		}

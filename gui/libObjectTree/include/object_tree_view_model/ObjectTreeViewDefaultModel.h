@@ -44,6 +44,8 @@ public:
 	enum ColumnIndex {
 		COLUMNINDEX_NAME,
 		COLUMNINDEX_TYPE,
+		// invisible column that is used for ID-based filtering in the tree views
+		COLUMNINDEX_ID,
 		COLUMNINDEX_PROJECT,
 		COLUMNINDEX_COLUMN_COUNT
 	};
@@ -53,21 +55,19 @@ public:
 	
 	int columnCount(const QModelIndex& parent = QModelIndex()) const override;
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override;
-	
 	QVariant data(const QModelIndex& index, int role) const override;
 	QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 	QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
 	QModelIndex parent(const QModelIndex& child) const override;
-
 	QStringList decodeMimeData(const QMimeData* data) const;
-
 	bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
 	bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
 	Qt::ItemFlags flags(const QModelIndex& index) const override;
 	QMimeData* mimeData(const QModelIndexList& indices) const override;
 	QStringList mimeTypes() const override;
 	Qt::DropActions supportedDropActions() const override;
-	
+	bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+
 	virtual void buildObjectTree();
 
 	void iterateThroughTree(std::function<void(QModelIndex&)> nodeFunc, QModelIndex& currentIndex);
@@ -76,7 +76,7 @@ public:
 	std::vector<core::SEditorObject> indicesToSEditorObjects(const QModelIndexList& indices) const;
 	QModelIndex indexFromTreeNodeID(const std::string& id) const;
 
-	core::UserObjectFactoryInterface* objectFactory();
+	core::UserObjectFactoryInterface* objectFactory() const;
 	core::Project* project() const;
 
 	std::set<std::string> externalProjectPathsAtIndices(const QModelIndexList& indices);
@@ -99,12 +99,15 @@ public:
 	virtual bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const;
 	virtual std::vector<std::string> typesAllowedIntoIndex(const QModelIndex& index) const;
 
+	virtual std::vector<std::string> creatableTypes(const QModelIndex& index) const;
+
 Q_SIGNALS:
 	void repaintRequested();
 	void meshImportFailed(const std::string &filePath, const std::string &error);
+	void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles = QVector<int>());
 
 public Q_SLOTS:
-	core::SEditorObject createNewObject(const core::EditorObject::TypeDescriptor &typeDesc, const std::string &nodeName = "", const QModelIndex &parent = QModelIndex());
+	core::SEditorObject createNewObject(const std::string& typeName, const std::string& nodeName = "", const QModelIndex& parent = QModelIndex());
 	virtual size_t deleteObjectsAtIndices(const QModelIndexList& indices);
 	virtual void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy);
 	virtual void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut);
@@ -157,7 +160,8 @@ protected:
 		{"LuaScriptModule", raco::style::Icons::instance().typeLuaScriptModule},
 		{"AnimationChannel", raco::style::Icons::instance().typeAnimationChannel},
 		{"Animation", raco::style::Icons::instance().typeAnimation},
-		{"Timer", raco::style::Icons::instance().typeTimer}
+		{"Timer", raco::style::Icons::instance().typeTimer},
+		{"AnchorPoint", raco::style::Icons::instance().typeAnchorPoint}
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;

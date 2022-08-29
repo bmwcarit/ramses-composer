@@ -14,11 +14,13 @@
 
 #include "ramses_base/RamsesHandles.h"
 
+#include "user_types/PerspectiveCamera.h"
+
 namespace raco::ramses_adaptor {
 
 PerspectiveCameraAdaptor::PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::PerspectiveCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesPerspectiveCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID())},
+
 	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::PerspectiveCamera::viewport_}, [this](auto) {
 		  tagDirty();
 	  })},
@@ -32,14 +34,30 @@ PerspectiveCameraAdaptor::~PerspectiveCameraAdaptor() {
 
 bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 	SpatialAdaptor::sync(errors);
+	if (*editorObject_->frustumType_ == static_cast<int>(raco::user_types::EFrustumType::Aspect_FieldOfView)) {
+		(*ramsesObject()).setFrustum(
+			static_cast<float>(editorObject()->frustum_->get("fieldOfView")->asDouble()), 
+			static_cast<float>(editorObject()->frustum_->get("aspectRatio")->asDouble()),
+			static_cast<float>(editorObject()->frustum_->get("nearPlane")->asDouble()),
+			static_cast<float>(editorObject()->frustum_->get("farPlane")->asDouble()));
+	} else {
+		(*ramsesObject()).setFrustum(
+			static_cast<float>(editorObject()->frustum_->get("leftPlane")->asDouble()),
+			static_cast<float>(editorObject()->frustum_->get("rightPlane")->asDouble()),
+			static_cast<float>(editorObject()->frustum_->get("bottomPlane")->asDouble()), 
+			static_cast<float>(editorObject()->frustum_->get("topPlane")->asDouble()),
+			static_cast<float>(editorObject()->frustum_->get("nearPlane")->asDouble()),
+			static_cast<float>(editorObject()->frustum_->get("farPlane")->asDouble()));
+	}
+	cameraBinding_ = raco::ramses_base::ramsesCameraBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), *editorObject_->frustumType_ == static_cast<int>(raco::user_types::EFrustumType::Planes));
+
 	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get());
-	(*ramsesObject()).setFrustum(static_cast<float>(*editorObject()->frustum_->fov_), static_cast<float>(*editorObject()->frustum_->aspect_), static_cast<float>(*editorObject()->frustum_->near_), static_cast<float>(*editorObject()->frustum_->far_));
-	// The logic engine will always set the entire struct even if there is a link for only one of the values, and use the default values in the binding
-	// for the non-linked elements in the struct - so we need to also set the default values for the bindings.
-	cameraBinding_->getInputs()->getChild("frustum")->getChild("nearPlane")->set(static_cast<float>(*editorObject()->frustum_->near_));
-	cameraBinding_->getInputs()->getChild("frustum")->getChild("farPlane")->set(static_cast<float>(*editorObject()->frustum_->far_));
-	cameraBinding_->getInputs()->getChild("frustum")->getChild("fieldOfView")->set(static_cast<float>(*editorObject()->frustum_->fov_));
-	cameraBinding_->getInputs()->getChild("frustum")->getChild("aspectRatio")->set(static_cast<float>(*editorObject()->frustum_->aspect_));
+
+	for (size_t index = 0; index < editorObject_->frustum_->size(); index++) {
+		auto& propName = editorObject_->frustum_->name(index);
+		cameraBinding_->getInputs()->getChild("frustum")->getChild(propName)->set(static_cast<float>(editorObject_->frustum_->get(propName)->asDouble()));
+	}
+
 	tagDirty(false);
 	return true;
 }
@@ -57,6 +75,10 @@ const rlogic::Property* PerspectiveCameraAdaptor::getProperty(const std::vector<
 void PerspectiveCameraAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
 	SpatialAdaptor::getLogicNodes(logicNodes);
 	logicNodes.push_back(cameraBinding_.get());
+}
+
+raco::ramses_base::RamsesCameraBinding PerspectiveCameraAdaptor::cameraBinding() {
+	return cameraBinding_;
 }
 
 }  // namespace raco::ramses_adaptor

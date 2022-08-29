@@ -28,9 +28,37 @@ using raco::components::Naming;
 
 class RaCoApplicationFixture : public RacoBaseTest<> {
 public:
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	RaCoApplication application{backend};
 };
+
+TEST_F(RaCoApplicationFixture, feature_level_load_keep_file_featue_level) {
+	application.switchActiveRaCoProject({}, {}, true, 1);
+	std::string msg;
+	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
+
+	application.switchActiveRaCoProject({}, {}, true, 2);
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 2);
+
+	application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false);
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 1);
+}
+
+TEST_F(RaCoApplicationFixture, feature_level_load_upgrade) {
+	application.switchActiveRaCoProject({}, {}, true, 1);
+	std::string msg;
+	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
+
+	application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false, 2);
+}
+
+TEST_F(RaCoApplicationFixture, feature_level_load_downgrade) {
+	application.switchActiveRaCoProject({}, {}, true, 2);
+	std::string msg;
+	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
+
+	EXPECT_THROW(application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false, 1), std::runtime_error);
+}
 
 TEST_F(RaCoApplicationFixture, exportNewProject) {
 	application.doOneLoop();
@@ -82,28 +110,28 @@ TEST_F(RaCoApplicationFixture, exportDuckProject) {
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_1) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-1.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-1.rca").string()), {});
 
 	std::string error;
 	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-1.ramses").string(), (test_path() / "export-interface-link-opt-1.rlogic").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_2) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-2.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-2.rca").string()), {});
 
 	std::string error;
 	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-2.ramses").string(), (test_path() / "export-interface-link-opt-2.rlogic").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_3) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-3.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-3.rca").string()), {});
 
 	std::string error;
 	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-3.ramses").string(), (test_path() / "export-interface-link-opt-3.rlogic").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_4) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-4.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-4.rca").string()), {});
 
 	std::string error;
 	EXPECT_FALSE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
@@ -806,4 +834,31 @@ TEST_F(RaCoApplicationFixture, LuaScriptDeletingScriptWithRunTimeErrorUpdatesAll
 	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(mesh));
 	// "empty URI" error
 	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(raco::core::ValueHandle{mesh, {"uri"}}));
+}
+
+TEST_F(RaCoApplicationFixture, feature_level_copy_paste_downgrade) {
+	application.switchActiveRaCoProject({}, {}, false, 2);
+	auto* cmd =	application.activeRaCoProject().commandInterface();
+	auto node = cmd->createObject(raco::user_types::Node::typeDescription.typeName, "node");
+	std::string clipboard = cmd->copyObjects({node}, true);
+
+	application.switchActiveRaCoProject({}, {}, false, 1);
+	cmd = application.activeRaCoProject().commandInterface();
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 1);
+
+	EXPECT_THROW(cmd->pasteObjects(clipboard), std::runtime_error);
+}
+
+TEST_F(RaCoApplicationFixture, feature_level_copy_paste_upgrade) {
+	application.switchActiveRaCoProject({}, {}, false, 1);
+	auto* cmd = application.activeRaCoProject().commandInterface();
+	auto node = cmd->createObject(raco::user_types::Node::typeDescription.typeName, "node");
+	std::string clipboard = cmd->copyObjects({node}, true);
+
+	application.switchActiveRaCoProject({}, {}, false, 2);
+	cmd = application.activeRaCoProject().commandInterface();
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 2);
+
+	auto pasted = cmd->pasteObjects(clipboard);
+	EXPECT_EQ(pasted.size(), 1);
 }

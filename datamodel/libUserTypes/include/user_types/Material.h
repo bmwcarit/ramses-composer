@@ -159,6 +159,18 @@ private:
 
 	// Cached values of outdated uniforms.
 	OutdatedPropertiesStore cachedUniformValues_;
+
+	enum class ShaderFileType {
+		Vertex,
+		Geometry,
+		Fragment,
+		Defines,
+	};
+
+	void autofillShaderIfFileExists(BaseContext& context, const std::string& fileNameWithoutEnding, bool endsWithDotGlsl, ShaderFileType shaderType);
+	void autofillShaderFiles(BaseContext& context, const std::string& fileName, ShaderFileType setShaderProperty);
+	bool areAllOtherShadersEmpty(ShaderFileType fileType);
+	std::string getShaderFileEnding(ShaderFileType shader, bool endsWithDotGlsl);
 };
 
 using SMaterial = std::shared_ptr<Material>;

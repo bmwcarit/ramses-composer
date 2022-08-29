@@ -32,7 +32,8 @@ enum EngineEnumeration {
 	// TextureOrigin = 9, // unused
 	RenderBufferFormat = 10,
 	RenderLayerOrder = 11,
-	RenderLayerMaterialFilterMode = 12
+	RenderLayerMaterialFilterMode = 12,
+	FrustumType = 13
 };
 
 // Collects types of all possible dynamic properties, i.e. lua in/out properties and material uniforms.

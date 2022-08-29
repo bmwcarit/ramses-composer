@@ -21,6 +21,7 @@ add_library(libCommonWidgets
     include/common_widgets/LogView.h src/LogView.cpp
     include/common_widgets/MeshAssetImportDialog.h src/MeshAssetImportDialog.cpp
     include/common_widgets/NoContentMarginsLayout.h
+    include/common_widgets/ObjectSearchView.h src/ObjectSearchView.cpp
     include/common_widgets/PopupDialog.h src/PopupDialog.cpp
     include/common_widgets/PreferencesView.h src/PreferencesView.cpp
     include/common_widgets/PropertyBrowserButton.h src/PropertyBrowserButton.cpp

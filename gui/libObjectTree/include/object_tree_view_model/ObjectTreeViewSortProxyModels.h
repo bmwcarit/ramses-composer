@@ -14,11 +14,28 @@
 
 namespace raco::object_tree::model {
 
+class ObjectTreeViewDefaultSortFilterProxyModel : public QSortFilterProxyModel {
+public:
+	ObjectTreeViewDefaultSortFilterProxyModel(QObject *parent = nullptr, bool enableSorting = true);
+
+	bool sortingEnabled() const;
+protected:
+
+	QVariant data(const QModelIndex &index, int role) const override;
+
+	bool sortingEnabled_;
+};
+
+
 // This class only sorts top-level nodes (nodes under the invisible root node in ObjectTreeView models) while keeping the scenegraph structure of child nodes.
-class ObjectTreeViewTopLevelSortFilterProxyModel : public QSortFilterProxyModel {
+class ObjectTreeViewTopLevelSortFilterProxyModel : public ObjectTreeViewDefaultSortFilterProxyModel {
+public:
+	ObjectTreeViewTopLevelSortFilterProxyModel(QObject *parent = nullptr) : ObjectTreeViewDefaultSortFilterProxyModel(parent, true) {}
+
 protected:
   
 	bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const override;
+
 };
 
 }  // namespace raco::object_tree::model

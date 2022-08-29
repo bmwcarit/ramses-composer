@@ -54,6 +54,53 @@ TEST_F(MaterialTest, validShader) {
 	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
 }
 
+TEST_F(MaterialTest, settingShaderShouldAutomaticallySetOtherShadersIfPresent) {
+	auto def = makeFile("shaders/basic.def", "");
+
+	commandInterface.set(fragmentUriHandle, (test_path() / "shaders/basic.frag").string());
+	ASSERT_FALSE(commandInterface.errors().hasError(material));
+	ASSERT_FALSE(commandInterface.errors().hasError(vertexUriHandle));
+	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
+	ASSERT_FALSE(commandInterface.errors().hasError(definesUriHandle));
+
+	ASSERT_EQ((test_path() / "shaders/basic.vert").string(), material->get("uriVertex")->asString());
+	ASSERT_EQ((test_path() / "shaders/basic.frag").string(), material->get("uriFragment")->asString());
+	ASSERT_EQ(def.path.string(), material->get("uriDefines")->asString());
+	ASSERT_TRUE(material->get("uriGeometry")->asString().empty());
+}
+
+TEST_F(MaterialTest, settingShaderShouldAutomaticallySetOtherShadersIfPresentWithGLSLEndings) {
+	auto vert = makeFile("testShader_vert.glsl", "");
+	auto frag = makeFile("testShader_frag.glsl", "");
+	auto geom = makeFile("testShader_geom.glsl", "");
+
+	commandInterface.set(vertexUriHandle, vert);
+
+	ASSERT_EQ(vert.path.string(), material->get("uriVertex")->asString());
+	ASSERT_EQ(frag.path.string(), material->get("uriFragment")->asString());
+	ASSERT_EQ(geom.path.string(), material->get("uriGeometry")->asString());
+	ASSERT_EQ("", material->get("uriDefines")->asString());
+}
+
+TEST_F(MaterialTest, settingShaderShouldNotAutomaticallySetOtherShadersIfOneIsAlreadySet) {
+	auto vertWithDifferentName = makeFile("testShader_bla.glsl", "");
+	auto vert = makeFile("testShader_vert.glsl", "");
+	auto frag = makeFile("testShader_frag.glsl", "");
+	auto geom = makeFile("testShader_geom.glsl", "");
+
+	commandInterface.set(vertexUriHandle, vertWithDifferentName);
+	commandInterface.set(fragmentUriHandle, frag);
+
+	ASSERT_EQ(vertWithDifferentName.path.string(), material->get("uriVertex")->asString());
+	ASSERT_EQ(frag.path.string(), material->get("uriFragment")->asString());
+	ASSERT_EQ("", material->get("uriGeometry")->asString());
+}
+
+TEST_F(MaterialTest, shortInvalidShaderUri) {
+	std::string uri = "abc";
+	commandInterface.set(vertexUriHandle, uri);
+}
+
 TEST_F(MaterialTest, errorEmptyVertexShader) {
 	commandInterface.set(fragmentUriHandle, (test_path() / "shaders/basic.frag").string());
 	commandInterface.set(vertexUriHandle, shaderEmptyFile);

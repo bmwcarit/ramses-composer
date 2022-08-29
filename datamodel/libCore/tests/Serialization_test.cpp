@@ -239,7 +239,7 @@ TEST_F(SerializationTest, serializeObjects_luaScriptLinkedToNode) {
 	auto result = raco::serialization::serializeObjects(
 		{std::get<0>(objs), std::get<1>(objs)}, 
 		{std::get<0>(objs)->objectID(), std::get<1>(objs)->objectID()},
-		{std::get<2>(objs)}, "", "", "", "", externalProjectsMap, originFolders, false);
+		{std::get<2>(objs)}, "", "", "", "", externalProjectsMap, originFolders, -1, false);
 	if (WRITE_RESULT) file::write((u8path{CMAKE_CURRENT_SOURCE_DIR} / "expectations" / "LuaScriptLinkedToNode.json").string(), result);
 
     assertFileContentEqual((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string(), result);

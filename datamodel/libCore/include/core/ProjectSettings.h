@@ -82,6 +82,7 @@ public:
 
 	ProjectSettings(ProjectSettings const& other) : EditorObject(other),
 													sceneId_(other.sceneId_),
+													featureLevel_(other.featureLevel_),
 													viewport_(other.viewport_),
 													backgroundColor_(other.backgroundColor_),
 													saveAsZip_(other.saveAsZip_) {
@@ -97,6 +98,7 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("sceneId", &sceneId_);
+		properties_.emplace_back("featureLevel", &featureLevel_);
 		properties_.emplace_back("viewport", &viewport_);
 		properties_.emplace_back("backgroundColor", &backgroundColor_);
 		properties_.emplace_back("defaultResourceFolders", &defaultResourceDirectories_);
@@ -104,6 +106,11 @@ public:
 	}
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> sceneId_{123u, DisplayNameAnnotation("Scene Id"), {1, 1024}};
+
+	// Values are the same as in rlogic::EFeatureLevel enum
+	// See raco::ramses_base::BaseEngineBackend for definitions of min/max feature levels
+	Property<int, DisplayNameAnnotation, ReadOnlyAnnotation> featureLevel_{1, {"Feature Level"}, {}};
+
 	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Display Size"}};
 	Property<Vec4f, DisplayNameAnnotation> backgroundColor_{{}, {"Display Background Color"}};
 	Property<bool, DisplayNameAnnotation> saveAsZip_{false, {"Save As Zipped File"}};

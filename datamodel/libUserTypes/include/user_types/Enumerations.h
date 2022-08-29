@@ -29,4 +29,12 @@ enum class ERenderLayerMaterialFilterMode {
 
 extern std::map<int, std::string> enumerationRenderLayerMaterialFilterMode;
 
+
+enum class EFrustumType {
+	Aspect_FieldOfView = 0,
+	Planes
+};
+
+extern std::map<int, std::string> enumerationFrustumType;
+
 }

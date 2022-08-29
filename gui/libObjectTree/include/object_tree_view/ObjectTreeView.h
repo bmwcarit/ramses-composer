@@ -15,9 +15,9 @@
 #include <QTreeView>
 #include <unordered_set>
 
-class QSortFilterProxyModel;
 
 namespace raco::object_tree::model {
+class ObjectTreeViewDefaultSortFilterProxyModel;
 class ObjectTreeViewDefaultModel;
 }
 
@@ -31,19 +31,21 @@ class ObjectTreeView : public QTreeView {
 	using SEditorObject = core::SEditorObject;
 
 public:
-	ObjectTreeView(const QString &viewTitle, raco::object_tree::model::ObjectTreeViewDefaultModel *viewModel, QSortFilterProxyModel *sortFilterProxyModel = nullptr, QWidget *parent = nullptr);
+	ObjectTreeView(const QString &viewTitle, raco::object_tree::model::ObjectTreeViewDefaultModel *viewModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel = nullptr, QWidget *parent = nullptr);
 
 	std::set<ValueHandle> getSelectedHandles() const;
 	QString getViewTitle() const;
 
-	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
+	void requestNewNode(const std::string &nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
 	bool canCopyAtIndices(const QModelIndexList &indices);
 	bool canPasteIntoIndex(const QModelIndex &index, bool asExtref);
 	bool canProgrammaticallyGoToObject();
 	bool containsObject(const QString &objectID) const;
+	void setFilterKeyColumn(int column);
+	void filterObjects(const QString &filterString);
 
-	QSortFilterProxyModel *proxyModel() const;
+	bool hasProxyModel() const;
 
 	QModelIndexList getSelectedIndices(bool sorted = false) const;
 	QModelIndex getSelectedInsertionTargetIndex() const;
@@ -71,7 +73,7 @@ protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;
 
 	raco::object_tree::model::ObjectTreeViewDefaultModel *treeModel_;
-	QSortFilterProxyModel *proxyModel_;
+	raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *proxyModel_;
 	QString viewTitle_;
 	std::unordered_set<std::string> expandedItemIDs_;
 	std::unordered_set<std::string> selectedItemIDs_;

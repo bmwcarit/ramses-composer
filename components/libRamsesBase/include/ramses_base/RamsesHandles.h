@@ -40,6 +40,7 @@
 #include <ramses-client-api/TextureSampler.h>
 #include <ramses-client-api/UniformInput.h>
 
+#include <ramses-logic/AnchorPoint.h>
 #include <ramses-logic/AnimationNode.h>
 #include <ramses-logic/DataArray.h>
 #include <ramses-logic/LogicEngine.h>
@@ -50,6 +51,7 @@
 #include <ramses-logic/RamsesAppearanceBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>
 #include <ramses-logic/RamsesNodeBinding.h>
+#include <ramses-logic/RamsesRenderPassBinding.h>
 #include <ramses-logic/AnimationNodeConfig.h>
 
 #include <map>
@@ -70,6 +72,7 @@ using RamsesTimerNode = RamsesHandle<rlogic::TimerNode>;
 using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
 using RamsesLuaScript = RamsesHandle<rlogic::LuaScript>;
 using RamsesLuaInterface = RamsesHandle<rlogic::LuaInterface>;
+using RamsesAnchorPoint = RamsesHandle<rlogic::AnchorPoint>;
 
 /** RESOURCE HANDLES */
 using RamsesEffect = RamsesHandle<ramses::Effect>;
@@ -566,8 +569,9 @@ inline RamsesTextureCube ramsesTextureCube(ramses::Scene* scene,
 
 using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBinding, std::function<void(rlogic::RamsesAppearanceBinding*)>>;
 using UniqueRamsesDataArray = std::unique_ptr<rlogic::DataArray, std::function<void(rlogic::DataArray*)>>;
-using UniqueRamsesNodeBinding = std::unique_ptr<rlogic::RamsesNodeBinding, std::function<void(rlogic::RamsesNodeBinding*)>>;
-using UniqueRamsesCameraBinding = std::unique_ptr<rlogic::RamsesCameraBinding, std::function<void(rlogic::RamsesCameraBinding*)>>;
+using RamsesNodeBinding = std::shared_ptr<rlogic::RamsesNodeBinding>;
+using RamsesCameraBinding = std::shared_ptr<rlogic::RamsesCameraBinding>;
+using UniqueRamsesRenderPassBinding = std::unique_ptr<rlogic::RamsesRenderPassBinding, std::function<void(rlogic::RamsesRenderPassBinding*)>>;
 
 inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t> &objectID) {
 	UniqueRamsesAppearanceBinding binding{logicEngine->createRamsesAppearanceBinding(appearance, name),
@@ -582,8 +586,10 @@ inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance&
 	return binding;
 }
 
-inline UniqueRamsesNodeBinding ramsesNodeBinding(ramses::Node& node, rlogic::LogicEngine* logicEngine, rlogic::ERotationType rotationType, const std::pair<uint64_t, uint64_t>& objectID) {
-	UniqueRamsesNodeBinding binding{logicEngine->createRamsesNodeBinding(node, rotationType), [logicEngine](rlogic::RamsesNodeBinding* binding) {
+template<typename NodeHandleType>
+inline RamsesNodeBinding ramsesNodeBinding(NodeHandleType node, rlogic::LogicEngine* logicEngine, rlogic::ERotationType rotationType, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesNodeBinding binding{logicEngine->createRamsesNodeBinding(**node, rotationType), 
+		[logicEngine, forceNodeCopy = node](rlogic::RamsesNodeBinding* binding) {
 				destroyLogicObject(logicEngine, binding);
 			}};
 
@@ -607,8 +613,11 @@ inline UniqueRamsesDataArray ramsesDataArray(const std::vector<T>& vec, rlogic::
 	return array;
 }
 
-inline UniqueRamsesCameraBinding ramsesCameraBinding(ramses::Camera& camera, rlogic::LogicEngine* logicEngine, const std::pair<uint64_t, uint64_t>& objectID) {
-	UniqueRamsesCameraBinding binding{logicEngine->createRamsesCameraBinding(camera), [logicEngine](rlogic::RamsesCameraBinding* binding) {
+template <typename CameraHandleType>
+inline RamsesCameraBinding ramsesCameraBinding(CameraHandleType camera, rlogic::LogicEngine* logicEngine, const std::pair<uint64_t, uint64_t>& objectID, bool frustumPlanes) {
+	RamsesCameraBinding binding{
+		frustumPlanes ? logicEngine->createRamsesCameraBindingWithFrustumPlanes(**camera) : logicEngine->createRamsesCameraBinding(**camera), 
+		[logicEngine, forceCameraCopy = camera](rlogic::RamsesCameraBinding* binding) {
 				destroyLogicObject(logicEngine, binding);
 			}};
 
@@ -618,6 +627,19 @@ inline UniqueRamsesCameraBinding ramsesCameraBinding(ramses::Camera& camera, rlo
 
 	return binding;
 }
+
+inline UniqueRamsesRenderPassBinding ramsesRenderPassBinding(ramses::RenderPass& renderpass, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	UniqueRamsesRenderPassBinding binding{logicEngine->createRamsesRenderPassBinding(renderpass, name), [logicEngine](rlogic::RamsesRenderPassBinding* binding) {
+										  destroyLogicObject(logicEngine, binding);
+									  }};
+
+	if (binding) {
+		binding->setUserId(objectID.first, objectID.second);
+	}
+
+	return binding;
+}
+
 
 inline RamsesTimerNode ramsesTimer(rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	RamsesTimerNode node{logicEngine->createTimerNode(name), [logicEngine](rlogic::TimerNode* timer) {
@@ -738,5 +760,23 @@ std::vector<RamsesAnimationChannelHandle> channelHandles, const std::string& nam
 	}
 	return {};
 }
+
+
+
+inline RamsesAnchorPoint ramsesAnchorPoint(rlogic::LogicEngine* logicEngine, RamsesNodeBinding nodeBinding, RamsesCameraBinding cameraBinding, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesAnchorPoint object(
+		logicEngine->createAnchorPoint(*nodeBinding, *cameraBinding, name),
+			[logicEngine, forceNodeBindingCopy = nodeBinding, forceCameraBdingingCopy = cameraBinding](rlogic::AnchorPoint* object) {
+			destroyLogicObject(logicEngine, object);
+		});
+
+	if (object) {
+		object->setUserId(objectID.first, objectID.second);
+	}
+
+	return object;
+}
+
+
 
 };	// namespace raco::ramses_base

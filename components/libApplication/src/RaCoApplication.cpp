@@ -24,6 +24,7 @@
 #include "ramses_base/BaseEngineBackend.h"
 #include "user_types/Animation.h"
 
+#include "core/Handles.h"
 #include <ramses_base/LogicEngineFormatter.h>
 
 #ifdef OS_WINDOWS
@@ -33,11 +34,28 @@ extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
 
 namespace raco::application {
 
+RaCoApplicationLaunchSettings::RaCoApplicationLaunchSettings()
+	: initialProject{},
+	  createDefaultScene{true},
+	  enableRamsesTrace{false},
+	  featureLevel{-1},
+	  runningInUI{false} {
+}
+
+RaCoApplicationLaunchSettings::RaCoApplicationLaunchSettings(QString argInitialProject, bool argCreateDefaultScene, bool argEnableRamsesTrace, int argFeatureLevel, bool argRunningInUI)
+	: initialProject(argInitialProject),
+	  createDefaultScene(argCreateDefaultScene),
+	  enableRamsesTrace(argEnableRamsesTrace),
+	  featureLevel(argFeatureLevel),
+	  runningInUI(argRunningInUI) {
+}
+
 RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings)
 	: engine_{&engine},
+	  applicationFeatureLevel_(settings.featureLevel),
 	  dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  dataChangeDispatcherEngine_{std::make_shared<raco::components::DataChangeDispatcher>()},
-	  scenesBackend_{new ramses_adaptor::SceneBackend(&engine, dataChangeDispatcherEngine_)},
+	  scenesBackend_{new ramses_adaptor::SceneBackend(engine, dataChangeDispatcherEngine_)},
 	  externalProjectsStore_(this) {
 	ramses_base::installRamsesLogHandler(settings.enableRamsesTrace);
 	ramses_base::installLogicLogHandler();
@@ -46,7 +64,7 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const R
 
 	runningInUI_ = settings.runningInUI;
 
-	switchActiveRaCoProject(settings.initialProject, settings.createDefaultScene);
+	switchActiveRaCoProject(settings.initialProject, {}, settings.createDefaultScene, settings.featureLevel);
 }
 
 RaCoApplication::~RaCoApplication() {
@@ -79,15 +97,45 @@ void RaCoApplication::resetSceneBackend() {
 	scenesBackend_->reset();
 }
 
-void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDefaultScene) {
+class WithRelinkCallback {
+public:
+	WithRelinkCallback(ExternalProjectsStore& externalProjects, std::function<std::string(const std::string&)> relinkCallback)
+		: externalProjectsStore_(externalProjects) {
+		externalProjectsStore_.setRelinkCallback(relinkCallback);
+	}
+
+	~WithRelinkCallback() {
+		externalProjectsStore_.clearRelinkCallback();
+	}
+
+	ExternalProjectsStore& externalProjectsStore_;
+};
+
+void RaCoApplication::setupScene(bool optimizeForExport) {
+	engine_->setFeatureLevel(static_cast<rlogic::EFeatureLevel>(activeRaCoProject().project()->featureLevel()));
+	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), optimizeForExport);
+}
+
+void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene, int featureLevel) {
 	externalProjectsStore_.clear();
+	WithRelinkCallback withRelinkCallback(externalProjectsStore_, relinkCallback);
+
 	activeProject_.reset();
 	scenesBackend_->reset();
 
 	dataChangeDispatcher_->assertEmpty();
 
-	std::vector<std::string> stack;
-	activeProject_ = file.isEmpty() ? RaCoProject::createNew(this, createDefaultScene) : RaCoProject::loadFromFile(file, this, stack, false);
+	core::LoadContext loadContext;
+
+	if (!(featureLevel == -1 ||
+			featureLevel >= ramses_base::BaseEngineBackend::minFeatureLevel && featureLevel <= ramses_base::BaseEngineBackend::maxFeatureLevel)) {
+		throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+	}
+	if (file.isEmpty()) {
+		activeProject_ = RaCoProject::createNew(this, createDefaultScene, static_cast<int>(featureLevel == -1 ? applicationFeatureLevel_ : featureLevel));
+	} else {
+		activeProject_ = RaCoProject::loadFromFile(file, this, loadContext, false, featureLevel);
+	}
 
 	externalProjectsStore_.setActiveProject(activeProject_.get());
 
@@ -96,7 +144,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDe
 	activeProject_->applyDefaultCachedPaths();
 	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
 
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
+	setupScene(false);
 	startTime_ = std::chrono::high_resolution_clock::now();
 	doOneLoop();
 
@@ -105,7 +153,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, bool createDe
 }
 
 core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector<core::SceneBackendInterface::SceneItemDesc>& outDescription, std::string& outMessage) {
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), true);
+	setupScene(true);
 	logicEngineNeedsUpdate_ = true;
 	doOneLoop();
 
@@ -126,7 +174,7 @@ core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector
 	}
 	outMessage = message;
 
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
+	setupScene(false);
 	logicEngineNeedsUpdate_ = true;
 	rendererDirty_ = true;
 
@@ -134,13 +182,13 @@ core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector
 }
 
 bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) {
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), true);
+	setupScene(true);
 	logicEngineNeedsUpdate_ = true;
 	doOneLoop();
 
 	bool status = exportProjectImpl(ramsesExport, logicExport, compress, outError, forceExportWithErrors);
 
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
+	setupScene(false);
 	logicEngineNeedsUpdate_ = true;
 	rendererDirty_ = true;
 
@@ -284,6 +332,10 @@ bool RaCoApplication::isRunningInUI() const {
 
 void RaCoApplication::overrideTime(std::function<int64_t()> getTime) {
 	getTime_ = getTime;
+}
+
+int RaCoApplication::applicationFeatureLevel() const {
+	return applicationFeatureLevel_;
 }
 
 core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {

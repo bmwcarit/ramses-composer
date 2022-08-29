@@ -680,13 +680,15 @@ std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePro
 	return typesPropTypeMap;
 }
 
-std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, bool includeVersionInfo) {
+std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo) {
 	QJsonObject result{};
 
 	if (includeVersionInfo) {
 		result.insert(keys::FILE_VERSION, RAMSES_PROJECT_FILE_VERSION);
 		result.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH});
 	}
+
+	result.insert(keys::FEATURE_LEVEL, featureLevel);
 
 	if (!originFolder.empty()) {
 		result.insert(keys::ORIGIN_FOLDER, originFolder.c_str());
@@ -743,6 +745,13 @@ std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json
 		}
 	}
 
+	if (container.contains(keys::FEATURE_LEVEL)) {
+		result.featureLevel = container[keys::FEATURE_LEVEL].toInt();
+	} else {
+		// Paste from earlier Composer version is implicitly feature level 1:
+		result.featureLevel = 1;
+	}
+
 	if (!container[keys::ORIGIN_FOLDER].isUndefined() && !container[keys::ORIGIN_FOLDER].toString().isEmpty()) {
 		result.originFolder = container[keys::ORIGIN_FOLDER].toString().toStdString();
 	}
@@ -775,7 +784,7 @@ std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json
 	return result;
 }
 
-QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links,
+QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, int featureLevel, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links,
 	const std::map<std::string, ExternalProjectInfo>& externalProjectsMap) {
 	QJsonObject container{};
 
@@ -786,6 +795,10 @@ QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector
 	container.insert(keys::RAMSES_VERSION, QJsonArray{ramsesVer[0], ramsesVer[1], ramsesVer[2]});
 	container.insert(keys::RAMSES_LOGIC_ENGINE_VERSION, QJsonArray{logicEngineVer[0], logicEngineVer[1], logicEngineVer[2]});
 	container.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{raCoVersion[0], raCoVersion[1], raCoVersion[2]});
+	
+	// Include the feature level here in addition to the property in the ProjectSettings object to allow easy access 
+	// from the loaded file without needing to run the full migration procedure on the file.
+	container.insert(keys::FEATURE_LEVEL, featureLevel);
 
 	serializeExternalProjectsMap(container, externalProjectsMap);
 
@@ -809,6 +822,14 @@ int deserializeFileVersion(const QJsonDocument& document) {
 	return document.object()[keys::FILE_VERSION].toInt();
 }
 
+int deserializeFeatureLevel(const QJsonDocument& document) {
+	if (document.object().contains(keys::FEATURE_LEVEL)) {
+		return document.object()[keys::FEATURE_LEVEL].toInt();
+	} 
+	// Earlier Composer versions are implicitly feature level 1:
+	return 1;
+}
+
 ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document) {
 	ProjectVersionInfo deserializedProjectInfo;
 
@@ -828,6 +849,7 @@ ProjectDeserializationInfoIR deserializeProjectToIR(const QJsonDocument& documen
 
 	deserializedProjectInfo.versionInfo = deserializeProjectVersionInfo(migratedJson);
 	deserializedProjectInfo.fileVersion = migratedJson.object()[keys::FILE_VERSION].toInt();
+	// Don't deserialize the keys::FEATURE_LEVEL; this is redundant and already contained in the ProjectSettings object
 
 	deserializeExternalProjectsMap(migratedJson[keys::EXTERNAL_PROJECTS].toVariant(), deserializedProjectInfo.externalProjectsMap);
 	auto userPropTypeMap = deserializeUserTypePropertyMap(migratedJson[keys::USER_TYPE_PROP_MAP]);

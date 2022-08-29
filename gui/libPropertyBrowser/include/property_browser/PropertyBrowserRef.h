@@ -27,23 +27,23 @@ class PropertyBrowserItem;
 class PropertyBrowserRef final : public QObject {
 	Q_OBJECT
 public:
-	struct ComboBoxItem {
+	struct RefItem {
 		QString objName;
 		QString objId;
 		QString tooltipText;
 	};
 
-	using ComboBoxItems = std::vector<ComboBoxItem>;
+	using RefItems = std::vector<RefItem>;
 
 	static inline auto EMPTY_REF_INDEX{0};
 
 	explicit PropertyBrowserRef(PropertyBrowserItem* parent);
 
-	const ComboBoxItems& items() const noexcept;
+	const RefItems& items() const noexcept;
 	int currentIndex() noexcept;
 
 	Q_SIGNAL void indexChanged(int index);
-	Q_SIGNAL void itemsChanged(const ComboBoxItems& items);
+	Q_SIGNAL void itemsChanged(const RefItems& items);
 
 	Q_SLOT void setIndex(int index) noexcept;
 
@@ -53,7 +53,7 @@ protected:
 	void updateIndex() noexcept;
 
 private:
-	ComboBoxItems items_{};
+	RefItems items_{};
 	int index_{0};
 	PropertyBrowserItem* parent_;
 	raco::components::Subscription subscription_;

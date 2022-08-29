@@ -58,5 +58,6 @@
         <file alias="loopingActiveIcon">_Default/icons/playerLoopingActive.svg</file>
         <file alias="singleArrowLeft">_Default/icons/keyboard_arrow_left_white_24dp.svg</file>
         <file alias="doubleArrowLeft">_Default/icons/keyboard_double_arrow_left_white_24dp.svg</file>
+        <file alias="anchorIcon">_Default/icons/anchor_white_24dp.svg</file>
     </qresource>
 </RCC>

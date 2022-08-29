@@ -20,9 +20,11 @@
 
 #include "core/Link.h"
 #include "core/PathManager.h"
-
 #include "core/SerializationKeys.h"
+
 #include "ramses_adaptor/SceneBackend.h"
+
+#include "ramses_base/BaseEngineBackend.h"
 
 #include "user_types/Animation.h"
 #include "user_types/Enumerations.h"
@@ -49,7 +51,7 @@ const char testName_new[] = "Test";
 static_assert(!std::is_same<raco::serialization::proxy::Proxy<testName_old>, raco::serialization::proxy::Proxy<testName_new>>::value);
 
 struct MigrationTest : public TestEnvironmentCore {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication application{backend};
 
 	// Check if the property types coming out of the migration code agree with the types
@@ -87,8 +89,8 @@ struct MigrationTest : public TestEnvironmentCore {
 		raco::serialization::migrateProject(deserializedIR, factory);
 		checkPropertyTypes(deserializedIR);
 
-		std::vector<std::string> pathStack;
-		auto racoproject = raco::application::RaCoProject::loadFromFile(filename, &application, pathStack);
+		LoadContext loadContext;
+		auto racoproject = raco::application::RaCoProject::loadFromFile(filename, &application, loadContext);
 		EXPECT_TRUE(racoproject != nullptr);
 
 		return racoproject;
@@ -160,10 +162,10 @@ TEST_F(MigrationTest, migrate_from_V12) {
 	ASSERT_EQ(*pcam->viewport_->width_, 1441);
 	ASSERT_EQ(*pcam->viewport_->height_, 721);
 
-	ASSERT_EQ(*pcam->frustum_->near_, 4.5);	 /// linked
-	ASSERT_EQ(*pcam->frustum_->far_, 1001.0);
-	ASSERT_EQ(*pcam->frustum_->fov_, 36.0);
-	ASSERT_EQ(*pcam->frustum_->aspect_, 3.0);
+	ASSERT_EQ(pcam->frustum_->get("nearPlane")->asDouble(), 4.5);  /// linked
+	ASSERT_EQ(pcam->frustum_->get("farPlane")->asDouble(), 1001.0);
+	ASSERT_EQ(pcam->frustum_->get("fieldOfView")->asDouble(), 36.0);
+	ASSERT_EQ(pcam->frustum_->get("aspectRatio")->asDouble(), 3.0);
 
 	auto ocam = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
 	ASSERT_EQ(*ocam->viewport_->offsetX_, 2);
@@ -529,7 +531,7 @@ TEST_F(MigrationTest, migrate_from_V35_extref) {
 }
 
 TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V35_extref_nested.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V35_extref_nested.rca").string()), {});
 	auto racoproject = &application.activeRaCoProject();
 
 	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
@@ -563,7 +565,7 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 }
 
 TEST_F(MigrationTest, migrate_from_V39) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V39.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V39.rca").string()), {});
 	auto racoproject = &application.activeRaCoProject();
 	auto instances = racoproject->project()->instances();
 	const auto DELTA = 0.001;
@@ -610,7 +612,7 @@ TEST_F(MigrationTest, migrate_from_V39) {
 }
 
 TEST_F(MigrationTest, migrate_from_V40) {
-	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V40.rca").string()));
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V40.rca").string()), {});
 	auto racoproject = &application.activeRaCoProject();
 	auto instances = racoproject->project()->instances();
 
@@ -638,6 +640,29 @@ TEST_F(MigrationTest, migrate_to_V43) {
 	EXPECT_FALSE(settings->hasProperty("runTimer"));
 }
 
+TEST_F(MigrationTest, migrate_from_V43) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V43.rca").string()));
+
+	auto pcam = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
+
+	ASSERT_EQ(pcam->frustum_->get("nearPlane")->asDouble(), 0.2);
+	ASSERT_EQ(pcam->frustum_->get("farPlane")->asDouble(), 42.0); // linked
+	ASSERT_EQ(pcam->frustum_->get("fieldOfView")->asDouble(), 4.0);
+	ASSERT_EQ(pcam->frustum_->get("aspectRatio")->asDouble(), 5.0);
+
+	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderPass")->as<raco::user_types::RenderPass>();
+
+	EXPECT_EQ(*renderpass->enabled_, false);
+	EXPECT_EQ(*renderpass->renderOrder_, 7);
+	EXPECT_EQ(*renderpass->clearColor_->x, 1.0);
+	EXPECT_EQ(*renderpass->clearColor_->y, 2.0);
+	EXPECT_EQ(*renderpass->clearColor_->z, 3.0);
+	EXPECT_EQ(*renderpass->clearColor_->w, 4.0);
+
+	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
+	checkLinks(*racoproject->project(), {{{{lua, {"outputs", "float"}}, {pcam, {"frustum", "farPlane"}}}}});
+}
+
 
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.
@@ -653,6 +678,8 @@ TEST_F(MigrationTest, migrate_from_current) {
 	int fileVersion;
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "version-current.rca").string()), &fileVersion);
 	ASSERT_EQ(fileVersion, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+
+	ASSERT_EQ(racoproject->project()->featureLevel(), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
 
 	// check that all user types present in file
 	auto& instances = racoproject->project()->instances();

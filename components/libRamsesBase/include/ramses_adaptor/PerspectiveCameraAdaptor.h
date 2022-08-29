@@ -28,10 +28,12 @@ public:
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 
+	raco::ramses_base::RamsesCameraBinding cameraBinding();
+
 private:
 	components::Subscription viewportSubscription_;
 	components::Subscription frustrumSubscription_;
-	raco::ramses_base::UniqueRamsesCameraBinding cameraBinding_;
+	raco::ramses_base::RamsesCameraBinding cameraBinding_;
 };
 
 };  // namespace raco::ramses_adaptor

@@ -66,9 +66,10 @@ QVariant ObjectTreeViewExternalProjectModel::data(const QModelIndex& index, int 
 }
 
 void ObjectTreeViewExternalProjectModel::addProject(const QString& projectPath) {
-	std::vector<std::string> stack;
-	stack.emplace_back(commandInterface_->project()->currentPath());
-	if (externalProjectStore_->addExternalProject(projectPath.toStdString(), stack)) {
+	core::LoadContext loadContext;
+	loadContext.featureLevel = commandInterface_->project()->featureLevel();
+	loadContext.pathStack.emplace_back(commandInterface_->project()->currentPath());
+	if (externalProjectStore_->addExternalProject(projectPath.toStdString(), loadContext)) {
 		LOG_INFO(raco::log_system::OBJECT_TREE_VIEW, "Added Project {} to Project Browser", projectPath.toStdString());
 	}
 }

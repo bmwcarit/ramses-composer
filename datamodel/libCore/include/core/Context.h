@@ -11,8 +11,9 @@
 
 #include <set>
 
-#include "Handles.h"
 #include "ChangeRecorder.h"
+#include "ExtrefOperations.h"
+#include "Handles.h"
 #include "Link.h"
 
 namespace raco::serialization {
@@ -152,7 +153,7 @@ public:
 	void performExternalFileReload(const std::vector<SEditorObject>& objects);
 
 	// @exception ExtrefError
-	void updateExternalReferences(std::vector<std::string>& pathStack);
+	void updateExternalReferences(LoadContext& loadContext);
 
 	void initBrokenLinkErrors();
 

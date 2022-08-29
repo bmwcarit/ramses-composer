@@ -30,11 +30,10 @@ public:
 	explicit ObjectTreeDock(const char *dockTitle, QWidget *parent = nullptr);
 	~ObjectTreeDock();
 
-	void addTreeView(ObjectTreeView *treeView);
-	ObjectTreeView *getCurrentlyActiveTreeView() const;
+	void setTreeView(ObjectTreeView *treeView);
+	ObjectTreeView *getActiveTreeView() const;
 
 public Q_SLOTS:
-	void selectTreeView(const QString &treeViewTitle);
 	void resetSelection();
 
 Q_SIGNALS:
@@ -44,13 +43,15 @@ Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeDock *focusDock);
 
 private:
+	void filterTreeViewObjects();
+
 	QWidget *treeDockContent_;
 	QVBoxLayout *treeDockLayout_;
 	
-	QComboBox *availableTreesComboBox_;
-	QVBoxLayout *treeDockSettingsLayout_;
+	QLineEdit *filterLineEdit_;
+	QComboBox *filterByComboBox_;
+	QHBoxLayout *treeDockSettingsLayout_;
 
-	QHash<QString, ObjectTreeView*> savedTreeViews_;
 	QStackedWidget *treeViewStack_;
 
 	std::shared_ptr<raco::core::BaseContext> currentContext_;

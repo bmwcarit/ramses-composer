@@ -51,7 +51,7 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 			copyAction->setEnabled(false);
 			pasteAction->setEnabled(raco::RaCoClipboard::hasEditorObject());
 		} else {
-			auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
+			auto focusedTreeView = activeObjectTreeDockWithSelection->getActiveTreeView();
 			auto selectedIndices = focusedTreeView->getSelectedIndices();
 			auto pasteIndex = focusedTreeView->getSelectedInsertionTargetIndex();
 			copyAction->setEnabled(focusedTreeView->canCopyAtIndices(selectedIndices));
@@ -88,14 +88,14 @@ void EditMenu::globalRedoCallback(raco::application::RaCoApplication* racoApplic
 
 void EditMenu::globalCopyCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager) {
 	if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
-		auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
+		auto focusedTreeView = activeObjectTreeDockWithSelection->getActiveTreeView();
 		focusedTreeView->globalCopyCallback();
 	}
 }
 
 void EditMenu::globalPasteCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager) {
 	if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
-		auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
+		auto focusedTreeView = activeObjectTreeDockWithSelection->getActiveTreeView();
 
 		focusedTreeView->globalPasteCallback(focusedTreeView->getSelectedInsertionTargetIndex());
 	} else {

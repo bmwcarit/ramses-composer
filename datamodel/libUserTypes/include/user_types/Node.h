@@ -11,7 +11,7 @@
 
 #include "user_types/BaseObject.h"
 
-#include "user_types/LuaScript.h"
+#include "core/Context.h"
 #include "core/Link.h"
 
 namespace raco::user_types {
@@ -27,13 +27,14 @@ public:
 		return typeDescription;
 	}
 
-	Node(const Node& other) : BaseObject(other),
-		tags_(other.tags_),
-		visibility_(other.visibility_),
-		translation_(other.translation_),
-		rotation_(other.rotation_),
-		scaling_(other.scaling_)
-	{
+	Node(const Node& other)
+		: BaseObject(other),
+		  tags_(other.tags_),
+		  visibility_(other.visibility_),
+		  enabled_(other.enabled_),
+		  translation_(other.translation_),
+		  rotation_(other.rotation_),
+		  scaling_(other.scaling_) {
 		fillPropertyDescription();
 	}
 
@@ -45,6 +46,7 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("tags", &tags_);
 		properties_.emplace_back("visibility", &visibility_ );
+		properties_.emplace_back("enabled", &enabled_);
 		properties_.emplace_back("translation", &translation_);
 		properties_.emplace_back("rotation", &rotation_);
 		properties_.emplace_back("scaling", &scaling_);
@@ -63,16 +65,12 @@ public:
 	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
 	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> visibility_{true, DisplayNameAnnotation("Visibility"), {}};
+	
+	Property<bool, DisplayNameAnnotation, LinkEndAnnotation, FeatureLevel> enabled_{true, DisplayNameAnnotation("Enabled"), {2}, FeatureLevel(2)};
 
-	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> translation_{Vec3f(0.0, 1.0, -100, 100 ), DisplayNameAnnotation("Translation"), {}};
-	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> scaling_{Vec3f(1.0, 0.1, 0.1, 100 ), DisplayNameAnnotation("Scaling"), {}};
+	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> translation_{Vec3f(0.0, 1.0, -100, 100), DisplayNameAnnotation("Translation"), {}};
+	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> scaling_{Vec3f(1.0, 0.1, 0.1, 100), DisplayNameAnnotation("Scaling"), {}};
 	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> rotation_{Vec3f(0.0, 5.0, -360.0, 360.0), DisplayNameAnnotation("Rotation"), {}};
 };
 
-template <auto T> struct property_name { static constexpr std::string_view value {}; };
-template <> struct property_name<&Node::visibility_> { static constexpr std::string_view value { "visibility" }; };
-template <> struct property_name<&Node::translation_> { static constexpr std::string_view value { "translation" }; };
-template <> struct property_name<&Node::rotation_> { static constexpr std::string_view value { "rotation" }; };
-template <> struct property_name<&Node::scaling_> { static constexpr std::string_view value { "scaling" }; };
-
-}
+}  // namespace raco::user_types

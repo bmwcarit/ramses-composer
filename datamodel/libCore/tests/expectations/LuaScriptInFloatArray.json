@@ -14,6 +14,9 @@
                             "typeName": "EngineTypeAnnotation"
                         },
                         {
+                            "properties": {
+                                "featureLevel": 1
+                            },
                             "typeName": "LinkEndAnnotation"
                         }
                     ],
@@ -34,6 +37,9 @@
                                     "typeName": "EngineTypeAnnotation"
                                 },
                                 {
+                                    "properties": {
+                                        "featureLevel": 1
+                                    },
                                     "typeName": "LinkEndAnnotation"
                                 }
                             ],
@@ -49,6 +55,9 @@
                                     "typeName": "EngineTypeAnnotation"
                                 },
                                 {
+                                    "properties": {
+                                        "featureLevel": 1
+                                    },
                                     "typeName": "LinkEndAnnotation"
                                 }
                             ],
@@ -64,6 +73,9 @@
                                     "typeName": "EngineTypeAnnotation"
                                 },
                                 {
+                                    "properties": {
+                                        "featureLevel": 1
+                                    },
                                     "typeName": "LinkEndAnnotation"
                                 }
                             ],
@@ -79,6 +91,9 @@
                                     "typeName": "EngineTypeAnnotation"
                                 },
                                 {
+                                    "properties": {
+                                        "featureLevel": 1
+                                    },
                                     "typeName": "LinkEndAnnotation"
                                 }
                             ],
@@ -94,6 +109,9 @@
                                     "typeName": "EngineTypeAnnotation"
                                 },
                                 {
+                                    "properties": {
+                                        "featureLevel": 1
+                                    },
                                     "typeName": "LinkEndAnnotation"
                                 }
                             ],

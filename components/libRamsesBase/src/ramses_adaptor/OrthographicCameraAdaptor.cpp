@@ -19,7 +19,7 @@
 namespace raco::ramses_adaptor {
 OrthographicCameraAdaptor::OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject)
 	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesOrthographicCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(*this->ramsesObject(), & sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID())},
+	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(this->getRamsesObjectPointer(), &sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), false)},
 	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::OrthographicCamera::viewport_}, [this](auto) {
 		  tagDirty();
 	  })},
@@ -61,6 +61,10 @@ const rlogic::Property* OrthographicCameraAdaptor::getProperty(const std::vector
 		return ILogicPropertyProvider::getPropertyRecursive(cameraBinding_->getInputs(), propertyNamesVector);
 	}
 	return SpatialAdaptor::getProperty(propertyNamesVector);
+}
+
+raco::ramses_base::RamsesCameraBinding OrthographicCameraAdaptor::cameraBinding() {
+	return cameraBinding_;
 }
 
 }  // namespace raco::ramses_adaptor

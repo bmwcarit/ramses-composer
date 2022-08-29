@@ -36,7 +36,7 @@ public:
 	using SEditorObject = raco::core::SEditorObject;
 	using SDataChangeDispatcher = raco::components::SDataChangeDispatcher;
 
-	explicit SceneBackend(ramses_base::BaseEngineBackend* engine, const SDataChangeDispatcher& dispatcher);
+	explicit SceneBackend(ramses_base::BaseEngineBackend& engine, const SDataChangeDispatcher& dispatcher);
 	void setScene(Project* project, core::Errors* errors, bool optimizeForExport);
 	void reset();
 	void flush();
@@ -53,11 +53,12 @@ public:
 	uint64_t currentSceneIdValue() const override;
 	std::vector<SceneItemDesc> getSceneItemDescriptions() const override;
 
-
 private:
+	ramses::RamsesClient* client() const;
+	ramses_base::LogicEngine* logicEngine() const;
+
 	SDataChangeDispatcher dispatcher_;
-	ramses::RamsesClient* client_;
-	ramses_base::LogicEngine* logicEngine_;
+	ramses_base::BaseEngineBackend& engine_;
 	std::unique_ptr<SceneAdaptor> scene_;
 };
 

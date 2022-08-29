@@ -38,7 +38,7 @@ public:
 	bool isCurrent(const std::string& projectPath) const;
 
 	// @return true if loaded successfully
-	raco::core::Project* addExternalProject(const std::string& projectPath, std::vector<std::string>& pathStack) override;
+	raco::core::Project* addExternalProject(const std::string& projectPath, core::LoadContext& loadContext) override;
 	void removeExternalProject(const std::string& projectPath) override;
 	bool canRemoveExternalProject(const std::string& projectPath) const override;
 
@@ -46,6 +46,9 @@ public:
 	bool isExternalProject(const std::string& projectPath) const override;
 	std::vector<std::pair<std::string, raco::core::CommandInterface*>> allExternalProjects() const override;
 	raco::core::Project* getExternalProject(const std::string& projectPath) const override;
+
+	void setRelinkCallback(std::function<std::string(const std::string&)> relinkCallback) override;
+	void clearRelinkCallback() override;
 
 private:
 	// Needs to access externalProjects_ directly:
@@ -59,13 +62,16 @@ private:
 	std::string activeProjectPath() const;
 
 	void buildProjectGraph(const std::string& absPath, std::vector<ProjectGraphNode>& outProjects);
-	void updateExternalProjectsDependingOn(const std::string& absPath);
-	bool loadExternalProject(const std::string& projectPath, std::vector<std::string>& pathStack);
+	void updateExternalProjectsDependingOn(const std::string& absPath, int featureLevel);
+	bool loadExternalProject(const std::string& projectPath, core::LoadContext& loadContext);
 
 	RaCoProject* activeProject_ = nullptr;
 	RaCoApplication* application_ = nullptr;
 
 	std::map<std::string, std::unique_ptr<RaCoProject>> externalProjects_;
+
+	std::function<std::string(const std::string&)> relinkCallback_;
+	std::map<std::string, std::string> relinkPathMapCache_;
 
 	components::ProjectFileChangeMonitor externalProjectFileChangeMonitor_;
 

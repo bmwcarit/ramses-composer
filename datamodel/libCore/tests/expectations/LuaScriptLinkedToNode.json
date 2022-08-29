@@ -1,6 +1,7 @@
 {
     "externalProjects": {
     },
+    "featureLevel": -1,
     "links": [
         {
             "properties": {
@@ -229,6 +230,7 @@
         },
         {
             "properties": {
+                "enabled": true,
                 "objectID": "node_id",
                 "objectName": "node",
                 "rotation": {

@@ -536,7 +536,7 @@ TEST_F(PrefabTest, delete_prefab_with_node_with_meshnode_while_instance_exists) 
 }
 
 TEST_F(PrefabTest, update_inst_from_prefab_after_remove_link) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -1037,7 +1037,7 @@ TEST_F(PrefabTest, link_strong_valid_to_weak_invalid_transition) {
 
 
 TEST_F(PrefabTest, prefab_update_from_optimized_saved_file) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 
 	std::string root_id;
 	std::string node_id;

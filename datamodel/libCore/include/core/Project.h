@@ -61,6 +61,9 @@ public:
 	std::shared_ptr<ProjectSettings> settings();
 	void setCurrentPath(const std::string& newPath);
 
+	int featureLevel() const;
+	void setFeatureLevel(int featureLevel);
+
 	void addLink(SLink link);
 	void removeLink(SLink link);
 
@@ -86,6 +89,7 @@ public:
 	// @exception ExtrefError if collisions are detected.
 	void addExternalProjectMapping(const std::string& projectID, const std::string& path, const std::string& projectName);
 	void updateExternalProjectName(const std::string& projectID, const std::string& projectName);
+	void updateExternalProjectPath(const std::string& projectID, const std::string& projectPath);
 	void removeExternalProjectMapping(const std::string& projectID);
 	bool hasExternalProjectMapping(const std::string& projectID) const;
 	std::string lookupExternalProjectPath(const std::string& projectID) const;

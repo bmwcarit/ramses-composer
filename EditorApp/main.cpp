@@ -89,6 +89,12 @@ int main(int argc, char* argv[]) {
 		QStringList() << "t"
 					  << "trace-messages-ramses",
 		"Enable trace-level Ramses log messages.");
+	QCommandLineOption ramsesLogicFeatureLevel(
+		QStringList() << "f"
+					  << "featurelevel",
+		fmt::format("RamsesLogic feature level (-1, {} ... {})", static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)).c_str(),
+		"feature-level",
+		QString::fromStdString(std::to_string(static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))));
 	QCommandLineOption pyrunOption(
 		QStringList() << "r"
 					  << "run",
@@ -99,6 +105,7 @@ int main(int argc, char* argv[]) {
 	parser.addOption(noDumpFileCheckOption);
 	parser.addOption(loadProjectAction);
 	parser.addOption(ramsesTraceLogMessageAction);
+	parser.addOption(ramsesLogicFeatureLevel);
 	parser.addOption(pyrunOption);
 
 	// apply global style, must be done before application instance
@@ -153,6 +160,17 @@ int main(int argc, char* argv[]) {
 		projectFile = QFileInfo(positionalArgs.at(0)).absoluteFilePath();
 	}
 
+	int featureLevel = -1;
+	if (parser.isSet(ramsesLogicFeatureLevel)) {
+		featureLevel = parser.value(ramsesLogicFeatureLevel).toInt();
+		if (!(featureLevel == -1 ||
+			featureLevel >= static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel) &&
+			featureLevel <= static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))) {
+			LOG_ERROR(raco::log_system::COMMON, fmt::format("RamsesLogic feature level {} outside valid range (-1, {} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+			exit(1);
+        }
+	}
+
 	QString pythonScriptPath{};
 	if (parser.isSet(pyrunOption)) {
 		QFileInfo path(parser.value(pyrunOption));
@@ -171,12 +189,13 @@ int main(int argc, char* argv[]) {
 	raco::style::RaCoStyle::installFont();
 
 	auto ramsesCommandLineArgs = parser.value(forwardCommandLineArgs).toStdString();
-	raco::ramses_widgets::RendererBackend rendererBackend{parser.isSet(forwardCommandLineArgs) ? ramsesCommandLineArgs : ""};
+	int initialFeatureLevel = featureLevel == -1 ? static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel) : featureLevel;
+	raco::ramses_widgets::RendererBackend rendererBackend{static_cast<rlogic::EFeatureLevel>(initialFeatureLevel), parser.isSet(forwardCommandLineArgs) ? ramsesCommandLineArgs : ""};
 
 	std::unique_ptr<raco::application::RaCoApplication> app;
 
 	try {
-		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, raco::application::RaCoApplicationLaunchSettings{projectFile, true, parser.isSet(ramsesTraceLogMessageAction), true});
+		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, raco::application::RaCoApplicationLaunchSettings(projectFile, true, parser.isSet(ramsesTraceLogMessageAction), featureLevel, true));
 	} catch (const raco::application::FutureFileVersion& error) {
 		LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 		app.reset();

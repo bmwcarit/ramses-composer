@@ -28,12 +28,11 @@
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/OrthographicCamera.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderPass.h"
 #include "user_types/Texture.h"
-#include "user_types/OrthographicCamera.h"
-#include "user_types/RenderPass.h"
 #include "user_types/Timer.h"
 
 #include "gtest/gtest.h"
@@ -101,8 +100,8 @@ public:
 		cmd->set({lua, {"uri"}}, (test_path() / relpath).string());
 		return lua;
 	}
-	
-	SLuaScript create_lua(const std::string &name, const TextFile& file, raco::core::SEditorObject parent = nullptr) {
+
+	SLuaScript create_lua(const std::string &name, const TextFile &file, raco::core::SEditorObject parent = nullptr) {
 		auto lua = create<LuaScript>(name, parent);
 		cmd->set({lua, {"uri"}}, static_cast<std::string>(file));
 		return lua;
@@ -146,8 +145,8 @@ public:
 			}));
 
 		auto it = std::find_if(project->instances().begin(), project->instances().end(), [name](SEditorObject obj) {
-				return obj->objectName() == name && !obj->query<raco::core::ExternalReferenceAnnotation>();
-			});	
+			return obj->objectName() == name && !obj->query<raco::core::ExternalReferenceAnnotation>();
+		});
 		return *it;
 	}
 
@@ -187,14 +186,16 @@ public:
 		});
 	}
 
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 
 	RaCoApplication *app;
 	Project *project;
 	CommandInterface *cmd;
 
-	std::string setupBase(const std::string &basePathName, std::function<void()> func, const std::string &baseProjectName = std::string("base")) {
-		RaCoApplication base{backend};
+	std::string setupBase(const std::string &basePathName, std::function<void()> func, const std::string &baseProjectName = std::string("base"), int featureLevel = -1) {
+		RaCoApplicationLaunchSettings settings;
+		settings.featureLevel = featureLevel;
+		RaCoApplication base{backend, settings};
 		app = &base;
 		project = base.activeRaCoProject().project();
 		cmd = base.activeRaCoProject().commandInterface();
@@ -220,9 +221,9 @@ public:
 
 	bool pasteFromExt(const std::string &basePathName, const std::vector<std::string> &externalObjectNames, bool asExtref, std::vector<SEditorObject> *outPasted = nullptr) {
 		bool success = true;
-		std::vector<std::string> stack;
-		stack.emplace_back(project->currentPath());
-		bool status = app->externalProjects()->addExternalProject(basePathName.c_str(), stack);
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
+		bool status = app->externalProjects()->addExternalProject(basePathName.c_str(), loadContext);
 		if (!status) {
 			if (outPasted) {
 				outPasted->clear();
@@ -251,8 +252,10 @@ public:
 	}
 
 	std::string setupComposite(const std::string &basePathName, const std::string &compositePathName, const std::vector<std::string> &externalObjectNames,
-		std::function<void()> func, const std::string &projectName = std::string()) {
-		RaCoApplication app_{backend};
+		std::function<void()> func, const std::string &projectName = std::string(), int featureLevel = -1) {
+		RaCoApplicationLaunchSettings settings;
+		settings.featureLevel = featureLevel;
+		RaCoApplication app_{backend, settings};
 		app = &app_;
 		project = app->activeRaCoProject().project();
 		cmd = app->activeRaCoProject().commandInterface();
@@ -270,9 +273,10 @@ public:
 		return project->projectID();
 	}
 
-	void updateBase(const std::string &basePathName, std::function<void()> func) {
+	void updateBase(const std::string &basePathName, std::function<void()> func, int featureLevel = -1) {
 		RaCoApplicationLaunchSettings settings;
 		settings.initialProject = basePathName.c_str();
+		settings.featureLevel = featureLevel;
 
 		RaCoApplication base{backend, settings};
 		app = &base;
@@ -285,9 +289,10 @@ public:
 		ASSERT_TRUE(base.activeRaCoProject().save(msg));
 	}
 
-	void updateComposite(const std::string &pathName, std::function<void()> func) {
+	void updateComposite(const std::string &pathName, std::function<void()> func, int featureLevel = -1) {
 		RaCoApplicationLaunchSettings settings;
 		settings.initialProject = pathName.c_str();
+		settings.featureLevel = featureLevel;
 
 		RaCoApplication app_{backend, settings};
 		app = &app_;
@@ -323,9 +328,9 @@ TEST_F(ExtrefTest, duplicate_normal_paste) {
 	});
 
 	setupGeneric([this, basePathName]() {
-		std::vector<std::string> stack;
-		stack.emplace_back(project->currentPath());
-		app->externalProjects()->addExternalProject(basePathName.c_str(), stack);
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
+		app->externalProjects()->addExternalProject(basePathName.c_str(), loadContext);
 		auto originProject = app->externalProjects()->getExternalProject(basePathName);
 		auto originCmd = app->externalProjects()->getExternalProjectCommandInterface(basePathName);
 		auto originPrefab = Queries::findByName(originProject->instances(), "Prefab");
@@ -624,9 +629,9 @@ TEST_F(ExtrefTest, duplicate_extref_paste_discard_all) {
 	});
 
 	setupGeneric([this, basePathName]() {
-		std::vector<std::string> stack;
-		stack.emplace_back(project->currentPath());
-		app->externalProjects()->addExternalProject(basePathName.c_str(), stack);
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
+		app->externalProjects()->addExternalProject(basePathName.c_str(), loadContext);
 		auto originProject = app->externalProjects()->getExternalProject(basePathName);
 		auto originCmd = app->externalProjects()->getExternalProjectCommandInterface(basePathName);
 		auto originPrefab = Queries::findByName(originProject->instances(), "Prefab");
@@ -652,9 +657,9 @@ TEST_F(ExtrefTest, duplicate_extref_paste_discard_some) {
 	});
 
 	setupGeneric([this, basePathName]() {
-		std::vector<std::string> stack;
-		stack.emplace_back(project->currentPath());
-		app->externalProjects()->addExternalProject(basePathName.c_str(), stack);
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
+		app->externalProjects()->addExternalProject(basePathName.c_str(), loadContext);
 		auto originProject = app->externalProjects()->getExternalProject(basePathName);
 		auto originCmd = app->externalProjects()->getExternalProjectCommandInterface(basePathName);
 		auto originMesh = Queries::findByName(originProject->instances(), "Mesh");
@@ -697,9 +702,9 @@ TEST_F(ExtrefTest, extref_projname_change_update) {
 	updateComposite(compositePathName, [this]() {
 		auto prefab = findExt("prefab");
 		auto anno = prefab->query<ExternalReferenceAnnotation>();
-		std::vector<std::string> stack;
-		stack.emplace_back(project->currentPath());
-		auto extProject = app->externalProjects()->addExternalProject(project->lookupExternalProjectPath(*anno->projectID_), stack);
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
+		auto extProject = app->externalProjects()->addExternalProject(project->lookupExternalProjectPath(*anno->projectID_), loadContext);
 		ASSERT_EQ(extProject->projectName(), std::string("Foo"));
 	});
 }
@@ -725,11 +730,11 @@ TEST_F(ExtrefTest, extref_projname_change_paste_more) {
 	updateComposite(compositePathName, [this, basePathName]() {
 		ASSERT_TRUE(pasteFromExt(basePathName, {"mesh"}, true));
 
-		std::vector<std::string> stack;
-		stack.emplace_back(project->currentPath());
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
 		for (auto obj : project->instances()) {
 			if (auto anno = obj->query<ExternalReferenceAnnotation>()) {
-				auto extProject = app->externalProjects()->addExternalProject(project->lookupExternalProjectPath(*anno->projectID_), stack);
+				auto extProject = app->externalProjects()->addExternalProject(project->lookupExternalProjectPath(*anno->projectID_), loadContext);
 				ASSERT_EQ(extProject->projectName(), std::string("Foo"));
 			}
 		}
@@ -1058,10 +1063,8 @@ end
 		auto inst_lua = findLocal("prefab_lua");
 		auto inst_child = findLocal("prefab_child");
 		EXPECT_EQ(child->getParent(), prefab);
-		checkLinks({
-			{{lua, {"outputs", "v"}}, {child, {"translation"}}},
-			{{inst_lua, {"outputs", "v"}}, {inst_child, {"translation"}}}
-			});
+		checkLinks({{{lua, {"outputs", "v"}}, {child, {"translation"}}},
+			{{inst_lua, {"outputs", "v"}}, {inst_child, {"translation"}}}});
 	});
 }
 
@@ -1330,10 +1333,8 @@ end
 		checkLinks({{{start, {"outputs", "v"}}, {mid, {"inputs", "v"}}}});
 		ASSERT_TRUE(pasteFromExt(basePathName, {"mid", "end"}, true));
 		auto end = findExt("end");
-		checkLinks({
-			{{start, {"outputs", "v"}}, {mid, {"inputs", "v"}}},
-			{{mid, {"outputs", "v"}}, {end, {"inputs", "v"}}}
-		});
+		checkLinks({{{start, {"outputs", "v"}}, {mid, {"inputs", "v"}}},
+			{{mid, {"outputs", "v"}}, {end, {"inputs", "v"}}}});
 	});
 }
 
@@ -1346,7 +1347,7 @@ TEST_F(ExtrefTest, nesting_create) {
 	std::string mid_id;
 
 	setupBase(basePathName, [this, &base_id]() {
-		//auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+		// auto mesh = create_mesh("mesh", "meshes/Duck.glb");
 		auto mesh = create<Mesh>("mesh");
 		base_id = project->projectID();
 	});
@@ -2334,7 +2335,6 @@ TEST_F(ExtrefTest, timer_in_extref) {
 	});
 }
 
-
 TEST_F(ExtrefTest, extref_timer_with_local_prefabinstance) {
 	auto basePathName1{(test_path() / "base.rca").string()};
 	auto basePathName2{(test_path() / "base2.rca").string()};
@@ -2517,4 +2517,64 @@ TEST_F(ExtrefTest, link_weak_cycle) {
 		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
 			{{end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}, true, true}});
 	});
+}
+
+TEST_F(ExtrefTest, feature_level_upgrade_composite) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	setupBase(
+		basePathName, [this]() {
+			auto prefab = create<Prefab>("prefab");
+		},
+		"base", 1);
+
+	setupComposite(
+		basePathName, compositePathName, {"prefab"}, [this]() {
+			auto prefab = findExt<Prefab>("prefab");
+			auto inst = create_prefabInstance("inst", prefab);
+		},
+		"composite", 1);
+
+	updateBase(basePathName, [this]() {
+		EXPECT_EQ(project->featureLevel(), 1);
+		auto prefab = find("prefab");
+		auto node = create<Node>("node", prefab);
+	});
+
+	updateComposite(
+		compositePathName, [this]() {
+			EXPECT_EQ(project->featureLevel(), 2);
+		},
+		2);
+}
+TEST_F(ExtrefTest, feature_level_upgrade_base) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	setupBase(
+		basePathName, [this]() {
+			auto prefab = create<Prefab>("prefab");
+		},
+		"base", 1);
+
+	setupComposite(
+		basePathName, compositePathName, {"prefab"}, [this]() {
+			auto prefab = findExt<Prefab>("prefab");
+			auto inst = create_prefabInstance("inst", prefab);
+		},
+		"composite", 1);
+
+	updateBase(
+		basePathName, [this]() {}, 2);
+
+	EXPECT_THROW(updateComposite(
+					 compositePathName, [this]() {}, 1),
+		raco::core::ExtrefError);
+
+	updateComposite(
+		compositePathName, [this]() {
+			EXPECT_EQ(project->featureLevel(), 2);
+		},
+		2);
 }

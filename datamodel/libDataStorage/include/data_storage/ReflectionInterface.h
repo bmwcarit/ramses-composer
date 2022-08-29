@@ -44,6 +44,14 @@ public:
 	struct TypeDescriptor {
 		std::string typeName;
 		bool isResource;
+
+		/**
+		 * @brief Minimum project feature level at which a user type is available.
+		 * 
+		 * New user types should be tagged with the feature level at which the corresponding 
+		 * logic engine type has been introduced.
+		*/
+		int featureLevel{1};
 	};
 	virtual TypeDescriptor const& getTypeDescription() const = 0;
 

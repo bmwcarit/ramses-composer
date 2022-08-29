@@ -9,11 +9,11 @@
  */
 #pragma once
 
+#include "core/BasicAnnotations.h"
 #include "data_storage/AnnotationBase.h"
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
-#include "core/BasicAnnotations.h"
 
 #include "core/Handles.h"
 #include "core/PropertyDescriptor.h"
@@ -27,10 +27,9 @@ using namespace raco::data_storage;
 class Link;
 using SLink = std::shared_ptr<Link>;
 
-
 // The LinkDescriptor is needed by the ChangeRecorder and engine interface and is currently
 // needed to avoid accidental pointer comparisons of std::shared_ptr<Link> objects.
-// The pointer comparisons do not establish a valid identity relation for links (see discussion 
+// The pointer comparisons do not establish a valid identity relation for links (see discussion
 // of Link value semantic in that class).
 struct LinkDescriptor {
 	PropertyDescriptor start;
@@ -44,7 +43,6 @@ struct LinkDescriptor {
 bool operator==(const LinkDescriptor& lhs, const LinkDescriptor& rhs);
 bool operator<(const LinkDescriptor& lhs, const LinkDescriptor& rhs);
 
-
 //
 // Link objects represent links between EditorObject properties in the data model
 // - Link objects do not possess an identity beyond their content, i.e. they have value semantic
@@ -56,9 +54,9 @@ bool operator<(const LinkDescriptor& lhs, const LinkDescriptor& rhs);
 // - link validity can change when the set of dynamic properties of objects changes.
 //   currently this concerns lua in/out properties and meshnode uniform properties.
 // - weak links do not affect link loop detection in the data model or the engine update order graph.
-//   they can be used to build loops. 
+//   they can be used to build loops.
 // - weak link status can not change; instead links need to be removed and created again.
-// - weak links may not start/end on LuaInterface objects since this would interfere with link optimiation 
+// - weak links may not start/end on LuaInterface objects since this would interfere with link optimiation
 //   on export.
 //
 class Link : public ClassWithReflectedMembers {
@@ -96,14 +94,13 @@ public:
 
 	static SLink cloneLinkWithTranslation(const SLink& link, std::function<SEditorObject(SEditorObject)> translateRef);
 
-	
 	// startProp_ and endProp_ contain Table of unnamed string property denoting the property path
 
 	Value<SEditorObject> startObject_;
-	Property<Table, ArraySemanticAnnotation> startProp_ {{}, {}};
+	Property<Table, ArraySemanticAnnotation> startProp_{{}, {}};
 
 	Value<SEditorObject> endObject_;
-	Property<Table, ArraySemanticAnnotation> endProp_ {{}, {}};
+	Property<Table, ArraySemanticAnnotation> endProp_{{}, {}};
 
 	Value<bool> isValid_{true};
 	Value<bool> isWeak_{false};
@@ -142,12 +139,29 @@ public:
 		return false;
 	}
 
-	LinkEndAnnotation(const LinkEndAnnotation& other) : AnnotationBase({}) {}
-	LinkEndAnnotation() : AnnotationBase({}) {}
+	LinkEndAnnotation(const LinkEndAnnotation& other)
+		: AnnotationBase({{"featureLevel", &featureLevel_}}),
+		  featureLevel_(other.featureLevel_) {
+	}
+
+	LinkEndAnnotation(int featureLevel = 1)
+		: AnnotationBase({{"featureLevel", &featureLevel_}}),
+		  featureLevel_(featureLevel) {
+	}
 
 	LinkEndAnnotation& operator=(const LinkEndAnnotation& other) {
+		featureLevel_ = other.featureLevel_;
 		return *this;
 	}
+
+
+	/**
+	 * @brief Consider this annotation to be present if featureLevel property <= project feature level
+	 * 
+	 * If a property is tagged with a FeatureLevel annotation and is linkable the link feature level
+	 * must larger or equal to the property feature level from the FeatureLevel annotation.
+	*/
+	Value<int> featureLevel_{1};
 };
 
 }  // namespace raco::core

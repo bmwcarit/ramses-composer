@@ -160,6 +160,12 @@ TEST_F(CommandInterfaceTest, set_vec4i_fail) {
 	EXPECT_THROW(commandInterface.set({obj, &Foo::v4i_}, value), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_future_feature_level_fail) {
+	auto obj = create<Foo>("name");
+
+	EXPECT_THROW(commandInterface.set({obj, &Foo::future_}, 42.0), std::runtime_error);
+}
+
 TEST_F(CommandInterfaceTest, set_tags_fail) {
 	auto obj = create<ObjectWithTableProperty>("name");
 	auto foo = create<Foo>("name");
@@ -304,6 +310,12 @@ TEST_F(CommandInterfaceTest, set_int_fail_invalid_enum) {
 	EXPECT_THROW(commandInterface.set({material, {"options", "cullmode"}}, 42), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_int_fail_read_only) {
+	auto obj = create<Foo>("name");
+		
+	EXPECT_THROW(commandInterface.set({obj, {"readOnly"}}, 27), std::runtime_error);
+}
+
 
 TEST_F(CommandInterfaceTest, move_scenegraph_fail_prefab_loop) {
 	auto prefab = create<Prefab>("prefab");
@@ -344,6 +356,10 @@ TEST_F(CommandInterfaceTest, create_object_fail_invalid_parent) {
 	commandInterface.deleteObjects({node});
 
 	EXPECT_THROW(commandInterface.createObject("Node", "new_node", node), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, create_object_fail_future_type) {
+	EXPECT_THROW(commandInterface.createObject("FutureType", "future"), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, double_delete_fail) {
@@ -482,6 +498,14 @@ TEST_F(CommandInterfaceTest, addLink_fail_end_interface_prop) {
 	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ofloat"}}, {intf, {"inputs", "float"}}), std::runtime_error);
 	EXPECT_NO_THROW(commandInterface.addLink({intf, {"inputs", "float"}}, {lua, {"inputs", "float"}}));
 }
+
+TEST_F(CommandInterfaceTest, addLink_fail_future_linkable) {
+	auto start = create<Foo>("start");
+	auto end = create<Foo>("end");
+
+	EXPECT_THROW(commandInterface.addLink({start, &Foo::x_}, {end, &Foo::futureLinkable_}), std::runtime_error);
+}
+
 
 TEST_F(CommandInterfaceTest, removeLink_fail_no_end) {
 	auto node = create<Node>("node");

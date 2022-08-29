@@ -20,7 +20,7 @@ add_library(libObjectTree
     include/object_tree_view_model/ObjectTreeViewExternalProjectModel.h src/object_tree_view_model/ObjectTreeViewExternalProjectModel.cpp
     include/object_tree_view_model/ObjectTreeViewPrefabModel.h src/object_tree_view_model/ObjectTreeViewPrefabModel.cpp
     include/object_tree_view_model/ObjectTreeViewResourceModel.h
-    include/object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.h src/object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.cpp
+    include/object_tree_view_model/ObjectTreeViewSortProxyModels.h src/object_tree_view_model/ObjectTreeViewSortProxyModels.cpp
     src/object_tree_view_model/ObjectTreeViewResourceModel.cpp
 )
 

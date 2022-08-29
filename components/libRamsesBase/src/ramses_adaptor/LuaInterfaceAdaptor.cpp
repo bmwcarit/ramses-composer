@@ -13,6 +13,7 @@
 #include "core/PrefabOperations.h"
 #include "core/Queries.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/LuaScript.h"
 
 namespace raco::ramses_adaptor {
 

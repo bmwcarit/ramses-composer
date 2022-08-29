@@ -74,6 +74,7 @@ public:
 			instance->addType<raco::user_types::Foo>();
 			instance->addType<raco::user_types::ObjectWithTableProperty>();
 			instance->addType<raco::user_types::ObjectWithStructProperty>();
+			instance->addType<raco::user_types::FutureType>();
 		}
 		return *instance;
 	}
@@ -235,7 +236,7 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	}
 
 	TestEnvironmentCoreT(UserObjectFactoryInterface* objectFactory = &UserObjectFactory::getInstance())
-		: backend{},
+		: backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel},
 		  fileChangeMonitor{std::make_unique<FileChangeMonitorImpl>()},
 		  meshCache{},
 		  project{},

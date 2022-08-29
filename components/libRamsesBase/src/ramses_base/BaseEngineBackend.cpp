@@ -15,9 +15,11 @@
 namespace raco::ramses_base {
 
 BaseEngineBackend::BaseEngineBackend(
+	rlogic::EFeatureLevel featureLevel, 
 	const ramses::RamsesFrameworkConfig& frameworkConfig,
 	const char* applicationName)
 	: framework_{frameworkConfig},
+	  logicEngine_(std::make_unique<rlogic::LogicEngine>(featureLevel)),
 	  client_{framework_.createClient(applicationName), [=](ramses::RamsesClient* c) { framework_.destroyClient(*c); }},
 	  scene_{client_->createScene(BuildOptions::internalSceneId), [this](ramses::Scene* scene) { client_->destroy(*scene); }},
 	  coreInterface_{this} {
@@ -30,6 +32,7 @@ BaseEngineBackend::~BaseEngineBackend() {
 }
 
 bool BaseEngineBackend::connect() {
+	LOG_INFO(raco::log_system::RAMSES_BACKEND, "LogicEngine feature level = {}.", static_cast<int>(getFeatureLevel()));
 	if (framework_.connect() != ramses::StatusOK) {
 		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Connection to ramses::RamsesFramework failed.");
 		return true;
@@ -52,11 +55,23 @@ ramses::RamsesClient& BaseEngineBackend::client() {
 }
 
 LogicEngine& BaseEngineBackend::logicEngine() {
-	return logicEngine_;
+	return *logicEngine_;
 }
 
 raco::core::EngineInterface* BaseEngineBackend::coreInterface() {
 	return &coreInterface_;
 }
+
+void BaseEngineBackend::setFeatureLevel(rlogic::EFeatureLevel newFeatureLevel) {
+	if (getFeatureLevel() != newFeatureLevel) {
+		logicEngine_ = std::make_unique<rlogic::LogicEngine>(newFeatureLevel);
+		LOG_INFO(raco::log_system::RAMSES_BACKEND, "LogicEngine feature level = {}.", static_cast<int>(getFeatureLevel()));
+	}
+}
+
+rlogic::EFeatureLevel BaseEngineBackend::getFeatureLevel() {
+	return logicEngine_->getFeatureLevel();
+}
+
 
 }  // namespace raco::ramses_base

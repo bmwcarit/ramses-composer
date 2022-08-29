@@ -22,4 +22,9 @@ std::map<int, std::string> enumerationRenderLayerMaterialFilterMode{
 	{static_cast<int>(ERenderLayerMaterialFilterMode::Inclusive), "Include materials with any of the listed tags"},
 	{static_cast<int>(ERenderLayerMaterialFilterMode::Exclusive), "Exclude materials with any of the listed tags"}};
 
+
+std::map<int, std::string> enumerationFrustumType{
+	{static_cast<int>(EFrustumType::Aspect_FieldOfView), "Aspect & Field Of View"},
+	{static_cast<int>(EFrustumType::Planes), "Planes"}};
+
 }  // namespace raco::user_types

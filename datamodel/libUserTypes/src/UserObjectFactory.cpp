@@ -12,6 +12,7 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/ProjectSettings.h"
 
+#include "user_types/AnchorPoint.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
 #include "user_types/BaseCamera.h"
@@ -82,6 +83,7 @@ UserObjectFactory::UserObjectFactory() {
 
 	types_ = makeTypeMap<
 		ProjectSettings,
+		AnchorPoint,
 		Animation,
 		AnimationChannel,
         CubeMap,
@@ -118,11 +120,11 @@ UserObjectFactory::UserObjectFactory() {
 		BlendOptions,
 		ProjectSettings::DefaultResourceDirectories,
 		CameraViewport,
-		PerspectiveFrustum,
 		OrthographicFrustum,
 		LuaStandardModuleSelection,
 		TimerInput,
-		TimerOutput>();
+		TimerOutput,
+		AnchorPointOutputs>();
 }
 
 UserObjectFactory& UserObjectFactory::getInstance() {
@@ -178,9 +180,9 @@ const std::map<std::string, UserObjectFactory::TypeDescriptor>& UserObjectFactor
 	return types_;
 }
 
-bool UserObjectFactory::isUserCreatable(const std::string& type) const {
+bool UserObjectFactory::isUserCreatable(const std::string& type, int featureLevel) const {
 	auto it = types_.find(type);
-	return it != types_.end() && type != core::ProjectSettings::typeDescription.typeName;
+	return it != types_.end() && type != core::ProjectSettings::typeDescription.typeName && it->second.description.featureLevel <= featureLevel;
 }
 
 const std::map<std::string, UserObjectFactory::StructDescriptor>& UserObjectFactory::getStructTypes() const {

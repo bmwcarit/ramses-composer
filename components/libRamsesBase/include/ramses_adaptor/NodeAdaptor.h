@@ -59,6 +59,7 @@ public:
 			  })},
 		  subscriptions_{
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("visibility"), [this]() { this->tagDirty(); }),
+			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("enabled"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject}.get("children"), [this]() { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("translation"), [this](auto) { this->tagDirty(); }),
 			  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject}.get("scaling"), [this](auto) { this->tagDirty(); }),
@@ -69,7 +70,7 @@ public:
 			setupLinkStartSubscription();
 		}
 
-		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &sceneAdaptor->logicEngine(), rotationType_, this->editorObject()->objectIDAsRamsesLogicID());
+		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(this->getRamsesObjectPointer(), &sceneAdaptor->logicEngine(), rotationType_, this->editorObject()->objectIDAsRamsesLogicID());
 	}
 
 	void setupLinkStartSubscription() {
@@ -134,6 +135,10 @@ public:
 		return std::shared_ptr<ramses::Node>(handlePtr, handlePtr->get()); 
 	}
 
+	raco::ramses_base::RamsesNodeBinding nodeBinding() {
+		return nodeBinding_;
+	}
+
 protected:
 	std::vector<RamsesHandle<ramses::Node>> currentRamsesChildren_;
 
@@ -155,14 +160,17 @@ private:
 	}
 
 	void syncNodeBinding() {
-		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(*this->ramsesObject(), &this->sceneAdaptor_->logicEngine(), rotationType_, this->editorObject()->objectIDAsRamsesLogicID());
+		nodeBinding_ = raco::ramses_base::ramsesNodeBinding(this->getRamsesObjectPointer(), &this->sceneAdaptor_->logicEngine(), rotationType_, this->editorObject()->objectIDAsRamsesLogicID());
 		nodeBinding_->setName(this->editorObject().get()->objectName() + "_NodeBinding");
 	}
 
 	void syncVisibility() {
-		auto visible = core::ValueHandle{this->editorObject()}.get("visibility").as<bool>();
-		if (((*this->ramsesObject()).getVisibility() == ramses::EVisibilityMode::Visible) != visible) {
-			(*this->ramsesObject()).setVisibility(visible ? ramses::EVisibilityMode::Visible : ramses::EVisibilityMode::Invisible);
+		auto visibility = core::ValueHandle{this->editorObject()}.get("visibility").as<bool>();
+		nodeBinding_->getInputs()->getChild("visibility")->set(visibility);
+
+		if (this->sceneAdaptor_->featureLevel() >= rlogic::EFeatureLevel::EFeatureLevel_02) {
+			auto enabled = core::ValueHandle{this->editorObject()}.get("enabled").as<bool>();
+			nodeBinding_->getInputs()->getChild("enabled")->set(enabled);
 		}
 	}
 
@@ -200,8 +208,8 @@ private:
 	constexpr static inline rlogic::ERotationType DEFAULT_VEC3_ROTATION_TYPE = rlogic::ERotationType::Euler_ZYX;
 
 	rlogic::ERotationType rotationType_;
-	raco::ramses_base::UniqueRamsesNodeBinding nodeBinding_;
-	std::array<components::Subscription, 5> subscriptions_;
+	raco::ramses_base::RamsesNodeBinding nodeBinding_;
+	std::array<components::Subscription, 6> subscriptions_;
 	components::Subscription linksLifecycle_;
 	components::Subscription linkStartSubscription_;
 };

@@ -14,7 +14,11 @@
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view/ObjectTreeView.h"
 
+#include <QComboBox>
+#include <QLabel>
+#include <QLineEdit>
 #include <QModelIndexList>
+#include <QSortFilterProxyModel>
 
 namespace raco::object_tree::view {
 
@@ -28,27 +32,47 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 	treeDockLayout_ = new raco::common_widgets::NoContentMarginsLayout<QVBoxLayout>(treeDockContent_);
 	treeDockContent_->setLayout(treeDockLayout_);
 
-	availableTreesComboBox_ = new QComboBox(treeDockContent_);
-	availableTreesComboBox_->setVisible(false);
-	treeDockLayout_->addWidget(availableTreesComboBox_);
+	filterLineEdit_ = new QLineEdit(this);
+	filterLineEdit_->setPlaceholderText("Filter Objects...");
+	filterByComboBox_ = new QComboBox(this);
+	filterByComboBox_->addItems({"Filter by Name", "Filter by Type", "Filter by Object ID"});
+
 	auto treeDockSettingsWidget = new QWidget(treeDockContent_);
-	treeDockSettingsLayout_ = new raco::common_widgets::NoContentMarginsLayout<QVBoxLayout>(treeDockSettingsWidget);
+	treeDockSettingsLayout_ = new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(treeDockSettingsWidget);
+	treeDockSettingsLayout_->setContentsMargins(2, 3, 2, 0);
+	treeDockSettingsLayout_->addWidget(filterLineEdit_);
+	treeDockSettingsLayout_->addWidget(filterByComboBox_);
+
 	treeDockLayout_->addWidget(treeDockSettingsWidget);
 
 	treeViewStack_ = new QStackedWidget(treeDockContent_);
 	treeDockLayout_->addWidget(treeViewStack_);
 
-	connect(availableTreesComboBox_, &QComboBox::currentTextChanged, this, &ObjectTreeDock::selectTreeView);
+
+	connect(filterLineEdit_, &QLineEdit::textChanged, [this]() {
+		filterTreeViewObjects();
+	});
+
+	connect(filterByComboBox_, &QComboBox::currentTextChanged, [this]() {
+		auto currentIndex = filterByComboBox_->currentIndex();
+
+		getActiveTreeView()->setFilterKeyColumn(currentIndex);
+
+		filterTreeViewObjects();
+	});
+
+
 }
 
 raco::object_tree::view::ObjectTreeDock::~ObjectTreeDock() {
 	Q_EMIT dockClosed(this);
 }
 
-void ObjectTreeDock::addTreeView(ObjectTreeView *treeView) {
+void ObjectTreeDock::setTreeView(ObjectTreeView *treeView) {
 	const auto treeViewTitle = treeView->getViewTitle();
 
-	assert(!savedTreeViews_.contains(treeViewTitle));
+	filterLineEdit_->setVisible(treeView->hasProxyModel());
+	filterByComboBox_->setVisible(treeView->hasProxyModel());
 
 	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, [this](const auto &handles) {
 		Q_EMIT newObjectTreeItemsSelected(handles, this);
@@ -60,30 +84,20 @@ void ObjectTreeDock::addTreeView(ObjectTreeView *treeView) {
 		Q_EMIT dockSelectionFocusRequested(this);
 	});
 
-	savedTreeViews_.insert(treeViewTitle, treeView);
-	treeViewStack_->addWidget(savedTreeViews_[treeViewTitle]);
-	availableTreesComboBox_->setVisible(savedTreeViews_.size() > 1);
-
-	availableTreesComboBox_->addItem(treeViewTitle);
+	treeViewStack_->removeWidget(treeViewStack_->currentWidget());
+	treeViewStack_->addWidget(treeView);
 }
 
-ObjectTreeView *raco::object_tree::view::ObjectTreeDock::getCurrentlyActiveTreeView() const {
+ObjectTreeView *ObjectTreeDock::getActiveTreeView() const {
 	return dynamic_cast<ObjectTreeView *>(treeViewStack_->currentWidget());
 }
 
-void raco::object_tree::view::ObjectTreeDock::resetSelection() {
-	for (auto tree : savedTreeViews_) {
-		tree->resetSelection();
-	}
+void ObjectTreeDock::resetSelection() {
+	getActiveTreeView()->resetSelection();
 }
 
-void ObjectTreeDock::selectTreeView(const QString &treeViewTitle) {
-	treeViewStack_->setCurrentWidget(savedTreeViews_[treeViewTitle]);
-
-	auto currentTreeView = static_cast<ObjectTreeView *>(treeViewStack_->currentWidget());
-	if (currentTreeView && currentTreeView->selectionModel()->hasSelection()) {
-		Q_EMIT newObjectTreeItemsSelected(currentTreeView->getSelectedHandles(), this);
-	}
+void ObjectTreeDock::filterTreeViewObjects() {
+	getActiveTreeView()->filterObjects(filterLineEdit_->text());
 }
 
 }  // namespace raco::object_tree::view

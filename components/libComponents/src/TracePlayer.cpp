@@ -47,7 +47,9 @@ public:
 	void lockCodeControlledObjects(core::SEditorObjectSet const& editorObjs) {
 		project_.lockCodeCtrldObjs(editorObjs);
 		for (auto const& object : editorObjs) {
-			uiChanges_.recordValueChanged(core::ValueHandle(object));
+			for (size_t index = 0; index < object->size(); index++) {
+				uiChanges_.recordValueChanged(core::ValueHandle(object, {object->name(index)}));
+			}
 		}
 		codeCtrldObjs_ = editorObjs;
 	}
@@ -58,7 +60,9 @@ public:
 
 		for (auto const& editorObj : unlockedObjs) {
 			if (editorObj) {
-				uiChanges_.recordValueChanged(core::ValueHandle(editorObj));
+				for (size_t index = 0; index < editorObj->size(); index++) {
+					uiChanges_.recordValueChanged(core::ValueHandle(editorObj, {editorObj->name(index)}));
+				}
 			}
 		}
 		// Restore the previously locked objects to the state they had before they were locked.

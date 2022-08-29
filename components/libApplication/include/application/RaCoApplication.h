@@ -36,10 +36,18 @@ class SceneBackend;
 namespace raco::application {
 
 struct RaCoApplicationLaunchSettings {
-	QString initialProject{};
-	bool createDefaultScene{true};
-	bool enableRamsesTrace{false};
-	bool runningInUI{false};
+	RaCoApplicationLaunchSettings(); 
+	RaCoApplicationLaunchSettings(QString initialProject,
+		bool createDefaultScene,
+		bool enableRamsesTrace,
+		int featureLevel,
+		bool runningInUI);
+
+	QString initialProject;
+	bool createDefaultScene;
+	bool enableRamsesTrace;
+	int featureLevel;
+	bool runningInUI;
 };
 
 class RaCoApplication {
@@ -54,7 +62,10 @@ public:
 
 	// @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	// @exception ExtrefError
-	void switchActiveRaCoProject(const QString& file, bool createDefaultScene = true);
+	// featureLevel
+	// - new scene: setup scene with given feature level; -1 = application feature level
+	// - loading scene: -1 = load with feature level in project file; >0 migrate scene to specified feature level
+	void switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene = true, int featureLevel = -1);
 
 	// Get scene description and Ramses/RamsesLogic validation status and error message with the scene
 	// being setup as if exported.
@@ -95,6 +106,8 @@ public:
 	// was started and can never decrease.
 	void overrideTime(std::function<int64_t()> getTime);
 
+	int applicationFeatureLevel() const;
+
 	bool rendererDirty_ = false;
 
 private:
@@ -103,7 +116,12 @@ private:
 
 	bool exportProjectImpl(const std::string& ramsesExport,	const std::string& logicExport,	bool compress, std::string& outError, bool forceExportWithErrors) const;
 
+	void setupScene(bool optimizedForExport);
+
 	ramses_base::BaseEngineBackend* engine_;
+
+	// The application feature level is used to set the feature level for newly created scenes.
+	int applicationFeatureLevel_;
 
 	raco::components::SDataChangeDispatcher dataChangeDispatcher_;
 	raco::components::SDataChangeDispatcher dataChangeDispatcherEngine_;

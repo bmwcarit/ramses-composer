@@ -13,6 +13,9 @@
 
 #include "utils/u8path.h"
 
+#include <QFile>
+#include <QFileInfo>
+
 namespace raco::application {
 
 ExternalProjectsStore::ExternalProjectsStore(RaCoApplication* app) : application_(app) {
@@ -22,6 +25,7 @@ void ExternalProjectsStore::clear() {
 	activeProject_ = nullptr;
 	externalProjects_.clear();
 	externalProjectFileChangeListeners_.clear();
+	clearRelinkCallback();
 }
 
 void ExternalProjectsStore::setActiveProject(RaCoProject* activeProject) {
@@ -48,7 +52,7 @@ void ExternalProjectsStore::buildProjectGraph(const std::string& absPath, std::v
 	}
 }
 
-void ExternalProjectsStore::updateExternalProjectsDependingOn(const std::string& absPath) {
+void ExternalProjectsStore::updateExternalProjectsDependingOn(const std::string& absPath, int featureLevel) {
 	std::vector<ProjectGraphNode> orderedProjects;
 	for (const auto& item : externalProjects_) {
 		buildProjectGraph(item.first, orderedProjects);
@@ -63,8 +67,9 @@ void ExternalProjectsStore::updateExternalProjectsDependingOn(const std::string&
 				return dirty.find(path) != dirty.end();
 			})) {
 			try {
-				std::vector<std::string> stack;
-				externalProjects_[it->path]->updateExternalReferences(stack);
+				core::LoadContext loadContext;
+				loadContext.featureLevel = featureLevel;
+				externalProjects_[it->path]->updateExternalReferences(loadContext);
 			} catch (const raco::core::ExtrefError& e) {
 				LOG_ERROR(raco::log_system::COMMON, "Exterrnal reference update failed {}", e.what());
 			}
@@ -78,8 +83,9 @@ void ExternalProjectsStore::updateExternalProjectsDependingOn(const std::string&
 			return dirty.find(path) != dirty.end();
 		})) {
 		try {
-			std::vector<std::string> stack;
-			activeProject_->updateExternalReferences(stack);
+			core::LoadContext loadContext;
+			loadContext.featureLevel = activeProject_->project()->featureLevel();
+			activeProject_->updateExternalReferences(loadContext);
 		} catch (const raco::core::ExtrefError& e) {
 			LOG_ERROR(raco::log_system::COMMON, "Exterrnal reference update failed {}", e.what());
 		}
@@ -97,7 +103,12 @@ bool raco::application::ExternalProjectsStore::isCurrent(const std::string& proj
 	return false;
 }
 
-raco::core::Project* ExternalProjectsStore::addExternalProject(const std::string& projectPath, std::vector<std::string>& pathStack) {
+raco::core::Project* ExternalProjectsStore::addExternalProject(const std::string& origProjectPath,  core::LoadContext& loadContext) {
+	std::string projectPath = origProjectPath;
+	if (relinkPathMapCache_.find(projectPath) != relinkPathMapCache_.end()) {
+		projectPath = relinkPathMapCache_.at(projectPath);
+	}
+
 	auto it = externalProjects_.find(projectPath);
 	if (it != externalProjects_.end()) {
 		if (it->second) {
@@ -107,16 +118,35 @@ raco::core::Project* ExternalProjectsStore::addExternalProject(const std::string
 		}
 	}
 
-	if (std::find(pathStack.begin(), pathStack.end(), projectPath) != pathStack.end()) {
-		LOG_ERROR(raco::log_system::COMMON, "Can not add Project '{}' to Project Browser: project loop detected '{}' -> '{}'", projectPath, fmt::join(pathStack, "' -> '"), projectPath);
+	if (std::find(loadContext.pathStack.begin(), loadContext.pathStack.end(), projectPath) != loadContext.pathStack.end()) {
+		LOG_ERROR(raco::log_system::COMMON, "Can not add Project '{}' to Project Browser: project loop detected '{}' -> '{}'", projectPath, fmt::join(loadContext.pathStack, "' -> '"), projectPath);
 		return nullptr;
 	}
-	bool status = loadExternalProject(projectPath, pathStack);
+
+	QFileInfo fileInfo(QString::fromStdString(projectPath));
+	QString absPath = fileInfo.absoluteFilePath();
+	if (!raco::utils::u8path(absPath.toStdString()).existsFile() && relinkCallback_) {
+		// Query for replacement path
+		auto relinkPath = relinkCallback_(projectPath);
+		if (!relinkPath.empty()) {
+			if (auto it = externalProjects_.find(relinkPath); it != externalProjects_.end() && it->second) {
+				return it->second->project();
+			} else {
+				relinkPathMapCache_[projectPath] = relinkPath;
+				projectPath = relinkPath;
+			}
+		}
+	}
+
+	bool status = loadExternalProject(projectPath, loadContext);
+
+	int featureLevel = loadContext.featureLevel;
 	externalProjectFileChangeListeners_[projectPath] = externalProjectFileChangeMonitor_.registerFileChangedHandler(projectPath,
-		[this, projectPath]() {
-			std::vector<std::string> stack;
-			loadExternalProject(projectPath, stack);
-			updateExternalProjectsDependingOn(projectPath);
+		[this, projectPath, featureLevel]() {
+			core::LoadContext loadContext;
+			loadContext.featureLevel = featureLevel;
+			loadExternalProject(projectPath, loadContext);
+			updateExternalProjectsDependingOn(projectPath, featureLevel);
 		});
 	application_->dataChangeDispatcher()->setExternalProjectChanged();
 
@@ -133,12 +163,12 @@ std::string ExternalProjectsStore::activeProjectPath() const {
 	return std::string();
 }
 
-bool ExternalProjectsStore::loadExternalProject(const std::string& projectPath, std::vector<std::string>& pathStack) {
+bool ExternalProjectsStore::loadExternalProject(const std::string& projectPath, core::LoadContext & loadContext) {
 	std::unique_ptr<RaCoProject> project;
 	bool success = false;
 	if (projectPath != activeProjectPath()) {
 		try {
-			project = RaCoProject::loadFromFile(QString::fromStdString(projectPath), application_, pathStack);
+			project = RaCoProject::loadFromFile(QString::fromStdString(projectPath), application_, loadContext, true, loadContext.featureLevel);
 			success = true;
 		} catch (raco::application::FutureFileVersion& fileVerError) {
 			LOG_ERROR(raco::log_system::OBJECT_TREE_VIEW, "Can not add Project {} to Project Browser - incompatible file version {} of project file", projectPath, fileVerError.fileVersion_);
@@ -206,6 +236,16 @@ raco::core::Project* ExternalProjectsStore::getExternalProject(const std::string
 		return it->second->project();
 	}
 	return nullptr;
+}
+
+void ExternalProjectsStore::setRelinkCallback(std::function<std::string(const std::string&)> relinkCallback) {
+	relinkCallback_ = relinkCallback;
+	relinkPathMapCache_.clear();
+}
+
+void ExternalProjectsStore::clearRelinkCallback() {
+	relinkCallback_ = std::function<std::string(const std::string&)>();
+	relinkPathMapCache_.clear();
 }
 
 }  // namespace raco::application

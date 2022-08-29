@@ -76,9 +76,17 @@ namespace raco::serialization {
  * 41: Renamed Animation property: "animationOutputs" -> "outputs"
  * 42: Added isWeak flag to links.
  * 43: Removed enableTimerFlag and runTimer properties in ProjectSettings.
+ * 44: Added ProjectSettings "featureLevel" property
+ *     Added "enabled" property to Node.
+ *     Added AnchorPoint user type.
+ *     RenderPass property changes
+ *     - added "renderOnce" property
+ *     - renamed "order" -> "renderOrder"
+ *     - made 'enabled', 'renderOrder', and 'clearColor' linkable
+ *     Added "frustumType" property to PerspectiveCamera and changed frustum from static struct to dynamic Table.
 */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 43;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 44;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

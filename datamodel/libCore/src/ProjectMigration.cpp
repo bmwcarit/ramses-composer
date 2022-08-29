@@ -879,10 +879,8 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		}
 	}
 
-
 	// File version 36: LuaInterfaces instead of LuaScripts as Prefab/PrefabInstance interfaces
 	if (deserializedIR.fileVersion < 36) {
-
 		// Add LinkEndAnnotation to LuaScript::luaInputs_ property
 		for (const auto& dynObj : deserializedIR.objects) {
 			if (dynObj->serializationTypeName() == "LuaScript") {
@@ -903,12 +901,12 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 		std::vector<raco::core::SLink> createdLinks;
 
-		// Prefab pass 1: 
+		// Prefab pass 1:
 		// Generate file names for the interface script we need to generate
 		// - disambiguation based on script name and generated interface contents
 		// - use file name of script if no ambiguity
 		// - otherwise use object ids as fallback
-		
+
 		std::map<std::string, std::map<std::string, std::set<std::string>>> scriptNameToTextToIDMap;
 
 		auto objectsCopy = deserializedIR.objects;
@@ -977,7 +975,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 						utils::u8path intfRelPath;
 
 						// Note: if we haven't written the file above the uri must remain empty.
-						// Since 'load' will reload/sync from external files before the external reference update the 
+						// Since 'load' will reload/sync from external files before the external reference update the
 						// sync will remove the interface properties (since the file doesn't exist yet). The extref
 						// update will then create the file. But the succeeding prefab update will only perform another
 						// external file reload/sync on the interface if the object changed during the prefab update.
@@ -1071,13 +1069,12 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 	// File version 41: Renamed Animation property: "animationOutputs" -> "outputs"
 	if (deserializedIR.fileVersion < 41) {
-
 		for (auto& link : deserializedIR.links) {
-				auto linkStartProps = link->startPropertyNamesVector();
-				if (linkStartProps.at(0) == "animationOutputs") {
-					linkStartProps[0] = "outputs";
-					link->startProp_->set<std::string>(linkStartProps);
-				}
+			auto linkStartProps = link->startPropertyNamesVector();
+			if (linkStartProps.at(0) == "animationOutputs") {
+				linkStartProps[0] = "outputs";
+				link->startProp_->set<std::string>(linkStartProps);
+			}
 		}
 
 		for (const auto& dynObj : deserializedIR.objects) {
@@ -1098,6 +1095,46 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				}
 				if (dynObj->hasProperty("enableTimerFlag")) {
 					dynObj->removeProperty("enableTimerFlag");
+				}
+			}
+		}
+	}
+
+	if (deserializedIR.fileVersion < 44) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "PerspectiveCamera") {
+				if (dynObj->hasProperty("frustum")) {
+					auto frustumStruct = dynObj->extractProperty("frustum");
+
+					auto frustumTable = new Property<Table, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Frustum"}, {}};
+
+					(*frustumTable)->addProperty("nearPlane", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> (frustumStruct->asStruct().get("nearPlane")->asDouble(), DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), {}), -1);
+
+					(*frustumTable)->addProperty("farPlane", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>(frustumStruct->asStruct().get("farPlane")->asDouble(), DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), {}), -1);
+
+					(*frustumTable)->addProperty("fieldOfView", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>(frustumStruct->asStruct().get("fieldOfView")->asDouble(), DisplayNameAnnotation("fieldOfView"), RangeAnnotation<double>(10.0, 120.0), {}), -1);
+
+					(*frustumTable)->addProperty("aspectRatio", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>(frustumStruct->asStruct().get("aspectRatio")->asDouble(), DisplayNameAnnotation("aspectRatio"), RangeAnnotation<double>(0.5, 4.0), {}), -1);
+
+					dynObj->addProperty("frustum", frustumTable, -1);
+				}
+			}
+
+			if (dynObj->serializationTypeName() == "RenderPass") {
+				if (dynObj->hasProperty("enabled")) {
+					auto enabled = dynObj->extractProperty("enabled");
+					dynObj->addProperty("enabled", new Property<bool, DisplayNameAnnotation, LinkEndAnnotation>(enabled->asBool(), {"Enabled"}, {}), -1);
+				}
+
+				if (dynObj->hasProperty("order")) {
+					auto order = dynObj->extractProperty("order");
+					dynObj->addProperty("renderOrder", new Property<int, DisplayNameAnnotation, LinkEndAnnotation>(order->asInt(), {"Render Order"}, {2}), -1);
+				}
+
+				if (dynObj->hasProperty("clearColor")) {
+					auto oldClearColor = dynObj->extractProperty("clearColor");
+					auto newClearColor = dynObj->addProperty("clearColor", new Property<Vec4f, DisplayNameAnnotation, LinkEndAnnotation>({}, {"Clear Color"}, {2}), -1);
+					*newClearColor = *oldClearColor;
 				}
 			}
 		}

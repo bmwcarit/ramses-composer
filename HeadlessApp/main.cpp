@@ -34,17 +34,18 @@ class Worker : public QObject {
 	Q_OBJECT
 
 public:
-	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, bool compressExport, QStringList positionalArguments)
-		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), compressExport_(compressExport), positionalArguments_(positionalArguments) {
+	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, bool compressExport, QStringList positionalArguments, int featureLevel)
+		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel) {
 	}
 
 public Q_SLOTS:
 	void run() {
-		raco::ramses_base::HeadlessEngineBackend backend{};
+		int initialFeatureLevel = featureLevel_ == -1 ? static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel) : featureLevel_;
+		raco::ramses_base::HeadlessEngineBackend backend{static_cast<rlogic::EFeatureLevel>(initialFeatureLevel)};
 		std::unique_ptr<raco::application::RaCoApplication> app;
 
 		try {
-			app = std::make_unique<raco::application::RaCoApplication>(backend, raco::application::RaCoApplicationLaunchSettings{projectFile_, false, true, false});
+			app = std::make_unique<raco::application::RaCoApplication>(backend, raco::application::RaCoApplicationLaunchSettings{projectFile_, false, true, featureLevel_, false});
 		} catch (const raco::application::FutureFileVersion& error) {
 			LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
 			app.reset();
@@ -96,6 +97,7 @@ private:
 	QString& pythonScriptPath_;
 	bool compressExport_;
 	QStringList positionalArguments_;
+	int featureLevel_;
 	int exitCode_ = 0;
 };
 
@@ -170,6 +172,13 @@ int main(int argc, char* argv[]) {
 		"File name to write log file to.",
 		"log-file-name",
 		"");
+
+	QCommandLineOption ramsesLogicFeatureLevel(
+		QStringList() << "f"
+					  << "featurelevel",
+		fmt::format("RamsesLogic feature level (-1, {} ... {})", static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)).c_str(),
+		"feature-level",
+		QString::fromStdString(std::to_string(static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))));
 	parser.addOption(loadProjectAction);
 	parser.addOption(exportProjectAction);
 	parser.addOption(compressExportAction);
@@ -177,6 +186,7 @@ int main(int argc, char* argv[]) {
 	parser.addOption(logLevelOption);
 	parser.addOption(pyrunOption);
 	parser.addOption(logFileOutputOption);
+	parser.addOption(ramsesLogicFeatureLevel);
 
 	// application must be instantiated before parsing command line
 	QCoreApplication a(argc, argv);
@@ -188,7 +198,6 @@ int main(int argc, char* argv[]) {
 
 	auto appDataPath = raco::utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
 	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
-
 
 	auto customLogFileName = parser.value(logFileOutputOption).toStdString();
 	auto logFilePath = raco::utils::u8path(customLogFileName);
@@ -257,7 +266,18 @@ int main(int argc, char* argv[]) {
 
 	LOG_INFO(raco::log_system::PYTHON, "positional arguments = {}", parser.positionalArguments().join(", ").toStdString());
 
-	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, compressExport, parser.positionalArguments());
+	int featureLevel = -1;
+	if (parser.isSet(ramsesLogicFeatureLevel)) {
+		featureLevel = parser.value(ramsesLogicFeatureLevel).toInt();
+		if (!(featureLevel == -1 ||
+				featureLevel >= static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel) &&
+					featureLevel <= static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))) {
+			LOG_ERROR(raco::log_system::COMMON, fmt::format("RamsesLogic feature level {} outside valid range (-1, {} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+			exit(1);
+		}
+	}
+
+	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, compressExport, parser.positionalArguments(), featureLevel);
 	QObject::connect(task, &Worker::finished, &QCoreApplication::exit);
 	QTimer::singleShot(0, task, &Worker::run);
 

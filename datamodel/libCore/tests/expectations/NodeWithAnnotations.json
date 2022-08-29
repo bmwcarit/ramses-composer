@@ -8,6 +8,7 @@
         }
     ],
     "properties": {
+        "enabled": true,
         "objectID": "node_id",
         "objectName": "node",
         "rotation": {

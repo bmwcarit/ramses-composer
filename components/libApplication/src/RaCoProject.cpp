@@ -59,7 +59,7 @@ namespace raco::application {
 
 using namespace raco::core;
 
-RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engineInterface, const UndoStack::Callback& callback, ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, std::vector<std::string>& pathStack)
+RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engineInterface, const UndoStack::Callback& callback, ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, LoadContext& loadContext)
 	: recorder_{},
 	  errors_{&recorder_},
 	  project_{p},
@@ -76,7 +76,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	// Abort file loading if we encounter external reference RenderPasses or extref cameras outside a Prefab.
 	// A bug in V0.9.0 allowed to create such projects.
 	// TODO: remove this eventually when we are reasonably certain that no such projects have been encountered.
-	for (const auto& object : context_->project()->instances()) {
+	for (const auto& object : project_.instances()) {
 		if (object->isType<user_types::RenderPass>() &&
 			object->query<raco::core::ExternalReferenceAnnotation>()) {
 			throw std::runtime_error("project contains external reference RenderPass.");
@@ -99,7 +99,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 
 	// Create creation records for all PrefabInstances to force update of their children:
 	// This is necessary since we don't save all the children of the PrefabInstances anymore.
-	for (auto object : context_->project()->instances()) {
+	for (auto object : project_.instances()) {
 		if (&object->getTypeDescription() == &user_types::PrefabInstance::typeDescription) {
 			context_->modelChanges().recordCreateObject(object);
 		}
@@ -107,9 +107,9 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	context_->performExternalFileReload(project_.instances());
 
 	// Push currently loading project on the project load stack to enable project loop detection to work.
-	pathStack.emplace_back(file.toStdString());
-	context_->updateExternalReferences(pathStack);
-	pathStack.pop_back();
+	loadContext.pathStack.emplace_back(file.toStdString());
+	context_->updateExternalReferences(loadContext);
+	loadContext.pathStack.pop_back();
 
 	undoStack_.reset();
 	context_->changeMultiplexer().reset();
@@ -140,7 +140,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 	// update: we now have module caching in the LuaScript working again;
 	// but: we still potentially call some callback handlers multiple times; 
 	// it would be nice the optimize this but that needs an extension of the second solution above.
-	auto instances{context_->project()->instances()};
+	auto instances{project_.instances()};
 	for (auto& object : instances) {
 		if (PathQueries::isPathRelativeToCurrentProject(object)) {
 			for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
@@ -237,12 +237,17 @@ RaCoProject::~RaCoProject() {
 	}
 }
 
-std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool createDefaultScene) {
+std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool createDefaultScene, int featureLevel) {
 	LOG_INFO(raco::log_system::PROJECT, "Creating new project.");
 	Project p{};
 	p.setCurrentPath(components::RaCoPreferences::instance().userProjectsDirectory.toStdString());
 
-	std::vector<std::string> stack;
+	if (featureLevel == -1) {
+		featureLevel = static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
+	}
+
+	LoadContext loadContext;
+	loadContext.featureLevel = featureLevel;
 	auto result = std::unique_ptr<RaCoProject>(new RaCoProject(
 		QString{},
 		p,
@@ -250,7 +255,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
 		app->externalProjects(),
 		app,
-		stack));
+		loadContext));
 
 	const auto& prefs = raco::components::RaCoPreferences::instance();
 	auto settings = result->context_->createObject(ProjectSettings::typeDescription.typeName);
@@ -259,6 +264,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, prefs.scriptSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, prefs.interfaceSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, prefs.shaderSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::featureLevel_}, featureLevel);
 
 	if (createDefaultScene) {
 		auto sMeshNode = result->context_->createObject(raco::user_types::MeshNode::typeDescription.typeName, raco::components::Naming::format(raco::user_types::MeshNode::typeDescription.typeName));
@@ -280,12 +286,12 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	result->context_->changeMultiplexer().reset();
 	result->dirty_ = false;
 
-	Consistency::checkProjectSettings(*result->context_->project());
+	Consistency::checkProjectSettings(result->project_);
 
 	return result;
 }
 
-std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, std::vector<std::string>& pathStack, bool logErrors) {
+std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, LoadContext& loadContext, bool logErrors, int featureLevel) {
 	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
 	QFileInfo path(filename);
@@ -351,6 +357,21 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		auto absPath = raco::utils::u8path(info.path).normalizedAbsolutePath(p.currentFolder());
 		p.addExternalProjectMapping(id, absPath.string(), info.name);
 	}
+	if (featureLevel != -1) {
+		if (featureLevel >= p.featureLevel() && featureLevel <= static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)) {
+			p.setFeatureLevel(featureLevel);
+		} else {
+			if (featureLevel < p.featureLevel()) {
+				throw std::runtime_error(fmt::format("New Feature level {} smaller then project feature level {}.", featureLevel, p.featureLevel()));
+			} else {
+				throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+			}
+		}
+	}
+
+	if (loadContext.featureLevel == -1) {
+		loadContext.featureLevel = p.featureLevel();
+	}
 
 	Consistency::checkProjectSettings(p);
 
@@ -361,7 +382,7 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
 		app->externalProjects(),
 		app,
-		pathStack};
+		loadContext};
 
 	for (const auto& [objectID, infoMessage] : result.migrationObjWarnings) {
 		if (const auto migratedObj = newProject->project()->getInstanceByID(objectID)) {
@@ -389,12 +410,12 @@ QString RaCoProject::name() const {
 QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
 	// Sort instances and links serialized to file:
 	// needed for file comparison via diff.
-	auto instances{context_->project()->instances()};
+	auto instances{project_.instances()};
 	std::sort(instances.begin(), instances.end(), [](const SEditorObject& left, const SEditorObject& right) {
 		return left->objectID() < right->objectID();
 	});
 
-	auto links{context_->project()->links()};
+	auto links{project_.links()};
 	std::sort(links.begin(), links.end(), [](const SLink& left, const SLink& right) {
 		return LinkDescriptor::lessThanByObjectID(left->descriptor(), right->descriptor());
 	});
@@ -404,6 +425,7 @@ QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::st
 
 	return serialization::serializeProject(
 		currentVersions,
+		project_.featureLevel(),
 		instancesInterface, linksInterface,
 		project_.externalProjectsMap());
 }
@@ -685,8 +707,8 @@ bool RaCoProject::dirty() const noexcept {
 	return dirty_;
 }
 
-void RaCoProject::updateExternalReferences(std::vector<std::string>& pathStack) {
-	context_->updateExternalReferences(pathStack);
+void RaCoProject::updateExternalReferences(core::LoadContext& loadContext) {
+	context_->updateExternalReferences(loadContext);
 }
 
 Project* RaCoProject::project() {

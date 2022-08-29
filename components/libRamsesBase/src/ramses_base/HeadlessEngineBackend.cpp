@@ -20,8 +20,8 @@ ramses::RamsesFrameworkConfig& ramsesFrameworkConfig() noexcept {
 	return config;
 }
 
-HeadlessEngineBackend::HeadlessEngineBackend()
-	: BaseEngineBackend{ramsesFrameworkConfig()} {
+HeadlessEngineBackend::HeadlessEngineBackend(rlogic::EFeatureLevel featureLevel)
+	: BaseEngineBackend{featureLevel, ramsesFrameworkConfig()} {
 	connect();
 }
 

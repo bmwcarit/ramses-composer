@@ -50,9 +50,9 @@ struct ExternalProjectInfo {
 
 bool operator==(const ExternalProjectInfo& lhs, const ExternalProjectInfo& rhs);
 
-std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, bool includeVersionInfo = true);
+std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo = true);
 
-QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap);
+QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, int featureLevel, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap);
 
 using References = std::map<raco::data_storage::ValueBase*, std::string>;
 struct ObjectDeserialization {
@@ -65,6 +65,7 @@ struct ObjectsDeserialization {
 	std::set<std::string> rootObjectIDs;
 	std::vector<raco::core::SLink> links;
 	References references;
+	int featureLevel;
 	std::string originFolder;
 	std::string originFileName;
 	std::string originProjectID;
@@ -120,6 +121,7 @@ using ProjectDeserializationInfoIR = GenericProjectDeserializationInfo<raco::ser
 
 
 int deserializeFileVersion(const QJsonDocument& document);
+int deserializeFeatureLevel(const QJsonDocument& document);
 ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document);
 
 std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo = true);

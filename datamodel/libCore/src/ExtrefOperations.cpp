@@ -35,16 +35,22 @@ struct ExternalObjectDescriptor {
 };
 
 // @exception ExtrefError
-Project* lookupExternalProject(Project* project, const std::string& projectID, ExternalProjectsStoreInterface& externalProjectsStore, std::vector<std::string>& pathStack) {
+Project* lookupExternalProject(Project* project, const std::string& projectID, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext) {
 	Project* extProject = nullptr;
 	if (project->hasExternalProjectMapping(projectID)) {
 		auto extPath = project->lookupExternalProjectPath(projectID);
 
-		extProject = externalProjectsStore.addExternalProject(extPath, pathStack);
+		extProject = externalProjectsStore.addExternalProject(extPath, loadContext);
 		if (extProject) {
 			auto loadedID = extProject->projectID();
 			if (loadedID != projectID) {
 				throw core::ExtrefError(fmt::format("Project ID change for file '{}' detected: '{}' changed to '{}'", extPath, projectID, loadedID));
+			}
+
+			// Check for relinking by externalProjectsStore and adjust external project path if needed:
+			auto loadedPath = extProject->currentPath();
+			if (extPath != loadedPath) {
+				project->updateExternalProjectPath(projectID, loadedPath);
 			}
 		}
 	}
@@ -52,7 +58,7 @@ Project* lookupExternalProject(Project* project, const std::string& projectID, E
 }
 
 // @exception ExtrefError
-ExternalObjectDescriptor lookupExtrefSource(Project* project, const ExternalObjectDescriptor& descriptor, ExternalProjectsStoreInterface& externalProjectsStore, std::vector<std::string>& pathStack) {
+ExternalObjectDescriptor lookupExtrefSource(Project* project, const ExternalObjectDescriptor& descriptor, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext) {
 	auto anno = descriptor.obj->query<ExternalReferenceAnnotation>();
 	if (anno) {
 		auto sourceProjectID = *anno->projectID_;
@@ -63,7 +69,7 @@ ExternalObjectDescriptor lookupExtrefSource(Project* project, const ExternalObje
 			project->addExternalProjectMapping(sourceProjectID, path, name);
 		}
 
-		Project* sourceProject = lookupExternalProject(project, sourceProjectID, externalProjectsStore, pathStack);
+		Project* sourceProject = lookupExternalProject(project, sourceProjectID, externalProjectsStore, loadContext);
 		if (!sourceProject) {
 			auto path = descriptor.project->lookupExternalProjectPath(sourceProjectID);
 			throw ExtrefError("Can't load external project '" + sourceProjectID + "' with path '" + path + "'");
@@ -77,10 +83,10 @@ ExternalObjectDescriptor lookupExtrefSource(Project* project, const ExternalObje
 }
 
 // @exception ExtrefError
-void collectExternalObjects(Project* project, const ExternalObjectDescriptor& descriptor, ExternalProjectsStoreInterface& externalProjectsStore, std::map<std::string, ExternalObjectDescriptor>& externalObjects, std::vector<std::string>& pathStack, bool discardNonRoots) {
+void collectExternalObjects(Project* project, const ExternalObjectDescriptor& descriptor, ExternalProjectsStoreInterface& externalProjectsStore, std::map<std::string, ExternalObjectDescriptor>& externalObjects, LoadContext& loadContext, bool discardNonRoots) {
 	auto it = externalObjects.find(descriptor.obj->objectID());
 	if (it == externalObjects.end()) {
-		auto sourceDesc = lookupExtrefSource(project, descriptor, externalProjectsStore, pathStack);
+		auto sourceDesc = lookupExtrefSource(project, descriptor, externalProjectsStore, loadContext);
 		if (sourceDesc.obj) {
 			if (sourceDesc.obj->getParent() && discardNonRoots) {
 				return;
@@ -99,7 +105,7 @@ void collectExternalObjects(Project* project, const ExternalObjectDescriptor& de
 				if (prop.type() == PrimitiveType::Ref) {
 					auto refValue = prop.asTypedRef<EditorObject>();
 					if (refValue) {
-						collectExternalObjects(project, ExternalObjectDescriptor{refValue, sourceDesc.project}, externalProjectsStore, externalObjects, pathStack, false);
+						collectExternalObjects(project, ExternalObjectDescriptor{refValue, sourceDesc.project}, externalProjectsStore, externalObjects, loadContext, false);
 					}
 				}
 			}
@@ -109,14 +115,14 @@ void collectExternalObjects(Project* project, const ExternalObjectDescriptor& de
 				auto it = sourceDesc.project->linkEndPoints().find(sourceDesc.obj->objectID());
 				if (it != sourceDesc.project->linkEndPoints().end()) {
 					for (auto link : it->second) {
-						collectExternalObjects(project, ExternalObjectDescriptor{*link->startObject_, sourceDesc.project}, externalProjectsStore, externalObjects, pathStack, false);
+						collectExternalObjects(project, ExternalObjectDescriptor{*link->startObject_, sourceDesc.project}, externalProjectsStore, externalObjects, loadContext, false);
 					}
 				}
 			}
 		}
 	} else {
 		// If we find object by id make sure this is really from the same project (project id & path)
-		auto sourceDesc = lookupExtrefSource(project, descriptor, externalProjectsStore, pathStack);
+		auto sourceDesc = lookupExtrefSource(project, descriptor, externalProjectsStore, loadContext);
 		if (sourceDesc.project->projectID() != it->second.project->projectID() ||
 			sourceDesc.project->currentPath() != it->second.project->currentPath()) {
 			throw ExtrefError(fmt::format("Duplicate object found: '{}' found in '{}' and '{}'.", sourceDesc.obj->objectName(), sourceDesc.project->currentPath(), it->second.project->currentPath()));
@@ -139,7 +145,7 @@ SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& de
 
 }  // namespace
 
-void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, std::vector<std::string>& pathStack) {
+void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext) {
 	// remove project-global errors
 	context.errors().removeError(ValueHandle());
 
@@ -161,7 +167,7 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	try {
 		for (const auto& [id, object] : localObjects) {
 			if (object->getParent() == nullptr) {
-				collectExternalObjects(project, ExternalObjectDescriptor{object, project}, externalProjectsStore, externalObjects, pathStack, true);
+				collectExternalObjects(project, ExternalObjectDescriptor{object, project}, externalProjectsStore, externalObjects, loadContext, true);
 			}
 		}
 	} catch (const ExtrefError& e) {

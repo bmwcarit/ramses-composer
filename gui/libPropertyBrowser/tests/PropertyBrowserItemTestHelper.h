@@ -32,7 +32,7 @@ struct PropertyBrowserItemTestHelper {
 
 	std::shared_ptr<EditorObject> editorObject{std::make_shared<T>("SomeName")};
 	Project project{};
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	core::DataChangeRecorder recorder{};
 	core::Errors errors{&recorder};
 	const components::SDataChangeDispatcher dispatcher{std::make_shared<components::DataChangeDispatcher>()};

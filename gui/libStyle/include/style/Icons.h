@@ -71,6 +71,7 @@ public:
 	const QIcon skipPrevious{":skipPreviousIcon"};
 	const QIcon singleArrowLeft{":singleArrowLeft"};
 	const QIcon doubleArrowLeft{":doubleArrowLeft"};
+	const QIcon typeAnchorPoint{":anchorIcon"};
 
 	static const Icons &instance();
 

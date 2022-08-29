@@ -9,6 +9,7 @@
  */
 #include "ramses_adaptor/Factories.h"
 
+#include "ramses_adaptor/AnchorPointAdaptor.h"
 #include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/AnimationChannelAdaptor.h"
 #include "ramses_adaptor/CubeMapAdaptor.h"
@@ -69,7 +70,9 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		// LOGIC ENGINE
 		{user_types::LuaScript::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScript>(obj)); }},
 		
-		{user_types::LuaInterface::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaInterfaceAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaInterface>(obj)); }}
+		{user_types::LuaInterface::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaInterfaceAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaInterface>(obj)); }},
+
+		{user_types::AnchorPoint::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<AnchorPointAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::AnchorPoint>(obj)); }}
 	};
 
 	if (factoryByTypename.find(obj->getTypeDescription().typeName) != factoryByTypename.end()) {

@@ -51,7 +51,7 @@ protected:
 		createLua("saInfo", LuaType::LuaScript);
 	}
 
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication racoApp{backend};
 	raco::core::CommandInterface* cmd_{nullptr};
 	TracePlayer* player_{nullptr};

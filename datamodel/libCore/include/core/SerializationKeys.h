@@ -34,5 +34,6 @@ constexpr const char* ROOT_OBJECT_IDS{"rootObjectIDs"};
 constexpr const char* OBJECT_ORIGIN_FOLDERS{"objectOriginFolders"};
 constexpr const char* USER_TYPE_PROP_MAP{"userTypePropMap"};
 constexpr const char* STRUCT_PROP_MAP{"structPropMap"};
+constexpr const char* FEATURE_LEVEL{"featureLevel"};
 
 }	// namespace raco::serialization::keys

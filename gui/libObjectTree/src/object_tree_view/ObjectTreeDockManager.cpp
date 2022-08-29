@@ -49,7 +49,7 @@ void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& object
 	std::set<QString> viewTitles;
 
 	for (const auto* dock : getDocks()) {
-		if (auto activeTreeView = dock->getCurrentlyActiveTreeView()) {
+		if (auto activeTreeView = dock->getActiveTreeView()) {
 			auto viewTitle = activeTreeView->getViewTitle();
 
 			if (activeTreeView->canProgrammaticallyGoToObject() && viewTitles.count(viewTitle) == 0) {
@@ -71,7 +71,7 @@ std::vector<ObjectTreeDock*> ObjectTreeDockManager::getDocks() const {
 
 ObjectTreeDock* ObjectTreeDockManager::getActiveDockWithSelection() const {
 	// only return the active dock when it actually contains a selection
-	if (focusedDock_ && !focusedDock_->getCurrentlyActiveTreeView()->selectionModel()->hasSelection()) {
+	if (focusedDock_ && !focusedDock_->getActiveTreeView()->selectionModel()->hasSelection()) {
 		return nullptr;
 	}
 	return focusedDock_;
@@ -79,7 +79,7 @@ ObjectTreeDock* ObjectTreeDockManager::getActiveDockWithSelection() const {
 
 bool ObjectTreeDockManager::docksContainObject(const QString& objID) const {
 	for (auto* dock : docks_) {
-		if (dock->getCurrentlyActiveTreeView()->containsObject(objID)) {
+		if (dock->getActiveTreeView()->containsObject(objID)) {
 			return true;
 		}
 	}

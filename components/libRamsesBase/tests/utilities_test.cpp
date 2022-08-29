@@ -19,7 +19,7 @@ using raco::ramses_adaptor::Translation;
 using raco::ramses_adaptor::Scaling;
 
 TEST(Rotation, initialSpatialProperties_areEqual) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	auto testScene = backend.client().createScene(ramses::sceneId_t{1u});
 
 	auto ramsesNode = testScene->createNode();
@@ -32,7 +32,7 @@ TEST(Rotation, initialSpatialProperties_areEqual) {
 }
 
 TEST(Rotation, spatialProperties_areEqual_afterSync) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	auto testScene = backend.client().createScene(ramses::sceneId_t{1u});
 
 	auto ramsesNode = testScene->createNode();

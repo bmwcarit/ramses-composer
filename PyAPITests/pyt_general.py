@@ -70,7 +70,7 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(node.parent(), None)
         self.assertEqual(node.children(), [])
         self.assertTrue(node.objectID() != None)
-        self.assertEqual(dir(node), ['objectName', 'rotation', 'scaling', 'translation', 'visibility'])
+        self.assertEqual(dir(node), ['enabled', 'objectName', 'rotation', 'scaling', 'translation', 'visibility'])
 
     def test_create_fail(self):
         with self.assertRaises(RuntimeError):
@@ -410,3 +410,75 @@ class GeneralTests(unittest.TestCase):
         raco.removeLink(end.inputs.in_float)
         start.inputs.in_float = 3.0
         self.assertEqual(end.inputs.in_float.value(), 2.0)
+
+
+    def test_feature_level_2_node_enabled(self):
+        node = raco.create("Node", "node")
+        self.assertEqual(node.enabled.value(), True)
+
+    def test_feature_level_2_perspective_camera_frustum(self):
+        camera = raco.create("PerspectiveCamera", "camera")
+
+        self.assertEqual(camera.frustumType.value(), raco.EFrustumType.Aspect_FoV)
+        self.assertEqual(camera.frustum.aspectRatio.value(), 2.0)
+        with self.assertRaises(RuntimeError):
+            dummy = camera.frustum.leftPlane.value()
+        camera.frustum.aspectRatio = 3.0
+        
+        camera.frustumType = raco.EFrustumType.Planes
+        
+        with self.assertRaises(RuntimeError):
+                dummy = camera.frustum.aspectRatio.value()
+        self.assertEqual(camera.frustum.leftPlane.value(), -10.0)
+        camera.frustum.leftPlane = -12.0
+
+        # check value caching
+        camera.frustumType = raco.EFrustumType.Aspect_FoV
+        self.assertEqual(camera.frustum.aspectRatio.value(), 3.0)
+        
+    def test_feature_level_2_anchor_point(self):
+        node = raco.create("Node", "node")
+        anchor = raco.create("AnchorPoint", "test_anchor")
+        
+        anchor.node = node
+        
+    def test_feature_level_2_renderpass_prop(self):
+        renderpass = raco.create("RenderPass", "render_pass")
+        self.assertEqual(renderpass.renderOnce.value(), False)
+
+
+    def test_feature_level_2_renderpass_link(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+        
+        renderpass = raco.create("RenderPass", "render_pass")
+
+        self.assertEqual(renderpass.enabled.value(), True)
+        link_enabled = raco.addLink(lua.outputs.obool, renderpass.enabled)
+        
+        self.assertEqual(renderpass.renderOrder.value(), 1)
+        link_order = raco.addLink(lua.outputs.ointeger, renderpass.renderOrder)
+        
+        self.assertEqual(renderpass.clearColor.x.value(), 0.0)
+        link_color = raco.addLink(lua.outputs.ovector4f, renderpass.clearColor)
+        
+        self.assertEqual(len(raco.links()), 3)
+        
+        queried_link_enabled = raco.getLink(renderpass.enabled)
+        self.assertEqual(link_enabled, queried_link_enabled)
+        
+        queried_link_order = raco.getLink(renderpass.renderOrder)
+        self.assertEqual(link_order, queried_link_order)
+        
+        queried_link_color = raco.getLink(renderpass.clearColor)
+        self.assertEqual(link_color, queried_link_color)
+        
+        
+        
+
+
+
+
+
+
+

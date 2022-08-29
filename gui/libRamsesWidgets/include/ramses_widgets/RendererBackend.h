@@ -26,7 +26,7 @@ class RendererBackend final : public raco::ramses_base::BaseEngineBackend {
 public:
 	typedef std::unique_ptr<ramses::RamsesRenderer, std::function<void(ramses::RamsesRenderer*)>> UniqueRenderer;
 	static ramses::RamsesFrameworkConfig& ramsesFrameworkConfig(const std::string& frameworkArgs) noexcept;
-	explicit RendererBackend(const std::string& frameworkArgs = {});
+	explicit RendererBackend(rlogic::EFeatureLevel featureLevel, const std::string& frameworkArgs = {});
 	~RendererBackend();
 
 	ramses::RamsesRenderer& renderer() const;

@@ -1264,7 +1264,7 @@ TEST_F(LinkTest, lua_to_euler_after_quaternion) {
 }
 
 TEST_F(LinkTest, remove_link_keeps_value_with_undo_redo) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -1307,7 +1307,7 @@ TEST_F(LinkTest, remove_link_keeps_value_with_undo_redo) {
 
 
 TEST_F(LinkTest, break_link_keeps_value_with_undo_redo) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -1349,7 +1349,7 @@ TEST_F(LinkTest, break_link_keeps_value_with_undo_redo) {
 }
 
 TEST_F(LinkTest, break_link_remove_child_prop_keeps_value_with_undo_redo) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -1437,7 +1437,7 @@ TEST_F(LinkTest, dont_crash_when_object_is_deleted_after_property_with_link_was_
 }
 
 TEST_F(LinkTest, timer_link) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -1486,7 +1486,7 @@ end
 }
 
 TEST_F(LinkTest, timer_link_to_input) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -1521,7 +1521,7 @@ end
 }
 
 TEST_F(LinkTest, timer_link_different_type) {
-	raco::ramses_base::HeadlessEngineBackend backend{};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 

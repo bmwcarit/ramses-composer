@@ -55,6 +55,14 @@ TEST_F(DataModelTest, check_user_type_property_annotations) {
 			if (value->query<ExpectEmptyReference>()) {
 				EXPECT_TRUE(value->type() == PrimitiveType::Ref) << fmt::format("{}:{} has ExpectEmptyReference but is not of type Ref", name, object->name(index));
 			}
+
+			// These rules ensure that checking the feature level in the LinkEndAnnotation is sufficient to ensure linkability.
+			if (auto flanno = value->query<FeatureLevel>()) {
+				if (auto linkAnno = value->query<LinkEndAnnotation>()) {
+					EXPECT_TRUE(*flanno->featureLevel_ <= *linkAnno->featureLevel_) << fmt::format("{}.{} link feature level too small", name, object->name(index));
+				}
+				EXPECT_TRUE(value->query<LinkStartAnnotation>() == nullptr);
+			}
 		}
 	}
 }

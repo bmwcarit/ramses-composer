@@ -64,7 +64,13 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 			case ObjectTreeViewDefaultModel::COLUMNINDEX_PROJECT: {
 				treeValue = project.getProjectNameForObject(objTreeNode->getRepresentedObject());
 				objValue = project.getProjectNameForObject(obj);
-			} break;
+			}
+			break;
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_ID: {
+				treeValue = objTreeNode->getRepresentedObject()->objectID();
+				objValue = obj->objectID();
+			}
+			break;
 			default: {
 				FAIL() << "Need to check value equivalence for new ObjectTreeViewDefaultModel column enum value";
 			}

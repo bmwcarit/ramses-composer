@@ -61,6 +61,10 @@ bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 	if (!project()->isInstance(handle.rootObject())) {
 		throw std::runtime_error(fmt::format("Object '{}' not in project", handle.rootObject()->objectName()));
 	}
+	if (auto anno = handle.query<FeatureLevel>(); anno && *anno->featureLevel_ > project()->featureLevel()) {
+		throw std::runtime_error(fmt::format("Property {} inaccessible at feature level {}", handle.getPropertyPath(), project()->featureLevel()));
+	}
+
 	if (Queries::isReadOnly(*project(), handle, false)) {
 		throw std::runtime_error(fmt::format("Property '{}' is read-only", handle.getPropertyPath()));
 	}
@@ -74,7 +78,7 @@ bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 bool CommandInterface::checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type) {
 	if (checkHandleForSet(handle)) {
 		if (handle.type() != type) {
-			throw std::runtime_error(fmt::format("Property '{}' is a '{}' and not a bool", handle.getPropertyPath(), handle.type()));
+			throw std::runtime_error(fmt::format("Property '{}' is a '{}' and not a '{}'", handle.getPropertyPath(), handle.type(), getTypeName(type)));
 		}
 	}
 	return true;
@@ -291,7 +295,7 @@ void CommandInterface::setRenderableTags(ValueHandle const& handle, std::vector<
 
 
 SEditorObject CommandInterface::createObject(std::string type, std::string name, SEditorObject parent) {
-	if (context_->objectFactory()->isUserCreatable(type)) {
+	if (context_->objectFactory()->isUserCreatable(type, project()->featureLevel())) {
 		if (parent && !project()->isInstance(parent)) {
 			throw std::runtime_error(fmt::format("Create object: parent object '{}' not in project", parent->objectName()));
 		}

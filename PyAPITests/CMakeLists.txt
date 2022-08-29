@@ -12,6 +12,8 @@ macro(add_python_test TESTNAME)
 	add_racocommand_test("PyAPI_${TESTNAME}" "${CMAKE_CURRENT_SOURCE_DIR}" -r run_test.py "${TESTNAME}")
 endmacro()
 
+add_racocommand_test("PyAPI_feature_level_1_checks" "${CMAKE_CURRENT_SOURCE_DIR}" -f 1 -r run_test.py feature_level_1_checks)
+
 add_python_test(pyt_general)
 
 add_python_test(exit_code)

@@ -9,16 +9,42 @@
  */
 
 
-#include "object_tree_view_model/ObjectTreeViewTopLevelSortProxyModel.h"
+#include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
+#include "style/Colors.h"
+
+#include <QColor>
 
 namespace raco::object_tree::model {
 
-bool ObjectTreeViewTopLevelSortFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const {
+bool ObjectTreeViewDefaultSortFilterProxyModel::sortingEnabled() const {
+	return sortingEnabled_;
+}
 
+QVariant ObjectTreeViewDefaultSortFilterProxyModel::data(const QModelIndex& index, int role) const {
+	if (index.isValid()) {
+		if (static_cast<ObjectTreeNode*>(mapToSource(index).internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup) {
+			return QSortFilterProxyModel::data(index, role);
+		}
+
+		if (role == Qt::ForegroundRole) {
+			if (!filterRegularExpression().pattern().isEmpty()) {
+				auto filteredIndexData = index.sibling(index.row(), filterKeyColumn()).data().toString();
+
+				if (!filterRegularExpression().match(filteredIndexData).hasMatch()) {
+					return QVariant(raco::style::Colors::color(raco::style::Colormap::textDisabled).darker(175));
+				}
+			}
+		}
+	}
+
+	return QSortFilterProxyModel::data(index, role);
+}
+
+bool ObjectTreeViewTopLevelSortFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const {
 	// The external reference grouping element should always be on top of the list
 	if (static_cast<ObjectTreeNode*>(source_left.internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup) {
-		return true;	
+		return true;
 	} else if (static_cast<ObjectTreeNode*>(source_right.internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup) {
 		return false;
 	}

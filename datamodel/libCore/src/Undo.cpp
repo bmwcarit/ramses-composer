@@ -392,15 +392,16 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 	context_->performExternalFileReload({changedObjects.begin(), changedObjects.end()});
 
 	if (extrefDirty) {
-		std::vector<std::string> stack;
-		stack.emplace_back(dest->currentPath());
+		LoadContext loadContext;
+		loadContext.featureLevel = dest->featureLevel();
+		loadContext.pathStack.emplace_back(dest->currentPath());
 		// TODO needed to remove model change reset here since this allows the undo stack to get into inconsistent state.
 		// See commment above.
 		// Reset model changes here to make sure that the prefab update which runs at the end of the external reference update
 		// will only see the changed external reference objects and will not perform unnecessary prefab updates.
 		//context_->modelChanges().reset();
 		try {
-			context_->updateExternalReferences(stack);
+			context_->updateExternalReferences(loadContext);
 		} catch (ExtrefError &e) {
 			// Do nothing here:
 			// updateExternalReferences will create an error message that will be shown in the Error View in addition

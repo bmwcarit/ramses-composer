@@ -161,7 +161,7 @@ namespace Queries {
 	bool linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end);
 
 	// Check if a property is allowed as endpoint of a link.
-	bool isValidLinkEnd(const ValueHandle& endProperty);
+	bool isValidLinkEnd(const Project& project, const ValueHandle& endProperty);
 	// Check if a property is allowed as endpoint of a link.
 	bool isValidLinkStart(const ValueHandle& startProperty);
 
