@@ -9,8 +9,10 @@
 #include <QAbstractItemModel>
 #include "PointPropertyView.h"
 #include "CurveLogic.h"
+#include "node_logic/NodeLogic.h"
 
 namespace raco::curve {
+using namespace raco::node_logic;
 
 #define STR_CURVE           QString("Curve")
 #define STR_POINT           QString("Point")
@@ -44,7 +46,7 @@ private:
 class CurveTree : public QTreeView {
     Q_OBJECT
 public:
-    CurveTree(QWidget* parent, CurveLogic* logic = nullptr);
+	CurveTree(QWidget *parent, CurveLogic *logic = nullptr, NodeLogic *nodeLogic = nullptr);
     void setItemExpandStatus();
 
 public Q_SLOTS:
@@ -64,6 +66,7 @@ Q_SIGNALS:
     void sigInsertPoint(QPoint pos);
     void sigDeletePoint(QPoint pos);
     void sigDeleteCurve(QPoint pos);
+
 private:
     void removeItem2ExpandList(int row);
     void insertChildItem2ExpandList(int row, int childRow);
@@ -72,6 +75,7 @@ private:
     QList<PointPropertyView*> pointProViewList_;
     QList<QPair<int, int>> itemExpandList_;
     CurveLogic* curveLogic_{nullptr};
+	NodeLogic *nodeLogic_{nullptr};
     QAction *insertPointAct_{nullptr};
     QAction *deletePointAct_{nullptr};
     QAction *deleteCurveAct_{nullptr};
@@ -85,7 +89,7 @@ private:
 class CurveTreeModel : public QAbstractItemModel {
     Q_OBJECT
 public:
-    CurveTreeModel(QObject *parent = nullptr, CurveLogic* logic = nullptr);
+	CurveTreeModel(QObject *parent = nullptr, CurveLogic *logic = nullptr, NodeLogic *nodeLogic = nullptr);
     ~CurveTreeModel();
 
     void initModel(std::list<Curve *> list);
@@ -102,6 +106,7 @@ private:
     TreeItem* rootItem_{nullptr};
     CurveTree* parentView_{nullptr};
     CurveLogic* curveLogic_{nullptr};
+	NodeLogic *nodeLogic_{nullptr};
 };
 
 }

@@ -31,6 +31,7 @@ target_link_libraries(libCurve
         raco::UserTypes
         raco::Components
         raco::GuiData
+        raco::node_logic
         raco::signal
         Qt5::Widgets
         Qt5::Core

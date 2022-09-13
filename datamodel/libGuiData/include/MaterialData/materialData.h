@@ -598,6 +598,11 @@ public:
 	}
 
 	void addUniform(Uniform uniform) {
+		for (auto& un : uniforms_) {
+            if (un.getName() == uniform.getName()) {
+				return;
+            }
+        }
 		uniforms_.push_back(uniform);
 	}
 	std::vector<Uniform> getUniforms() {

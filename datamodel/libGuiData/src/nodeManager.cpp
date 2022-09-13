@@ -110,4 +110,30 @@ void NodeDataManager::preOrderReverse(NodeData* pNode,  std::function<void(NodeD
     }
 }
 
+void NodeDataManager::delCurveBindingByName(std::string curveName) {
+	if (!root_.childMapRef().size())
+		return;
+	std::cout << " preOrderReverse: ";
+	delOneCurveBindingByName(&root_, curveName);
+	if (activeNode_)
+		std::cout << "   ->" << activeNode_->objectID();
+	std::cout << std::endl;
+}
+
+void NodeDataManager::delOneCurveBindingByName(NodeData* pNode, std::string curveName) {
+	if (!pNode)
+		return;
+	std::map<std::string, std::map<std::string, std::string>> bindingMap = pNode->NodeExtendRef().curveBindingRef().bindingMap();
+
+    for (auto& an : bindingMap) {
+		for (auto& prop : an.second) {
+			if (curveName == prop.second)
+				pNode->NodeExtendRef().curveBindingRef().deleteBindingDataItem(an.first, prop.first, prop.second); 
+        }
+    }
+
+	for (auto it = pNode->childMapRef().begin(); it != pNode->childMapRef().end(); ++it) {
+		delOneCurveBindingByName(&(it->second), curveName);
+	}
+}
 }

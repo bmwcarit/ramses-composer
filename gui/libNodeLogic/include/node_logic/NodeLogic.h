@@ -42,6 +42,9 @@ public:
     void preOrderReverse(NodeData *pNode, const int &keyFrame, const std::string &sampleProperty);
     void setPropertyByCurveBinding(const std::string &objecID, const std::map<std::string, std::string> &map, const int &keyFrame);
 
+
+    void delNodeBindingByCurveName(std::string curveName);
+
 public Q_SLOTS:
     void slotUpdateActiveAnimation(QString animation);
     void slotUpdateKeyFrame(int keyFrame);
@@ -50,6 +53,8 @@ public Q_SLOTS:
 
 signals:
 	void sig_getHandles_from_NodePro(std::set<core::ValueHandle>& handles);
+	void sig_initCurveBindingWidget__NodePro();
+
 private:
     QMutex handleMapMutex_;
 	std::map<std::string, core::ValueHandle> nodeObjectIDHandleReMap_;

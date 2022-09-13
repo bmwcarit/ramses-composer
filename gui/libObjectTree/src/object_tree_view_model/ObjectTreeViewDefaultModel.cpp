@@ -531,6 +531,11 @@ void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEdito
     Q_EMIT editNodeOpreations();
 }
 
+void ObjectTreeViewDefaultModel::importMeshScenegraphFromBMWAssets(raco::guiData::NodeData* node, const QModelIndex& selectedIndex) {
+	auto selectedObject = indexToSEditorObject(selectedIndex);
+	commandInterface_->insertBMWAssetScenegraph(node, selectedObject);
+}
+
 void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex, bool &keyAnimation) {
 	MeshDescriptor meshDesc;
 	meshDesc.absPath = filePath.toStdString();

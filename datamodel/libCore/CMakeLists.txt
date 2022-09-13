@@ -64,6 +64,7 @@ PUBLIC
 	raco::DataStorage	
 	raco::LogSystem
 	raco::Utils
+	raco::GuiData
 	Qt5::Core
 PRIVATE
 	# Linking the user types to the Core causes a circular dependency.

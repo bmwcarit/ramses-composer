@@ -6,11 +6,10 @@
 
 #include <set>
 #include <QMessageBox>
-
+#include <cmath>
 
 namespace raco::dataConvert {
 using namespace raco::style;
-
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
 	if (-1 != index) {
@@ -160,6 +159,7 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 	tMesh.set_allocated_basenode(baseNode);
 
 	MaterialData materialData;
+	NodeMaterial nodeMaterial;
 	MeshData meshData;
 
 	if(raco::guiData::MeshDataManager::GetInstance().getMeshData(node->objectID(), meshData)){
@@ -177,17 +177,19 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 			tMesh.set_materialreference(materialData.getObjectName());
 
 			// TODO: uniforms for mesh
-			for (auto& uniform : node->getUniforms()) {
-				auto animations = node->NodeExtendRef().curveBindingRef().bindingMap();
-				for (auto& animation : animations) {
-					for (auto& property : animation.second) {
-						std::string properName = delUniformNamePrefix(property.first);
-						if (properName == uniform.getName()) {
-							HmiScenegraph::TUniform tUniform;
-							uniformTypeValue(uniform, tUniform);
-							HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
-							*itMesh = tUniform;
-							break;
+			if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node->objectID(), nodeMaterial)) {
+				for (auto& uniform : nodeMaterial.getUniforms()) {
+					auto animations = node->NodeExtendRef().curveBindingRef().bindingMap();
+					for (auto& animation : animations) {
+						for (auto& property : animation.second) {
+							std::string properName = delUniformNamePrefix(property.first);
+							if (properName == uniform.getName() || properName == uniform.getName() + ".x" || properName == uniform.getName() + ".y" || properName == uniform.getName() + ".z" || properName == uniform.getName() + ".w") {
+								HmiScenegraph::TUniform tUniform;
+								uniformTypeValue(uniform, tUniform);
+								HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
+								*itMesh = tUniform;
+								break;
+							}
 						}
 					}
 				}
@@ -238,11 +240,6 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 		nodeName = nodeName.substr(0, nodeName.length() - 9);
 	hmiNode.set_name(nodeName);
 
-	// Do not export camera data for now
-  //  if (nodeName == "PerspectiveCamera") {
-		//setPtxTCamera(childNode, hmiNode);
-  //  }
-
 	if (childNode->hasSystemData("scale")) {
 		TVector3f* scale = new TVector3f();
 		Vec3 scal = std::any_cast<Vec3>(childNode->getSystemData("scale"));
@@ -251,7 +248,6 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 		scale->set_z(scal.z);
 		hmiNode.set_allocated_scale(scale);
 	}
-
 	if (childNode->hasSystemData("rotation")) {
 		TVector3f* rotation = new TVector3f();
 		Vec3 rota = std::any_cast<Vec3>(childNode->getSystemData("rotation"));
@@ -313,8 +309,9 @@ void OutputPtx::setRootSRT(HmiScenegraph::TNode* hmiNode) {
 }
 
 void OutputPtx::writeNodePtx(NodeData* pNode, HmiScenegraph::TNode* parent) {
-	if (!pNode)
+	if (!pNode){
 		return;
+	}
 	HmiScenegraph::TNode hmiNode;
 	setPtxNode(pNode, hmiNode);
 	HmiScenegraph::TNode* it = parent->add_child();
@@ -476,7 +473,7 @@ TEWinding OutputPtx::matchWinding(WindingType wind) {
 	}
 	return result;
 }
-// TODO
+
 void OutputPtx::setMaterialDefaultRenderMode(RenderMode& renderMode, HmiScenegraph::TRenderMode* rRenderMode) {
 	// winding and culling
 	rRenderMode->set_winding(TEWinding::TEWinding_CounterClockWise);
@@ -530,10 +527,11 @@ void OutputPtx::setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRe
 	// ColorWrite
 	HmiScenegraph::TRenderMode_TColorWrite* tColorWrite = new HmiScenegraph::TRenderMode_TColorWrite();
 	ColorWrite colorWrite = renderMode.getColorWrite();
-	tColorWrite->set_alpha(colorWrite.getAlpha());
-	tColorWrite->set_blue(colorWrite.getBlue());
-	tColorWrite->set_green(colorWrite.getGreen());
-	tColorWrite->set_red(colorWrite.getRed());
+	// If the colorwrite property value is false, the content will not be displayed in Hmi.
+	tColorWrite->set_alpha(true);
+	tColorWrite->set_blue(true);
+	tColorWrite->set_green(true);
+	tColorWrite->set_red(true);
 	rRenderMode->set_allocated_colorwrite(tColorWrite);
 }
 
@@ -745,7 +743,6 @@ void OutputPtx::messageBoxError(std::string materialName) {
 	}
 }
 
-
 void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialLibrary) {
 	std::map<std::string, MaterialData> materialMap = raco::guiData::MaterialManager::GetInstance().getMaterialDataMap();
 	std::set<std::string> setNameArr;
@@ -858,7 +855,9 @@ void OutputPtx::writeShaders2MaterialLib(QString& filePath, QString& oldPath, Hm
 		QString shaderPath = oldPath + "/" + QString::fromStdString(shader.second.getVertexShader());
 		QFileInfo fileinfo(shaderPath);
 		QString shadersPathName = "shaders/" + fileinfo.fileName();
+		qDebug() << shadersPathName;
 		QString desPath = filePath + "/" + shadersPathName;
+		qDebug() << desPath;
 		if (!QFile::copy(shaderPath, desPath)) {
 			qDebug() << " copy [" << fileinfo.fileName() << " ] failed!";
 		}
@@ -933,10 +932,38 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
     HmiScenegraph::TNode* tRoot = new HmiScenegraph::TNode();
 	tRoot->set_name(PTX_SCENE_NAME.toStdString());
 	setRootSRT(tRoot);
-
+	int rootChildIndex = 0;
     for (auto& child : rootNode->childMapRef()) {
 		NodeData* childNode = &(child.second);
-        writeNodePtx(childNode, tRoot);
+		if (-1 != childNode->getName().find("PerspectiveCamera")) {
+			continue;
+		}
+
+		// Root Child
+		HmiScenegraph::TNode hmiNodeChild;
+		hmiNodeChild.set_name("sceneChild" + std::to_string(rootChildIndex));
+		rootChildIndex++;
+		HmiScenegraph::TNode* it = tRoot->add_child();
+		TVector3f* scaleChild = new TVector3f();
+		scaleChild->set_x(1.0);
+		scaleChild->set_y(1.0);
+		scaleChild->set_z(1.0);
+		hmiNodeChild.set_allocated_scale(scaleChild);
+		// rotation
+		TVector3f* rotationChild = new TVector3f();
+		rotationChild->set_x(0.0);
+		rotationChild->set_y(0.0);
+		rotationChild->set_z(0.0);
+		hmiNodeChild.set_allocated_rotation(rotationChild);
+		// translation
+		TVector3f* translationChild = new TVector3f();
+		translationChild->set_x(0.0);
+		translationChild->set_y(0.0);
+		translationChild->set_z(0.0);
+		hmiNodeChild.set_allocated_translation(translationChild);
+
+		writeNodePtx(childNode, &hmiNodeChild);
+		*it = hmiNodeChild;
 	}
     scene.set_allocated_root(tRoot);
 
@@ -965,16 +992,6 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 	std::string animation_interal;
 	auto animationList = raco::guiData::animationDataManager::GetInstance().getAnitnList();
 	for (auto animation : animationList) {
-		auto externalModelValue = widget->add_externalmodelvalue();
-		TIdentifier* key_ext = new TIdentifier;
-
-		key_ext->set_valuestring(animation.first + "_extenal");
-		externalModelValue->set_allocated_key(key_ext);
-		TVariant* variant = new TVariant;
-		TNumericValue* Numeric = new TNumericValue();
-		Numeric->set_float_(0.0);
-		variant->set_allocated_numeric(Numeric);
-		externalModelValue->set_allocated_variant(variant);
 		auto internalModelValue = widget->add_internalmodelvalue();
 		TIdentifier* key_int = new TIdentifier;
 		animation_interal = animation.first + "_interal";
@@ -1010,6 +1027,35 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		internalModelValue->set_allocated_binding(binding);
 	}
 	return animation_interal;
+}
+
+void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
+	if (isOutputError_) {
+		return;
+	}
+
+	QMessageBox customMsgBox;
+	customMsgBox.setWindowTitle("Warning message box");
+	QPushButton* okButton = customMsgBox.addButton("OK", QMessageBox::ActionRole);
+	//QPushButton* cancelButton = customMsgBox.addButton(QMessageBox::Cancel);
+	customMsgBox.setIcon(QMessageBox::Icon::Warning);
+	QString text;
+	if (errorNum == 1) {
+		text = QString::fromStdString(curveName) + "\" components is less than 3 !";
+		text = "Warning: The number of Rotation Curve \"" + text;
+	} else if (errorNum == 2) {
+		text = QString::fromStdString(curveName) + "\" do not match !";
+		text = "Warning: The length in \"" + text;
+	} else if (errorNum == 3) {
+		text = QString::fromStdString(curveName) + "\" do not match !";
+		text = "Warning: The keyframe points in \"" + text;
+	}
+	customMsgBox.setText(text);
+	customMsgBox.exec();
+
+	if (customMsgBox.clickedButton() == (QAbstractButton*)(okButton)) {
+		isOutputError_ = true;
+	}
 }
 
 void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal) {
@@ -1137,7 +1183,7 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 						nodeParam->set_allocated_transform(transform);
 					}
 				} else {
-					AddUniform(curveProP, nodeParam);
+					AddUniform(curveProP, nodeParam, &node);
 				}
 			}
 		}
@@ -1154,6 +1200,7 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
+	nodeIDUniformsName_.clear();
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
@@ -1162,7 +1209,6 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
 	std::string output;
 	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
-	std::cout << output << std::endl;
 
 	QDir* folder = new QDir;
 	if (!folder->exists(QString::fromStdString(filePath))) {
@@ -1173,6 +1219,11 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	outfile.open(filePath + "/widget.ptw", std::ios_base::out | std::ios_base::trunc);
 	outfile << output << std::endl;
 	outfile.close();
+
+	if (isOutputError_) {
+		QFile::remove(QString::fromStdString(filePath) + "/widget.ptw");
+		isOutputError_ = false;
+	}
 }
 
 void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
@@ -1183,6 +1234,7 @@ void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
 	prototype->set_valuestring("eWidgetType_Model");
 	widget->set_allocated_prototype(prototype);
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+
 	TIdentifier* key = new TIdentifier;
 	key->set_valuestring("WidgetNameHint");
 	externalModelValue->set_allocated_key(key);
@@ -1190,12 +1242,21 @@ void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
 	variant->set_asciistring("WIDGET_SCENE");
 	externalModelValue->set_allocated_variant(variant);
 	externalModelValue = widget->add_externalmodelvalue();
+
 	TIdentifier* key1 = new TIdentifier;
 	key1->set_valuestring("eParam_ModelResourceId");
 	externalModelValue->set_allocated_key(key1);
 	TVariant* variant1 = new TVariant;
 	variant1->set_resourceid("scene.ptx");
 	externalModelValue->set_allocated_variant(variant1);
+	externalModelValue = widget->add_externalmodelvalue();
+
+	TIdentifier* key2 = new TIdentifier;
+	key2->set_valuestring("eParam_ModelRootId");
+	externalModelValue->set_allocated_key(key2);
+	TVariant* variant2 = new TVariant;
+	variant2->set_resourceid("");
+	externalModelValue->set_allocated_variant(variant2);
 }
 
 void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform) {
@@ -1216,8 +1277,7 @@ void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP,
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-
-	} else if (curveProP.first.compare("translation.z") == 0) {
+	}  else if (curveProP.first.compare("translation.z") == 0) {
 		TDataBinding* operand = operation->mutable_operand(2);
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
@@ -1226,6 +1286,7 @@ void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP,
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
 	}
 }
+
 void OutputPtw::CreateTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform , raco::guiData::NodeData node) {
 	TDataBinding* translation = new TDataBinding;
 	TDataProvider* provider = new TDataProvider;
@@ -1381,6 +1442,7 @@ void OutputPtw::CreateScale(std::pair<std::string, std::string> curveProP, HmiWi
 	scale->set_allocated_provider(provider);
 	transform->set_allocated_scale(scale);
 }
+
 void OutputPtw::ModifyRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform) {
 	auto rotation = transform->mutable_rotation();
 	auto provider = rotation->mutable_provider();
@@ -1389,26 +1451,76 @@ void OutputPtw::ModifyRotation(std::pair<std::string, std::string> curveProP, Hm
 		TDataBinding* operand = operation->mutable_operand(0);
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
+		auto operationX = provide->mutable_operation();
+		operationX->set_operator_(TEOperatorType_Mul);
+		operationX->add_datatype(TEDataType_Float);
+		operationX->add_datatype(TEDataType_Float);
+		// add x
+		TDataBinding* operandX = operationX->add_operand();
+		TDataProvider* provideX = operandX->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
-		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		provideX->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		// add -1
+		auto addOperandMinusOne = operationX->add_operand();
+		TDataProvider* provide1 = new TDataProvider;
+		TVariant* variant1 = new TVariant;
+		TNumericValue* nuneric1 = new TNumericValue;
+		nuneric1->set_float_(1.0);
+		variant1->set_allocated_numeric(nuneric1);
+		provide1->set_allocated_variant(variant1);
+		addOperandMinusOne->set_allocated_provider(provide1);
 	} else if (curveProP.first.compare("rotation.y") == 0) {
+		// The corresponding relationship between the coordinates in Ramses
+		// and the coordinates of the vehicle is: x y z --> x -z y.
 		TDataBinding* operand = operation->mutable_operand(1);
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
+		auto operationY = provide->mutable_operation();
+		operationY->set_operator_(TEOperatorType_Mul);
+		operationY->add_datatype(TEDataType_Float);
+		operationY->add_datatype(TEDataType_Float);
+		// add z
+		TDataBinding* operandY = operationY->add_operand();
+		TDataProvider* provideY = operandY->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
-		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-
+		provideY->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		// add -1
+		auto addOperandMinusOne = operationY->add_operand();
+		TDataProvider* provide1 = new TDataProvider;
+		TVariant* variant1 = new TVariant;
+		TNumericValue* nuneric1 = new TNumericValue;
+		nuneric1->set_float_(1.0);
+		variant1->set_allocated_numeric(nuneric1);
+		provide1->set_allocated_variant(variant1);
+		addOperandMinusOne->set_allocated_provider(provide1);
 	} else if (curveProP.first.compare("rotation.z") == 0) {
 		TDataBinding* operand = operation->mutable_operand(2);
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
+		auto operationY = provide->mutable_operation();
+		operationY->set_operator_(TEOperatorType_Mul);
+		operationY->add_datatype(TEDataType_Float);
+		operationY->add_datatype(TEDataType_Float);
+		// add z
+		TDataBinding* operandY = operationY->add_operand();
+		TDataProvider* provideY = operandY->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
-		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		provideY->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		// add -1
+		auto addOperandMinusOne = operationY->add_operand();
+		TDataProvider* provide1 = new TDataProvider;
+		TVariant* variant1 = new TVariant;
+		TNumericValue* nuneric1 = new TNumericValue;
+		nuneric1->set_float_(1.0);
+		variant1->set_allocated_numeric(nuneric1);
+		provide1->set_allocated_variant(variant1);
+		addOperandMinusOne->set_allocated_provider(provide1);
 	}
 }
+
 void OutputPtw::CreateRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node) {
 	TDataBinding* rotation = new TDataBinding;
 	TDataProvider* provider = new TDataProvider;
@@ -1417,14 +1529,31 @@ void OutputPtw::CreateRotation(std::pair<std::string, std::string> curveProP, Hm
 	operation->add_datatype(TEDataType_Float);
 	operation->add_datatype(TEDataType_Float);
 	operation->add_datatype(TEDataType_Float);
+
 	auto operand1 = operation->add_operand();
 	auto operand2 = operation->add_operand();
 	auto operand3 = operation->add_operand();
 	if (curveProP.first.compare("rotation.x") == 0) {
 		TDataProvider* provide = new TDataProvider;
+		auto operationX = provide->mutable_operation();
+		operationX->set_operator_(TEOperatorType_Mul);
+		operationX->add_datatype(TEDataType_Float);
+		operationX->add_datatype(TEDataType_Float);
+		// add x
+		TDataBinding* operandX = operationX->add_operand();
+		TDataProvider* provideX = operandX->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
-		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		provideX->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		// add -1
+		auto addOperandMinusOne = operationX->add_operand();
+		TDataProvider* provide1 = new TDataProvider;
+		TVariant* variant1 = new TVariant;
+		TNumericValue* nuneric1 = new TNumericValue;
+		nuneric1->set_float_(1.0);
+		variant1->set_allocated_numeric(nuneric1);
+		provide1->set_allocated_variant(variant1);
+		addOperandMinusOne->set_allocated_provider(provide1);
 		operand1->set_allocated_provider(provide);
 	} else {
 		TDataProvider* provide = new TDataProvider;
@@ -1438,9 +1567,25 @@ void OutputPtw::CreateRotation(std::pair<std::string, std::string> curveProP, Hm
 
 	if (curveProP.first.compare("rotation.y") == 0) {
 		TDataProvider* provide = new TDataProvider;
+		auto operationY = provide->mutable_operation();
+		operationY->set_operator_(TEOperatorType_Mul);
+		operationY->add_datatype(TEDataType_Float);
+		operationY->add_datatype(TEDataType_Float);
+		// add y
+		TDataBinding* operandY = operationY->add_operand();
+		TDataProvider* provideY = operandY->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
-		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		provideY->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		// add -1
+		auto addOperandMinusOne = operationY->add_operand();
+		TDataProvider* provide1 = new TDataProvider;
+		TVariant* variant1 = new TVariant;
+		TNumericValue* nuneric1 = new TNumericValue;
+		nuneric1->set_float_(1.0);
+		variant1->set_allocated_numeric(nuneric1);
+		provide1->set_allocated_variant(variant1);
+		addOperandMinusOne->set_allocated_provider(provide1);
 		operand2->set_allocated_provider(provide);
 	} else {
 		TDataProvider* provide = new TDataProvider;
@@ -1455,9 +1600,25 @@ void OutputPtw::CreateRotation(std::pair<std::string, std::string> curveProP, Hm
 
 	if (curveProP.first.compare("rotation.z") == 0) {
 		TDataProvider* provide = new TDataProvider;
+		auto operationZ = provide->mutable_operation();
+		operationZ->set_operator_(TEOperatorType_Mul);
+		operationZ->add_datatype(TEDataType_Float);
+		operationZ->add_datatype(TEDataType_Float);
+		// add y
+		TDataBinding* operandZ = operationZ->add_operand();
+		TDataProvider* provideY = operandZ->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
-		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		provideY->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		// add -1
+		auto addOperandMinusOne = operationZ->add_operand();
+		TDataProvider* provide1 = new TDataProvider;
+		TVariant* variant1 = new TVariant;
+		TNumericValue* nuneric1 = new TNumericValue;
+		nuneric1->set_float_(1.0);
+		variant1->set_allocated_numeric(nuneric1);
+		provide1->set_allocated_variant(variant1);
+		addOperandMinusOne->set_allocated_provider(provide1);
 		operand3->set_allocated_provider(provide);
 	} else {
 		TDataProvider* provide = new TDataProvider;
@@ -1473,21 +1634,225 @@ void OutputPtw::CreateRotation(std::pair<std::string, std::string> curveProP, Hm
 	rotation->set_allocated_provider(provider);
 	transform->set_allocated_rotation(rotation);
 }
-void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam) {
+
+size_t getArrIndex(std::string name) {
+	std::string suffix = name.substr(name.length() - 2, 2);
+	if (suffix == ".x") {
+		return 0;
+	} else if (suffix == ".y") {
+		return 1;
+	} else if (suffix == ".z") {
+		return 2;
+	} else if (suffix == ".w") {
+		return 3;
+	}
+	return -1;
+}
+
+void OutputPtw::addOperandCurveRef2Operation(TOperation* operation, std::string curveName) {
+	auto operand = operation->add_operand();
+	TDataProvider* provider = new TDataProvider;
+	TIdentifier* curveReference = new TIdentifier;
+	curveReference->set_valuestring(curveName);
+	provider->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+	operand->set_allocated_provider(provider);
+}
+
+void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperation* operation, std::string* curveNameArr) {
+	switch (usedUniformType) {
+		case raco::guiData::Vec2f:
+			operation->set_operator_(TEOperatorType_MuxVec2);
+			for (int i = 0; i < 2; ++i) {
+				operation->add_datatype(TEDataType_Float);
+				if (curveNameArr[i] == "") {
+					addOperandOne2Operation(operation);
+				} else {
+					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+				}
+			}
+			break;
+		case raco::guiData::Vec3f:
+			operation->set_operator_(TEOperatorType_MuxVec3);
+			for (int i = 0; i < 3; ++i) {
+				operation->add_datatype(TEDataType_Float);
+				if (curveNameArr[i] == "") {
+					addOperandOne2Operation(operation);
+				} else {
+					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+				}
+			}
+			break;
+		case raco::guiData::Vec4f:
+			operation->set_operator_(TEOperatorType_MuxVec4);
+			for (int i = 0; i < 4; ++i) {
+				operation->add_datatype(TEDataType_Float);
+				if (curveNameArr[i] == "") {
+					addOperandOne2Operation(operation);
+				} else {
+					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+				}
+			}
+			break;
+		case raco::guiData::Vec2i:
+			operation->set_operator_(TEOperatorType_MuxVec2);
+			for (int i = 0; i < 2; ++i) {
+				operation->add_datatype(TEDataType_Int);
+				if (curveNameArr[i] == "") {
+					addOperandOne2Operation(operation);
+				} else {
+					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+				}
+			}
+			break;
+		case raco::guiData::Vec3i:
+			operation->set_operator_(TEOperatorType_MuxVec3);
+			for (int i = 0; i < 3; ++i) {
+				operation->add_datatype(TEDataType_Int);
+				if (curveNameArr[i] == "") {
+					addOperandOne2Operation(operation);
+				} else {
+					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+				}
+			}
+			break;
+		case raco::guiData::Vec4i:
+			operation->set_operator_(TEOperatorType_MuxVec4);
+			for (int i = 0; i < 4; ++i) {
+				operation->add_datatype(TEDataType_Int);
+				if (curveNameArr[i] == "") {
+					addOperandOne2Operation(operation);
+				} else {
+					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+				}
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+bool OutputPtw::isAddedUniform(std::string name, raco::guiData::NodeData* node) {
+	auto re = nodeIDUniformsName_.find(node->objectID());
+	if (re != nodeIDUniformsName_.end()) {
+		for (auto& unName : re->second) {
+			if (unName == name) {
+				return true;
+			}
+		}
+		re->second.push_back(name);
+		return false;
+	}
+	std::vector<std::string> names;
+	names.push_back(name);
+	nodeIDUniformsName_.emplace(node->objectID(), names);
+	return false;
+}
+
+bool findFromUniform(std::string property, std::string name) {
+	QStringList propArr = QString::fromStdString(property).split(".");
+	if (propArr[propArr.size() - 2].toStdString() == name) {
+		return true;
+	}
+	return false;
+}
+
+void OutputPtw::addVecValue2Uniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
+	// set uniform name
+	std::string uniformName = curveProP.first.substr(9, curveProP.first.length() - 11);
+
+	if (isAddedUniform(uniformName, node)) {
+		return;
+	}
 	auto uniform = nodeParam->add_uniform();
+
 	TDataBinding* name = new TDataBinding;
 	TDataProvider* namePrivder = new TDataProvider;
 	TVariant* variant = new TVariant;
-	variant->set_asciistring(delUniformNamePrefix(curveProP.first));
+	variant->set_asciistring(delUniformNamePrefix(uniformName));
 	namePrivder->set_allocated_variant(variant);
 	name->set_allocated_provider(namePrivder);
 	uniform->set_allocated_name(name);
+
+	// set uniform value
+	TDataProvider* valProvder = new TDataProvider;
+	TOperation* operation = new TOperation;
 	TDataBinding* value = new TDataBinding;
-	TDataProvider* privder = new TDataProvider;
-	TIdentifier* curveReference = new TIdentifier;
-	curveReference->set_valuestring(curveProP.second);
-	privder->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-	value->set_allocated_provider(privder);
+
+	std::vector<Uniform> uniforms = node->getUniforms();
+	// get weights
+	UniformType usedUniformType = UniformType::Null;
+	for (auto& un : uniforms) {
+		if (un.getName() == uniformName) {
+			usedUniformType = un.getType();
+			break;
+		}
+	}
+
+	// get which weight used
+	std::string curveNameArr[4] = {""};
+	std::map<std::string, std::map<std::string, std::string>>& map = node->NodeExtendRef().curveBindingRef().bindingMap();
+	for (auto& an : map) {
+		for (auto& prop : an.second) {
+			int index = -1;
+			if (findFromUniform(prop.first, uniformName) && -1 != (index = getArrIndex(prop.first))) {
+				curveNameArr[index] = prop.second;
+			}
+		}
+	}
+
+	// set operation
+	setUniformOperationByType(usedUniformType, operation, curveNameArr);
+
+	// add to value
+	valProvder->set_allocated_operation(operation);
+	value->set_allocated_provider(valProvder);
 	uniform->set_allocated_value(value);
 }
+
+bool OutputPtw::isVecUniformValue(std::string name) {
+	std::string suffix = name.substr(name.length() - 2, 2);
+	if (suffix == ".x" || suffix == ".y" || suffix == ".z" || suffix == ".w") {
+		return true;
+	}
+	return false;
+}
+
+void OutputPtw::addOperandOne2Operation(TOperation* operation) {
+	auto operand = operation->add_operand();
+	TDataProvider* provider = new TDataProvider;
+	TVariant* variant = new TVariant;
+	TNumericValue* numeric = new TNumericValue;
+	numeric->set_float_(1.0);
+	variant->set_allocated_numeric(numeric);
+	provider->set_allocated_variant(variant);
+
+	operand->set_allocated_provider(provider);
+}
+
+void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
+	if (!isVecUniformValue(curveProP.first)) {
+		auto uniform = nodeParam->add_uniform();
+
+		// set uniform name
+		TDataBinding* name = new TDataBinding;
+		TDataProvider* namePrivder = new TDataProvider;
+		TVariant* variant = new TVariant;
+		variant->set_asciistring(delUniformNamePrefix(curveProP.first));
+		namePrivder->set_allocated_variant(variant);
+		name->set_allocated_provider(namePrivder);
+		uniform->set_allocated_name(name);
+
+		// set uniform value
+		TDataBinding* value = new TDataBinding;
+		TDataProvider* privder = new TDataProvider;
+		TIdentifier* curveReference = new TIdentifier;
+		curveReference->set_valuestring(curveProP.second);
+		privder->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		value->set_allocated_provider(privder);
+		uniform->set_allocated_value(value);
+	} else {
+		addVecValue2Uniform(curveProP, nodeParam, node);
+	}
+}
+
 }  // namespace raco::dataConvert

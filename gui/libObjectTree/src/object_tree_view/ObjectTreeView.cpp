@@ -551,6 +551,57 @@ void ObjectTreeView::resetSelection() {
 	viewport()->update();
 }
 
+// TODO:
+void ObjectTreeView::createBMWMaterial(const std::vector<MaterialData> &materialArr, const QModelIndex &parent) {
+	EditorObject::TypeDescriptor nodeType;
+	nodeType.isResource = true;
+	nodeType.typeName = "Material";
+
+	selectedItemIDs_.clear();
+	auto createdObject = treeModel_->createNewObject(nodeType, "testMaterial", parent);
+	selectedItemIDs_.insert(createdObject->objectID());
+
+	for (EditorObject::ChildIterator it = createdObject->begin(); it != createdObject->end(); ++it) {
+		qDebug() << QString::fromStdString((*it)->objectName());
+	}
+
+	if (createdObject->hasProperty("objectName")) {
+		auto baseHandle = createdObject->get("objectName");
+		qDebug() << QString::fromStdString(baseHandle->asString());
+		baseHandle->set<std::string>("test1");
+	}
+	if(createdObject->hasProperty("uriVertex")) {
+			auto baseHandle = createdObject->get("uriVertex");
+			qDebug() << QString::fromStdString(baseHandle->asString());
+			baseHandle->set<std::string>("shaders/simple_texture.vert");
+	}
+	if (createdObject->hasProperty("uriFragment")) {
+		auto baseHandle = createdObject->get("uriFragment");
+		qDebug() << QString::fromStdString(baseHandle->asString());
+		baseHandle->set<std::string>("uuuuu");
+	}
+
+	if (createdObject->hasProperty("uniforms")) {
+		auto unValueBase = createdObject->get("uniforms");
+		unValueBase->set<SEditorObject>(createdObject);
+
+		auto un1 = treeModel_->createNewObject(nodeType, "u_move", parent);	 // 继续创建子结点  nodeType=u_move
+		selectedItemIDs_.insert(un1->objectID());
+		if (un1->hasProperty("objectName")) {
+			auto baseHandle = un1->get("objectName");
+			qDebug() << QString::fromStdString(baseHandle->asString());
+			baseHandle->set<std::string>("u_move");
+		}
+	}
+
+	Q_EMIT dockSelectionFocusRequested(this);
+}
+
+void ObjectTreeView::importBMWAssets(NodeData *root, const std::vector<MaterialData> &materialArr) {
+	auto insertionTargetIndex = getSelectedInsertionTargetIndex();
+	createBMWMaterial(materialArr, insertionTargetIndex);
+}
+
 QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	auto treeViewMenu = new QMenu(this);
 

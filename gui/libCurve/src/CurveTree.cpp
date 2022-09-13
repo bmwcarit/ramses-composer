@@ -63,7 +63,7 @@ Curve *TreeItem::getCurve() {
     return curve_;
 }
 
-CurveTree::CurveTree(QWidget *parent, CurveLogic *logic) : QTreeView(parent), curveLogic_(logic) {
+CurveTree::CurveTree(QWidget *parent, CurveLogic *logic, NodeLogic *nodeLogic) : QTreeView(parent), curveLogic_(logic), nodeLogic_(nodeLogic) {
     setContextMenuPolicy(Qt::CustomContextMenu);
     this->setEditTriggers(QTreeView::DoubleClicked);
 
@@ -240,6 +240,7 @@ void CurveTree::slotDeleteCurve() {
         if (item->getCurve()) {
             Curve* curve = item->getCurve();
             curveLogic_->delCurve(QString::fromStdString(curve->getCurveName()));
+			nodeLogic_->delNodeBindingByCurveName(curve->getCurveName());
             removeItem2ExpandList(item->row());
             Q_EMIT sigRefreshCurveView();
         }
@@ -304,7 +305,7 @@ void CurveTree::insertChildItem2ExpandList(int row, int childRow) {
     }
 }
 
-CurveTreeModel::CurveTreeModel(QObject *parent, CurveLogic *logic) : curveLogic_(logic) {
+CurveTreeModel::CurveTreeModel(QObject *parent, CurveLogic *logic, NodeLogic *nodeLogic) : curveLogic_(logic), nodeLogic_(nodeLogic) {
     parentView_ = dynamic_cast<CurveTree*>(parent);
     rootItem_ = new TreeItem(QList<QVariant>());
 }

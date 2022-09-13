@@ -11,7 +11,6 @@
 
 namespace raco::guiData {
 
-
 class CurveBinding
 {
 public:
