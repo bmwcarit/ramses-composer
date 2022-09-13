@@ -38,6 +38,7 @@ public Q_SLOTS:
     void slotPropertyChanged();
     void slotSamplePropertyChanged();
     void slotSearchBtnClicked();
+    void slotRefrenceBtnClicked();
 protected:
     void mousePressEvent(QMouseEvent *event);
 
@@ -52,6 +53,7 @@ private:
     QLineEdit* curveEditor_{nullptr};
     QLineEdit* sampleEditor_{nullptr};
     QPushButton *searchBtn_{nullptr};
+    QPushButton *refrenceBtn_{nullptr};
     SearchEditor *searchEditor_{nullptr};
     ResultTree *resultTree_{nullptr};
     QPalette palette_;

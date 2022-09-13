@@ -4,6 +4,7 @@
 #include <QActionGroup>
 #include "style/Icons.h"
 #include "core/EngineInterface.h"
+#include "visual_curve/VisualCurvePosManager.h"
 
 using namespace raco::style;
 namespace raco::time_axis{
@@ -13,25 +14,48 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     QWidget(parent),
     commandInterface_(commandInterface) {
 
+    keyFrameMgr_ = new KeyFrameManager();
     hTitleLayout = new QHBoxLayout(this);
     vBoxLayout_ = new QVBoxLayout(this);
     hBoxLayout = new QHBoxLayout(this);
 
+    stackedWidget_ = new QStackedWidget(this);
     timeAxisScrollArea_ = new TimeAxisScrollArea(this);
+    visualCurveScrollArea_ = new VisualCurveScrollArea(this);
+    stackedWidget_->addWidget(timeAxisScrollArea_);
+    stackedWidget_->addWidget(visualCurveScrollArea_);
 
-    timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface);
+    timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
     connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(timeAxisWidget_, &TimeAxisWidget::switchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
 
+    visualCurveWidget_ = new VisualCurveWidget(visualCurveScrollArea_->viewport(), commandInterface);
+    connect(visualCurveScrollArea_, &VisualCurveScrollArea::viewportRectChanged, visualCurveWidget_, &VisualCurveWidget::setViewportRect);
+    connect(visualCurveWidget_, &VisualCurveWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigSwitchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigPressKey, this, &TimeAxisMainWindow::slotPressKey);
+
+    stackedWidget_->setCurrentWidget(timeAxisScrollArea_);
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
+    visualCurveScrollArea_->setCenterWidget(visualCurveWidget_);
+
+    visualCurveInfoWidget_ = new VisualCurveInfoWidget(this);
+    visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this);
+    visualCurveInfoWidget_->hide();
+    visualCurveNodeTreeView_->hide();
 
     initTitle(this);
     initTree(this);
-	initAnimationMenu();
+    initAnimationMenu();
     hBoxLayout->addWidget(editorView_);
-    hBoxLayout->addWidget(timeAxisScrollArea_);
-    hBoxLayout->setStretchFactor(editorView_, 1);
-    hBoxLayout->setStretchFactor(timeAxisScrollArea_, 5);
+    hBoxLayout->addWidget(visualCurveNodeTreeView_);
+    hBoxLayout->addWidget(stackedWidget_);
+    hBoxLayout->addWidget(visualCurveInfoWidget_);
+    hBoxLayout->setStretchFactor(editorView_, 2);
+    hBoxLayout->setStretchFactor(visualCurveNodeTreeView_, 2);
+    hBoxLayout->setStretchFactor(stackedWidget_, 10);
+    hBoxLayout->setStretchFactor(visualCurveInfoWidget_, 1);
 
     vBoxLayout_->addWidget(titleWidget_);
     vBoxLayout_->addLayout(hBoxLayout);
@@ -46,17 +70,26 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateAnimationKey_From_AnimationUI, this, &TimeAxisMainWindow::slotUpdateAnimationKey);
     connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &TimeAxisMainWindow::slotResetAnimation);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInitAnimationView, this, &TimeAxisMainWindow::slotInitAnimationMgr);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInitCurveView, this, &TimeAxisMainWindow::slotInitCurves);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateSelKey, visualCurveInfoWidget_, &VisualCurveInfoWidget::slotUpdateSelKey);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateCursorX, visualCurveInfoWidget_, &VisualCurveInfoWidget::slotUpdateCursorX);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigDeleteCurve, visualCurveNodeTreeView_, &VisualCurveNodeTreeView::slotDeleteCurveFromVisualCurve);
+    connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
+    connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshCursorX, visualCurveWidget_, &VisualCurveWidget::slotRefreshCursorX);
+    connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
+    connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigSwitchVisualCurveInfoWidget, this, &TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget);
 }
-
 
 void TimeAxisMainWindow::startOrStopAnimation() {
     if (animationStarted_) {
         startBtn_->setFlat(true);
         startBtn_->setIcon(Icons::instance().animationStart);
+//        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStart);}");
         timeAxisWidget_->stopAnimation();
     } else {
         startBtn_->setFlat(true);
         startBtn_->setIcon(Icons::instance().animationStop);
+//        startBtn_->setStyleSheet("QPushButton{background-image: url(:/animationStop);}");
         timeAxisWidget_->startAnimation();
     }
     animationStarted_ = !animationStarted_;
@@ -83,7 +116,7 @@ void TimeAxisMainWindow::slotTreeMenu(const QPoint &pos) {
 	} else {
 		pasteAction_->setVisible(true);
 	}
-    m_Menu.exec(QCursor::pos());  // show menu
+    m_Menu.exec(QCursor::pos());  //显示菜单
 }
 
 void TimeAxisMainWindow::slotLoad() {
@@ -136,7 +169,7 @@ void TimeAxisMainWindow::slotCreateNew() {
         return;
     }
 
-    QString strDefault = "Animation" + QString::number(UUID_);
+    QString strDefault = "Default Node" + QString::number(UUID_);
 	if (animationDataManager::GetInstance().IsHaveAnimation(strDefault.toStdString())){
         UUID_++;
         slotCreateNew();
@@ -198,6 +231,69 @@ void TimeAxisMainWindow::slotResetAnimation() {
     editorView_->update();
 }
 
+void TimeAxisMainWindow::slotSwitchCurveWidget() {
+    switch (curCurveType_) {
+    case CURVE_TYPE_ENUM::TIME_AXIS: {
+        startBtn_->hide();
+        nextBtn_->hide();
+        previousBtn_->hide();
+        curCurveType_ = VISUAL_CURVE;
+        stackedWidget_->setCurrentWidget(visualCurveScrollArea_);
+        visualCurveWidget_->setFocus(Qt::MouseFocusReason);
+
+        // right switch
+        visualCurveNodeTreeView_->show();
+        editorView_->hide();
+
+        // left switch
+        visualCurveInfoWidget_->show();
+        visualCurveInfoWidget_->update();
+
+        break;
+    }
+    case CURVE_TYPE_ENUM::VISUAL_CURVE: {
+        startBtn_->show();
+        nextBtn_->show();
+        previousBtn_->show();
+        curCurveType_ = TIME_AXIS;
+        stackedWidget_->setCurrentWidget(timeAxisScrollArea_);
+        timeAxisWidget_->setFocus(Qt::MouseFocusReason);
+
+        // right switch
+        visualCurveNodeTreeView_->hide();
+        editorView_->show();
+
+        // left switch
+        visualCurveInfoWidget_->hide();
+        timeAxisWidget_->refreshKeyFrameView();
+
+        break;
+    }
+    }
+}
+
+void TimeAxisMainWindow::slotPressKey() {
+    MOUSE_PRESS_ACTION pressType = VisualCurvePosManager::GetInstance().getPressAction();
+    switch (pressType) {
+    case MOUSE_PRESS_KEY:
+    case MOUSE_PRESS_LEFT_WORKER_KEY:
+    case MOUSE_PRESS_RIGHT_WORKER_KEY: {
+        visualCurveInfoWidget_->setKeyWidgetVisible();
+        visualCurveNodeTreeView_->switchCurSelCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
+        break;
+    }
+    case MOUSE_PRESS_NONE: {
+        visualCurveInfoWidget_->setCursorWidgetVisible();
+        visualCurveNodeTreeView_->cancleSelCurve();
+        break;
+    }
+    }
+}
+
+void TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget() {
+    visualCurveInfoWidget_->setKeyWidgetVisible();
+}
+
 void TimeAxisMainWindow::slotInitAnimationMgr() {
     if (model_) {
         for (const auto& it : animationDataManager::GetInstance().getAniamtionNameList()) {
@@ -213,12 +309,19 @@ void TimeAxisMainWindow::slotInitAnimationMgr() {
     timeAxisWidget_->refreshKeyFrameView();
 }
 
-void TimeAxisMainWindow::slotCreateKeyFrame() {
+void TimeAxisMainWindow::slotCreateKeyFrame(QString curve) {
     timeAxisWidget_->createKeyFrame();
+    visualCurveWidget_->createKeyFrame(curve);
 }
 
 void TimeAxisMainWindow::slotRefreshTimeAxis() {
     timeAxisWidget_->refreshKeyFrameView();
+//    visualCurveNodeTreeView_->initCurves();
+}
+
+void TimeAxisMainWindow::slotInitCurves() {
+    visualCurveNodeTreeView_->initCurves();
+    visualCurveWidget_->refreshKeyFrameView();
 }
 
 bool TimeAxisMainWindow::initTitle(QWidget* parent) {
@@ -231,15 +334,15 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     startBtn_->setFlat(true);
     startBtn_->setIcon(Icons::instance().animationStart);
     connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startOrStopAnimation);
-    QPushButton *previousBtn_ = new QPushButton(titleWidget_);
+    previousBtn_ = new QPushButton(titleWidget_);
     previousBtn_->setFlat(true);
     previousBtn_->setIcon(Icons::instance().animationPrevious);
     connect(previousBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToBegin);
 
-    QPushButton *nextBtn = new QPushButton(titleWidget_);
-    nextBtn->setFlat(true);
-    nextBtn->setIcon(Icons::instance().animationNext);
-    connect(nextBtn, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToEnd);
+    nextBtn_ = new QPushButton(titleWidget_);
+    nextBtn_->setFlat(true);
+    nextBtn_->setIcon(Icons::instance().animationNext);
+    connect(nextBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToEnd);
 
     QWidget* spacerRight = new QWidget(titleWidget_);
     spacerRight->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -259,7 +362,7 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     hTitleLayout->addWidget(spacerLeft);
     hTitleLayout->addWidget(previousBtn_);
     hTitleLayout->addWidget(startBtn_);
-    hTitleLayout->addWidget(nextBtn);
+    hTitleLayout->addWidget(nextBtn_);
 
     hTitleLayout->addWidget(spacerRight);
     hTitleLayout->addWidget(lineBegin_);

@@ -49,8 +49,8 @@ public:
 	std::map<std::string, core::ValueHandle> updateTexture();
     void updateMeshData();
     int attriElementSize(raco::guiData::VertexAttribDataType type);
-	void convertGltfAnimation(QString fileName);
-    bool getAnimationHandle(QModelIndex index, core::ValueHandle &valueHandle);
+    void convertGltfAnimation(QString fileName);
+    bool getAnimationHandle(QModelIndex index, core::ValueHandle valueHandle, std::set<raco::core::ValueHandle> &handles);
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
@@ -88,7 +88,7 @@ public Q_SLOTS:
     void getMaterialResHandles();
 	void getTextureResHandles();
     void fillMeshData();
-    void deleteAnimationHandle(std::string id);
+    void deleteAnimationHandle(std::set<std::string> ids);
 	
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;

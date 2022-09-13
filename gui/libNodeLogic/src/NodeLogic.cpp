@@ -1,6 +1,9 @@
 #include "node_logic/NodeLogic.h"
 #include "PropertyData/PropertyType.h"
+#include "time_axis/TimeAxisCommon.h"
+#include "visual_curve/VisualCurvePosManager.h"
 #include <QDebug>
+
 namespace raco::node_logic {
 NodeLogic::NodeLogic(raco::core::CommandInterface *commandInterface, QObject *parent)
     : QObject{parent}, commandInterface_{commandInterface} {
@@ -176,12 +179,129 @@ void NodeLogic::setPropertyByCurveBinding(const std::string &objecID, const std:
         for (const auto &bindingIt : map) {
             if (CurveManager::GetInstance().getCurve(bindingIt.second)) {
                 double value{0};
-                if (CurveManager::GetInstance().getCurveValue(bindingIt.second, keyFrame, EInterPolationType::LINER, value)) {
-                    setProperty(iter->second, bindingIt.first, value);
+                EInterPolationType type;
+                if (CurveManager::GetInstance().getPointType(bindingIt.second, keyFrame, type)) {
+                    if (getKeyValue(bindingIt.second, type, keyFrame, value)) {
+                        setProperty(iter->second, bindingIt.first, value);
+                    }
                 }
             }
         }
     }
+}
+
+bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyFrame, double &value) {
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
+    double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
+
+    switch (type) {
+    case EInterPolationType::LINER: {
+        CurveManager::GetInstance().getCurveValue(curve, keyFrame, type, value);
+        return true;
+    }
+    case EInterPolationType::BESIER_SPLINE: {
+        QList<raco::time_axis::SKeyPoint> pointList;
+        if (VisualCurvePosManager::GetInstance().getKeyPointList(curve, pointList)) {
+            for (int i{0}; i < pointList.size(); ++i) {
+                if (i + 1 < pointList.size()) {
+                    raco::time_axis::SKeyPoint pointF1 = pointList[i];
+                    raco::time_axis::SKeyPoint pointF2 = pointList[i + 1];
+                    if (pointF1.keyFrame < keyFrame && pointF2.keyFrame > keyFrame) {
+                        QList<QPointF> srcPoints, destPoints;
+                        QPair<QPointF, QPointF> pair1;
+                        QPair<QPointF, QPointF> pair2;
+                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i, pair1);
+                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i + 1, pair2);
+
+                        srcPoints.push_back(QPointF(pointF1.x, pointF1.y));
+                        srcPoints.push_back(pair1.second);
+                        srcPoints.push_back(pair2.first);
+                        srcPoints.push_back(QPointF(pointF2.x, pointF2.y));
+
+                        time_axis::createNBezierCurve(srcPoints, destPoints, 0.01);
+
+                        // point border value
+                        double dIndex = (100.0 / (pointF2.keyFrame - pointF1.keyFrame) * (keyFrame - pointF1.keyFrame)) - 1;
+                        int iIndex = dIndex;
+                        if (iIndex >= destPoints.size() - 1) {
+                            iIndex = destPoints.size() - 1;
+                            time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], value);
+                            return true;
+                        }
+                        if (iIndex < 0) {
+                            iIndex = 0;
+                        }
+
+                        // point value
+                        double offset = dIndex - iIndex;
+                        double lastValue, nextValue;
+                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], lastValue);
+                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex + 1], nextValue);
+                        value = (nextValue - lastValue) * offset + lastValue;
+                        return true;
+                    }
+                }
+            }
+            return CurveManager::GetInstance().getCurveValue(curve, keyFrame, EInterPolationType::LINER, value);
+        }
+        break;
+    }
+    case EInterPolationType::HERMIT_SPLINE: {
+        QList<raco::time_axis::SKeyPoint> pointList;
+        if (VisualCurvePosManager::GetInstance().getKeyPointList(curve, pointList)) {
+            for (int i{0}; i < pointList.size(); ++i) {
+                if (i + 1 < pointList.size()) {
+                    raco::time_axis::SKeyPoint pointF1 = pointList[i];
+                    raco::time_axis::SKeyPoint pointF2 = pointList[i + 1];
+                    if (pointF1.keyFrame < keyFrame && pointF2.keyFrame > keyFrame) {
+                        QList<QPointF> srcPoints, destPoints;
+                        QPair<QPointF, QPointF> pair1;
+                        QPair<QPointF, QPointF> pair2;
+                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i, pair1);
+                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i + 1, pair2);
+
+                        srcPoints.push_back(QPointF(pointF1.x, pointF1.y));
+                        srcPoints.push_back(QPointF(pointF2.x, pointF2.y));
+                        srcPoints.push_back(QPointF(pair1.second.x() - pointF1.x, pair1.second.y() - pointF1.y));
+                        srcPoints.push_back(QPointF(pointF2.x - pair2.first.x(), pointF2.y - pair2.first.y()));
+
+                        time_axis::createHermiteCurve(srcPoints, destPoints, 0.01);
+
+                        // point border value
+                        double dIndex = (100.0 / (pointF2.keyFrame - pointF1.keyFrame) * (keyFrame - pointF1.keyFrame)) - 1;
+                        int iIndex = dIndex;
+                        if (iIndex >= destPoints.size() - 1) {
+                            iIndex = destPoints.size() - 1;
+                            time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], value);
+                            return true;
+                        }
+                        if (iIndex < 0) {
+                            iIndex = 0;
+                        }
+
+                        // point value
+                        double offset = dIndex - iIndex;
+                        double lastValue, nextValue;
+                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], lastValue);
+                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex + 1], nextValue);
+                        value = (nextValue - lastValue) * offset + lastValue;
+                        return true;
+                    }
+                }
+            }
+            return CurveManager::GetInstance().getCurveValue(curve, keyFrame, EInterPolationType::LINER, value);
+        }
+        break;
+    }
+    case EInterPolationType::STEP: {
+        CurveManager::GetInstance().getCurveValue(curve, keyFrame, type, value);
+        return true;
+    }
+    }
+
+    return false;
 }
 
 void NodeLogic::slotUpdateKeyFrame(int keyFrame) {
@@ -210,6 +330,6 @@ void NodeLogic::slotValueHandleChanged(const core::ValueHandle &handle) {
 			}
 		}
 		tempHandle = tempHandle.parent();
-	}
+    }
 }
 }

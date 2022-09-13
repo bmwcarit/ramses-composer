@@ -308,7 +308,7 @@ public:
     void searchingByID(NodeData* pNode, const std::string& objectID);
 
     NodeData* searchNodeByName(std::string& nodeName);
-	void searchingByName(NodeData* pNode, std::string& nodeName);
+    void searchingByName(NodeData* pNode, std::string& nodeName);
 
     void preOrderReverse(std::function<void(NodeData*)> fun = nullptr);
 	void preOrderReverse(NodeData* pNode, std::function<void(NodeData*)> fun = nullptr);

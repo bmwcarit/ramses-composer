@@ -11,18 +11,31 @@
 #include <QMenu>
 #include "components/DataChangeDispatcher.h"
 #include "core/CommandInterface.h"
+#include "qstackedwidget.h"
 #include "time_axis/TimeAxisWidget.h"
 #include "time_axis/TimeAxisScrollArea.h"
 #include "time_axis/AnimationEditorView.h"
 #include "signal/SignalProxy.h"
+#include "visual_curve/VisualCurveScrollArea.h"
+#include "visual_curve/VisualCurveWidget.h"
+#include "visual_curve/VisualCurveNodeTreeView.h"
+#include "visual_curve/VisualCurveInfoWidget.h"
 #include <QItemSelectionModel>
+#include <QDockWidget>
 
 using namespace raco::signal;
+using namespace raco::visualCurve;
 namespace Ui {
 class TimeAxisMainWindow;
 }
 
 namespace raco::time_axis {
+
+enum CURVE_TYPE_ENUM {
+    TIME_AXIS,
+    VISUAL_CURVE
+};
+
 class TimeAxisMainWindow final : public QWidget {
     Q_OBJECT
 public:
@@ -33,12 +46,16 @@ public:
 public Q_SLOTS:
     void slotInitAnimationMgr();
     //
-    void slotCreateKeyFrame();
+    void slotCreateKeyFrame(QString curve);
     void slotRefreshTimeAxis();
+    void slotInitCurves();
     void startOrStopAnimation();
     void slotUpdateAnimation();
     void slotUpdateAnimationKey(QString oldKey, QString newKey);
     void slotResetAnimation();
+    void slotSwitchCurveWidget();
+    void slotPressKey();
+    void slotSwitchVisualCurveInfoWidget();
 private Q_SLOTS:
     void slotTreeMenu(const QPoint &pos);
     void slotLoad();
@@ -57,7 +74,10 @@ private:
 
 private:
     TimeAxisWidget *timeAxisWidget_;
+    VisualCurveWidget *visualCurveWidget_;
     TimeAxisScrollArea *timeAxisScrollArea_;
+    VisualCurveScrollArea *visualCurveScrollArea_;
+    QStackedWidget *stackedWidget_;
     QVBoxLayout *vBoxLayout_;
     QHBoxLayout *hBoxLayout;
     QHBoxLayout *hTitleLayout;
@@ -66,8 +86,14 @@ private:
     QWidget *titleWidget_;
     AnimationEditorView *editorView_;
     QPushButton *startBtn_;
+    QPushButton *nextBtn_;
+    QPushButton *previousBtn_;
     bool animationStarted_{false};
-    //--------------------------------------------
+
+    QStackedWidget *leftStackedWidget_;
+    VisualCurveNodeTreeView *visualCurveNodeTreeView_{nullptr};
+    VisualCurveInfoWidget *visualCurveInfoWidget_{nullptr};
+
 	QMenu m_Menu;
     QAction *m_pLoad{nullptr};
     QAction *m_pCopy{nullptr};
@@ -82,6 +108,9 @@ private:
     QMap<QString, QStandardItem*> itemMap_;
     QLineEdit *lineBegin_{nullptr};
     QLineEdit *lineEnd_{nullptr};
+    KeyFrameManager *keyFrameMgr_{nullptr};
+    CURVE_TYPE_ENUM curCurveType_ = CURVE_TYPE_ENUM::TIME_AXIS;
+    DragPushButton *button_{nullptr}; //时间轴滑动条
 };
 }
 

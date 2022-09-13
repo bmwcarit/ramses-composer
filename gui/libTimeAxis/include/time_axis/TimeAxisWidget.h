@@ -45,7 +45,7 @@ private:
 class TimeAxisWidget : public QWidget {
     Q_OBJECT
 public:
-    TimeAxisWidget(QWidget * parent, raco::core::CommandInterface* commandInterface);
+    TimeAxisWidget(QWidget * parent, raco::core::CommandInterface* commandInterface, KeyFrameManager *keyFrameManager);
     void startAnimation();
     void stopAnimation();
     void createKeyFrame();
@@ -57,6 +57,8 @@ protected:
     virtual void resizeEvent(QResizeEvent* event) override;
     void timerEvent(QTimerEvent* event) override;
     virtual void mousePressEvent(QMouseEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
+    virtual void keyReleaseEvent(QKeyEvent *event) override;
 
 public Q_SLOTS:
     //选中时间轴区域时，滚动条操作的处理函数
@@ -75,7 +77,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void AnimationStop();
-
+    void switchCurveType();
 private:
     // 绘制关键帧
     void drawKeyFrame(QPainter &painter);
@@ -87,7 +89,9 @@ private:
     MOUSEACTION mouseAction_{MOUSE_NO_ACTION};
     DragPushButton *button_{nullptr}; //时间轴滑动条
     int timerId_{0};
-    int moveNum_{-2}; //时间轴起始,向左扩展变成负值,向右扩展不变
+    double moveNumX_{-4}; //时间轴起始,向左扩展变成负值,向右扩展不变
+    double moveNumY_{0};
+    int offsetX_{0};
 
     int curFrame_{0};
     int startFrame_{0};

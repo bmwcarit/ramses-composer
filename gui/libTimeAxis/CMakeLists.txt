@@ -37,6 +37,8 @@ target_link_libraries(libTimeAxis
         raco::GuiData
         raco::node_logic
         raco::signal
+        raco::CommonEditors
+        raco::VisualCurve
         Qt5::Widgets
         Qt5::Core
         Qt5::Gui

@@ -348,30 +348,28 @@ int ObjectTreeView::attriElementSize(VertexAttribDataType type) {
 void ObjectTreeView::convertGltfAnimation(QString fileName) {
     int row = model()->rowCount();
     raco::core::ValueHandle valueHandle;
+    std::set<raco::core::ValueHandle> handles;
     for (int i{0}; i < row; ++i) {
         QModelIndex index = model()->index(i, 0);
-        if (getAnimationHandle(index, valueHandle)) {
-            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(valueHandle, fileName);
+        if (getAnimationHandle(index, valueHandle, handles)) {
+            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(handles, fileName);
         }
     }
 }
 
-bool ObjectTreeView::getAnimationHandle(QModelIndex index, raco::core::ValueHandle &valueHandle) {
+bool ObjectTreeView::getAnimationHandle(QModelIndex index, core::ValueHandle valueHandle, std::set<core::ValueHandle> &handles) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         if (tempHandle.rootObject().get()->getTypeDescription().typeName.compare("Animation") == 0) {
-            valueHandle = tempHandle;
-            return true;
+            handles.emplace(tempHandle);
         }
     } else {
         for (int i{0}; i < model()->rowCount(index); i++) {
             QModelIndex tempIndex = model()->index(i, 0, index);
-            if (getAnimationHandle(tempIndex, valueHandle)) {
-                return true;
-            }
+            getAnimationHandle(tempIndex, valueHandle, handles);
         }
     }
-    return false;
+    return true;
 }
 
 void ObjectTreeView::globalCopyCallback() {
@@ -451,12 +449,14 @@ void ObjectTreeView::fillMeshData() {
     updateMeshData();
 }
 
-void ObjectTreeView::deleteAnimationHandle(std::string id) {
-    auto index = indexFromTreeNodeID(id);
-    auto delObjAmount = treeModel_->deleteObjectsAtIndices(QModelIndexList() << index);
+void ObjectTreeView::deleteAnimationHandle(std::set<std::string> ids) {
+    for (const auto &id : ids) {
+        auto index = indexFromTreeNodeID(id);
+        auto delObjAmount = treeModel_->deleteObjectsAtIndices(QModelIndexList() << index);
 
-    if (delObjAmount > 0) {
-        selectionModel()->Q_EMIT selectionChanged({}, {});
+        if (delObjAmount > 0) {
+            selectionModel()->Q_EMIT selectionChanged({}, {});
+        }
     }
 }
 

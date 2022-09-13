@@ -723,7 +723,7 @@ bool MainWindow::importBMWAssets() {
 		return false;
 	}
 
-	programManager_.readBMWAssets(assetsPath);
+//	programManager_.readBMWAssets(assetsPath);
 	return true;
 }
 
@@ -936,16 +936,15 @@ void MainWindow::slotCreateCurveAndBinding(QString property, QString curve, QVar
         curveNameWidget_->setBindingData(property, curve);
         if (curveNameWidget_->exec() == QDialog::Accepted) {
             curveNameWidget_->getBindingData(property, curve);
-            Q_EMIT signalProxy::GetInstance().sigInsertCurve_From_NodeUI(property, curve, value);
+
             Q_EMIT signalProxy::GetInstance().sigInsertCurveBinding_From_NodeUI(property, curve);
-            Q_EMIT signalProxy::GetInstance().sigInsertKeyFrame_From_NodeUI();
+            Q_EMIT signalProxy::GetInstance().sigInsertCurve_From_NodeUI(property, curve, value);
             Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
         }
     }
 }
 
 void MainWindow::slotCreateCurve(QString property, QString curve, QVariant value) {
-    Q_EMIT signalProxy::GetInstance().sigInsertKeyFrame_From_NodeUI();
     Q_EMIT signalProxy::GetInstance().sigInsertCurve_From_NodeUI(property, curve, value);
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
 }

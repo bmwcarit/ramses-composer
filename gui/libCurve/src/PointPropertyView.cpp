@@ -4,6 +4,8 @@ PointPropertyView::PointPropertyView(Curve *curve, Point *point, QWidget *parent
     : QWidget{parent}, point_(point) , curve_(curve) {
     initView();
     setLayout(gridLayout_);
+
+    connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigUpdatePointTagent, this, &PointPropertyView::slotRefreshTagent);
 }
 
 Point *PointPropertyView::getPoint() {
@@ -35,7 +37,6 @@ void PointPropertyView::slotLeftTangentChanged() {
     if (point_) {
         double value = leftTangEditor_->text().toDouble();
         point_->setLeftTagent(value);
-        Q_EMIT sigUpdateCurve();
     }
 }
 
@@ -43,7 +44,17 @@ void PointPropertyView::slotRightTangentChanged() {
     if (point_) {
         double value = rightTangEditor_->text().toDouble();
         point_->setRightTagent(value);
-        Q_EMIT sigUpdateCurve();
+    }
+}
+
+void PointPropertyView::slotRefreshTagent() {
+    if (point_) {
+        if (point_->getLeftTagent().type() == typeid(double)) {
+            leftTangEditor_->setText(QString::number(*(point_->getLeftTagent())._Cast<double>()));
+        }
+        if (point_->getRightTagent().type() == typeid(double)) {
+            rightTangEditor_->setText(QString::number(*(point_->getRightTagent())._Cast<double>()));
+        }
     }
 }
 

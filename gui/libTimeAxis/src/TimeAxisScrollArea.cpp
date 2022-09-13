@@ -39,7 +39,6 @@ void TimeAxisScrollBar::mouseMoveEvent(QMouseEvent *event) {
             else {
                 rightNum_++;
             }
-
         }
     }
 
@@ -123,10 +122,10 @@ void TimeAxisScrollArea::wheelEvent(QWheelEvent *event) {
     mousePivot_ = event->position().toPoint();
 #endif
     if (event->angleDelta().y() > 0) {
-        scaleValue_ *= 1.1;
+//        scaleValue_ *= 1.1;
         mouseAction_ = MOUSE_SCROLL_UP;
     } else {
-        scaleValue_ *= 0.9;
+//        scaleValue_ *= 0.9;
         mouseAction_ = MOUSE_SCROLL_DOWN;
     }
 

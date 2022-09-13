@@ -31,9 +31,15 @@ PropertyBrowserCurveBindingView::PropertyBrowserCurveBindingView(QString sampleP
     searchBtn_ = new QPushButton(view_);
     searchBtn_->setFlat(true);
     searchBtn_->setIcon(Icons::instance().typeZoom);
+
+    refrenceBtn_ = new QPushButton(view_);
+    refrenceBtn_->setFlat(true);
+    refrenceBtn_->setIcon(Icons::instance().goTo);
+
     viewLayout->addWidget(curveLabel_, 0, 0);
     viewLayout->addWidget(searchBtn_, 0, 1, Qt::AlignLeft);
     viewLayout->addWidget(curveEditor_, 0, 2);
+    viewLayout->addWidget(refrenceBtn_, 0, 3, Qt::AlignLeft);
     viewLayout->addWidget(sampleLabel_, 1, 0);
     viewLayout->addWidget(new QLabel("", view_), 1, 1);
     viewLayout->addWidget(sampleEditor_, 1, 2);
@@ -61,6 +67,7 @@ PropertyBrowserCurveBindingView::PropertyBrowserCurveBindingView(QString sampleP
     connect(sampleEditor_, &QLineEdit::editingFinished, this, &PropertyBrowserCurveBindingView::slotSamplePropertyChanged);
     connect(sampleEditor_, &QLineEdit::editingFinished, this, &PropertyBrowserCurveBindingView::slotSamplePropertyChanged);
     QObject::connect(searchBtn_, &QPushButton::clicked, this, &PropertyBrowserCurveBindingView::slotSearchBtnClicked);
+    QObject::connect(refrenceBtn_, &QPushButton::clicked, this, &PropertyBrowserCurveBindingView::slotRefrenceBtnClicked);
 
     connect(&signalProxy::GetInstance(), &signalProxy::sigCheckCurveBindingValid_From_CurveUI, this, &PropertyBrowserCurveBindingView::slotCheckAllCurveIsValid);
 
@@ -191,6 +198,13 @@ void PropertyBrowserCurveBindingView::slotSearchBtnClicked() {
 			slotCurveChanged();
         }
     }
+}
+
+void PropertyBrowserCurveBindingView::slotRefrenceBtnClicked() {
+    std::string samplePro = sampleEditor_->text().toStdString();
+    std::string curve = curveEditor_->text().toStdString();
+    std::string property = propertyEditor_->text().toStdString();
+    Q_EMIT signalProxy::GetInstance().sigSwitchVisualCurve(samplePro, property, curve);
 }
 
 void PropertyBrowserCurveBindingView::mousePressEvent(QMouseEvent *event) {
