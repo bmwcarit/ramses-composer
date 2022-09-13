@@ -41,7 +41,7 @@ struct NodeWithMaterial {
 class OutputPtx : public QObject {
     Q_OBJECT
 public:
-	bool writeProgram2Ptx(std::string filePath, QString relativePath);
+    bool writeProgram2Ptx(std::string filePath, QString relativePath);
 	void writeNodePtx(NodeData* pNode, HmiScenegraph::TNode* parent);
 	void setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& materialData);
     void setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
@@ -72,14 +72,11 @@ Q_SIGNALS:
 
 private:
 	bool isOutputError_{false};
-	std::vector<NodeWithMaterial> nodeWithMaterial_;
+    std::vector<NodeWithMaterial> nodeWithMaterial_;
 };
 
 class OutputPtw{
 public:
-	std::string ConvertAnimationInfo(HmiWidget::TWidget* widget);
-	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
-	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void WriteAsset(std::string filePath);
 	void WriteBasicInfo(HmiWidget::TWidget* widget);
 

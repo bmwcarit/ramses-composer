@@ -10,6 +10,7 @@
 
 namespace raco::dataConvert {
 using namespace raco::style;
+
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
 	if (-1 != index) {

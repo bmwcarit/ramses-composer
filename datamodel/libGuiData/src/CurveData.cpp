@@ -46,6 +46,38 @@ std::any Point::getRightTagent() {
     return rightTagent_;
 }
 
+void Point::setLeftData(const std::any &value) {
+    leftData_ = value;
+}
+
+std::any Point::getLeftData() {
+    return leftData_;
+}
+
+void Point::setLeftKeyFrame(const int keyFrame) {
+    leftKeyFrame_ = keyFrame;
+}
+
+int Point::getLeftKeyFrame() {
+    return leftKeyFrame_;
+}
+
+void Point::setRightData(const std::any &value) {
+    rightData_ = value;
+}
+
+std::any Point::getRightData() {
+    return rightData_;
+}
+
+void Point::setRightKeyFrame(const int keyFrame) {
+    rightKeyFrame_ = keyFrame;
+}
+
+int Point::getRightKeyFrame() {
+    return rightKeyFrame_;
+}
+
 Curve::Curve() {
 
 }
@@ -106,12 +138,48 @@ bool Curve::insertPoint(Point *point) {
     return true;
 }
 
+bool Curve::insertSamePoint(Point *point) {
+    if (point == nullptr) {
+        return false;
+    }
+
+    int pointKeyFrame = point->getKeyFrame();
+    if (!pointList_.empty()) {
+        auto it = pointList_.begin();
+        while (it != pointList_.end()) {
+            if ((*it)->getKeyFrame() == pointKeyFrame) {
+                pointList_.insert(it, point);
+                return true;
+            }
+            it++;
+        }
+    }
+    return false;
+}
+
 bool Curve::delPoint(int keyFrame) {
     if (!pointList_.empty()) {
         auto it = pointList_.begin();
         while (it != pointList_.end()) {
             if ((*it)->getKeyFrame() == keyFrame) {
-                it = pointList_.erase(it);
+                pointList_.erase(it);
+                return true;
+            }
+            it++;
+        }
+    }
+    return false;
+}
+
+bool Curve::delSamePoint(int keyFrame) {
+    if (!pointList_.empty()) {
+        auto it = pointList_.begin();
+        while (it != pointList_.end()) {
+            if ((*it)->getKeyFrame() == keyFrame) {
+                it++;
+                if (it != pointList_.end()) {
+                    pointList_.erase(it);
+                }
                 return true;
             }
             it++;
@@ -134,6 +202,13 @@ Point *Curve::getPoint(int keyFrame) {
         it++;
     }
     return point;
+}
+
+bool Curve::sortPoint() {
+    pointList_.sort([](Point* a, Point* b)->bool {
+                return a->getKeyFrame() < b->getKeyFrame();
+            });
+    return true;
 }
 
 bool Curve::getDataValue(int curFrame, double &value) {
@@ -192,8 +267,8 @@ bool Curve::getStepValue(int curFrame, double &value) {
             }
             if (any.type() == typeid(double)) {
                 value = std::any_cast<double>(any);
+                return true;
             }
-            return true;
         }
         if (pointIt == pointList_.end()) {
             auto pointEnd = pointIt;

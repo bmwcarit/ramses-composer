@@ -11,8 +11,11 @@
 
 #include <array>
 #include <vector>
+#include <string>
 
 namespace raco::utils::math {
+
+std::array<double, 3> eulerAngle(double lastX, double lastY, double lastZ, double curX, double curY, double curZ);
 
 std::array<double, 3> quaternionToXYZDegrees(double qX, double qY, double qZ, double qW);
 

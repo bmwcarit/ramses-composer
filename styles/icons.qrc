@@ -49,5 +49,7 @@
         <file alias="applicationLogo">_Default/icons/ramses-composer-logo.png</file>
         <file alias="yUp">axes_y_up.png</file>
         <file alias="zUp">axes_z_up.png</file>
+        <file alias="visibilityOff">_Default/icons/visibility-off.png</file>
+        <file alias="visibilityOn">_Default/icons/visibilityon.png</file>
     </qresource>
 </RCC>

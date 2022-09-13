@@ -60,6 +60,8 @@ public:
     const QIcon animationStart{":typeAnimationStartIcon"};
     const QIcon animationStop{":typeAnimationStopIcon"};
     const QIcon appLogo{":applicationLogo"};
+    const QIcon visibilityOff{":visibilityOff"};
+    const QIcon visibilityOn{":visibilityOn"};
 
 	static const Icons& instance();
 

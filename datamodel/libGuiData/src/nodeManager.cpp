@@ -93,7 +93,7 @@ void NodeDataManager::preOrderReverse(std::function<void(NodeData*)> fun) {
     if(!root_.childMapRef().size())
         return ;
     std::cout << " preOrderReverse: " ;
-	preOrderReverse(&root_,fun);
+    preOrderReverse(&root_,fun);
     if(activeNode_)
         std::cout << "   ->" << activeNode_->objectID();
     std::cout << std::endl ;

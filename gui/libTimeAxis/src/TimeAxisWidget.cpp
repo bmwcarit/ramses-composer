@@ -113,20 +113,19 @@ void DragPushButton::paintEvent(QPaintEvent *event) {
     QWidget::paintEvent(event);
 }
 
-TimeAxisWidget::TimeAxisWidget(QWidget *parent, raco::core::CommandInterface* commandInterface) :
+TimeAxisWidget::TimeAxisWidget(QWidget *parent, raco::core::CommandInterface* commandInterface, KeyFrameManager *keyFrameManager) :
     QWidget(parent),
-    intervalLength_(INTERVAL_LENGTH_DEFAULT) {
-
-    keyFrameMgr_ = new KeyFrameManager();
-
+    intervalLength_(INTERVAL_LENGTH_DEFAULT),
+    keyFrameMgr_(keyFrameManager) {
     button_ = new DragPushButton(parent);
     button_->resize(DEFAULT_BUTTON_WIDTH, this->height());
     connect(button_, &DragPushButton::buttonMove, this, &TimeAxisWidget::updateSlider);
 
-    viewportOffset_.setX(moveNum_ * intervalLength_);
+    viewportOffset_.setX(moveNumX_ * intervalLength_);
 
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
+    setFocusPolicy(Qt::StrongFocus);
 }
 
 void TimeAxisWidget::refreshKeyFrameView() {
@@ -157,11 +156,13 @@ void TimeAxisWidget::paintEvent(QPaintEvent *event) {
     painter.fillRect(QRect(QPoint(0, 0), QPoint(width, *numHeight)), QColor(43, 43, 43, 255));
     QFont font("宋体", 8, QFont::Bold, false);
     painter.setFont(font);
-    painter.setPen(QColor(144, 144, 144, 255));
-    //painter.translate(QPoint(20, 0));
+    painter.setPen(QColor(188, 188, 188, 255));
 
-    for(int count = 0; count < num; count++) {
-        int curNumber = (count+curX/intervalLength_)*numTextInterval_;
+    double offsetNum =(moveNumX_ - (int)moveNumX_);
+    offsetNum = (offsetNum < 0) ? (-1 - offsetNum) : (1 - offsetNum);
+
+    for(int count = 0; count <= num; count++) {
+        int curNumber = qRound((count+moveNumX_+offsetNum)*numTextInterval_);
         int leftMovePix = 0;
         if (curNumber > 0) {
             leftMovePix = 5;
@@ -170,7 +171,7 @@ void TimeAxisWidget::paintEvent(QPaintEvent *event) {
         } else if (curNumber > 1000) {
             leftMovePix = 13;
         }
-        painter.drawText(count*intervalLength_ - leftMovePix, *numHeight - 5, QString::number(curNumber));
+        painter.drawText((count+offsetNum)*intervalLength_ - leftMovePix, *numHeight - 5, QString::number(curNumber));
     }
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextInterval_;
@@ -189,8 +190,8 @@ void TimeAxisWidget::paintEvent(QPaintEvent *event) {
     painter.setPen(pen);
 
     //绘制竖线
-    for (int count = 0; count < num; count++) {
-        painter.drawLine(count*intervalLength_, 20, count*intervalLength_, height);
+    for (int count = 0; count <= num; count++) {
+        painter.drawLine((count+offsetNum)*intervalLength_, 20, (count+offsetNum)*intervalLength_, height);
     }
 
     drawKeyFrame(painter);
@@ -243,6 +244,19 @@ void TimeAxisWidget::mousePressEvent(QMouseEvent *event) {
     }
 }
 
+void TimeAxisWidget::keyPressEvent(QKeyEvent *event) {
+    if(event->modifiers() == Qt::ControlModifier) {
+        if(event->key() == Qt::Key_Tab) {
+            Q_EMIT switchCurveType();
+        }
+    }
+    QWidget::keyPressEvent(event);
+}
+
+void TimeAxisWidget::keyReleaseEvent(QKeyEvent *event) {
+
+}
+
 void TimeAxisWidget::setViewportRect(const QSize areaSize,
                                      const QPoint viewportOffset,
                                      const double scaleValue,
@@ -251,10 +265,11 @@ void TimeAxisWidget::setViewportRect(const QSize areaSize,
 
     scaleValue_ = scaleValue;
     mouseAction_ = mouseAction;
+
     if (mouseAction_ == MOUSE_LEFT_EXTEND || mouseAction_ == MOUSE_LEFT_MOVE) {
-        moveNum_ -= 1;
+        offsetX_ -= 1;
     } else if (mouseAction_== MOUSE_RIGHT_MOVE || mouseAction_ == MOUSE_RIGHT_EXTEND) {
-        moveNum_ += 1;
+        offsetX_ += 1;
     }
 
     //1.计算两条线间隔长度
@@ -286,7 +301,11 @@ void TimeAxisWidget::setViewportRect(const QSize areaSize,
         }
     }
 
-    viewportOffset_.setX(moveNum_ * intervalLength_);
+    double frameLength = (finishFrame_ - startFrame_) * ((double)intervalLength_/(double)numTextInterval_);
+    double width = this->width();
+    moveNumX_ = ((frameLength - width) / 2) / (double)intervalLength_ + offsetX_;
+
+    viewportOffset_.setX(moveNumX_ * intervalLength_);
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
     update();
@@ -345,7 +364,7 @@ void TimeAxisWidget::setStartFrame() {
        startFrame_ = tempStart;
     }
     animationDataManager::GetInstance().getActiveAnimationData().SetStartTime(startFrame_);
-    // zz
+    //
     Q_EMIT signalProxy::GetInstance().sigResetAnimationProperty_From_AnimationLogic();
 
     update();
