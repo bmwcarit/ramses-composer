@@ -525,6 +525,10 @@ public:
         return textures_;
     }
 
+    void clearTexture() {
+        textures_.clear();
+    }
+
     void addUniform(Uniform uniform) {
         uniforms_.push_back(uniform);
     }
@@ -565,6 +569,46 @@ private:
     std::vector<TextureData> textures_;
     std::vector<Uniform> uniforms_;
 	std::vector<Attribute> usedAttributes_;
+};
+
+class NodeMaterial {
+public:
+	NodeMaterial();
+
+	void setObjectName(std::string name) {
+		name_ = name;
+	}
+	std::string getObjectName() {
+		return name_;
+	}
+
+    bool isPrivate() {
+		return isPrivate_;
+    }
+
+    void setIsPrivate(bool isPrivate) {
+		isPrivate_ = isPrivate;
+    }
+
+	void setRenderMode(RenderMode renderMode) {
+		renderMode_ = renderMode;
+	}
+	RenderMode getRenderMode() {
+		return renderMode_;
+	}
+
+	void addUniform(Uniform uniform) {
+		uniforms_.push_back(uniform);
+	}
+	std::vector<Uniform> getUniforms() {
+		return uniforms_;
+	}
+
+private:
+	std::string name_;
+	bool isPrivate_;
+	RenderMode renderMode_;
+	std::vector<Uniform> uniforms_;
 };
 }
 

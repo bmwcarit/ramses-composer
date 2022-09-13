@@ -18,6 +18,10 @@
 #define GLTF_OBJECT_NAME            std::string("objectName")
 #define GLTF_ANIMATION_CHANNELS     std::string("animationChannels")
 #define GLTF_ANIMATION_OUTPUTS      std::string("animationOutputs")
+#define ROTATION_X          0
+#define ROTATION_Y          1
+#define ROTATION_Z          2
+#define ROTATION_W          3
 
 class GltfAnimationManager : public QObject {
     Q_OBJECT
@@ -25,7 +29,7 @@ public:
     explicit GltfAnimationManager(raco::core::CommandInterface* commandInterface, QObject *parent = nullptr);
     void commandInterface(raco::core::CommandInterface* commandInterface);
 public Q_SLOTS:
-    void slotUpdateGltfAnimation(const raco::core::ValueHandle &valueHandle);
+    void slotUpdateGltfAnimation(const std::set<raco::core::ValueHandle> &handles, QString name);
 private:
     void updateGltfAnimation(std::string animation);
     void updateOneGltfCurve(raco::guiData::NodeData *nodeData, std::vector<float> keyFrames, std::vector<std::vector<float>> propertyData, raco::core::MeshAnimationInterpolation interpolation, std::string property, std::string node);

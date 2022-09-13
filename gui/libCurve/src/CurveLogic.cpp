@@ -19,7 +19,9 @@ bool CurveLogic::insertCurve(QString property, QString curve, QVariant value) {
             point->setDataValue(value.toDouble());
         }
         point->setKeyFrame(curFrame_);
-        return curveData->insertPoint(point);
+        curveData->insertPoint(point);
+        Q_EMIT signalProxy::GetInstance().sigInsertKeyFrame_From_NodeUI(curve);
+        return true;
     } else {
         Curve* curveData = new Curve();
         curveData->setCurveName(curve.toStdString());
@@ -30,7 +32,10 @@ bool CurveLogic::insertCurve(QString property, QString curve, QVariant value) {
         }
         point->setKeyFrame(curFrame_);
         curveData->insertPoint(point);
-        return CurveManager::GetInstance().addCurve(curveData);
+        CurveManager::GetInstance().addCurve(curveData);
+        Q_EMIT signalProxy::GetInstance().sigInsertCurve_To_VisualCurve(property, curve, value);
+//        Q_EMIT signalProxy::GetInstance().sigInsertKeyFrame_From_NodeUI(curve);
+        return true;
     }
     return false;
 }

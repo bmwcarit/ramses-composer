@@ -5,6 +5,7 @@
 #include "time_axis/TimeAxisCommon.h"
 #include <QObject>
 #include <QDebug>
+#include <set>
 namespace raco::signal {
 class signalProxy : public QObject
 {
@@ -40,9 +41,11 @@ Q_SIGNALS:
     //
     void sigInsertCurve_From_NodeUI(QString property, QString curve, QVariant value);
     //
+    void sigInsertCurve_To_VisualCurve(QString property, QString curve, QVariant value);
+    //
     void sigInsertCurveBinding_From_NodeUI(QString property, QString curve);
     //
-    void sigInsertKeyFrame_From_NodeUI();
+    void sigInsertKeyFrame_From_NodeUI(QString curve);
     //
     void sigUpdateAnimation_From_AnimationUI();
     //
@@ -62,13 +65,13 @@ Q_SIGNALS:
     //
     void sigValueHandleChanged_From_NodeUI(const raco::core::ValueHandle &handle);
     //
-    void sigUpdateGltfAnimation(const raco::core::ValueHandle &handle);
+    void sigUpdateGltfAnimation(const std::set<raco::core::ValueHandle> &handles, QString file);
     //
-    void sigDeleteAniamtionNode(const std::string id);
+    void sigDeleteAniamtionNode(const std::set<std::string> ids);
     //
-//    void sigUpdateWorkerPoint(QMap<std::string, QList<raco::time_axis::PointF>> keyFrameMap, QMap<std::string, QList<QPair<QPointF, QPointF>>> workerMap);
+    void sigSwitchVisualCurve(std::string sampleProp, std::string property, std::string curve);
     //
-    void sigVisualCurveViewResize(int curX, int curY, double frameWidth, double valueWidth);
+    void sigUpdatePointTagent();
 
 signals:
 

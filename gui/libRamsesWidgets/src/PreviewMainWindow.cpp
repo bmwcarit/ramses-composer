@@ -222,11 +222,11 @@ void PreviewMainWindow::sceneScaleUpdate(bool zup, float scaleValue, bool scaleU
             if (object->getType() == ramses::ERamsesObjectType_PerspectiveCamera) {
                 ramses::PerspectiveCamera* camera = static_cast<ramses::PerspectiveCamera*>(object);
 				camera->getTranslation(x, y, z);
-				if (zup) {
-					camera->setTranslation(x * cameraScale, y * cameraScale, z);
-				} else {
-					camera->setTranslation(x * cameraScale, y, z * cameraScale);
-				}
+                if (zup) {
+                    camera->setTranslation(x * cameraScale, y * cameraScale, z);
+                } else {
+                    camera->setTranslation(x * cameraScale, y, z * cameraScale);
+                }
 			}
 		}
 	}
@@ -284,8 +284,8 @@ void PreviewMainWindow::setAxes(const bool& z_up) {
 	setAxesIcon(z_up);
 
 	for (const auto& object : project_->instances()) {
-		if (&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription ||
-			&object->getTypeDescription() == &user_types::OrthographicCamera::typeDescription ||
+        if (/*&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription ||*/
+            &object->getTypeDescription() == &user_types::OrthographicCamera::typeDescription ||
 			&object->getTypeDescription() == &user_types::Node::typeDescription ||
 			&object->getTypeDescription() == &user_types::MeshNode::typeDescription) {
 			if (object->getParent() == nullptr) {

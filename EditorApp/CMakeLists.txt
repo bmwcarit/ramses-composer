@@ -44,8 +44,8 @@ add_dependencies(RaCoEditor RaCoResources RaCoPrepareReleaseFolder)
 target_link_libraries(RaCoEditor
 	raco::LogSystem
 	raco::PropertyBrowser
-	raco::CommonWidgets
-        raco::CommonEditors
+        raco::CommonWidgets
+        # raco::CommonEditors
 	raco::Style
 	raco::Utils
 	raco::Core 
@@ -56,6 +56,7 @@ target_link_libraries(RaCoEditor
         raco::Curve
         raco::signal
         raco::TimeAxis
+#        raco::VisualCurve
         raco::material_logic
         raco::dataConvert
 	Qt5::Widgets

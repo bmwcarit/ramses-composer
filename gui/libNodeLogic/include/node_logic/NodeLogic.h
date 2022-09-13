@@ -44,6 +44,7 @@ public:
 
     void preOrderReverse(NodeData *pNode, const int &keyFrame, const std::string &sampleProperty);
     void setPropertyByCurveBinding(const std::string &objecID, const std::map<std::string, std::string> &map, const int &keyFrame);
+    bool getKeyValue(std::string curve, EInterPolationType type, int keyFrame, double& value);
 
 public Q_SLOTS:
     void slotUpdateActiveAnimation(QString animation);
@@ -57,7 +58,7 @@ private:
     QMutex handleMapMutex_;
 	std::map<std::string, core::ValueHandle> nodeObjectIDHandleReMap_;
 	raco::core::CommandInterface *commandInterface_;
-	QString curAnimation_;
+    QString curAnimation_;
 };
 }
 

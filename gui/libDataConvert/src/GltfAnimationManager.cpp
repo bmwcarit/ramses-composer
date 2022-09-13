@@ -1,11 +1,12 @@
 #include "gltf_Animation/GltfAnimationManager.h"
 #include "utils/MathUtils.h"
 
+static const int rotationSize{4};
 
 double fixRotationValue(double value) {
-    if (value == -180) {
-        value = 180;
-    }
+    double decimal = value - int(value);
+    int integer = ((int)value + 360) % 360;
+    value = integer + decimal;
     return value;
 }
 
@@ -19,51 +20,59 @@ void GltfAnimationManager::commandInterface(raco::core::CommandInterface *comman
     commandInterface_ = commandInterface;
 }
 
-void GltfAnimationManager::slotUpdateGltfAnimation(const raco::core::ValueHandle &valueHandle) {
+void GltfAnimationManager::slotUpdateGltfAnimation(const std::set<raco::core::ValueHandle> &handles, QString fileName) {
     animationChannels_.clear();
     animationNodes_.clear();
-    std::string animation;
-    for (int i{0}; i < valueHandle.size(); ++i) {
-        raco::core::ValueHandle tempHandle = valueHandle[i];
-        if (tempHandle.getPropName().compare(GLTF_OBJECT_NAME) == 0) {
-            animation = tempHandle.asString();
-        }
-        if (tempHandle.getPropName().compare(GLTF_ANIMATION_CHANNELS) == 0) {
-            if (tempHandle.type() == raco::core::PrimitiveType::Table) {
-                for (int j{0}; j < tempHandle.size(); ++j) {
-                    raco::core::ValueHandle aniHandle = tempHandle[j];
-                    // get animation channel data
-                    if (aniHandle.type() == raco::core::PrimitiveType::Ref) {
-                        aniHandle = aniHandle.asRef();
-                        raco::user_types::AnimationChannel *aniChannel = dynamic_cast<raco::user_types::AnimationChannel *>(aniHandle.rootObject().get());
-                        animationChannels_.push_back(aniChannel);
-                    }
-                }
-            }
-        }
-        if (tempHandle.getPropName().compare(GLTF_ANIMATION_OUTPUTS) == 0) {
-            if (tempHandle.type() == raco::core::PrimitiveType::Table) {
-                for (int j{0}; j < tempHandle.size(); ++j) {
-                    raco::core::ValueHandle aniHandle = tempHandle[j];
+	fileName.remove(QRegExp("\\s"));
+	std::string animation = fileName.section(".gltf", 0, 0).toStdString();
+    std::set<std::string> animationIDs;
 
-                    // get link node object ID map by handle; key-path value-object ID
-                    auto linkEnds = raco::core::Queries::getLinksConnectedToProperty(*commandInterface_->project(), aniHandle, true, false);
-                    std::map<std::string, std::string> sortedLinkEnds;
-                    for (const auto& linkEnd : linkEnds) {
-                        auto linkDesc = linkEnd->descriptor();
-                        sortedLinkEnds[linkDesc.end.getFullPropertyPath()] = linkDesc.end.object()->objectID();
+    for (const auto &valueHandle : handles) {
+        int outPutIndex{0};
+        for (int i{static_cast<int>(valueHandle.size()-1)}; i >= 0; i--) {
+            raco::core::ValueHandle tempHandle = valueHandle[i];
+            if (tempHandle.getPropName().compare(GLTF_ANIMATION_OUTPUTS) == 0) {
+                if (tempHandle.type() == raco::core::PrimitiveType::Table) {
+                    for (int j{0}; j < tempHandle.size(); ++j) {
+                        raco::core::ValueHandle aniHandle = tempHandle[j];
+
+                        // get link node object ID map by handle; key-path value-object ID
+                        auto linkEnds = raco::core::Queries::getLinksConnectedToProperty(*commandInterface_->project(), aniHandle, true, false);
+                        std::map<std::string, std::string> sortedLinkEnds;
+                        for (const auto& linkEnd : linkEnds) {
+                            auto linkDesc = linkEnd->descriptor();
+                            sortedLinkEnds[linkDesc.end.getFullPropertyPath()] = linkDesc.end.object()->objectID();
+                        }
+                        if (sortedLinkEnds.size() > 0) {
+                            auto it = sortedLinkEnds.begin();
+                            animationNodes_.push_back(it->first);
+                            outPutIndex++;
+                        }
                     }
-                    if (sortedLinkEnds.size() > 0) {
-                        auto it = sortedLinkEnds.begin();
-                        animationNodes_.push_back(it->first);
+                }
+            }
+            if (tempHandle.getPropName().compare(GLTF_ANIMATION_CHANNELS) == 0) {
+                if (outPutIndex != 0) {
+                    if (tempHandle.type() == raco::core::PrimitiveType::Table) {
+                        for (int j{0}; j < tempHandle.size(); ++j) {
+                            raco::core::ValueHandle aniHandle = tempHandle[j];
+                            // get animation channel data
+                            if (aniHandle.type() == raco::core::PrimitiveType::Ref) {
+                                aniHandle = aniHandle.asRef();
+                                raco::user_types::AnimationChannel *aniChannel = dynamic_cast<raco::user_types::AnimationChannel *>(aniHandle.rootObject().get());
+                                animationChannels_.push_back(aniChannel);
+                            }
+                        }
                     }
                 }
             }
         }
+        std::string animationID = valueHandle[0].asString();
+        animationIDs.emplace(animationID);
     }
-    std::string animationID = valueHandle[0].asString();
+
     updateGltfAnimation(animation);
-    Q_EMIT raco::signal::signalProxy::GetInstance().sigDeleteAniamtionNode(animationID);
+    Q_EMIT raco::signal::signalProxy::GetInstance().sigDeleteAniamtionNode(animationIDs);
 }
 
 void GltfAnimationManager::updateGltfAnimation(std::string animation) {
@@ -81,7 +90,6 @@ void GltfAnimationManager::updateGltfAnimation(std::string animation) {
         //
         for (int i{0}; i < animationChannels_.size(); ++i) {
             raco::user_types::AnimationChannel *aniChannel = animationChannels_.at(i);
-            int samplerIndex = aniChannel->samplerIndex_.asInt();
             std::string path = animationNodes_.at(i);
             QString qstrNode = QString::fromStdString(path).section("/", -1);
             std::string node = qstrNode.split(".").at(0).toStdString();
@@ -131,47 +139,56 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
     std::string curveY = curAnimation_.toStdString() + SYMBOL_UNDERLINE + node + SYMBOL_POINT + propY;
     std::string curveZ = curAnimation_.toStdString() + SYMBOL_UNDERLINE + node + SYMBOL_POINT + propZ;
 
-    float lastX{0};
-    float lastY{0};
-    float lastZ{0};
+    float lastX{0},lastY{0},lastZ{0};
+    float lastEulerX{0},lastEulerY{0},lastEulerZ{0};
+    int invalidIndexX{0},invalidIndexY{0},invalidIndexZ{0};
 
-    int invalidIndexX{0};
-    int invalidIndexY{0};
-    int invalidIndexZ{0};
     for (int i{0}; i < keyFrames.size(); ++i) {
         int keyFrame = qRound(keyFrames.at(i) * 24);
         std::vector<float> data = propertyData.at(i);
+        bool isValid{false};
+        if (i + 1 < keyFrames.size()) {
+            std::vector<float> nextData = propertyData.at(i + 1);
+            if (nextData != data) {
+                isValid = true;
+            }
+        }
 
         // calculate rotation property data
-        if (data.size() == 4) {
-            auto rotation = raco::utils::math::quaternionToXYZDegrees(data[0], data[1], data[2], data[3]);
+        if (data.size() == rotationSize) {
+            auto rotation = raco::utils::math::quaternionToXYZDegrees(data[ROTATION_X], data[ROTATION_Y], data[ROTATION_Z], data[ROTATION_W]);
+            auto eulerRotation = raco::utils::math::eulerAngle(lastEulerX, lastEulerY, lastEulerZ, rotation[ROTATION_X], rotation[ROTATION_Y], rotation[ROTATION_Z]);
+
+            lastEulerX = eulerRotation[ROTATION_X];
+            lastEulerY = eulerRotation[ROTATION_Y];
+            lastEulerZ = eulerRotation[ROTATION_Z];
 
             insertBindingItem(propX, curveX);
             insertBindingItem(propY, curveY);
             insertBindingItem(propZ, curveZ);
-            insertCurve(keyFrame, fixRotationValue(rotation[0]), curveX, interpolation);
-            insertCurve(keyFrame, fixRotationValue(rotation[1]), curveY, interpolation);
-            insertCurve(keyFrame, fixRotationValue(rotation[2]), curveZ, interpolation);
+            insertCurve(keyFrame, eulerRotation[ROTATION_X], curveX, interpolation);
+            insertCurve(keyFrame, eulerRotation[ROTATION_Y], curveY, interpolation);
+            insertCurve(keyFrame, eulerRotation[ROTATION_Z], curveZ, interpolation);
             continue;
         }
 
         // insert translation/scale property data
-        if (data[0] != lastX || i == 0) {
+        if ((data[ROTATION_X] != lastX || isValid) || i == 0) {
             insertBindingItem(propX, curveX);
-            insertCurve(keyFrame, data[0], curveX, interpolation);
-            lastX = data[0];
+            insertCurve(keyFrame, data[ROTATION_X], curveX, interpolation);
+            lastX = data[ROTATION_X];
             invalidIndexX++;
         }
-        if (data[1] != lastY || i == 0) {
+        if ((data[ROTATION_Y] != lastY || isValid) || i == 0) {
             insertBindingItem(propY, curveY);
-            insertCurve(keyFrame, data[1], curveY, interpolation);
-            lastY = data[1];
+            insertCurve(keyFrame, data[ROTATION_Y], curveY, interpolation);
+            lastY = data[ROTATION_Y];
             invalidIndexY++;
         }
-        if (data[2] != lastZ || i == 0) {
+        if ((data[ROTATION_Z] != lastZ || isValid) || i == 0) {
             insertBindingItem(propZ, curveZ);
-            insertCurve(keyFrame, data[2], curveZ, interpolation);
-            lastZ = data[2];
+            insertCurve(keyFrame, data[ROTATION_Z], curveZ, interpolation);
+            lastZ = data[ROTATION_Z];
             invalidIndexZ++;
         }
     }

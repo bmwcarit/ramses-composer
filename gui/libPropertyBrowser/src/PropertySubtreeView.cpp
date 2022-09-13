@@ -100,7 +100,18 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		labelLayout->addWidget(linkControl, 1);
 
 		if (item->displayName() == "uniforms") {
-			setUniformControls(item, labelLayout);
+			//setUniformControls(item, labelLayout);
+			std::vector<Uniform> uniforms = Item2Uniform(item);
+			raco::guiData::MaterialManager::GetInstance().curUniformClear();
+			NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
+			pNode->uniformClear();
+			for (auto& un : uniforms) {
+				raco::guiData::MaterialManager::GetInstance().addCurUniform(un);
+				pNode->insertUniformData(un);
+			}
+			// Get the uniform of the PNode
+			showedUniforChildren_.clear();
+			uniformSubtreeViewList_.clear();
 		}
 
 		auto isLuaScriptProperty = !item->valueHandle().isObject() && &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
@@ -515,25 +526,25 @@ void PropertySubtreeView::updateChildrenContainer() {
 			childrenContainer_ = new PropertySubtreeChildrenContainer{item_, this};
 			// match is in nodeData by uniform
 			for (const auto& child : item_->children()) {
-				if (child->parentItem()->parentItem() && child->parentItem()->displayName() == "uniforms") {
-					for (auto& it : showedUniforChildren_) {
-						if (child->displayName() == it->displayName()) {
-							auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
-							childrenContainer_->addWidget(subtree);
-							break;
-						}
-					}
-				} else {
+				//if (child->parentItem()->parentItem() && child->parentItem()->displayName() == "uniforms") {
+				//	for (auto& it : showedUniforChildren_) {
+				//		if (child->displayName() == it->displayName()) {
+				//			auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
+				//			childrenContainer_->addWidget(subtree);
+				//			break;
+				//		}
+				//	}
+				//} else {
 					auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
 					childrenContainer_->addWidget(subtree);
-				}
+				//}
 			}
 
 			QObject::connect(item_, &PropertyBrowserItem::childrenChanged, childrenContainer_, [this](const QList<PropertyBrowserItem*> items) {
 				Q_EMIT model_->beforeStructuralChange(this);
-				if (item_->displayName() == "uniforms" && materialChanged()) {
-					return;
-				}
+				//if (item_->displayName() == "uniforms" && materialChanged()) {
+				//	return;
+				//}
 				for (auto& childWidget : childrenContainer_->findChildren<PropertySubtreeView*>(QString{}, Qt::FindDirectChildrenOnly)) {
 					Q_EMIT model_->beforeRemoveWidget(childWidget);
 					childrenContainer_->removeWidget(childWidget);
@@ -541,10 +552,10 @@ void PropertySubtreeView::updateChildrenContainer() {
 				}
 				for (auto& child : items) {
 				// match is in nodeData uniform children
-					if (child->parentItem()->displayName() != "uniforms") {
+					//if (child->parentItem()->displayName() != "uniforms") {
 						auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
 						childrenContainer_->addWidget(subtree);
-					} else {
+					/*} else {
 						for (auto& it : showedUniforChildren_) {
 							if (child->displayName() == it->displayName()) {
 								auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
@@ -552,7 +563,7 @@ void PropertySubtreeView::updateChildrenContainer() {
 								break;
 							}
 						}
-					}
+					}*/
 				}
 				recalculateTabOrder();
 			});

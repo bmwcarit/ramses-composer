@@ -77,7 +77,8 @@ public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
 	void slotCreateCurveAndBinding(QString property, QString curve, QVariant value);
 	void slotCreateCurve(QString property, QString curve, QVariant value);
-    void setResourceHandles(const std::map<std::string, raco::core::ValueHandle> &map);
+    void setMaterialResHandles(const std::map<std::string, raco::core::ValueHandle> &map);
+	void setTextureResHandles(const std::map<std::string, raco::core::ValueHandle>& mMap);
     void updateNodeHandles(const QString &title, const std::map<std::string, raco::core::ValueHandle> &map);
 protected:
 	void timerEvent(QTimerEvent* event) override;
@@ -102,7 +103,8 @@ protected Q_SLOTS:
 	void updateActiveProjectConnection();
 
 Q_SIGNALS:
-    void getResourceHandles();
+    void getMaterialResHandles();
+	void getTextureResHandles();
     void updateMeshData();
 	void viewportChanged(const QSize& sceneSize);
 

@@ -11,6 +11,14 @@
 namespace raco::dataConvert {
 using namespace raco::style;
 
+std::string delUniformNamePrefix(std::string nodeName) {
+	int index = nodeName.rfind("uniforms.");
+	if (-1 != index) {
+		nodeName = nodeName.substr(9, nodeName.length());
+	}
+	return nodeName;
+}
+
 std::string OutputPtx::delNodeNameSuffix(std::string nodeName) {
 	int index = nodeName.rfind(".objectID");
 	if (-1 != index)
@@ -170,10 +178,19 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 
 			// TODO: uniforms for mesh
 			for (auto& uniform : node->getUniforms()) {
-				HmiScenegraph::TUniform tUniform;
-				uniformTypeValue(uniform, tUniform);
-				HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
-				*itMesh = tUniform;
+				auto animations = node->NodeExtendRef().curveBindingRef().bindingMap();
+				for (auto& animation : animations) {
+					for (auto& property : animation.second) {
+						std::string properName = delUniformNamePrefix(property.first);
+						if (properName == uniform.getName()) {
+							HmiScenegraph::TUniform tUniform;
+							uniformTypeValue(uniform, tUniform);
+							HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
+							*itMesh = tUniform;
+							break;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -189,6 +206,28 @@ void OutputPtx::setPtxTCamera(NodeData* childNode, HmiScenegraph::TNode& hmiNode
 	camera->set_farplane(100.0); 
 	camera->set_projectiontype(HmiScenegraph::TECameraProjectionType::TECameraProjectionType_FOV);
 	hmiNode.set_allocated_camera(camera);
+}
+
+void OutputPtx::setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& data) {
+	data.setObjectName(childNode->getName() + "_" + data.getObjectName());
+	TextureData texData;
+	for (auto& textureData : data.getTextures()) {
+		std::string textureProperty = textureData.getUniformName();
+		std::vector<Uniform> Uniforms = childNode->getUniforms();
+		for (auto& un : Uniforms) {
+			if (un.getName() == textureProperty && un.getType() == UniformType::String && un.getValue().type() == typeid(std::string)) {
+				std::string textureName = std::any_cast<std::string>(un.getValue());
+				if (textureName != textureData.getName()) {
+					raco::guiData::MaterialManager::GetInstance().getTexture(textureName, texData);
+					texData.setUniformName(textureProperty);
+
+					data.clearTexture();
+					data.addTexture(texData);
+				}
+				return;
+			}
+		}
+	}
 }
 
 void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
@@ -233,10 +272,15 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     hmiNode.set_renderorder(0);
 	hmiNode.set_childsortorderrank(0);
 
+	MaterialData materialData;
+	if (raco::guiData::MaterialManager::GetInstance().getMaterialData(childNode->objectID(), materialData)) {
 
-	if (nodeName == "PerspectiveCamera") {
-		return;
+		setMaterialTextureByNodeUniforms(childNode, materialData);
+
+		raco::guiData::MaterialManager::GetInstance().deleteMateialData(childNode->objectID());
+		raco::guiData::MaterialManager::GetInstance().addMaterialData(childNode->objectID(), materialData);
 	}
+
     // mesh
 	MeshData meshData;
 	if (raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData)) {
@@ -706,53 +750,95 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 	std::map<std::string, MaterialData> materialMap = raco::guiData::MaterialManager::GetInstance().getMaterialDataMap();
 	std::set<std::string> setNameArr;
 	for (auto& material : materialMap) {
-		// whether it has been stored?
-		if (isStored(material.second.getObjectName(), setNameArr)) {
-			continue;
-		}
 		MaterialData data = material.second;
-		HmiScenegraph::TMaterial tMaterial;
-		// name
-		tMaterial.set_name(data.getObjectName());
+		NodeMaterial nodeMaterial;
+		if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(material.first, nodeMaterial) && nodeMaterial.isPrivate()) {
+			HmiScenegraph::TMaterial tMaterial;
+			// name
+			tMaterial.set_name(data.getObjectName());
 
-		// RenderMode
-		HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
-		RenderMode renderMode = data.getRenderMode();
-		// setRenderMode
-		setMaterialRenderMode(renderMode, rRenderMode);
-		tMaterial.set_allocated_rendermode(rRenderMode);
+			// RenderMode
+			HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
+			RenderMode renderMode = nodeMaterial.getRenderMode();
+			// setRenderMode
+			setMaterialRenderMode(renderMode, rRenderMode);
+			tMaterial.set_allocated_rendermode(rRenderMode);
 
-		// shaderReference
-		std::string shaderPtxName = getShaderPtxNameByShaderName(data.getShaderRef());
-		tMaterial.set_shaderreference(shaderPtxName);
+			// shaderReference
+			std::string shaderPtxName = getShaderPtxNameByShaderName(data.getShaderRef());
+			tMaterial.set_shaderreference(shaderPtxName);
 
-		for (auto& textureData : data.getTextures()) {
-			HmiScenegraph::TTexture tTextture;
-			if (textureData.getName() == "empty") {
-				messageBoxError(data.getObjectName());
+			for (auto& textureData : data.getTextures()) {
+				HmiScenegraph::TTexture tTextture;
+				if (textureData.getName() == "empty") {
+					messageBoxError(data.getObjectName());
+				}
+				tTextture.set_name(textureData.getName());
+				tTextture.set_bitmapreference(textureData.getBitmapRef());
+				tTextture.set_minfilter(matchFilter(textureData.getMinFilter()));
+				tTextture.set_magfilter(matchFilter(textureData.getMagFilter()));
+				tTextture.set_anisotropicsamples(textureData.getAnisotropicSamples());
+				tTextture.set_wrapmodeu(matchWrapMode(textureData.getWrapModeU()));
+				tTextture.set_wrapmodev(matchWrapMode(textureData.getWrapModeV()));
+				tTextture.set_uniformname(textureData.getUniformName());
+				HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
+				*textureIt = tTextture;
 			}
-			tTextture.set_name(textureData.getName());
-			tTextture.set_bitmapreference(textureData.getBitmapRef());
-			tTextture.set_minfilter(matchFilter(textureData.getMinFilter()));
-			tTextture.set_magfilter(matchFilter(textureData.getMagFilter()));
-			tTextture.set_anisotropicsamples(textureData.getAnisotropicSamples());
-			tTextture.set_wrapmodeu(matchWrapMode(textureData.getWrapModeU()));
-			tTextture.set_wrapmodev(matchWrapMode(textureData.getWrapModeV()));
-			tTextture.set_uniformname(textureData.getUniformName());
-			HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
-			*textureIt = tTextture;
-		}
 
-		// uniforms
-		for (auto& uniform : data.getUniforms()) {
-			HmiScenegraph::TUniform tUniform;
-			uniformTypeValue(uniform, tUniform);
-			HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
-			*tUniformIt = tUniform;
-		}
+			// uniforms
+			for (auto& uniform : nodeMaterial.getUniforms()) {
+				HmiScenegraph::TUniform tUniform;
+				uniformTypeValue(uniform, tUniform);
+				HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
+				*tUniformIt = tUniform;
+			}
 
-		HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
-		*materialIt = tMaterial;
+			HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
+			*materialIt = tMaterial;
+		} else {
+			HmiScenegraph::TMaterial tMaterial;
+			// name
+			tMaterial.set_name(data.getObjectName());
+
+			// RenderMode
+			HmiScenegraph::TRenderMode* rRenderMode = new HmiScenegraph::TRenderMode();
+			RenderMode renderMode = data.getRenderMode();
+			// setRenderMode
+			setMaterialRenderMode(renderMode, rRenderMode);
+			tMaterial.set_allocated_rendermode(rRenderMode);
+
+			// shaderReference
+			std::string shaderPtxName = getShaderPtxNameByShaderName(data.getShaderRef());
+			tMaterial.set_shaderreference(shaderPtxName);
+
+			for (auto& textureData : data.getTextures()) {
+				HmiScenegraph::TTexture tTextture;
+				if (textureData.getName() == "empty") {
+					messageBoxError(data.getObjectName());
+				}
+				tTextture.set_name(textureData.getName());
+				tTextture.set_bitmapreference(textureData.getBitmapRef());
+				tTextture.set_minfilter(matchFilter(textureData.getMinFilter()));
+				tTextture.set_magfilter(matchFilter(textureData.getMagFilter()));
+				tTextture.set_anisotropicsamples(textureData.getAnisotropicSamples());
+				tTextture.set_wrapmodeu(matchWrapMode(textureData.getWrapModeU()));
+				tTextture.set_wrapmodev(matchWrapMode(textureData.getWrapModeV()));
+				tTextture.set_uniformname(textureData.getUniformName());
+				HmiScenegraph::TTexture* textureIt = tMaterial.add_texture();
+				*textureIt = tTextture;
+			}
+
+			// uniforms
+			for (auto& uniform : data.getUniforms()) {
+				HmiScenegraph::TUniform tUniform;
+				uniformTypeValue(uniform, tUniform);
+				HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
+				*tUniformIt = tUniform;
+			}
+
+			HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
+			*materialIt = tMaterial;
+		}
 	}
 }
 
@@ -839,6 +925,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 		return false;
 	}
 	file.resize(0);
+	nodeWithMaterial_.clear();
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -913,7 +1000,7 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		TDataProvider* provider2 = new TDataProvider;
 		TVariant* variant1 = new TVariant;
 		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(float(animation.second.GetUpdateInterval()));
+		numeric->set_float_(1000.0 / float(animation.second.GetUpdateInterval()));
 		variant1->set_allocated_numeric(numeric);
 		provider2->set_allocated_variant(variant1);
 
@@ -1391,7 +1478,7 @@ void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWid
 	TDataBinding* name = new TDataBinding;
 	TDataProvider* namePrivder = new TDataProvider;
 	TVariant* variant = new TVariant;
-	variant->set_asciistring(curveProP.first);
+	variant->set_asciistring(delUniformNamePrefix(curveProP.first));
 	namePrivder->set_allocated_variant(variant);
 	name->set_allocated_provider(namePrivder);
 	uniform->set_allocated_name(name);

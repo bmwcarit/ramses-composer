@@ -19,6 +19,7 @@ add_library(libGuiData
     include/MaterialData/materialManager.h  src/materialManager.cpp
     include/MeshData/MeshDataManager.h src/MeshDataManager.cpp
     include/PropertyData/PropertyType.h
+    include/FolderData/FolderDataManager.h src/FolderDataManager.cpp
 )
 
 target_include_directories(libGuiData PUBLIC include)

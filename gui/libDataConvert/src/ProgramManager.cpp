@@ -630,6 +630,15 @@ void InitCurveJson(QJsonArray& jsonObj) {
             QJsonObject pointJson;
             pointJson.insert(JSON_KEYFRAME, point->getKeyFrame());
             pointJson.insert(JSON_INTERPOLATION_TYPE, int(point->getInterPolationType()));
+            pointJson.insert(JSON_LEFT_KEYFRAME, point->getLeftKeyFrame());
+            if (point->getLeftData().type() == typeid(double)) {
+                pointJson.insert(JSON_LEFT_DATA, std::any_cast<double>(point->getLeftData()));
+            }
+            pointJson.insert(JSON_RIGHT_KEYFRAME, point->getRightKeyFrame());
+            if (point->getRightData().type() == typeid(double)) {
+                pointJson.insert(JSON_RIGHT_DATA, std::any_cast<double>(point->getRightData()));
+            }
+
 			if (raco::guiData::Type_FLOAT == curve->getDataType()) {
 				if (point->getDataValue().type() == typeid(float)) {
                     pointJson.insert(JSON_DATA, std::any_cast<float>(point->getDataValue()));
@@ -1091,6 +1100,10 @@ void readJsonFillCurveData(QJsonArray jsonAry) {
 			point->setLeftTagent(pointObj.value(JSON_LEFT_TANGENT).toDouble());
             point->setRightTagent(pointObj.value(JSON_RIGHT_TANGENT).toDouble());
             point->setKeyFrame(pointObj.value(JSON_KEYFRAME).toInt());
+            point->setLeftKeyFrame(pointObj.value(JSON_LEFT_KEYFRAME).toInt());
+            point->setLeftData(pointObj.value(JSON_LEFT_DATA).toDouble());
+            point->setRightKeyFrame(pointObj.value(JSON_RIGHT_KEYFRAME).toInt());
+            point->setRightData(pointObj.value(JSON_RIGHT_DATA).toDouble());
             curve->insertPoint(point);
         }
         CurveManager::GetInstance().addCurve(curve);

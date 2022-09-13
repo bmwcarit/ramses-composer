@@ -10,6 +10,7 @@
 #include "qgridlayout.h"
 #include "CurveData/CurveManager.h"
 #include "NodeData/nodeManager.h"
+#include "signal/SignalProxy.h"
 
 using namespace raco::guiData;
 
@@ -29,7 +30,7 @@ public Q_SLOTS:
     void slotValueChanged();
     void slotLeftTangentChanged();
     void slotRightTangentChanged();
-
+    void slotRefreshTagent();
 private:
     void initView();
 

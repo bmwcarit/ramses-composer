@@ -26,6 +26,7 @@
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "MeshData/MeshDataManager.h"
 #include "utils/u8path.h"
+#include "user_types/Texture.h"
 
 #include <QContextMenuEvent>
 #include <QFileDialog>
@@ -234,13 +235,9 @@ bool ObjectTreeView::getOneMaterialHandle(ValueHandle &valueHandle) {
         if (valueHandle != NULL && valueHandle.hasProperty("material")) {
             valueHandle = valueHandle.get("material");
             if (valueHandle.type() == core::PrimitiveType::Table) {
-                valueHandle = valueHandle[0];
-                if (valueHandle.type() == core::PrimitiveType::Ref) {
-                    valueHandle = valueHandle.asRef();
                     if (valueHandle != NULL) {
                         return true;
                     }
-                }
             }
         }
     }
@@ -270,8 +267,6 @@ void ObjectTreeView::getOneMaterials(QModelIndex index, std::map<std::string, co
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
 	std::map<std::string, core::ValueHandle> NodeNameHandleReMap;
 	raco::guiData::NodeDataManager &nodeDataManager = raco::guiData::NodeDataManager::GetInstance();
-//	if (nodeDataManager.root().childMapRef().size())
-//        nodeDataManager.deleteNode(nodeDataManager.root().childMapRef().begin()->second);
 
     NodeData *parent = new NodeData;
 
@@ -294,11 +289,9 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateResource() {
 	for (int i{0}; i < row; ++i) {
 		QModelIndex index = model()->index(i, 0);
 		core::ValueHandle tempHandle = indexToSEditorObject(index);
-		// 设置node的名字
+		// ID
         std::string str = tempHandle[0].asString();
 		ResHandleReMap.emplace(str, tempHandle);
-//		// 设置node的 ID
-//		str = tempHandle[0].asString();
 	}
     return ResHandleReMap;
 }
@@ -311,6 +304,21 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateMaterial() {
         getOneMaterials(index, materialHandleReMap);
     }
     return materialHandleReMap;
+}
+
+std::map<std::string, core::ValueHandle> ObjectTreeView::updateTexture() {
+	std::map<std::string, core::ValueHandle> textureHandleReMap;
+	int row = model()->rowCount();
+	for (int i{0}; i < row; ++i) {
+		QModelIndex index = model()->index(i, 0);
+		core::ValueHandle tempHandle = indexToSEditorObject(index);
+		std::string str = tempHandle[0].asString();
+		std::string path = tempHandle[0].getPropertyPath();
+		if (&tempHandle.rootObject()->getTypeDescription() == &raco::user_types::Texture::typeDescription) {
+			textureHandleReMap.emplace(str, tempHandle);
+		}
+	}
+	return textureHandleReMap;
 }
 
 void ObjectTreeView::updateMeshData() {
@@ -337,33 +345,31 @@ int ObjectTreeView::attriElementSize(VertexAttribDataType type) {
     }
 }
 
-void ObjectTreeView::convertGltfAnimation() {
+void ObjectTreeView::convertGltfAnimation(QString fileName) {
     int row = model()->rowCount();
     raco::core::ValueHandle valueHandle;
+    std::set<raco::core::ValueHandle> handles;
     for (int i{0}; i < row; ++i) {
         QModelIndex index = model()->index(i, 0);
-        if (getAnimationHandle(index, valueHandle)) {
-            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(valueHandle);
+        if (getAnimationHandle(index, valueHandle, handles)) {
+            Q_EMIT raco::signal::signalProxy::GetInstance().sigUpdateGltfAnimation(handles, fileName);
         }
     }
 }
 
-bool ObjectTreeView::getAnimationHandle(QModelIndex index, raco::core::ValueHandle &valueHandle) {
+bool ObjectTreeView::getAnimationHandle(QModelIndex index, core::ValueHandle valueHandle, std::set<core::ValueHandle> &handles) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         if (tempHandle.rootObject().get()->getTypeDescription().typeName.compare("Animation") == 0) {
-            valueHandle = tempHandle;
-            return true;
+            handles.emplace(tempHandle);
         }
     } else {
         for (int i{0}; i < model()->rowCount(index); i++) {
             QModelIndex tempIndex = model()->index(i, 0, index);
-            if (getAnimationHandle(tempIndex, valueHandle)) {
-                return true;
-            }
+            getAnimationHandle(tempIndex, valueHandle, handles);
         }
     }
-    return false;
+    return true;
 }
 
 void ObjectTreeView::globalCopyCallback() {
@@ -420,12 +426,20 @@ void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
 	}
 }
 
-void ObjectTreeView::getResourceHandles() {
+void ObjectTreeView::getMaterialResHandles() {
     if (viewTitle_.compare("Scene Graph") != 0) {
         return;
     }
     std::map<std::string, core::ValueHandle> handleMap = updateMaterial();
-    Q_EMIT setResourceHandles(handleMap);
+    Q_EMIT setMaterialResHandles(handleMap);
+}
+
+void ObjectTreeView::getTextureResHandles() {
+	if (viewTitle_.compare("Resources") != 0) {
+		return;
+	}
+	std::map<std::string, core::ValueHandle> handleMap = updateTexture();
+	Q_EMIT setTextureResHandles(handleMap);
 }
 
 void ObjectTreeView::fillMeshData() {
@@ -435,12 +449,14 @@ void ObjectTreeView::fillMeshData() {
     updateMeshData();
 }
 
-void ObjectTreeView::deleteAnimationHandle(std::string id) {
-    auto index = indexFromTreeNodeID(id);
-    auto delObjAmount = treeModel_->deleteObjectsAtIndices(QModelIndexList() << index);
+void ObjectTreeView::deleteAnimationHandle(std::set<std::string> ids) {
+    for (const auto &id : ids) {
+        auto index = indexFromTreeNodeID(id);
+        auto delObjAmount = treeModel_->deleteObjectsAtIndices(QModelIndexList() << index);
 
-    if (delObjAmount > 0) {
-        selectionModel()->Q_EMIT selectionChanged({}, {});
+        if (delObjAmount > 0) {
+            selectionModel()->Q_EMIT selectionChanged({}, {});
+        }
     }
 }
 
@@ -573,7 +589,8 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
                 bool keyAnimation;
                 treeModel_->importMeshScenegraph(file, insertionTargetIndex, keyAnimation);
                 if (keyAnimation) {
-                    convertGltfAnimation();
+					QString fileName = file.section("/",-1);
+                    convertGltfAnimation(fileName);
                 }
 			}
 		});

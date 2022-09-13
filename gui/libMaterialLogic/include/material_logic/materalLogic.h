@@ -14,15 +14,25 @@ class MateralLogic : public QObject
     Q_OBJECT
 public:
     explicit MateralLogic(QObject *parent = nullptr);
-	void setResourcesHandleReMap(std::map<std::string, core::ValueHandle> map) {
-		resourcesHandleReMap_ = map;
+	void setMaterialResourcesHandleReMap(std::map<std::string, core::ValueHandle> map) {
+		materialResourcesHandleReMap_ = map;
+	}
+
+	void setTextureResourcesHandleReMap(std::map<std::string, core::ValueHandle> map) {
+		textureResourcesHandleReMap_ = map;
 	}
 	
 	std::map<std::string, core::ValueHandle>& getResourcesHandleReMap() {
-		return resourcesHandleReMap_;
+		return materialResourcesHandleReMap_;
 	}
 	void setPtxName(Shader &shader);
     void Analyzing();
+	void AnalyzingMaterialData();
+	void initNodeMaterialProperty(core::ValueHandle valueHandle, NodeMaterial &nodeMaterial);
+	void AnalyzingNodeMaterial();
+	void setOneTexture(core::ValueHandle valueHandle, TextureData &textureData);
+
+	void AnalyzingTexture();
     void initMaterialProperty(core::ValueHandle valueHandle, MaterialData &materialData, Shader &shader);
     void setOptionsProperty(core::ValueHandle valueHandle, MaterialData &materialData);
     void setUniformsProperty(core::ValueHandle valueHandle, MaterialData &materialData);
@@ -30,7 +40,8 @@ public:
     void setUniformsMultiElementProperty(core::ValueHandle valueHandle, MaterialData &materialData, UniformType type);
 
 private:
-	std::map<std::string, core::ValueHandle> resourcesHandleReMap_;
+	std::map<std::string, core::ValueHandle> materialResourcesHandleReMap_;
+	std::map<std::string, core::ValueHandle> textureResourcesHandleReMap_;
 };
 
 }
