@@ -27,27 +27,6 @@ void GltfAnimationManager::slotUpdateGltfAnimation(const std::set<raco::core::Va
     std::string animation = fileName.section(".gltf", 0, 0).toStdString();
     std::set<std::string> animationIDs;
 
-    for (int i{0}; i < valueHandle.size(); ++i) {
-        raco::core::ValueHandle tempHandle = valueHandle[i];
-        if (tempHandle.getPropName().compare(GLTF_ANIMATION_CHANNELS) == 0) {
-            if (tempHandle.type() == raco::core::PrimitiveType::Table) {
-                for (int j{0}; j < tempHandle.size(); ++j) {
-                    raco::core::ValueHandle aniHandle = tempHandle[j];
-                    // get animation channel data
-                    if (aniHandle.type() == raco::core::PrimitiveType::Ref) {
-                        aniHandle = aniHandle.asRef();
-                        raco::user_types::AnimationChannel *aniChannel = dynamic_cast<raco::user_types::AnimationChannel *>(aniHandle.rootObject().get());
-                        animationChannels_.push_back(aniChannel);
-                    }
-                }
-            }
-        }
-        if (tempHandle.getPropName().compare(GLTF_ANIMATION_OUTPUTS) == 0) {
-            if (tempHandle.type() == raco::core::PrimitiveType::Table) {
-                for (int j{0}; j < tempHandle.size(); ++j) {
-                    raco::core::ValueHandle aniHandle = tempHandle[j];
->>>>>>> 01bcaa7286759289bb06c3bd1f1b4fe75f2fb35c
-
     for (const auto &valueHandle : handles) {
         int outPutIndex{0};
         for (int i{static_cast<int>(valueHandle.size()-1)}; i >= 0; i--) {
