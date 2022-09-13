@@ -36,8 +36,14 @@ void NodeLogic::Analyzing(NodeData *pNode) {
 }
 
 bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHandle) {
+
     QString qstrPropety = QString::fromStdString(property);
     QStringList list = qstrPropety.split(".");
+	if (!list.isEmpty() && list.contains("uniforms")) {
+		property = "materials.material." + property;
+		qstrPropety = QString::fromStdString(property);
+		list = qstrPropety.split(".");
+	}
 
     auto func = [&](core::ValueHandle &tempHandle, std::string tempProp)->bool {
           if (tempHandle.hasProperty(tempProp)) {
@@ -138,18 +144,9 @@ void NodeLogic::initBasicProperty(raco::core::ValueHandle valueHandle, NodeData 
 				scal.x = tempHandle.get("x").asDouble();
 				scal.y = tempHandle.get("y").asDouble();
 				scal.z = tempHandle.get("z").asDouble();
-                node->insertSystemData("scale", scal);
-            } else if (QString::fromStdString(tempHandle.getPropName()).compare("mesh") == 0) {
-				if (tempHandle.type() == core::PrimitiveType::Ref) {
-					raco::core::ValueHandle meshHandle = tempHandle.asRef();
-					if (meshHandle) {
-						std::string str = meshHandle[0].asString();
-						node->setMeshID(str);
-						qDebug() << QString::fromStdString(str);
-						str = meshHandle[0].getPropertyPath();
-					}
-				}
-            }
+				node->insertSystemData("scale", scal);
+
+			}  
             initBasicProperty(valueHandle[i], node);
 		}
     }
