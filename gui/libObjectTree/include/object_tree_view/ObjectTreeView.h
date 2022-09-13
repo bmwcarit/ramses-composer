@@ -49,7 +49,7 @@ public:
 	std::map<std::string, core::ValueHandle> updateTexture();
     void updateMeshData();
     int attriElementSize(raco::guiData::VertexAttribDataType type);
-	void convertGltfAnimation(QString fileName);
+    void convertGltfAnimation(QString fileName);
     bool getAnimationHandle(QModelIndex index, core::ValueHandle valueHandle, std::set<raco::core::ValueHandle> &handles);
 
 	void requestNewNode(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);

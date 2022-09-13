@@ -16,17 +16,17 @@ set(CMAKE_AUTOUIC ON)
 raco_find_qt_components(Widgets)
 
 set(SOURCES
-	DebugActions.h DebugActions.cpp
+        DebugActions.h DebugActions.cpp
     mainwindow.h mainwindow.cpp mainwindow.ui
     versiondialog.h versiondialog.cpp versiondialog.ui
     SavedLayoutsDialog.h SavedLayoutsDialog.cpp SavedLayoutsDialog.ui
-	OpenRecentMenu.h OpenRecentMenu.cpp
+        OpenRecentMenu.h OpenRecentMenu.cpp
     RaCoDockManager.h RaCoDockManager.cpp
-	EditMenu.h EditMenu.cpp
-	ForceHighEndGPU.cpp
-	main.cpp
-	../styles/icons.qrc
-	../styles/images.qrc
+        EditMenu.h EditMenu.cpp
+        ForceHighEndGPU.cpp
+        main.cpp
+        ../styles/icons.qrc
+        ../styles/images.qrc
 )
 
 set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/RamsesComposer.rc")
@@ -42,28 +42,28 @@ set_target_properties(RaCoEditor PROPERTIES OUTPUT_NAME "RamsesComposer" RUNTIME
 add_dependencies(RaCoEditor RaCoResources RaCoPrepareReleaseFolder)
 
 target_link_libraries(RaCoEditor
-	raco::LogSystem
-	raco::PropertyBrowser
+        raco::LogSystem
+        raco::PropertyBrowser
         raco::CommonWidgets
-        # raco::CommonEditors
-	raco::Style
-	raco::Utils
-	raco::Core 
-	raco::RamsesWidgets
-	raco::ObjectTree
+        raco::CommonEditors
+        raco::Style
+        raco::Utils
+        raco::Core
+        raco::RamsesWidgets
+        raco::ObjectTree
         raco::Property
         raco::Animation
         raco::Curve
         raco::signal
         raco::TimeAxis
-#        raco::VisualCurve
+        raco::VisualCurve
         raco::material_logic
         raco::dataConvert
-	Qt5::Widgets
-	qtadvanceddocking
-	libprotobuf-lite
-	libprotobuf
-	libprotoc
+        Qt5::Widgets
+        qtadvanceddocking
+        libprotobuf-lite
+        libprotobuf
+        libprotoc
 )
 add_compile_definitions(RaCoEditor PRIVATE CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
