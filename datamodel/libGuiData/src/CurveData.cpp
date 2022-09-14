@@ -14,7 +14,7 @@ int Point::getKeyFrame() {
     return keyFrame_;
 }
 
-void Point::setInterPolationType(const EInterPolationType &interPolationType) {
+void Point::setInterPolationType(const EInterPolationType& interPolationType) {
     interPolationType_ = interPolationType;
 }
 

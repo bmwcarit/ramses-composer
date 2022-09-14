@@ -1,6 +1,8 @@
 #include "gltf_Animation/GltfAnimationManager.h"
 #include "utils/MathUtils.h"
 
+
+#define PI 3.141592653589793238462643f
 static const int rotationSize{4};
 
 double fixRotationValue(double value) {
@@ -110,7 +112,54 @@ void GltfAnimationManager::updateGltfAnimation(std::string animation) {
     Q_EMIT raco::signal::signalProxy::GetInstance().sigRepaintTimeAixs_From_CurveUI();
 }
 
-void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData, std::vector<float> keyFrames, std::vector<std::vector<float>> propertyData, raco::core::MeshAnimationInterpolation interpolation, std::string property, std::string node) {
+
+std::array<double, 3> XYZEul_FromHMatrix(float M[][4]) {
+	std::array<double, 3> ea;
+	int i = 0, j = 1, k = 2;
+    double cy = sqrtf(M[i][i] * M[i][i] + M[j][i] * M[j][i]);
+	if (cy > 16 * FLT_EPSILON) {
+		ea[0] = atan2f(M[k][j], M[k][k]);
+		ea[1] = atan2f(-M[k][i], cy);
+		ea[2] = atan2f(M[j][i], M[i][i]);
+	} else {
+		ea[0] = atan2f(-M[j][k], M[j][j]);
+		ea[1] = atan2f(-M[k][i], cy);
+		ea[2] = 0;
+	}
+
+	ea[0] = ea[0] * 180.0 / PI;
+	ea[1] = ea[1] * 180.0 / PI;
+	ea[2] = ea[2] * 180.0 / PI;
+
+	return ea;
+}
+
+std::array<double, 3> Eul_FromQuat(float x, float y, float z, float w) {
+	float M[4][4];
+	int X = 0,Y = 1,Z = 2,W = 3;
+	float Nq = x * x + y * y + z * z + w * w;
+	float s = (Nq > 0.f) ? (2.f / Nq) : 0.f;
+	float xs = x * s, ys = y * s, zs = z * s;
+	float wx = w * xs, wy = w * ys, wz = w * zs;
+	float xx = x * xs, xy = x * ys, xz = x * zs;
+	float yy = y * ys, yz = y * zs, zz = z * zs;
+	M[X][X] = 1.f - (yy + zz);
+	M[X][Y] = xy - wz;
+	M[X][Z] = xz + wy;
+	M[Y][X] = xy + wz;
+	M[Y][Y] = 1.f - (xx + zz);
+	M[Y][Z] = yz - wx;
+	M[Z][X] = xz - wy;
+	M[Z][Y] = yz + wx;
+	M[Z][Z] = 1.f - (xx + yy);
+	M[W][X] = M[W][Y] = M[W][Z] = M[X][W] = M[Y][W] = M[Z][W] = 0.f;
+	M[W][W] = 1.f;
+	return (XYZEul_FromHMatrix(M));
+}
+
+
+void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData, std::vector<float> keyFrames, std::vector<std::vector<float>> propertyData, raco::core::MeshAnimationInterpolation interpolation, std::string property, std::string node)
+{
     auto insertBindingItem = [=](std::string prop, std::string curve)->bool {
         std::string animation = curAnimation_.toStdString();
         std::map<std::string, std::string> bindingMap;
@@ -156,7 +205,7 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
 
         // calculate rotation property data
         if (data.size() == rotationSize) {
-            auto rotation = raco::utils::math::quaternionToXYZDegrees(data[ROTATION_X], data[ROTATION_Y], data[ROTATION_Z], data[ROTATION_W]);
+            auto rotation = Eul_FromQuat(data[ROTATION_X], data[ROTATION_Y], data[ROTATION_Z], data[ROTATION_W]);
             auto eulerRotation = raco::utils::math::eulerAngle(lastEulerX, lastEulerY, lastEulerZ, rotation[ROTATION_X], rotation[ROTATION_Y], rotation[ROTATION_Z]);
 
             lastEulerX = eulerRotation[ROTATION_X];

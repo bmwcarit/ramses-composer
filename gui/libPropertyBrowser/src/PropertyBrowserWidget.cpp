@@ -314,6 +314,10 @@ PropertyBrowserModel* PropertyBrowserWidget::model() const {
 	return model_;
 }
 
+void PropertyBrowserWidget::slotRefreshCurveBindingWidget() {
+	curveBindingWidget_->initCurveBindingWidget();
+}
+
 void PropertyBrowserWidget::initPropertyBrowserWidget() {
     meshNodeWidget_ = new PropertyBrowserNodeWidget(QString("Mesh"), this);
     meshWidget_ = new PropertyBrowserMeshWidget(meshNodeWidget_);

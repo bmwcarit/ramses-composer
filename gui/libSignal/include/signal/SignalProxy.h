@@ -67,7 +67,7 @@ Q_SIGNALS:
     //
     void sigUpdateGltfAnimation(const std::set<raco::core::ValueHandle> &handles, QString file);
     //
-    void sigDeleteAniamtionNode(const std::set<std::string> ids);
+    void sigDeleteAniamtionNode(std::set<std::string> ids);
     //
     void sigSwitchVisualCurve(std::string sampleProp, std::string property, std::string curve);
     //

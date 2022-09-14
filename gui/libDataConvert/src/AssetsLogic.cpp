@@ -32,8 +32,7 @@ bool AssetsLogic::readProgram2Ptx(std::string filePathStr) {
 	qDebug() << QString::fromStdString(tRoot.name());
 	for (HmiScenegraph::TNode child : tRoot.child()) {
 		qDebug() << QString::fromStdString(child.name());
-		NodeData data;
-		inputPtx_.parseOneNode(child, data);
+		//inputPtx_.parseOneNode(child, root_);
 	}
 
 
@@ -54,5 +53,8 @@ bool AssetsLogic::readProgram2Ptx(std::string filePathStr) {
 	qDebug() << QString::fromStdString(filePathStr);
 	return true;
 }
+
+
+
 
 }  // namespace raco::dataConvert

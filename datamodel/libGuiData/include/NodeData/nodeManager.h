@@ -1,5 +1,5 @@
-#ifndef NODE_H
-#define NODE_H
+#ifndef NODEMANAGER_H
+#define NODEMANAGER_H
 
 #include "NodeData/nodeDataEx.h"
 #include "core/CommandInterface.h"
@@ -313,13 +313,14 @@ public:
     void preOrderReverse(std::function<void(NodeData*)> fun = nullptr);
 	void preOrderReverse(NodeData* pNode, std::function<void(NodeData*)> fun = nullptr);
 
+	void delCurveBindingByName(std::string curveName);
+	void delOneCurveBindingByName(NodeData* pNode, std::string curveName);
+
 private:
     NodeData* activeNode_;
     NodeData root_;
     NodeData* searchedNode_;
 };
-
-
 }
 
-#endif // NODE_H
+#endif // NODEMANAGER_H

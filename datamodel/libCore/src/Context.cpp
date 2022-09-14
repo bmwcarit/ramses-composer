@@ -34,6 +34,8 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 
+#include "NodeData/nodeManager.h"
+
 #include <core/PathManager.h>
 #include <spdlog/fmt/fmt.h>
 
@@ -947,12 +949,20 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 	}
 }
 
+void BaseContext::insertBMWAssetScenegraph(raco::guiData::NodeData* node, SEditorObject const& parent) {
+	// todo: Add node information
+	LOG_INFO(log_system::CONTEXT, "Add node information");
+}
+
 void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
 	auto relativeFilePath = raco::utils::u8path(absPath).normalizedRelativePath(project()->currentFolder());
 	std::vector<SEditorObject> meshScenegraphMeshes;
 	std::vector<SEditorObject> meshScenegraphNodes;
 
 	LOG_INFO(log_system::CONTEXT, "Importing all meshes...");
+
+
+	SEditorObject newNode;
 	auto projectMeshes = Queries::filterByTypeName(project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
 	std::map<std::tuple<bool, int, std::string>, SEditorObject> propertiesToMeshMap;
 	std::map<std::tuple<std::string, int, int>, SEditorObject> propertiesToChannelMap;
