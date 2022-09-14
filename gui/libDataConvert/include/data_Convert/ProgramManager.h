@@ -52,6 +52,7 @@ public:
 
 Q_SIGNALS:
     void selectObject(const QString &objectId);
+	void createNode(NodeData* node, const std::vector<MaterialData>& materials);
 
 private:
     QString file_;

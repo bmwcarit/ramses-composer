@@ -3,12 +3,13 @@
 namespace raco::curve {
 CurveWindow::CurveWindow(raco::components::SDataChangeDispatcher dispatcher,
                          raco::core::CommandInterface *commandInterface, CurveLogic *curveLogic,
-                         QWidget *parent) :
+	                     NodeLogic *nodeLogic, QWidget *parent) :
                          QWidget{parent},
                          commandInterface_ {commandInterface},
-                         curveLogic_{curveLogic} {
+						 curveLogic_{curveLogic},
+						 nodeLogic_{nodeLogic} {
     QHBoxLayout* hLayout = new QHBoxLayout(this);
-    curveTree_ = new CurveTree(this, curveLogic_);
+	curveTree_ = new CurveTree(this, curveLogic_, nodeLogic_);
     curveTree_->setHeaderHidden(true);
     hLayout->addWidget(curveTree_, 3);
     this->setLayout(hLayout);

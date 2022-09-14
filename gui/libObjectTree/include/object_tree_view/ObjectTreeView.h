@@ -64,6 +64,8 @@ public:
 	QModelIndex getSelectedInsertionTargetIndex() const;
 	void collapseRecusively(const QModelIndex &index);
 
+	void createBMWMaterial(const std::vector<MaterialData> &materialArr, const QModelIndex &parent);
+
 Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
@@ -88,8 +90,10 @@ public Q_SLOTS:
     void getMaterialResHandles();
 	void getTextureResHandles();
     void fillMeshData();
+    void deleteAnimationHandle(std::string id);
+	  void importBMWAssets(NodeData *nodeData, const std::vector<MaterialData>& maetrials);
     void deleteAnimationHandle(std::set<std::string> ids);
-	
+
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;
 

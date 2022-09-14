@@ -12,5 +12,6 @@
 #include <ramses-client-api/ERotationConvention.h>
 
 namespace raco::ramses_adaptor {
-    constexpr auto RAMSES_ROTATION_CONVENTION { ramses::ERotationConvention::XYZ };
+    // In order to adapt to the Euler angle rotation order of CID, modify it as ZYX.
+    constexpr auto RAMSES_ROTATION_CONVENTION { ramses::ERotationConvention::ZYX }; // XYZ
 }

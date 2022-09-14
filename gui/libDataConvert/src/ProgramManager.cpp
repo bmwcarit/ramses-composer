@@ -1192,6 +1192,7 @@ bool ProgramManager::readBMWAssets(QString assetsFilePath) {
 		result = false;
 	}
 
+    Q_EMIT createNode(assetsLogic_.getRoot(), assetsLogic_.getMaterialArr());
 	//// Output Asset file
 	//outputPtw_.WriteAsset(filePath.toStdString());
 

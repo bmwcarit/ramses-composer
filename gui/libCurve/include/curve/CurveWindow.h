@@ -9,14 +9,16 @@
 #include "components/DataChangeDispatcher.h"
 #include "core/CommandInterface.h"
 #include "CurveTree.h"
+#include "node_logic/NodeLogic.h"
 
 namespace raco::curve {
+using namespace raco::node_logic;
 class CurveWindow : public QWidget {
     Q_OBJECT
 public:
     explicit CurveWindow(raco::components::SDataChangeDispatcher dispatcher,
                          raco::core::CommandInterface* commandInterface,
-                         CurveLogic* curveLogic,
+		CurveLogic* curveLogic, NodeLogic* nodeLogic,
                          QWidget* parent = nullptr);
 
 public Q_SLOTS:
@@ -27,6 +29,7 @@ private:
     CurveTree* curveTree_{nullptr};
     CurveTreeModel* model_{nullptr};
     CurveLogic* curveLogic_{nullptr};
+	NodeLogic* nodeLogic_{nullptr};
 };
 }
 

@@ -19,6 +19,8 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "utils/u8path.h"
 
+#include "NodeData/nodeManager.h"
+
 #include "user_types/RenderLayer.h"
 
 #include <spdlog/fmt/bundled/ranges.h>
@@ -362,12 +364,22 @@ size_t CommandInterface::moveScenegraphChildren(std::vector<SEditorObject> const
 	return moveableChildren.size();
 }
 
+void CommandInterface::insertBMWAssetScenegraph(raco::guiData::NodeData* node, SEditorObject const& parent) {
+	// TODO error checking: scenegraph is not checked
+	if (parent && !project()->isInstance(parent)) {
+		throw std::runtime_error(fmt::format("insertAssetScenegraph: parent object '{}' not in project", parent->objectName()));
+	}
+	// 导入结点的地方
+	context_->insertBMWAssetScenegraph(node, parent);
+	PrefabOperations::globalPrefabUpdate(*context_);
+}
+
 void CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
 	// TODO error checking: scenegraph is not checked
 	if (parent && !project()->isInstance(parent)) {
 		throw std::runtime_error(fmt::format("insertAssetScenegraph: parent object '{}' not in project", parent->objectName()));
 	}
-
+	// 导入结点的地方
 	context_->insertAssetScenegraph(scenegraph, absPath, parent);
 	PrefabOperations::globalPrefabUpdate(*context_);
 	undoStack_->push(fmt::format("Inserted assets from {}", absPath));

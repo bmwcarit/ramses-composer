@@ -31,12 +31,22 @@ class AssetsLogic : public QObject {
     Q_OBJECT
 public:
 	bool readProgram2Ptx(std::string filePathStr);
+
+	NodeData* getRoot() {
+		return &root_;
+	}
+	const std::vector<MaterialData>& getMaterialArr() {
+		return materialArr;
+	}
+
 	
 Q_SIGNALS:
 
 private:
 	bool isInputError_{false};
 	InputPtx inputPtx_;
+	NodeData root_;
+	std::vector<MaterialData> materialArr;
 };
 
 }

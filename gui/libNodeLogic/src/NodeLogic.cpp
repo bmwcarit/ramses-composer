@@ -86,6 +86,7 @@ std::map<std::string, core::ValueHandle> &NodeLogic::getNodeNameHandleReMap() {
 
 void NodeLogic::setNodeNameHandleReMap(std::map<std::string, core::ValueHandle> nodeNameHandleReMap) {
     QMutexLocker locker(&handleMapMutex_);
+	nodeObjectIDHandleReMap_.clear();
     nodeObjectIDHandleReMap_ = std::move(nodeNameHandleReMap);
 }
 
@@ -186,8 +187,12 @@ void NodeLogic::setPropertyByCurveBinding(const std::string &objecID, const std:
                     }
                 }
             }
-        }
-    }
+      }
+ }
+
+void NodeLogic::delNodeBindingByCurveName(std::string curveName) {
+	NodeDataManager::GetInstance().delCurveBindingByName(curveName);
+	Q_EMIT sig_initCurveBindingWidget__NodePro();
 }
 
 bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyFrame, double &value) {
