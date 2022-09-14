@@ -466,9 +466,9 @@ void VisualCurveNodeTreeView::slotButtonDelegateClicked(const QModelIndex &index
 
             for (const auto &it : folderData.getCurveMap()) {
                 if (isVisible) {
-                    VisualCurvePosManager::GetInstance().deleteHidenCurve(it.first);
+                    VisualCurvePosManager::GetInstance().deleteHidenCurve(it.second.curve_);
                 } else {
-                    VisualCurvePosManager::GetInstance().insertHidenCurve(it.first);
+                    VisualCurvePosManager::GetInstance().insertHidenCurve(it.second.curve_);
                 }
             }
         }
