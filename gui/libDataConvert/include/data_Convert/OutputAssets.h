@@ -90,6 +90,10 @@ private:
 	void ModifyRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
 	void CreateRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
 
+	std::string ConvertAnimationInfo(HmiWidget::TWidget* widget);
+	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
+	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
+
 	bool isAddedUniform(std::string name, raco::guiData::NodeData* node);
 	bool isVecUniformValue(std::string name);
 	void addOperandCurveRef2Operation(TOperation* operation, std::string curveName);

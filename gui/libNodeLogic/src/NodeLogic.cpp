@@ -187,8 +187,9 @@ void NodeLogic::setPropertyByCurveBinding(const std::string &objecID, const std:
                     }
                 }
             }
-      }
- }
+        }
+    }
+}
 
 void NodeLogic::delNodeBindingByCurveName(std::string curveName) {
 	NodeDataManager::GetInstance().delCurveBindingByName(curveName);
