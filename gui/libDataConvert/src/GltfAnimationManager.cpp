@@ -158,7 +158,8 @@ std::array<double, 3> Eul_FromQuat(float x, float y, float z, float w) {
 }
 
 
-void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData, std::vector<float> keyFrames, std::vector<std::vector<float>> propertyData, raco::core::MeshAnimationInterpolation interpolation, std::string property, std::string node) {
+void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData, std::vector<float> keyFrames, std::vector<std::vector<float>> propertyData, raco::core::MeshAnimationInterpolation interpolation, std::string property, std::string node)
+{
     auto insertBindingItem = [=](std::string prop, std::string curve)->bool {
         std::string animation = curAnimation_.toStdString();
         std::map<std::string, std::string> bindingMap;
@@ -203,11 +204,8 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
         }
 
         // calculate rotation property data
-        if (data.size() == 4) {
-            //auto rotation = raco::utils::math::quaternionToXYZDegrees(data[0], data[1], data[2], data[3]);
-			  auto rotation = Eul_FromQuat(data[0], data[1], data[2], data[3]);
         if (data.size() == rotationSize) {
-            auto rotation = raco::utils::math::quaternionToXYZDegrees(data[ROTATION_X], data[ROTATION_Y], data[ROTATION_Z], data[ROTATION_W]);
+            auto rotation = Eul_FromQuat(data[ROTATION_X], data[ROTATION_Y], data[ROTATION_Z], data[ROTATION_W]);
             auto eulerRotation = raco::utils::math::eulerAngle(lastEulerX, lastEulerY, lastEulerZ, rotation[ROTATION_X], rotation[ROTATION_Y], rotation[ROTATION_Z]);
 
             lastEulerX = eulerRotation[ROTATION_X];

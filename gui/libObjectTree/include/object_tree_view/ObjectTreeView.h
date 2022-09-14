@@ -90,7 +90,7 @@ public Q_SLOTS:
     void getMaterialResHandles();
 	void getTextureResHandles();
     void fillMeshData();
-    void deleteAnimationHandle(std::string id);
+    // void deleteAnimationHandle(std::string id);
 	  void importBMWAssets(NodeData *nodeData, const std::vector<MaterialData>& maetrials);
     void deleteAnimationHandle(std::set<std::string> ids);
 
