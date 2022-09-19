@@ -57,6 +57,7 @@ public Q_SLOTS:
     void slotRefreshVisualCurve();
     void slotRefreshCursorX();
     void slotInsertCurve(QString property, QString curveName, QVariant value);
+    void slotBezier2Hermite();
 
 Q_SIGNALS:
     void AnimationStop();
@@ -90,10 +91,20 @@ private:
     QPointF reCaculatePoint(QPointF point, int x, int y, double frameWidth, double valueWidth);
     // point move
     void pointMove(QMouseEvent *event);
+    // key point move
+    void keyPointMove(QMouseEvent *event);
+    // left worker point move
+    void leftWorkerPointMove(QMouseEvent *event);
+    // right worker point move
+    void rightWorkerPointMove(QMouseEvent *event);
     // curve move
     void curveMove(QMouseEvent *event);
     // multi point move
     void multiPointMove(QMouseEvent *event);
+    //
+    QPointF reCaculateRightWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint, QPointF rightPoint);
+    //
+    QPointF reCaculateLeftWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint, QPointF rightPoint);
 private:
     QPoint viewportOffset_;
     int intervalLength_;
@@ -125,6 +136,7 @@ private:
     QAction *hermiteAct_{nullptr};
     QAction *bezierAct_{nullptr};
     QAction *stepAct_{nullptr};
+    QAction *switchHermiteAct_{nullptr};
 };
 }
 #endif // VisualCurveWidget_H
