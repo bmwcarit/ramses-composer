@@ -36,7 +36,7 @@ AnimationView::AnimationView(QWidget *parent) {
     gLayout->addWidget(playSpeedStrEditor_, 4, 1);
 
     returnEditor_ = new TagContainerEditor(this);
-    returnEditor_->setText(QString("SampleProperty"));
+    returnEditor_->setText(QString("Animation"));
     returnStrEditor_ = new QLineEdit(this);
     gLayout->addWidget(returnEditor_, 5, 0);
     gLayout->addWidget(returnStrEditor_, 5, 1);
