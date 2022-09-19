@@ -24,7 +24,7 @@ PropertyBrowserCurveBindingView::PropertyBrowserCurveBindingView(QString sampleP
     view_ = new QWidget{this};
     auto* viewLayout = new QGridLayout{view_};
     curveLabel_ = new QLabel(QString("curve"), view_);
-    sampleLabel_ = new QLabel(QString("SampleProperty"), view_);
+    sampleLabel_ = new QLabel(QString("Animation"), view_);
     curveEditor_ = new QLineEdit(view_);
     sampleEditor_ = new QLineEdit(view_);
 

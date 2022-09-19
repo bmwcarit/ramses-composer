@@ -169,7 +169,7 @@ void TimeAxisMainWindow::slotCreateNew() {
         return;
     }
 
-    QString strDefault = "Default Node" + QString::number(UUID_);
+    QString strDefault = "DefaultAnimation" + QString::number(UUID_);
 	if (animationDataManager::GetInstance().IsHaveAnimation(strDefault.toStdString())){
         UUID_++;
         slotCreateNew();
