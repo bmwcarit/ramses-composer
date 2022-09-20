@@ -829,6 +829,7 @@ void VisualCurveWidget::drawKeyFrame() {
     int index = VisualCurvePosManager::GetInstance().getCurrentPointInfo().second;
 
     QPainter painter(this);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     QPen pen(QColor(223, 49, 71, 125), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
     pen.setWidth(1);
     painter.setPen(pen);
