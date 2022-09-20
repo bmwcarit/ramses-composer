@@ -63,7 +63,7 @@ public:
 	bool mkdir(QString path);
 	bool isStored(std::string name, std::set<std::string>& nameArr);
 	std::string getShaderPtxNameByShaderName(std::string name);
-	void messageBoxError(std::string materialName);
+	void messageBoxError(std::string materialName, int type);
 	void writeBitmap2MaterialLib(QString& filePath, QString& oldPath, HmiScenegraph::TMaterialLib* materialLibrary);
 	void writeShaders2MaterialLib(QString& filePath, QString& oldPath, HmiScenegraph::TMaterialLib* materialLibrary);
 	void writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialLibrary);
@@ -71,7 +71,7 @@ public:
 Q_SIGNALS:
 
 private:
-	bool isOutputError_{false};
+	bool isPtxOutputError_{false};
     std::vector<NodeWithMaterial> nodeWithMaterial_;
 };
 
@@ -106,7 +106,7 @@ private:
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
-	bool isOutputError_{false};
+	bool isPtwOutputError_{false};
 };
 }
 
