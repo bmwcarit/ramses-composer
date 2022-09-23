@@ -169,7 +169,7 @@ void connectPropertyBrowserAndTreeDockManager(MainWindow* mainWindow, raco::prop
 
 	QObject::connect(&programManager, &raco::dataConvert::ProgramManager::selectObject, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObject);
 
-	// 触发创建关键帧和curve
+	// Trigger to create keyframes and curves
 	QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::sigCreateCurve, mainWindow, &MainWindow::slotCreateCurve);
     QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::sigCreateCurveAndBinding, mainWindow, &MainWindow::slotCreateCurveAndBinding);
 

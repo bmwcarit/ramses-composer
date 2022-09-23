@@ -144,7 +144,8 @@ void MateralLogic::AnalyzingNodeMaterial() {
 		core::ValueHandle valueHandle = it.second;
 		NodeMaterial nodeMaterial;
 		initNodeMaterialProperty(valueHandle, nodeMaterial);
-		MaterialManager::GetInstance().addNodeMaterial(it.first, nodeMaterial);
+		MaterialManager &mana = MaterialManager::GetInstance();
+		mana.addNodeMaterial(it.first, nodeMaterial);
 	}
 }
 

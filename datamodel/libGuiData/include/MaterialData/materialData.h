@@ -600,6 +600,8 @@ public:
 	void addUniform(Uniform uniform) {
 		for (auto& un : uniforms_) {
             if (un.getName() == uniform.getName()) {
+				un.setValue(uniform.getValue());
+				un.setType(uniform.getType());
 				return;
             }
         }
