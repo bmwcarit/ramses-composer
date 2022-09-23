@@ -57,7 +57,14 @@ enum SAME_KEY_TYPE {
 enum KEY_BOARD_TYPE {
     POINT_MOVE,
     MULTI_POINT_MOVE,
-    CURVE_MOVE
+    CURVE_MOVE,
+    CURVE_MOVE_X,
+    CURVE_MOVE_Y
+};
+
+enum KEY_PRESS_ACT {
+    KEY_PRESS_NONE,
+    KEY_PRESS_CTRL
 };
 
 struct SSelPoint {

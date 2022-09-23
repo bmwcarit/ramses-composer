@@ -90,14 +90,6 @@ Curve::~Curve() {
     pointList_.clear();
 }
 
-void Curve::setCurvNodeInfo(const std::string &curveNodeInfo) {
-    curveNodeInfo_ = curveNodeInfo;
-}
-
-std::string Curve::getCurveNodeInfo() {
-    return curveNodeInfo_;
-}
-
 void Curve::setCurveName(const std::string &curveName) {
     curveName_ = curveName;
 }
@@ -162,7 +154,10 @@ bool Curve::delPoint(int keyFrame) {
         auto it = pointList_.begin();
         while (it != pointList_.end()) {
             if ((*it)->getKeyFrame() == keyFrame) {
+                Point *point = (*it);
                 pointList_.erase(it);
+                delete point;
+                point = nullptr;
                 return true;
             }
             it++;
@@ -178,7 +173,10 @@ bool Curve::delSamePoint(int keyFrame) {
             if ((*it)->getKeyFrame() == keyFrame) {
                 it++;
                 if (it != pointList_.end()) {
+                    Point *point = (*it);
                     pointList_.erase(it);
+                    delete point;
+                    point = nullptr;
                 }
                 return true;
             }

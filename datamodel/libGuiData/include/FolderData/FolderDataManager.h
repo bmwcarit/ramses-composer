@@ -7,6 +7,7 @@
 #include <any>
 #include <map>
 #include <regex>
+#include <QStringList>
 
 struct SCurveProperty {
     std::string curve_;
@@ -17,25 +18,43 @@ struct SCurveProperty {
     }
 };
 
-class FolderData {
+class Folder {
 public:
-    FolderData();
+    Folder();
+
+    void clear();
+    std::string createDefaultFolder();
+    std::string createDefaultCurve();
 
     void setVisible(bool visible);
     bool isVisible();
 
-    bool hasFile(std::string curve);
-    std::string getFile(std::string curve);
+    void setParent(Folder *folder);
+    Folder *parent();
 
-    bool insertCurve(std::string file, std::string curve, bool visible = true);
-    bool deleteCurve(std::string file);
-    bool hasCurve(std::string file);
-    SCurveProperty getCurve(std::string file);
-    bool swapCurve(std::string oldKey, std::string newKey);
-    bool modifyCurve(std::string file, std::string curve, bool visible);
-    std::map<std::string, SCurveProperty> getCurveMap();
+    void setFolderName(std::string name);
+    std::string getFolderName();
+
+    bool hasCurve(std::string curve);
+    void insertCurve(SCurveProperty *curveProp);
+    bool insertCurve(std::string curve, bool bVisible = true);
+    SCurveProperty *takeCurve(std::string curve);
+    bool deleteCurve(std::string curve);
+    SCurveProperty *getCurve(std::string curve);
+    std::list<SCurveProperty*> getCurveList();
+
+    bool hasFolder(std::string folderName);
+    void insertFolder(Folder *folder);
+    bool insertFolder(std::string folderName);
+    bool deleteFolder(std::string folderName);
+    Folder *takeFolder(std::string folderName);
+    Folder *getFolder(std::string folderName);
+    std::list<Folder*> getFolderList();
 private:
-    std::map<std::string, SCurveProperty> file2CurveMap_;
+    std::string folderName_;
+    std::list<SCurveProperty*> curveList_;
+    std::list<Folder*> folderList_;
+    Folder *parent_{nullptr};
     bool visible_{true};
 };
 
@@ -43,32 +62,14 @@ class FolderDataManager {
 public:
     FolderDataManager();
 
-    std::string createDefaultFolder();
-
     void clear();
-    bool insertCurve(std::string file, std::string curve, bool visible = true);
-    bool deleteCurve(std::string file);
-    bool hasCurve(std::string file);
-    SCurveProperty getCurve(std::string file);
-    bool swapCurve(std::string oldKey, std::string newKey);
-    bool modifyCurve(std::string file, std::string curve, bool visible);
+    Folder *getDefaultFolder();
 
-    bool hasFile(std::string curve);
-    std::string getFile(std::string curve);
-
-    bool insertFolderData(std::string folder, FolderData folderData);
-    bool hasFolderData(std::string folder);
-    FolderData getFolderData(std::string folder);
-    bool deleteFolderData(std::string folder);
-    bool swapFolder(std::string oldFolder, std::string newFolder);
-    bool replaceFolder(std::string folder, FolderData folderData);
-    bool replaceFolderCurve(std::string folder, std::string file, std::string curve, bool visible);
-    bool setFolderVisible(std::string folder, bool visible);
-    std::map<std::string, FolderData> getFolderMap();
+    bool hasCurve(std::string curveName);
+    bool folderFromCurveName(std::string curveName, Folder *folder, SCurveProperty *curveProp);
+    bool curveNameFromFolder(std::string curve, Folder *folder, std::string &curveName);
 private:
-    std::map<std::string, FolderData> folderMap_;
-    std::map<std::string, SCurveProperty> file2CurveMap_;
-    int index_{1};
+    Folder *defaultFolder_{nullptr};
 };
 
 #endif // FOLDERDATAMANAGER_H

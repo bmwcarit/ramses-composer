@@ -44,6 +44,16 @@ void ButtonDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
 }
 
 QWidget *ButtonDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
+    auto curveFromItem = [=](QStandardItem *item)->QString {
+        QString curve = item->text();
+        while(item->parent()) {
+            item = item->parent();
+            QString tempStr = item->text() + "|";
+            curve.insert(0, tempStr);
+        }
+        return curve;
+    };
+
     QPushButton *btn = new QPushButton(parent);
     btn->setAutoFillBackground(false);
     btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -53,33 +63,27 @@ QWidget *ButtonDelegate::createEditor(QWidget *parent, const QStyleOptionViewIte
     QModelIndex siblingIndex = index.siblingAtColumn(0);
     if (siblingIndex.isValid()) {
         QStandardItem *item = model_->itemFromIndex(siblingIndex);
-
-        if (item->parent()) {
-            std::string folder = item->parent()->text().toStdString();
-            if (folderMgr_->hasFolderData(folder)) {
-                std::string file = item->parent()->child(index.row())->text().toStdString();
-                if (folderMgr_->getFolderData(folder).hasCurve(file)) {
-                    visible = folderMgr_->getFolderData(folder).getCurve(file).visible_;
+        std::string curve = curveFromItem(item).toStdString();
+        Folder *folder{nullptr};
+        SCurveProperty *curveProp{nullptr};
+        if (folderMgr_->folderFromCurveName(curve, folder, curveProp)) {
+            if (curveProp) {
+                visible = curveProp->visible_;
+            } else {
+                if (folder) {
+                    visible = folder->isVisible();
                 }
             }
-        } else {
-            std::string node = item->text().toStdString();
-            if (folderMgr_->hasFolderData(node)) {
-                visible = folderMgr_->getFolderData(node).isVisible();
-            }
-            if (folderMgr_->hasCurve(node)) {
-                visible = folderMgr_->getCurve(node).visible_;
-            }
-            if (item->hasChildren()) {
-                for (int i{0}; i < item->rowCount(); ++i) {
-                    QModelIndex childIndex = item->child(i)->index().siblingAtColumn(1);
-                    if (childIndex.isValid()) {
-                        QPersistentModelIndex perIndex(childIndex);
-                        if (m_iWidgets.contains(perIndex)) {
-                            QWidget *tempWidget = m_iWidgets.value(perIndex);
-                            if (tempWidget) {
-                                tempWidget->setVisible(false);
-                            }
+        }
+        if (item->hasChildren()) {
+            for (int i{0}; i < item->rowCount(); ++i) {
+                QModelIndex childIndex = item->child(i)->index().siblingAtColumn(1);
+                if (childIndex.isValid()) {
+                    QPersistentModelIndex perIndex(childIndex);
+                    if (m_iWidgets.contains(perIndex)) {
+                        QWidget *tempWidget = m_iWidgets.value(perIndex);
+                        if (tempWidget) {
+                            tempWidget->setVisible(false);
                         }
                     }
                 }
@@ -156,6 +160,16 @@ void ButtonDelegate::collapsed(const QModelIndex &index) {
 }
 
 void ButtonDelegate::btnClicked() {
+    auto curveFromItem = [=](QStandardItem *item)->QString {
+        QString curve = item->text();
+        while(item->parent()) {
+            item = item->parent();
+            QString tempStr = item->text() + "|";
+            curve.insert(0, tempStr);
+        }
+        return curve;
+    };
+
     QPushButton *btn = static_cast<QPushButton *>(sender());
     QModelIndex index;
     for (const auto &it : m_iWidgets.toStdMap()) {
@@ -172,21 +186,16 @@ void ButtonDelegate::btnClicked() {
     QModelIndex tSiblingIndex = index.siblingAtColumn(0);
     if (tSiblingIndex.isValid()) {
         QStandardItem *tItem = model_->itemFromIndex(tSiblingIndex);
-        if (tItem->parent()) {
-            std::string folder = tItem->parent()->text().toStdString();
-            if (folderMgr_->hasFolderData(folder)) {
-                std::string file = tItem->parent()->child(index.row())->text().toStdString();
-                if (folderMgr_->getFolderData(folder).hasCurve(file)) {
-                    tVisible = folderMgr_->getFolderData(folder).getCurve(file).visible_;
+        std::string curve = curveFromItem(tItem).toStdString();
+        Folder *folder{nullptr};
+        SCurveProperty *curveProp{nullptr};
+        if (folderMgr_->folderFromCurveName(curve, folder, curveProp)) {
+            if (curveProp) {
+                tVisible = curveProp->visible_;
+            } else {
+                if (folder) {
+                    tVisible = folder->isVisible();
                 }
-            }
-        } else {
-            std::string node = tItem->text().toStdString();
-            if (folderMgr_->hasFolderData(node)) {
-                tVisible = folderMgr_->getFolderData(node).isVisible();
-            }
-            if (folderMgr_->hasCurve(node)) {
-                tVisible = folderMgr_->getCurve(node).visible_;
             }
         }
     }

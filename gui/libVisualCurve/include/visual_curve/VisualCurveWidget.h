@@ -23,6 +23,7 @@ public:
     void createKeyFrame(QString curveName);
     void refreshKeyFrameView();
     int getCurrentKeyFrame();
+    void insertKeyFrame();
     std::map<std::string, std::string> getBindingMap();
 
 protected:
@@ -98,6 +99,10 @@ private:
     // right worker point move
     void rightWorkerPointMove(QMouseEvent *event);
     // curve move
+    void curveMoveX(QMouseEvent *event);
+    // curve move
+    void curveMoveY(QMouseEvent *event);
+    // curve move
     void curveMove(QMouseEvent *event);
     // multi point move
     void multiPointMove(QMouseEvent *event);
@@ -129,6 +134,7 @@ private:
 
     std::map<std::string, std::string> bindingMap_;
 private:
+    KEY_PRESS_ACT pressAction_{KEY_PRESS_NONE};
     QMenu *menu_{nullptr};
     QMenu *interpolationMenu{nullptr};
     QAction *deleteKeyFrameAct_{nullptr};

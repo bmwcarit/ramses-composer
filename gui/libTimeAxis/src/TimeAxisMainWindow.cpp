@@ -71,6 +71,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &TimeAxisMainWindow::slotResetAnimation);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInitAnimationView, this, &TimeAxisMainWindow::slotInitAnimationMgr);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInitCurveView, this, &TimeAxisMainWindow::slotInitCurves);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigSwitchCurrentNode, this, &TimeAxisMainWindow::slotSwitchNode);
     connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateSelKey, visualCurveInfoWidget_, &VisualCurveInfoWidget::slotUpdateSelKey);
     connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateCursorX, visualCurveInfoWidget_, &VisualCurveInfoWidget::slotUpdateCursorX);
     connect(visualCurveWidget_, &VisualCurveWidget::sigDeleteCurve, visualCurveNodeTreeView_, &VisualCurveNodeTreeView::slotDeleteCurveFromVisualCurve);
@@ -324,6 +325,13 @@ void TimeAxisMainWindow::slotInitCurves() {
     visualCurveWidget_->refreshKeyFrameView();
 }
 
+void TimeAxisMainWindow::slotSwitchNode(core::ValueHandle &handle) {
+    if (handle) {
+        std::string node = handle[1].asString();
+        keyFrameMgr_->setCurNodeName(QString::fromStdString(node));
+    }
+}
+
 bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     titleWidget_ = new QWidget(this);
 
@@ -404,6 +412,7 @@ void TimeAxisMainWindow::loadOperation() {
 	if (curItemName_.isEmpty()) {
 		return;
     }
+    keyFrameMgr_->setCurAnimation(curItemName_);
     timeAxisWidget_->stopAnimation();
     animationDataManager::GetInstance().SetActiveAnimation(curItemName_.toStdString());
     animationData data = animationDataManager::GetInstance().getAnimationData(curItemName_.toStdString());

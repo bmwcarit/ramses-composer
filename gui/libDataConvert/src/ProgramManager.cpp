@@ -1023,13 +1023,15 @@ void readJsonFillCustomProperty(QJsonObject jsonObj, NodeData &node) {
 
 void readJsonFillCurveBinding(QJsonObject jsonObj, NodeData &node) {
     QMap<QString, QVariant> varMap = jsonObj.toVariantMap();
-    QString key = varMap.firstKey();
-    QJsonArray curveBindingAry = varMap.first().toJsonArray();
-    for (int i{0}; i < curveBindingAry.size(); ++i) {
-        QJsonObject curveBindingObj = curveBindingAry[i].toObject();
-        std::string curve = curveBindingObj.value(JSON_CURVE).toString().toStdString();
-        std::string property = curveBindingObj.value(JSON_PROPERTY).toString().toStdString();
-        node.NodeExtendRef().curveBindingRef().insertBindingDataItem(key.toStdString(), property, curve);
+    for (auto it : varMap.toStdMap()) {
+        QString key = it.first;
+        QJsonArray curveBindingAry = it.second.toJsonArray();
+        for (int i{0}; i < curveBindingAry.size(); ++i) {
+            QJsonObject curveBindingObj = curveBindingAry[i].toObject();
+            std::string curve = curveBindingObj.value(JSON_CURVE).toString().toStdString();
+            std::string property = curveBindingObj.value(JSON_PROPERTY).toString().toStdString();
+            node.NodeExtendRef().curveBindingRef().insertBindingDataItem(key.toStdString(), property, curve);
+        }
     }
 }
 

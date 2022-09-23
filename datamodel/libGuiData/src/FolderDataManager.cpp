@@ -1,123 +1,23 @@
 #include "FolderData/FolderDataManager.h"
 
-FolderData::FolderData() {
+Folder::Folder() {
 
 }
 
-void FolderData::setVisible(bool visible) {
-    visible_ = visible;
-}
-
-bool FolderData::isVisible() {
-    return visible_;
-}
-
-bool FolderData::hasFile(std::string curve) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (curve == it->second.curve_) {
-            return true;
-        }
-        it++;
+void Folder::clear() {
+    for (auto it = folderList_.begin(); it != folderList_.end(); it++) {
+        (*it)->clear();
+        delete (*it);
+        (*it) = nullptr;
     }
-    return false;
+    folderList_.clear();
 }
 
-std::string FolderData::getFile(std::string curve) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (curve == it->second.curve_) {
-            return it->first;
-        }
-        it++;
-    }
-    return std::string();
-}
-
-bool FolderData::insertCurve(std::string file, std::string curve, bool visible) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (file == it->first) {
-            return false;
-        }
-        it++;
-    }
-    SCurveProperty curvePro(curve);
-    curvePro.visible_ = visible;
-    file2CurveMap_.emplace(file, curvePro);
-    return true;
-}
-
-bool FolderData::deleteCurve(std::string file) {
-    auto it = file2CurveMap_.find(file);
-    if (it != file2CurveMap_.end()) {
-        file2CurveMap_.erase(it);
-        return true;
-    }
-    return false;
-}
-
-bool FolderData::hasCurve(std::string file) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (file == it->first) {
-            return true;
-        }
-        it++;
-    }
-    return false;
-}
-
-SCurveProperty FolderData::getCurve(std::string file) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (it->first == file) {
-            return it->second;
-        }
-        it++;
-    }
-    return SCurveProperty();
-}
-
-bool FolderData::swapCurve(std::string oldKey, std::string newKey) {
-    for (auto it = file2CurveMap_.begin(); it != file2CurveMap_.end(); it++) {
-        if (it->first == oldKey) {
-            SCurveProperty curvePro = it->second;
-            it = file2CurveMap_.erase(it);
-            file2CurveMap_.emplace(newKey, curvePro);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool FolderData::modifyCurve(std::string file, std::string curve, bool visible) {
-    for (auto it = file2CurveMap_.begin(); it != file2CurveMap_.end(); it++) {
-        if (it->first == file) {
-            file2CurveMap_.erase(it);
-
-            SCurveProperty curvePro(curve);
-            curvePro.visible_ = visible;
-            file2CurveMap_.emplace(file, curvePro);
-            return true;
-        }
-    }
-    return false;
-}
-
-std::map<std::string, SCurveProperty> FolderData::getCurveMap() {
-    return file2CurveMap_;
-}
-
-FolderDataManager::FolderDataManager() {
-
-}
-
-std::string FolderDataManager::createDefaultFolder() {
+std::string Folder::createDefaultFolder() {
     auto func = [=](std::string str)->bool {
-        auto it = folderMap_.begin();
-        while (it != folderMap_.end()) {
-            if (str == it->first) {
+        auto it = folderList_.begin();
+        while (it != folderList_.end()) {
+            if (str == (*it)->getFolderName()) {
                 return false;
             }
             it++;
@@ -125,201 +25,254 @@ std::string FolderDataManager::createDefaultFolder() {
         return true;
     };
 
-    std::string folder = "folder" + std::to_string(index_);
+    int index{1};
+    std::string folder = "Node" + std::to_string(index);
     while (!func(folder)) {
-        index_++;
-        folder = "folder" + std::to_string(index_);
+        index++;
+        folder = "Node" + std::to_string(index);
     }
     return folder;
 }
 
+std::string Folder::createDefaultCurve() {
+    auto func = [=](std::string str)->bool {
+        auto it = curveList_.begin();
+        while (it != curveList_.end()) {
+            if (str == (*it)->curve_) {
+                return false;
+            }
+            it++;
+        }
+        return true;
+    };
+
+    int index{1};
+    std::string curve = "Curve" + std::to_string(index);
+    while (!func(curve)) {
+        index++;
+        curve = "Curve" + std::to_string(index);
+    }
+    return curve;
+}
+
+void Folder::setVisible(bool visible) {
+    visible_ = visible;
+}
+
+bool Folder::isVisible() {
+    return visible_;
+}
+
+void Folder::setParent(Folder *folder) {
+    parent_ = folder;
+}
+
+Folder *Folder::parent() {
+    return parent_;
+}
+
+void Folder::setFolderName(std::string name) {
+    folderName_ = name;
+}
+
+std::string Folder::getFolderName() {
+    return folderName_;
+}
+
+bool Folder::hasCurve(std::string curve) {
+    for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
+        if ((*it)->curve_ == curve) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Folder::insertCurve(SCurveProperty *curveProp) {
+    curveList_.push_back(curveProp);
+}
+
+bool Folder::insertCurve(std::string curve, bool bVisible) {
+    for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
+        if ((*it)->curve_ == curve) {
+            return false;
+        }
+    }
+    SCurveProperty *curveProp = new SCurveProperty(curve);
+    curveProp->visible_ = bVisible;
+    curveList_.push_back(curveProp);
+    return true;
+}
+
+SCurveProperty *Folder::takeCurve(std::string curve) {
+    for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
+        if ((*it)->curve_ == curve) {
+            SCurveProperty *curveProp = *it;
+            curveList_.erase(it);
+            return curveProp;
+        }
+    }
+    return nullptr;
+}
+
+bool Folder::deleteCurve(std::string curve) {
+    for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
+        if ((*it)->curve_ == curve) {
+            SCurveProperty *curveProp = *it;
+            curveList_.erase(it);
+            delete curveProp;
+            curveProp = nullptr;
+            return true;
+        }
+    }
+    return false;
+}
+
+SCurveProperty *Folder::getCurve(std::string curve) {
+    for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
+        if ((*it)->curve_ == curve) {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+
+std::list<SCurveProperty *> Folder::getCurveList() {
+    return curveList_;
+}
+
+bool Folder::hasFolder(std::string folderName) {
+    for (auto it = folderList_.begin(); it != folderList_.end(); it++) {
+        if ((*it)->getFolderName() == folderName) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Folder::insertFolder(Folder *folder) {
+    folderList_.push_back(folder);
+}
+
+bool Folder::insertFolder(std::string folderName) {
+    for (auto it = folderList_.begin(); it != folderList_.end(); it++) {
+        if ((*it)->getFolderName() == folderName) {
+            return false;
+        }
+    }
+    Folder *folder = new Folder;
+    folder->setFolderName(folderName);
+    folderList_.push_back(folder);
+    return true;
+}
+
+bool Folder::deleteFolder(std::string folderName) {
+    for (auto it = folderList_.begin(); it != folderList_.end(); it++) {
+        if ((*it)->getFolderName() == folderName) {
+            Folder *folder = *it;
+            folderList_.erase(it);
+            folder->clear();
+            delete folder;
+            folder = nullptr;
+            return true;
+        }
+    }
+    return false;
+}
+
+Folder *Folder::takeFolder(std::string folderName) {
+    for (auto it = folderList_.begin(); it != folderList_.end(); it++) {
+        if ((*it)->getFolderName() == folderName) {
+            Folder *folder = *it;
+            folderList_.erase(it);
+            return folder;
+        }
+    }
+    return nullptr;
+}
+
+Folder *Folder::getFolder(std::string folderName) {
+    for (auto it = folderList_.begin(); it != folderList_.end(); it++) {
+        if ((*it)->getFolderName() == folderName) {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+
+std::list<Folder *> Folder::getFolderList() {
+    return folderList_;
+}
+
+FolderDataManager::FolderDataManager() {
+    defaultFolder_ = new Folder;
+}
+
 void FolderDataManager::clear() {
-    folderMap_.clear();
-    file2CurveMap_.clear();
-    index_ = 1;
+    defaultFolder_->clear();
 }
 
-bool FolderDataManager::insertCurve(std::string file, std::string curve, bool visible) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (file == it->first) {
+Folder *FolderDataManager::getDefaultFolder() {
+    return defaultFolder_;
+}
+
+bool FolderDataManager::hasCurve(std::string curveName) {
+    auto getFolder = [=](Folder *f, std::string node)->bool {
+        f = f->getFolder(node);
+        if (!f) {
             return false;
         }
-        it++;
+        return true;
+    };
+
+    QStringList list = QString::fromStdString(curveName).split("|");
+    std::string curve = list.takeLast().toStdString();
+    Folder *folder = defaultFolder_;
+    for (const QString &node : list) {
+        if (!getFolder(folder, node.toStdString())) {
+            return false;
+        }
     }
-    SCurveProperty curvePro(curve);
-    curvePro.visible_ = visible;
-    file2CurveMap_.emplace(file, curvePro);
+    SCurveProperty *curveProp = folder->getCurve(curve);
+    if (curveProp) {
+        return true;
+    }
+    return false;
+}
+
+bool FolderDataManager::folderFromCurveName(std::string curveName, Folder *folder, SCurveProperty *curveProp) {
+    auto getFolder = [=](Folder *f, std::string node)->bool {
+        f = f->getFolder(node);
+        if (!f) {
+            return false;
+        }
+        return true;
+    };
+
+    QStringList list = QString::fromStdString(curveName).split("|");
+    std::string curve = list.takeLast().toStdString();
+    folder = defaultFolder_;
+    for (const QString &node : list) {
+        if (!getFolder(folder, node.toStdString())) {
+            return false;
+        }
+    }
+    curveProp = folder->getCurve(curve);
     return true;
 }
 
-bool FolderDataManager::deleteCurve(std::string file) {
-    auto it = file2CurveMap_.find(file);
-    if (it != file2CurveMap_.end()) {
-        file2CurveMap_.erase(it);
-        return true;
+bool FolderDataManager::curveNameFromFolder(std::string curve, Folder *folder, std::string &curveName) {
+    if (!folder) {
+        return false;
     }
-    return false;
-}
-
-bool FolderDataManager::hasCurve(std::string file) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (file == it->first) {
-            return true;
-        }
-        it++;
+    curveName = folder->getFolderName() + "|" + curve;
+    while (!folder->parent()) {
+        folder = folder->parent();
+        std::string str = folder->getFolderName() + "|";
+        curveName = str + curveName;
     }
-    return false;
-}
-
-SCurveProperty FolderDataManager::getCurve(std::string file) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (it->first == file) {
-            return it->second;
-        }
-        it++;
-    }
-    return SCurveProperty();
-}
-
-bool FolderDataManager::swapCurve(std::string oldKey, std::string newKey) {
-    for (auto it = file2CurveMap_.begin(); it != file2CurveMap_.end(); it++) {
-        if (it->first == oldKey) {
-            SCurveProperty curvePro = it->second;
-            it = file2CurveMap_.erase(it);
-            file2CurveMap_.emplace(newKey, curvePro);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool FolderDataManager::modifyCurve(std::string file, std::string curve, bool visible) {
-    for (auto it = file2CurveMap_.begin(); it != file2CurveMap_.end(); it++) {
-        if (it->first == file) {
-            file2CurveMap_.erase(it);
-
-            SCurveProperty curvePro(curve);
-            curvePro.visible_ = visible;
-            file2CurveMap_.emplace(file, curvePro);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool FolderDataManager::hasFile(std::string curve) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (curve == it->second.curve_) {
-            return true;
-        }
-        it++;
-    }
-    return false;
-}
-
-std::string FolderDataManager::getFile(std::string curve) {
-    auto it = file2CurveMap_.begin();
-    while (it != file2CurveMap_.end()) {
-        if (curve == it->second.curve_) {
-            return it->first;
-        }
-        it++;
-    }
-    return std::string();
-}
-
-bool FolderDataManager::insertFolderData(std::string folder, FolderData folderData) {
-    auto it = folderMap_.begin();
-    while (it != folderMap_.end()) {
-        if (folder == it->first) {
-            return false;
-        }
-        it++;
-    }
-    folderMap_.emplace(folder, folderData);
     return true;
 }
 
-bool FolderDataManager::hasFolderData(std::string folder) {
-    auto it = folderMap_.begin();
-    while (it != folderMap_.end()) {
-        if (it->first == folder) {
-            return true;
-        }
-        it++;
-    }
-    return false;
-}
 
-FolderData FolderDataManager::getFolderData(std::string folder) {
-    auto it = folderMap_.begin();
-    while (it != folderMap_.end()) {
-        if (it->first == folder) {
-            return it->second;
-        }
-        it++;
-    }
-    return FolderData();
-}
-
-bool FolderDataManager::deleteFolderData(std::string folder) {
-    auto it = folderMap_.find(folder);
-    if (it != folderMap_.end()) {
-        folderMap_.erase(it);
-        return true;
-    }
-    return false;
-}
-
-bool FolderDataManager::swapFolder(std::string oldFolder, std::string newFolder) {
-    auto it = folderMap_.begin();
-    while (it != folderMap_.end()) {
-        if (oldFolder == it->first) {
-            FolderData folderData = it->second;
-            folderMap_.erase(it);
-            folderMap_.emplace(newFolder, folderData);
-            return true;
-        }
-        it++;
-    }
-    return false;
-}
-
-bool FolderDataManager::replaceFolder(std::string folder, FolderData folderData) {
-    auto it = folderMap_.begin();
-    while (it != folderMap_.end()) {
-        if (folder == it->first) {
-            folderMap_.erase(it);
-            folderMap_.emplace(folder, folderData);
-            return true;
-        }
-        it++;
-    }
-    return false;
-}
-
-bool FolderDataManager::replaceFolderCurve(std::string folder, std::string file, std::string curve, bool visible) {
-    auto it = folderMap_.find(folder);
-    if (it != folderMap_.end()) {
-        return it->second.modifyCurve(file, curve, visible);
-    }
-    return false;
-}
-
-bool FolderDataManager::setFolderVisible(std::string folder, bool visible) {
-    auto it = folderMap_.find(folder);
-    if (it != folderMap_.end()) {
-        it->second.setVisible(visible);
-        return true;
-    }
-    return false;
-}
-
-std::map<std::string, FolderData> FolderDataManager::getFolderMap() {
-    return folderMap_;
-}
 

@@ -29,7 +29,7 @@ public:
     virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
     Qt::DropActions supportedDropActions() const override;
     virtual QMimeData *mimeData(const QModelIndexList &indexes) const override;
-    bool move(QModelIndex source, int sourceRow, QModelIndex dest, int destRow);
+    bool move(QModelIndex source, int sourceRow, QModelIndex &dest, int destRow);
 signals:
     void moveOneRow(const QModelIndex &source);
 private:
@@ -51,6 +51,7 @@ public Q_SLOTS:
     void slotShowContextMenu(const QPoint &p);
     void slotCreateFolder();
     void slotDeleteFolder();
+    void slotCreateCurve();
     void slotDeleteCurve();
     void slotItemChanged(QStandardItem *item);
     void slotCurrentRowChanged(const QModelIndex &index);
@@ -62,12 +63,15 @@ signals:
     void sigSwitchVisualCurveInfoWidget();
 private:
     void searchCurve(NodeData *pNode, std::string &property, std::string curve, std::string sampleProp);
+    bool itemFromPath(QStandardItem* item, QString node);
+    QString curveFromItem(QStandardItem *item);
 private:
     TreeModel *model_{nullptr};
     QTreeView *visualCurveTreeView_{nullptr};
     QMenu *menu_{nullptr};
     QAction *createFolder_{nullptr};
     QAction *deleteFolder_{nullptr};
+    QAction *createCurve_{nullptr};
     QAction *deleteCurve_{nullptr};
     FolderDataManager *folderDataMgr_{nullptr};
     std::string selNode_;

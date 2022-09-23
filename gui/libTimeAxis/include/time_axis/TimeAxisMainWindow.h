@@ -49,6 +49,7 @@ public Q_SLOTS:
     void slotCreateKeyFrame(QString curve);
     void slotRefreshTimeAxis();
     void slotInitCurves();
+    void slotSwitchNode(raco::core::ValueHandle &handle);
     void startOrStopAnimation();
     void slotUpdateAnimation();
     void slotUpdateAnimationKey(QString oldKey, QString newKey);

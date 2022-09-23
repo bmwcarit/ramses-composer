@@ -53,6 +53,8 @@ Q_SIGNALS:
     //
     void sigUpdateCustomProperty_From_PropertyUI();
     //
+    void sigSwitchCurrentNode(raco::core::ValueHandle &handle);
+    //
     void sigResetAllData_From_MainWindow();
     //
     void sigInitPropertyView();

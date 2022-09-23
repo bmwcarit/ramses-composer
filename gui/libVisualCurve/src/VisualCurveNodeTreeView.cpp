@@ -12,64 +12,89 @@ void TreeModel::setFolderData(FolderDataManager *mgr) {
 }
 
 bool TreeModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) {
+    auto curveFromItem = [=](QStandardItem *item)->QString {
+        QString curve = item->text();
+        while(item->parent()) {
+            item = item->parent();
+            QString tempStr = item->text() + "|";
+            curve.insert(0, tempStr);
+        }
+        return curve;
+    };
+
     QByteArray array = data->data("test");
     QDataStream stream(&array, QIODevice::ReadOnly);
     qint64 p;
     stream >> p;
-    QModelIndex* index = (QModelIndex*)p;
+    QModelIndex tempParent = parent;
     QStandardItem *parentItem = itemFromIndex(parent);
-    QStandardItem *item = itemFromIndex(*index);
+    QModelIndex* index = (QModelIndex*)p;
 
     if (index) {
-        if (parentItem && item) {
-            std::string folder = parentItem->text().toStdString();
-            if (folderDataMgr_->hasFolderData(folder)) {
-                FolderData folderData = folderDataMgr_->getFolderData(folder);
-                std::string file = item->text().toStdString();
-                if (item->parent()) {
-                    std::string sourcefolder = item->parent()->text().toStdString();
-                    FolderData sourceFolderData = folderDataMgr_->getFolderData(sourcefolder);
-                    SCurveProperty curve = sourceFolderData.getCurve(file);
-                    sourceFolderData.deleteCurve(file);
-                    folderDataMgr_->replaceFolder(sourcefolder, sourceFolderData);
-
-                    folderData.insertCurve(file, curve.curve_, curve.visible_);
-                    folderDataMgr_->replaceFolder(folder, folderData);
-                } else {
-                    if (!folderDataMgr_->hasCurve(file)) {
-                        return false;
+        QStandardItem *item = itemFromIndex(*index);
+        std::string curvePath = curveFromItem(item).toStdString();
+        Folder *folder{nullptr};
+        SCurveProperty *curveProp{nullptr};
+        if (folderDataMgr_->folderFromCurveName(curvePath, folder, curveProp)) {
+            if (folder) {
+                if (curveProp) {
+                    folder->takeCurve(curveProp->curve_);
+                    if (parentItem) {
+                        std::string destCurvePath = curveFromItem(parentItem).toStdString();
+                        Folder *destFolder{nullptr};
+                        SCurveProperty *destCurveProp{nullptr};
+                        if (folderDataMgr_->folderFromCurveName(destCurvePath, destFolder, destCurveProp)) {
+                            if (destFolder && !destCurveProp) {
+                                destFolder->insertCurve(curveProp);
+                                move(index->parent(), index->row(), tempParent, parentItem->rowCount());
+                                if (CurveManager::GetInstance().getCurve(curvePath)) {
+                                    destCurvePath = destCurvePath + "|" + curveProp->curve_;
+                                    Curve *curve = CurveManager::GetInstance().getCurve(curvePath);
+                                    curve->setCurveName(destCurvePath);
+                                }
+                            }
+                        }
+                    } else {
+                        folderDataMgr_->getDefaultFolder()->insertCurve(curveProp);
+                        move(index->parent(), index->row(), tempParent, rowCount());
+                        if (CurveManager::GetInstance().getCurve(curvePath)) {
+                            Curve *curve = CurveManager::GetInstance().getCurve(curvePath);
+                            curve->setCurveName(curveProp->curve_);
+                        }
                     }
-                    SCurveProperty curve = folderDataMgr_->getCurve(file);
-                    folderDataMgr_->deleteCurve(file);
-                    folderData.insertCurve(file, curve.curve_, curve.visible_);
-                    folderDataMgr_->replaceFolder(folder, folderData);
+                } else {
+                    folder->parent()->takeFolder(folder->getFolderName());
+                    if (parentItem) {
+                        std::string destCurvePath = curveFromItem(parentItem).toStdString();
+                        Folder *destFolder{nullptr};
+                        SCurveProperty *destCurveProp{nullptr};
+                        if (folderDataMgr_->folderFromCurveName(destCurvePath, destFolder, destCurveProp)) {
+                            if (destFolder && !destCurveProp) {
+                                destFolder->insertFolder(folder);
+                                move(index->parent(), index->row(), tempParent, parentItem->rowCount());
+                            }
+                        }
+                    } else {
+                        folderDataMgr_->getDefaultFolder()->insertFolder(folder);
+                        move(index->parent(), index->row(), tempParent, rowCount());
+                    }
                 }
-                move(index->parent(), index->row(), parent, parentItem->rowCount());
             } else {
-                return false;
-            }
-        } else {
-            if (item) {
-                if (!item->parent()) {
+                if (parentItem) {
+                    folderDataMgr_->getDefaultFolder()->insertCurve(curvePath);
+                    move(index->parent(), index->row(), tempParent, parentItem->rowCount());
+                    if (CurveManager::GetInstance().getCurve(curvePath)) {
+                        Curve *curve = CurveManager::GetInstance().getCurve(curvePath);
+                        std::string destCurve = parentItem->text().toStdString() + "|" + curvePath;
+                        curve->setCurveName(destCurve);
+                    }
+                } else {
                     return false;
                 }
-                std::string folder = item->parent()->text().toStdString();
-                std::string file = item->text().toStdString();
-                if (folderDataMgr_->hasFolderData(folder)) {
-                    FolderData folderData = folderDataMgr_->getFolderData(folder);
-                    if (folderData.hasCurve(file)) {
-                        SCurveProperty curve = folderData.getCurve(file);
-                        folderData.deleteCurve(file);
-                        folderDataMgr_->replaceFolder(folder, folderData);
-
-                        folderDataMgr_->insertCurve(file, curve.curve_, curve.visible_);
-                    }
-                }
             }
-            move(index->parent(), index->row(), parent, rowCount());
         }
+        delete index;
     }
-    delete index;
     return true;
 }
 
@@ -80,22 +105,19 @@ Qt::DropActions TreeModel::supportedDropActions() const {
 QMimeData *TreeModel::mimeData(const QModelIndexList &indexes) const {
     QMimeData* mimeData = QAbstractItemModel::mimeData(indexes);
 
+    QVector<qint64> vector;
+    QByteArray array;
     for (int i = 0; i < indexes.count(); i++) {
         QModelIndex index = indexes[i];
-        QStandardItem *item = itemFromIndex(index);
-        if (!item->hasChildren()) {
-            QModelIndex* p = new QModelIndex(index);
-            QByteArray array;
-            QDataStream stream(&array, QIODevice::WriteOnly);
-            stream << (qint64)p;
-            mimeData->setData(QString("test"), array);
-        }
-        return mimeData;
+        QModelIndex* p = new QModelIndex(index);
+        QDataStream stream(&array, QIODevice::WriteOnly);
+        stream << (qint64)p;
+        mimeData->setData(QString("test"), array);
     }
     return mimeData;
 }
 
-bool TreeModel::move(QModelIndex source, int sourceRow, QModelIndex dest, int destRow) {
+bool TreeModel::move(QModelIndex source, int sourceRow, QModelIndex &dest, int destRow) {
     if (sourceRow < 0 || destRow < 0) {
         return false;
     }
@@ -111,13 +133,15 @@ bool TreeModel::move(QModelIndex source, int sourceRow, QModelIndex dest, int de
             itemList = sourceItem->takeRow(sourceRow);
         } else {
             itemList = takeRow(sourceRow);
-            to = sourceRow < to ? to - 1 : to;
+            if (sourceRow < to) {
+                to -= 1;
+                dest = item(to)->index();
+            }
         }
 
         QStandardItem *destItem = item(to);
-        QModelIndex destIndex = item(to)->index();
         blockSignals(true);
-        beginInsertRows(destIndex, destRow, destRow);
+        beginInsertRows(dest, destRow, destRow);
         if(destItem) {
             destItem->insertRow(destRow, itemList);
         }
@@ -158,6 +182,7 @@ VisualCurveNodeTreeView::VisualCurveNodeTreeView(QWidget *parent)
     visualCurveTreeView_->setDropIndicatorShown(true);
     visualCurveTreeView_->setDragDropOverwriteMode(true);
     visualCurveTreeView_->setDefaultDropAction(Qt::DropAction::MoveAction);
+    visualCurveTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     folderDataMgr_ = new FolderDataManager;
     model_->setFolderData(folderDataMgr_);
@@ -177,12 +202,14 @@ VisualCurveNodeTreeView::VisualCurveNodeTreeView(QWidget *parent)
     menu_ = new QMenu{this};
     createFolder_ = new QAction("Create Floder");
     deleteFolder_ = new QAction("Delete Floder");
+    createCurve_ = new QAction("Create Curve");
     deleteCurve_ = new QAction("Delete Curve");
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &VisualCurveNodeTreeView::customContextMenuRequested, this, &VisualCurveNodeTreeView::slotShowContextMenu);
     connect(createFolder_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotCreateFolder);
     connect(deleteFolder_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDeleteFolder);
+    connect(createCurve_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotCreateCurve);
     connect(deleteCurve_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDeleteCurve);
     connect(model_, &QStandardItemModel::itemChanged, this, &VisualCurveNodeTreeView::slotItemChanged);
     connect(visualCurveTreeView_, &QTreeView::pressed, this, &VisualCurveNodeTreeView::slotCurrentRowChanged);
@@ -202,58 +229,31 @@ void VisualCurveNodeTreeView::initCurves() {
 
     for (auto curve : CurveManager::GetInstance().getCurveList()) {
         QStandardItem *curveItem = new QStandardItem(QString::fromStdString(curve->getCurveName()));
-        folderDataMgr_->insertCurve(curve->getCurveName(), curve->getCurveName());
+        folderDataMgr_->getDefaultFolder()->insertCurve(curve->getCurveName());
         model_->appendRow(curveItem);
     }
-
-//    std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
-//    NodeData* nodeData = NodeDataManager::GetInstance().getActiveNode();
-//    std::map<std::string, std::string> bindingMap;
-//    if (nodeData) {
-//        nodeData->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingMap);
-//    }
-
-//    for (auto it : bindingMap) {
-//        std::list<Curve *> curveList = CurveManager::GetInstance().getCurveList();
-//        std::string curve = it.second;
-//        QStandardItem *curveItem = new QStandardItem(QString::fromStdString(curve));
-//        if (!folderDataMgr_->hasFile(curve)) {
-//            folderDataMgr_->insertCurve(curve, curve);
-//        }
-//        model_->appendRow(curveItem);
-//    }
 }
 
 void VisualCurveNodeTreeView::switchCurSelCurve(std::string curve) {
-    if (folderDataMgr_->hasFile(curve)) {
-        std::string file = folderDataMgr_->getFile(curve);
-        for (int i{0}; i < model_->rowCount(); i++) {
-            QStandardItem *item = model_->item(i);
-            if (item->text().compare(QString::fromStdString(file)) == 0) {
-                visualCurveTreeView_->setCurrentIndex(item->index());
-                slotCurrentRowChanged(item->index());
-            }
-        }
-    } else {
-        for (auto it : folderDataMgr_->getFolderMap()) {
-            if (it.second.hasFile(curve)) {
-                std::string file = it.second.getFile(curve);
-                std::string folder = it.first;
-                for (int i{0}; i < model_->rowCount(); i++) {
-                    QStandardItem *item = model_->item(i);
-                    if (item->text().compare(QString::fromStdString(folder)) == 0) {
-                        for (int j{0}; j < item->rowCount(); ++j) {
-                            QStandardItem *childItem = item->child(j);
-                            if (childItem->text().compare(QString::fromStdString(file)) == 0) {
-                                visualCurveTreeView_->setCurrentIndex(childItem->index());
-                                slotCurrentRowChanged(childItem->index());
-                            }
-                        }
-                    }
-                }
-            }
+    QStringList list = QString::fromStdString(curve).split("|");
+    QString root = list.takeFirst();
+    QStandardItem *item{nullptr};
+    for (int i{0}; i < model_->rowCount(); i++) {
+        if (model_->item(i)->text() == root) {
+            item = model_->item(i);
         }
     }
+    if (!item) {
+        return;
+    }
+
+    for (const QString &node : list) {
+        if (!itemFromPath(item, node)) {
+            return;
+        }
+    }
+    visualCurveTreeView_->setCurrentIndex(item->index());
+    slotCurrentRowChanged(item->index());
 }
 
 void VisualCurveNodeTreeView::cancleSelCurve() {
@@ -263,7 +263,7 @@ void VisualCurveNodeTreeView::cancleSelCurve() {
 void VisualCurveNodeTreeView::slotInsertCurve(QString property, QString curve, QVariant value) {
     QStandardItem *curveItem = new QStandardItem(curve);
     model_->appendRow(curveItem);
-    folderDataMgr_->insertCurve(curve.toStdString(), curve.toStdString());
+    folderDataMgr_->getDefaultFolder()->insertCurve(curve.toStdString());
 }
 
 void VisualCurveNodeTreeView::slotRefrenceBindingCurve(std::string smapleProp, std::string prop, std::string curve) {
@@ -277,21 +277,43 @@ void VisualCurveNodeTreeView::slotShowContextMenu(const QPoint &p) {
 
     menu_->clear();
     if (item) {
-        std::string node = item->text().toStdString();
-        if (folderDataMgr_->hasFolderData(node)) {
-            menu_->addAction(deleteFolder_);
-        } else {
+        std::string curve = curveFromItem(item).toStdString();
+        if (folderDataMgr_->hasCurve(curve)) {
             menu_->addAction(deleteCurve_);
+        } else {
+            menu_->addAction(deleteFolder_);
         }
     }
     menu_->addAction(createFolder_);
+    menu_->addAction(createCurve_);
     menu_->exec(mapToGlobal(p));
 }
 
 void VisualCurveNodeTreeView::slotCreateFolder() {
-    std::string folder = folderDataMgr_->createDefaultFolder();
-    QStandardItem *folderItem = new QStandardItem(QString::fromStdString(folder));
-    folderDataMgr_->insertFolderData(folder, FolderData());
+    QModelIndex index = visualCurveTreeView_->currentIndex();
+    if (index.isValid()) {
+        QStandardItem *item = model_->itemFromIndex(index);
+        std::string curve = curveFromItem(item).toStdString();
+
+        Folder *folder{nullptr};
+        SCurveProperty *curveProp{nullptr};
+        if (folderDataMgr_->folderFromCurveName(curve, folder, curveProp)) {
+            if (folder) {
+                std::string defaultFolder = folder->createDefaultFolder();
+                QStandardItem *folderItem = new QStandardItem(QString::fromStdString(defaultFolder));
+                folder->insertFolder(defaultFolder);
+                if (curveProp) {
+                    item->parent()->appendRow(folderItem);
+                } else {
+                    item->appendRow(folderItem);
+                }
+                return;
+            }
+        }
+    }
+    std::string defaultFolder = folderDataMgr_->getDefaultFolder()->createDefaultFolder();
+    QStandardItem *folderItem = new QStandardItem(QString::fromStdString(defaultFolder));
+    folderDataMgr_->getDefaultFolder()->insertFolder(defaultFolder);
     model_->appendRow(folderItem);
 }
 
@@ -308,25 +330,59 @@ void VisualCurveNodeTreeView::slotDeleteFolder() {
                 return;
             }
 
-            std::string folder = item->text().toStdString();
-            if (folderDataMgr_->hasFolderData(folder)) {
-                for (const auto &it : folderDataMgr_->getFolderData(folder).getCurveMap()) {
-                    CurveManager::GetInstance().delCurve(it.second.curve_);
-                    VisualCurvePosManager::GetInstance().deleteKeyPointList(it.second.curve_);
-                    VisualCurvePosManager::GetInstance().deleteWorkerPointList(it.second.curve_);
+            Folder *folder{nullptr};
+            SCurveProperty *curveProp{nullptr};
+            std::string curve = curveFromItem(item).toStdString();
+            if (folderDataMgr_->folderFromCurveName(curve, folder, curveProp)) {
+                if (folder) {
+                    for (auto it : folder->getCurveList()) {
+                        CurveManager::GetInstance().delCurve(it->curve_);
+                        VisualCurvePosManager::GetInstance().deleteKeyPointList(it->curve_);
+                        VisualCurvePosManager::GetInstance().deleteWorkerPointList(it->curve_);
+                    }
+                    folder->parent()->deleteFolder(item->text().toStdString());
                 }
-                folderDataMgr_->deleteFolderData(folder);
             }
         }
-        model_->removeRow(selected.row());
+        model_->removeRow(selected.row(), selected.parent());
         Q_EMIT sigRefreshVisualCurve();
     }
+}
+
+void VisualCurveNodeTreeView::slotCreateCurve() {
+    std::string curve;
+    QModelIndex selected = visualCurveTreeView_->currentIndex();
+    if (selected.isValid()) {
+        QStandardItem *item = model_->itemFromIndex(selected);
+        std::string curCurve = curveFromItem(item).toStdString();
+        Folder *folder{nullptr};
+        SCurveProperty *curveProp{nullptr};
+        if (folderDataMgr_->folderFromCurveName(curCurve, folder, curveProp)) {
+            if (folder) {
+                curve = folder->createDefaultCurve();
+                folder->insertCurve(curve);
+                QStandardItem *curveItem = new QStandardItem(QString::fromStdString(curve));
+                if (curveProp) {
+                    item->parent()->appendRow(curveItem);
+                } else {
+                    item->appendRow(curveItem);
+                }
+                return;
+            }
+        }
+    }
+    curve = folderDataMgr_->getDefaultFolder()->createDefaultCurve();
+    QStandardItem *curveItem = new QStandardItem(QString::fromStdString(curve));
+    model_->appendRow(curveItem);
+
+    Curve *tempCurve = new Curve;
+    tempCurve->setCurveName(curve);
+    CurveManager::GetInstance().addCurve(tempCurve);
 }
 
 void VisualCurveNodeTreeView::slotDeleteCurve() {
     QModelIndex selected = visualCurveTreeView_->currentIndex();
     QStandardItem *item = model_->itemFromIndex(selected);
-    QStandardItem *parentItem = item->parent();
     if (item) {
         QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Ramses Composer",
             tr("Delete Curve?\n"),
@@ -336,29 +392,19 @@ void VisualCurveNodeTreeView::slotDeleteCurve() {
             return;
         }
 
-        if (parentItem) {
-            std::string folder = parentItem->text().toStdString();
-            std::string file = item->text().toStdString();
-            if (folderDataMgr_->hasFolderData(folder)) {
-                FolderData folderData = folderDataMgr_->getFolderData(folder);
-                if (folderData.hasCurve(file)) {
-                    std::string curve = folderData.getCurve(file).curve_;
-                    folderData.deleteCurve(file);
-                    folderDataMgr_->replaceFolder(folder, folderData);
-                    CurveManager::GetInstance().delCurve(curve);
-                    VisualCurvePosManager::GetInstance().deleteKeyPointList(curve);
-                    VisualCurvePosManager::GetInstance().deleteWorkerPointList(curve);
-                }
+        std::string curve = item->text().toStdString();
+        std::string curvePath = curveFromItem(item).toStdString();
+        Folder *folder{nullptr};
+        SCurveProperty *curveProp{nullptr};
+        if (folderDataMgr_->folderFromCurveName(curvePath, folder, curveProp)) {
+            if (folder) {
+                folder->deleteCurve(curve);
+            } else {
+                folderDataMgr_->getDefaultFolder()->deleteCurve(curvePath);
             }
-        } else {
-            std::string file = item->text().toStdString();
-            if (folderDataMgr_->hasCurve(file)) {
-                std::string curve = folderDataMgr_->getCurve(file).curve_;
-                folderDataMgr_->deleteCurve(curve);
-                CurveManager::GetInstance().delCurve(curve);
-                VisualCurvePosManager::GetInstance().deleteKeyPointList(curve);
-                VisualCurvePosManager::GetInstance().deleteWorkerPointList(curve);
-            }
+            CurveManager::GetInstance().delCurve(curvePath);
+            VisualCurvePosManager::GetInstance().deleteKeyPointList(curvePath);
+            VisualCurvePosManager::GetInstance().deleteWorkerPointList(curvePath);
         }
         model_->removeRow(selected.row(), selected.parent());
         Q_EMIT sigRefreshVisualCurve();
@@ -366,73 +412,47 @@ void VisualCurveNodeTreeView::slotDeleteCurve() {
 }
 
 void VisualCurveNodeTreeView::slotItemChanged(QStandardItem *item) {
-    QStandardItem *parentItem = item->parent();
-    if (parentItem) {
-        std::string folder = parentItem->text().toStdString();
-        if (folderDataMgr_->hasFolderData(folder)) {
-            FolderData folderData = folderDataMgr_->getFolderData(folder);
-            std::string file = item->text().toStdString();
-            if (folderData.hasCurve(selNode_)) {
-                if (folderData.hasCurve(file)) {
-                    item->setText(QString::fromStdString(selNode_));
-                    return;
-                }
-                folderData.swapCurve(selNode_, file);
-                folderDataMgr_->replaceFolder(folder, folderData);
-            }
-        }
-    } else {
-        std::string node = item->text().toStdString();
-        if (folderDataMgr_->hasCurve(selNode_)) {
-            if (folderDataMgr_->hasCurve(node)) {
-                item->setText(QString::fromStdString(selNode_));
-                return;
-            }
-            folderDataMgr_->swapCurve(selNode_, node);
-        }
-        if (folderDataMgr_->hasFolderData(selNode_)) {
-            if (folderDataMgr_->hasFolderData(node)) {
-                item->setText(QString::fromStdString(selNode_));
-                return;
-            }
-            folderDataMgr_->swapFolder(selNode_, node);
+    auto swapPoints = [=](std::string oldCurve, std::string newCurve) {
+        QList<SKeyPoint> keyPoints;
+        QList<QPair<QPointF, QPointF>> workerPoints;
+
+        VisualCurvePosManager::GetInstance().getKeyPointList(oldCurve, keyPoints);
+        VisualCurvePosManager::GetInstance().getWorkerPointList(oldCurve, workerPoints);
+        VisualCurvePosManager::GetInstance().deleteKeyPointList(oldCurve);
+        VisualCurvePosManager::GetInstance().deleteWorkerPointList(oldCurve);
+        VisualCurvePosManager::GetInstance().addKeyPointList(newCurve, keyPoints);
+        VisualCurvePosManager::GetInstance().addWorkerPointList(newCurve, workerPoints);
+    };
+
+    std::string curve = item->text().toStdString();
+    std::string curvePath = selNode_;
+    Folder *folder{nullptr};
+    SCurveProperty *curveProp{nullptr};
+    if (folderDataMgr_->folderFromCurveName(curvePath, folder, curveProp)) {
+        if (curveProp) {
+            curveProp->curve_ = curve;
+            std::string newCurve;
+            folderDataMgr_->curveNameFromFolder(curve, folder, newCurve);
+            swapPoints(curvePath, newCurve);
+            Q_EMIT signal::signalProxy::GetInstance().sigCheckCurveBindingValid_From_CurveUI();
         }
     }
 }
 
 void VisualCurveNodeTreeView::slotCurrentRowChanged(const QModelIndex &index) {
     QStandardItem *item = model_->itemFromIndex(index);
-    selNode_ = item->text().toStdString();
+    std::string curvePath = curveFromItem(item).toStdString();
+    selNode_ = curvePath;
 
     std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
-    if (item->parent()) {
-        QStandardItem *parentItem = item->parent();
-        std::string folder = parentItem->text().toStdString();
-        std::string file = item->text().toStdString();
-        if (folderDataMgr_->hasFolderData(folder)) {
-            if (folderDataMgr_->getFolderData(folder).hasCurve(file)) {
-                std::string curve = folderDataMgr_->getFolderData(folder).getCurve(file).curve_;
-                if (curCurve != curve) {
-                    VisualCurvePosManager::GetInstance().setCurrentPointInfo(curve, 0);
-                    VisualCurvePosManager::GetInstance().setPressAction(MOUSE_PRESS_ACTION::MOUSE_PRESS_KEY);
-                    Q_EMIT sigSwitchVisualCurveInfoWidget();
-                    Q_EMIT sigRefreshVisualCurve();
-                }
-                return;
-            }
+    if (folderDataMgr_->hasCurve(curvePath)) {
+        if (curCurve != curvePath) {
+            VisualCurvePosManager::GetInstance().setCurrentPointInfo(curvePath, 0);
+            VisualCurvePosManager::GetInstance().setPressAction(MOUSE_PRESS_ACTION::MOUSE_PRESS_KEY);
+            Q_EMIT sigSwitchVisualCurveInfoWidget();
+            Q_EMIT sigRefreshVisualCurve();
         }
-    } else {
-        std::string file = item->text().toStdString();
-        if (folderDataMgr_->hasCurve(file)) {
-            std::string curve = folderDataMgr_->getCurve(file).curve_;
-            if (curCurve != curve) {
-                VisualCurvePosManager::GetInstance().setCurrentPointInfo(curve, 0);
-                VisualCurvePosManager::GetInstance().setPressAction(MOUSE_PRESS_ACTION::MOUSE_PRESS_KEY);
-                Q_EMIT sigSwitchVisualCurveInfoWidget();
-                Q_EMIT sigRefreshVisualCurve();
-            }
-            return;
-        }
+        return;
     }
     VisualCurvePosManager::GetInstance().setCurrentPointInfo(std::string(), 0);
     VisualCurvePosManager::GetInstance().setPressAction(MOUSE_PRESS_ACTION::MOUSE_PRESS_NONE);
@@ -440,46 +460,25 @@ void VisualCurveNodeTreeView::slotCurrentRowChanged(const QModelIndex &index) {
 }
 
 void VisualCurveNodeTreeView::slotButtonDelegateClicked(const QModelIndex &index) {
-    QStandardItem *item = model_->itemFromIndex(index);
-    bool isVisible{true};
-    if (item->parent()) {
-        std::string folder = item->parent()->text().toStdString();
-        if (folderDataMgr_->hasFolderData(folder)) {
-            std::string file = model_->itemFromIndex(index.siblingAtColumn(0))->text().toStdString();
-            if (folderDataMgr_->getFolderData(folder).hasCurve(file)) {
-                SCurveProperty curve = folderDataMgr_->getFolderData(folder).getCurve(file);
-                isVisible = !curve.visible_;
-                folderDataMgr_->replaceFolderCurve(folder, file, curve.curve_, isVisible);
-                if (isVisible) {
-                    VisualCurvePosManager::GetInstance().deleteHidenCurve(curve.curve_);
+    QStandardItem *item = model_->itemFromIndex(index.siblingAtColumn(0));
+    std::string curvePath = curveFromItem(item).toStdString();
+    Folder *folder{nullptr};
+    SCurveProperty *curveProp{nullptr};
+    if (folderDataMgr_->folderFromCurveName(curvePath, folder, curveProp)) {
+        if (folder) {
+            if (curveProp) {
+                curveProp->visible_ = !curveProp->visible_;
+                if (curveProp->visible_) {
+                    VisualCurvePosManager::GetInstance().deleteHidenCurve(curvePath);
                 } else {
-                    VisualCurvePosManager::GetInstance().insertHidenCurve(curve.curve_);
+                    VisualCurvePosManager::GetInstance().insertHidenCurve(curvePath);
                 }
-            }
-        }
-    } else {
-        std::string node = model_->itemFromIndex(index.siblingAtColumn(0))->text().toStdString();
-        if (folderDataMgr_->hasFolderData(node)) {
-            FolderData folderData = folderDataMgr_->getFolderData(node);
-            folderDataMgr_->setFolderVisible(node, !folderData.isVisible());
-            isVisible = !folderData.isVisible();
-
-            for (const auto &it : folderData.getCurveMap()) {
-                if (isVisible) {
-                    VisualCurvePosManager::GetInstance().deleteHidenCurve(it.second.curve_);
-                } else {
-                    VisualCurvePosManager::GetInstance().insertHidenCurve(it.second.curve_);
-                }
-            }
-        }
-        if (folderDataMgr_->hasCurve(node)) {
-            std::string curve = folderDataMgr_->getCurve(node).curve_;
-            isVisible = !folderDataMgr_->getCurve(node).visible_;
-            folderDataMgr_->modifyCurve(node, curve, isVisible);
-            if (isVisible) {
-                VisualCurvePosManager::GetInstance().deleteHidenCurve(curve);
             } else {
-                VisualCurvePosManager::GetInstance().insertHidenCurve(curve);
+                bool visible = folder->isVisible();
+                folder->setVisible(!visible);
+                for (auto it : folder->getCurveList()) {
+
+                }
             }
         }
     }
@@ -487,38 +486,34 @@ void VisualCurveNodeTreeView::slotButtonDelegateClicked(const QModelIndex &index
 }
 
 void VisualCurveNodeTreeView::slotDeleteCurveFromVisualCurve(std::string curve) {
-    if (folderDataMgr_->hasFile(curve)) {
-        std::string file = folderDataMgr_->getFile(curve);
-        folderDataMgr_->deleteCurve(file);
-    } else {
-        for (auto it : folderDataMgr_->getFolderMap()) {
-            if (it.second.hasFile(curve)) {
-                std::string folder = it.first;
-                std::string file = it.second.getFile(curve);
-                FolderData folderData = it.second;
-                folderData.deleteCurve(file);
-                folderDataMgr_->replaceFolder(folder, folderData);
-            }
+    QStringList list = QString::fromStdString(curve).split("|");
+    QString root = list.takeFirst();
+    QStandardItem *item{nullptr};
+    for (int i{0}; i < model_->rowCount(); i++) {
+        if (model_->item(i)->text() == root) {
+            item = model_->item(i);
         }
     }
-    QString strCurve = QString::fromStdString(curve);
-    for (int i{0}; i < model_->rowCount(); ++i) {
-        QStandardItem *tempItem = model_->item(i);
-        if (tempItem->text().compare(strCurve) == 0) {
-            model_->removeRow(tempItem->row());
+    if (!item) {
+        return;
+    }
+
+    for (const QString &node : list) {
+        if (!itemFromPath(item, node)) {
             return;
         }
-        if (tempItem->hasChildren()) {
-            for (int j{0}; j < tempItem->rowCount(); ++j) {
-                QStandardItem *childItem = tempItem->child(j);
-                if (childItem->text().compare(strCurve) == 0) {
-                    tempItem->removeRow(childItem->row());
-                    return;
-                }
-            }
-        }
-        Q_EMIT sigRefreshVisualCurve();
     }
+    QModelIndex index = item->index();
+    model_->removeRow(index.row(), index.parent());
+
+    Folder *folder{nullptr};
+    SCurveProperty *curveProp{nullptr};
+    if (folderDataMgr_->folderFromCurveName(curve, folder, curveProp)) {
+        if (folder) {
+            folder->deleteCurve(curveProp->curve_);
+        }
+    }
+    Q_EMIT sigRefreshVisualCurve();
 }
 
 void VisualCurveNodeTreeView::searchCurve(NodeData *pNode, std::string &property, std::string curve, std::string sampleProp) {
@@ -538,5 +533,26 @@ void VisualCurveNodeTreeView::searchCurve(NodeData *pNode, std::string &property
     for (auto it = pNode->childMapRef().begin(); it != pNode->childMapRef().end(); ++it) {
         searchCurve(&(it->second), property, curve, sampleProp);
     }
+}
+
+bool VisualCurveNodeTreeView::itemFromPath(QStandardItem *item, QString node) {
+    for (int i{0}; i < item->rowCount(); i++) {
+        QStandardItem *tempItem = item->child(i);
+        if (tempItem->text() == node) {
+            item = tempItem;
+            return true;
+        }
+    }
+    return false;
+}
+
+QString VisualCurveNodeTreeView::curveFromItem(QStandardItem *item) {
+    QString curve = item->text();
+    while(item->parent()) {
+        item = item->parent();
+        QString tempStr = item->text() + "|";
+        curve.insert(0, tempStr);
+    }
+    return curve;
 }
 }
