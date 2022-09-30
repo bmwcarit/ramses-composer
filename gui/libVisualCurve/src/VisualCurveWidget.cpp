@@ -148,7 +148,7 @@ void VisualCurveWidget::paintEvent(QPaintEvent *event) {
 
     QPainter painter(this);
     painter.fillRect(QRect(QPoint(0, 0), QPoint(width, *numHeight)), QColor(43, 43, 43, 255));
-    QFont font("宋体", 8, QFont::Bold, false);
+    QFont font("", 8, QFont::Bold, false);
     painter.setFont(font);
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;

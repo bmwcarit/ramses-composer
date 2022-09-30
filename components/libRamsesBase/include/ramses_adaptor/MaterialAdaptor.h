@@ -46,5 +46,6 @@ private:
 };
 
 void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle);
+void updateMeshNodeAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle, const core::ValueHandle& MUniformConHandle);
 
 };	// namespace raco::ramses_adaptor
