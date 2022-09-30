@@ -31,6 +31,7 @@ public:
 	
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	VertexDataMap vertexDataMap_;

@@ -111,4 +111,15 @@ ramses_base::RamsesRenderBuffer RenderBufferAdaptor::buffer() const {
 	return buffer_;
 }
 
+std::vector<ExportInformation> RenderBufferAdaptor::getExportInformation() const {
+	if (buffer_ == nullptr) {
+		return {};
+	}
+
+	return {
+		ExportInformation{ramsesObject().getType(), ramsesObject().getName()},
+		ExportInformation{buffer_->getType(), buffer_->getName()},
+	};
+}
+
 }  // namespace raco::ramses_adaptor

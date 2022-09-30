@@ -26,6 +26,7 @@ void ExternalProjectsStore::clear() {
 	externalProjects_.clear();
 	externalProjectFileChangeListeners_.clear();
 	clearRelinkCallback();
+	flError_.reset();
 }
 
 void ExternalProjectsStore::setActiveProject(RaCoProject* activeProject) {
@@ -174,6 +175,9 @@ bool ExternalProjectsStore::loadExternalProject(const std::string& projectPath, 
 			LOG_ERROR(raco::log_system::OBJECT_TREE_VIEW, "Can not add Project {} to Project Browser - incompatible file version {} of project file", projectPath, fileVerError.fileVersion_);
 		} catch (raco::core::ExtrefError& error) {
 			LOG_ERROR(raco::log_system::COMMON, "Can not add Project {} to Project Browser: loading failed {}", projectPath, error.what());
+		} catch (const raco::application::FeatureLevelLoadError& error) {
+			LOG_ERROR(raco::log_system::COMMON, "Feature level load error during external reference update");
+			flError_.reset(new raco::application::FeatureLevelLoadError(error));
 		} catch (std::runtime_error& error) {
 			LOG_ERROR(raco::log_system::COMMON, "Loading external project '{}' failed with error: {}", projectPath, error.what());
 		}
@@ -246,6 +250,10 @@ void ExternalProjectsStore::setRelinkCallback(std::function<std::string(const st
 void ExternalProjectsStore::clearRelinkCallback() {
 	relinkCallback_ = std::function<std::string(const std::string&)>();
 	relinkPathMapCache_.clear();
+}
+
+const FeatureLevelLoadError* ExternalProjectsStore::getFlError() const {
+	return flError_.get();
 }
 
 }  // namespace raco::application

@@ -106,9 +106,16 @@ public:
 	// was started and can never decrease.
 	void overrideTime(std::function<int64_t()> getTime);
 
+	static int minFeatureLevel();
+	static int maxFeatureLevel();
+	static const std::string& featureLevelDescriptions();
+
+	void setApplicationFeatureLevel(int featureLevel);
 	int applicationFeatureLevel() const;
 
 	bool rendererDirty_ = false;
+
+	const FeatureLevelLoadError* getFlError() const;
 
 private:
 	// Needs to access externalProjectsStore_ directly:

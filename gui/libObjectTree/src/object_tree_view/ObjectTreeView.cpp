@@ -108,6 +108,67 @@ std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 	return std::set<ValueHandle>(selectedObjects.begin(), selectedObjects.end());
 }
 
+namespace {
+	int getTotalParentCount(const QModelIndex &a) {
+		auto current = a;
+		auto depth = 0;
+		while (current.parent().isValid()) {
+			current = current.parent();
+			depth++;
+		}
+
+		return depth;
+	}
+
+	bool compareModelIndexesInsideTreeView(const QModelIndex &a, const QModelIndex &b) {
+		if (a.parent() == b.parent()) {
+			if (a.row() == b.row()) {
+				// For some reason there are 4 entries per column (?) those need to have a fixed order too.
+				return a.column() < b.column();
+			}
+
+			return a.row() < b.row();
+		}
+
+		if (a == b.parent()) {
+			return true;
+		}
+
+		if (a.parent() == b) {
+			return false;
+		}
+
+		int aParentCount = getTotalParentCount(a);
+		int bParentCount = getTotalParentCount(b);
+
+		if (aParentCount > bParentCount) {
+			return compareModelIndexesInsideTreeView(a.parent(), b);
+		}
+		if (aParentCount < bParentCount) {
+			return compareModelIndexesInsideTreeView(a, b.parent());
+		}
+
+		return compareModelIndexesInsideTreeView(
+			a.parent().isValid() ? a.parent() : a,
+			b.parent().isValid() ? b.parent() : b);
+	}
+}  // namespace
+
+std::vector<core::SEditorObject> ObjectTreeView::getSortedSelectedEditorObjects() const {
+	QList<QModelIndex> selectedIndexes = selectionModel()->selectedIndexes();
+	std::sort(selectedIndexes.begin(), selectedIndexes.end(), compareModelIndexesInsideTreeView);
+	auto selectedObjects = indicesToSEditorObjects(selectedIndexes);
+
+	std::vector<SEditorObject> result;
+	for (const auto &item : selectedObjects){
+		if (result.end() == std::find(result.begin(), result.end(), item)){
+			result.push_back(item);
+		}
+	}
+
+	return result;
+}
+
 void ObjectTreeView::globalCopyCallback() {
 	auto selectedIndices = getSelectedIndices(true);
 	if (!selectedIndices.empty()) {

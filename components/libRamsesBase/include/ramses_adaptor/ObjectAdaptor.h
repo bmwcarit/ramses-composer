@@ -18,6 +18,9 @@
 #include <ramses-framework-api/RamsesVersion.h>
 #include <ramses-logic/Property.h>
 
+#include <utility>
+#include "ramses_base/RamsesFormatter.h"
+
 namespace raco::ramses_adaptor {
 
 using raco::ramses_base::RamsesHandle;
@@ -47,6 +50,15 @@ public:
 	virtual RamsesHandle<ramses::Node> sceneObject() = 0;
 };
 
+struct ExportInformation {
+	std::string type;
+	const std::string name;
+
+	explicit ExportInformation(std::string type, std::string name) : type(std::move(type)), name(std::move(name)) {}
+	explicit ExportInformation(const ramses::ERamsesObjectType type, std::string name) : name(std::move(name)) {
+		this->type = fmt::format("{}", type);
+	}
+};
 
 /**
  * Base class for all EditorObject Adaptors
@@ -69,6 +81,8 @@ public:
 
 	// Dirty objects need to be updated in ramses due to changes in the data model.
 	void tagDirty(bool newStatus = true);
+
+	virtual std::vector<ExportInformation> getExportInformation() const = 0;
 
 protected:
 	SceneAdaptor* sceneAdaptor_;
@@ -124,7 +138,7 @@ public:
 	const RamsesType& ramsesObject() const noexcept { 
 		return *ramsesObject_.get(); 
 	}	
-	RamsesHandle<RamsesType> getRamsesObjectPointer() { 
+	RamsesHandle<RamsesType> getRamsesObjectPointer() const {
 		return ramsesObject_; 
 	}
 	void resetRamsesObject() { 

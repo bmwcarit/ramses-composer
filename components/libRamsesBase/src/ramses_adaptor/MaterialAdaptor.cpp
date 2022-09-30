@@ -7,6 +7,8 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include <utility>
+
 #include "ramses_adaptor/MaterialAdaptor.h"
 
 #include "ramses_adaptor/CubeMapAdaptor.h"
@@ -114,10 +116,43 @@ void MaterialAdaptor::onRuntimeError(core::Errors& errors, std::string const& me
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
+}
+
+std::vector<ExportInformation> MaterialAdaptor::getExportInformation() const {
+	std::vector<ExportInformation> result = {};
+	if (appearance_ != nullptr) {
+		if (appearance_->effect() != nullptr) {
+			result.emplace_back(appearance_->effect()->getType(), appearance_->effect()->getName());
+		}
+		result.emplace_back(appearance_->get()->getType(), appearance_->get()->getName());
+	}
+
+	if (appearanceBinding_ != nullptr) {
+		result.emplace_back("AppearanceBinding", appearanceBinding_->getName().data());
+	}
+
+	return result;
 }
 
 void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsHandle, const core::ValueHandle& uniformsHandle) {
+
+	int colorOp = static_cast<ramses::EBlendOperation>(optionsHandle.get("blendOperationColor").as<int>());
+	int alphaOp = static_cast<ramses::EBlendOperation>(optionsHandle.get("blendOperationAlpha").as<int>());
+	if (colorOp == ramses::EBlendOperation::EBlendOperation_Disabled && alphaOp != ramses::EBlendOperation::EBlendOperation_Disabled) {
+		errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, optionsHandle.get("blendOperationAlpha"), 
+			"Inconsistent Blend Operation settings: Color disabled while Alpha is not.");
+	} else {
+		errors->removeError(optionsHandle.get("blendOperationAlpha"));
+	}
+	if (colorOp != ramses::EBlendOperation::EBlendOperation_Disabled && alphaOp == ramses::EBlendOperation::EBlendOperation_Disabled) {
+		errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, optionsHandle.get("blendOperationColor"),
+			"Inconsistent Blend Operation settings: Alpha disabled while Color is not.");
+	} else {
+		errors->removeError(optionsHandle.get("blendOperationColor"));
+	}
+
+
 	setDepthWrite(appearance->get(), optionsHandle.get("depthwrite"));
 	setDepthFunction(appearance->get(), optionsHandle.get("depthFunction"));
 	setBlendMode(appearance->get(), optionsHandle);

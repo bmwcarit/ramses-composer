@@ -15,14 +15,15 @@
 #include "log_system/log.h"
 
 #include <cctype>
-#include "utils/stdfilesystem.h"
+#include <filesystem>
+
 namespace raco::core {
 
-Project::Project() : instances_{}, linkGraph_(*this) {
+Project::Project() : instances_{} {
 	setCurrentPath(utils::u8path::current().string());
 }
 
-Project::Project(const std::vector<SEditorObject>& instances) : instances_{instances}, linkGraph_(*this) {
+Project::Project(const std::vector<SEditorObject>& instances) : instances_{instances} {
 	for (auto obj : instances_) {
 		instanceMap_[obj->objectID()] = obj;
 	}
@@ -116,72 +117,38 @@ void Project::setCurrentPath(const std::string& newPath) {
 }
 
 void Project::addLink(SLink link) {
-	linkStartPoints_[link->startObject_.asRef()->objectID()].insert(link);
-	linkEndPoints_[link->endObject_.asRef()->objectID()].insert(link);
-	links_.push_back(link);
+	links_.addLink(link);
 	linkGraph_.addLink(link);
 }
 
-SLink Project::findLinkByObjectID(SLink link) const {
-	return findLinkByObjectID(linkEndPoints_, link);
-}
-
-SLink Project::findLinkByObjectID(const std::map<std::string, std::set<SLink>>& linksByEndPointID, SLink link) {
-	auto linkEndObjID = (*link->endObject_)->objectID();
-
-	auto linkEndPointIt = linksByEndPointID.find(linkEndObjID);
-
-	if (linkEndPointIt != linksByEndPointID.end()) {
-		auto& endPointLinks = linkEndPointIt->second;
-		for (const auto& endPointLink : endPointLinks) {
-			if (compareLinksByObjectID(*endPointLink, *link)) {
-				return endPointLink;
-			}
-		}
-	}
-
-	return nullptr;
-}
-
 void Project::removeLink(SLink link) {
-	const auto& startObjID = link->startObject_.asRef()->objectID();
-	linkStartPoints_[startObjID].erase(link);
-	if (linkStartPoints_[startObjID].empty()) {
-		linkStartPoints_.erase(startObjID);
-	}
-
-	const auto& endObjID = link->endObject_.asRef()->objectID();
-	linkEndPoints_[endObjID].erase(link);
-	if (linkEndPoints_[endObjID].empty()) {
-		linkEndPoints_.erase(endObjID);
-	}
-
-	links_.erase(std::find(links_.begin(), links_.end(), link));
-
-	linkGraph_.removeLink(*this, link);
+	links_.removeLink(link);
+	linkGraph_.removeLink(link);
 }
 
 void Project::removeAllLinks() {
 	linkGraph_.removeAllLinks();
-	linkStartPoints_.clear();
-	linkEndPoints_.clear();
 	links_.clear();
 }
 
+SLink Project::findLinkByObjectID(SLink link) const {
+	return links_.findLinkByObjectID(link);
+}
+
 const std::map<std::string, std::set<SLink>>& Project::linkStartPoints() const {
-	return linkStartPoints_;
+	return links_.linkStartPoints_;
 }
 
 const std::map<std::string, std::set<SLink>>& Project::linkEndPoints() const {
-	return linkEndPoints_;
+	return links_.linkEndPoints_;
 }
 
-const std::vector<SLink>& Project::links() const {
+const LinkContainer& Project::links() const {
 	return links_;
 }
 
 bool Project::checkLinkDuplicates() const {
-	for (const auto& linksEnd : linkEndPoints_) {
+	for (const auto& linksEnd : links_.linkEndPoints_) {
 		std::vector<SLink> cmpLinks;
 		for (const auto& link : linksEnd.second) {
 			for (auto cmpLink : cmpLinks) {
@@ -197,9 +164,9 @@ bool Project::checkLinkDuplicates() const {
 
 void Project::deduplicateLinks() {
 	std::map<std::string, std::set<SLink>> newLinkEndPoints;
-	for (const auto& linksEnd : linkEndPoints_) {
+	for (const auto& linksEnd : links_.linkEndPoints_) {
 		for (const auto& link : linksEnd.second) {
-			if (!Project::findLinkByObjectID(newLinkEndPoints, link)) {
+			if (!LinkContainer::findLinkByObjectID(newLinkEndPoints, link)) {
 				// no duplicate -> insert 
 				newLinkEndPoints[(*link->endObject_)->objectID()].insert(link);
 			} else {
@@ -255,14 +222,14 @@ bool Project::createsLoop(const PropertyDescriptor& start, const PropertyDescrip
 
 void Project::addExternalProjectMapping(const std::string& projectID, const std::string& absPath, const std::string& projectName) {
 	if (projectID.empty()) {
-		throw ExtrefError("External project with empty name not allowed.");
+		throw ExtrefError("External project with empty ID not allowed.");
 	}
 	if (projectID == this->projectID()) {
-		throw ExtrefError("External reference project loop detected (based on project ID).");
+		throw ExtrefError("External reference project loop detected (based on same project ID).");
 	}
 
 	if (absPath == currentPath()) {
-		throw ExtrefError("External reference project loop detected (based on project path).");
+		throw ExtrefError("External reference project loop detected (based on same project path).");
 	}
 
 	auto relPath = raco::utils::u8path(absPath).normalizedRelativePath(currentFolder()).string();
@@ -270,7 +237,7 @@ void Project::addExternalProjectMapping(const std::string& projectID, const std:
 	auto it = externalProjectsMap_.find(projectID);
 	if (it != externalProjectsMap_.end()) {
 		if (relPath != it->second.path) {
-			throw ExtrefError("Duplicate external project name with different file paths.");
+			throw ExtrefError(fmt::format("Duplicate external project ID detected (with a different file path): {} at {}", it->second.name, it->second.path));
 		}
 	}
 
@@ -280,7 +247,7 @@ void Project::addExternalProjectMapping(const std::string& projectID, const std:
 		});
 		if (it != externalProjectsMap_.end()) {
 			if (it->first != projectID) {
-				throw ExtrefError(fmt::format("Project ID change for file '{}' detected: '{}' renamed to '{}'", relPath, it->first, projectID));
+				throw ExtrefError(fmt::format("Project ID change for file '{}' detected: '{}' changed to '{}'", relPath, it->first, projectID));
 			}
 		}
 	}
@@ -401,61 +368,6 @@ SEditorObjectSet Project::unlockCodeCtrldObjs(const SEditorObjectSet& editorObjs
 
 bool Project::isCodeCtrldObj(const SEditorObject& editorObj) const {
 	return (codeCtrldObjs_.find(editorObj) != codeCtrldObjs_.end());
-}
-
-Project::LinkGraph::LinkGraph(const Project& project) {
-	for (auto &link : project.links()) {
-		addLink(link);
-	}
-}
-
-void Project::LinkGraph::addLink(SLink link) {
-	if (!*link->isWeak_) {
-		graph[*link->startObject_].insert(*link->endObject_);
-	}
-}
-
-void Project::LinkGraph::removeLink(const Project& project, const SLink link) {
-	graph.clear();
-	for (auto& projectLink : project.links()) {
-		addLink(projectLink);
-	}
-}
-
-void Project::LinkGraph::removeAllLinks() {
-	graph.clear();
-}
-
-bool Project::LinkGraph::createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const {
-	auto startObj = start.object();
-	auto endObj = end.object();
-	if (startObj == endObj) {
-		return true;
-	}
-	if (graph.find(endObj) != graph.end()) {
-		SEditorObjectSet visited;
-		return depthFirstSearch(endObj, startObj, visited);
-	}
-	return false;
-}
-
-bool Project::LinkGraph::depthFirstSearch(SEditorObject current, SEditorObject obj, SEditorObjectSet& visited) const {
-	if (current == obj) {
-		return true;
-	}
-	if (visited.find(current) != visited.end()) {
-		return false;
-	}
-	auto it = graph.find(current);
-	if (it != graph.end()) {
-		for (auto depObj : it->second) {
-			if (depthFirstSearch(depObj, obj, visited)) {
-				return true;
-			}
-		}
-	}
-	visited.insert(current);
-	return false;
 }
 
 }  // namespace raco::core

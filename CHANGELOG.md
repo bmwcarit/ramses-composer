@@ -24,6 +24,62 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.4.0] Python API enhancements, various usability improvements and bugfixes
+
+### Added
+* Added better support for feature levels in the GUI application
+    * Default feature level for new projects can now be set via the preferences dialog.
+    * Added "File/Upgrade Feature Level" submenu to upgrade the currently active project to a higher feature level. This will first save the project. Afterwards it will load the project again while upgrading to the desired feature level.
+    * Loading a project which uses an external project with a higher feature level will show a dialog allowing the user to upgrade the feature level of the loaded project to the feature level of the external project.
+* Added mesh metadata display for unbaked Meshes, e.g. gltf-extras values (currently string values only)
+* Python API improvements
+    * Added feature level parameters to functions `reset` and `load`.
+    * Added `keys()` member function to objects and properties.
+    * Added property access via indexing operator `[]` for objects and properties.
+    * Added `hasSubstructure()` member function for properties.
+    * Added more checking of error conditions.
+    * Added `getInstanceById(id)` function to get a specific instance.
+    * Added `isRunningInUi()` function to query if RaCo is running in gui application.
+    * Added `minFeatureLevel()` and `maxFeatureLevel()` functions to determine currently supported feature levels.
+    * Added `isReadOnly()`, `isExternalReference()` and `isResource()` member functions to objects.
+    * Added `getPrefab()`, `getPrefabInstance()` and `getOuterContainingPrefabInstance()` member functions to objects. These return either None or the respective prefab/prefabInstance.
+    * Added `isReadOnly()`, `isValidLinkStart()` and `isValidLinkEnd()` member functions for properties.
+    * Added `getErrors()` function to read active errors as a list of ErrorItem.
+    * Added `metadata()` member function to get any mesh metadata for a mesh object.
+    * Added `raco_gui` python module, which is only available when running the composer in the GUI and needs to be imported separately.
+    * Added `getCurrentSelection()` function to the `raco_gui` module, returning a list of the currently selected editor objects.
+    * Added `importGLTF(path, parent)` to import a whole glTF file into the scene. `path` can be either relative to `<projectFolder>/meshes/` or absolute, `parent` argument is optional. If not provided, the object will be attached to the scene root.
+    * Added `-y` command line option for both headless and GUI application to set additional python module search paths. Multiple `-y` options may be specified to add multiple directories. The additional paths are added before the default search path.
+
+### Changes
+* Made URIs case-sensitive on Windows systems.
+* Made Export Dialogue less confusing
+  * Removed Export Path Field.
+  * Added buttons to select export target files.
+  * Export Paths now use relative paths to increase readability.
+  * Split the export summary to make it easier to differentiate between Scene Graph items and Resources.
+* Errors and Warnings of externally referenced projects are now highlighted in Error View
+    * Their visibility can now be toggled on and off.
+    * Added a context menu option to directly open the referenced project.
+* Changed Python runner in UI from a dialog to a dock with added output functionality.
+* Error messages regarding external references now contain more information.
+* Object Name tooltips now display the name an object will have after export.
+* When importing resources, Git LFS Placeholder files are now detected and yield a helpful error message.
+* Retain tree view item name during an in-place edit until user changes it.
+
+### Fixes
+* Fixed Lua Runtime errors not being displayed within Error View in nested prefabs.
+* Realigned LuaInterface color picker/property expansion behavior with LuaScript behavior.
+* Fixed Linux linker errors when compiling with a higher gcc version than 7.5 (i.e. gcc-9 in Ubuntu 20.04 or gcc-11 in Ubuntu 22.04).
+* Fixed wrong glTF scenegraph getting shown when trying to import scenegraphs from .gltf files that have not been yet used in the project.
+* Changed naming of logfiles: create logfile names based on process id and remove the oldest ones based on modification time.
+* Added error item for inconsistent blend option settings in Material and private material of Meshnodes.
+* Optimize link removal to speed up saving of large projects.
+* Fixed a crash when pasting text from the clipboard without having anything selected.
+* Fixed preview "best fit" scaling to avoid showing scrollbar for all scene and preview dock size combinations.
+* The origin of the displayed coordinates when mousing over the preview dock is now in the lower left.
+
+
 ## [1.3.0] Ramses Logic feature level 2 support, relinking, search function, UI improvements
 
 * **File version number has changed. Files saved with RaCo 1.3.0 cannot be opened by previous versions.**

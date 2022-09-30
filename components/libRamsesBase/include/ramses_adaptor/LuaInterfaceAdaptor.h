@@ -27,6 +27,7 @@ public:
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 	bool sync(core::Errors* errors) override;
 

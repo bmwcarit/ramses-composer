@@ -197,7 +197,7 @@ void SceneAdaptor::updateRuntimeErrorList() {
 	auto logicEngineErrors = logicEngine().getErrors();
 	if (logicEngineErrors.empty()) {
 		errors_->removeIf([](const core::ErrorItem& errorItem) {
-			return errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR;
+			return errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME;
 		});
 
 		return;
@@ -229,7 +229,7 @@ void SceneAdaptor::updateRuntimeErrorList() {
 				// keep the old runtime error message if it is identical to the new message to prevent unnecessary error regeneration in the UI
 				if (errors_->hasError(instance)) {
 					auto instError = errors_->getError(instance);
-					if (instError.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR && instError.message() != runtimeError->message) {
+					if (instError.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME && instError.message() != runtimeError->message) {
 						errors_->removeError(instance);
 					}
 				}
@@ -244,7 +244,7 @@ void SceneAdaptor::updateRuntimeErrorList() {
 	auto ramsesLogicErrorFoundMsg = fmt::format("Ramses logic engine detected a runtime error in{}\nBe aware that some Lua script outputs and/or linked properties might not have been updated.", runtimeErrorObjectNames);
 	errors_->removeIf([this, &ramsesLogicErrorFoundMsg, &logicProvidersWithoutRuntimeError](const core::ErrorItem& errorItem) {
 		if (auto logicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(errorItem.valueHandle().rootObject()))) {
-			return logicProvidersWithoutRuntimeError.count(logicProvider) == 1 && errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR && errorItem.message() != ramsesLogicErrorFoundMsg;
+			return logicProvidersWithoutRuntimeError.count(logicProvider) == 1 && errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME && errorItem.message() != ramsesLogicErrorFoundMsg;
 		}
 		return false;
 	});

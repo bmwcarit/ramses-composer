@@ -17,18 +17,22 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Queries.h"
 #include "user_types/LuaScript.h"
-#include "user_types/PrefabInstance.h"
+#include "style/Colors.h"
 
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
 #include <QMenu>
+#include <QProcess>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QTableView>
 
 namespace {
+
+inline const int extRefProjectIdUserRole = Qt::UserRole;
 
 QString errorLevelToString(const raco::core::ErrorLevel &level) {
 	switch (level) {
@@ -53,6 +57,14 @@ public:
 protected:
 	QVariant data(const QModelIndex& index, int role) const override {
 		auto column = index.column();
+		if (role == Qt::ForegroundRole) {
+			if (QStandardItemModel::data(index, extRefProjectIdUserRole).isValid()) {
+				if (column == raco::common_widgets::ErrorView::ErrorViewColumns::OBJECT) {
+					return raco::style::Colors::color(raco::style::Colormap::externalReference);
+				}
+			}
+		}
+
 		auto originalData = QStandardItemModel::data(index, role);
 
 		if (column == raco::common_widgets::ErrorView::ErrorViewColumns::MESSAGE && role == Qt::DisplayRole) {
@@ -117,6 +129,13 @@ ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::compo
 		});
 		filterLayout->addWidget(showErrorsCheckBox_);
 
+		showExternalReferencesCheckBox_ = new QCheckBox("Show Externals", this);
+		showExternalReferencesCheckBox_->setChecked(true);
+		connect(showExternalReferencesCheckBox_, &QCheckBox::stateChanged, [this]() {
+			filterRows();
+		});
+		filterLayout->addWidget(showExternalReferencesCheckBox_);
+
 		filterLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding));
 
 		errorAmountLabel_ = new QLabel(this);
@@ -170,14 +189,24 @@ std::vector<std::string> ErrorView::rowToVector(const QModelIndex& rowIndex) con
 void ErrorView::filterRows() {
 	auto warningsVisible = !showWarningsCheckBox_ || showWarningsCheckBox_->isChecked();
 	auto errorsVisible = !showErrorsCheckBox_ || showErrorsCheckBox_->isChecked();
+	auto extRefsVisible = !showExternalReferencesCheckBox_ || showExternalReferencesCheckBox_->isChecked();
 	const auto WARNING = errorLevelToString(raco::core::ErrorLevel::WARNING);
 
 	for (auto row = 0; row < tableModel_->rowCount(); ++row) {
 		auto modelIndex = proxyModel_->mapToSource(proxyModel_->index(row, LEVEL));
 		auto errorLevel = tableModel_->itemFromIndex(modelIndex)->text();
+		auto hiddenByLevel = (errorLevel == WARNING) ? !warningsVisible : !errorsVisible;
 
-		tableView_->setRowHidden(row, (errorLevel == WARNING) ? !warningsVisible : !errorsVisible);
+		if (hiddenByLevel) {
+			tableView_->setRowHidden(row, true);
+			continue;
+		}
+
+		auto isExtRef = tableModel_->itemFromIndex(modelIndex)->data(extRefProjectIdUserRole).isValid();
+		tableView_->setRowHidden(row, !extRefsVisible && isExtRef);
 	}
+
+	updateErrorAmountLabel();
 }
 
 
@@ -188,9 +217,6 @@ void ErrorView::regenerateTable() {
 	objIDs_.clear();
 	indexToObjID_.clear();
 
-	auto warningAmount = 0;
-	auto errorAmount = 0;
-
 	const auto& errors = commandInterface_->errors();
 	for (const auto& [errorValueHandle, error] : errors.getAllErrors()) {
 		if (error.level() <= core::ErrorLevel::INFORMATION) {
@@ -199,24 +225,32 @@ void ErrorView::regenerateTable() {
 
 		auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
 
-		// TODO: RAOS-815 - we need to clarify what we actually want to show/count
-		if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || rootObj->query<core::ExternalReferenceAnnotation>()) {
-			QList<QStandardItem*> items;
-			items.append(new QStandardItem(errorLevelToString(error.level())));
-			items.append(new QStandardItem(QString::fromStdString(rootObj ? rootObj->objectName() : "(This Project)")));
-			items.append(new QStandardItem(QString::fromStdString((errorValueHandle && errorValueHandle.isProperty()) ? errorValueHandle.getPropName() : "")));
+		QList<QStandardItem*> items;
+		items.append(new QStandardItem(errorLevelToString(error.level())));
+		auto *objectItem = new QStandardItem(QString::fromStdString(rootObj ? rootObj->objectName() : "(This Project)"));
+		items.append(objectItem);
+		items.append(new QStandardItem(QString::fromStdString((errorValueHandle && errorValueHandle.isProperty()) ? errorValueHandle.getPropName() : "")));
 
-			auto errorMsg = QString::fromStdString(error.message());
-			auto errorMessageItem = new QStandardItem(errorMsg);
-			errorMessageItem->setToolTip(errorMsg);
-			items.append(errorMessageItem);
+		auto errorMsg = QString::fromStdString(error.message());
+		auto errorMessageItem = new QStandardItem(errorMsg);
+		errorMessageItem->setToolTip(errorMsg);
+		items.append(errorMessageItem);
 
-			tableModel_->appendRow(items);
-
-			auto errorID = rootObj ? rootObj->objectID() : commandInterface_->project()->currentPath();
-			indexToObjID_.emplace_back(errorID);
-			objIDs_.insert(errorID);
+		auto extRefAnno = rootObj ? rootObj->query<core::ExternalReferenceAnnotation>() : nullptr;
+		if (extRefAnno) {
+			auto projectId = QString::fromStdString(extRefAnno->projectID_.asString());
+			auto projectName = commandInterface_->project()->lookupExternalProjectName(*extRefAnno->projectID_);
+			objectItem->setToolTip(QString::fromStdString(projectName));
+			for (const auto& item : items){
+				item->setData(projectId, extRefProjectIdUserRole);
+			}
 		}
+
+		tableModel_->appendRow(items);
+
+		auto errorID = rootObj ? rootObj->objectID() : commandInterface_->project()->currentPath();
+		indexToObjID_.emplace_back(errorID);
+		objIDs_.insert(errorID);
 	}
 
 	if (!cachedSelectedRow.empty()) {
@@ -234,8 +268,6 @@ void ErrorView::regenerateTable() {
 			}
 		}
 	}
-
-	updateErrorAmountLabel();
 
 	filterRows();
 }
@@ -255,43 +287,61 @@ void ErrorView::createCustomContextMenu(const QPoint& p) {
 		RaCoClipboard::set(errorMessage);
 	});
 
+	auto projectId = modelIndex.data(extRefProjectIdUserRole).toString();
+	if (projectId != nullptr) {
+		auto projectPath = commandInterface_->project()->lookupExternalProjectPath(projectId.toStdString());
+		auto actionOpenProject = treeViewMenu->addAction("Open External Project", [this, projectPath]() {
+			if (!projectPath.empty()) {
+				auto appPath = QCoreApplication::applicationFilePath();
+				QProcess::startDetached(appPath, QStringList(QString::fromStdString(projectPath)));
+			}
+		});
+		actionOpenProject->setEnabled(!projectPath.empty());
+	}
+
 	treeViewMenu->exec(tableView_->viewport()->mapToGlobal(p));
 }
 
 void ErrorView::updateErrorAmountLabel() {
-	if (errorAmountLabel_) {
-
-		auto warningAmount = 0;
-		auto errorAmount = 0;
-
-		const auto& errors = commandInterface_->errors();
-		for (const auto& [errorValueHandle, error] : errors.getAllErrors()) {
-			if (error.level() <= core::ErrorLevel::INFORMATION) {
-				continue;
-			}
-
-			auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
-
-			// TODO: RAOS-815 - we need to clarify what we actually want to show/count
-			if (!rootObj || !raco::core::Queries::isReadOnly(rootObj) || rootObj->query<core::ExternalReferenceAnnotation>()) {
-				if (error.level() == core::ErrorLevel::WARNING) {
-					++warningAmount;
-				} else if (error.level() == core::ErrorLevel::ERROR) {
-					++errorAmount;
-				}
-			}
-		}
-
-		std::string logErrorString = "";
-		if (logViewModel_) {
-			auto logErrorAmount = logViewModel_->errorCount();
-			if (logErrorAmount > 0) {
-				logErrorString = fmt::format(" (additional errors in log)");
-			}
-		}
-
-		errorAmountLabel_->setText(QString::fromStdString(fmt::format("Warnings: {} Errors: {}{}", warningAmount, errorAmount, logErrorString)));
+	if (errorAmountLabel_ == nullptr) {
+		return;
 	}
+
+	auto displayedWarningAmount = 0;
+	auto totalWarningAmount = 0;
+	auto displayedErrorAmount = 0;
+	auto totalErrorAmount = 0;
+
+	const auto& errors = commandInterface_->errors();
+	for (const auto& [errorValueHandle, error] : errors.getAllErrors()) {
+		if (error.level() <= core::ErrorLevel::INFORMATION) {
+			continue;
+		}
+
+		auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
+
+		if (error.level() == core::ErrorLevel::WARNING) {
+			++totalWarningAmount;
+			if (showWarningsCheckBox_->isChecked() && (!rootObj || !rootObj->query<core::ExternalReferenceAnnotation>() || showExternalReferencesCheckBox_->isChecked())) {
+				++displayedWarningAmount;
+			}
+		} else if (error.level() == core::ErrorLevel::ERROR) {
+			++totalErrorAmount;
+			if (showErrorsCheckBox_->isChecked() && (!rootObj || !rootObj->query<core::ExternalReferenceAnnotation>() || showExternalReferencesCheckBox_->isChecked())) {
+				++displayedErrorAmount;
+			}
+		}
+	}
+
+	std::string logErrorString = "";
+	if (logViewModel_) {
+		auto logErrorAmount = logViewModel_->errorCount();
+		if (logErrorAmount > 0) {
+			logErrorString = fmt::format(" (additional errors in log)");
+		}
+	}
+
+	errorAmountLabel_->setText(QString::fromStdString(fmt::format("Warnings: {} / {} Errors: {} / {}{}", displayedWarningAmount, totalWarningAmount, displayedErrorAmount, totalErrorAmount, logErrorString)));
 }
 
 }  // namespace raco::common_widgets

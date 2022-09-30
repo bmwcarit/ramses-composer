@@ -37,6 +37,8 @@ public:
 	QString scriptSubdirectory;
 	QString interfaceSubdirectory;
 	QString shaderSubdirectory;
+
+	int featureLevel;
 };
 
 }  // namespace raco

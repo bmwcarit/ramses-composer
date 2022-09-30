@@ -10,9 +10,7 @@
 #include "utils/FileUtils.h"
 
 #include "utils/u8path.h"
-#include "utils/stdfilesystem.h"
 
-#include "log_system/log.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -28,9 +26,6 @@ std::string read(const u8path& path) {
 		in.close();
 		return ss.str();
 	} else {
-		if (!path.empty()) {
-			LOG_WARNING(raco::log_system::UTILS, "file not found: {}", path.string());
-		}
 		return {};
 	}
 }
@@ -42,9 +37,6 @@ std::vector<unsigned char> readBinary(const u8path& path) {
 		in.close();
 		return buffer;
 	} else {
-		if (!path.empty()) {
-			LOG_WARNING(raco::log_system::UTILS, "file not found: {}", path.string());
-		}
 		return {};
 	}
 }
@@ -56,6 +48,11 @@ void write(const u8path& path, const std::string& content) {
 	std::ofstream out{path.internalPath(), std::ifstream::out};
 	out << content;
 	out.close();
+}
+
+bool isGitLfsPlaceholderFile(const u8path& path) {
+	auto fileText = read(path);
+	return fileText.rfind("version https://git-lfs.github.com/", 0) != std::string::npos;
 }
 
 }  // namespace raco::utils::file

@@ -120,4 +120,30 @@ raco::ramses_base::RamsesAnimationChannelHandle AnimationChannelAdaptor::handle(
 	return handle_;
 }
 
+std::vector<ExportInformation> AnimationChannelAdaptor::getExportInformation() const {
+	if (handle_ == nullptr) {
+		return {};
+	}
+
+	auto result = std::vector<ExportInformation>();
+
+	if (handle_->keyframeTimes != nullptr) {
+		result.emplace_back("DataArray", handle_->keyframeTimes->getName().data());
+	}
+
+	if (handle_->animOutput != nullptr) {
+		result.emplace_back("DataArray", handle_->animOutput->getName().data());
+	}
+
+	if (handle_->tangentIn != nullptr) {
+		result.emplace_back("DataArray", handle_->tangentIn->getName().data());
+	}
+
+	if (handle_->tangentOut != nullptr) {
+		result.emplace_back("DataArray", handle_->tangentOut->getName().data());
+	}
+
+	return result;
+}
+
 };	// namespace raco::ramses_adaptor

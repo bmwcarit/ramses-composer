@@ -139,7 +139,15 @@ void LuaScriptAdaptor::onRuntimeError(core::Errors& errors, std::string const& m
 	if(errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
+}
+
+std::vector<ExportInformation> LuaScriptAdaptor::getExportInformation() const {
+	if (luaScript_ == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{"LuaScript", luaScript_->getName().data()}};
 }
 
 }  // namespace raco::ramses_adaptor

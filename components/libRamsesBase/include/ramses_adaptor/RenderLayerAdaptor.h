@@ -21,6 +21,7 @@ public:
 	explicit RenderLayerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderLayer> editorObject);
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	void buildRenderGroup(core::Errors* errors);

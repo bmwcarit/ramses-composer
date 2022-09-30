@@ -36,23 +36,35 @@ glTFMesh::glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sce
 	std::vector<std::vector<float>> uvBuffers;
 	std::vector<std::vector<float>> colorBuffers;
 
-	std::vector<tinygltf::Primitive> flattenedPrimitiveList;
+	std::vector<std::pair<tinygltf::Primitive, int>> flattenedPrimitiveList;
 
-	for (const auto &mesh : scene.meshes) {
+	for (int meshIndex = 0; meshIndex < scene.meshes.size(); ++meshIndex) {
+		const auto &mesh = scene.meshes[meshIndex];
 		for (const auto &prim : mesh.primitives) {
-			flattenedPrimitiveList.emplace_back(prim);
+			flattenedPrimitiveList.emplace_back(prim, meshIndex);
 		}
 	}
 
 	// Collect all meshes or selected mesh.
 	if (!descriptor.bakeAllSubmeshes) {
 		for (auto primitiveIndex = descriptor.submeshIndex; primitiveIndex < descriptor.submeshIndex + 1; ++primitiveIndex) {
-			auto primitive = flattenedPrimitiveList[primitiveIndex];
+			auto primitiveEntry = flattenedPrimitiveList[primitiveIndex];
+			const auto &originMesh = scene.meshes[primitiveEntry.second];
+
+			const auto &extras = originMesh.extras;
+			if (extras.IsObject() && extras.Size() > 0) {
+				for (const auto &key : extras.Keys()) {
+					const auto &value = extras.Get(key);
+					if (value.IsString()) {
+						metadata_[key] = value.Get<std::string>();
+					}
+				}
+			}
 
 			// TODO enable this again once we have meshnode submesh support:
 			//materials_.emplace_back(scene.materials[primitive.material].name);
 
-			loadPrimitiveData(primitive, scene, vertexBuffer, normalBuffer, tangentBuffer, bitangentBuffer, uvBuffers, colorBuffers);
+			loadPrimitiveData(primitiveEntry.first, scene, vertexBuffer, normalBuffer, tangentBuffer, bitangentBuffer, uvBuffers, colorBuffers);
 		}
 	} else {
 		// calculate local node transformations to later transfer them to the node's vertex positions
@@ -93,7 +105,7 @@ glTFMesh::glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sce
 
 			for (const auto &primitiveIndex : sceneGraph.nodes[nodeIndex]->subMeshIndeces) {
 				auto primitive = flattenedPrimitiveList[*primitiveIndex];
-				loadPrimitiveData(primitive, scene, vertexBuffer, normalBuffer, tangentBuffer, bitangentBuffer, uvBuffers, colorBuffers, &globalTransformation);
+				loadPrimitiveData(primitive.first, scene, vertexBuffer, normalBuffer, tangentBuffer, bitangentBuffer, uvBuffers, colorBuffers, &globalTransformation);
 			}
 		}
 	}
@@ -165,6 +177,10 @@ std::vector<std::string> glTFMesh::getMaterialNames() const {
 
 const std::vector<uint32_t> &glTFMesh::getIndices() const {
 	return indexBuffer_;
+}
+
+std::map<std::string, std::string> glTFMesh::getMetadata() const {
+	return metadata_;
 }
 
 const std::vector<MeshData::IndexBufferRangeInfo> &glTFMesh::submeshIndexBufferRanges() const {

@@ -16,6 +16,7 @@
 #include "application/RaCoApplication.h"
 #include "components/DataChangeDispatcher.h"
 #include "components/RaCoNameConstants.h"
+#include "components/RaCoPreferences.h"
 #include "core/PathManager.h"
 #include "core/ProjectMigration.h"
 #include "log_system/log.h"
@@ -100,6 +101,12 @@ int main(int argc, char* argv[]) {
 					  << "run",
 		"Run Python script. Specify arguments for python script by writing '--' before arguments.",
 		"script-path");
+	QCommandLineOption pythonPathOption(
+		QStringList() << "y"
+					  << "pythonpath",
+		"Directory to add to python module search path.",
+		"python-path");
+
 	parser.addOption(consoleOption);
 	parser.addOption(forwardCommandLineArgs);
 	parser.addOption(noDumpFileCheckOption);
@@ -107,6 +114,7 @@ int main(int argc, char* argv[]) {
 	parser.addOption(ramsesTraceLogMessageAction);
 	parser.addOption(ramsesLogicFeatureLevel);
 	parser.addOption(pyrunOption);
+	parser.addOption(pythonPathOption);
 
 	// apply global style, must be done before application instance
 	QApplication::setStyle(new raco::style::RaCoStyle());
@@ -147,7 +155,7 @@ int main(int argc, char* argv[]) {
 
 	auto appDataPath = raco::utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
 	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
-	raco::log_system::init(raco::core::PathManager::logFileEditorName().internalPath().native());
+	raco::log_system::init(raco::core::PathManager::logFileDirectory(), std::string(raco::core::PathManager::LOG_FILE_EDITOR_BASE_NAME), QCoreApplication::applicationPid());
 
 	const QStringList positionalArgs = parser.positionalArguments();
 
@@ -160,7 +168,9 @@ int main(int argc, char* argv[]) {
 		projectFile = QFileInfo(positionalArgs.at(0)).absoluteFilePath();
 	}
 
-	int featureLevel = -1;
+	raco::components::RaCoPreferences::init();
+	int featureLevel = raco::components::RaCoPreferences::instance().featureLevel;
+
 	if (parser.isSet(ramsesLogicFeatureLevel)) {
 		featureLevel = parser.value(ramsesLogicFeatureLevel).toInt();
 		if (!(featureLevel == -1 ||
@@ -183,6 +193,11 @@ int main(int argc, char* argv[]) {
 		} else {
 			LOG_ERROR(raco::log_system::PYTHON, "Python script file not found {}", path.filePath().toStdString());
 		}
+	}
+
+	QStringList pythonSearchPaths;
+	if (parser.isSet(pythonPathOption)) {
+		pythonSearchPaths = parser.values(pythonPathOption);
 	}
 
 	// set font, must be done after application instance
@@ -208,7 +223,12 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (app) {
-		MainWindow w{app.get(), &rendererBackend};
+		std::vector<std::wstring> wPythonSearchPaths;
+		for (auto& path : pythonSearchPaths) {
+			wPythonSearchPaths.emplace_back(path.toStdWString());
+		}
+
+		MainWindow w{app.get(), &rendererBackend, wPythonSearchPaths};
 
 		if (!pythonScriptPath.isEmpty()) {
 			auto pythonScriptPathStr = pythonScriptPath.toStdString();
@@ -218,7 +238,12 @@ int main(int argc, char* argv[]) {
 				pos_argv_cp.emplace_back(s.c_str());
 			}
 
-			raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath.toStdString(), pos_argv_cp);
+			auto currentRunStatus = raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath.toStdString(), wPythonSearchPaths, pos_argv_cp);
+			LOG_INFO(raco::log_system::PYTHON, currentRunStatus.stdOutBuffer);
+
+			if (!currentRunStatus.stdErrBuffer.empty()) {
+				LOG_ERROR(raco::log_system::PYTHON, currentRunStatus.stdErrBuffer);
+			}
 		}
 
 		w.show();

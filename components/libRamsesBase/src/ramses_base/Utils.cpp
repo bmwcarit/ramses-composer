@@ -539,13 +539,18 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 				   : lodepng::decode(data, curWidth, curHeight, pngImportState, rawBinaryData);
 
 	if (ret != 0) {
-		LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'", obj->getTypeDescription().typeName, obj->objectName(), uri);
-		errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, "Image file could not be loaded.");
+		if (raco::utils::file::isGitLfsPlaceholderFile(pngPath)) {
+			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'. Git LFS placeholder file detected.", obj->getTypeDescription().typeName, obj->objectName(), uri);
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, "Image file could not be loaded, Git LFS placeholder file detected.");
+		} else {
+			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'", obj->getTypeDescription().typeName, obj->objectName(), uri);
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, "Image file could not be loaded.");
+		}
 		return {};
 	} else {
 		if (&obj->getTypeDescription() == &raco::user_types::CubeMap::typeDescription && curWidth != curHeight) {
 			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "CubeMap '{}': non-square image '{}' for '{}'", obj->objectName(), uri, uriPropName);
-			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}},
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}},
 				fmt::format("Non-square image size {}x{}", curWidth, curHeight));
 			return {};
 		}
@@ -567,18 +572,18 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 			auto errorMsg = (decodingInfo.width == -1)
 								? "Level 1 mipmap not defined"
 								: fmt::format("Incompatible image size {}x{}, expected is {}x{}", curWidth, curHeight, expectedWidth, expectedHeight);
-			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, errorMsg);
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, errorMsg);
 			return {};
 		}
 
 		if (curBitDepth != decodingInfo.bitdepth) {
 			auto errorMsg = fmt::format("Incompatible image bit depth {}, expected is {}", curBitDepth, decodingInfo.bitdepth);
-			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, errorMsg);
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, errorMsg);
 			return {};
 		}
 
 		if (textureFormatCompatInfo.errorLvl != raco::core::ErrorLevel::NONE) {
-			errors->addError(core::ErrorCategory::PARSE_ERROR, textureFormatCompatInfo.errorLvl, {obj->shared_from_this(), {uriPropName}}, textureFormatCompatInfo.errorMsg);
+			errors->addError(core::ErrorCategory::PARSING, textureFormatCompatInfo.errorLvl, {obj->shared_from_this(), {uriPropName}}, textureFormatCompatInfo.errorMsg);
 			if (textureFormatCompatInfo.errorLvl == raco::core::ErrorLevel::ERROR) {
 				return {};
 			}

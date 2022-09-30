@@ -30,6 +30,8 @@ public:
 	const std::vector<uint32_t>& getIndices() const override;
 	std::vector<std::string> getMaterialNames() const override;
 
+	std::map<std::string, std::string> getMetadata() const override;
+
 	const std::vector<IndexBufferRangeInfo>& submeshIndexBufferRanges() const override;
 
 	uint32_t numAttributes() const override;

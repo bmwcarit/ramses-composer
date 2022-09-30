@@ -38,7 +38,7 @@ class URIEditorTest : public EditorTestFixture {
 public:
 	PropertyBrowserItemTestHelper<Mesh> data{};
 	ValueHandle propertyHandle{data.valueHandle.get("uri")};
-	PropertyBrowserItem propertyBrowserItem{propertyHandle, dataChangeDispatcher, &commandInterface, &model};
+	PropertyBrowserItem propertyBrowserItem{propertyHandle, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
 	ExposedURIEditor uriEditor{&propertyBrowserItem};
 	std::string projectPath{(test_path() / "project" / "projectFileName").string()};
 	std::string absoluteMeshPath{(test_path() / "meshes" / "Duck.glb").string()};

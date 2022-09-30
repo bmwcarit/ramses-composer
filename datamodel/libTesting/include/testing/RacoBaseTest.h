@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "utils/stdfilesystem.h"
+#include <filesystem>
 #include "utils/FileUtils.h"
 #include "utils/u8path.h"
 #include "core/Context.h"

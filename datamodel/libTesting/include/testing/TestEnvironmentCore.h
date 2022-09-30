@@ -20,8 +20,10 @@
 #include "core/PropertyDescriptor.h"
 #include "core/Undo.h"
 #include "core/Queries.h"
+#include "core/SceneBackendInterface.h"
 #include "core/UserObjectFactoryInterface.h"
 #include "log_system/log.h"
+#include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "components/FileChangeMonitorImpl.h"
 #include "components/MeshCacheImpl.h"
@@ -42,7 +44,7 @@
 
 #include <QCoreApplication>
 
-#include "utils/stdfilesystem.h"
+#include <filesystem>
 
 #include <chrono>
 #include <memory>
@@ -249,6 +251,8 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		raco::log_system::init();
 		clearQEventLoop();
 		context.setMeshCache(&meshCache);
+		dispatcher = raco::ramses_adaptor::SceneBackend::SDataChangeDispatcher{std::make_shared<raco::components::DataChangeDispatcher>()};
+		sceneBackendInterface = new raco::ramses_adaptor::SceneBackend(backend, dispatcher);
 	}
 	virtual ~TestEnvironmentCoreT() {
 		// Cleanup everything
@@ -269,6 +273,8 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	BaseContext context;
 	TestUndoStack undoStack;
 	raco::core::CommandInterface commandInterface;
+	raco::ramses_adaptor::SceneBackend::SDataChangeDispatcher dispatcher;
+	raco::core::SceneBackendInterface* sceneBackendInterface;
 };
 
 using TestEnvironmentCore = TestEnvironmentCoreT<>;

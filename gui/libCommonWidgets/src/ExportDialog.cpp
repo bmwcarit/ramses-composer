@@ -10,12 +10,22 @@
 #include "common_widgets/ExportDialog.h"
 
 #include "common_widgets/ErrorView.h"
+#include "common_widgets/PropertyBrowserButton.h"
 #include "components/RaCoNameConstants.h"
-#include "core/PathManager.h"
 #include "core/SceneBackendInterface.h"
-#include "utils/stdfilesystem.h"
+#include "user_types/Animation.h"
+#include "user_types/LuaInterface.h"
+#include "user_types/LuaScript.h"
+#include "user_types/MeshNode.h"
+#include "user_types/Node.h"
+#include "user_types/OrthographicCamera.h"
+#include "user_types/PerspectiveCamera.h"
+#include "user_types/Prefab.h"
+#include "user_types/PrefabInstance.h"
+#include "user_types/RenderPass.h"
 #include "utils/u8path.h"
 
+#include <QFileDialog>
 #include <QGroupBox>
 #include <QLabel>
 #include <QListView>
@@ -29,21 +39,42 @@
 
 namespace {
 
+const std::vector<std::string> userTypesAllowedInSceneGraph {
+	raco::user_types::Node::typeDescription.typeName,
+	raco::user_types::MeshNode::typeDescription.typeName,
+	raco::user_types::Prefab::typeDescription.typeName,
+	raco::user_types::PrefabInstance::typeDescription.typeName,
+	raco::user_types::OrthographicCamera::typeDescription.typeName,
+	raco::user_types::PerspectiveCamera::typeDescription.typeName,
+//	raco::user_types::Animation::typeDescription.typeName, // Animations currently aren't properly parented inside the Scene Graph
+//	raco::user_types::LuaScript::typeDescription.typeName, // LuaScripts currently aren't properly parented inside the Scene Graph
+//	raco::user_types::LuaInterface::typeDescription.typeName // LuaInterfaces currently aren't properly parented inside the Scene Graph
+};
+
 QStandardItemModel* createSummaryModel(const std::vector<raco::core::SceneBackendInterface::SceneItemDesc>& sceneItems, QObject* parent) {
 	auto* listViewModel = new QStandardItemModel{parent};
 	listViewModel->setColumnCount(2);
-	listViewModel->setHorizontalHeaderItem(0, new QStandardItem{"Type"});
-	listViewModel->setHorizontalHeaderItem(1, new QStandardItem{"Name"});
+	listViewModel->setHorizontalHeaderItem(0, new QStandardItem{"Name"});
+	listViewModel->setHorizontalHeaderItem(1, new QStandardItem{"Type"});
+
+	auto* sceneGraphParent = new QStandardItem("Scene Graph");
+	auto* resourceParent = new QStandardItem("Resources");
+	listViewModel->appendRow(sceneGraphParent);
+	listViewModel->appendRow(resourceParent);
 
 	std::map<const raco::core::SceneBackendInterface::SceneItemDesc*, QStandardItem*> parents{};
-	for (auto& item : sceneItems) {
+	for (const auto& item : sceneItems) {
 		using ItemList = QList<QStandardItem*>;
-		auto* col0 = new QStandardItem{QString::fromStdString(item.type_)};
-		auto* col1 = new QStandardItem{QString::fromStdString(item.objectName_)};
+		auto* col0 = new QStandardItem{QString::fromStdString(item.objectName_)};
+		auto* col1 = new QStandardItem{QString::fromStdString(item.type_)};
 		if (item.parentIndex_ != -1) {
 			parents[&sceneItems[item.parentIndex_]]->appendRow(ItemList{} << col0 << col1);
 		} else {
-			listViewModel->appendRow(ItemList{} << col0 << col1);
+			if (std::find(userTypesAllowedInSceneGraph.begin(), userTypesAllowedInSceneGraph.end(), item.type_) != userTypesAllowedInSceneGraph.end()) {
+				sceneGraphParent->appendRow(ItemList{} << col0 << col1);
+			} else {
+				resourceParent->appendRow(ItemList{} << col0 << col1);
+			}
 		}
 		parents[&item] = col0;
 	}
@@ -59,41 +90,39 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	setWindowTitle(QString{"Export Project - %1"}.arg(application->activeRaCoProject().name()));
 
 	auto* content = new QGroupBox{"Export Configuration:", this};
-	auto* contentLayout_ = new QGridLayout{content};
+	auto* contentLayout = new QGridLayout{content};
 
-	contentLayout_->setAlignment(Qt::AlignTop);
-
-	pathEdit_ = new QLineEdit(content);
-	pathEdit_->setMinimumWidth(600);
-	contentLayout_->addWidget(new QLabel{"Export path:", content}, 0, 0);
-	contentLayout_->addWidget(pathEdit_, 0, 1);
+	contentLayout->setAlignment(Qt::AlignTop);
 
 	ramsesEdit_ = new QLineEdit(content);
-	contentLayout_->addWidget(new QLabel{"Ramses file:", content}, 1, 0);
-	contentLayout_->addWidget(ramsesEdit_, 1, 1);
+	ramsesEdit_->setMinimumWidth(600);
+	contentLayout->addWidget(new QLabel{"Ramses file:", content}, 0, 0);
+	contentLayout->addWidget(ramsesEdit_, 0, 1);
+
+	auto* selectRamsesDirectoryButton = new PropertyBrowserButton("  ...  ", this);
+	contentLayout->addWidget(selectRamsesDirectoryButton, 0, 2);
+	setupFilePickerButton(selectRamsesDirectoryButton, ramsesEdit_, raco::names::FILE_EXTENSION_RAMSES_EXPORT);
 
 	logicEdit_ = new QLineEdit(content);
-	contentLayout_->addWidget(new QLabel{"Logic file:", content}, 2, 0);
-	contentLayout_->addWidget(logicEdit_, 2, 1);
+	contentLayout->addWidget(new QLabel{"Logic file:", content}, 1, 0);
+	contentLayout->addWidget(logicEdit_, 1, 1);
+
+	auto* selectLogicDirectoryButton = new PropertyBrowserButton("  ...  ", this);
+	contentLayout->addWidget(selectLogicDirectoryButton, 1, 2);
+	setupFilePickerButton(selectLogicDirectoryButton, logicEdit_, raco::names::FILE_EXTENSION_LOGIC_EXPORT);
 
 	compressEdit_ = new QCheckBox(content);
-	contentLayout_->addWidget(new QLabel{"Compress:", content}, 3, 0);
-	contentLayout_->addWidget(compressEdit_, 3, 1);
+	contentLayout->addWidget(new QLabel{"Compress:", content}, 2, 0);
+	contentLayout->addWidget(compressEdit_, 2, 1);
 	compressEdit_->setChecked(true);
 
-	if (application_->activeProjectPath().size() > 0) {
-		auto projectPath = raco::utils::u8path(application_->activeProjectPath());
-		auto ramsesPath = projectPath;
-		ramsesPath.replace_extension(raco::names::FILE_EXTENSION_RAMSES_EXPORT);
-		auto logicPath = projectPath;
-		logicPath.replace_extension(raco::names::FILE_EXTENSION_LOGIC_EXPORT);
-		pathEdit_->setText(QString::fromStdString(application_->activeProjectFolder()));
-		ramsesEdit_->setText(QString::fromStdString(ramsesPath.string()));
-		logicEdit_->setText(QString::fromStdString(logicPath.string()));
+	if (!application_->activeProjectPath().empty()) {
+		ramsesEdit_->setText(application_->activeRaCoProject().name() + "." + raco::names::FILE_EXTENSION_RAMSES_EXPORT);
+		logicEdit_->setText(application_->activeRaCoProject().name() + "." + raco::names::FILE_EXTENSION_LOGIC_EXPORT);
 	} else {
-		pathEdit_->setText(QString::fromStdString(raco::utils::u8path::current().string()));
-		ramsesEdit_->setText(QString("unknown.").append(raco::names::FILE_EXTENSION_RAMSES_EXPORT));
-		logicEdit_->setText(QString("unknown.").append(raco::names::FILE_EXTENSION_LOGIC_EXPORT));
+		auto currentPath = QString::fromStdString(raco::utils::u8path::current().string() + "/");
+		ramsesEdit_->setText(currentPath + QString("unknown.").append(raco::names::FILE_EXTENSION_RAMSES_EXPORT));
+		logicEdit_->setText(currentPath + QString("unknown.").append(raco::names::FILE_EXTENSION_LOGIC_EXPORT));
 	}
 
 	auto* summaryBox = new QGroupBox{"Summary", this};
@@ -106,10 +135,19 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	std::vector<core::SceneBackendInterface::SceneItemDesc> sceneDescription;
 	auto sceneStatus = application->getExportSceneDescriptionAndStatus(sceneDescription, message);
 
-	auto* listView = new QTreeView{tabWidget};
-	listView->setModel(createSummaryModel(sceneDescription, listView));
-	listView->setMinimumHeight(500);
-	tabWidget->addTab(listView, QString{"Scene ID: %1"}.arg(application->sceneBackend()->currentSceneIdValue()));
+	auto* sceneDescriptionView = new QTreeView{tabWidget};
+	sceneDescriptionView->setModel(createSummaryModel(sceneDescription, sceneDescriptionView));
+	sceneDescriptionView->setMinimumHeight(500);
+	sceneDescriptionView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+	auto* proxy = sceneDescriptionView->model();
+	for (int i = 0; i < proxy->rowCount(); ++i)	{
+		auto index = proxy->index(i, 0);
+		sceneDescriptionView->expand(index);
+	}
+
+	sceneDescriptionView->setColumnWidth(0, 500);
+	tabWidget->addTab(sceneDescriptionView, QString{"Scene ID: %1"}.arg(application->sceneBackend()->currentSceneIdValue()));
 
 	hasErrors_ = false;
 
@@ -156,24 +194,21 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &ExportDialog::exportProject);
 	connect(buttonBox_, SIGNAL(rejected()), this, SLOT(reject()));
 
-	QObject::connect(pathEdit_, &QLineEdit::textChanged, this, &ExportDialog::updateButtonStates);
-	QObject::connect(ramsesEdit_, &QLineEdit::textChanged, this, &ExportDialog::updateButtonStates);
-	QObject::connect(logicEdit_, &QLineEdit::textChanged, this, &ExportDialog::updateButtonStates);
-	updateButtonStates();
+	QObject::connect(ramsesEdit_, &QLineEdit::textChanged, this, &ExportDialog::updatePaths);
+	QObject::connect(logicEdit_, &QLineEdit::textChanged, this, &ExportDialog::updatePaths);
+	updatePaths();
 
 	setAttribute(Qt::WA_DeleteOnClose);
 }
 
 void ExportDialog::exportProject() {
+	auto ramsesFilePath = getAbsoluteExportFilePath(ramsesEdit_);
+	auto logicFilePath = getAbsoluteExportFilePath(logicEdit_);
+
 	std::string error;
-
-	auto dir = pathEdit_->text().toStdString();
-	auto ramsesFilePath = raco::utils::u8path(ramsesEdit_->text().toStdString()).normalizedAbsolutePath(dir);
-	auto rlogicFilePath = raco::utils::u8path(logicEdit_->text().toStdString()).normalizedAbsolutePath(dir);
-
 	if (application_->exportProject(
 			ramsesFilePath.string(),
-			rlogicFilePath.string(),
+			logicFilePath.string(),
 			compressEdit_->isChecked(), error, true)) {
 		accept();
 	} else {
@@ -182,10 +217,51 @@ void ExportDialog::exportProject() {
 	}
 }
 
+utils::u8path ExportDialog::getAbsoluteExportFilePath(QLineEdit* path) {
+	auto dir = raco::utils::u8path(path->text().toStdString());
+	if (dir.is_relative()) {
+		if (!application_->activeProjectPath().empty()){
+			dir = dir.normalizedAbsolutePath(application_->activeProjectFolder());
+		}
+	}
+
+	return dir;
+}
+
+void ExportDialog::updatePaths() {
+	auto ramsesPath = getAbsoluteExportFilePath(ramsesEdit_);
+	ramsesEdit_->setToolTip(QString::fromStdString(ramsesPath.string()));
+
+	auto logicPath = getAbsoluteExportFilePath(logicEdit_);
+	logicEdit_->setToolTip(QString::fromStdString(logicPath.string()));
+
+	updateButtonStates();
+}
+
 void ExportDialog::updateButtonStates() {
-	const bool enableButton = !ramsesEdit_->text().isEmpty() && !logicEdit_->text().isEmpty() && !pathEdit_->text().isEmpty();
+	const bool enableButton = !ramsesEdit_->text().isEmpty() && !logicEdit_->text().isEmpty();
 	buttonBox_->button(QDialogButtonBox::Ok)->setEnabled(enableButton);
 	buttonBox_->button(QDialogButtonBox::Ok)->setText(enableButton && hasErrors_ ? "Export (with errors)" : "Export");
+}
+
+void ExportDialog::setupFilePickerButton(PropertyBrowserButton* button, QLineEdit* pathEdit, const std::string& fileType) {
+	QObject::connect(button, &QPushButton::clicked, [this, pathEdit, fileType]() {
+		auto currentPath = getAbsoluteExportFilePath(pathEdit);
+		auto dir = QString::fromStdString(currentPath.string());
+		auto caption = QString::fromStdString(fmt::format("{} file location", fileType));
+		auto filter = QString::fromStdString(fmt::format("{0} files (*.{0});;Any files (*)", fileType));
+		auto result = QFileDialog::getSaveFileName(this, caption, dir, filter);
+		if (!result.isEmpty()) {
+			if (!application_->activeProjectPath().empty()) {
+				auto newPath = raco::utils::u8path(result.toStdString());
+				auto projectFolder = application_->activeProjectFolder();
+				auto relativePath = newPath.normalizedRelativePath(projectFolder);
+				pathEdit->setText(QString::fromStdString(relativePath.string()));
+			} else {
+				pathEdit->setText(result);
+			}
+		}
+	});
 }
 
 }  // namespace raco::common_widgets

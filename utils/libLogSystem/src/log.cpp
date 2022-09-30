@@ -12,7 +12,7 @@
 #include <iostream>
 #include <spdlog/sinks/dist_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <vector>
 #include <locale>
 #include <codecvt>
@@ -21,6 +21,12 @@
 #include <filesystem>
 #include <processthreadsapi.h>
 #endif
+
+#include "utils/u8path.h"
+
+#include <chrono>
+#include <filesystem>
+#include <regex>
 
 namespace raco::log_system {
 
@@ -49,40 +55,7 @@ void setConsoleLogLevel(spdlog::level::level_enum level) {
 	consoleSink->set_level(level);
 }
 
-void init(spdlog::filename_t logFileName) {
-	if (initialized) {
-		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
-		return;
-	}
-
-	multiplexSink = std::make_shared<spdlog::sinks::dist_sink_mt>();
-	consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-	sinks = {consoleSink, multiplexSink};
-
-	std::string logFileSinkError = "";
-	if (!logFileName.empty()) {
-#if defined(_WIN32)
-		// Under Windows, the renaming of the log file that rotating_file_sink_mt perfoms will fail, when another RaCo instance is already opened.
-		// Thus if a log file already exists, we will check whether we can rename it and if not, append the process id to the file name to have a non colliding file name.
-		// Technically, there is a tiny race condition in here, when two new instances launch exactly at the same time and execttue this code block at the same time.
-		// This is very unlikely to happen. If it happens, it will cause the log file of one instance to be lost, but both of them will keep running.
-		// Under Linux, these precautions are not necessary, since renaming files that are being written to works transparently.
-		if (std::filesystem::exists(logFileName)) {
-			try {
-				std::filesystem::rename(logFileName, logFileName);
-			} catch(const std::filesystem::filesystem_error& e) {
-				logFileName = logFileName.substr(0, logFileName.size() - 4) + L"-" + std::to_wstring(GetCurrentProcessId()) + L".log";
-			}
-		}
-#endif
-
-		try {
-			sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFileName, MAX_LOG_FILE_SIZE_BYTES, MAX_LOG_FILE_AMOUNT, true));
-		} catch (const spdlog::spdlog_ex& ex) {
-			logFileSinkError = ex.what();
-		}
-	}
-
+void setup_loggers() {
 	// Resize stdout buffer
 	const auto stdoutBufferSize = 50000;
 	setvbuf(stdout, nullptr, _IOFBF, stdoutBufferSize);
@@ -105,13 +78,100 @@ void init(spdlog::filename_t logFileName) {
 	spdlog::register_logger(makeLogger(TRACE_PLAYER));
 	spdlog::set_default_logger(spdlog::get(DEFAULT));
 	spdlog::set_pattern("%^[%L] [%D %T:%f] [%n] [%s:%#] [%!] %v");
+}
+
+
+void init(const raco::utils::u8path& logFilePath) {
+	if (initialized) {
+		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
+		return;
+	}
+
+	multiplexSink = std::make_shared<spdlog::sinks::dist_sink_mt>();
+	consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	sinks = {consoleSink, multiplexSink};
+
+	std::string logFileSinkError;
+
+	if (!logFilePath.empty()) {
+		try {
+			sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.internalPath().native()));
+		} catch (const spdlog::spdlog_ex& ex) {
+			logFileSinkError = ex.what();
+		}
+	}
+
+	setup_loggers();
 
 #if defined(_WIN32)
 	SetConsoleOutputCP(CP_UTF8);
-	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(logFileName));
-#else
-	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", logFileName);
 #endif
+	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", logFilePath.string());
+
+	if (!logFileSinkError.empty()) {
+		LOG_ERROR(LOGGING, "Log file initialization failed: {}", logFileSinkError);
+	}
+
+	initialized = true;
+}
+
+
+void init(const raco::utils::u8path& logFileDirectory, const std::string& logFileBaseName, int64_t pid) {
+	if (initialized) {
+		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
+		return;
+	}
+
+	multiplexSink = std::make_shared<spdlog::sinks::dist_sink_mt>();
+	consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	sinks = {consoleSink, multiplexSink};
+
+	std::string logFileSinkError;
+
+	std::filesystem::path logFilePath;
+
+	if (!logFileBaseName.empty()) {
+		// Append procecss id to the log file name to avoid name collisions between multiple processes.
+		std::string logFileFullName = logFileBaseName + "-" + std::to_string(pid) + LOG_FILE_EXTENSION;
+		logFilePath = (logFileDirectory / logFileFullName).internalPath().native();
+		try {
+			sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath));
+		} catch (const spdlog::spdlog_ex& ex) {
+			logFileSinkError = ex.what();
+		}
+
+		// Remove oldest logfiles:
+
+		// Step 1: get directory listing of all files matching logfile naming pattern
+		std::vector<std::filesystem::directory_entry> logFiles;
+		std::regex regex(logFileBaseName + "-[0-9]+" + LOG_FILE_EXTENSION);
+		for (auto entry : std::filesystem::directory_iterator(logFileDirectory)) {
+			auto fname = entry.path().filename().string();
+			if (std::regex_match(fname, regex)) {
+				logFiles.emplace_back(entry);
+			}
+		}
+
+		// Step 2: Sort into oldest first order:
+		std::sort(logFiles.begin(), logFiles.end(), [](auto& left, auto& right) {
+			return left.last_write_time() < right.last_write_time();
+		});
+
+		// Step 3: removed oldest files keeping at most MAX_LOG_FILES files.
+		if (logFiles.size() > MAX_LOG_FILES) {
+			for (size_t i = 0; i < logFiles.size() - MAX_LOG_FILES; i++) {
+				auto& entry = logFiles[i];
+				std::filesystem::remove(entry);
+			}
+		}
+	}
+
+	setup_loggers();
+
+#if defined(_WIN32)
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+	LOG_INFO(LOGGING, "log_system initialized logFileName: {}", logFilePath.string());
 
 	if (!logFileSinkError.empty()) {
 		LOG_ERROR(LOGGING, "Log file initialization failed: {}", logFileSinkError);

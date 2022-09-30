@@ -17,6 +17,7 @@
 #include "ramses_base/HeadlessEngineBackend.h"
 
 #include "property_browser/PropertyBrowserItem.h"
+#include "ramses_adaptor/SceneBackend.h"
 
 namespace raco::property_browser {
 
@@ -40,6 +41,12 @@ struct PropertyBrowserItemTestHelper {
 	ValueHandle valueHandle{editorObject};
 	core::UndoStack undoStack{context.get()};
 	core::CommandInterface commandInterface{context.get(), &undoStack};
+	core::SceneBackendInterface* sceneBackend = getSceneBackend();
+
+	core::SceneBackendInterface* getSceneBackend() {
+		auto* result = new ramses_adaptor::SceneBackend(backend, dispatcher);
+		return result;
+	}
 
 	void addPropertyTo(const std::string& containerName, PrimitiveType type) {
 		editorObject->get(containerName)->asTable().addProperty(type);

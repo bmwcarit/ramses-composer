@@ -88,8 +88,7 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 	auto treeNode = indexToTreeNode(index);
 
 	switch (role) {
-		case Qt::ItemDataRole::DecorationRole: {
-
+		case Qt::DecorationRole: {
 			auto editorObj = treeNode->getRepresentedObject();
 			if (editorObj && index.column() == COLUMNINDEX_NAME) {
 				auto itr = typeIconMap.find(editorObj->getTypeDescription().typeName);
@@ -106,9 +105,9 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 			} else if (editorObj && Queries::isReadOnly(editorObj)) {
 				return QVariant(Colors::color(Colormap::textDisabled));
 			}
-			return QVariant(Colors::color(Colormap::text));			
+			return QVariant(Colors::color(Colormap::text));
 		}
-		case Qt::ItemDataRole::DisplayRole: {
+		case Qt::DisplayRole: {
 			switch (index.column()) {
 				case COLUMNINDEX_NAME:
 					return QVariant(QString::fromStdString(treeNode->getDisplayName()));
@@ -121,6 +120,9 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 				}
 			}
 		}
+		case Qt::EditRole: {
+			return QVariant(QString::fromStdString(treeNode->getDisplayName()));
+		}
 	}
 
 	return QVariant();
@@ -128,7 +130,7 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 
 QVariant ObjectTreeViewDefaultModel::headerData(int section, Qt::Orientation orientation, int role) const {
 	switch (role) {
-		case Qt::ItemDataRole::DisplayRole: {
+		case Qt::DisplayRole: {
 			switch (section) {
 				case COLUMNINDEX_NAME:
 					return QVariant("Name");
@@ -569,6 +571,8 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 
 	auto selectedObject = indexToSEditorObject(selectedIndex);
 
+	// create dummy cache entry to prevent "cache corpses" if the mesh file is otherwise not accessed by any Mesh
+	auto dummyCacheEntry = commandInterface_->meshCache()->registerFileChangedHandler(meshDesc.absPath, {nullptr, nullptr, []() {}});
 	if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {
 		auto importStatus = raco::common_widgets::MeshAssetImportDialog(*sceneGraph, nullptr).exec();
 		if (importStatus == QDialog::Accepted) {
@@ -696,13 +700,17 @@ bool ObjectTreeViewDefaultModel::setData(const QModelIndex& index, const QVarian
 			return false;
 		}
 
-		if (role == Qt::ItemDataRole::EditRole) {
-			commandInterface_->set(core::ValueHandle{obj, {"objectName"}}, value.toString().toStdString());
+		if (role == Qt::EditRole) {
 			if (obj->objectName() == value.toString().toStdString()) {
-				success = true;
-			} else {
-				assert(false && "model failed to set object name!");
 				success = false;
+			} else {
+				commandInterface_->set(core::ValueHandle{obj, {"objectName"}}, value.toString().toStdString());
+				if (obj->objectName() == value.toString().toStdString()) {
+					success = true;
+				} else {
+					assert(false && "model failed to set object name!");
+					success = false;
+				}
 			}
 		}
 	} else {

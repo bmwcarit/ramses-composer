@@ -33,55 +33,6 @@ protected:
 	}
 };
 
-TEST_F(MeshNodeTest, submeshSelection_wrongSubmeshIndexCreatesErrorTooLow) {
-	auto meshNode = commandInterface.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
-
-	commandInterface.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	commandInterface.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
-	commandInterface.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
-	commandInterface.set(ValueHandle{mesh, {"meshIndex"}}, -1);
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::ERROR);
-}
-
-TEST_F(MeshNodeTest, submeshSelection_correctSubmeshIndexFixesError) {
-	auto meshNode = commandInterface.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
-
-	commandInterface.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-	commandInterface.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
-	commandInterface.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
-	commandInterface.set(ValueHandle{mesh, {"meshIndex"}}, 1);
-	commandInterface.set(ValueHandle{mesh, {"meshIndex"}}, 0);
-
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::INFORMATION);
-}
-
-TEST_F(MeshNodeTest, valid_file_with_no_meshes_unbaked_submesh_error) {
-	auto meshNode = commandInterface.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
-
-	commandInterface.set(ValueHandle{meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
-
-	ASSERT_TRUE(commandInterface.errors().hasError({mesh}));
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::ERROR);
-}
-
-TEST_F(MeshNodeTest, valid_file_with_no_meshes_baked_no_submesh_error) {
-	auto meshNode = commandInterface.createObject(MeshNode::typeDescription.typeName, "MeshNode");
-	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
-
-	commandInterface.set(ValueHandle{meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, true);
-
-	ASSERT_TRUE(commandInterface.errors().hasError({mesh}));
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::ERROR);
-}
-
 TEST_F(MeshNodeTest, private_material_options_get_taken_over_from_shared_material) {
 	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
 	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");

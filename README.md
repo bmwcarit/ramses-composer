@@ -78,7 +78,7 @@ The shell scripts together with the `qt.conf` allow the localization of all requ
 
 Both the Windows and Linux versions of the Ramses Composer Python 3.8 environment can be found in `./bin/python*`. The environment
 is [isolated](https://docs.python.org/3/c-api/init_config.html#init-isolated-conf) from the system and contains [pip](https://pip.pypa.io/) for installing
-custom modules. For more details how to install modules with pip, please refer to the Python documentation found in `./PythonAPI.md'.
+custom modules. For more details how to install modules with pip, please refer to the Python section in the documentation.
 
 ### Locations
 

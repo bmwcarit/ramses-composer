@@ -17,11 +17,11 @@ namespace raco::core {
 
 enum class ErrorCategory {
 	GENERAL = 0,
-	PARSE_ERROR,
-	FILESYSTEM_ERROR,
-	RAMSES_LOGIC_RUNTIME_ERROR,
-	EXTERNAL_REFERENCE_ERROR,
-	MIGRATION_ERROR
+	PARSING, // PARSING
+	FILESYSTEM,
+	RAMSES_LOGIC_RUNTIME,
+	EXTERNAL_REFERENCE,
+	MIGRATION
 };
 
 enum class ErrorLevel {
@@ -32,8 +32,12 @@ enum class ErrorLevel {
 };
 
 /**
- * General error item for all [core::EditorObject]'s and [core::ValueHandle]'s within a project / context.
- * An ErrorItem can also contain an empty [core::ValueHandle] which means it is project-global instead of chained to an object or property.
+ * General error item for all errors within a project.
+ * 
+ * There are 3 different classes of errors
+ * - Project global errors: the ErrorItem contains an empty [core::ValueHandle]
+ * - Object errors: the ValueHandle describes an object, i.e. ValueHandle::isObject() == true
+ * - Property errors: the ValueHandle describes a property, i.e. ValueHandle::isProperty() == true
  */
 class ErrorItem {
 public:

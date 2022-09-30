@@ -520,7 +520,7 @@ bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::ser
 
 	auto localAnno = localObj->query<ExternalReferenceAnnotation>();
 	if (!localAnno) {
-		throw ExtrefError("Cant' paste existing local object as external reference.");
+		throw ExtrefError("Can't paste existing local object as external reference.");
 	}
 
 	// We know we want to discard the object at this point.
@@ -542,11 +542,17 @@ bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::ser
 	}
 
 	if (originProjectID != *localAnno->projectID_) {
-		throw ExtrefError("Attempting to paste duplicate object from different project.");
+		throw ExtrefError(fmt::format("Attempting to paste duplicate object from different project.\nAn object with the same ID was already added: {} from {} ({})",
+			localObj->objectName(),
+			project_->lookupExternalProjectName(*localAnno->projectID_),
+			project_->lookupExternalProjectPath(*localAnno->projectID_)));
 	}
 
 	if (originProjectPath != project_->lookupExternalProjectPath(*localAnno->projectID_)) {
-		throw ExtrefError("Attempting to paste from duplicate external project with different file path.");
+		throw ExtrefError(fmt::format("Attempting to paste from duplicate external project with different file path.\nAn object with the same ID was already added: {} from {} ({})",
+			localObj->objectName(),
+			project_->lookupExternalProjectName(*localAnno->projectID_),
+			project_->lookupExternalProjectPath(*localAnno->projectID_)));
 	}
 
 	return true;
@@ -611,7 +617,7 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	}
 
 	if (pasteAsExtref && project_->projectID() == deserialization.originProjectID) {
-		throw ExtrefError("Paste: external reference project loop detected (based on project ID).");
+		throw ExtrefError("Paste: external reference project loop detected (based on same project ID).");
 	}
 
 	// When pasting extref objects:
@@ -787,7 +793,7 @@ void BaseContext::initBrokenLinkErrors() {
 void BaseContext::updateBrokenLinkErrors(SEditorObject endObject) {
 	if (errors_->hasError(endObject)) {
 		auto error = errors_->getError(endObject);
-		if (error.category() == ErrorCategory::PARSE_ERROR) {
+		if (error.category() == ErrorCategory::PARSING) {
 			return;		
 		}
 		if (error.category() == ErrorCategory::GENERAL) {

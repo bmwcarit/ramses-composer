@@ -73,6 +73,11 @@ std::vector<std::string> CTMMesh::getMaterialNames() const {
 	return {"material"};
 }
 
+std::map<std::string, std::string> CTMMesh::getMetadata() const {
+	// CTM does not support metadata
+	return {};
+}
+
 const std::vector<uint32_t>& CTMMesh::getIndices() const {
 	return indexBuffer_;
 }

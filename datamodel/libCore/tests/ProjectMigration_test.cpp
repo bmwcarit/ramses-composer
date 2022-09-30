@@ -491,7 +491,7 @@ TEST_F(MigrationTest, migrate_from_V35) {
 	EXPECT_EQ(inst_int_types->inputs_->get("integer")->asInt(), 8);
 	EXPECT_EQ(inst_int_types->inputs_->get("integer64")->asInt64(), 9);
 
-	for (auto& link : racoproject->project()->links()) {
+	for (const auto& link : racoproject->project()->links()) {
 		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp(), false));
 	}
 
@@ -525,7 +525,7 @@ TEST_F(MigrationTest, migrate_from_V35_extref) {
 	EXPECT_EQ(inst_int_types->inputs_->get("integer")->asInt(), 8);
 	EXPECT_EQ(inst_int_types->inputs_->get("integer64")->asInt64(), 9);
 
-	for (auto& link : racoproject->project()->links()) {
+	for (const auto& link : racoproject->project()->links()) {
 		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp(), false));
 	}
 }
@@ -555,7 +555,7 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 
 	EXPECT_EQ(inst_int_types->inputs_->get("float")->asDouble(), 0.25);
 
-	for (auto& link : racoproject->project()->links()) {
+	for (const auto& link : racoproject->project()->links()) {
 		EXPECT_TRUE(Queries::linkWouldBeAllowed(*racoproject->project(), link->startProp(), link->endProp(), false));
 	}
 
@@ -606,7 +606,7 @@ TEST_F(MigrationTest, migrate_from_V39) {
 	ASSERT_NE(ValueHandle(timer, {"outputs", "ticker_us"}).asInt64(), int64_t{0});
 
 	ASSERT_EQ(racoproject->project()->links().size(), 12);
-	for (auto& link : racoproject->project()->links()) {
+	for (const auto& link : racoproject->project()->links()) {
 		ASSERT_TRUE(link->isValid());
 	}
 }

@@ -62,7 +62,7 @@ void Material::updateFromExternalFile(BaseContext& context) {
 		std::string error{};
 		isShaderValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
 		if (error.size() > 0) {
-			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, error);
+			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, error);
 		}
 	}
 	if (!isShaderValid_) {
@@ -105,7 +105,7 @@ std::string Material::getShaderFileEnding(ShaderFileType shader, bool endsWithDo
 
 void Material::autofillShaderIfFileExists(BaseContext& context, const std::string& fileNameWithoutEnding, bool endsWithDotGlsl, ShaderFileType shaderType) {
 	auto fileName = fileNameWithoutEnding + getShaderFileEnding(shaderType, endsWithDotGlsl);
-	if (std::filesystem::exists(raco::utils::u8path(fileName).normalizedAbsolutePath(context.project()->currentFolder()).string())) {
+	if (raco::utils::u8path(fileName).normalizedAbsolutePath(context.project()->currentFolder()).existsFile()) {
 		ValueHandle handle;
 		switch (shaderType) {
 			case ShaderFileType::Vertex:

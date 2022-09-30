@@ -46,14 +46,15 @@ PUBLIC
 	raco::LogSystem
 	raco::PropertyBrowser
 	raco::CommonWidgets
+	raco::GUIPythonAPI
 	raco::Style
 	raco::Utils
 	raco::Core 
-	raco::RamsesWidgets
 	raco::ObjectTree
 	Qt5::Widgets
 	qtadvanceddocking
 	raco::PythonAPI
+	raco::RamsesWidgets
 PRIVATE
     raco::pybind11
 )

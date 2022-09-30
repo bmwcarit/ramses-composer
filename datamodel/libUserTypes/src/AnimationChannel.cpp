@@ -56,7 +56,7 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 		auto fileErrorText = context.meshCache()->getMeshError(uriAbsPath);
 		auto errorText = fileErrorText.empty() ? "Selected Animation Source file is not valid."
 											   : fmt::format("Error while loading Animation Source:\n\n{}", fileErrorText);
-		context.errors().addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {shared_from_this(), {"uri"}}, errorText);
+		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), {"uri"}}, errorText);
 		return;
 	}
 
@@ -87,19 +87,19 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 		auto errorText = fileErrorText.empty() ? "Selected Animation Source does not contain valid animation samplers."
 											   : fmt::format("Error while loading Animation Source:\n\n{}", fileErrorText);
 
-		context.errors().addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {shared_from_this(), {"uri"}}, errorText);
+		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), {"uri"}}, errorText);
 		currentSamplerData_.reset();
 		return;
 	}
 
 	if (currentSamplerData_->input.empty()) {
-		context.errors().addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid input data.");
+		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid input data.");
 		currentSamplerData_.reset();
 		return;
 	}
 
 	if (currentSamplerData_->output.empty()) {
-		context.errors().addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid output data.");
+		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid output data.");
 		currentSamplerData_.reset();
 		return;
 	}

@@ -43,7 +43,7 @@ void LuaScriptModule::sync(BaseContext& context) {
 		isValid_ = context.engineInterface().parseLuaScriptModule(luaScript, objectName(), stdModules_->activeModules(), error);
 
 		if (!isValid_) {
-			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
+			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, shared_from_this(), error);
 		}
 		currentScriptContents_ = luaScript;
 	} else {

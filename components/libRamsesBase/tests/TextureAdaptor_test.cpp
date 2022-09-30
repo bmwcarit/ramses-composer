@@ -11,6 +11,7 @@
 
 #include "RamsesBaseFixture.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
+#include "testing/TestUtil.h"
 
 class TextureAdaptorFixture : public RamsesBaseFixture<> {
 public:
@@ -439,4 +440,15 @@ TEST_F(TextureAdaptorFixture, level1UriWarning) {
 
 	ASSERT_TRUE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::uri_}));
 	ASSERT_EQ(commandInterface.errors().getError({texture, &raco::user_types::Texture::uri_}).level(), raco::core::ErrorLevel::WARNING);
+}
+
+TEST_F(TextureAdaptorFixture, gitLfsPlaceholderFileInUri) {
+	std::string path = test_path().append("images/gitLfsPlaceholderFile.png").string();
+	raco::createGitLfsPlaceholderFile(path);
+
+	auto texture = create <raco::user_types::Texture>("texture");
+	commandInterface.set({texture, &raco::user_types::Texture::uri_}, path);
+	dispatch();
+	ASSERT_TRUE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::uri_}));
+	ASSERT_TRUE(commandInterface.errors().getError({texture, &raco::user_types::Texture::uri_}).message().find("Git LFS Placeholder"));
 }

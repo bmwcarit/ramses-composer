@@ -10,9 +10,11 @@
 #include "common_widgets/RunScriptDialog.h"
 
 #include "core/PathManager.h"
+#include "style/Colors.h"
 #include "utils/u8path.h"
 
 #include <QCompleter>
+#include <QDateTime>
 #include <QLabel>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -22,25 +24,25 @@
 namespace raco::common_widgets {
 
 RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::map<QString, qint64>& commandLineParamEntries, QWidget* parent)
-	: QDialog{parent},
+	: QWidget{parent},
 	  scriptEntries_{scriptEntries},
-	  commandLineParamEntries_{commandLineParamEntries} {
+	  commandLineParamEntries_{commandLineParamEntries}
+{
+
 	layout_ = new QGridLayout(this);
 
-	auto contentLayout = new QGridLayout(this);
-	contentLayout->setAlignment(Qt::AlignTop);
+	scriptSettingsLayout_ = new QGridLayout(this);
 
 	scriptPathEdit_ = new QComboBox(this);
 	scriptPathEdit_->setEditable(true);
-	scriptPathEdit_->setMinimumWidth(400);
 
-	auto scriptPathURIButton = new QPushButton("...", this);
-	scriptPathURIButton->setMaximumWidth(30);
-	contentLayout->addWidget(new QLabel{"Python Script Path", this}, 0, 0);
-	contentLayout->addWidget(scriptPathEdit_, 0, 1);
-	contentLayout->addWidget(scriptPathURIButton, 0, 2);
+	scriptPathURIButton_ = new QPushButton("...", this);
+	scriptPathURIButton_->setMaximumWidth(30);
+	scriptSettingsLayout_->addWidget(new QLabel{"Python Script Path", this}, 0, 0);
+	scriptSettingsLayout_->addWidget(scriptPathEdit_, 0, 1);
+	scriptSettingsLayout_->addWidget(scriptPathURIButton_, 0, 2);
 	QObject::connect(scriptPathEdit_, &QComboBox::currentTextChanged, this, &RunScriptDialog::updateButtonStates);
-	QObject::connect(scriptPathURIButton, &QPushButton::clicked, [this]() {
+	QObject::connect(scriptPathURIButton_, &QPushButton::clicked, [this]() {
 		auto pythonPath = scriptPathEdit_->currentText();
 		if (pythonPath.isEmpty()) {
 			auto cachedScriptPath = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script, pythonPath.toStdString());
@@ -56,20 +58,22 @@ RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::
 
 	argumentsEdit_ = new QComboBox(this);
 	argumentsEdit_->setEditable(true);
-	contentLayout->addWidget(new QLabel{"Command Line Arguments", this}, 1, 0);
-	contentLayout->addWidget(argumentsEdit_, 1, 1);
+	scriptSettingsLayout_->addWidget(new QLabel{"Command Line Arguments", this}, 1, 0);
+	scriptSettingsLayout_->addWidget(argumentsEdit_, 1, 1);
 
-	warningLabel_ = new QLabel("");
-	contentLayout->addWidget(warningLabel_, 2, 1);
-
-	buttonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};
+	buttonBox_ = new QDialogButtonBox{QDialogButtonBox::Cancel | QDialogButtonBox::Ok, this};
 	buttonBox_->button(QDialogButtonBox::Ok)->setText("Run Script");
+	buttonBox_->button(QDialogButtonBox::Cancel)->setText("Clear Output");
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &RunScriptDialog::runScript);
-	connect(buttonBox_, &QDialogButtonBox::rejected, this, &RunScriptDialog::reject);
+	connect(buttonBox_, &QDialogButtonBox::rejected, [this]() { statusTextBlock_->clear(); });
 
-	this->layout()->setSizeConstraint(QLayout::SetFixedSize);
-	layout_->addLayout(contentLayout, 0, 0);
+	statusTextBlock_ = new QPlainTextEdit(this);
+	statusTextBlock_->setReadOnly(true);
+	statusTextBlock_->setPlaceholderText("Python Script Outputs...");
+
+	layout_->addLayout(scriptSettingsLayout_, 0, 0);
 	layout_->addWidget(buttonBox_, 1, 0);
+	layout_->addWidget(statusTextBlock_, 2, 0);
 
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowTitle("Run Python Script");
@@ -77,9 +81,26 @@ RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::
 	updateButtonStates();
 }
 
-Q_SLOT void RunScriptDialog::updateButtonStates() {
-	warningLabel_->setText("");
+void RunScriptDialog::addPythonOutput(const std::string& outBuffer, const std::string& errorBuffer) {
+	auto launchTime = QDateTime::currentDateTime();
+	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 =====</font></b>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
 
+	statusTextBlock_->appendPlainText(QString::fromStdString(outBuffer));
+
+	if (!errorBuffer.empty()) {
+		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(raco::style::Colors::color(raco::style::Colormap::errorColor).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));
+	}
+	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 FINISHED =====</font></b><br>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
+}
+
+void RunScriptDialog::setScriptIsRunning(bool isRunning) {
+	scriptPathEdit_->setDisabled(isRunning);
+	argumentsEdit_->setDisabled(isRunning);
+	scriptPathURIButton_->setDisabled(isRunning);
+	buttonBox_->setDisabled(isRunning);
+}
+
+Q_SLOT void RunScriptDialog::updateButtonStates() {
 	auto path = scriptPathEdit_->currentText();
 	auto fileInfo = QFileInfo(path);
 	if (scriptPathEdit_->currentText().isEmpty() || !fileInfo.exists() || !fileInfo.isReadable()) {
@@ -100,8 +121,8 @@ void RunScriptDialog::runScript() {
 		commandLineParamEntries_[commandLineArgumentString] = QDateTime::currentMSecsSinceEpoch();
 	}
 
-	Q_EMIT pythonScriptRunRequested(scriptPath, commandLineArguments);
 	updateComboBoxItems();
+	Q_EMIT pythonScriptRunRequested(scriptPath, commandLineArguments);
 }
 
 void RunScriptDialog::updateComboBoxItems() {

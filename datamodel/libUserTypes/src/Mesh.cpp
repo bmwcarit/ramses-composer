@@ -20,6 +20,7 @@ namespace raco::user_types {
 
 void Mesh::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
+	metaData_.clear();
 
 	MeshDescriptor desc;
 	desc.absPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
@@ -31,7 +32,7 @@ void Mesh::updateFromExternalFile(BaseContext& context) {
 		if (!mesh_) {
 			auto savedErrorString = context.meshCache()->getMeshError(desc.absPath);
 			auto errorMessage = (savedErrorString.empty()) ? "Invalid mesh file." : "Error while importing mesh: " + savedErrorString;
-			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, {shared_from_this()}, errorMessage);
+			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, {shared_from_this()}, errorMessage);
 		}
 	} else {
 		mesh_.reset();
@@ -59,6 +60,16 @@ void Mesh::updateFromExternalFile(BaseContext& context) {
 		for (uint32_t i{0}; i < selectedMesh->numAttributes(); i++) {
 			infoText += fmt::format("\nin {} {};", formatDescription[selectedMesh->attribDataType(i)], selectedMesh->attribName(i));
 		}
+
+		metaData_ = selectedMesh->getMetadata();
+		if (!metaData_.empty()) {
+			infoText += "\n\nMetadata:";
+
+			for (const auto& [key, value] : metaData_) {
+				infoText.append(fmt::format("\n{}: {}", key, value));
+			}
+		}
+
 		if (!infoText.empty()) {
 			context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::INFORMATION, ValueHandle{shared_from_this()}, infoText);
 		}

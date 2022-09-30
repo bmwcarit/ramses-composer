@@ -91,7 +91,7 @@ void LuaInterfaceAdaptor::onRuntimeError(core::Errors& errors, std::string const
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
 
@@ -134,5 +134,17 @@ bool LuaInterfaceAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
+std::vector<ExportInformation> LuaInterfaceAdaptor::getExportInformation() const {
+	if (ramsesInterface_ == nullptr) {
+		return {};
+	}
+
+	if (raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false).empty() ||
+		!raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true).empty()) {
+		return {};
+	}
+
+	return {ExportInformation{"LuaInterface", ramsesInterface_->getName().data()}};
+}
 
 }  // namespace raco::ramses_adaptor

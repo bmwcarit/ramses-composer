@@ -13,6 +13,7 @@
 #include <QMetaObject>
 #include <unordered_set>
 
+#include "core/SceneBackendInterface.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 
@@ -24,7 +25,7 @@ class PropertyBrowserModel;
 
 class PropertyBrowserView final : public QWidget {
 public:
-	explicit PropertyBrowserView(PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent = nullptr);
+	explicit PropertyBrowserView(raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent = nullptr);
 
 	std::string getCurrentObjectID() const;
 
@@ -32,6 +33,7 @@ private:
 	QPoint verticalPivot_{0, 0};
 	QWidget* verticalPivotWidget_{nullptr};
 	std::string currentObjectID_;
+	raco::core::SceneBackendInterface* sceneBackend_;
 };
 
 class PropertyBrowserWidget final : public QWidget {
@@ -39,6 +41,7 @@ public:
 	explicit PropertyBrowserWidget(
 		raco::components::SDataChangeDispatcher dispatcher,
 		raco::core::CommandInterface* commandInterface,
+		core::SceneBackendInterface* sceneBackend,
 		QWidget* parent = nullptr);
 
 	PropertyBrowserModel* model() const;
@@ -56,6 +59,7 @@ private:
 
 	raco::components::SDataChangeDispatcher dispatcher_;
 	raco::core::CommandInterface* commandInterface_;
+	raco::core::SceneBackendInterface* sceneBackend_;
 	PropertyBrowserGridLayout layout_;
 	std::unique_ptr<PropertyBrowserView> propertyBrowser_{};
 	raco::components::Subscription subscription_;

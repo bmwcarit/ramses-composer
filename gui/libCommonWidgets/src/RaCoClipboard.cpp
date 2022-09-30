@@ -28,7 +28,7 @@ std::string raco::RaCoClipboard::get() {
 	if (hasEditorObject()) {
 		auto byteArray = QApplication::clipboard()->mimeData()->data(MimeTypes::EDITOR_OBJECT_CLIPBOARD);
 		return byteArray.toStdString();
-	} else {
-		return QApplication::clipboard()->text().toStdString();
 	}
+
+	return "";
 }

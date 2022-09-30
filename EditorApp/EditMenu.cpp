@@ -100,6 +100,11 @@ void EditMenu::globalPasteCallback(raco::application::RaCoApplication* racoAppli
 		focusedTreeView->globalPasteCallback(focusedTreeView->getSelectedInsertionTargetIndex());
 	} else {
 		auto copiedObjs = raco::RaCoClipboard::get();
-		racoApplication->activeRaCoProject().commandInterface()->pasteObjects(copiedObjs);
+		try {
+			racoApplication->activeRaCoProject().commandInterface()->pasteObjects(copiedObjs);
+		}
+		catch (std::exception& error) {
+			// Just ignore a failed paste
+		}
 	}
 }

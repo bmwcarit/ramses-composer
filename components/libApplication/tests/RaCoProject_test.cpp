@@ -71,7 +71,7 @@ end
 
 		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
-		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
+		ASSERT_FALSE((*app.activeRaCoProject().project()->links().begin())->isValid());
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
 		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
@@ -172,7 +172,7 @@ end
 
 		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
-		ASSERT_FALSE(app.activeRaCoProject().project()->links()[0]->isValid());
+		ASSERT_FALSE((*app.activeRaCoProject().project()->links().begin())->isValid());
 		auto node = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "node");
 		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError(node));
 	}
@@ -208,7 +208,7 @@ end
 
 		RaCoApplication app{backend, settings};
 		ASSERT_EQ(1, app.activeRaCoProject().project()->links().size());
-		ASSERT_TRUE(app.activeRaCoProject().project()->links()[0]->isValid());
+		ASSERT_TRUE((*app.activeRaCoProject().project()->links().begin())->isValid());
 	}
 }
 
@@ -237,7 +237,7 @@ end
 		RaCoApplication app{backend, settings};
 		app.doOneLoop();
 		ASSERT_EQ(app.activeRaCoProject().project()->links().size(), 1);
-		ASSERT_EQ(app.activeRaCoProject().project()->links()[0]->isValid(), false);
+		ASSERT_FALSE((*app.activeRaCoProject().project()->links().begin())->isValid());
 	}
 }
 
@@ -443,7 +443,7 @@ TEST_F(RaCoProjectFixture, restoredLinkWorksInLogicEngine) {
 	app.activeRaCoProject().commandInterface()->set({end, {"uri"}}, std::string());
 	app.doOneLoop();
 	ASSERT_EQ(app.activeRaCoProject() .project()->links().size(), 1);
-	ASSERT_FALSE(app.activeRaCoProject() .project()->links()[0]->isValid());
+	ASSERT_FALSE((*app.activeRaCoProject() .project()->links().begin())->isValid());
 
 	app.activeRaCoProject().commandInterface()->set({end, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string());
 	app.activeRaCoProject().commandInterface()->set({start, {"inputs", "in_float"}}, 3.0);

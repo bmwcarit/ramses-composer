@@ -24,6 +24,7 @@ public:
 	bool sync(core::Errors* errors) override;
 
 	raco::ramses_base::RamsesAnimationChannelHandle handle() const;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	raco::ramses_base::RamsesAnimationChannelHandle handle_;

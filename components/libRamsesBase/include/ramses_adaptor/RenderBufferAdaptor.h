@@ -21,6 +21,7 @@ namespace raco::ramses_adaptor {
 		explicit RenderBufferAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderBuffer> editorObject);
 
 		bool sync(core::Errors* errors) override;
+		std::vector<ExportInformation> getExportInformation() const override;
 
 		ramses_base::RamsesRenderBuffer buffer() const;
 

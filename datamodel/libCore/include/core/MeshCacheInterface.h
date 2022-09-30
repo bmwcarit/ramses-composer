@@ -11,13 +11,14 @@
 
 #include "FileChangeMonitor.h"
 
+#include <array>
 #include <functional>
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <array>
-#include <optional>
 
 namespace raco::core {
 
@@ -53,6 +54,8 @@ public:
 	virtual std::vector<std::string> getMaterialNames() const = 0;
 
 	virtual const std::vector<uint32_t>& getIndices() const = 0;
+
+	virtual std::map<std::string, std::string> getMetadata() const = 0;
 
 	virtual const std::vector<IndexBufferRangeInfo>& submeshIndexBufferRanges() const = 0;
 

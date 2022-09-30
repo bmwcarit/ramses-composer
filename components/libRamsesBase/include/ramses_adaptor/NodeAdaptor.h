@@ -110,7 +110,7 @@ public:
 		if (errors.hasError(valueHandle)) {
 			return;
 		}
-		errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+		errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 	}
 
 	~SpatialAdaptor() {
@@ -135,7 +135,7 @@ public:
 		return std::shared_ptr<ramses::Node>(handlePtr, handlePtr->get()); 
 	}
 
-	raco::ramses_base::RamsesNodeBinding nodeBinding() {
+	raco::ramses_base::RamsesNodeBinding nodeBinding() const {
 		return nodeBinding_;
 	}
 
@@ -217,6 +217,7 @@ private:
 class NodeAdaptor final : public SpatialAdaptor<user_types::Node, ramses_base::RamsesNodeHandle> {
 public:
 	explicit NodeAdaptor(SceneAdaptor* sceneAdaptor, user_types::SNode node);
+	std::vector<ExportInformation> getExportInformation() const override;
 };
 
 };	// namespace raco::ramses_adaptor

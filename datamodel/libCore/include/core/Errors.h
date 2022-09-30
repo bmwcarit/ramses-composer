@@ -9,9 +9,9 @@
  */
 #pragma once
 
+#include "core/ChangeRecorder.h"
 #include "core/EditorObject.h"
 #include "core/ErrorItem.h"
-#include "core/ChangeRecorder.h"
 #include "core/Handles.h"
 #include "log_system/log.h"
 
@@ -25,34 +25,40 @@ namespace raco::core {
  */
 class Errors {
 public:
-     explicit Errors(DataChangeRecorder* recorder) noexcept;
+	explicit Errors(DataChangeRecorder* recorder) noexcept;
+
 	/**
-     * Adds an associated error to the given [ValueHandle] if it exists.
-     * An empty [ValueHandle] is associated with a project-global error.
-     * @returns if an error was added.
-     */
-	 bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
+	 * Adds an associated error to the given [ValueHandle]. If the ValueHandle already has an error it is replaced.
+	 * 
+	 * There are 3 different classes of errors depending on the [ValueHandle]
+	 * - Project global errors: the ValueHandle is empty
+	 * - Object errors: the ValueHandle describes an object, i.e. ValueHandle::isObject() == true
+	 * - Property errors: the ValueHandle describes a property, i.e. ValueHandle::isProperty() == true
+	 * 
+	 * @returns Returns false if an identical error already existed, true otherwise.
+	 */
+	bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
 
-	 void logError(const ErrorItem& error) const;
-	 void logAllErrors() const;
+	void logError(const ErrorItem& error) const;
+	void logAllErrors() const;
 
-	 /**
-     * Removes the associated error from the given [ValueHandle] if it exists.
-     * @returns if an error was removed.
-     */
+	/**
+	 * Removes the associated error from the given [ValueHandle] if it exists.
+	 * @returns if an error was removed.
+	 */
 	bool removeError(const ValueHandle& handle);
 	/**
-     * @returns if an error exists for the given [ValueHandle].
-     */
+	 * @returns if an error exists for the given [ValueHandle].
+	 */
 	bool hasError(const ValueHandle& handle) const noexcept;
 	/**
-     * @returns reference to the [ErrorItem] for the given [ValueHandle]. Call #hasError before to check if the [ErrorItem] exists.
-     */
+	 * @returns reference to the [ErrorItem] for the given [ValueHandle]. Call #hasError before to check if the [ErrorItem] exists.
+	 */
 	const ErrorItem& getError(const ValueHandle& handle) const noexcept;
 	/**
 	 * Removes all error items associated with the given [SEditorObject].
-     * @returns true if any error item has been removed.
-     */
+	 * @returns true if any error item has been removed.
+	 */
 	bool removeAll(const SCEditorObject& object);
 	/**
 	 * Remove all error items matching the given filter.

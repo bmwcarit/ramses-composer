@@ -23,6 +23,11 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(len(raco.instances()), 1)
         self.assertEqual(raco.instances()[0].typeName(), "ProjectSettings")
 
+    def test_reset_feature_levels(self):
+        raco.reset(1)
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+        raco.reset(2)
+        self.assertEqual(raco.projectFeatureLevel(), 2)
 
     def test_load(self):
         raco.load(self.cwd() + "/../resources/example_scene.rca")
@@ -54,6 +59,27 @@ class GeneralTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             raco.load(self.cwd() + "/../resources/multi-file-zip.rca")
 
+    def test_load_feature_levels(self):
+        raco.load(self.cwd() + "/../resources/empty-fl1.rca")
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+
+        raco.load(self.cwd() + "/../resources/empty-fl1.rca", 1)
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+
+        raco.load(self.cwd() + "/../resources/empty-fl1.rca", 2)
+        self.assertEqual(raco.projectFeatureLevel(), 2)
+
+        raco.load(self.cwd() + "/../resources/empty-fl2.rca")
+        self.assertEqual(raco.projectFeatureLevel(), 2)
+
+        with self.assertRaises(RuntimeError):
+            raco.load(self.cwd() + "/../resources/empty-fl2.rca", 1)
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+
+        raco.load(self.cwd() + "/../resources/empty-fl2.rca", 2)
+        self.assertEqual(raco.projectFeatureLevel(), 2)
+
+
     def test_project_path(self):
         self.assertEqual(raco.projectPath(), "")
 
@@ -62,15 +88,48 @@ class GeneralTests(unittest.TestCase):
 
     def test_instances(self):
         self.assertTrue(len(raco.instances()) > 0)
-        
+
     def test_create_object(self):
         node = raco.create("Node", "my_node")
         self.assertTrue(node.objectName, "my_node")
+        self.assertTrue(node["objectName"], "my_node")
+
+    def test_object_functions(self):
+        node = raco.create("Node", "my_node")
+
         self.assertEqual(node.typeName(), "Node")
         self.assertEqual(node.parent(), None)
         self.assertEqual(node.children(), [])
         self.assertTrue(node.objectID() != None)
         self.assertEqual(dir(node), ['enabled', 'objectName', 'rotation', 'scaling', 'translation', 'visibility'])
+        self.assertEqual(node.keys(), ['objectName', 'visibility', 'enabled', 'translation', 'rotation', 'scaling'])
+
+        self.assertTrue(node.objectName, "my_node")
+        self.assertTrue(node["objectName"], "my_node")
+
+        raco.delete(node)
+        
+        with self.assertRaises(RuntimeError):
+            node.typeName()
+        with self.assertRaises(RuntimeError):
+            node.parent()
+        with self.assertRaises(RuntimeError):
+            node.children()
+        with self.assertRaises(RuntimeError):
+            node.objectID()
+        with self.assertRaises(RuntimeError):
+            dir(node)
+        with self.assertRaises(RuntimeError):
+            node.keys()
+
+        with self.assertRaises(RuntimeError):
+            node.objectName
+        with self.assertRaises(RuntimeError):
+            node.objectName = "your_node"
+        with self.assertRaises(RuntimeError):
+            node["objectName"]
+        with self.assertRaises(RuntimeError):
+            node["onjectName"] = "your_node"
 
     def test_create_fail(self):
         with self.assertRaises(RuntimeError):
@@ -107,13 +166,66 @@ class GeneralTests(unittest.TestCase):
 
     def test_prop_handle_functions(self):
         node = raco.create("Node", "my_node")
+
         self.assertEqual(node.translation.object(), node)
-        self.assertEqual(node.translation.x.object(), node)
-        self.assertEqual(node.translation.propName(), "translation")
-        self.assertEqual(dir(node.translation), ["x", "y", "z"])
         self.assertEqual(node.translation.typeName(), "Vec3f")
+        self.assertEqual(node.translation.propName(), "translation")
+        self.assertEqual(node.translation.hasSubstructure(), True)
+        self.assertEqual(dir(node.translation), ["x", "y", "z"])
+        self.assertEqual(node.translation.keys(), ["x", "y", "z"])
+
+        self.assertEqual(node.translation.x.object(), node)
         self.assertEqual(node.translation.x.typeName(), "Double")
 
+        raco.delete(node)
+
+        with self.assertRaises(RuntimeError):
+            node.translation.object()
+        with self.assertRaises(RuntimeError):
+            node.translation.typeName()
+        with self.assertRaises(RuntimeError):
+            node.translation.propName()
+        with self.assertRaises(RuntimeError):
+            node.translation.hasSubstructure()
+        with self.assertRaises(RuntimeError):
+            node.translation.value()
+        with self.assertRaises(RuntimeError):
+            dir(node.translation)
+        with self.assertRaises(RuntimeError):
+            node.translation.keys()
+
+
+    def test_prop_handle_invalid_functions(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        handle = lua.inputs.float
+        vecHandle = lua.inputs.vector3f
+
+        self.assertEqual(handle.object(), lua)
+        self.assertEqual(handle.typeName(), "Double")
+        self.assertEqual(handle.propName(), "float")
+        self.assertEqual(handle.hasSubstructure(), False)
+        self.assertEqual(handle.value(), 0.0)
+        self.assertEqual(dir(vecHandle), ["x", "y", "z"])
+        self.assertEqual(vecHandle.keys(), ["x", "y", "z"])
+
+        lua.uri = ""
+
+        self.assertEqual(handle.object(), lua)
+        with self.assertRaises(RuntimeError):
+            handle.typeName()
+        with self.assertRaises(RuntimeError):
+            handle.propName()
+        with self.assertRaises(RuntimeError):
+            handle.hasSubstructure()
+        with self.assertRaises(RuntimeError):
+            handle.value()
+        with self.assertRaises(RuntimeError):
+            dir(vecHandle)
+        with self.assertRaises(RuntimeError):
+            vecHandle.keys()
+        
     def test_prop_get(self):
         node = raco.create("Node", "my_node")
         self.assertEqual(node.visibility.value(), True)
@@ -121,10 +233,164 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(node.translation.x.value(), getattr(node.translation, "x").value())
         self.assertEqual(node.translation.x.value(), getattr(node, "translation").x.value())
 
+    def test_prop_get_types_scalar_via_attribute(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        self.assertEqual(lua.inputs.float.value(), 0.0)
+        self.assertEqual(lua.inputs.integer.value(), 0)
+        self.assertEqual(lua.inputs.integer64.value(), 0)
+        self.assertEqual(lua.inputs.bool.value(), False)
+        self.assertEqual(lua.inputs.s.value(), "")
+
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector2f.value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector3f.value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector4f.value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector2i.value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector3i.value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector4i.value()
+
+        self.assertEqual(lua.inputs.float, getattr(lua.inputs, "float"))
+        self.assertEqual(lua.inputs.integer, getattr(lua.inputs, "integer"))
+        self.assertEqual(lua.inputs.integer64, getattr(lua.inputs, "integer64"))
+        self.assertEqual(lua.inputs.bool, getattr(lua.inputs, "bool"))
+        self.assertEqual(lua.inputs.s, getattr(lua.inputs, "s"))
+        self.assertEqual(lua.inputs.vector2f, getattr(lua.inputs, "vector2f"))
+        self.assertEqual(lua.inputs.vector3f, getattr(lua.inputs, "vector3f"))
+        self.assertEqual(lua.inputs.vector4f, getattr(lua.inputs, "vector4f"))
+        self.assertEqual(lua.inputs.vector2i, getattr(lua.inputs, "vector2i"))
+        self.assertEqual(lua.inputs.vector3i, getattr(lua.inputs, "vector3i"))
+        self.assertEqual(lua.inputs.vector4i, getattr(lua.inputs, "vector4i"))
+
+    def test_prop_get_types_scalar_via_index(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        self.assertEqual(lua.inputs["float"].value(), 0.0)
+        self.assertEqual(lua.inputs["integer"].value(), 0)
+        self.assertEqual(lua.inputs["integer64"].value(), 0)
+        self.assertEqual(lua.inputs["bool"].value(), False)
+        self.assertEqual(lua.inputs["s"].value(), "")
+
+        with self.assertRaises(RuntimeError):
+            lua.inputs["vector2f"].value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs["vector3f"].value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs["vector4f"].value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs["vector2i"].value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs["vector3i"].value()
+        with self.assertRaises(RuntimeError):
+            lua.inputs["vector4i"].value()
+
+    def test_prop_get_conflicting_names(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/name-conflict.lua"
+
+        self.assertEqual(lua.inputs['value'].value(), 0.0)
+        self.assertEqual(lua.inputs['object'].value(), 0)
+
+    def test_prop_get_set_array_via_index(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/array.lua"
+
+        for index in range(1,6):
+            self.assertEqual(lua.inputs.float_array[str(index)].value(), 0.0)
+
+        for index in range(1,6):
+            lua.inputs.float_array[str(index)] = index
+
+        for index in range(1,6):
+            self.assertEqual(lua.inputs.float_array[str(index)].value(), index)
+
+    def test_prop_get_set_array_of_array_via_index(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/array-of-array.lua"
+
+        for i in range(1,3):
+            for j in range(1,2):
+                self.assertEqual(lua.inputs.float_array[str(i)][str(j)].value(), 0.0)
+
+        for i in range(1,3):
+            for j in range(1,2):
+                lua.inputs.float_array[str(i)][str(j)] = 10*i + j
+
+        for i in range(1,3):
+            for j in range(1,2):
+                self.assertEqual(lua.inputs.float_array[str(i)][str(j)].value(), 10*i + j)
+
+    def test_prop_get_set_array_of_struct_via_index(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/array-of-structs.lua"
+
+        for index in range(1,3):
+            self.assertEqual(lua.inputs.array[str(index)].a.value(), 0.0)
+            self.assertEqual(lua.inputs.array[str(index)].b.value(), 0.0)
+
+        for index in range(1,3):
+            lua.inputs.array[str(index)].a = 2 * index
+            lua.inputs.array[str(index)].b = 3 * index
+
+        for index in range(1,3):
+            self.assertEqual(lua.inputs.array[str(index)].a.value(), 2 * index)
+            self.assertEqual(lua.inputs.array[str(index)].b.value(), 3 * index)
+
+    def test_prop_set_types_scalar_via_attribute(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        lua.inputs.float = 3.0
+        self.assertEqual(lua.inputs.float.value(), 3.0)
+        lua.inputs.integer = 4
+        self.assertEqual(lua.inputs.integer.value(), 4)
+        lua.inputs.integer64 = 0xabcd12345678
+        self.assertEqual(lua.inputs.integer64.value(), 0xabcd12345678)
+        lua.inputs.bool = True
+        self.assertEqual(lua.inputs.bool.value(), True)
+        lua.inputs.s = "test string"
+        self.assertEqual(lua.inputs.s.value(), "test string")
+
+    def test_prop_set_types_scalar_via_index(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        lua.inputs["float"] = 3.0
+        self.assertEqual(lua.inputs.float.value(), 3.0)
+        lua.inputs["integer"]= 4
+        self.assertEqual(lua.inputs.integer.value(), 4)
+        lua.inputs["integer64"] = 0xabcd12345678
+        self.assertEqual(lua.inputs.integer64.value(), 0xabcd12345678)
+        lua.inputs["bool"] = True
+        self.assertEqual(lua.inputs.bool.value(), True)
+        lua.inputs['s'] = "test string"
+        self.assertEqual(lua.inputs.s.value(), "test string")
+
+    def test_prop_set_conflicting_names(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/name-conflict.lua"
+
+        lua.inputs['value'] = 3.0
+        self.assertEqual(lua.inputs['value'].value(), 3.0)
+        lua.inputs['object'] = 4
+        self.assertEqual(lua.inputs['object'].value(), 4)
+
     def test_prop_get_top_fail(self):
         node = raco.create("Node", "my_node")
         with self.assertRaises(RuntimeError):
             node.nosuch
+    
+        raco.delete(node)
+        
+        with self.assertRaises(RuntimeError):
+            node.visibility
  
     def test_prop_set_top_fail(self):
         node = raco.create("Node", "my_node")
@@ -178,8 +444,7 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(node.visibility.value(), False)
         node.visibility = 2.345
         self.assertEqual(node.visibility.value(), True)
-
-
+ 
     def test_prop_get_nested_fail(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
@@ -472,13 +737,277 @@ class GeneralTests(unittest.TestCase):
         
         queried_link_color = raco.getLink(renderpass.clearColor)
         self.assertEqual(link_color, queried_link_color)
-        
-        
-        
+
+    def test_errors_object_and_property(self):
+        lua = raco.create("LuaScript", "lua_script")
+        lua.uri = self.cwd() + R"/../resources/scripts/interface-color.lua"
+
+        interface = raco.create("LuaInterface", "lua_interface")
+
+        scene_errors = raco.getErrors()
+        self.assertEqual(len(scene_errors), 2)
+        print(scene_errors)
+
+        for error in scene_errors:
+            if error.handle() == lua:
+                self.assertEqual(error.category(), raco.ErrorCategory.PARSING)
+                self.assertEqual(error.level(), raco.ErrorLevel.ERROR)
+                self.assertEqual(error.message(), "[lua_script] No 'run' function defined!")
+            elif error.handle() == interface.uri:
+                self.assertEqual(error.category(), raco.ErrorCategory.FILESYSTEM)
+                self.assertEqual(error.level(), raco.ErrorLevel.WARNING)
+                self.assertEqual(error.message(), "Empty URI.")
+            else:
+                self.assertTrue(False)
+
+    def test_errors_fail_handle_no_object(self):
+        lua = raco.create("LuaScript", "lua_script")
+        lua.uri = self.cwd() + R"/../resources/scripts/interface-color.lua"
+
+        errors = raco.getErrors()
+        self.assertEqual(len(errors), 1)
+        error = errors[0]
+
+        self.assertEqual(error.handle(), lua)
+
+        raco.delete(lua)
+
+        with self.assertRaises(RuntimeError):
+            error.handle()
 
 
+    def test_raco_gui_should_be_unavailable_in_headless(self):
+        with self.assertRaises(ModuleNotFoundError):
+            import raco_gui
+
+    def test_is_running_in_ui(self):
+        self.assertFalse(raco.isRunningInUi())
+
+    def test_min_and_max_feature_level(self):
+        min = raco.minFeatureLevel()
+        max = raco.maxFeatureLevel()
+        self.assertTrue(min >= 1)
+        self.assertTrue(max >= min)
+
+    def test_get_instance_by_id(self):
+        node1 = raco.create("Node", "node1")
+        node2 = raco.create("Node", "node2")
+        self.assertEqual(node1, raco.getInstanceById(node1.objectID()))
+        self.assertEqual(node2, raco.getInstanceById(node2.objectID()))
+
+    def test_get_instance_by_id_invalid(self):
+        self.assertEqual(None, raco.getInstanceById("this should not exist"))
+
+    def test_is_resource(self):
+        mesh = raco.create("Mesh", "mesh")
+        node = raco.create("Node", "node")
+        self.assertTrue(mesh.isResource())
+        self.assertFalse(node.isResource())
+
+        raco.delete(node)
+
+        with self.assertRaises(RuntimeError):
+            node.isResource()
+
+    def test_is_external_reference(self):
+        node = raco.create("Node", "node")
+        self.assertFalse(node.isExternalReference())
+
+        raco.delete(node)
+
+        with self.assertRaises(RuntimeError):
+            node.isExternalReference()
+
+    def test_is_valid_link_end(self):
+        node = raco.create("Node", "node")
+        self.assertTrue(node.visibility.isValidLinkEnd())
+
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        self.assertTrue(lua.inputs.float.isValidLinkEnd())
+        self.assertTrue(lua.inputs.s.isValidLinkEnd())
+        self.assertFalse(lua.outputs.ofloat.isValidLinkEnd())
+        self.assertFalse(lua.outputs.ointeger.isValidLinkEnd())
+
+        handle = lua.inputs.float
+
+        lua.uri = ""
+
+        with self.assertRaises(RuntimeError):
+            handle.isValidLinkEnd()
+
+    def test_is_valid_link_start(self):
+        node = raco.create("Node", "node")
+        self.assertFalse(node.visibility.isValidLinkStart())
+
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        self.assertFalse(lua.inputs.float.isValidLinkStart())
+        self.assertFalse(lua.inputs.s.isValidLinkStart())
+        self.assertTrue(lua.outputs.ofloat.isValidLinkStart())
+        self.assertTrue(lua.outputs.ointeger.isValidLinkStart())
+
+        handle = lua.inputs.float
+
+        lua.uri = ""
+
+        with self.assertRaises(RuntimeError):
+            handle.isValidLinkEnd()
 
 
+    def test_is_readonly_object(self):
+        node = raco.create("Node", "node1")
+        self.assertFalse(node.isReadOnly())
+
+        prefab = raco.create("Prefab", "prefab")
+        raco.moveScenegraph(node, prefab)
+
+        instance = raco.create("PrefabInstance", "instance")
+        instance.template = prefab
+        for child in instance.children():
+            self.assertTrue(child.isReadOnly())
+
+        raco.delete(node)
+        with self.assertRaises(RuntimeError):
+            node.isReadOnly()
+
+    def test_is_readonly_property(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+        self.assertEqual(None, lua.getPrefabInstance())
+
+        prefab = raco.create("Prefab", "prefab")
+        raco.moveScenegraph(lua, prefab)
+        self.assertEqual(None, lua.getPrefabInstance())
+
+        instance = raco.create("PrefabInstance", "instance")
+        instance.template = prefab
+        for child in instance.children():
+            self.assertTrue(child.objectName.isReadOnly())
+            self.assertTrue(child.inputs.float)
+
+        handle = instance.children()[0].inputs.float
+
+        lua.uri = ""
+        with self.assertRaises(RuntimeError):
+            handle.isReadOnly()
 
 
+    def test_get_prefab(self):
+        node = raco.create("Node", "node1")
+        self.assertEqual(None, node.getPrefab())
+
+        prefab = raco.create("Prefab", "prefab")
+        raco.moveScenegraph(node, prefab)
+        self.assertEqual(prefab, node.getPrefab())
+
+        instance = raco.create("PrefabInstance", "instance")
+        instance.template = prefab
+        self.assertEqual(None, instance.getPrefab())
+        for child in instance.children():
+            self.assertEqual(None, child.getPrefab())
+
+        raco.delete(node)
+        with self.assertRaises(RuntimeError):
+            node.getPrefab()
+
+    def test_get_prefab_instance(self):
+        node = raco.create("Node", "node1")
+        self.assertEqual(None, node.getPrefabInstance())
+
+        prefab = raco.create("Prefab", "prefab")
+        raco.moveScenegraph(node, prefab)
+        self.assertEqual(None, node.getPrefabInstance())
+
+        instance = raco.create("PrefabInstance", "instance")
+        instance.template = prefab
+        for child in instance.children():
+            self.assertEqual(instance, child.getPrefabInstance())
+
+        raco.delete(node)
+        with self.assertRaises(RuntimeError):
+            node.getPrefabInstance()
+
+    def test_get_outer_containing_prefab_instance(self):
+        node = raco.create("Node", "node1")
+        prefab = raco.create("Prefab", "prefab")
+        raco.moveScenegraph(node, prefab)
+        self.assertEqual(None, node.getOuterContainingPrefabInstance())
+
+        instance = raco.create("PrefabInstance", "instance")
+        instance.template = prefab
+
+        node2 = raco.create("Node", "node2")
+        prefab2 = raco.create("Prefab", "prefab2")
+        raco.moveScenegraph(node2, prefab2)
+
+        nested_instance = raco.create("PrefabInstance", "nestedInstance")
+        nested_instance.template = prefab2
+        raco.moveScenegraph(nested_instance, prefab)
+
+        self.assertEqual(instance, instance.getOuterContainingPrefabInstance())
+        self.assertEqual(instance, instance.children()[1].getOuterContainingPrefabInstance())
+        self.assertEqual(nested_instance, nested_instance.getOuterContainingPrefabInstance())
+
+        def check_all_children(obj, expected_outer_instance):
+            outer_instance = obj.getOuterContainingPrefabInstance()
+            self.assertEqual(outer_instance.objectID(), expected_outer_instance.objectID())
+            for child in obj.children():
+                check_all_children(child, outer_instance)
+
+        check_all_children(instance, instance)
+        check_all_children(nested_instance, nested_instance)
+
+        raco.delete(node)
+        with self.assertRaises(RuntimeError):
+            node.getOuterContainingPrefabInstance()
+
+    def assertToyCarImportWorked(self):
+        instances = raco.instances()
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "ToyCar.gltf" and x.typeName() == "Node", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "ToyCar" and x.typeName() == "MeshNode", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "Fabric" and x.typeName() == "MeshNode", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "Glass" and x.typeName() == "MeshNode", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "ToyCar" and x.typeName() == "Mesh", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "Fabric" and x.typeName() == "Mesh", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "Glass" and x.typeName() == "Mesh", instances)))
+
+    def test_import_gltf_relative_path(self):
+        raco.load(self.cwd() + "/../resources/example_scene.rca")
+        raco.importGLTF("ToyCar/ToyCar.gltf")
+        self.assertToyCarImportWorked()
+
+    def test_import_gltf_relative_path_invalid_project_mesh_path(self):
+        raco.load(self.cwd() + "/../resources/example_scene_invalid_mesh_path.rca")
+        with self.assertRaises(ValueError):
+            raco.importGLTF("ToyCar/ToyCar.gltf")
+
+    def test_import_gltf_relative_path_with_parent(self):
+        raco.load(self.cwd() + "/../resources/example_scene.rca")
+        parent = raco.create("Node", "parent")
+        raco.importGLTF("ToyCar/ToyCar.gltf", parent)
+        self.assertToyCarImportWorked()
+        self.assertEqual("ToyCar.gltf", parent.children()[0].objectName.value())
+
+    def test_import_gltf_absolute_path(self):
+        raco.importGLTF(self.cwd() + R"/../resources/meshes/ToyCar/ToyCar.gltf")
+        self.assertToyCarImportWorked()
+
+    def test_import_gltf_invalid_path(self):
+        with self.assertRaises(ValueError):
+            raco.importGLTF("thisShouldNotExist.gltf")
+
+    def test_get_mesh_metadata(self):
+        node = raco.create("Node", "node1")
+        self.assertEqual(None, node.metadata())
+
+        mesh = raco.create("Mesh", "mesh1")
+        self.assertEqual(None, mesh.metadata())
+
+        mesh.uri = self.cwd() + R"/../resources/meshes/CesiumMilkTruck/CesiumMilkTruck.gltf"
+        mesh.bakeMeshes = False
+        mesh.meshIndex = 1
+        self.assertEqual({'prop1': 'truck mesh property'}, mesh.metadata())
 

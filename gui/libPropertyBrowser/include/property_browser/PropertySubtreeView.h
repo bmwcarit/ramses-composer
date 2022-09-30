@@ -15,6 +15,7 @@
 #include <QWidget>
 #include <QLabel>
 
+#include "core/SceneBackendInterface.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
@@ -32,7 +33,7 @@ class PropertySubtreeView final : public QWidget {
 	Q_OBJECT
 	Q_PROPERTY(float highlight MEMBER highlight_ NOTIFY update)
 public:
-	explicit PropertySubtreeView(PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent);
+	explicit PropertySubtreeView(raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent);
 	PropertyBrowserItem const* item() { return item_; }
 public Q_SLOTS:
 	void playStructureChangeAnimation();
@@ -48,6 +49,8 @@ private:
 	void collectTabWidgets(QObject* item, QWidgetList& tabWidgets);
 	void recalculateTabOrder();
 
+	raco::core::SceneBackendInterface* sceneBackend_;
+
 	PropertyBrowserItem* item_{nullptr};
 	PropertyBrowserModel* model_ {nullptr};
 	PropertyBrowserGridLayout layout_{nullptr};
@@ -57,6 +60,7 @@ private:
 	PropertySubtreeChildrenContainer* childrenContainer_{nullptr};
 	int labelWidth_{0};
 	float highlight_{0};
+	void generateItemTooltip(PropertyBrowserItem* item, bool connectWithChangeEvents);
 };
 
 }  // namespace raco::property_browser

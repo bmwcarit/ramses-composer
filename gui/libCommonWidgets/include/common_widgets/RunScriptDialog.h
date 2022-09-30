@@ -9,7 +9,8 @@
  */
 #pragma once
 
-#include "application/RaCoApplication.h"
+#include "common_widgets/log_model/LogViewSortFilterProxyModel.h"
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -17,14 +18,18 @@
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPlainTextEdit>
 
 namespace raco::common_widgets {
-class RunScriptDialog final : public QDialog {
+class RunScriptDialog final : public QWidget {
 	Q_OBJECT
 public:
 	static constexpr auto ENTRIES_SIZE = 3;
 
 	RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::map<QString, qint64>& commandLineParamEntries, QWidget* parent = nullptr);
+
+	void addPythonOutput(const std::string& outBuffer, const std::string& errorBuffer);
+	void setScriptIsRunning(bool isRunning);
 
 Q_SIGNALS:
 	void pythonScriptRunRequested(const QString& pythonFilePath, const QStringList& arguments);
@@ -34,13 +39,16 @@ private:
 	Q_SLOT void runScript();
 	void updateComboBoxItems();
 
+	QGridLayout* scriptSettingsLayout_;
 	QGridLayout* layout_;
 	QComboBox* scriptPathEdit_;
 	QComboBox* argumentsEdit_;
-	QLabel* warningLabel_;
+	QPushButton* scriptPathURIButton_;
+	QPlainTextEdit* statusTextBlock_;
 	QDialogButtonBox* buttonBox_;
 	std::map<QString, qint64>& scriptEntries_;
 	std::map<QString, qint64>& commandLineParamEntries_;
+	LogViewModel* logModel_;
 };
 
 }  // namespace raco::common_widgets

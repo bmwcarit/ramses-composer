@@ -16,6 +16,7 @@ set(TEST_SOURCES
     CubeMap_test.cpp
     DefaultValues_test.cpp
     Material_test.cpp
+    Mesh_test.cpp
     MeshNode_test.cpp
     LuaScript_test.cpp
     LuaScriptModule_test.cpp
@@ -25,9 +26,9 @@ set(TEST_SOURCES
 )
 
 set(TEST_LIBRARIES
+    raco::RamsesBase
     raco::UserTypes
     raco::Testing
-    raco::ramses-logic-lib-client-only
 )
 raco_package_add_headless_test(
     libUserTypes_test

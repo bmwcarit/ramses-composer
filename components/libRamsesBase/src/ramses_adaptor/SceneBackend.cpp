@@ -22,8 +22,9 @@
 #include "ramses_base/RamsesFormatter.h"
 #include "ramses_base/BaseEngineBackend.h"
 
+#include "ramses_adaptor/LuaInterfaceAdaptor.h"
+#include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/MeshNodeAdaptor.h"
-
 
 namespace raco::ramses_adaptor {
 
@@ -213,5 +214,23 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 	return sceneItems;
 }
 
+std::string SceneBackend::getExportedObjectNames(SEditorObject editorObject) const {
+	auto* adaptor = sceneAdaptor()->lookupAdaptor(editorObject);
+	if (adaptor == nullptr) {
+		return "";
+	}
+
+	auto exportInfo = adaptor->getExportInformation();
+	if (exportInfo.empty()){
+		return "Will not be exported.";
+	}
+
+	std::string result = "Will be exported as:";
+	for (const auto& item : exportInfo) {
+		result += fmt::format("\n{} [{}]", item.name, item.type);
+	}
+
+	return result;
+}
 
 }  // namespace raco::ramses_adaptor

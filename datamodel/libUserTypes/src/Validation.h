@@ -28,10 +28,10 @@ inline bool validateURI(raco::core::BaseContext& context, const raco::core::Valu
 	auto uriPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), handle);
 
 	if (handle.asString().empty()) {
-		context.errors().addError(ErrorCategory::FILESYSTEM_ERROR, ErrorLevel::WARNING, handle, "Empty URI.");
+		context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::WARNING, handle, "Empty URI.");
 		return false;
 	} else if (!raco::utils::u8path(uriPath).exists()) {
-		context.errors().addError(ErrorCategory::FILESYSTEM_ERROR, ErrorLevel::ERROR, handle, "File not found.");
+		context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::ERROR, handle, "File not found.");
 		return false;
 	} else {
 		context.errors().removeError(handle);

@@ -66,7 +66,7 @@ TEST_F(AnimationTest, link_with_meshNode_mesh_changed) {
 	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, (test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string());
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
 }
 
 TEST_F(AnimationTest, link_with_meshNode_submesh_index_changed) {
@@ -88,7 +88,7 @@ TEST_F(AnimationTest, link_with_meshNode_submesh_index_changed) {
 	commandInterface.set({mesh, {"meshIndex"}}, 1);
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
 }
 
 TEST_F(AnimationTest, link_with_meshNode_channel_data_changed_valid_type) {
@@ -110,7 +110,7 @@ TEST_F(AnimationTest, link_with_meshNode_channel_data_changed_valid_type) {
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 1);
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
 }
 
 TEST_F(AnimationTest, link_with_meshNode_channel_data_changed_invalid_type) {
@@ -133,7 +133,7 @@ TEST_F(AnimationTest, link_with_meshNode_channel_data_changed_invalid_type) {
 	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 3);
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_FALSE(commandInterface.project()->links().front()->isValid());
+	ASSERT_FALSE((*commandInterface.project()->links().begin())->isValid());
 }
 
 TEST_F(AnimationTest, link_with_meshNode_channel_removed) {
@@ -155,12 +155,12 @@ TEST_F(AnimationTest, link_with_meshNode_channel_removed) {
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, SEditorObject());
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_FALSE(commandInterface.project()->links().front()->isValid());
+	ASSERT_FALSE((*commandInterface.project()->links().begin())->isValid());
 
 	commandInterface.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
 }
 
 TEST_F(AnimationTest, anim_in_prefab_prefabinstance_link_inside_prefabinstance) {
@@ -184,16 +184,16 @@ TEST_F(AnimationTest, anim_in_prefab_prefabinstance_link_inside_prefabinstance) 
 	commandInterface.addLink({anim, {"outputs", "Ch1.Animation Sampler Name"}}, {meshNode, {"translation"}});
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
 
 	commandInterface.set({prefabInstance, {"template"}}, prefab);
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 2);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
-	ASSERT_TRUE(commandInterface.project()->links().back()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
+	ASSERT_TRUE((*++commandInterface.project()->links().begin())->isValid());
 
 	commandInterface.set({prefabInstance, {"template"}}, SEditorObject());
 
 	ASSERT_EQ(commandInterface.project()->links().size(), 1);
-	ASSERT_TRUE(commandInterface.project()->links().front()->isValid());
+	ASSERT_TRUE((*commandInterface.project()->links().begin())->isValid());
 }

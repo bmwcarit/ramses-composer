@@ -29,7 +29,8 @@ public:
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 
 	bool sync(core::Errors* errors) override;
-	void readDataFromEngine(core::DataChangeRecorder &recorder); 
+	void readDataFromEngine(core::DataChangeRecorder &recorder);
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	void setupParentSubscription();

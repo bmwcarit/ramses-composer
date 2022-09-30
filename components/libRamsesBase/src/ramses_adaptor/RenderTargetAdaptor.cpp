@@ -59,7 +59,7 @@ bool RenderTargetAdaptor::sync(core::Errors* errors) {
 				auto status = rtDesc.addRenderBuffer(*ramsesBuffer);
 				if (status != ramses::StatusOK) {
 					LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, rtDesc.getStatusMessage(status));
-					errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()->shared_from_this()},
+					errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {editorObject()->shared_from_this()},
 						rtDesc.getStatusMessage(status));
 				} else {
 					hasEmptySlots = buffers.size() != bufferSlotIndex;
@@ -81,11 +81,19 @@ bool RenderTargetAdaptor::sync(core::Errors* errors) {
 		}
 		reset(nullptr);
 		LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
-		errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()}, errorMsg);
+		errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {editorObject()}, errorMsg);
 	}
 
 	tagDirty(false);
 	return true;
+}
+
+std::vector<ExportInformation> RenderTargetAdaptor::getExportInformation() const {
+	if (getRamsesObjectPointer() == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{ramsesObject().getType(), ramsesObject().getName()}};
 }
 
 };	// namespace raco::ramses_adaptor

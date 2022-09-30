@@ -34,6 +34,7 @@ public:
 	ObjectTreeView(const QString &viewTitle, raco::object_tree::model::ObjectTreeViewDefaultModel *viewModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel = nullptr, QWidget *parent = nullptr);
 
 	std::set<ValueHandle> getSelectedHandles() const;
+	std::vector<SEditorObject> getSortedSelectedEditorObjects() const;
 	QString getViewTitle() const;
 
 	void requestNewNode(const std::string &nodeType, const std::string &nodeName, const QModelIndex &parent);

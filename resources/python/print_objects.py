@@ -10,10 +10,13 @@
 import raco
 
 def printProperties(handle, depth = 1):
-    for name in dir(handle):
-        childHandle = getattr(handle, name)
-        print("    " * depth, name, "  ", childHandle, "  ", childHandle.value())
-        printProperties(childHandle, depth + 1)
+    for name in handle.keys():
+        childHandle = handle[name]
+        if childHandle.hasSubstructure():
+            print("    " * depth, name, "  ", childHandle)
+            printProperties(childHandle, depth + 1)
+        else:
+            print("    " * depth, name, "  ", childHandle, "=", childHandle.value())
 
 def printObject(obj):
     print(obj)

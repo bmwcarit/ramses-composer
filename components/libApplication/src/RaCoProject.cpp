@@ -43,7 +43,7 @@
 #include "utils/ZipUtils.h"
 #include "utils/u8path.h"
 #include "core/CoreFormatter.h"
-#include "utils/stdfilesystem.h"
+#include <filesystem>
 #include "core/PrefabOperations.h"
 #include "user_types/PrefabInstance.h"
 
@@ -362,7 +362,8 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 			p.setFeatureLevel(featureLevel);
 		} else {
 			if (featureLevel < p.featureLevel()) {
-				throw std::runtime_error(fmt::format("New Feature level {} smaller then project feature level {}.", featureLevel, p.featureLevel()));
+				throw FeatureLevelLoadError(fmt::format("New Feature level {} smaller than project feature level {}.", featureLevel, p.featureLevel()),
+					featureLevel, p.featureLevel(), absPath.toStdString());
 			} else {
 				throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
 			}
@@ -386,7 +387,7 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 
 	for (const auto& [objectID, infoMessage] : result.migrationObjWarnings) {
 		if (const auto migratedObj = newProject->project()->getInstanceByID(objectID)) {
-			newProject->errors()->addError(raco::core::ErrorCategory::MIGRATION_ERROR, ErrorLevel::WARNING, migratedObj, infoMessage);
+			newProject->errors()->addError(raco::core::ErrorCategory::MIGRATION, ErrorLevel::WARNING, migratedObj, infoMessage);
 		}
 	}
 
@@ -415,7 +416,8 @@ QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::st
 		return left->objectID() < right->objectID();
 	});
 
-	auto links{project_.links()};
+	std::vector<SLink> links;
+	std::copy(project_.links().begin(), project_.links().end(), std::back_inserter(links));
 	std::sort(links.begin(), links.end(), [](const SLink& left, const SLink& right) {
 		return LinkDescriptor::lessThanByObjectID(left->descriptor(), right->descriptor());
 	});

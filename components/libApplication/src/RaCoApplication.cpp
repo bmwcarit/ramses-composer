@@ -334,8 +334,28 @@ void RaCoApplication::overrideTime(std::function<int64_t()> getTime) {
 	getTime_ = getTime;
 }
 
+int RaCoApplication::minFeatureLevel() {
+	return static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel);
+}
+
+int RaCoApplication::maxFeatureLevel() {
+	return static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
+}
+
+const std::string& RaCoApplication::featureLevelDescriptions() {
+	return raco::ramses_base::BaseEngineBackend::featureLevelDescriptions;
+}
+
+void RaCoApplication::setApplicationFeatureLevel(int featureLevel) {
+	applicationFeatureLevel_ = featureLevel;
+}
+
 int RaCoApplication::applicationFeatureLevel() const {
 	return applicationFeatureLevel_;
+}
+
+const FeatureLevelLoadError* RaCoApplication::getFlError() const {
+	return externalProjectsStore_.getFlError();
 }
 
 core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {

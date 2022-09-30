@@ -9,11 +9,13 @@
  */
 #pragma once
 
+#include "PropertyBrowserButton.h"
 #include "application/RaCoApplication.h"
 #include <QCheckBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
+#include <QLabel>
 #include <QLineEdit>
 
 namespace raco::common_widgets {
@@ -25,11 +27,11 @@ public:
 
 private:
 	Q_SLOT void exportProject();
-	Q_SLOT void updateButtonStates();
+	Q_SLOT void updatePaths();
+	void updateButtonStates();
 
 	QGridLayout* layout_;
 	QCheckBox* compressEdit_;
-	QLineEdit* pathEdit_;
 	QLineEdit* ramsesEdit_;
 	QLineEdit* logicEdit_;
 	QDialogButtonBox* buttonBox_;
@@ -37,6 +39,8 @@ private:
 	bool hasErrors_;
 
 	application::RaCoApplication* application_;
+	void setupFilePickerButton(PropertyBrowserButton* button, QLineEdit* pathEdit, const std::string& fileType);
+	utils::u8path getAbsoluteExportFilePath(QLineEdit* path);
 };
 
 }  // namespace raco::common_widgets

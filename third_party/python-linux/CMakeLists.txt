@@ -24,7 +24,7 @@ add_custom_command(OUTPUT "${PYTHON_DEPLOYMENT_FOLDER}/python_setup_completed.tx
 	COMMAND ${CMAKE_COMMAND} -E rm -rf "${PYTHON_DEPLOYMENT_FOLDER}"
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${PYTHON_DEPLOYMENT_FOLDER}"
 	COMMAND ${CMAKE_COMMAND} -E copy_directory "/usr/lib/python3.8" "${PYTHON_DEPLOYMENT_FOLDER}/python3.8"
-	COMMAND ${CMAKE_COMMAND} -E env  PIP_PREFIX="${PYTHON_DEPLOYMENT_FOLDER}/python3.8" python3.8 "${CMAKE_CURRENT_SOURCE_DIR}/get-pip.py"
+	COMMAND ${CMAKE_COMMAND} -E env  PIP_PREFIX="${PYTHON_DEPLOYMENT_FOLDER}/python3.8" python3.8 "${CMAKE_CURRENT_SOURCE_DIR}/get-pip.py" --ignore-installed
 	COMMAND ${CMAKE_COMMAND} -E touch "${PYTHON_DEPLOYMENT_FOLDER}/python_setup_completed.txt")
 add_library(RaCoPythonModuleDeployment INTERFACE "${PYTHON_DEPLOYMENT_FOLDER}/python_setup_completed.txt")
 

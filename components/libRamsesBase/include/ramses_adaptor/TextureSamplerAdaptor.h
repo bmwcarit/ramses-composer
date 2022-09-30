@@ -26,6 +26,7 @@ public:
 	explicit TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::Texture> editorObject);
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 	static std::vector<unsigned char>& getFallbackTextureData(bool flipped);
 

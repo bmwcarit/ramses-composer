@@ -59,6 +59,7 @@ protected:
 	QTableView *tableView_;
 	QCheckBox *showWarningsCheckBox_ = nullptr;
 	QCheckBox *showErrorsCheckBox_ = nullptr;
+	QCheckBox *showExternalReferencesCheckBox_ = nullptr;
 	QLabel *errorAmountLabel_ = nullptr;
 	QStandardItemModel *tableModel_;
 	QSortFilterProxyModel *proxyModel_;

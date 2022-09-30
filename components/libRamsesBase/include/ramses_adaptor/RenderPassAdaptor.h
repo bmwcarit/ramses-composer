@@ -20,6 +20,7 @@ public:
 	explicit RenderPassAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderPass> editorObject);
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;

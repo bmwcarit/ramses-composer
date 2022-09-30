@@ -174,4 +174,17 @@ bool CubeMapAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
+std::vector<ExportInformation> CubeMapAdaptor::getExportInformation() const {
+	auto result = std::vector<ExportInformation>();
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramsesObject().getType(), ramsesObject().getName());
+	}
+
+	if (textureData_ != nullptr) {
+		result.emplace_back(textureData_->getType(), textureData_->getName());
+	}
+
+	return result;
+}
+
 }  // namespace raco::ramses_adaptor

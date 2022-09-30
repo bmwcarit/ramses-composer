@@ -30,6 +30,7 @@
 #include "core/Queries.h"
 #include "core/BasicTypes.h"
 #include "data_storage/Value.h"
+#include "gui_python_api/GUIPythonAPI.h"
 #include "log_system/log.h"
 #include "object_tree_view/ObjectTreeDock.h"
 #include "object_tree_view/ObjectTreeView.h"
@@ -162,7 +163,7 @@ void connectPropertyBrowserAndTreeDockManager(raco::property_browser::PropertyBr
 }
 
 ads::CDockAreaWidget* createAndAddPropertyBrowser(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::object_tree::view::ObjectTreeDockManager& treeDockManager, raco::application::RaCoApplication* application) {
-	auto propertyBrowser = new raco::property_browser::PropertyBrowserWidget(application->dataChangeDispatcher(), application->activeRaCoProject().commandInterface(), mainWindow);
+	auto propertyBrowser = new raco::property_browser::PropertyBrowserWidget(application->dataChangeDispatcher(), application->activeRaCoProject().commandInterface(), application->sceneBackendImpl(), mainWindow);
 	QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::objectSelectionRequested, mainWindow, &MainWindow::focusToObject);
 	QObject::connect(mainWindow, &MainWindow::objectFocusRequestedForPropertyBrowser, propertyBrowser, &raco::property_browser::PropertyBrowserWidget::setValueHandleFromObjectId);
 	connectPropertyBrowserAndTreeDockManager(propertyBrowser, treeDockManager);
@@ -172,10 +173,10 @@ ads::CDockAreaWidget* createAndAddPropertyBrowser(MainWindow* mainWindow, const 
 	return dockManager->addDockWidget(ads::RightDockWidgetArea, dockWidget);
 }
 
-void createAndAddProjectSettings(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::application::RaCoProject* project, SDataChangeDispatcher dataChangeDispatcher, CommandInterface* commandInterface) {
+void createAndAddProjectSettings(MainWindow* mainWindow, const char* dockObjName, RaCoDockManager* dockManager, raco::application::RaCoProject* project, SDataChangeDispatcher dataChangeDispatcher, CommandInterface* commandInterface, SceneBackend* sceneBackend) {
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::PROJECT_SETTINGS, mainWindow);
 	dock->setObjectName(dockObjName);
-	auto propertyBrowser = new raco::property_browser::PropertyBrowserWidget(dataChangeDispatcher, commandInterface, mainWindow);
+	auto propertyBrowser = new raco::property_browser::PropertyBrowserWidget(dataChangeDispatcher, commandInterface, sceneBackend, mainWindow);
 	propertyBrowser->setValueHandle({project->project()->settings()});
 	propertyBrowser->setLockable(false);
 	dock->setWidget(propertyBrowser);
@@ -289,6 +290,33 @@ ads::CDockAreaWidget* createAndAddLogView(MainWindow* mainWindow, raco::applicat
 	return dockManager->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
 }
 
+ads::CDockAreaWidget* createAndAddPythonRunner(MainWindow* mainWindow, raco::application::RaCoApplication* application, const char* dockObjName, std::map<QString, qint64>& scriptEntries, std::map<QString, qint64>& commandLineParamEntries, RaCoDockManager* dockManager, ads::CDockAreaWidget* dockArea = nullptr) {
+	auto* pythonRunner = new raco::common_widgets::RunScriptDialog(scriptEntries, commandLineParamEntries, mainWindow);
+	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::PYTHON_RUNNER, mainWindow);
+	dock->setWidget(pythonRunner);
+	dock->setObjectName(dockObjName);
+
+	QObject::connect(pythonRunner, &raco::common_widgets::RunScriptDialog::pythonScriptRunRequested, [mainWindow, application, dock, pythonRunner](const QString& scriptPath, const QStringList& arguments) {
+		pythonRunner->setScriptIsRunning(true);
+		pythonRunner->repaint();
+		std::vector<std::string> pos_argv_s;
+		pos_argv_s.emplace_back(scriptPath.toStdString());
+		for (auto arg : arguments) {
+			pos_argv_s.emplace_back(arg.toStdString());
+		}
+		std::vector<const char*> pos_argv_cp;
+		for (auto& s : pos_argv_s) {
+			pos_argv_cp.emplace_back(s.c_str());
+		}
+
+		auto currentRunStatus = raco::python_api::runPythonScript(application, QCoreApplication::applicationFilePath().toStdWString(), scriptPath.toStdString(), mainWindow->pythonSearchPaths(), pos_argv_cp);
+		pythonRunner->addPythonOutput(currentRunStatus.stdOutBuffer, currentRunStatus.stdErrBuffer);
+		pythonRunner->setScriptIsRunning(false);
+	});
+
+	return dockManager->addDockWidget(ads::RightDockWidgetArea, dock, dockArea);
+}
+
 ads::CDockAreaWidget* createAndAddTracePlayer(MainWindow* mainWindow, RaCoDockManager* dockManager, raco::components::TracePlayer* tracePlayer) {
 	if (auto existingTraceplayerDock{dockManager->findDockWidget(MainWindow::DockWidgetTypes::TRACE_PLAYER)}) {
 		return existingTraceplayerDock->dockAreaWidget();
@@ -344,16 +372,24 @@ void createInitialWidgets(MainWindow* mainWindow, raco::ramses_widgets::Renderer
 
 }  // namespace
 
-MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco::ramses_widgets::RendererBackend* rendererBackend, QWidget* parent)
+MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco::ramses_widgets::RendererBackend* rendererBackend, const std::vector<std::wstring>& pythonSearchPaths, QWidget* parent)
 	: QMainWindow(parent),
+	  pythonSearchPaths_(pythonSearchPaths),
 	  rendererBackend_(rendererBackend),
 	  racoApplication_(racoApplication) {
 	// Setup the UI from the QtCreator file mainwindow.ui
 	ui = new Ui::MainWindow();
 	ui->setupUi(this);
 	recentFileMenu_ = new OpenRecentMenu(this);
-	QObject::connect(recentFileMenu_, &OpenRecentMenu::openProject, this, &MainWindow::openProject);
+	QObject::connect(recentFileMenu_, &OpenRecentMenu::openProject, this, [this](const QString& file) {
+		this->openProject(file);
+	});
 	ui->menuFile->insertMenu(ui->actionSave, recentFileMenu_);
+
+	upgradeMenu_ = new QMenu("&Upgrade Feature Level", this);
+	ui->menuFile->insertMenu(ui->actionSave, upgradeMenu_);
+	upgradeMenu_->setDisabled(true);
+
 	dockManager_ = createDockManager(this);
 	setWindowIcon(QIcon(":applicationLogo"));
 
@@ -389,26 +425,6 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		QObject::connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveAsActiveProject);
 	}
 
-	QObject::connect(ui->actionRunScript, &QAction::triggered, [this]() {
-		auto *dialog = new raco::common_widgets::RunScriptDialog(pythonScriptCache_, pythonScriptArgumentCache_);
-
-		QObject::connect(dialog, &raco::common_widgets::RunScriptDialog::pythonScriptRunRequested, [this](const QString &scriptPath, const QStringList &arguments) {
-			std::vector<std::string> pos_argv_s;
-			pos_argv_s.emplace_back(scriptPath.toStdString());
-			for (auto arg : arguments) {
-				pos_argv_s.emplace_back(arg.toStdString());
-			}
-			std::vector<const char*> pos_argv_cp;
-			for (auto& s : pos_argv_s) {
-				pos_argv_cp.emplace_back(s.c_str());
-			}
-
-			raco::python_api::runPythonScript(racoApplication_, QCoreApplication::applicationFilePath().toStdWString(), scriptPath.toStdString(), pos_argv_cp);
-		});
-
-		dialog->exec();
-	});
-
 
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {
 		auto file = QFileDialog::getOpenFileName(this, "Open", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca);; All files (*.*)");
@@ -431,6 +447,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		auto dialog = new raco::common_widgets::PreferencesView(this);
 		dialog->resize(500, 500);
 		dialog->exec();
+		racoApplication_->setApplicationFeatureLevel(raco::components::RaCoPreferences::instance().featureLevel);
 	});
 
 	// View actions
@@ -443,6 +460,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	QObject::connect(ui->actionNewUndoView, &QAction::triggered, [this]() { createAndAddUndoView(racoApplication_, EditorObject::normalizedObjectID("").c_str(), &racoApplication_->activeRaCoProject(), this, dockManager_); });
 	QObject::connect(ui->actionNewErrorView, &QAction::triggered, [this]() { createAndAddErrorView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, logViewModel_); });
 	QObject::connect(ui->actionNewLogView, &QAction::triggered, [this]() { createAndAddLogView(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), dockManager_, treeDockManager_, logViewModel_); });
+	QObject::connect(ui->actionNewPythonRunner, &QAction::triggered, [this]() { createAndAddPythonRunner(this, racoApplication_, EditorObject::normalizedObjectID("").c_str(), pythonScriptCache_, pythonScriptArgumentCache_, dockManager_); });
 	QObject::connect(ui->actionRestoreDefaultLayout, &QAction::triggered, [this]() {
 		resetDockManager();
 		createInitialWidgets(this, *rendererBackend_, racoApplication_, dockManager_, treeDockManager_);
@@ -473,7 +491,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	});
 
 	QObject::connect(ui->actionTracePlayer, &QAction::triggered, [this]() { createAndAddTracePlayer(this, dockManager_, &racoApplication_->activeRaCoProject().tracePlayer()); });
-	QObject::connect(ui->actionProjectSettings, &QAction::triggered, [this]() { createAndAddProjectSettings(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, &racoApplication_->activeRaCoProject(), racoApplication_->dataChangeDispatcher(), racoApplication_->activeRaCoProject().commandInterface()); });
+	QObject::connect(ui->actionProjectSettings, &QAction::triggered, [this]() { createAndAddProjectSettings(this, EditorObject::normalizedObjectID("").c_str(), dockManager_, &racoApplication_->activeRaCoProject(), racoApplication_->dataChangeDispatcher(), racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->sceneBackendImpl()); });
 
 	configureDebugActions(ui, this, racoApplication_->activeRaCoProject().commandInterface());
 	// Help actions
@@ -492,6 +510,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	// Setup
 	updateApplicationTitle();
 	updateSavedLayoutMenu();
+	raco::gui_python_api::setup(&treeDockManager_);
 
 	// Will we support Mac?
 	setUnifiedTitleAndToolBarOnMac(true);
@@ -558,7 +577,7 @@ void MainWindow::restoreSettings() {
 	}
 }
 
-void MainWindow::openProject(const QString& file) {
+void MainWindow::openProject(const QString& file, int featureLevel) {
 	auto fileString = file.toStdString();
 	if (!fileString.empty() && (!raco::utils::u8path(fileString).exists() || !raco::utils::u8path(fileString).userHasReadAccess())) {
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file {} is not available for loading.\n\nCheck whether the file at the specified path still exists and that you have read access to that file.", fileString).c_str(), QMessageBox::Close);
@@ -606,7 +625,27 @@ void MainWindow::openProject(const QString& file) {
 			}
 			return std::string();
 		};
-		racoApplication_->switchActiveRaCoProject(file, relinkCallback, true, racoApplication_->applicationFeatureLevel());
+
+		int loadFeatureLevel = featureLevel;
+		while (true) {
+			try {
+				racoApplication_->switchActiveRaCoProject(file, relinkCallback, true, loadFeatureLevel);
+				break;
+			} catch (const ExtrefError& error) {
+				if (auto flError = racoApplication_->getFlError()) {
+					auto answer = QMessageBox::warning(this,
+						"Feature Level Error: Upgrade Feature Level?",
+						fmt::format("Project '{}' feature level {} smaller than external project '{}' feature level {}.\n\nUpgrade project '{}' feature level to {}?", file.toStdString(), flError->currentFeatureLevel_, flError->projectPath_, flError->projectFeatureLevel_, file.toStdString(), flError->projectFeatureLevel_).c_str(),
+						QMessageBox::Yes | QMessageBox::No);
+					if (answer == QMessageBox::Yes) {
+						loadFeatureLevel = flError->projectFeatureLevel_;
+						continue;
+					}
+				}
+				throw error;
+			}
+		}
+
 	} catch (const raco::application::FutureFileVersion& error) {
 		racoApplication_->switchActiveRaCoProject({}, {});
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", raco::serialization::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
@@ -620,7 +659,6 @@ void MainWindow::openProject(const QString& file) {
 
 	renderTimerId_ = startTimer(timerInterval60Fps);
 
-
 	// Recreate our layout with new context
 	dockManager_ = createDockManager(this);
 	restoreCachedLayout();
@@ -629,6 +667,7 @@ void MainWindow::openProject(const QString& file) {
 	updateApplicationTitle();
 	updateActiveProjectConnection();
 	updateProjectSavedConnection();
+	updateUpgradeMenu();
 }
 
 MainWindow::~MainWindow() {
@@ -642,6 +681,27 @@ MainWindow::~MainWindow() {
 
 void MainWindow::updateApplicationTitle() {
 	setWindowTitle(racoApplication_->generateApplicationTitle());
+}
+
+bool MainWindow::upgradeActiveProject(int newFeatureLevel) {
+	if (racoApplication_->activeProjectPath().empty()) {
+		QMessageBox::warning(this, "Upgrade Error", "Can't upgrade projects with empty path.");
+		return false;
+	}
+
+	if (racoApplication_->canSaveActiveProject()) {
+		std::string errorMsg;
+		if (racoApplication_->activeRaCoProject().save(errorMsg)) {
+			openProject(QString::fromStdString(racoApplication_->activeProjectPath()), newFeatureLevel);
+			return true;
+		} else {
+			updateApplicationTitle();
+			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+		}
+	} else {
+		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
+	}
+	return false;
 }
 
 bool MainWindow::saveActiveProject() {
@@ -687,26 +747,6 @@ bool MainWindow::saveAsActiveProject() {
 	return false;
 }
 
-void MainWindow::importScene() {
-	auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, racoApplication_->activeProjectFolder());
-	auto filePath = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb);; All files (*.*)");
-	if (!filePath.isEmpty()) {
-		MeshDescriptor meshDesc;
-		meshDesc.absPath = filePath.toStdString();
-		meshDesc.bakeAllSubmeshes = false;
-
-		if (auto sceneGraph = racoApplication_->activeRaCoProject().meshCache()->getMeshScenegraph(meshDesc)) {
-			auto importStatus = raco::common_widgets::MeshAssetImportDialog(*sceneGraph, this).exec();
-			if (importStatus == QDialog::Accepted) {
-				racoApplication_->activeRaCoProject().commandInterface()->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, nullptr);
-			}
-		} else {
-			auto meshError = racoApplication_->activeRaCoProject().meshCache()->getMeshError(meshDesc.absPath);
-			showMeshImportErrorMessage(meshDesc.absPath, meshError);
-		}
-	}
-}
-
 void MainWindow::updateSavedLayoutMenu() {
 	ui->menuSavedLayoutList->clear();
 	for (const auto& layoutName : dockManager_->perspectiveNames()) {
@@ -716,6 +756,26 @@ void MainWindow::updateSavedLayoutMenu() {
 		});
 	}
 	ui->menuSavedLayoutList->setDisabled(dockManager_->perspectiveNames().isEmpty());
+}
+
+void MainWindow::updateUpgradeMenu() {
+	auto maxFeatureLevel = static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
+	auto currentFeatureLevel = racoApplication_->activeRaCoProject().project()->featureLevel();
+	if (currentFeatureLevel < maxFeatureLevel) {
+		upgradeMenu_->clear();
+		for (int fl = currentFeatureLevel + 1; fl <= maxFeatureLevel; fl++) {
+			upgradeMenu_->addAction(QString::fromStdString(fmt::format("&{}. Feature Level {}", fl, fl)), [fl, this]() {
+				upgradeActiveProject(fl);
+			});
+		}
+		upgradeMenu_->setDisabled(false);	
+	} else {
+		upgradeMenu_->setDisabled(true);	
+	}
+}
+
+const std::vector<std::wstring>& MainWindow::pythonSearchPaths() const {
+	return pythonSearchPaths_;
 }
 
 bool MainWindow::resolveDirtiness() {
@@ -775,7 +835,7 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 		} else if (savedDockType == DockWidgetTypes::PROJECT_BROWSER) {
 			createAndAddProjectBrowser(this, dockNameCString, dockManager_, treeDockManager_, racoApplication_, nullptr);
 		} else if (savedDockType == DockWidgetTypes::PROJECT_SETTINGS) {
-			createAndAddProjectSettings(this, dockNameCString, dockManager_, &racoApplication_->activeRaCoProject(), racoApplication_->dataChangeDispatcher(), racoApplication_->activeRaCoProject().commandInterface());
+			createAndAddProjectSettings(this, dockNameCString, dockManager_, &racoApplication_->activeRaCoProject(), racoApplication_->dataChangeDispatcher(), racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->sceneBackendImpl());
 		} else if (savedDockType == DockWidgetTypes::PROPERTY_BROWSER) {
 			createAndAddPropertyBrowser(this, dockNameCString, dockManager_, treeDockManager_, racoApplication_);
 		} else if (savedDockType == DockWidgetTypes::RAMSES_PREVIEW) {
@@ -796,8 +856,10 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 			createAndAddLogView(this, racoApplication_, dockNameCString, dockManager_, treeDockManager_, logViewModel_);
 		} else if (savedDockType == DockWidgetTypes::TRACE_PLAYER) {
 			createAndAddTracePlayer(this, dockManager_, &racoApplication_->activeRaCoProject().tracePlayer());
+		} else if (savedDockType == DockWidgetTypes::PYTHON_RUNNER) {
+			createAndAddPythonRunner(this, racoApplication_, dockNameCString, pythonScriptCache_, pythonScriptArgumentCache_, dockManager_);
 		} else {
-			assert(false && "Unknown Dock Type detected");
+			LOG_DEBUG(raco::log_system::COMMON, "Ignoring unknown dock type '{}'.", savedDockType.toStdString());
 		}
 	}
 }

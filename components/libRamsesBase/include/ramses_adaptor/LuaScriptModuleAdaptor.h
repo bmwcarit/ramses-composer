@@ -26,6 +26,7 @@ public:
 	explicit LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SLuaScriptModule editorObject);
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 	ramses_base::RamsesLuaModule module() const;
 

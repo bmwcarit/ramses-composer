@@ -47,7 +47,7 @@ void AnimationAdaptor::onRuntimeError(core::Errors& errors, std::string const& m
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
 bool AnimationAdaptor::sync(core::Errors* errors) {
@@ -107,6 +107,14 @@ void AnimationAdaptor::updateGlobalAnimationStats(core::Errors* errors) {
 	auto infoText = fmt::format("Total Duration: {:.2f} s", duration);
 	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, 
 		{editorObject_->shared_from_this(), &user_types::Animation::outputs_}, infoText);
+}
+
+std::vector<ExportInformation> AnimationAdaptor::getExportInformation() const {
+	if (animNode_ == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{ramses::ERamsesObjectType_Animation, animNode_->get()->getName().data()}};
 }
 
 };	// namespace raco::ramses_adaptor

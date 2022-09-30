@@ -34,8 +34,8 @@ class Worker : public QObject {
 	Q_OBJECT
 
 public:
-	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, bool compressExport, QStringList positionalArguments, int featureLevel)
-		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel) {
+	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, QStringList& pythonSearchPaths, bool compressExport, QStringList positionalArguments, int featureLevel)
+		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), pythonSearchPaths_(pythonSearchPaths), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel) {
 	}
 
 public Q_SLOTS:
@@ -72,7 +72,18 @@ public Q_SLOTS:
 					pos_argv_cp.emplace_back(s.c_str());
 				}
 
-				exitCode_ = raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath_.toStdString(), pos_argv_cp);
+				std::vector<std::wstring> wPythonSearchPaths;
+				for (auto& path : pythonSearchPaths_) {
+					wPythonSearchPaths.emplace_back(path.toStdWString());
+				}
+
+				auto currentRunStatus = raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath_.toStdString(), wPythonSearchPaths, pos_argv_cp);
+				exitCode_ = currentRunStatus.exitCode;
+				LOG_INFO(raco::log_system::PYTHON, currentRunStatus.stdOutBuffer);
+
+				if (!currentRunStatus.stdErrBuffer.empty()) {
+					LOG_ERROR(raco::log_system::PYTHON, currentRunStatus.stdErrBuffer);
+				}
 			} else if (!exportPath_.isEmpty()) {
 				QString ramsesPath = exportPath_ + "." + raco::names::FILE_EXTENSION_RAMSES_EXPORT;
 				QString logicPath = exportPath_ + "." + raco::names::FILE_EXTENSION_LOGIC_EXPORT;
@@ -95,6 +106,7 @@ private:
 	QString projectFile_;
 	QString exportPath_;
 	QString& pythonScriptPath_;
+	QStringList pythonSearchPaths_;
 	bool compressExport_;
 	QStringList positionalArguments_;
 	int featureLevel_;
@@ -172,13 +184,19 @@ int main(int argc, char* argv[]) {
 		"File name to write log file to.",
 		"log-file-name",
 		"");
-
 	QCommandLineOption ramsesLogicFeatureLevel(
 		QStringList() << "f"
 					  << "featurelevel",
 		fmt::format("RamsesLogic feature level (-1, {} ... {})", static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)).c_str(),
 		"feature-level",
 		QString::fromStdString(std::to_string(static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))));
+	QCommandLineOption pythonPathOption(
+		QStringList() << "y"
+					  << "pythonpath",
+		"Directory to add to python module search path.",
+		"python-path"
+	);
+
 	parser.addOption(loadProjectAction);
 	parser.addOption(exportProjectAction);
 	parser.addOption(compressExportAction);
@@ -187,6 +205,7 @@ int main(int argc, char* argv[]) {
 	parser.addOption(pyrunOption);
 	parser.addOption(logFileOutputOption);
 	parser.addOption(ramsesLogicFeatureLevel);
+	parser.addOption(pythonPathOption);
 
 	// application must be instantiated before parsing command line
 	QCoreApplication a(argc, argv);
@@ -208,15 +227,17 @@ int main(int argc, char* argv[]) {
 			std::filesystem::create_directories(logFilePath.parent_path());
 
 			if (!logFilePath.parent_path().exists()) {
-				logFilePath = raco::core::PathManager::logFileHeadlessName();
 				customLogFileNameFailed = true;
 			}
 		}
-	} else {
-		logFilePath = raco::core::PathManager::logFileHeadlessName();
 	}
 
-	raco::log_system::init(logFilePath.internalPath().native());
+	if (!customLogFileName.empty() && !customLogFileNameFailed) {
+		raco::log_system::init(logFilePath);
+	} else {
+		raco::log_system::init(raco::core::PathManager::logFileDirectory(), std::string(raco::core::PathManager::LOG_FILE_HEADLESS_BASE_NAME), QCoreApplication::applicationPid());
+	}
+
 	if (customLogFileNameFailed) {
 		// TODO why is this an error: we seem to be able to continue so make this a warning instead!?
 		// TODO this error only appears in log file but not on stdout if invoked from command line!! why??
@@ -264,6 +285,11 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
+	QStringList pythonSearchPaths;
+	if (parser.isSet(pythonPathOption)) {
+		pythonSearchPaths = parser.values(pythonPathOption);
+	}
+
 	LOG_INFO(raco::log_system::PYTHON, "positional arguments = {}", parser.positionalArguments().join(", ").toStdString());
 
 	int featureLevel = -1;
@@ -277,7 +303,7 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, compressExport, parser.positionalArguments(), featureLevel);
+	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, pythonSearchPaths, compressExport, parser.positionalArguments(), featureLevel);
 	QObject::connect(task, &Worker::finished, &QCoreApplication::exit);
 	QTimer::singleShot(0, task, &Worker::run);
 

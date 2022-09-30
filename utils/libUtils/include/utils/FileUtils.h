@@ -18,5 +18,6 @@ namespace raco::utils::file {
 std::string read(const u8path& path);
 std::vector<unsigned char> readBinary(const u8path& path);
 void write(const u8path& path, const std::string& content);
+bool isGitLfsPlaceholderFile(const u8path& path);
 
 }  // namespace raco::utils::file

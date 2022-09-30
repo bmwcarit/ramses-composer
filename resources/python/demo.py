@@ -9,15 +9,19 @@
 # 
 import raco
 import os
+import sys
 
 def scenegraphRoots():
     return [obj for obj in raco.instances() if obj.parent() == None]
     
 def printProperties(handle, depth = 1):
-    for name in dir(handle):
-        childHandle = getattr(handle, name)
-        print("    " * depth, name, "  ", childHandle, "  ", childHandle.value())
-        printProperties(childHandle, depth + 1)
+    for name in handle.keys():
+        childHandle = handle[name]
+        if childHandle.hasSubstructure():
+            print("    " * depth, name, "  ", childHandle)
+            printProperties(childHandle, depth + 1)
+        else:
+            print("    " * depth, name, "  ", childHandle, "=", childHandle.value())
 
 def printObject(obj):
     print(obj)
@@ -28,6 +32,12 @@ def printObject(obj):
     print("\n    properties:")
     printProperties(obj, depth = 1)
 
+print("\n ----- general info -----\n")
+print(" argv = ", sys.argv)
+print(" path = ", sys.path)
+print(" cwd = ", os.getcwd())
+print(" project = ", raco.projectPath())
+print(" feature level = ", raco.projectFeatureLevel())
 
 print("\n ----- project access -----\n")
 print("Project instances: ", raco.instances())
@@ -37,8 +47,9 @@ print("\n\n")
 
 print("\n ----- property access -----\n")
 
-obj = raco.instances()[0]
-print(" object", obj, " with properties ", dir(obj))
+obj = raco.create("Node", "my_node")
+
+print(" object", obj, " with properties ", obj.keys())
 print("\n")
 
 # getting properties
@@ -60,7 +71,6 @@ print("descriptor: ", obj.translation.x)
 obj.translation.x = 42.0
 setattr(obj.scaling, "z", 5.5) 
 print("\n")
-
 
 printObject(obj)
 
@@ -91,7 +101,7 @@ print("Lua without uri:")
 printObject(lua)
 print("\n")
 
-lua.uri = os.getcwd() + "/scripts/types-scalar.lua"
+lua.uri = sys.path[0] + "/../scripts/types-scalar.lua"
 
 print("Lua with uri:")
 printObject(lua)
@@ -100,8 +110,6 @@ print("\n")
 
 
 # create and remove links
-
-obj = raco.instances()[0]
 
 print(" -- Create Link -- \n")
 

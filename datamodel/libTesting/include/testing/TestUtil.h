@@ -16,6 +16,7 @@
 #include "user_types/Node.h"
 #include "utils/FileUtils.h"
 #include <QCoreApplication>
+#include <fstream>
 #include <gtest/gtest.h>
 #include <thread>
 #include <tuple>
@@ -117,6 +118,15 @@ inline bool awaitPreviewDirty(const raco::core::DataChangeRecorder& recorder, co
 		dirtyObjects = recorder.getPreviewDirtyObjects();
 	}
 	return true;
+}
+
+inline void createGitLfsPlaceholderFile(const std::string& path) {
+	std::fstream file;
+	file.open(path, std::ios::out);
+	file << "version https://git-lfs.github.com/spec/v1\n"
+			"oid sha256:5a2f1df22ff0f80d375940c11cec7a2c1e9a4e7f63ba2ed325a119e0bf597a00\n"
+			"size 26787";
+	file.close();
 }
 
 }  // namespace raco

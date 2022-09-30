@@ -9,10 +9,11 @@
  */
 #include <gtest/gtest.h>
 
+#include "mesh_loader/CTMFileLoader.h"
 #include "mesh_loader/glTFFileLoader.h"
 #include "testing/RacoBaseTest.h"
 #include "testing/TestEnvironmentCore.h"
-
+#include "testing/TestUtil.h"
 
 using namespace raco;
 
@@ -181,4 +182,43 @@ TEST_F(MeshLoaderTest, glTFWithMultipleColors) {
 	ASSERT_EQ(mesh->attribIndex(mesh->ATTRIBUTE_COLOR + std::to_string(0)), -1);
 	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_COLOR + std::to_string(1)), -1);
 	ASSERT_NE(mesh->attribIndex(mesh->ATTRIBUTE_COLOR + std::to_string(2)), -1);
+}
+
+TEST_F(MeshLoaderTest, ctmWithGitLfsPlaceholderFile) {
+	std::string path = test_path().append("meshes/gitLfsPlaceholderFile.ctm").string();
+	raco::createGitLfsPlaceholderFile(path);
+
+	core::MeshDescriptor desc;
+	desc.absPath = path;
+	auto fileLoader = std::unique_ptr<raco::core::MeshCacheEntry>(new mesh_loader::CTMFileLoader(path));
+	auto mesh = fileLoader.get()->loadMesh(desc);
+
+	ASSERT_EQ(fileLoader->getError(), "Git LFS placeholder file detected.");
+	ASSERT_EQ(mesh.get(), nullptr);
+}
+
+TEST_F(MeshLoaderTest, glTFWithGitLfsPlaceholderFile) {
+	std::string path = test_path().append("meshes/gitLfsPlaceholderFile.gltf").string();
+	raco::createGitLfsPlaceholderFile(path);
+
+	core::MeshDescriptor desc;
+	desc.absPath = path;
+	mesh_loader::glTFFileLoader fileLoader(desc.absPath);
+	auto mesh = fileLoader.loadMesh(desc);
+
+	ASSERT_EQ(fileLoader.getError(), "Git LFS placeholder file detected.");
+	ASSERT_EQ(mesh.get(), nullptr);
+}
+
+TEST_F(MeshLoaderTest, glbWithGitLfsPlaceholderFile) {
+	std::string path = test_path().append("meshes/gitLfsPlaceholderFile.glb").string();
+	raco::createGitLfsPlaceholderFile(path);
+
+	core::MeshDescriptor desc;
+	desc.absPath = path;
+	mesh_loader::glTFFileLoader fileLoader(desc.absPath);
+	auto mesh = fileLoader.loadMesh(desc);
+
+	ASSERT_EQ(fileLoader.getError(), "Git LFS placeholder file detected.");
+	ASSERT_EQ(mesh.get(), nullptr);
 }

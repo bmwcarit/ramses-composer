@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 1.3.0)
+project(RaCoOS VERSION 1.4.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -147,7 +147,7 @@ macro(deploy_qt tgt)
 		find_program(LINUXDEPLOYQT linuxdeployqt)
 		if(EXISTS "${LINUXDEPLOYQT}")
 			add_custom_command(TARGET ${tgt} POST_BUILD 	
-				COMMAND "${LINUXDEPLOYQT}" "$<TARGET_FILE:${tgt}>" -qmake="${RACO_QT_BASE}/bin/qmake" -no-copy-copyright-files -no-strip -no-translations 
+				COMMAND "${LINUXDEPLOYQT}" "$<TARGET_FILE:${tgt}>" -qmake="${RACO_QT_BASE}/bin/qmake" -no-copy-copyright-files -no-strip -no-translations -unsupported-allow-new-glibc
 				COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:${tgt}>/AppRun" "$<TARGET_FILE:${tgt}>.sh"
 				COMMAND ${CMAKE_COMMAND} -D TARGET_FILE=$<TARGET_FILE:${tgt}> -D ROOT_DIR=${CMAKE_SOURCE_DIR} -P "${CMAKE_SOURCE_DIR}/ubuntustartscript.cmake"
 				COMMAND chmod +x "$<TARGET_FILE:${tgt}>.sh"
@@ -247,7 +247,7 @@ if(PACKAGE_TESTS)
 	# Define a macro to easily setup tests
 	macro(raco_package_add_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 	    add_executable(${TESTNAME} ${FILES})
-		target_link_libraries(${TESTNAME} gtest gmock gtest_main raco::ramses-lib-client-only raco::ramses-logic-lib-client-only ${LIBRARIES})
+		target_link_libraries(${TESTNAME} gtest gmock gtest_main ${LIBRARIES} raco::ramses-logic-lib-client-only)
 		gtest_discover_tests(${TESTNAME}
 			WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
 			PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
@@ -274,13 +274,11 @@ if(PACKAGE_TESTS)
 	endmacro()
 	macro(raco_package_add_headless_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
-		target_link_libraries(${TESTNAME} raco::ramses-lib-client-only raco::ramses-logic-lib-client-only)
 		deploy_headless_shared_dlls(${TESTNAME})
 		deploy_ramses_client_only_shared_dlls(${TESTNAME})
 	endmacro()
 	macro(raco_package_add_gui_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
-		target_link_libraries(${TESTNAME} raco::ramses-lib-client-only raco::ramses-logic-lib-client-only)
 		deploy_gui_shared_dlls(${TESTNAME})
 		deploy_ramses_client_only_shared_dlls(${TESTNAME})
 	endmacro()
@@ -358,7 +356,6 @@ endif()
 #
 set(raco_RELEASE_ROOT_FILES
 	README.md
-	PythonAPI.md
 	CHANGELOG.md
 )
 

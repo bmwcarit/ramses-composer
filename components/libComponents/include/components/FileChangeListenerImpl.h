@@ -12,7 +12,7 @@
 #include "core/FileChangeCallback.h"
 #include "core/FileChangeMonitor.h"
 
-#include "utils/stdfilesystem.h"
+#include <filesystem>
 #include "utils/u8path.h"
 #include <string>
 

@@ -18,6 +18,7 @@
 #include "property_browser/PropertyBrowserRef.h"
 
 #include "user_types/EngineTypeAnnotation.h"
+#include "user_types/LuaInterface.h"
 #include "user_types/LuaScript.h"
 #include "user_types/MeshNode.h"
 #include "user_types/RenderPass.h"
@@ -36,14 +37,15 @@ PropertyBrowserItem::PropertyBrowserItem(
 	core::ValueHandle valueHandle,
 	SDataChangeDispatcher dispatcher,
 	core::CommandInterface* commandInterface,
+	core::SceneBackendInterface* sceneBackend,
 	PropertyBrowserModel *model,
 	QObject* parent)
 	: QObject{parent},
 	  parentItem_{dynamic_cast<PropertyBrowserItem*>(parent)},
 	  valueHandle_{std::move(valueHandle)},
-	  subscription_{dispatcher->registerOn(valueHandle_, [this]() {
+	  subscription_{dispatcher->registerOn(valueHandle_, [this, sceneBackend]() {
 		  if (valueHandle_.isObject() || hasTypeSubstructure(valueHandle_.type())) {
-			  syncChildrenWithValueHandle();
+			  syncChildrenWithValueHandle(sceneBackend);
 		  }
 		  Q_EMIT valueChanged(valueHandle_);
 		  if (valueHandle_.isProperty()) {
@@ -62,7 +64,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	  dispatcher_{dispatcher},
 	  model_{model},
 	  expanded_{getDefaultExpandedFromValueHandleType()} {
-	createChildren();
+	createChildren(sceneBackend);
 	if (!valueHandle_.isObject() && valueHandle_.type() == core::PrimitiveType::Ref) {
 		refItem_ = new PropertyBrowserRef(this);
 	}
@@ -141,9 +143,9 @@ PropertyBrowserItem::PropertyBrowserItem(
 		{&user_types::RenderBuffer::typeDescription, "format"}
 	};
 	if (const auto itChildSub = requiredChildSubscriptions.find(&valueHandle_.rootObject()->getTypeDescription()); valueHandle_.depth() == 0 && itChildSub != requiredChildSubscriptions.end()) {
-		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {itChildSub->second}}, [this] {
+		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {itChildSub->second}}, [this, sceneBackend] {
 			if (valueHandle_) {
-				syncChildrenWithValueHandle();
+				syncChildrenWithValueHandle(sceneBackend);
 			}
 		});	
 	}
@@ -359,8 +361,7 @@ void PropertyBrowserItem::setTags(std::vector<std::pair<std::string, int>> const
 	commandInterface_->setRenderableTags(valueHandle_, prioritizedTags);
 }
 
-
-void PropertyBrowserItem::createChildren() {
+void PropertyBrowserItem::createChildren(core::SceneBackendInterface* sceneBackend) {
 	children_.reserve(static_cast<int>(valueHandle_.size()));
 	if (const auto& renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && renderPass->target_.asRef() == nullptr) {
 		// The render passes flags for clearing the target can only be used for offscreen rendering.
@@ -369,26 +370,26 @@ void PropertyBrowserItem::createChildren() {
 		// This needs to be refactored, see RAOS-XXX.
 		for (int i{0}; i < valueHandle_.size(); i++) {
 			if (!raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i]) && !renderPass->isClearTargetProperty(valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
+				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
 			}
 		}
 	} else if (const auto& renderBuffer = valueHandle_.rootObject()->as<user_types::RenderBuffer>(); renderBuffer != nullptr && !renderBuffer->areSamplingParametersSupported(engineInterface())) {
 		// For the render buffer, the sampling properties should only be available for color formats, not for depth or stencil formats. 
 		for (int i{0}; i < valueHandle_.size(); i++) {
 			if (!raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i]) && !renderBuffer->isSamplingProperty(valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
+				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
 			}
 		}
 	} else {
 		for (int i{0}; i < valueHandle_.size(); i++) {
 			if (!raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
+				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
 			}
 		}			
 	}
 }
 
-void PropertyBrowserItem::syncChildrenWithValueHandle() {
+void PropertyBrowserItem::syncChildrenWithValueHandle(core::SceneBackendInterface* sceneBackend) {
 	// clear children
 	{
 		for (auto& child : children_) {
@@ -398,7 +399,7 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	}
 
 	// create new children
-	createChildren();
+	createChildren(sceneBackend);
 
 	Q_EMIT childrenChanged(children_);
 
@@ -426,6 +427,7 @@ bool PropertyBrowserItem::canBeChosenByColorPicker() const {
 	
 	if (!(rootTypeRef == &raco::user_types::ProjectSettings::typeDescription || 
 		rootTypeRef == &raco::user_types::LuaScript::typeDescription || 
+		rootTypeRef == &raco::user_types::LuaInterface::typeDescription ||
 		rootTypeRef == &raco::user_types::MeshNode::typeDescription || 
 		rootTypeRef == &raco::user_types::Material::typeDescription)) {
 		return false;	
@@ -453,19 +455,18 @@ bool PropertyBrowserItem::getDefaultExpandedFromValueHandleType() const {
 			bool isOptionsOrUniformGroup = parentPropName == "options" || parentPropName == "uniforms";
 			return !isOptionsOrUniformGroup;
 		}
-	} else if (rootTypeRef == &raco::user_types::LuaScript::typeDescription) {
-
+	} else if (rootTypeRef == &raco::user_types::LuaScript::typeDescription || rootTypeRef == &raco::user_types::LuaInterface::typeDescription) {
 		auto parent = valueHandle_.parent();
 
 		bool isTopLevelLuaValueGroup = parent.isObject() &&
-								  (valueHandle_.isRefToProp(&raco::user_types::LuaScript::inputs_)
+									   (valueHandle_.isRefToProp(&raco::user_types::LuaScript::inputs_) || valueHandle_.isRefToProp(&raco::user_types::LuaInterface::inputs_)
 									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::outputs_)
 									  || valueHandle_.isRefToProp(&raco::user_types::LuaScript::luaModules_));
 
 		bool isFirstLevelChildOfInputOutputGroup = parent.isProperty() && 
 											       parent.parent().isObject() &&
-												   (parent.isRefToProp(&raco::user_types::LuaScript::inputs_) ||
-												    parent.isRefToProp(&raco::user_types::LuaScript::outputs_));
+												   (parent.isRefToProp(&raco::user_types::LuaScript::inputs_) || parent.isRefToProp(&raco::user_types::LuaInterface::inputs_) 
+												  || parent.isRefToProp(&raco::user_types::LuaScript::outputs_));
 
 
 		bool isTableOrStruct = valueHandle_.type() == PrimitiveType::Table || valueHandle_.type() == PrimitiveType::Struct;

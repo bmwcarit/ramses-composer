@@ -31,4 +31,7 @@ add_racocommand_test("PyAPI_run_print_object_version_current" "${CMAKE_CURRENT_S
 
 add_racocommand_test("PyAPI_run_print_scenegraph_version_current" "${CMAKE_CURRENT_SOURCE_DIR}" -r ../resources/python/print_scenegraph.py -p ../datamodel/libCore/tests/migrationTestData/version-current.rca)
 
+add_racocommand_test("PyAPI_module_import_with_path" "${CMAKE_CURRENT_SOURCE_DIR}" -r module_import.py -y modules/)
 
+add_racocommand_test("PyAPI_module_import_without_path" "${CMAKE_CURRENT_SOURCE_DIR}" -r module_import.py)
+set_tests_properties(PyAPI_module_import_without_path PROPERTIES WILL_FAIL True)

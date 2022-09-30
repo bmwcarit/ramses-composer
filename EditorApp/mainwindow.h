@@ -49,18 +49,23 @@ public:
 		static inline const char* UNDO_STACK{"Undo Stack"};
 		static inline const char* ERROR_VIEW{"Error View"};
 		static inline const char* LOG_VIEW{"Log View"};
+		static inline const char* PYTHON_RUNNER{"Python Runner"};
 		static inline const char* TRACE_PLAYER{"Trace Player"};
 	};
 
 	explicit MainWindow(
 		raco::application::RaCoApplication* racoApplication,
 		raco::ramses_widgets::RendererBackend* rendererBackend,
+		const std::vector<std::wstring>& pythonSearchPaths,
 		QWidget* parent = nullptr);
 	~MainWindow();
 
 	void setNewPreviewMenuEntryEnabled(bool enabled);
 	void updateApplicationTitle();
 	void updateSavedLayoutMenu();
+	void updateUpgradeMenu();
+
+	const std::vector<std::wstring>& pythonSearchPaths() const;
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
@@ -79,10 +84,10 @@ protected:
 	void saveDockManagerCustomLayouts();
 
 protected Q_SLOTS:
-	void openProject(const QString& file = {});
+	void openProject(const QString& file = {}, int featureLevel = -1);
 	bool saveActiveProject();
+	bool upgradeActiveProject(int newFeatureLevel);
 	bool saveAsActiveProject();
-	void importScene();
 	void resetDockManager();
 	void updateActiveProjectConnection();
 	void updateProjectSavedConnection();
@@ -97,6 +102,9 @@ private:
 	OpenRecentMenu* recentFileMenu_;
 	RaCoDockManager* dockManager_;
 	QListWidget* sceneObjectList_;
+	QMenu* upgradeMenu_;
+	const std::vector<std::wstring> pythonSearchPaths_;
+
 	raco::ramses_widgets::RendererBackend* rendererBackend_;
 	raco::application::RaCoApplication* racoApplication_;
 	raco::object_tree::view::ObjectTreeDockManager treeDockManager_;

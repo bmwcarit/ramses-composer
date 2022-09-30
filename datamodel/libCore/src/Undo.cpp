@@ -209,7 +209,7 @@ void UndoHelpers::updateEditorObject(const EditorObject *src, SEditorObject dest
 
 
 void UndoStack::saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory) {
-	assert(dest->links().empty());
+	assert(dest->links().size() == 0);
 	assert(dest->linkStartPoints().empty());
 	assert(dest->linkEndPoints().empty());
 	assert(dest->instances().empty());

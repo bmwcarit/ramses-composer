@@ -50,4 +50,12 @@ ramses_base::RamsesLuaModule LuaScriptModuleAdaptor::module() const {
 	return module_;
 }
 
+std::vector<ExportInformation> LuaScriptModuleAdaptor::getExportInformation() const {
+	if (module_ == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{"LuaScriptModule", module_->getName().data()}};
+}
+
 }  // namespace raco::ramses_adaptor

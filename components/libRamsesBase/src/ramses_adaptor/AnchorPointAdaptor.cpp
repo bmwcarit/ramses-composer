@@ -42,7 +42,7 @@ void AnchorPointAdaptor::onRuntimeError(core::Errors& errors, std::string const&
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
 bool AnchorPointAdaptor::sync(core::Errors* errors) {
@@ -82,6 +82,14 @@ void AnchorPointAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) 
 		core::ValueHandle outputs(editorObject_, &user_types::AnchorPoint::outputs_);
 		getOutputFromEngine(*anchorPoint_->getOutputs(), outputs, recorder);
 	}
+}
+
+std::vector<ExportInformation> AnchorPointAdaptor::getExportInformation() const {
+	if (anchorPoint_ == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{"AnchorPoint", anchorPoint_->getName().data()}};
 }
 
 }  // namespace raco::ramses_adaptor

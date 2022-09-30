@@ -33,6 +33,7 @@ bool RaCoPreferences::save() {
 	settings.setValue("scriptSubdirectory", scriptSubdirectory);
 	settings.setValue("interfaceSubdirectory", interfaceSubdirectory);
 	settings.setValue("shaderSubdirectory", shaderSubdirectory);
+	settings.setValue("featureLevel", featureLevel);
 
 	settings.sync();
 	return settings.status() == QSettings::NoError;
@@ -52,6 +53,8 @@ void RaCoPreferences::load() {
 	scriptSubdirectory = settings.value("scriptSubdirectory", "scripts").toString();
 	interfaceSubdirectory = settings.value("interfaceSubdirectory", "interfaces").toString();
 	shaderSubdirectory = settings.value("shaderSubdirectory", "shaders").toString();
+
+	featureLevel = settings.value("featureLevel", 1).toInt();
 }
 
 RaCoPreferences& RaCoPreferences::instance() noexcept {

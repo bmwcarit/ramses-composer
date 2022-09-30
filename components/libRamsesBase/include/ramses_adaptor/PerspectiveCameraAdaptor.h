@@ -29,6 +29,7 @@ public:
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 
 	raco::ramses_base::RamsesCameraBinding cameraBinding();
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	components::Subscription viewportSubscription_;

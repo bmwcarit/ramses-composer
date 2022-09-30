@@ -125,16 +125,7 @@ function(add_ramses_logic_target TARGET RAMSES_TARGET)
     folderize_target(${TARGET} "third_party/ramses-logic")
 endfunction()
 
-if (CMAKE_SYSTEM_NAME STREQUAL Windows)
-    # es-3-0 / 4-5 / 4-2-core
-    add_ramses_logic_target(ramses-logic-shared-lib-windows-wgl-4-5 ramses-shared-lib-windows-wgl-4-5)
-    add_library(raco::ramses-logic-lib ALIAS ramses-logic-shared-lib-windows-wgl-4-5)
-endif()
-
-if (CMAKE_SYSTEM_NAME STREQUAL Linux)
-    add_ramses_logic_target(ramses-logic-shared-lib-x11-egl-es-3-0 ramses-shared-lib-x11-egl-es-3-0)
-    add_library(raco::ramses-logic-lib ALIAS ramses-logic-shared-lib-x11-egl-es-3-0)
-endif()
+add_library(raco::ramses-logic-lib ALIAS ramses-logic)
 
 add_ramses_logic_target(ramses-logic-shared-lib-client-only ramses-shared-lib-client-only)
 add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-client-only)

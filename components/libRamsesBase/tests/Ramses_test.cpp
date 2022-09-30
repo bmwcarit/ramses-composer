@@ -16,7 +16,7 @@
 #include <ramses-client-api/EffectDescription.h>
 #include <ramses-client-api/Node.h>
 #include <ramses-framework-api/RamsesVersion.h>
-#include "utils/stdfilesystem.h"
+#include <filesystem>
 
 TEST(ramses, saveToFile_empty) {
     ramses::RamsesFramework ramsesFramework;

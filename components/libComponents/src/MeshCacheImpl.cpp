@@ -16,7 +16,7 @@
 #include "mesh_loader/CTMFileLoader.h"
 #include "mesh_loader/glTFFileLoader.h"
 
-#include "utils/stdfilesystem.h"
+#include <filesystem>
 #include <memory>
 
 namespace raco::components {

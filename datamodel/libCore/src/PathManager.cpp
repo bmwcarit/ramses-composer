@@ -61,14 +61,6 @@ u8path PathManager::logFileDirectory() {
 	return defaultConfigDirectory() / LOG_SUB_DIRECTORY;
 }
 
-u8path PathManager::logFileHeadlessName() {
-	return logFileDirectory() / LOG_FILE_HEADLESS_NAME;
-}
-
-u8path PathManager::logFileEditorName() {
-	return logFileDirectory() / LOG_FILE_EDITOR_NAME;
-}
-
 u8path PathManager::layoutFilePath() {
 	return defaultConfigDirectory() / Q_LAYOUT_FILE_NAME;
 }

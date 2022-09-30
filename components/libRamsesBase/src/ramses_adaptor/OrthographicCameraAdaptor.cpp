@@ -67,4 +67,21 @@ raco::ramses_base::RamsesCameraBinding OrthographicCameraAdaptor::cameraBinding(
 	return cameraBinding_;
 }
 
+std::vector<ExportInformation> OrthographicCameraAdaptor::getExportInformation() const {
+	auto result = std::vector<ExportInformation>();
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramses::ERamsesObjectType_OrthographicCamera, ramsesObject().getName());
+	}
+
+	if (nodeBinding() != nullptr) {
+		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+	}
+
+	if (cameraBinding_) {
+		result.emplace_back("CameraBinding", cameraBinding_->getName().data());
+	}
+
+	return result;
+}
+
 }  // namespace raco::ramses_adaptor

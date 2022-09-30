@@ -75,7 +75,7 @@ bool RenderPassAdaptor::sync(core::Errors* errors) {
 				validTarget = false;
 				const auto errorMsg = fmt::format("Render pass '{}' is not rendered due to invalid render target '{}'", editorObject()->objectName(), target->objectName());
 				LOG_WARNING(raco::log_system::RAMSES_ADAPTOR, errorMsg);
-				errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::WARNING, {editorObject()->shared_from_this()}, 	errorMsg);
+				errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::WARNING, {editorObject()->shared_from_this()}, 	errorMsg);
 			}
 		}
 	}
@@ -168,7 +168,20 @@ void RenderPassAdaptor::onRuntimeError(core::Errors& errors, std::string const& 
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
+}
+
+std::vector<ExportInformation> RenderPassAdaptor::getExportInformation() const {
+	auto result = std::vector<ExportInformation>();
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramses::ERamsesObjectType_RenderPass, getRamsesObjectPointer()->getName());
+	}
+
+	if (binding_ != nullptr) {
+		result.emplace_back("RenderPassBinding", binding_->getName().data());
+	}
+
+	return result;
 }
 
 };	// namespace raco::ramses_adaptor

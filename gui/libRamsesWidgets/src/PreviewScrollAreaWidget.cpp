@@ -65,7 +65,7 @@ std::optional<QPoint> PreviewScrollAreaWidget::globalPositionToPreviewPosition(c
 	auto localPosition = viewport()->mapFromGlobal(p);
 	auto result = QPoint{
 		static_cast<int>((horizontalScrollBar()->value() + localPosition.x() - std::max(0, viewportPosition_.x())) / scaleValue_),
-		static_cast<int>((verticalScrollBar()->value() + localPosition.y() - std::max(0, viewportPosition_.y())) / scaleValue_)};
+		static_cast<int>(sceneSize_.height() - ((verticalScrollBar()->value() + localPosition.y() - std::max(0, viewportPosition_.y())) / scaleValue_))};
 	if (result.x() >= 0 && result.y() >= 0 && result.x() < sceneSize_.width() && result.y() < sceneSize_.height()) {
 		return result;
 	} else {
@@ -142,19 +142,11 @@ void PreviewScrollAreaWidget::updateViewport() {
 			break;
 		}
 		case AutoSizing::BEST_FIT: {
-			const auto sceneRatio = sceneSize_.width() / sceneSize_.height();
-			const auto areaRation = areaSize.width() / areaSize.height();
-			if (sceneRatio > areaRation) {
-				// horizontal
-				const auto scale = static_cast<float>(areaSize.width()) / sceneSize_.width();
-				widgetSize = sceneSize_ * scale;
-				scaleValue_ = scale;
-			} else {
-				// vertical
-				const auto scale = static_cast<float>(areaSize.height()) / sceneSize_.height();
-				widgetSize = sceneSize_ * scale;
-				scaleValue_ = scale;
-			}
+			const auto horizontalScale = static_cast<float>(areaSize.width()) / sceneSize_.width();
+			const auto verticalScale = static_cast<float>(areaSize.height()) / sceneSize_.height();
+			float scale = std::min(horizontalScale, verticalScale);
+			widgetSize = sceneSize_ * scale;
+			scaleValue_ = scale;
 			break;
 		}
 		case AutoSizing::ORIGINAL_FIT: {

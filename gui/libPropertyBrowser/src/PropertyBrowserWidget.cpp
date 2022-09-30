@@ -12,6 +12,7 @@
 #include "common_widgets/QtGuiFormatter.h"
 #include "core/CoreFormatter.h"
 #include "core/Project.h"
+#include "core/SceneBackendInterface.h"
 #include "log_system/log.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -68,8 +69,8 @@ constexpr QLabel* createNotificationWidget(PropertyBrowserModel* model, QWidget*
 	return widget;
 }
 
-PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent)
-	: currentObjectID_(item->valueHandle().rootObject()->objectID()), QWidget{parent} {
+PropertyBrowserView::PropertyBrowserView(raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent)
+	: currentObjectID_(item->valueHandle().rootObject()->objectID()), sceneBackend_{sceneBackend}, QWidget{parent} {
 	item->setParent(this);
 	auto* layout = new PropertyBrowserGridLayout{this};
 	layout->setColumnStretch(0, 1);
@@ -134,7 +135,7 @@ PropertyBrowserView::PropertyBrowserView(PropertyBrowserItem* item, PropertyBrow
 		verticalPivot_ = {0, 0};
 	});
 
-	contentLayout->addWidget(new PropertySubtreeView{model, item, this});
+	contentLayout->addWidget(new PropertySubtreeView{sceneBackend_, model, item, this});
 }
 
 std::string PropertyBrowserView::getCurrentObjectID() const {
@@ -144,10 +145,12 @@ std::string PropertyBrowserView::getCurrentObjectID() const {
 PropertyBrowserWidget::PropertyBrowserWidget(
 	SDataChangeDispatcher dispatcher,
 	raco::core::CommandInterface* commandInterface,
+	raco::core::SceneBackendInterface* sceneBackend,
 	QWidget* parent)
 	: QWidget{parent},
 	  dispatcher_{dispatcher},
 	  commandInterface_{commandInterface},
+	  sceneBackend_{sceneBackend},
 	  layout_{this},
 	  emptyLabel_{new QLabel{"Empty", this}},
 	  locked_{false},
@@ -218,7 +221,7 @@ void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
 				clearValueHandle(true);
 			}
 		});
-		propertyBrowser_.reset(new PropertyBrowserView{new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, model_}, model_, this});
+		propertyBrowser_.reset(new PropertyBrowserView{sceneBackend_, new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, sceneBackend_, model_}, model_, this});
 		layout_.addWidget(propertyBrowser_.get(), 1, 0);
 	} else {
 		LOG_DEBUG(log_system::PROPERTY_BROWSER, "locked! ignore value handle set {}", valueHandle);

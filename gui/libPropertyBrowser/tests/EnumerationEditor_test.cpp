@@ -26,7 +26,7 @@ TEST_F(EnumerationEditorFixture, noValueChangeRecorded_onCreation) {
 	dispatch();
 	application.processEvents();
 
-	raco::property_browser::PropertyBrowserItem item{{material, {"options", "blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, &model};
+	raco::property_browser::PropertyBrowserItem item{{material, {"options", "blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
 	raco::property_browser::EnumerationEditor editor{&item, nullptr};
 
 	application.processEvents();
@@ -36,7 +36,7 @@ TEST_F(EnumerationEditorFixture, noValueChangeRecorded_onCreation) {
 
 TEST_F(EnumerationEditorFixture, noValueChangeRecorded_onForeignSet) {
 	auto material{context.createObject(raco::user_types::Material::typeDescription.typeName)};
-	raco::property_browser::PropertyBrowserItem item{{material, {"options", "blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, &model};
+	raco::property_browser::PropertyBrowserItem item{{material, {"options", "blendOperationAlpha"}}, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
 	raco::property_browser::EnumerationEditor editor{&item, nullptr};
 	dispatch();
 	application.processEvents();
@@ -52,7 +52,7 @@ TEST_F(EnumerationEditorFixture, noValueChangeRecorded_onForeignSet) {
 
 TEST_F(EnumerationEditorFixture, nonContinuousEnum) {
 	auto texture{context.createObject(raco::user_types::Texture::typeDescription.typeName)};
-	raco::property_browser::PropertyBrowserItem item{{texture, {"textureFormat"}}, dataChangeDispatcher, &commandInterface, &model};
+	raco::property_browser::PropertyBrowserItem item{{texture, {"textureFormat"}}, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
 	raco::property_browser::EnumerationEditor editor{&item, nullptr};
 	dispatch();
 	application.processEvents();

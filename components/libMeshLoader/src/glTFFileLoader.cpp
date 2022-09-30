@@ -16,16 +16,16 @@
 
 #include "mesh_loader/glTFBufferData.h"
 #include "mesh_loader/glTFMesh.h"
+#include "utils/FileUtils.h"
 #include "utils/MathUtils.h"
 #include "utils/u8path.h"
-#include "utils/stdfilesystem.h"
 
-#include <log_system/log.h>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/ext/quaternion_double.hpp>
-#include <glm/mat4x4.hpp>
 #include <glm/gtc/epsilon.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <glm/mat4x4.hpp>
+#include <log_system/log.h>
 
 namespace {
 
@@ -168,6 +168,11 @@ bool glTFFileLoader::importglTFScene(const std::string& absPath) {
 		}
 		if (!err.empty()) {
 			error_ = err;
+			if (error_.find("parse_error") != std::string::npos || error_ == "Invalid magic.") {
+				if (raco::utils::file::isGitLfsPlaceholderFile(absPath)) {
+					error_ = "Git LFS placeholder file detected.";
+				}
+			}
 			LOG_ERROR(log_system::MESH_LOADER, "Encountered an error while loading glTF mesh {}\n\tError: {}", absPath, error_);
 			importer_.reset();
 			return false;

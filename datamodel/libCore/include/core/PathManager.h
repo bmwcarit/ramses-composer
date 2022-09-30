@@ -9,7 +9,6 @@
  */
 #pragma once
 
-#include "utils/stdfilesystem.h"
 #include "data_storage/ReflectionInterface.h"
 #include "utils/u8path.h"
 
@@ -34,8 +33,8 @@ struct PathManager {
 	static constexpr const char* LOG_SUB_DIRECTORY = "logs";
 	static constexpr const char* LEGACY_CONFIG_SUB_DIRECTORY = "configfiles";
 	static constexpr const char* DEFAULT_PROJECT_SUB_DIRECTORY = "projects";
-	static constexpr const char* LOG_FILE_EDITOR_NAME = "RamsesComposer.log";
-	static constexpr const char* LOG_FILE_HEADLESS_NAME = "RaCoHeadless.log";
+	static constexpr const char* LOG_FILE_EDITOR_BASE_NAME = "RamsesComposer";
+	static constexpr const char* LOG_FILE_HEADLESS_BASE_NAME = "RaCoHeadless";
 	
 	enum class FolderTypeKeys {
 		Invalid = 0,
@@ -62,12 +61,6 @@ struct PathManager {
 	static u8path defaultResourceDirectory();
 
 	static u8path defaultProjectFallbackPath();
-
-	static u8path logFilePath();
-
-	static u8path logFileHeadlessName();
-
-	static u8path logFileEditorName();
 
 	static void migrateLegacyConfigDirectory();
 	

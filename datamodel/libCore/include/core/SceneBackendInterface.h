@@ -33,6 +33,8 @@ namespace raco::core {
 		virtual uint64_t currentSceneIdValue() const = 0;
 
 		virtual std::vector<SceneItemDesc> getSceneItemDescriptions() const = 0;
+
+		virtual std::string getExportedObjectNames(SEditorObject editorObject) const = 0;
 	};
 
 }

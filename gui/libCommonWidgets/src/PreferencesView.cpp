@@ -14,6 +14,7 @@
 #include "common_widgets/PropertyBrowserButton.h"
 #include "core/PathManager.h"
 #include "log_system/log.h"
+#include "application/RaCoApplication.h"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -61,6 +62,16 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 		});
 	}
 
+	featureLevelEdit_ = new QSpinBox(this);
+	featureLevelEdit_->setRange(raco::application::RaCoApplication::minFeatureLevel(), raco::application::RaCoApplication::maxFeatureLevel());
+	featureLevelEdit_->setValue(RaCoPreferences::instance().featureLevel);
+	featureLevelEdit_->setToolTip(QString::fromStdString(raco::application::RaCoApplication::featureLevelDescriptions()));
+	formLayout->addRow("New Project Feature Level", featureLevelEdit_);
+
+	QObject::connect(featureLevelEdit_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() {
+		Q_EMIT dirtyChanged(dirty());
+	});
+
 	auto buttonBox = new QDialogButtonBox{this};
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
 	QObject::connect(cancelButton, &QPushButton::clicked, this, &PreferencesView::close);
@@ -93,9 +104,12 @@ void PreferencesView::save() {
 		}		
 	} 
 
-	RaCoPreferences::instance().userProjectsDirectory = newUserProjectPathString;
-		
-	if (!RaCoPreferences::instance().save()) {
+	RaCoPreferences& prefs{RaCoPreferences::instance()};
+	
+	prefs.userProjectsDirectory = newUserProjectPathString;
+	prefs.featureLevel = featureLevelEdit_->value();
+
+	if (!prefs.save()) {
 		LOG_ERROR(raco::log_system::COMMON, "Saving settings failed: {}", raco::core::PathManager::preferenceFilePath().string());
 		QMessageBox::critical(this, "Saving settings failed", QString("Settings could not be saved. Check whether the application can write to its config directory.\nFile: ") + QString::fromStdString(raco::core::PathManager::preferenceFilePath().string()));
 	}
@@ -104,7 +118,9 @@ void PreferencesView::save() {
 }
 
 bool PreferencesView::dirty() {
-	return RaCoPreferences::instance().userProjectsDirectory != userProjectEdit_->text();
+	auto& prefs{RaCoPreferences::instance()};
+	return prefs.userProjectsDirectory != userProjectEdit_->text() ||
+		   prefs.featureLevel != featureLevelEdit_->value();
 }
 
 }  // namespace raco::common_widgets

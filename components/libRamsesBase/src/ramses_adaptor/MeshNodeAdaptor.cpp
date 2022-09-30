@@ -225,4 +225,26 @@ const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::stri
 	return SpatialAdaptor::getProperty(names);
 }
 
+std::vector<ExportInformation> MeshNodeAdaptor::getExportInformation() const {
+	auto result = std::vector<ExportInformation>();
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramses::ERamsesObjectType_MeshNode, ramsesObject().getName());
+		result.emplace_back(ramses::ERamsesObjectType_GeometryBinding, fmt::format("{}_GeometryBinding", ramsesObject().getName()));
+	}
+
+	if (nodeBinding() != nullptr) {
+		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+	}
+
+	if (privateAppearance_ != nullptr) {
+		result.emplace_back(ramses::ERamsesObjectType_Appearance, privateAppearance_->get()->getName());
+	}
+
+	if (appearanceBinding_ != nullptr) {
+		result.emplace_back("AppearanceBinding", appearanceBinding_->getName().data());
+	}
+
+	return result;
+}
+
 };	// namespace raco::ramses_adaptor

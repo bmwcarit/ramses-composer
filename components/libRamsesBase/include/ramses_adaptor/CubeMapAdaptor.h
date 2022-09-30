@@ -24,6 +24,7 @@ public:
 	explicit CubeMapAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::CubeMap> editorObject);
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	raco::ramses_base::RamsesTextureCube createTexture(core::Errors* errors);

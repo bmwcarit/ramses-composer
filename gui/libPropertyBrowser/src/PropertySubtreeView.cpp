@@ -11,11 +11,12 @@
 
 #include "ErrorBox.h"
 #include "core/CoreFormatter.h"
+#include "property_browser/PropertyBrowserLayouts.h"
+#include "property_browser/PropertyBrowserWidget.h"
+#include "property_browser/WidgetFactory.h"
 #include "property_browser/controls/ExpandButton.h"
 #include "property_browser/editors/LinkEditor.h"
 #include "property_browser/editors/PropertyEditor.h"
-#include "property_browser/PropertyBrowserLayouts.h"
-#include "property_browser/WidgetFactory.h"
 #include "user_types/LuaScript.h"
 #include "user_types/LuaScriptModule.h"
 
@@ -44,8 +45,8 @@ EmbeddedPropertyBrowserView::EmbeddedPropertyBrowserView(PropertyBrowserItem* it
 	: QFrame{parent} {
 }
 
-PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent)
-	: QWidget{parent}, item_{item}, model_{model}, layout_{this} {
+PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent)
+	: QWidget{parent}, item_{item}, model_{model}, sceneBackend_{sceneBackend}, layout_{this} {
 	layout_.setAlignment(Qt::AlignTop);
 
 	// .PropertySubtreeView--------------------------------------------------------------.
@@ -80,15 +81,7 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 		labelLayout->addWidget(linkControl, 1);
 
 		if (!item->valueHandle().isObject()) {
-
-			QString toolTip = QString::fromStdString(item->valueHandle().getPropName());
-
-			auto isLuaScriptProperty = &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
-			if (isLuaScriptProperty) {
-				toolTip.append(" [" + QString::fromStdString(item->luaTypeName()) + "]");
-			}
-
-			label_->setToolTip(toolTip);
+			generateItemTooltip(item, true);
 		}
 
 		linkControl->setControl(propertyControl_);
@@ -120,6 +113,29 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 	}
 }
 
+void PropertySubtreeView::generateItemTooltip(PropertyBrowserItem* item, bool connectWithChangeEvents) {
+	auto labelToolTip = QString::fromStdString(item->valueHandle().getPropName());
+
+	auto isLuaScriptProperty = &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
+	if (isLuaScriptProperty) {
+		labelToolTip.append(" [" + QString::fromStdString(item->luaTypeName()) + "]");
+	}
+
+	label_->setToolTip(labelToolTip);
+
+	auto isObjectName = item->valueHandle().getPropName() == "objectName";
+	if (isObjectName) {
+		auto exportedObjectNames = sceneBackend_->getExportedObjectNames(item->valueHandle().rootObject());
+		if (!exportedObjectNames.empty()) {
+			propertyControl_->setToolTip(QString::fromStdString(exportedObjectNames));
+		}
+
+		if (connectWithChangeEvents) {
+			connect(item, &PropertyBrowserItem::valueChanged, this, [this, item]{ generateItemTooltip(item, false);});
+		}
+	}
+}
+
 void PropertySubtreeView::updateError() {
 	if (layout_.itemAtPosition(0, 0) && layout_.itemAtPosition(0, 0)->widget()) {
 		auto* widget = layout_.itemAtPosition(0, 0)->widget();
@@ -129,7 +145,7 @@ void PropertySubtreeView::updateError() {
 	}
 	if (item_->hasError()) {
 		auto errorItem = item_->error();
-		if (errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR || errorItem.category() == core::ErrorCategory::PARSE_ERROR || errorItem.category() == core::ErrorCategory::GENERAL || errorItem.category() == core::ErrorCategory::MIGRATION_ERROR) {
+		if (errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME || errorItem.category() == core::ErrorCategory::PARSING || errorItem.category() == core::ErrorCategory::GENERAL || errorItem.category() == core::ErrorCategory::MIGRATION) {
 			layout_.addWidget(new ErrorBox(errorItem.message().c_str(), errorItem.level(), this), 0, 0);
 			// It is unclear why this is needed - but without it, the error box does not appear immediately when an incompatible render buffer is assigned to a render target and the scene error view is in the background.
 			// The error box does appear later, e. g. when the mouse cursor is moved over the preview or when the left mouse button is clicked in a different widget.
@@ -171,7 +187,7 @@ void PropertySubtreeView::updateChildrenContainer() {
 			childrenContainer_ = new PropertySubtreeChildrenContainer{item_, this};
 
 			for (const auto& child : item_->children()) {
-				auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
+				auto* subtree = new PropertySubtreeView{sceneBackend_, model_, child, childrenContainer_};
 				childrenContainer_->addWidget(subtree);
 			}
 			QObject::connect(item_, &PropertyBrowserItem::childrenChanged, childrenContainer_, [this](const QList<PropertyBrowserItem*> items) {
@@ -182,7 +198,7 @@ void PropertySubtreeView::updateChildrenContainer() {
 					childWidget->deleteLater();
 				}
 				for (auto& child : items) {
-					auto* subtree = new PropertySubtreeView{model_, child, childrenContainer_};
+					auto* subtree = new PropertySubtreeView{sceneBackend_, model_, child, childrenContainer_};
 					childrenContainer_->addWidget(subtree);
 				}
 				recalculateTabOrder();

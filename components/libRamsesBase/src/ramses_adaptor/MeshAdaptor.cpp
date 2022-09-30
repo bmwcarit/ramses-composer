@@ -68,4 +68,20 @@ bool MeshAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
+std::vector<ExportInformation> MeshAdaptor::getExportInformation() const {
+	if (indices_ == nullptr) {
+		return {};
+	}
+
+	auto result = std::vector<ExportInformation>();
+
+	result.emplace_back(indices_.get()->getType(), indices_->getName());
+
+	for (const auto& item : vertexDataMap_)	{
+		result.emplace_back(ramses::ERamsesObjectType_ArrayResource, item.second->getName());
+	}
+
+	return result;
+}
+
 };	// namespace raco::ramses_adaptor

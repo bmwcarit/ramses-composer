@@ -50,6 +50,8 @@ public:
 	void setRelinkCallback(std::function<std::string(const std::string&)> relinkCallback) override;
 	void clearRelinkCallback() override;
 
+	const FeatureLevelLoadError* getFlError() const;
+
 private:
 	// Needs to access externalProjects_ directly:
 	friend class ::ObjectTreeViewExternalProjectModelTest;
@@ -76,6 +78,8 @@ private:
 	components::ProjectFileChangeMonitor externalProjectFileChangeMonitor_;
 
 	std::unordered_map<std::string, raco::components::ProjectFileChangeMonitor::UniqueListener> externalProjectFileChangeListeners_;
+
+	std::unique_ptr<FeatureLevelLoadError> flError_;
 };
 
 }  // namespace raco::application

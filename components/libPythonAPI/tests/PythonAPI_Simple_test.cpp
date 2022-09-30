@@ -33,7 +33,7 @@ using raco::application::RaCoApplication;
 class PythonTest : public RacoBaseTest<> {
 public:
 	PythonTest() : backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel}, application{backend} {
-		raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), true);
+		raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
 		pyGuard = std::make_unique<py::scoped_interpreter>();
 		raco::python_api::setup(&application);
 	}

@@ -14,10 +14,10 @@
 #define Py_DEBUG
 #endif
 
-#include <raco_pybind11_embed.h>
 #include <pybind11/iostream.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <raco_pybind11_embed.h>
 
 #include "python_api/PythonAPI.h"
 
@@ -27,6 +27,11 @@
 #include "core/PathManager.h"
 #include "core/Queries.h"
 
+#include "core/ExternalReferenceAnnotation.h"
+#include "core/PrefabOperations.h"
+#include "user_types/Mesh.h"
+#include "user_types/Prefab.h"
+#include "user_types/PrefabInstance.h"
 #include "user_types/Enumerations.h"
 
 #include <ramses-client-api/AppearanceEnums.h>
@@ -40,8 +45,7 @@ namespace py = pybind11;
 
 namespace {
 raco::application::RaCoApplication* app;
-std::string pythonStdoutBuffer;
-std::string pythonStderrBuffer;
+raco::python_api::PythonRunStatus currentRunStatus;
 
 py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 	switch (handle.type()) {
@@ -93,6 +97,9 @@ py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 				return py::cast(handle.asInt());
 			}
 			break;
+		case raco::data_storage::PrimitiveType::Int64:
+			return py::cast(handle.asInt64());
+			break;
 		case raco::data_storage::PrimitiveType::Double:
 			return py::cast(handle.asDouble());
 			break;
@@ -103,11 +110,19 @@ py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 			return py::cast(handle.asRef());
 			break;
 		default:
+			assert(false);
 			return py::none();
 	}
 }
 
+void checkObject(raco::core::SEditorObject object) {
+	if (!app->activeRaCoProject().project()->isInstance(object)) {
+		throw std::runtime_error(fmt::format("Object '{}' not in project", object->objectName()));
+	}
+}
+
 void checkProperty(const raco::core::PropertyDescriptor& desc) {
+	checkObject(desc.object());
 	raco::core::ValueHandle handle{desc};
 	if (!handle || handle.constValueRef()->query<raco::core::HiddenProperty>()) {
 		throw std::runtime_error(fmt::format("Property '{}' doesn't exist in object '{}'", desc.getPropertyPath(), desc.object()->objectName()));
@@ -157,6 +172,72 @@ void python_set_value(const raco::core::PropertyDescriptor& desc, py::object val
 	}
 }
 
+void python_load_project(std::string& path, int featureLevel) {
+	if (app->isRunningInUI()) {
+		throw std::runtime_error(fmt::format("Can not load project: project-switching Python functions currently not allowed in UI."));
+	}
+
+	if (!path.empty()) {
+		try {
+			app->switchActiveRaCoProject(QString::fromStdString(path), {}, false, featureLevel);
+		} catch (std::exception& e) {
+			app->switchActiveRaCoProject(QString(), {}, false, featureLevel);
+			throw e;
+		}
+	} else {
+		app->switchActiveRaCoProject(QString(), {}, false, featureLevel);
+		throw std::runtime_error("Load project: file name is empty.");
+	}
+}
+
+void python_import_gltf(const std::string path, const raco::core::SEditorObject parent) {
+	auto fileLocation = raco::utils::u8path(path);
+	if (!fileLocation.is_absolute()) {
+		fileLocation = fileLocation.normalizedAbsolutePath(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, app->activeProjectFolder()));
+	}
+
+	raco::core::MeshDescriptor meshDesc;
+	meshDesc.absPath = fileLocation.string();
+	meshDesc.bakeAllSubmeshes = false;
+
+	auto* commandInterface = app->activeRaCoProject().commandInterface();
+	// create dummy cache entry to prevent "cache corpses" if the mesh file is otherwise not accessed by any Mesh
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(meshDesc.absPath, {nullptr, nullptr, []() {}});
+	if (auto* sceneGraph = commandInterface->meshCache()->getMeshScenegraph(meshDesc)) {
+		commandInterface->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, parent);
+	} else {
+		throw std::invalid_argument("Unable to import GLTF mesh at " + fileLocation.string());
+	}
+
+	app->doOneLoop();
+}
+
+py::object getPropertyChildProperties(const raco::core::PropertyDescriptor& desc) {
+	checkProperty(desc);
+	auto handle = raco::core::ValueHandle(desc);
+	std::vector<std::string> propNames;
+	if (handle.hasSubstructure()) {
+		for (size_t index = 0; index < handle.size(); index++) {
+			propNames.emplace_back(handle[index].getPropName());
+		}
+	}
+	return py::cast(propNames);
+}
+
+py::object getObjectChildProperties(raco::core::SEditorObject obj) {
+	checkObject(obj);
+	std::vector<std::string> propNames;
+	for (size_t index = 0; index < obj->size(); index++) {
+		if (!obj->get(index)->query<raco::core::HiddenProperty>()) {
+			auto anno = obj->get(index)->query<raco::core::FeatureLevel>();
+			if (!anno || *anno->featureLevel_ <= app->activeRaCoProject().project()->featureLevel()) {
+				propNames.emplace_back(obj->name(index));
+			}
+		}
+	}
+	return py::cast(propNames);
+}
+
 }  // namespace
 
 PYBIND11_EMBEDDED_MODULE(raco_py_io, m) {
@@ -174,22 +255,18 @@ PYBIND11_EMBEDDED_MODULE(raco_py_io, m) {
 
 	py::class_<raco_py_stdout> raco_py_stdout(m, "raco_py_stdout");
 	raco_py_stdout.def_static("write", [](py::object buffer) {
-		pythonStdoutBuffer.append(buffer.cast<std::string>());
+		currentRunStatus.stdOutBuffer.append(buffer.cast<std::string>());
 	});
 	raco_py_stdout.def_static("flush", []() {
-		LOG_INFO(raco::log_system::PYTHON, pythonStdoutBuffer);
-		pythonStdoutBuffer.clear();
+		// empty flush redefinition needed for overwriting of sys.stdout
 	});
 
 	py::class_<raco_py_stderr> raco_py_stderr(m, "raco_py_stderr");
 	raco_py_stderr.def_static("write", [](py::object buffer) {
-		pythonStderrBuffer.append(buffer.cast<std::string>());
+		currentRunStatus.stdErrBuffer.append(buffer.cast<std::string>());
 	});
 	raco_py_stderr.def_static("flush", []() {
-		if (!pythonStderrBuffer.empty()) {
-			LOG_ERROR(raco::log_system::PYTHON, pythonStderrBuffer);
-			pythonStderrBuffer.clear();
-		}
+		// empty flush redefinition needed for overwriting of sys.stderr
 	});
 
 	m.def("hook_stdout", []() {
@@ -296,22 +373,26 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.value("Aspect_FoV", raco::user_types::EFrustumType::Aspect_FieldOfView)
 		.value("Planes", raco::user_types::EFrustumType::Planes);
 
-	m.def("load", [](std::string path) {
-		if (app->isRunningInUI()) {
-			throw std::runtime_error(fmt::format("Can not load project: project-switching Python functions currently not allowed in UI."));
-		}
+	py::enum_<raco::core::ErrorCategory>(m, "ErrorCategory")
+		.value("GENERAL", raco::core::ErrorCategory::GENERAL)
+		.value("PARSING", raco::core::ErrorCategory::PARSING)
+		.value("FILESYSTEM", raco::core::ErrorCategory::FILESYSTEM)
+		.value("RAMSES_LOGIC_RUNTIME", raco::core::ErrorCategory::RAMSES_LOGIC_RUNTIME)
+		.value("EXTERNAL_REFERENCE", raco::core::ErrorCategory::EXTERNAL_REFERENCE)
+		.value("MIGRATION", raco::core::ErrorCategory::MIGRATION);
 
-		if (!path.empty()) {
-			try {
-				app->switchActiveRaCoProject(QString::fromStdString(path), {}, false);
-			} catch (std::exception& e) {
-				app->switchActiveRaCoProject(QString(), {} , false);
-				throw e;
-			}
-		} else {
-			app->switchActiveRaCoProject(QString(), {} , false);
-			throw std::runtime_error("Load project: file name is empty.");
-		}
+	py::enum_<raco::core::ErrorLevel>(m, "ErrorLevel")
+		.value("NONE", raco::core::ErrorLevel::NONE)
+		.value("INFORMATION", raco::core::ErrorLevel::INFORMATION)
+		.value("WARNING", raco::core::ErrorLevel::WARNING)
+		.value("ERROR", raco::core::ErrorLevel::ERROR);
+
+	m.def("load", [](std::string path) {
+		python_load_project(path, -1);
+	});
+
+	m.def("load", [](std::string path, int featureLevel) {
+		python_load_project(path, featureLevel);
 	});
 
 	m.def("reset", []() {
@@ -320,6 +401,14 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 
 		app->switchActiveRaCoProject(QString(), {}, false);
+	});
+
+	m.def("reset", [](int featureLevel) {
+		if (app->isRunningInUI()) {
+			throw std::runtime_error(fmt::format("Can not reset project: project-switching Python functions currently not allowed in UI."));
+		}
+
+		app->switchActiveRaCoProject(QString(), {}, false, featureLevel);
 	});
 
 	m.def("save", [](std::string path) {
@@ -333,13 +422,23 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 	});
 
-	m.def("projectPath", [](){
+	m.def("projectPath", []() {
 		return app->activeProjectPath();
 	});
-	
+
+	m.def("projectFeatureLevel", []() {
+		return app->activeRaCoProject().project()->featureLevel();
+	});
+	m.def("minFeatureLevel", []() {
+		return app->minFeatureLevel();
+	});
+	m.def("maxFeatureLevel", []() {
+		return app->maxFeatureLevel();
+	});
+
 	m.def("externalProjects", []() {
 		py::list externalPaths;
-		for (auto const & [ id, info ] : app->activeRaCoProject().project()->externalProjectsMap()) {
+		for (auto const& [id, info] : app->activeRaCoProject().project()->externalProjectsMap()) {
 			auto absPath = raco::utils::u8path(info.path).normalizedAbsolutePath(app->activeRaCoProject().project()->currentFolder());
 			externalPaths.append(py::cast(absPath.string()));
 		}
@@ -353,20 +452,29 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 	});
 
+	m.def("isRunningInUi", []() {
+		return app->isRunningInUI();
+	});
+
+	m.def("importGLTF", [](const std::string path) {
+		python_import_gltf(path, nullptr);
+	});
+
+	m.def("importGLTF", [](const std::string path, const raco::core::SEditorObject parent) {
+		checkObject(parent);
+		python_import_gltf(path, parent);
+	 });
+
 	py::class_<raco::core::PropertyDescriptor>(m, "PropertyDescriptor")
 		.def("__repr__", [](const raco::core::PropertyDescriptor& desc) {
 			auto handle = raco::core::ValueHandle(desc);
 			return fmt::format("<Property[{}]: '{}'>", handle.constValueRef()->baseTypeName(), desc.getPropertyPath());
 		})
 		.def("__dir__", [](const raco::core::PropertyDescriptor& desc) -> py::object {
-			auto handle = raco::core::ValueHandle(desc);
-			std::vector<std::string> propNames;
-			if (handle && handle.hasSubstructure()) {
-				for (size_t index = 0; index < handle.size(); index++) {
-					propNames.emplace_back(handle[index].getPropName());
-				}
-			}
-			return py::cast(propNames);
+			return getPropertyChildProperties(desc);
+		})
+		.def("keys", [](const raco::core::PropertyDescriptor& desc) -> py::object {
+			return getPropertyChildProperties(desc);
 		})
 		.def("__getattr__", [](const raco::core::PropertyDescriptor& desc, const std::string& name) -> py::object {
 			auto childDesc = desc.child(name);
@@ -376,28 +484,52 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.def("__setattr__", [](const raco::core::PropertyDescriptor& desc, const std::string& name, py::object value) {
 			python_set_value(desc.child(name), value);
 		})
+		.def("__getitem__", [](const raco::core::PropertyDescriptor& desc, const std::string& name) -> py::object {
+			auto childDesc = desc.child(name);
+			checkProperty(childDesc);
+			return py::cast(childDesc);
+		})
+		.def("__setitem__", [](const raco::core::PropertyDescriptor& desc, const std::string& name, py::object value) {
+			python_set_value(desc.child(name), value);
+		})
 		.def(py::self == py::self)
-		.def("object", &raco::core::PropertyDescriptor::object)
+		.def("object", [](const raco::core::PropertyDescriptor& desc) -> py::object {
+			checkObject(desc.object());
+			return py::cast(desc.object());
+		})
+		// TODO get parent property
 		.def("typeName", [](const raco::core::PropertyDescriptor& desc) -> py::object {
-			auto handle = raco::core::ValueHandle(desc);
-			if (handle) {
-				return py::cast(handle.constValueRef()->baseTypeName());
-			}
-			return py::none();
+			checkProperty(desc);
+			return py::cast(raco::core::ValueHandle(desc).constValueRef()->baseTypeName());
 		})
 		.def("propName", [](const raco::core::PropertyDescriptor& desc) -> py::object {
-			auto handle = raco::core::ValueHandle(desc);
-			if (handle) {
-				return py::cast(handle.getPropName());
-			}
-			return py::none();
+			checkProperty(desc);
+			return py::cast(raco::core::ValueHandle(desc).getPropName());
+		})
+		.def("hasSubstructure", [](const raco::core::PropertyDescriptor& desc) -> py::object {
+			checkProperty(desc);
+			return py::cast(raco::core::ValueHandle(desc).hasSubstructure());
+		})
+		.def("isReadOnly", [](const raco::core::PropertyDescriptor& desc) {
+			checkProperty(desc);
+			return raco::core::Queries::isReadOnly(*app->activeRaCoProject().project(), raco::core::ValueHandle(desc));
+		})
+		.def("isValidLinkStart", [](const raco::core::PropertyDescriptor& desc) {
+			checkProperty(desc);
+			return raco::core::Queries::isValidLinkStart(raco::core::ValueHandle(desc));
+		})
+		.def("isValidLinkEnd", [](const raco::core::PropertyDescriptor& desc) {
+			checkProperty(desc);
+			return raco::core::Queries::isValidLinkEnd(*app->activeRaCoProject().project(), raco::core::ValueHandle(desc));
 		})
 		.def("value", [](const raco::core::PropertyDescriptor& desc) -> py::object {
+			checkProperty(desc);
 			auto handle = raco::core::ValueHandle(desc);
-			if (handle && !handle.hasSubstructure()) {
+			if (!handle.hasSubstructure()) {
 				return python_get_scalar_value(handle);
+			} else {
+				throw std::runtime_error(fmt::format("Can't read property value: '{}' is not a scalar property.", desc.getPropertyPath()));
 			}
-			return py::none();
 		});
 
 	py::class_<raco::core::EditorObject, raco::core::SEditorObject>(m, "EditorObject")
@@ -405,16 +537,10 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 			return fmt::format("<{}: '{}'>", obj.getTypeDescription().typeName, obj.objectName());
 		})
 		.def("__dir__", [](raco::core::SEditorObject obj) {
-			std::vector<std::string> propNames;
-			for (size_t index = 0; index < obj->size(); index++) {
-				if (!obj->get(index)->query<raco::core::HiddenProperty>()) {
-					auto anno = obj->get(index)->query<raco::core::FeatureLevel>();
-					if (!anno || *anno->featureLevel_ <= app->activeRaCoProject().project()->featureLevel()) {
-						propNames.emplace_back(obj->name(index));
-					}
-				}
-			}
-			return py::cast(propNames);
+			return getObjectChildProperties(obj);
+		})
+		.def("keys", [](raco::core::SEditorObject obj) {
+			return getObjectChildProperties(obj);
 		})
 		.def("__getattr__", [](raco::core::SEditorObject obj, std::string name) -> py::object {
 			raco::core::PropertyDescriptor desc(obj, {name});
@@ -424,14 +550,64 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.def("__setattr__", [](raco::core::SEditorObject obj, std::string name, py::object value) {
 			python_set_value({obj, {name}}, value);
 		})
+		.def("__getitem__", [](raco::core::SEditorObject obj, std::string name) -> py::object {
+			raco::core::PropertyDescriptor desc(obj, {name});
+			checkProperty(desc);
+			return py::cast(desc);
+		})
+		.def("__setitem__", [](raco::core::SEditorObject obj, std::string name, py::object value) {
+			python_set_value({obj, {name}}, value);
+		})
 		.def("typeName", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
 			return obj->getTypeDescription().typeName;
 		})
 		.def("children", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
 			return obj->children_->asVector<raco::core::SEditorObject>();
 		})
-		.def("parent", &raco::core::EditorObject::getParent)
-		.def("objectID", &raco::core::EditorObject::objectID);
+		.def("isReadOnly", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
+			return raco::core::Queries::isReadOnly(obj);
+		})
+		.def("isResource", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
+			return raco::core::Queries::isResource(obj);
+		})
+		.def("isExternalReference", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
+			return obj->query<raco::core::ExternalReferenceAnnotation>() != nullptr;
+		})
+		.def("getPrefab", [](raco::core::SEditorObject obj) -> py::object {
+			checkObject(obj);
+			return py::cast(raco::core::SEditorObject(raco::core::PrefabOperations::findContainingPrefab(obj)));
+		})
+		.def("getPrefabInstance", [](raco::core::SEditorObject obj) -> py::object {
+			checkObject(obj);
+			return py::cast(raco::core::SEditorObject(raco::core::PrefabOperations::findContainingPrefabInstance(obj)));
+		})
+		.def("getOuterContainingPrefabInstance", [](raco::core::SEditorObject obj) -> py::object {
+			checkObject(obj);
+			return py::cast(raco::core::SEditorObject(raco::core::PrefabOperations::findOuterContainingPrefabInstance(obj)));
+		})
+		.def("parent", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
+			return py::cast(obj->getParent());
+		})
+		.def("objectID", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
+			return py::cast(obj->objectID());
+		})
+		.def("metadata", [](raco::core::SEditorObject obj) {
+			checkObject(obj);
+			if (obj->isType<raco::user_types::Mesh>()) {
+				auto metaData = obj->as<raco::user_types::Mesh>()->metaData_;
+				if (!metaData.empty()) {
+					return py::cast(metaData);
+				}
+			}
+			return py::cast(nullptr);
+		});
 
 	py::class_<raco::core::LinkDescriptor>(m, "LinkDescriptor")
 		.def("__repr__", [](const raco::core::LinkDescriptor& desc) {
@@ -484,9 +660,7 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 	});
 
 	m.def("getLink", [](const raco::core::PropertyDescriptor& end) -> py::object {
-		if (!app->activeRaCoProject().project()->isInstance(end.object())) {
-			throw std::runtime_error(fmt::format("getLink: object '{}' not in project", end.object()->objectName()));
-		}
+		checkObject(end.object());
 		if (auto link = raco::core::Queries::getLink(*app->activeRaCoProject().project(), end)) {
 			return py::cast(link->descriptor());
 		}
@@ -513,11 +687,49 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		app->activeRaCoProject().commandInterface()->removeLink(end);
 		app->doOneLoop();
 	});
+
+	m.def("getInstanceById", [](const std::string& id) -> py::object {
+		return py::cast(app->activeRaCoProject().project()->getInstanceByID(id));
+	});
+
+	py::class_<raco::core::ErrorItem>(m, "ErrorItem")
+		.def("__repr__", [](const raco::core::ErrorItem& errorItem) {
+			auto pyobj = py::cast(errorItem).attr("handle")();
+			std::string handleRepr = py::repr(pyobj);
+			return fmt::format("<Error: category='{}' level='{}' message='{}' handle='{}'>", errorItem.category(), errorItem.level(), errorItem.message(), handleRepr);
+		})
+		.def("category", &raco::core::ErrorItem::category)
+		.def("level", &raco::core::ErrorItem::level)
+		.def("message", &raco::core::ErrorItem::message)
+		.def("handle", [](const raco::core::ErrorItem& errorItem) -> py::object {
+			if (errorItem.valueHandle() == raco::core::ValueHandle()) {
+				// Project global errors -> return None
+				return py::none();
+			} else if (errorItem.valueHandle().isObject()) {
+				// Object errors -> return EditorObject
+				auto obj = errorItem.valueHandle().rootObject();
+				checkObject(obj);
+				return py::cast(obj);
+			}
+			// Property errors -> return PropertyDescriptor
+			auto desc = errorItem.valueHandle().getDescriptor();
+			checkProperty(desc);
+			return py::cast(desc);
+		});
+
+	m.def("getErrors", []() {
+		std::map<raco::core::ValueHandle, raco::core::ErrorItem> racoErrors = app->activeRaCoProject().errors()->getAllErrors();
+		py::list pyErrorItems;
+		for (const auto& racoError : racoErrors) {
+			pyErrorItems.append(raco::core::ErrorItem(racoError.second));
+		}
+		return pyErrorItems;
+	});
 }
 
 namespace raco::python_api {
 
-bool preparePythonEnvironment(std::wstring argv0, bool searchPythonFolderForTest) {
+bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring>& pythonSearchPaths, bool searchPythonFolderForTest) {
 	PyPreConfig preconfig;
 	PyPreConfig_InitIsolatedConfig(&preconfig);
 	const auto status = Py_PreInitialize(&preconfig);
@@ -544,12 +756,14 @@ bool preparePythonEnvironment(std::wstring argv0, bool searchPythonFolderForTest
 
 #if defined(_WIN32)
 	const std::wstring pythonPathDelimiter{L";"};
-	const static std::wstring pythonPaths {
-		L"" + pythonPathDelimiter +
+	std::wstring pythonPaths;
+	for (auto& path : pythonSearchPaths) {
+		pythonPaths += path + pythonPathDelimiter;
+	}
+	pythonPaths += L"" + pythonPathDelimiter +
 		shippedPythonRoot.wstring() + pythonPathDelimiter +
 		(shippedPythonRoot / "python38.zip").wstring() + pythonPathDelimiter +
-		(shippedPythonRoot / "lib" / "site-packages").wstring()
-	};
+		(shippedPythonRoot / "lib" / "site-packages").wstring();
 	auto pip_prefix = shippedPythonRoot.wstring();
 	std::replace(std::begin(pip_prefix), std::end(pip_prefix), L'/', L'\\');
 	// It is necessary to set PIP_PREFIX as an environment variable - otherwise pip just uses the default installation directory (Linux) or the executable dir (Windows)
@@ -562,12 +776,14 @@ bool preparePythonEnvironment(std::wstring argv0, bool searchPythonFolderForTest
 	}
 #else
 	const std::wstring pythonPathDelimiter{L":"};
-	const std::wstring pythonPaths {
-		L"" + pythonPathDelimiter +
+	std::wstring pythonPaths;
+	for (auto& path : pythonSearchPaths) {
+		pythonPaths += path + pythonPathDelimiter;
+	}
+	pythonPaths += L"" + pythonPathDelimiter +
 		(shippedPythonRoot / "python3.8").wstring() + pythonPathDelimiter +
 		(shippedPythonRoot / "python3.8" / "lib-dynload").wstring() + pythonPathDelimiter +
-		(shippedPythonRoot / "python3.8" / "lib" / "python3.8" / "site-packages").wstring()
-	};
+		(shippedPythonRoot / "python3.8" / "lib" / "python3.8" / "site-packages").wstring();
 	const auto pip_prefix = (shippedPythonRoot / "python3.8").string();
 	// It is necessary to set PIP_PREFIX as an environment variable - otherwise pip just uses the default installation directory (Linux) or the executable dir (Windows)
 	// as the target directory. See also https://pip.pypa.io/en/stable/topics/configuration/ and https://docs.python.org/3/install/index.html ("How installation works")
@@ -598,40 +814,49 @@ void setup(raco::application::RaCoApplication* racoApp) {
 	const std::wstring pythonPaths = Py_GetPath();
 	std::string pythonPathsUTF8(1024, 0);
 	pythonPathsUTF8.resize(std::wcstombs(pythonPathsUTF8.data(), pythonPaths.data(), pythonPathsUTF8.size()));
-	LOG_INFO(raco::log_system::PYTHON, "Python module search paths: {}", pythonPathsUTF8);
+	LOG_DEBUG(raco::log_system::PYTHON, "Python module search paths: {}", pythonPathsUTF8);
 
 	py::module::import("raco_py_io").attr("hook_stdout")();
 }
 
-int runPythonScript(raco::application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<const char*>& pos_argv_cp) {
-	if (raco::python_api::preparePythonEnvironment(applicationPath)) {
+PythonRunStatus runPythonScript(raco::application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<std::wstring>& pythonSearchPaths, const std::vector<const char*>& pos_argv_cp) {
+	currentRunStatus.stdOutBuffer.clear();
+	currentRunStatus.stdErrBuffer.clear();
+
+	if (raco::python_api::preparePythonEnvironment(applicationPath, pythonSearchPaths)) {
 		py::scoped_interpreter pyGuard{true, static_cast<int>(pos_argv_cp.size()), pos_argv_cp.data()};
 
 		raco::python_api::setup(app);
-		LOG_INFO(raco::log_system::PYTHON, "running python script {}", pythonScriptPath);
+		currentRunStatus.stdOutBuffer.append(fmt::format("running python script {}\n\n", pythonScriptPath));
 		try {
 			py::eval_file(pythonScriptPath);
 		} catch (py::error_already_set& e) {
 			if (e.matches(PyExc_SystemExit)) {
 				auto exitCode = py::cast<int>(e.value().attr("code"));
-				LOG_ERROR(raco::log_system::PYTHON, "Exit called from Python: exit code '{}'", exitCode);
-				return py::cast<int>(e.value().attr("code"));
+				currentRunStatus.stdErrBuffer.append(fmt::format("Exit called from Python: exit code '{}'\n", exitCode));
+				currentRunStatus.exitCode = py::cast<int>(e.value().attr("code"));
+				return currentRunStatus;
 			} else {
-				LOG_ERROR(raco::log_system::PYTHON, "Python exception:\n{}", e.what());
-				return 1;
+				currentRunStatus.stdErrBuffer.append(fmt::format("Python exception:\n{}", e.what()));
+				currentRunStatus.exitCode = 1;
+				return currentRunStatus;
 			}
 		} catch (std::exception& e) {
-			LOG_ERROR(raco::log_system::PYTHON, "Error thrown in Python script:\n{}", e.what());
-			return 1;
+			currentRunStatus.stdErrBuffer.append(fmt::format("Error thrown in Python script:\n{}", e.what()));
+			currentRunStatus.exitCode = 1;
 			// TODO exit code
 			// how do we get here?
 			// need a test
+			return currentRunStatus;
 		}
 	} else {
-		LOG_ERROR(raco::log_system::PYTHON, "Failed to prepare the Python environment.");
-		return 1;
+		currentRunStatus.stdErrBuffer.append("Failed to prepare the Python environment.\n");
+		currentRunStatus.exitCode = 1;
+		return currentRunStatus;
 	}
-	return 0;
+	currentRunStatus.exitCode = 0;
+
+	return currentRunStatus;
 }
 
 }  // namespace raco::python_api

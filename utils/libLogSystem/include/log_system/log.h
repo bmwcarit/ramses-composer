@@ -15,6 +15,8 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
+#include "utils/u8path.h"
+
 namespace raco::log_system {
 
 using Sink = spdlog::sinks::sink;
@@ -41,10 +43,14 @@ constexpr const char* UTILS{"UTILS"};
 constexpr const char* DUMP{"DUMP"};
 constexpr const char* TRACE_PLAYER{"TRACE_PLAYER"};
 
-constexpr size_t MAX_LOG_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-constexpr size_t MAX_LOG_FILE_AMOUNT = 25;
+constexpr const char* LOG_FILE_EXTENSION = ".log";
 
-void init(spdlog::filename_t logFileName = SPDLOG_FILENAME_T(""));
+constexpr size_t MAX_LOG_FILES = 10;
+
+void init(const raco::utils::u8path& logFilePath = {});
+
+void init(const raco::utils::u8path& logFileDirectory, const std::string& logFileBaseName, int64_t pid);
+
 void deinit();
 void registerSink(const SinkPtr sink);
 void unregisterSink(const SinkPtr sink);

@@ -9,7 +9,6 @@
  */
 #include "utils/u8path.h"
 
-#include "utils/stdfilesystem.h"
 #include <fstream>
 #include <algorithm>
 #include <cassert>
@@ -79,7 +78,18 @@ bool operator!=(const u8path& lhs, const u8path& rhs) {
 	std::error_code ec;
 	auto status = std::filesystem::status(path_, ec);
 	if (!ec) {
+#ifdef _WIN32
+		// enforce case-sensitive path name check for Windows systems to unify behavior with Linux builds
+		if (std::filesystem::exists(status)) {
+			auto canonicalPath = std::filesystem::canonical(path_, ec);
+
+			return !ec && canonicalPath == path_;
+		}
+
+		return false;
+#else
 		return std::filesystem::exists(status);
+#endif
 	}
 
 	return false;
@@ -99,7 +109,7 @@ bool operator!=(const u8path& lhs, const u8path& rhs) {
  }
 
  u8path u8path::normalized() const {
-	 return raco_filesystem_compatibility::lexically_normal(path_);
+	 return path_.lexically_normal();
  }
 
  u8path u8path::normalizedRelativePath(const u8path& basePath) const {

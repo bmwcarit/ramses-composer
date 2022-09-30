@@ -12,7 +12,6 @@ add_library(libUtils
     include/utils/CrashDump.h src/CrashDump.cpp
     include/utils/FileUtils.h src/FileUtils.cpp
     include/utils/MathUtils.h src/MathUtils.cpp
-    include/utils/stdfilesystem.h
     include/utils/u8path.h src/u8path.cpp
     include/utils/ZipUtils.h src/ZipUtils.cpp
 )
@@ -24,12 +23,11 @@ target_compile_definitions(libUtils PUBLIC -DRACO_VERSION_MINOR=${PROJECT_VERSIO
 target_compile_definitions(libUtils PUBLIC -DRACO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
 target_link_libraries(libUtils
+PUBLIC
+    spdlog
 PRIVATE
     glm
     zip
-
-PUBLIC
-    raco::LogSystem
 )
 add_library(raco::Utils ALIAS libUtils)
 

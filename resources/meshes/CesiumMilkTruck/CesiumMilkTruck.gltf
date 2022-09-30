@@ -179,9 +179,19 @@
       ]
     },
     {
+    "extras" : {
+      "prop" : 1.0,
+      "prop1" : "truck mesh property",
+	  "prop2" : 2
+      },
       "name": "Cesium_Milk_Truck",
       "primitives": [
         {
+          "extras" : {
+            "prop" : 1.0,
+            "prop1" : "primitive 1 property",
+            "prop2" : 2
+          },
           "attributes": {
             "POSITION": 4,
             "NORMAL": 5,
@@ -191,6 +201,11 @@
           "material": 1
         },
         {
+          "extras" : {
+            "prop" : 1.0,
+            "prop1" : "primitive 2 property",
+            "prop2" : 2
+          },
           "attributes": {
             "POSITION": 8,
             "NORMAL": 9,
@@ -200,6 +215,11 @@
           "material": 2
         },
         {
+          "extras" : {
+            "prop" : 1.0,
+            "prop1" : "primitive 1 property",
+            "prop2" : 2
+          },
           "attributes": {
             "POSITION": 12,
             "NORMAL": 13,

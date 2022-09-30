@@ -36,6 +36,8 @@ public:
 
 	const std::vector<uint32_t>& getIndices() const override;
 
+	std::map<std::string, std::string> getMetadata() const override;
+
 	const std::vector<IndexBufferRangeInfo>& submeshIndexBufferRanges() const override;
 
 	uint32_t numAttributes() const override;
@@ -63,6 +65,8 @@ private:
 	std::vector<IndexBufferRangeInfo> submeshIndexBufferRanges_;
 
 	std::vector<std::string> materials_;
+
+	std::map<std::string, std::string> metadata_;
 };
 
 }  // namespace raco::mesh_loader

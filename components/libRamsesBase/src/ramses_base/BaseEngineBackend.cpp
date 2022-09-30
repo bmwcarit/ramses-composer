@@ -14,6 +14,15 @@
 
 namespace raco::ramses_base {
 
+const std::string BaseEngineBackend::featureLevelDescriptions =
+R"(1 - LogicEngine v1.0.3
+2 - LogicEngine v1.1.0
+    - Added AnchorPoint
+    - Added RamsesRenderPassBinding 
+    - Added 'enabled' input property to RamsesNodeBinding
+    - Added createRamsesCameraBindingWithFrustumPlanes 
+)";
+
 BaseEngineBackend::BaseEngineBackend(
 	rlogic::EFeatureLevel featureLevel, 
 	const ramses::RamsesFrameworkConfig& frameworkConfig,

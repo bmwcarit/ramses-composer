@@ -14,6 +14,7 @@
 #include <QDialog>
 #include <QGridLayout>
 #include <QLineEdit>
+#include <QSpinBox>
 #include <QWidget>
 #include <utility>
 #include <vector>
@@ -36,6 +37,7 @@ public:
 
 private:
 	QLineEdit* userProjectEdit_;
+	QSpinBox* featureLevelEdit_;
 };
 
 }  // namespace raco::common_widgets

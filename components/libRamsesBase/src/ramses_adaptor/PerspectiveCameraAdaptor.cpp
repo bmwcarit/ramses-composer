@@ -81,4 +81,21 @@ raco::ramses_base::RamsesCameraBinding PerspectiveCameraAdaptor::cameraBinding()
 	return cameraBinding_;
 }
 
+std::vector<ExportInformation> PerspectiveCameraAdaptor::getExportInformation() const {
+	auto result = std::vector<ExportInformation>();
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramses::ERamsesObjectType_PerspectiveCamera, ramsesObject().getName());
+	}
+
+	if (nodeBinding() != nullptr) {
+		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+	}
+
+	if (cameraBinding_) {
+		result.emplace_back("CameraBinding", cameraBinding_->getName().data());
+	}
+
+	return result;
+}
+
 }  // namespace raco::ramses_adaptor

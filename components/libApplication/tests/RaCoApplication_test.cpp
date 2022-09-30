@@ -538,7 +538,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationsDoNotGetI
 
 	auto allAnims = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
 	ASSERT_TRUE(allAnims.empty());
-	ASSERT_TRUE(application.activeRaCoProject().project()->links().empty());
+	ASSERT_TRUE(application.activeRaCoProject().project()->links().size() == 0);
 }
 
 
@@ -559,7 +559,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedNodesWillNotCreateL
 
 	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
 
-	ASSERT_TRUE(application.activeRaCoProject().project()->links().empty());
+	ASSERT_TRUE(application.activeRaCoProject().project()->links().size() == 0);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationChannelsDoNotGetImported) {
@@ -591,7 +591,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationChannelsDo
 	for (auto i = 0; i < channels.size(); ++i) {
 		ASSERT_EQ(channels[i]->asRef(), nullptr);
 	}
-	ASSERT_TRUE(application.activeRaCoProject().project()->links().empty());
+	ASSERT_TRUE(application.activeRaCoProject().project()->links().size() == 0);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyScenegraph) {
@@ -659,6 +659,94 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshesAndNoNodes) {
 	ASSERT_NE(scenegraph, nullptr);
 	ASSERT_TRUE(scenegraph->nodes.empty());
 }
+
+TEST_F(RaCoApplicationFixture, importglTFScenegraphFileChange) {
+	auto* commandInterface = application.activeRaCoProject().commandInterface();
+	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
+
+	auto scene = makeFile("scene.gltf", R"(
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v1.8.19",
+        "version" : "2.0"
+    },
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                1
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "name" : "Node B",
+            "translation" : [
+                2,
+                0,
+                -2
+            ]
+        },
+        {
+            "children" : [
+                0
+            ],
+            "name" : "Node A"
+        }
+    ]
+}
+
+)");
+
+	raco::core::MeshDescriptor desc;
+	desc.absPath = scene;
+	desc.bakeAllSubmeshes = false;
+
+	{
+		auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+		auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(desc.absPath, {nullptr, nullptr, []() {}});
+
+		ASSERT_TRUE(scenegraph->nodes.front()->hasParent());
+		ASSERT_FALSE(scenegraph->nodes.back()->hasParent());
+	}
+
+	scene = makeFile("scene.gltf", R"(
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v1.8.19",
+        "version" : "2.0"
+    },
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                0,
+                1
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "name" : "Node A"
+        },
+        {
+            "name" : "Node B"
+        }
+    ]
+}
+
+)");
+	{
+		auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+		auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(desc.absPath, {nullptr, nullptr, []() {}});
+
+		ASSERT_FALSE(scenegraph->nodes.front()->hasParent());
+		ASSERT_FALSE(scenegraph->nodes.back()->hasParent());
+	}
+}
+
 TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselectedMeshes) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());

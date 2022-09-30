@@ -169,4 +169,13 @@ bool RenderLayerAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
+std::vector<ExportInformation> RenderLayerAdaptor::getExportInformation() const {
+	if (getRamsesObjectPointer() == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{ramses::ERamsesObjectType_RenderGroup, getRamsesObjectPointer()->getName()}};
+}
+
+
 }  // namespace raco::ramses_adaptor

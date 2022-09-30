@@ -15,7 +15,13 @@ class RaCoApplication;
 
 namespace raco::python_api {
 
-bool preparePythonEnvironment(std::wstring argv0, bool searchPythonFolderForTest = false);
+struct PythonRunStatus {
+	int exitCode;
+	std::string stdOutBuffer;
+	std::string stdErrBuffer;
+};
+
+bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring>& pythonSearchPaths, bool searchPythonFolderForTest = false);
 void setup(raco::application::RaCoApplication* app);
-int runPythonScript(raco::application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<const char*>& pos_argv_cp);
+PythonRunStatus runPythonScript(raco::application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<std::wstring>& pythonSearchPaths, const std::vector<const char*>& pos_argv_cp);
 }

@@ -47,7 +47,7 @@ void TimerAdaptor::onRuntimeError(core::Errors& errors, std::string const& messa
 	if (errors.hasError(valueHandle)) {
 		return;
 	}
-	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME_ERROR, level, valueHandle, message);
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
 bool TimerAdaptor::sync(core::Errors* errors) {
@@ -66,6 +66,14 @@ bool TimerAdaptor::sync(core::Errors* errors) {
 void TimerAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	core::ValueHandle animOutputs{editorObject_, {"outputs", "ticker_us"}};
 	getOutputFromEngine(*timerNode_->getOutputs()->getChild("ticker_us"), animOutputs, recorder);
+}
+
+std::vector<ExportInformation> TimerAdaptor::getExportInformation() const {
+	if (timerNode_ == nullptr) {
+		return {};
+	}
+
+	return {ExportInformation{"Timer", timerNode_->getName().data()}};
 }
 
 };	// namespace raco::ramses_adaptor

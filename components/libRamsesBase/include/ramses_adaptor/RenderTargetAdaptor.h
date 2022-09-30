@@ -20,6 +20,7 @@ public:
 	explicit RenderTargetAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderTarget> editorObject);
 
 	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	std::array<components::Subscription, 8> subscriptions_;

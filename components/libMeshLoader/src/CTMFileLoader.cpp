@@ -11,11 +11,11 @@
 
 #include "mesh_loader/CTMMesh.h"
 
-#include "utils/stdfilesystem.h"
+#include "utils/FileUtils.h"
 #include "utils/u8path.h"
 
-#include <openctmpp.h>
 #include <fstream>
+#include <openctmpp.h>
 
 namespace {
 
@@ -90,8 +90,12 @@ bool CTMFileLoader::loadFile() {
 			importer_->LoadCustom(readFunction, &in);
 			valid_ = true;
 		} catch (ctm_error const& e) {
-			error_ = errorCodeToString(e.error_code());
 			valid_ = false;
+			if (e.error_code() == CTM_BAD_FORMAT && raco::utils::file::isGitLfsPlaceholderFile(path_)) {
+				error_ = "Git LFS placeholder file detected.";
+			} else {
+				error_ = errorCodeToString(e.error_code());
+			}
 		};
 	}
 	return valid_;

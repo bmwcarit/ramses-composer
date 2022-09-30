@@ -89,7 +89,7 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 		}
 
 		if (!success && !error.empty()) {
-			context.errors().addError(ErrorCategory::PARSE_ERROR, ErrorLevel::ERROR, shared_from_this(), error);
+			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, shared_from_this(), error);
 		}
 	}
 

@@ -68,7 +68,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 		textureData_ = createTexture(errors, decodingInfo);
 		if (!textureData_) {
 			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': Couldn't load png file from '{}'", editorObject()->objectName(), uri);
-			errors->addError(core::ErrorCategory::PARSE_ERROR, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::Texture::uri_}, "Image file could not be loaded.");
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::Texture::uri_}, "Image file could not be loaded.");
 		}
 	}
 
@@ -191,6 +191,17 @@ std::vector<unsigned char>& TextureSamplerAdaptor::getFallbackTextureData(bool f
 	}
 
 	return fallbackTextureData_[flipped];
+}
+
+std::vector<ExportInformation> TextureSamplerAdaptor::getExportInformation() const {
+	if (textureData_ == nullptr) {
+		return {};
+	}
+
+	return {
+		ExportInformation{ramsesObject().getType(), ramsesObject().getName()},
+		ExportInformation{textureData_->getType(), textureData_->getName()},
+	};
 }
 
 }  // namespace raco::ramses_adaptor

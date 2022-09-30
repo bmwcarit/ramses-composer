@@ -28,6 +28,7 @@ class BaseEngineBackend {
 public:
 	static const rlogic::EFeatureLevel minFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_01;
 	static const rlogic::EFeatureLevel maxFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_02;
+	static const std::string featureLevelDescriptions;
 
 	typedef std::unique_ptr<ramses::RamsesClient, std::function<void(ramses::RamsesClient*)>> UniqueClient;
 	typedef std::unique_ptr<ramses::Scene, std::function<void(ramses::Scene*)>> UniqueScene;

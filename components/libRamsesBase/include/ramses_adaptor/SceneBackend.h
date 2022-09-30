@@ -52,6 +52,7 @@ public:
 	std::string getValidationReport(core::ErrorLevel minLevel) const override;
 	uint64_t currentSceneIdValue() const override;
 	std::vector<SceneItemDesc> getSceneItemDescriptions() const override;
+	std::string getExportedObjectNames(SEditorObject editorObject) const override;
 
 private:
 	ramses::RamsesClient* client() const;

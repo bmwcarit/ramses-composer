@@ -32,6 +32,8 @@ add_library(libCore
 	include/core/Handles.h src/Handles.cpp 
 	include/core/Iterators.h src/Iterators.cpp 
 	include/core/Link.h src/Link.cpp
+	include/core/LinkContainer.h src/LinkContainer.cpp
+	include/core/LinkGraph.h src/LinkGraph.cpp
 	include/core/MeshCacheInterface.h
 	include/core/PathManager.h src/PathManager.cpp
 	include/core/PathQueries.h src/PathQueries.cpp

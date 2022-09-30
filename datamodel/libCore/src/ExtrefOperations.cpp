@@ -176,7 +176,7 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 		project->setExternalReferenceUpdateFailed(true);
 
 		auto errorMsg = fmt::format("External reference update failed: {}", e.what());
-		context.errors().addError(ErrorCategory::EXTERNAL_REFERENCE_ERROR, ErrorLevel::ERROR, ValueHandle(), errorMsg);
+		context.errors().addError(ErrorCategory::EXTERNAL_REFERENCE, ErrorLevel::ERROR, ValueHandle(), errorMsg);
 		LOG_ERROR(log_system::COMMON, errorMsg);
 
 		throw e;

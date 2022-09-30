@@ -40,6 +40,18 @@ struct FutureFileVersion : public std::exception {
 	}
 };
 
+struct FeatureLevelLoadError : public std::runtime_error {
+	explicit FeatureLevelLoadError(const std::string& what, int currentFeatureLevel, int projectFeatureLevel, const std::string& projectPath)
+		: runtime_error(what),
+		  currentFeatureLevel_(currentFeatureLevel),
+		  projectFeatureLevel_(projectFeatureLevel),
+		  projectPath_(projectPath) {}
+
+	int currentFeatureLevel_;
+	int projectFeatureLevel_;
+	std::string projectPath_;
+};
+
 class RaCoProject : public QObject {
 	Q_OBJECT
 public:

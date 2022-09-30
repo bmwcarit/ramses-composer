@@ -28,6 +28,7 @@ public:
 
 	bool sync(core::Errors* errors) override;
 	void readDataFromEngine(core::DataChangeRecorder& recorder);
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	raco::ramses_base::RamsesAnimationNode animNode_;

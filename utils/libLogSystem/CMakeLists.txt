@@ -20,6 +20,8 @@ PUBLIC
 target_link_libraries(libLogSystem
 PUBLIC
     spdlog
+PRIVATE
+    raco::Utils
 )
 
 enable_warnings_as_errors(libLogSystem)

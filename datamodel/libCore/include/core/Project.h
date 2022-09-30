@@ -12,9 +12,13 @@
 #include "EditorObject.h"
 #include "Handles.h"
 #include "Link.h"
-#include "core/ProjectSettings.h"
-#include "core/Serialization.h"
+#include "LinkContainer.h"
+#include "LinkGraph.h"
+#include "ProjectSettings.h"
+#include "Serialization.h"
+
 #include "log_system/log.h"
+
 #include <map>
 #include <regex>
 #include <unordered_map>
@@ -30,7 +34,6 @@ class UndoStack;
 
 class Project {
 public:
-
 	explicit Project();
 	explicit Project(const std::vector<SEditorObject>& instances);
 
@@ -47,13 +50,13 @@ public:
 	std::string getProjectNameForObject(SEditorObject const& object, bool fallbackToLocalProject = true) const;
 
 	// Directory of current project
-	// - will always be non-empty 
+	// - will always be non-empty
 	// - contains default project directory for new project that hasn't been saved yet.
 	std::string currentFolder() const;
 
 	// Complete file path; empty for new project that hasn't been saved yet.
 	std::string currentPath() const;
-	
+
 	// File name of project; empty for new project that hasn't been saved yet.
 	std::string currentFileName() const;
 
@@ -72,12 +75,10 @@ public:
 	// Objects are compared by object id and not by pointer comparison.
 	SLink findLinkByObjectID(SLink link) const;
 
-
 	const std::map<std::string, std::set<SLink>>& linkStartPoints() const;
 	const std::map<std::string, std::set<SLink>>& linkEndPoints() const;
-	const std::vector<SLink>& links() const;
 
-	bool checkLinkDuplicates() const;
+	const LinkContainer& links() const;
 
 	SEditorObject getInstanceByID(const std::string& objectID) const;
 
@@ -99,7 +100,7 @@ public:
 
 	const std::map<std::string, serialization::ExternalProjectInfo>& externalProjectsMap() const;
 
-	// "garbage collect" external project mapping by removing external projects that are 
+	// "garbage collect" external project mapping by removing external projects that are
 	// not used in the current project.
 	bool gcExternalProjectMapping();
 
@@ -144,45 +145,27 @@ public:
 		return fmt::format("{} ({})", basename, *it + 1);
 	}
 
-	// Repair project by removing duplicate links
-	void deduplicateLinks();
-
 	// Lock/unlock code-controlled objects in the Project
 	void lockCodeCtrldObjs(const SEditorObjectSet& editorObjs);
 	SEditorObjectSet unlockCodeCtrldObjs(const SEditorObjectSet& editorObjs);
 	// Check if the object is code-controlled
 	bool isCodeCtrldObj(const SEditorObject& editorObj) const;
 
+	// Check if the project contains any duplicate links.
+	// Semi-private: only used by repair code for broken files when loading.
+	bool checkLinkDuplicates() const;
+
+	// Repair project by removing duplicate links
+	// Semi-private: only used by repair code for broken files when loading.
+	void deduplicateLinks();
+
 private:
 	// Needed because undo/redo needs to set the complete externalProjectsMap_ at once but
 	// we don't want public functions to allow anybody to do that.
 	friend class UndoStack;
 
-	static SLink findLinkByObjectID(const std::map<std::string, std::set<SLink>>& linksByEndPointID, SLink link);
-
 	void removeAllLinks();
 
-
-	/**
-	 * @brief Maintains the connection graph of all non-weak links in the project and implements loop detection.
-	 * 
-	 * Weak links are not relevant for loop detection and are therefore not included in the link graph.
-	*/
-	class LinkGraph {
-	public:
-		LinkGraph(const Project& project);
-
-		void addLink(SLink link);
-		void removeLink(const Project& project, SLink link);
-
-		void removeAllLinks();
-
-		bool createsLoop(const PropertyDescriptor& start, const PropertyDescriptor& end) const;
-
-	private:
-		bool depthFirstSearch(SEditorObject current, SEditorObject obj, SEditorObjectSet& visited) const;
-		std::map<SEditorObject, SEditorObjectSet> graph;
-	};
 
 	std::string folder_;
 	std::string filename_;
@@ -196,21 +179,12 @@ private:
 	// Keys are the project IDs
 	// Values contain the relative file paths and names of the external project files.
 	// The project names are only cached here.
-	// Note: the ExternalReferenceAnnotation attached to objects only contains the 
+	// Note: the ExternalReferenceAnnotation attached to objects only contains the
 	// project id and needs to map to resolve relative paths.
 	std::map<std::string, serialization::ExternalProjectInfo> externalProjectsMap_;
 	bool externalReferenceUpdateFailed_ = false;
 
-	// This map contains all links used by the project,
-	// using the link start object ID as the key value, for easier lookup.
-	// Mostly used for link-related functions in raco::core::Queries.
-	std::map<std::string, std::set<SLink>> linkStartPoints_;
-
-	// This map contains all links used by the project,
-	// using the link end object ID as the key value, for easier lookup.
-	std::map<std::string, std::set<SLink>> linkEndPoints_;
-
-	std::vector<SLink> links_;
+	LinkContainer links_;
 	LinkGraph linkGraph_;
 
 	static inline const std::regex NAMING_PATTERN{"(.*)\\s+\\((\\d+)\\)"};
@@ -220,3 +194,4 @@ private:
 };
 
 }  // namespace raco::core
+

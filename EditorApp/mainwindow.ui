@@ -35,8 +35,6 @@
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
     <addaction name="separator"/>
-    <addaction name="actionRunScript"/>
-    <addaction name="separator"/>
     <addaction name="actionExport"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
@@ -76,6 +74,7 @@
     <addaction name="actionNewUndoView"/>
     <addaction name="actionNewErrorView"/>
     <addaction name="actionNewLogView"/>
+    <addaction name="actionNewPythonRunner"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -132,11 +131,6 @@
    <property name="text">
     <string>&amp;Preferences</string>
    </property>
-  </action>
-  <action name="actionRunScript">
-    <property name="text">
-      <string>Run S&amp;cript...</string>
-    </property>
   </action>
   <action name="actionQuit">
    <property name="text">
@@ -238,6 +232,11 @@
     <string>New &amp;Log View</string>
    </property>
   </action>
+  <action name="actionNewPythonRunner">
+   <property name="text">
+    <string>New Pyt&amp;hon Runner</string>
+   </property>
+ </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>

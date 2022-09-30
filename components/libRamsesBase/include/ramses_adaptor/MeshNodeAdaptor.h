@@ -51,6 +51,7 @@ public:
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 
 	const raco::ramses_base::RamsesAppearance& privateAppearance() const;
+	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	void syncMaterial(core::Errors* errors, size_t index);

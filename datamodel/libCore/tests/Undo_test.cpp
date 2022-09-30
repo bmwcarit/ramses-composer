@@ -522,11 +522,11 @@ TEST_F(UndoTest, link_broken_changed_output) {
 	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_TRUE(project.links()[0]->isValid());
+			ASSERT_TRUE((*project.links().begin())->isValid());
 		},
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_FALSE(project.links()[0]->isValid());
+			ASSERT_FALSE((*project.links().begin())->isValid());
 		});
 }
 
@@ -543,11 +543,11 @@ TEST_F(UndoTest, link_broken_changed_input) {
 	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_TRUE(project.links()[0]->isValid());
+			ASSERT_TRUE((*project.links().begin())->isValid());
 		},
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_FALSE(project.links()[0]->isValid());
+			ASSERT_FALSE((*project.links().begin())->isValid());
 		});
 }
 
@@ -569,11 +569,11 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_input) {
 	checkUndoRedo([this, linkRecipient]() { commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/SimpleScript.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_FALSE(project.links()[0]->isValid());
+			ASSERT_FALSE((*project.links().begin())->isValid());
 		},
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_TRUE(project.links()[0]->isValid());
+			ASSERT_TRUE((*project.links().begin())->isValid());
 		});
 }
 
@@ -594,11 +594,11 @@ TEST_F(UndoTest, link_broken_fix_link_with_correct_output) {
 	checkUndoRedo([this, linkBase]() { commandInterface.set(ValueHandle{linkBase, {"uri"}}, test_path().append("scripts/types-scalar.lua").string()); },
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_FALSE(project.links()[0]->isValid());
+			ASSERT_FALSE((*project.links().begin())->isValid());
 		},
 		[this]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_TRUE(project.links()[0]->isValid());
+			ASSERT_TRUE((*project.links().begin())->isValid());
 		});
 }
 
@@ -612,16 +612,15 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 	commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "in_float"}});
 
 	// link gets broken here
+
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	checkUndoRedo([this, linkBase, linkRecipient]() { commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "float"}}); },
-		[this]() {
-			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_FALSE(project.links()[0]->isValid());
+		[this, linkBase, linkRecipient]() { 
+			checkLinks({{{linkBase, {"outputs", "ofloat"}}, {linkRecipient, {"inputs", "in_float"}}, false}});
 		},
-		[this]() {
-			ASSERT_EQ(project.links().size(), 2);
-			ASSERT_FALSE(project.links()[0]->isValid());
-			ASSERT_TRUE(project.links()[1]->isValid());
+		[this, linkBase, linkRecipient]() {
+			checkLinks({{{linkBase, {"outputs", "ofloat"}}, {linkRecipient, {"inputs", "in_float"}}, false},
+				{{linkBase, {"outputs", "ofloat"}}, {linkRecipient, {"inputs", "float"}}, true}});
 		});
 }
 
@@ -722,13 +721,13 @@ end
 	},
 		[this, node, lua]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_TRUE(project.links()[0]->isValid());
+			ASSERT_TRUE((*project.links().begin())->isValid());
 			ASSERT_TRUE(ValueHandle(node, {"rotation"}).isVec3f());
 			ASSERT_TRUE(ValueHandle(lua, {"outputs", "vec"}).isVec4f());
 		},
 		[this, node, lua]() {
 			ASSERT_EQ(project.links().size(), 1);
-			ASSERT_TRUE(project.links()[0]->isValid());
+			ASSERT_TRUE((*project.links().begin())->isValid());
 			ASSERT_TRUE(ValueHandle(node, {"rotation"}).isVec3f());
 			ASSERT_TRUE(ValueHandle(lua, {"outputs", "vec"}).isVec3f());
 		});
@@ -1067,7 +1066,7 @@ end
 
 		auto stackLua = getInstance<LuaScript>(stackProject, "lua");
 		ASSERT_EQ(stackProject.links().size(), 1);
-		auto stackLink = stackProject.links()[0];
+		auto stackLink = *stackProject.links().begin();
 
 		ValueHandle startProp{stackLua, stackLink->startPropertyNamesVector()};
 		EXPECT_TRUE(startProp && *stackLink->isValid_ || !startProp && !*stackLink->isValid_);
