@@ -17,7 +17,7 @@
 #include "core/Errors.h"
 #include "core/Project.h"
 #include "user_types/UserObjectFactory.h"
-
+#include "NodeData/nodeManager.h"
 #include <memory>
 
 namespace raco::user_types {
@@ -125,10 +125,15 @@ ValueHandle MeshNode::getMaterialOptionsHandle(size_t materialSlot) {
 
 void MeshNode::updateUniformContainer(BaseContext& context, const std::string& materialName, const Table* src, ValueHandle& destUniforms) {
 	raco::core::PropertyInterfaceList uniformDescription;
+	auto pNode = guiData::NodeDataManager::GetInstance().searchNodeByID(objectID());
 	if (src) {
 		for (size_t i = 0; i < src->size(); i++) {
 			auto srcAnno = src->get(i)->query<EngineTypeAnnotation>();
-			uniformDescription.emplace_back(src->name(i), srcAnno->type());
+			if (pNode != nullptr) {
+				if (pNode->hasUniform(src->name(i))) {
+					uniformDescription.emplace_back(src->name(i), srcAnno->type());
+				}
+			}
 		}
 	}
 
