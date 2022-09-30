@@ -54,6 +54,7 @@ target_link_libraries(libUserTypes
 PUBLIC
 	raco::DataStorage
 	raco::Core
+	raco::GuiData
 PRIVATE
 	raco::Utils
 )
