@@ -156,7 +156,9 @@ void MeshNodeAdaptor::syncMaterial(core::Errors* errors, size_t index) {
 
 			core::ValueHandle optionsHandle = editorObject()->getMaterialOptionsHandle(index);
 			core::ValueHandle uniformsHandle = editorObject()->getUniformContainerHandle(index);
-			updateAppearance(errors, sceneAdaptor_, privateAppearance_, optionsHandle, uniformsHandle);
+			core::ValueHandle MUniformsHandle = {materialAdapt->editorObject(), &user_types::Material::uniforms_};
+			//updateAppearance(errors, sceneAdaptor_, privateAppearance_, optionsHandle, MUniformsHandle);
+			updateMeshNodeAppearance(errors, sceneAdaptor_, privateAppearance_, optionsHandle, uniformsHandle, MUniformsHandle);
 
 			(*privateAppearance_)->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
 

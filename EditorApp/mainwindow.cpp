@@ -169,7 +169,9 @@ void connectPropertyBrowserAndTreeDockManager(MainWindow* mainWindow, raco::prop
 
 	QObject::connect(&programManager, &raco::dataConvert::ProgramManager::selectObject, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObject);
 
+
 	// Trigger to create keyframes and curves
+
 	QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::sigCreateCurve, mainWindow, &MainWindow::slotCreateCurve);
     QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::sigCreateCurveAndBinding, mainWindow, &MainWindow::slotCreateCurveAndBinding);
 
@@ -619,7 +621,7 @@ void MainWindow::openProject(const QString& file) {
 	// (see https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System/issues/315)
 	delete dockManager_;
 	logViewModel_->clear();
-
+	programManager_.readProgramFromJson(file);
 	try {
 		racoApplication_->switchActiveRaCoProject(file);
 	} catch (const raco::application::FutureFileVersion& error) {
@@ -648,8 +650,6 @@ void MainWindow::openProject(const QString& file) {
 		ui->menuDebug->removeAction(ui->actionEnableRuntimeScriptPreview);
 		racoApplication_->activeRaCoProject().project()->settings()->runTimer_ = false;
 	}
-
-    programManager_.readProgramFromJson(file);
 }
 
 MainWindow::~MainWindow() {
