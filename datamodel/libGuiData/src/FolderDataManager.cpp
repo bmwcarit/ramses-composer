@@ -151,6 +151,7 @@ bool Folder::hasFolder(std::string folderName) {
 }
 
 void Folder::insertFolder(Folder *folder) {
+    folder->setParent(this);
     folderList_.push_back(folder);
 }
 
@@ -161,6 +162,7 @@ bool Folder::insertFolder(std::string folderName) {
         }
     }
     Folder *folder = new Folder;
+    folder->setParent(this);
     folder->setFolderName(folderName);
     folderList_.push_back(folder);
     return true;
@@ -205,31 +207,33 @@ std::list<Folder *> Folder::getFolderList() {
 }
 
 FolderDataManager::FolderDataManager() {
-    defaultFolder_ = new Folder;
+    rootFolder_ = new Folder;
 }
 
 void FolderDataManager::clear() {
-    defaultFolder_->clear();
+    rootFolder_->clear();
 }
 
-Folder *FolderDataManager::getDefaultFolder() {
-    return defaultFolder_;
+Folder *FolderDataManager::getRootFolder() {
+    return rootFolder_;
 }
 
-bool FolderDataManager::hasCurve(std::string curveName) {
-    auto getFolder = [=](Folder *f, std::string node)->bool {
-        f = f->getFolder(node);
-        if (!f) {
+bool FolderDataManager::isCurve(std::string curveName) {
+    auto getFolder = [=](Folder **f, std::string node)->bool {
+        Folder *temp = *f;
+        temp = temp->getFolder(node);
+        if (!temp) {
             return false;
         }
+        *f = temp;
         return true;
     };
 
     QStringList list = QString::fromStdString(curveName).split("|");
     std::string curve = list.takeLast().toStdString();
-    Folder *folder = defaultFolder_;
+    Folder *folder = rootFolder_;
     for (const QString &node : list) {
-        if (!getFolder(folder, node.toStdString())) {
+        if (!getFolder(&folder, node.toStdString())) {
             return false;
         }
     }
@@ -240,36 +244,75 @@ bool FolderDataManager::hasCurve(std::string curveName) {
     return false;
 }
 
-bool FolderDataManager::folderFromCurveName(std::string curveName, Folder *folder, SCurveProperty *curveProp) {
-    auto getFolder = [=](Folder *f, std::string node)->bool {
-        f = f->getFolder(node);
-        if (!f) {
+bool FolderDataManager::folderFromPath(std::string path, Folder **folder) {
+    auto getFolder = [=](Folder **f, std::string node)->bool {
+        Folder *temp = *f;
+        temp = temp->getFolder(node);
+        if (!temp) {
             return false;
         }
+        *f = temp;
         return true;
     };
 
-    QStringList list = QString::fromStdString(curveName).split("|");
-    std::string curve = list.takeLast().toStdString();
-    folder = defaultFolder_;
+    Folder *tempFolder = rootFolder_;
+    QStringList list = QString::fromStdString(path).split("|");
+    std::string last = list.takeLast().toStdString();
     for (const QString &node : list) {
-        if (!getFolder(folder, node.toStdString())) {
+        if (!getFolder(&tempFolder, node.toStdString())) {
             return false;
         }
     }
-    curveProp = folder->getCurve(curve);
+    if (tempFolder->hasFolder(last)){
+        tempFolder = tempFolder->getFolder(last);
+    }
+    *folder = tempFolder;
     return true;
 }
 
-bool FolderDataManager::curveNameFromFolder(std::string curve, Folder *folder, std::string &curveName) {
+bool FolderDataManager::curveFromPath(std::string curveName, Folder **folder, SCurveProperty **curveProp) {
+    auto getFolder = [=](Folder **f, std::string node)->bool {
+        Folder *temp = *f;
+        temp = temp->getFolder(node);
+        if (!temp) {
+            return false;
+        }
+        *f = temp;
+        return true;
+    };
+
+    Folder *tempFolder = rootFolder_;
+    QStringList list = QString::fromStdString(curveName).split("|");
+    std::string last = list.takeLast().toStdString();
+    for (const QString &node : list) {
+        if (!getFolder(&tempFolder, node.toStdString())) {
+            return false;
+        }
+    }
+    SCurveProperty *tempCurve{*curveProp};
+    if (tempFolder->hasCurve(last)) {
+        tempCurve = tempFolder->getCurve(last);
+    }
+    *folder = tempFolder;
+    *curveProp = tempCurve;
+    return true;
+}
+
+bool FolderDataManager::pathFromCurve(std::string curve, Folder *folder, std::string &path) {
     if (!folder) {
         return false;
     }
-    curveName = folder->getFolderName() + "|" + curve;
-    while (!folder->parent()) {
-        folder = folder->parent();
-        std::string str = folder->getFolderName() + "|";
-        curveName = str + curveName;
+    if (!folder->getFolderName().empty()) {
+        path = folder->getFolderName() + "|" + curve;
+        while (folder->parent()) {
+            folder = folder->parent();
+            if (!folder->getFolderName().empty()) {
+                std::string str = folder->getFolderName() + "|";
+                path = str + path;
+            }
+        }
+    } else {
+        path = curve;
     }
     return true;
 }

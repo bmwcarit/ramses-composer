@@ -63,13 +63,14 @@ public:
     FolderDataManager();
 
     void clear();
-    Folder *getDefaultFolder();
+    Folder *getRootFolder();
 
-    bool hasCurve(std::string curveName);
-    bool folderFromCurveName(std::string curveName, Folder *folder, SCurveProperty *curveProp);
-    bool curveNameFromFolder(std::string curve, Folder *folder, std::string &curveName);
+    bool isCurve(std::string curveName);
+    bool folderFromPath(std::string path, Folder **folder);
+    bool curveFromPath(std::string curveName,  Folder **folder, SCurveProperty **curveProp);
+    bool pathFromCurve(std::string curve, Folder *folder, std::string &path);
 private:
-    Folder *defaultFolder_{nullptr};
+    Folder *rootFolder_{nullptr};
 };
 
 #endif // FOLDERDATAMANAGER_H

@@ -64,15 +64,17 @@ QWidget *ButtonDelegate::createEditor(QWidget *parent, const QStyleOptionViewIte
     if (siblingIndex.isValid()) {
         QStandardItem *item = model_->itemFromIndex(siblingIndex);
         std::string curve = curveFromItem(item).toStdString();
-        Folder *folder{nullptr};
-        SCurveProperty *curveProp{nullptr};
-        if (folderMgr_->folderFromCurveName(curve, folder, curveProp)) {
-            if (curveProp) {
+
+        if (folderMgr_->isCurve(curve)) {
+            Folder *folder{nullptr};
+            SCurveProperty *curveProp{nullptr};
+            if (folderMgr_->curveFromPath(curve, &folder, &curveProp)) {
                 visible = curveProp->visible_;
-            } else {
-                if (folder) {
-                    visible = folder->isVisible();
-                }
+            }
+        } else {
+            Folder *folder{nullptr};
+            if (folderMgr_->folderFromPath(curve, &folder)) {
+                visible = folder->isVisible();
             }
         }
         if (item->hasChildren()) {
@@ -144,18 +146,7 @@ void ButtonDelegate::updateWidget(QModelIndex begin, QModelIndex end) {
 void ButtonDelegate::collapsed(const QModelIndex &index) {
     if (model_) {
         QStandardItem *parentItem = model_->itemFromIndex(index);
-        if (parentItem->hasChildren()) {
-            for (int i{0}; i < parentItem->rowCount(); i++) {
-                QModelIndex tempIndex = parentItem->child(i)->index().siblingAtColumn(1);
-                QPersistentModelIndex perIndex(tempIndex);
-                if (m_iWidgets.contains(perIndex)) {
-                    QWidget *tempWidget = m_iWidgets.value(perIndex);
-                    if (tempWidget) {
-                        tempWidget->setVisible(false);
-                    }
-                }
-            }
-        }
+        itemCollapsed(parentItem);
     }
 }
 
@@ -187,15 +178,17 @@ void ButtonDelegate::btnClicked() {
     if (tSiblingIndex.isValid()) {
         QStandardItem *tItem = model_->itemFromIndex(tSiblingIndex);
         std::string curve = curveFromItem(tItem).toStdString();
-        Folder *folder{nullptr};
-        SCurveProperty *curveProp{nullptr};
-        if (folderMgr_->folderFromCurveName(curve, folder, curveProp)) {
-            if (curveProp) {
+
+        if (folderMgr_->isCurve(curve)) {
+            Folder *folder{nullptr};
+            SCurveProperty *curveProp{nullptr};
+            if (folderMgr_->curveFromPath(curve, &folder, &curveProp)) {
                 tVisible = curveProp->visible_;
-            } else {
-                if (folder) {
-                    tVisible = folder->isVisible();
-                }
+            }
+        } else {
+            Folder *folder{nullptr};
+            if (folderMgr_->folderFromPath(curve, &folder)) {
+                tVisible = folder->isVisible();
             }
         }
     }
@@ -206,5 +199,21 @@ void ButtonDelegate::btnClicked() {
     }
     auto temp = const_cast<ButtonDelegate *>(this);
     emit temp->clicked(index);
+}
+
+void ButtonDelegate::itemCollapsed(QStandardItem *item) {
+    if (item->hasChildren()) {
+        for (int i{0}; i < item->rowCount(); i++) {
+            QModelIndex tempIndex = item->child(i)->index().siblingAtColumn(1);
+            itemCollapsed(item->child(i));
+            QPersistentModelIndex perIndex(tempIndex);
+            if (m_iWidgets.contains(perIndex)) {
+                QWidget *tempWidget = m_iWidgets.value(perIndex);
+                if (tempWidget) {
+                    tempWidget->setVisible(false);
+                }
+            }
+        }
+    }
 }
 }

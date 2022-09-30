@@ -285,7 +285,7 @@ void TimeAxisMainWindow::slotPressKey() {
     }
     case MOUSE_PRESS_NONE: {
         visualCurveInfoWidget_->setCursorWidgetVisible();
-        visualCurveNodeTreeView_->cancleSelCurve();
+        visualCurveNodeTreeView_->cancelSelCurve();
         break;
     }
     }

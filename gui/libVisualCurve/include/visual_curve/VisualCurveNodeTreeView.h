@@ -12,6 +12,7 @@
 #include <QHeaderView>
 #include <QDrag>
 #include <QDropEvent>
+#include <QMouseEvent>
 #include "NodeData/nodeManager.h"
 #include "AnimationData/animationData.h"
 #include "signal/SignalProxy.h"
@@ -25,11 +26,18 @@ class TreeModel : public QStandardItemModel {
     Q_OBJECT
 public:
     TreeModel(QWidget *parent);
-    void setFolderData(FolderDataManager *mgr);
+    void setFolderDataMgr(FolderDataManager *mgr);
     virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
     Qt::DropActions supportedDropActions() const override;
     virtual QMimeData *mimeData(const QModelIndexList &indexes) const override;
     bool move(QModelIndex source, int sourceRow, QModelIndex &dest, int destRow);
+    void swapCurve(std::string oldCurve, std::string newCurve);
+    void setFolderPath(Folder *folder, std::string path);
+private:
+    bool moveCurveToNode(Folder *srcFolder, SCurveProperty *srcCurveProp, std::string srcCurvePath, std::string destCurvePath);
+    bool moveCurveToDefaultNode(Folder *srcFolder, SCurveProperty *srcCurveProp, std::string srcCurvePath);
+    bool moveFolderToNode(Folder *srcFolder, std::string srcCurvePath, std::string destCurvePath);
+    bool moveFolderToDefaultNode(Folder *srcFolder, std::string srcCurvePath);
 signals:
     void moveOneRow(const QModelIndex &source);
 private:
@@ -43,7 +51,7 @@ public:
     ~VisualCurveNodeTreeView();
     void initCurves();
     void switchCurSelCurve(std::string curve);
-    void cancleSelCurve();
+    void cancelSelCurve();
 
 public Q_SLOTS:
     void slotInsertCurve(QString property, QString curve, QVariant value);
@@ -62,8 +70,9 @@ signals:
     void sigRefreshVisualCurve();
     void sigSwitchVisualCurveInfoWidget();
 private:
+    void setFolderVisible(Folder *folder, bool visible);
     void searchCurve(NodeData *pNode, std::string &property, std::string curve, std::string sampleProp);
-    bool itemFromPath(QStandardItem* item, QString node);
+    bool itemFromPath(QStandardItem **item, QString node);
     QString curveFromItem(QStandardItem *item);
 private:
     TreeModel *model_{nullptr};

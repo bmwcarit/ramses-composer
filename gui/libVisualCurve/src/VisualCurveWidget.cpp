@@ -184,14 +184,14 @@ void VisualCurveWidget::paintEvent(QPaintEvent *event) {
     // paint text y up
     for (int count = 1; count <= numYUp; count++) {
         double curNumber = count * numTextIntervalY_;
-        int letfMovePix = 5;
-        painter.drawText(letfMovePix, curY - count*intervalLength_ + letfMovePix, QString::number(curNumber));
+        int leftMovePix = 5;
+        painter.drawText(leftMovePix, curY - count*intervalLength_ + leftMovePix, QString::number(curNumber));
     }
     // paint text y down
     for (int count = 1; count <= numYDown; count++) {
         double curNumber = -count * numTextIntervalY_;
-        int letfMovePix = 5;
-        painter.drawText(letfMovePix, curY + count*intervalLength_ + letfMovePix, QString::number(curNumber));
+        int leftMovePix = 5;
+        painter.drawText(leftMovePix, curY + count*intervalLength_ + leftMovePix, QString::number(curNumber));
     }
     // paint centre text value
     painter.drawText(5, curY + 5, QString::number(0));
@@ -793,6 +793,7 @@ void VisualCurveWidget::slotDeleteKeyFrame() {
 
 void VisualCurveWidget::slotRefreshVisualCurve() {
     update();
+    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
 }
 
 void VisualCurveWidget::slotRefreshCursorX() {
@@ -2122,7 +2123,7 @@ void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
             VisualCurvePosManager::GetInstance().setSameKeyType(SAME_NONE);
         }
 
-        keyPoints.replace(index, SKeyPoint(event->pos().x(), event->pos().y(), pressPoint.type, keyFrame));
+        keyPoints.replace(index, SKeyPoint(movePoint.x(), movePoint.y(), pressPoint.type, keyFrame));
         keyPoints.move(index, moveIndex);
         VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
 
@@ -2141,7 +2142,6 @@ void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
         workerPointList.replace(index, curWorkerPoint);
         workerPointList.move(index, moveIndex);
         VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPointList);
-        VisualCurvePosManager::GetInstance().setCurrentPointInfo(moveIndex);
 
         // caculate worker point keyframe and value
         int leftKeyFrame{0}, rightKeyFrame{0};
@@ -2182,13 +2182,14 @@ void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
     VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
     double offsetX = event->x() - keyPoint.x;
     double offsetY = event->y() - keyPoint.y;
+    qDebug() << "offsetX:" << offsetX << "offsetY:" << offsetY;
     SAME_KEY_TYPE type;
     if (offsetX >= 0) {
         type = SAME_KEY_TYPE::SAME_WITH_NEXT_KEY;
     } else {
         type = SAME_KEY_TYPE::SAME_WITH_LAST_KEY;
     }
-    for (int index : VisualCurvePosManager::GetInstance().getMultiSelPoints()) {
+    for (const int &index : VisualCurvePosManager::GetInstance().getMultiSelPoints()) {
         selPointMove(index, offsetX, offsetY, type);
     }
     update();
