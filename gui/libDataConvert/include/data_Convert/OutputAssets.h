@@ -38,6 +38,8 @@ struct NodeWithMaterial {
 	MaterialData material;
 };
 
+
+
 class OutputPtx : public QObject {
     Q_OBJECT
 public:
@@ -90,7 +92,8 @@ private:
 	void ModifyRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
 	void CreateRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
 
-	std::string ConvertAnimationInfo(HmiWidget::TWidget* widget);
+	int switchAnimations(HmiWidget::TWidget* widget);
+	void ConvertAnimationInfo(HmiWidget::TWidget* widget);
 	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
 
@@ -106,6 +109,7 @@ private:
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
+
 	bool isPtwOutputError_{false};
 };
 }
