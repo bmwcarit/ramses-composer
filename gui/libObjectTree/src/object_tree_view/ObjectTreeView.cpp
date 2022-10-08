@@ -534,7 +534,6 @@ bool ObjectTreeView::canPasteIntoIndex(const QModelIndex &index, bool asExtref) 
 		auto [pasteObjects, sourceProjectTopLevelObjectIds] = treeModel_->getObjectsAndRootIdsFromClipboardString(RaCoClipboard::get());
 		return treeModel_->canPasteIntoIndex(index, pasteObjects, sourceProjectTopLevelObjectIds, asExtref);
 	}
-
 }
 
 bool ObjectTreeView::canProgrammaticallyGoToObject() {

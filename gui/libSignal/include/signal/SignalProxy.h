@@ -74,9 +74,6 @@ Q_SIGNALS:
     void sigSwitchVisualCurve(std::string sampleProp, std::string property, std::string curve);
     //
     void sigUpdatePointTagent();
-
-signals:
-
 };
 
 }
