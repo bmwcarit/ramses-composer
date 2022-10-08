@@ -11,6 +11,8 @@
 namespace raco::dataConvert {
 using namespace raco::style;
 
+std::map<std::string, std::set<std::string>> curveNameAnimation_;
+//        curveName ,   animation1,animation2,animation3...
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
 	if (-1 != index) {
@@ -306,12 +308,29 @@ void OutputPtx::setRootSRT(HmiScenegraph::TNode* hmiNode) {
 	hmiNode->set_allocated_translation(translation);
 }
 
+void updateCurveAnimationMap(NodeData* pNode) {
+	const std::map<std::string, std::map<std::string, std::string>>& bindyMap = pNode->NodeExtendRef().curveBindingRef().bindingMap();
+	for (auto animation : bindyMap) {
+		for (auto curve : animation.second) {
+			auto it = curveNameAnimation_.find(curve.second);
+			if (it == curveNameAnimation_.end()) {
+				std::set<std::string> animationNames;
+				animationNames.insert(animation.first);
+				curveNameAnimation_.emplace(curve.second, animationNames);
+			} else {
+				it->second.insert(animation.first);
+			}
+		}
+	}
+}
+
 void OutputPtx::writeNodePtx(NodeData* pNode, HmiScenegraph::TNode* parent) {
 	if (!pNode){
 		return;
 	}
 	HmiScenegraph::TNode hmiNode;
 	setPtxNode(pNode, hmiNode);
+	updateCurveAnimationMap(pNode);
 	HmiScenegraph::TNode* it = parent->add_child();
 	*it = hmiNode;
 	parent = const_cast<HmiScenegraph::TNode*>(&(parent->child(parent->child_size() - 1)));
@@ -940,6 +959,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	}
 	file.resize(0);
 	nodeWithMaterial_.clear();
+	curveNameAnimation_.clear();
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -999,13 +1019,111 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 		isPtxOutputError_ = false;
 		return false;
 	}
-
 	return true;
 }
 
-std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
+
+void addAnimationSwitchType2Operation(TOperation* operation) {
+	operation->set_operator_(TEOperatorType_Switch);
+	operation->add_datatype(TEDataType_Identifier);
+	// operand -> key
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("UsedAnimationName");
+	// operand -> provider
+	TDataProvider* provider = new TDataProvider;
+	provider->set_source(TEProviderSource_ExtModelValue);
+	// operation.operand add key,provider
+	auto operand = operation->add_operand();
+	operand->set_allocated_key(key);
+	operand->set_allocated_provider(provider);
+}
+
+void addAnimationSwitchCase2Operation(TOperation* operation, std::string anName, bool isDefault = false) {
+	if (!isDefault) {
+		operation->add_datatype(TEDataType_Identifier);
+		operation->add_datatype(TEDataType_Float);
+
+		auto operandAn = operation->add_operand();
+		TDataProvider* providerAn = new TDataProvider;
+		TVariant* variantAn = new TVariant;
+		TIdentifier* identifierAn = new TIdentifier;
+		identifierAn->set_valuestring(anName);
+		variantAn->set_allocated_identifier(identifierAn);
+		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
+		providerAn->set_allocated_variant(variantAn);
+		operandAn->set_allocated_provider(providerAn);
+
+		auto operandIn = operation->add_operand();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring(anName + "_interal");
+		operandIn->set_allocated_key(key);
+		TDataProvider* providerIn = new TDataProvider;
+		providerIn->set_source(TEProviderSource_IntModelValue);
+		operandIn->set_allocated_provider(providerIn);
+	} else {
+		operation->add_datatype(TEDataType_Float);
+
+		auto operandIn = operation->add_operand();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring(anName + "_interal");
+		operandIn->set_allocated_key(key);
+		TDataProvider* providerIn = new TDataProvider;
+		providerIn->set_source(TEProviderSource_IntModelValue);
+		operandIn->set_allocated_provider(providerIn);
+	}
+}
+
+// Only when multiple animations bind one curve
+int OutputPtw::switchAnimations(HmiWidget::TWidget* widget) {
+	int numSwitchAn = 0;
+	for (auto curve : curveNameAnimation_) {
+		qDebug() << QString::fromStdString(curve.first);
+		if (curve.second.size() > 1) {
+			std::string curveInteral = curve.first + "_interal_switch";
+			auto internalModelValue = widget->add_internalmodelvalue();
+			// add result key
+			TIdentifier* key_re = new TIdentifier;
+			key_re->set_valuestring(curveInteral);
+			internalModelValue->set_allocated_key(key_re);
+			// add binding
+			TDataBinding* binding = new TDataBinding;
+			TDataProvider* provider = new TDataProvider;
+			TOperation* operation = new TOperation;
+			// add switch condition to operation
+			addAnimationSwitchType2Operation(operation);
+			// add switch case to operation
+			for (auto anName : curve.second) {
+				addAnimationSwitchCase2Operation(operation, anName);
+			}
+			addAnimationSwitchCase2Operation(operation, *curve.second.begin(),true);
+			provider->set_allocated_operation(operation);
+			binding->set_allocated_provider(provider);
+			internalModelValue->set_allocated_binding(binding);
+			numSwitchAn++;
+		}
+	}
+	return numSwitchAn;
+}
+
+
+void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 	std::string animation_interal;
 	auto animationList = raco::guiData::animationDataManager::GetInstance().getAnitnList();
+	if (0 == animationList.size()) {
+		messageBoxError("", 5);
+	}
+
+	// add first animation name
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("UsedAnimationName");
+	externalModelValue->set_allocated_key(key);
+	TVariant* variant = new TVariant;
+	std::string* asciistring = new std::string(animationList.begin()->first);
+	variant->set_allocated_asciistring(asciistring);
+	externalModelValue->set_allocated_variant(variant);
+
+
 	for (auto animation : animationList) {
 		auto internalModelValue = widget->add_internalmodelvalue();
 		TIdentifier* key_int = new TIdentifier;
@@ -1041,7 +1159,7 @@ std::string OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		binding->set_allocated_provider(provider);
 		internalModelValue->set_allocated_binding(binding);
 	}
-	return animation_interal;
+	switchAnimations(widget);
 }
 
 void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
@@ -1052,7 +1170,6 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	QMessageBox customMsgBox;
 	customMsgBox.setWindowTitle("Warning message box");
 	QPushButton* okButton = customMsgBox.addButton("OK", QMessageBox::ActionRole);
-	//QPushButton* cancelButton = customMsgBox.addButton(QMessageBox::Cancel);
 	customMsgBox.setIcon(QMessageBox::Icon::Warning);
 	QString text;
 	if (errorNum == 1) {
@@ -1067,6 +1184,8 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	} else if (errorNum == 4) {
 		text = QString::fromStdString(curveName) + "\" is neither linear nor hermite !";
 		text = "Warning: The type of curve  \"" + text;
+	} else if (errorNum == 5) {
+		text = "No animation information !";
 	}
 	customMsgBox.setText(text);
 	customMsgBox.exec();
@@ -1076,8 +1195,27 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	}
 }
 
+bool getAnimationInteral(std::string curveName, std::string& animationInteral) {
+	auto it = curveNameAnimation_.find(curveName);
+	if (it != curveNameAnimation_.end()) {
+		auto animations = it->second;
+		if (animations.size() > 1) {
+			animationInteral = curveName + "_interal_switch";
+		} else {
+			animationInteral = *animations.begin() + "_interal";
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
 void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal) {
 	for (auto curveData : raco::guiData::CurveManager::GetInstance().getCurveList()) {
+		std::string animation_interal;
+		if (!getAnimationInteral(curveData->getCurveName(), animation_interal)) {
+			continue;
+		}
 		auto curve = widget->add_curve();
 		TIdentifier* curveIdentifier = new TIdentifier;
 		curveIdentifier->set_valuestring(curveData->getCurveName());
@@ -1227,10 +1365,12 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
+
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
-	std::string animation_interal = ConvertAnimationInfo(widget);
+	ConvertAnimationInfo(widget);
+	std::string animation_interal = "";
 	ConvertCurveInfo(widget, animation_interal);
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
 	std::string output;
@@ -1784,5 +1924,11 @@ void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWid
 		addVecValue2Uniform(curveProP, nodeParam, node);
 	}
 }
+
+//void OutputPtw::switchAnimation(std::vector<std::string> caseList, ) {
+//
+//}
+
+
 
 }  // namespace raco::dataConvert
