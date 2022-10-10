@@ -346,6 +346,7 @@ void PropertyBrowserWidget::setValueHandles(const std::set<raco::core::ValueHand
     } else {
         auto handle = *valueHandles.begin();
         setValueHandle(*valueHandles.begin());
+        Q_EMIT signalProxy::GetInstance().sigSwitchCurrentNode(handle);
     }
 }
 

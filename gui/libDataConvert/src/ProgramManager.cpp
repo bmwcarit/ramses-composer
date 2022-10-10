@@ -1023,13 +1023,15 @@ void readJsonFillCustomProperty(QJsonObject jsonObj, NodeData &node) {
 
 void readJsonFillCurveBinding(QJsonObject jsonObj, NodeData &node) {
     QMap<QString, QVariant> varMap = jsonObj.toVariantMap();
-    QString key = varMap.firstKey();
-    QJsonArray curveBindingAry = varMap.first().toJsonArray();
-    for (int i{0}; i < curveBindingAry.size(); ++i) {
-        QJsonObject curveBindingObj = curveBindingAry[i].toObject();
-        std::string curve = curveBindingObj.value(JSON_CURVE).toString().toStdString();
-        std::string property = curveBindingObj.value(JSON_PROPERTY).toString().toStdString();
-        node.NodeExtendRef().curveBindingRef().insertBindingDataItem(key.toStdString(), property, curve);
+    for (auto it : varMap.toStdMap()) {
+        QString key = it.first;
+        QJsonArray curveBindingAry = it.second.toJsonArray();
+        for (int i{0}; i < curveBindingAry.size(); ++i) {
+            QJsonObject curveBindingObj = curveBindingAry[i].toObject();
+            std::string curve = curveBindingObj.value(JSON_CURVE).toString().toStdString();
+            std::string property = curveBindingObj.value(JSON_PROPERTY).toString().toStdString();
+            node.NodeExtendRef().curveBindingRef().insertBindingDataItem(key.toStdString(), property, curve);
+        }
     }
 }
 
@@ -1350,7 +1352,7 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
     // property
     QJsonObject propertyObj = jsonObject.value(JSON_PROPERTY).toObject();
     readJsonFillPropertyData(propertyObj);
-    signal::signalProxy::GetInstance().sigInitPropertyView();
+    Q_EMIT signal::signalProxy::GetInstance().sigInitPropertyView();
 
     // animation
     QJsonObject animationObj = jsonObject.value(JSON_ANIMATION).toObject();
@@ -1363,12 +1365,12 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
             animationDataManager::GetInstance().SetActiveAnimation(activeAnimation);
         }
     }
-    signal::signalProxy::GetInstance().sigInitAnimationView();
+    Q_EMIT signal::signalProxy::GetInstance().sigInitAnimationView();
 
     // curve
     QJsonArray curveAry = jsonObject.value(JSON_CURVE).toArray();
     readJsonFillCurveData(curveAry);
-    signal::signalProxy::GetInstance().sigInitCurveView();
+    Q_EMIT signal::signalProxy::GetInstance().sigInitCurveView();
 
     // node
 	NodeDataManager::GetInstance().clearNodeData();
@@ -1381,7 +1383,7 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
         NodeDataManager::GetInstance().setActiveNode(nodeData);
         Q_EMIT selectObject(QString::fromStdString(nodeData->objectID()));
     }
-    signal::signalProxy::GetInstance().sigInitPropertyBrowserView();
+    Q_EMIT signal::signalProxy::GetInstance().sigInitPropertyBrowserView();
 
     return true;
 }

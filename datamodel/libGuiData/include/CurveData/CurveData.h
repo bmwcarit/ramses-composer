@@ -84,10 +84,6 @@ public:
     Curve();
     ~Curve();
 
-    // Curve Node 设置
-    void setCurvNodeInfo(const std::string& curveNodeInfo);
-    // Curve Node 获取
-    std::string getCurveNodeInfo();
     // Curve Name 设置
     void setCurveName(const std::string& curveName);
     // Curve Name 获取
@@ -121,7 +117,6 @@ public:
     bool modifyPointKeyFrame(const int& keyFrame, const int& modifyKeyFrame);
 
 private:
-    std::string curveNodeInfo_; // 仅代表当前curve对应的节点信息，例如 “FL_Glass.translation.x”
     std::string curveName_; // 自定义的curve名称，作为主键索引
     EDataType dataType_{Type_FLOAT};
     std::list<Point*> pointList_;  //一定是有序的 ???用什么数据结构 还是决定用list

@@ -42,7 +42,8 @@ private slots:
     void updateWidget(QModelIndex begin, QModelIndex end);
     void collapsed(const QModelIndex& index);
     void btnClicked();
-
+private:
+    void itemCollapsed(QStandardItem *item);
 private:
     mutable QMap<QPersistentModelIndex,QWidget *> m_iWidgets;
 private:

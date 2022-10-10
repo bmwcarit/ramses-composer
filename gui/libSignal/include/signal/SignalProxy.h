@@ -53,6 +53,8 @@ Q_SIGNALS:
     //
     void sigUpdateCustomProperty_From_PropertyUI();
     //
+    void sigSwitchCurrentNode(raco::core::ValueHandle &handle);
+    //
     void sigResetAllData_From_MainWindow();
     //
     void sigInitPropertyView();
@@ -72,9 +74,6 @@ Q_SIGNALS:
     void sigSwitchVisualCurve(std::string sampleProp, std::string property, std::string curve);
     //
     void sigUpdatePointTagent();
-
-signals:
-
 };
 
 }

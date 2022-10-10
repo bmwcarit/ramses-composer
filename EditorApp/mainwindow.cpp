@@ -620,8 +620,7 @@ void MainWindow::openProject(const QString& file) {
 	// Don't create a new DockManager right away - making QMessageBoxes pop up messes up state restoring
 	// (see https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System/issues/315)
 	delete dockManager_;
-	logViewModel_->clear();
-	programManager_.readProgramFromJson(file);
+    logViewModel_->clear();
 	try {
 		racoApplication_->switchActiveRaCoProject(file);
 	} catch (const raco::application::FutureFileVersion& error) {
@@ -642,6 +641,7 @@ void MainWindow::openProject(const QString& file) {
 
 	updateApplicationTitle();
 	updateActiveProjectConnection();
+    programManager_.readProgramFromJson(file);
 
 	if (racoApplication_->activeRaCoProject().project()->settings()->enableTimerFlag_.asBool() == true) {
 		ui->menuDebug->addAction(ui->actionEnableRuntimeScriptPreview);

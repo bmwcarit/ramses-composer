@@ -130,11 +130,9 @@ TimeAxisWidget::TimeAxisWidget(QWidget *parent, raco::core::CommandInterface* co
 
 void TimeAxisWidget::refreshKeyFrameView() {
     if (keyFrameMgr_) {
-        std::map<std::string, std::string> bindingMap;
-        std::string sampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
 		NodeData* nodeData = NodeDataManager::GetInstance().getActiveNode();
 		if (nodeData) {
-			nodeData->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty, bindingMap);
+            std::map < std::string, std::map<std::string, std::string>> bindingMap = nodeData->NodeExtendRef().curveBindingRef().bindingMap();
             keyFrameMgr_->refreshKeyFrameList(bindingMap);
             update();
         }
