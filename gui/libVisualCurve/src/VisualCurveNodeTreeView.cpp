@@ -96,7 +96,7 @@ QMimeData *TreeModel::mimeData(const QModelIndexList &indexes) const {
                 return;
             }
         }
-        vec.push_front((qint64)p);
+        vec.push_back((qint64)p);
     };
 
     QVector<qint64> vector;
@@ -228,10 +228,13 @@ bool TreeModel::moveCurveToDefaultNode(Folder *srcFolder, SCurveProperty *srcCur
 }
 
 bool TreeModel::moveFolderToNode(Folder *srcFolder, std::string srcCurvePath, std::string destCurvePath) {
+    if (srcCurvePath.empty()) {
+        return false;
+    }
     if (srcFolder->parent()) {
-        srcFolder->parent()->takeFolder(srcFolder->getFolderName());
+        srcFolder = srcFolder->parent()->takeFolder(srcFolder->getFolderName());
     } else {
-        srcFolder->takeFolder(srcCurvePath);
+        srcFolder = srcFolder->takeFolder(srcCurvePath);
     }
 
     Folder *destFolder{nullptr};
