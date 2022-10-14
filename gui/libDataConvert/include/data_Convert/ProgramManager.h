@@ -49,6 +49,7 @@ public:
 	void setOpenedProjectPath(QString path);
 	bool writeCTMFile(std::string filePathStr);
     bool readProgramFromJson(QString filePath);
+	bool updateUIFromJson(QString filePath);
 
 Q_SIGNALS:
     void selectObject(const QString &objectId);

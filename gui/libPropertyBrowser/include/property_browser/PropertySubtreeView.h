@@ -47,7 +47,6 @@ public:
 	void mousePressEvent(QMouseEvent* event);
 	void setUniformControls(PropertyBrowserItem* item, PropertyBrowserHBoxLayout* labelLayout);
 	std::vector<Uniform> Item2Uniform(PropertyBrowserItem* item);
-	bool materialChanged();
 
 
 public Q_SLOTS:
@@ -61,8 +60,9 @@ public Q_SLOTS:
     void slotCopyProperty();
 	void updateUniformCombox();
 	void delUniformButtonClicked();
-	bool isShowUniform(QString name);
 	void slotUniformNameChanged(QString s);
+	void updateMaterial(raco::core::ValueHandle& v);
+
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
