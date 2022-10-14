@@ -1333,6 +1333,51 @@ bool ProgramManager::writeProgram2Json(QString filePath) {
 	return true;
 }
 bool ProgramManager::readProgramFromJson(QString filePath) {
+
+    QFile file(filePath + ".json");
+	if (!file.open(QIODevice::ReadWrite)) {
+		return false;
+	}
+	QJsonParseError jsonParserError;
+	QJsonDocument jsonDocument = QJsonDocument::fromJson(file.readAll(), &jsonParserError);
+	QJsonObject jsonObject;
+
+	if (!(!jsonDocument.isNull() && jsonParserError.error == QJsonParseError::NoError)) {
+		return false;
+	}
+	if (!jsonDocument.isObject()) {
+		return false;
+	}
+	jsonObject = jsonDocument.object();
+
+	// property
+	QJsonObject propertyObj = jsonObject.value(JSON_PROPERTY).toObject();
+	readJsonFillPropertyData(propertyObj);
+
+	// animation
+	QJsonObject animationObj = jsonObject.value(JSON_ANIMATION).toObject();
+	readJsonFillAnimationData(animationObj);
+
+	// avtive animation
+	if (animationObj.contains(JSON_ACTIVE_ANIMATION)) {
+		std::string activeAnimation = animationObj.value(JSON_ACTIVE_ANIMATION).toString().toStdString();
+		if (animationDataManager::GetInstance().IsHaveAnimation(activeAnimation)) {
+			animationDataManager::GetInstance().SetActiveAnimation(activeAnimation);
+		}
+	}
+
+	// curve
+	QJsonArray curveAry = jsonObject.value(JSON_CURVE).toArray();
+	readJsonFillCurveData(curveAry);
+
+	// node
+	NodeDataManager::GetInstance().clearNodeData();
+	QJsonObject nodeObj = jsonObject.value(JSON_NODE).toObject();
+	readJsonFilleNodeData(nodeObj, NodeDataManager::GetInstance().root());
+
+	return true;
+}
+bool ProgramManager::updateUIFromJson(QString filePath) {
     QFile file(filePath + ".json");
     if (!file.open(QIODevice::ReadWrite)) {
         return false;
@@ -1340,7 +1385,7 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
     QJsonParseError jsonParserError;
     QJsonDocument jsonDocument = QJsonDocument::fromJson(file.readAll(), &jsonParserError);
     QJsonObject jsonObject;
-
+ 
     if (!(!jsonDocument.isNull() && jsonParserError.error == QJsonParseError::NoError)) {
         return false;
     }
@@ -1348,35 +1393,10 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
         return false;
     }
     jsonObject = jsonDocument.object();
-
-    // property
-    QJsonObject propertyObj = jsonObject.value(JSON_PROPERTY).toObject();
-    readJsonFillPropertyData(propertyObj);
     Q_EMIT signal::signalProxy::GetInstance().sigInitPropertyView();
-
-    // animation
-    QJsonObject animationObj = jsonObject.value(JSON_ANIMATION).toObject();
-    readJsonFillAnimationData(animationObj);
-
-    // avtive animation
-	if (animationObj.contains(JSON_ACTIVE_ANIMATION)) {
-        std::string activeAnimation = animationObj.value(JSON_ACTIVE_ANIMATION).toString().toStdString();
-        if (animationDataManager::GetInstance().IsHaveAnimation(activeAnimation)) {
-            animationDataManager::GetInstance().SetActiveAnimation(activeAnimation);
-        }
-    }
     Q_EMIT signal::signalProxy::GetInstance().sigInitAnimationView();
-
-    // curve
-    QJsonArray curveAry = jsonObject.value(JSON_CURVE).toArray();
-    readJsonFillCurveData(curveAry);
     Q_EMIT signal::signalProxy::GetInstance().sigInitCurveView();
-
-    // node
-	NodeDataManager::GetInstance().clearNodeData();
     QJsonObject nodeObj = jsonObject.value(JSON_NODE).toObject();
-	readJsonFilleNodeData(nodeObj, NodeDataManager::GetInstance().root());
-
     // active node
     NodeData* nodeData = NodeDataManager::GetInstance().searchNodeByID(nodeObj.value(JSON_ACTIVE_NODE).toString().toStdString());
     if (nodeData) {
