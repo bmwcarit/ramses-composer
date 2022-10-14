@@ -98,6 +98,7 @@ public:
     bool insertSamePoint(Point* point);
     // 删除Point
     bool delPoint(int keyFrame);
+    bool takePoint(int keyFrame);
     bool delSamePoint(int keyFrame);
     // 获取Point list
     std::list<Point*> getPointList();

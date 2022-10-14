@@ -14,6 +14,7 @@
 #include "common_editors/Int64Editor.h"
 #include "time_axis/TimeAxisCommon.h"
 
+using namespace raco::time_axis;
 using namespace raco::common_editors;
 namespace raco::visualCurve {
 class VisualCurveInfoWidget : public QWidget {
@@ -47,13 +48,13 @@ public Q_SLOTS:
 signals:
     void sigRefreshCursorX();
     void sigRefreshVisualCurve();
-    void sigRefreshCurKeyPoint();
+    void sigSwitchCurveType(int type);
 private:
     void switchCurveType(int type);
     void updateSelKey();
     void updateCursorX();
-    void recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &workerPoint, time_axis::SKeyPoint keyPoint);
-    void recaculateWorkerRightPoint(QPair<QPointF, QPointF> &workerPoint, time_axis::SKeyPoint keyPoint);
+    void recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &workerPoint, SKeyPoint keyPoint);
+    void recaculateWorkerRightPoint(QPair<QPointF, QPointF> &workerPoint, SKeyPoint keyPoint);
 
 private:
     QWidget *visualCurveKeyWidget_{nullptr};

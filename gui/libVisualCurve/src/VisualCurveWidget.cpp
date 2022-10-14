@@ -26,11 +26,11 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
 
     button_ = new DragPushButton(this);
     button_->resize(DEFAULT_BUTTON_WIDTH, this->height());
-    button_->setText(curFrame_);
+    button_->setText(0);
 
     viewportOffset_.setX(moveNumX_ * intervalLength_);
     viewportOffset_.setY(this->height() / 2);
-    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
+    button_->move(-viewportOffset_.x() - button_->width()/2, 0);
 
     connect(button_, &DragPushButton::buttonMove, this, &VisualCurveWidget::slotUpdateSlider);
     setFocusPolicy(Qt::StrongFocus);
@@ -45,14 +45,11 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     hermiteAct_ = new QAction("Hermite", this);
     bezierAct_ = new QAction("Bezier", this);
     stepAct_ = new QAction("Step", this);
-    switchHermiteAct_ = new QAction("Switch To Hermite", this);
     connect(linerAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchPoint2Liner);
     connect(hermiteAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchPoint2Hermite);
     connect(bezierAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchPoint2Bezier);
     connect(stepAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchPoint2Step);
-    connect(switchHermiteAct_, &QAction::triggered, this, &VisualCurveWidget::slotBezier2Hermite);
 
-    menu_->addAction(switchHermiteAct_);
     menu_->addAction(deleteKeyFrameAct_);
     interpolationMenu->addAction(linerAct_);
     interpolationMenu->addAction(hermiteAct_);
@@ -62,6 +59,7 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     connect(this, &VisualCurveWidget::customContextMenuRequested, this, &VisualCurveWidget::slotShowContextMenu);
 
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigInsertCurve_To_VisualCurve, this, &VisualCurveWidget::slotInsertCurve);
+    QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigRepaintVisualCurve, this, &VisualCurveWidget::slotRefreshVisualCurve);
 }
 
 void VisualCurveWidget::refreshKeyFrameView() {
@@ -71,10 +69,11 @@ void VisualCurveWidget::refreshKeyFrameView() {
 }
 
 int VisualCurveWidget::getCurrentKeyFrame() {
-    return curFrame_;
+    return VisualCurvePosManager::GetInstance().getCurFrame();
 }
 
 void VisualCurveWidget::insertKeyFrame() {
+    int curFrame_ = VisualCurvePosManager::GetInstance().getCurFrame();
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
     double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
 
@@ -102,7 +101,8 @@ void VisualCurveWidget::insertKeyFrame() {
             leftPoint.setY(pointF.y());
             rightPoint.setX(pointF.x() + offsetWorkerLen);
             rightPoint.setY(pointF.y());
-            QPair<QPointF, QPointF> workerPoint(leftPoint, rightPoint);
+            keyPoint.setLeftPoint(leftPoint);
+            keyPoint.setRightPoint(rightPoint);
 
             QList<SKeyPoint> keyPoints;
             VisualCurvePosManager::GetInstance().getKeyPointList(curveName, keyPoints);
@@ -119,7 +119,6 @@ void VisualCurveWidget::insertKeyFrame() {
             }
 
             VisualCurvePosManager::GetInstance().insertKeyPoint(index, curveName, keyPoint);
-            VisualCurvePosManager::GetInstance().insertWorkerPoint(index, curveName, workerPoint);
             update();
         }
     }
@@ -237,6 +236,7 @@ void VisualCurveWidget::resizeEvent(QResizeEvent *event) {
 }
 
 void VisualCurveWidget::timerEvent(QTimerEvent *event) {
+    int curFrame_ = VisualCurvePosManager::GetInstance().getCurFrame();
     if (curLoop_ >= loopCount_) {
         stopAnimation();
         Q_EMIT AnimationStop();
@@ -270,10 +270,10 @@ void VisualCurveWidget::mousePressEvent(QMouseEvent *event) {
         double xPos = event->pos().x();
         double yPos = event->pos().y();
 
-        QPair<QPointF, QPointF> pair;
-        if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(pair)) {
-            QPointF pointRight = pair.second;
-            QPointF pointLeft = pair.first;
+        SKeyPoint keyPoint;
+        if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+            QPointF pointRight = keyPoint.rightPoint;
+            QPointF pointLeft = keyPoint.leftPoint;
             if (abs(pointRight.x() - xPos) <= 3 && abs(pointRight.y() - yPos) <= 3) {
                 VisualCurvePosManager::GetInstance().setPressAction(MOUSE_PRESS_RIGHT_WORKER_KEY);
                 VisualCurvePosManager::GetInstance().clearMultiSelPoints();
@@ -386,10 +386,8 @@ void VisualCurveWidget::mouseReleaseEvent(QMouseEvent *event) {
             std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
 
             QList<SKeyPoint> keyPoints;
-            QList<QPair<QPointF, QPointF> > workerPoints;
             int sameKeyPointIndex = VisualCurvePosManager::GetInstance().getSameKeyPointIndex();
             VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints);
-            VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPoints);
 
             SKeyPoint keyPoint = keyPoints.at(sameKeyPointIndex);
             if (CurveManager::GetInstance().getCurve(curCurve)) {
@@ -402,9 +400,7 @@ void VisualCurveWidget::mouseReleaseEvent(QMouseEvent *event) {
             double oldEachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
             double oldEachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
             keyPoints.removeAt(sameKeyPointIndex);
-            workerPoints.removeAt(sameKeyPointIndex);
             VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
-            VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPoints);
             reCaculateCurvePoint(oldCurX, oldCurY, oldEachFrameWidth, oldEachValueWidth);
 
             switch (VisualCurvePosManager::GetInstance().getSameKeyType()) {
@@ -541,8 +537,8 @@ void VisualCurveWidget::setViewportRect(const QSize areaSize,
 
     viewportOffset_.setX(moveNumX_ * intervalLength_);
     viewportOffset_.setY(moveNumY_ * intervalLength_);
-    button_->setText(curFrame_);
-    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
+    button_->setText(VisualCurvePosManager::GetInstance().getCurFrame());
+    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)VisualCurvePosManager::GetInstance().getCurFrame() - viewportOffset_.x() - button_->width()/2, 0);
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
     double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
@@ -556,8 +552,8 @@ void VisualCurveWidget::setViewportRect(const QSize areaSize,
 
 void VisualCurveWidget::startAnimation() {
     if (!timerId_) {
-        if (curFrame_ < startFrame_) {
-            curFrame_ = startFrame_;
+        if (VisualCurvePosManager::GetInstance().getCurFrame() < startFrame_) {
+            VisualCurvePosManager::GetInstance().setCurFrame(startFrame_);
         }
 
         loopCount_ = animationDataManager::GetInstance().getActiveAnimationData().GetLoopCount();
@@ -594,7 +590,7 @@ void VisualCurveWidget::createKeyFrame(QString curveName) {
             int index{keyPoints.size()};
             for (int i{0}; i < keyPoints.size(); i++) {
                 SKeyPoint point = keyPoints.at(i);
-                if (point.keyFrame > curFrame_) {
+                if (point.keyFrame > VisualCurvePosManager::GetInstance().getCurFrame()) {
                     index = i;
                     break;
                 }
@@ -602,7 +598,7 @@ void VisualCurveWidget::createKeyFrame(QString curveName) {
 
             auto it = pointList.begin();
             while (it != pointList.end()) {
-                if ((*it)->getKeyFrame() == curFrame_) {
+                if ((*it)->getKeyFrame() == VisualCurvePosManager::GetInstance().getCurFrame()) {
                     QPointF pointF;
                     double value{0};
                     if ((*it)->getDataValue().type() == typeid(double)) {
@@ -610,10 +606,6 @@ void VisualCurveWidget::createKeyFrame(QString curveName) {
                     }
                     keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, (*it)->getKeyFrame(), value, pointF);
                     SKeyPoint newPoint(pointF.x(), pointF.y(), (*it)->getInterPolationType(), (*it)->getKeyFrame());
-
-                    if (index != -1) {
-                        VisualCurvePosManager::GetInstance().insertKeyPoint(index, curveName.toStdString(), newPoint);
-                    }
 
                     // get next point
                     int offsetLastKey{10};
@@ -637,13 +629,10 @@ void VisualCurveWidget::createKeyFrame(QString curveName) {
                             offsetNextKey = offsetNextKey == 0 ? 1 : offsetNextKey;
                         }
                     }
-                    QPair<QPointF, QPointF> pair(QPointF(pointF.x() - offsetLastKey * eachFrameWidth, pointF.y()), QPointF(pointF.x() + offsetNextKey * eachFrameWidth, pointF.y()));
+                    newPoint.setLeftPoint(QPointF(pointF.x() - offsetLastKey * eachFrameWidth, pointF.y()));
+                    newPoint.setRightPoint(QPointF(pointF.x() + offsetNextKey * eachFrameWidth, pointF.y()));
                     if (index != -1) {
-                        VisualCurvePosManager::GetInstance().insertWorkerPoint(index, curveName.toStdString(), pair);
-                        int curIndex = VisualCurvePosManager::GetInstance().getCurrentPointInfo().second;
-                        if (VisualCurvePosManager::GetInstance().getCurrentPointInfo().first.compare(curveName.toStdString()) == 0 && curIndex > index) {
-                            VisualCurvePosManager::GetInstance().setCurrentPointInfo(curIndex + 1);
-                        }
+                        VisualCurvePosManager::GetInstance().insertKeyPoint(index, curveName.toStdString(), newPoint);
                     }
 
                     update();
@@ -659,10 +648,9 @@ void VisualCurveWidget::slotUpdateSlider(int pix) {
     QMutexLocker locker(&pressDragBtnMutex_);
     isPressDragBtn_ = true;
     int n = ((double)numTextIntervalX_ / (double)intervalLength_) * (pix + viewportOffset_.x() + button_->width()/2);
-    curFrame_ = n;
-    button_->setText(curFrame_);
+    VisualCurvePosManager::GetInstance().setCurFrame(n);
+    button_->setText(n);
 
-    VisualCurvePosManager::GetInstance().setCurFrame(curFrame_);
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(n);
     Q_EMIT sigUpdateCursorX();
     update();
@@ -713,22 +701,21 @@ void VisualCurveWidget::slotSetFinishFrame() {
 }
 
 void VisualCurveWidget::slotSetCurFrameToBegin() {
-    curFrame_ = startFrame_;
-    button_->setText(curFrame_);
-    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
-    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
+    VisualCurvePosManager::GetInstance().setCurFrame(startFrame_);
+    button_->setText(startFrame_);
+    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)startFrame_ - viewportOffset_.x() - button_->width()/2, 0);
+    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(startFrame_);
 }
 
 void VisualCurveWidget::slotSetCurFrameToEnd() {
-    curFrame_ = finishFrame_;
-    button_->setText(curFrame_);
-    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
-    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
+    VisualCurvePosManager::GetInstance().setCurFrame(finishFrame_);
+    button_->setText(finishFrame_);
+    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)finishFrame_ - viewportOffset_.x() - button_->width()/2, 0);
+    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(finishFrame_);
 }
 
 void VisualCurveWidget::slotClearKeyFrames() {
     VisualCurvePosManager::GetInstance().clearKeyPointMap();
-    VisualCurvePosManager::GetInstance().clearWorkerPointMap();
     update();
 }
 
@@ -744,13 +731,27 @@ void VisualCurveWidget::slotSwitchPoint2Liner() {
 }
 
 void VisualCurveWidget::slotSwitchPoint2Hermite() {
-    switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
-    Q_EMIT sigUpdateSelKey();
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
+            bezierSwitchToHermite();
+        } else {
+            switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
+        }
+        Q_EMIT sigUpdateSelKey();
+    }
 }
 
 void VisualCurveWidget::slotSwitchPoint2Bezier() {
-    switchPointInterpolationType(EInterPolationType::BESIER_SPLINE);
-    Q_EMIT sigUpdateSelKey();
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
+            hermiteSwitchToBezier();
+        } else {
+            switchPointInterpolationType(EInterPolationType::BESIER_SPLINE);
+        }
+        Q_EMIT sigUpdateSelKey();
+    }
 }
 
 void VisualCurveWidget::slotSwitchPoint2Step() {
@@ -770,17 +771,12 @@ void VisualCurveWidget::slotDeleteKeyFrame() {
     keyPoints.removeAt(index);
     VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
 
-    QList<QPair<QPointF, QPointF>> workerPoints;
-    VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPoints);
-    workerPoints.removeAt(index);
-    VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPoints);
-
     // delete curveData point interpolation type
     if (CurveManager::GetInstance().getCurve(curCurve)) {
         Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
-        curve->delPoint(keyPoint.keyFrame);
+        curve->takePoint(keyPoint.keyFrame);
         if (curve->getPointList().empty()) {
-            CurveManager::GetInstance().delCurve(curCurve);
+            CurveManager::GetInstance().takeCurve(curCurve);
             Q_EMIT sigDeleteCurve(curCurve);
         }
     }
@@ -792,12 +788,20 @@ void VisualCurveWidget::slotDeleteKeyFrame() {
 }
 
 void VisualCurveWidget::slotRefreshVisualCurve() {
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
+    double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
+    reCaculateCurvePoint(curX, curY, eachFrameWidth, eachValueWidth);
+
+    button_->setText(VisualCurvePosManager::GetInstance().getCurFrame());
+    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)VisualCurvePosManager::GetInstance().getCurFrame() - viewportOffset_.x() - button_->width()/2, 0);
     update();
-    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
+    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(VisualCurvePosManager::GetInstance().getCurFrame());
 }
 
 void VisualCurveWidget::slotRefreshCursorX() {
-    curFrame_ = VisualCurvePosManager::GetInstance().getCurFrame();
+    int curFrame_ = VisualCurvePosManager::GetInstance().getCurFrame();
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
     update();
@@ -814,7 +818,6 @@ void VisualCurveWidget::slotInsertCurve(QString property, QString curveName, QVa
     Curve *curve = CurveManager::GetInstance().getCurve(curveName.toStdString());
     if (curve) {
         std::list<Point*> pointList = curve->getPointList();
-        QList<QPair<QPointF, QPointF>> pairs;
         QList<SKeyPoint> srcPoints;
         auto it = pointList.begin();
         while (it != pointList.end()) {
@@ -824,7 +827,8 @@ void VisualCurveWidget::slotInsertCurve(QString property, QString curveName, QVa
                 value = *(*it)->getDataValue()._Cast<double>();
             }
             keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, (*it)->getKeyFrame(), value, pointF);
-            srcPoints.append(SKeyPoint(pointF.x(), pointF.y(), (*it)->getInterPolationType(), (*it)->getKeyFrame()));
+
+            SKeyPoint keyPoint(pointF.x(), pointF.y(), (*it)->getInterPolationType(), (*it)->getKeyFrame());
 
             // get next point
             int offsetLastKey{10};
@@ -848,64 +852,33 @@ void VisualCurveWidget::slotInsertCurve(QString property, QString curveName, QVa
                     offsetNextKey = offsetNextKey == 0 ? 1 : offsetNextKey;
                 }
             }
-            QPair<QPointF, QPointF> pair(QPointF(pointF.x() - offsetLastKey * eachFrameWidth, pointF.y()), QPointF(pointF.x() + offsetNextKey * eachFrameWidth, pointF.y()));
-            pairs.push_back(pair);
+            keyPoint.setLeftPoint(QPointF(pointF.x() - offsetLastKey * eachFrameWidth, pointF.y()));
+            keyPoint.setRightPoint(QPointF(pointF.x() + offsetNextKey * eachFrameWidth, pointF.y()));
+            srcPoints.append(keyPoint);
         }
         VisualCurvePosManager::GetInstance().addKeyPointList(curve->getCurveName(), srcPoints);
-        VisualCurvePosManager::GetInstance().addWorkerPointList(curve->getCurveName(), pairs);
     }
     update();
 }
 
-void VisualCurveWidget::slotBezier2Hermite() {
-    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
-    int index = VisualCurvePosManager::GetInstance().getCurrentPointInfo().second;
-
-    SKeyPoint lastPoint, nextPoint;
-    QPair<QPointF, QPointF> lastWorkerPoint, nextWorkerPoint;
-    VisualCurvePosManager::GetInstance().getCurKeyPoint(lastPoint);
-    VisualCurvePosManager::GetInstance().getCurWorkerPoint(lastWorkerPoint);
-    if (VisualCurvePosManager::GetInstance().getKeyPoint(curve, index + 1, nextPoint)) {
-        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, index + 1, nextWorkerPoint);
-
-        QList<QPair<QPointF, QPointF> > workerPoints;
-        VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPoints);
-
-        QPointF endWorkerPoint(lastWorkerPoint.second);
-        QPointF startWorkerPoint(nextWorkerPoint.first);
-        if (lastWorkerPoint.second.x() > nextPoint.x) {
-            endWorkerPoint.setX(nextPoint.x);
-            double y = lastPoint.y + (nextPoint.x - lastPoint.x) / (lastWorkerPoint.second.x() - lastPoint.x) * (lastWorkerPoint.second.y() - lastPoint.y);
-            endWorkerPoint.setY(y);
-        }
-        if (nextWorkerPoint.first.x() < lastPoint.x) {
-            startWorkerPoint.setX(lastPoint.x);
-            double y = nextPoint.y + (nextPoint.x - lastPoint.x) / (nextPoint.x - nextWorkerPoint.first.x()) * (nextWorkerPoint.first.y() - nextPoint.y);
-            startWorkerPoint.setY(y);
-        }
-
-        double lastWorkerPointX = 3 * (endWorkerPoint.x() - lastPoint.x) + lastPoint.x;
-        double lastWorkerPointY = 3 * (endWorkerPoint.y() - lastPoint.y) + lastPoint.y;
-        endWorkerPoint.setX(lastWorkerPointX);
-        endWorkerPoint.setY(lastWorkerPointY);
-        qSwap(lastWorkerPoint.second, endWorkerPoint);
-        QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
-        qSwap(lastWorkerPoint.first, leftPoint);
-
-        double nextWorkerPointX = nextPoint.x - 3 * (nextPoint.x - startWorkerPoint.x());
-        double nextWorkerPointY = nextPoint.y - 3 * (nextPoint.y - startWorkerPoint.y());
-        startWorkerPoint.setX(nextWorkerPointX);
-        startWorkerPoint.setY(nextWorkerPointY);
-        qSwap(nextWorkerPoint.first, startWorkerPoint);
-        QPointF rightPoint = reCaculateRightWorkerPoint(nextPoint, nextWorkerPoint.first, nextWorkerPoint.second);
-        qSwap(nextWorkerPoint.second, rightPoint);
-
-        workerPoints.replace(index, lastWorkerPoint);
-        workerPoints.replace(index + 1, nextWorkerPoint);
-        VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPoints);
-
-        switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
-        Q_EMIT sigUpdateSelKey();
+void VisualCurveWidget::slotSwitchCurveType(int type) {
+    switch (type) {
+    case EInterPolationType::LINER: {
+        slotSwitchPoint2Liner();
+        break;
+    }
+    case EInterPolationType::HERMIT_SPLINE: {
+        slotSwitchPoint2Hermite();
+        break;
+    }
+    case EInterPolationType::BESIER_SPLINE: {
+        slotSwitchPoint2Bezier();
+        break;
+    }
+    case EInterPolationType::STEP: {
+        slotSwitchPoint2Step();
+        break;
+    }
     }
 }
 
@@ -957,55 +930,52 @@ void VisualCurveWidget::drawKeyFrame() {
         painter.setPen(pen);
         for (int i{0}; i < it.second.size(); ++i) {
             SKeyPoint lastPoint = it.second.at(i);
-            QPair<QPointF, QPointF> lastWorkerPoint;
-            if (VisualCurvePosManager::GetInstance().getWorkerPoint(it.first, i, lastWorkerPoint)) {
-                MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
-                if ((pressAction == MOUSE_PRESS_KEY || pressAction == MOUSE_PRESS_LEFT_WORKER_KEY || pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) && curCurve == it.first) {
-                    QPen tempPen = painterPen(QString::fromStdString(getProperty(it.first)), 2, 255);
-                    painter.setPen(tempPen);
-                }
 
-                if (i + 1 < it.second.size()) {
-                    QPair<QPointF, QPointF> nextWorkerPoint;
-                    if (VisualCurvePosManager::GetInstance().getWorkerPoint(it.first, i + 1, nextWorkerPoint)) {
-                        SKeyPoint nextPoint = it.second.at(i + 1);
-                        switch (lastPoint.type) {
-                        case EInterPolationType::LINER: {
-                            drawLiner(painter, it.first, lastPoint, nextPoint);
-                            break;
-                        }
-                        case EInterPolationType::BESIER_SPLINE: {
-                            drawBezier(painter, it.first, lastPoint, nextPoint, lastWorkerPoint, nextWorkerPoint);
-                            break;
-                        }
-                        case EInterPolationType::HERMIT_SPLINE: {
-                            drawHermite(painter, it.first, lastPoint, nextPoint, lastWorkerPoint, nextWorkerPoint);
-                            break;
-                        }
-                        case EInterPolationType::STEP: {
-                            drawStep(painter, it.first, lastPoint, nextPoint);
-                            break;
-                        }
-                    }
-                }
-                }
-                if (i == 0) {
-                    SKeyPoint nextPoint = lastPoint;
-                    lastPoint.setX(0);
-                    drawLiner(painter, it.first, lastPoint, nextPoint);
-
-                }
-                if (i == it.second.size() - 1) {
-                    SKeyPoint nextPoint(this->width(), lastPoint.y);
-                    drawLiner(painter, it.first, lastPoint, nextPoint);
-                }
-
-                // paint worker point
-                painter.setPen(pen);
-                painter.setBrush(brush);
-                painter.save();
-                drawWorkerPoint(painter, lastPoint, lastWorkerPoint, i, it.first);
+            QPair<QPointF, QPointF> lastWorkerPoint(lastPoint.leftPoint, lastPoint.rightPoint);
+            MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
+            if ((pressAction == MOUSE_PRESS_KEY || pressAction == MOUSE_PRESS_LEFT_WORKER_KEY || pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) && curCurve == it.first) {
+                QPen tempPen = painterPen(QString::fromStdString(getProperty(it.first)), 2, 255);
+                painter.setPen(tempPen);
             }
+
+            if (i + 1 < it.second.size()) {
+                SKeyPoint nextPoint = it.second.at(i + 1);
+                QPair<QPointF, QPointF> nextWorkerPoint(nextPoint.leftPoint, nextPoint.rightPoint);
+                switch (lastPoint.type) {
+                case EInterPolationType::LINER: {
+                    drawLiner(painter, it.first, lastPoint, nextPoint);
+                    break;
+                }
+                case EInterPolationType::BESIER_SPLINE: {
+                    drawBezier(painter, it.first, lastPoint, nextPoint, lastWorkerPoint, nextWorkerPoint);
+                    break;
+                }
+                case EInterPolationType::HERMIT_SPLINE: {
+                    drawHermite(painter, it.first, lastPoint, nextPoint, lastWorkerPoint, nextWorkerPoint);
+                    break;
+                }
+                case EInterPolationType::STEP: {
+                    drawStep(painter, it.first, lastPoint, nextPoint);
+                    break;
+                }
+                }
+            }
+            if (i == 0) {
+                SKeyPoint nextPoint = lastPoint;
+                lastPoint.setX(0);
+                drawLiner(painter, it.first, lastPoint, nextPoint);
+
+            }
+            if (i == it.second.size() - 1) {
+                SKeyPoint nextPoint(this->width(), lastPoint.y);
+                drawLiner(painter, it.first, lastPoint, nextPoint);
+            }
+
+            // paint worker point
+            painter.setPen(pen);
+            painter.setBrush(brush);
+            painter.save();
+            drawWorkerPoint(painter, lastPoint, lastWorkerPoint, i, it.first);
         }
 
         painter.setBrush(brush);
@@ -1091,16 +1061,18 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
 
     QPointF endWorkerPoint(lastWorkerPoint.second);
     QPointF startWorkerPoint(nextWorkerPoint.first);
-//    if (lastWorkerPoint.second.x() > nextPoint.x) {
-//        endWorkerPoint.setX(nextPoint.x);
-//        double y = lastPoint.y + (nextPoint.x - lastPoint.x) / (lastWorkerPoint.second.x() - lastPoint.x) * (lastWorkerPoint.second.y() - lastPoint.y);
-//        endWorkerPoint.setY(y);
-//    }
-//    if (nextWorkerPoint.first.x() < lastPoint.x) {
-//        startWorkerPoint.setX(lastPoint.x);
-//        double y = nextPoint.y + (nextPoint.x - lastPoint.x) / (nextPoint.x - nextWorkerPoint.first.x()) * (nextWorkerPoint.first.y() - nextPoint.y);
-//        startWorkerPoint.setY(y);
-//    }
+    double lastPointX = nextPoint.x - 3.0 * (nextPoint.x - lastPoint.x);
+    double nextPointX = 3.0 * (nextPoint.x - lastPoint.x) + lastPoint.x;
+    if (lastWorkerPoint.second.x() > nextPointX) {
+        endWorkerPoint.setX(nextPointX);
+        double y = lastPoint.y + (nextPointX - lastPoint.x) / (lastWorkerPoint.second.x() - lastPoint.x) * (lastWorkerPoint.second.y() - lastPoint.y);
+        endWorkerPoint.setY(y);
+    }
+    if (nextWorkerPoint.first.x() < lastPointX) {
+        startWorkerPoint.setX(lastPointX);
+        double y = nextPoint.y + (nextPoint.x - lastPointX) / (nextPoint.x - nextWorkerPoint.first.x()) * (nextWorkerPoint.first.y() - nextPoint.y);
+        startWorkerPoint.setY(y);
+    }
 
     // tangency point
     QPointF tangPoint1, tangPoint2;
@@ -1252,7 +1224,6 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
 
 void VisualCurveWidget::updateCurvePoint() {
     VisualCurvePosManager::GetInstance().clearKeyPointMap();
-    VisualCurvePosManager::GetInstance().clearWorkerPointMap();
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
     double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
@@ -1263,7 +1234,6 @@ void VisualCurveWidget::updateCurvePoint() {
     for (const auto &curve : CurveManager::GetInstance().getCurveList()) {
         if (curve) {
             std::list<Point*> pointList = curve->getPointList();
-            QList<QPair<QPointF, QPointF>> pairs;
             QList<SKeyPoint> srcPoints;
             auto it = pointList.begin();
             while (it != pointList.end()) {
@@ -1273,7 +1243,7 @@ void VisualCurveWidget::updateCurvePoint() {
                     value = *(*it)->getDataValue()._Cast<double>();
                 }
                 keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, (*it)->getKeyFrame(), value, pointF);
-                srcPoints.append(SKeyPoint(pointF.x(), pointF.y(), (*it)->getInterPolationType(), (*it)->getKeyFrame()));
+                SKeyPoint keyPoint(pointF.x(), pointF.y(), (*it)->getInterPolationType(), (*it)->getKeyFrame());
 
                 if ((*it)->getInterPolationType() == EInterPolationType::HERMIT_SPLINE || (*it)->getInterPolationType() == EInterPolationType::BESIER_SPLINE) {
                     int leftKeyFrame = (*it)->getLeftKeyFrame();
@@ -1291,8 +1261,9 @@ void VisualCurveWidget::updateCurvePoint() {
                         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
                         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);
 
-                        QPair<QPointF, QPointF> pair(leftPoint, rightPoint);
-                        pairs.push_back(pair);
+                        keyPoint.setLeftPoint(leftPoint);
+                        keyPoint.setRightPoint(rightPoint);
+                        srcPoints.append(keyPoint);
                         it++;
                         continue;
                     }
@@ -1319,19 +1290,17 @@ void VisualCurveWidget::updateCurvePoint() {
                         offsetNextKey = offsetNextKey == 0 ? 1 : offsetNextKey;
                     }
                 }
-
-                QPair<QPointF, QPointF> pair(QPointF(pointF.x() - offsetLastKey * eachFrameWidth, pointF.y()), QPointF(pointF.x() + offsetNextKey * eachFrameWidth, pointF.y()));
-                pairs.push_back(pair);
+                keyPoint.setLeftPoint(QPointF(pointF.x() - offsetLastKey * eachFrameWidth, pointF.y()));
+                keyPoint.setRightPoint(QPointF(pointF.x() + offsetNextKey * eachFrameWidth, pointF.y()));
+                srcPoints.append(keyPoint);
             }
             VisualCurvePosManager::GetInstance().addKeyPointList(curve->getCurveName(), srcPoints);
-            VisualCurvePosManager::GetInstance().addWorkerPointList(curve->getCurveName(), pairs);
         }
     }
 }
 
 void VisualCurveWidget::reCaculateCurvePoint(int x, int y, double frameWidth, double valueWidth) {
     QMap<std::string, QList<SKeyPoint>> tempKeyFrameMap;
-    QMap<std::string, QList<QPair<QPointF, QPointF>>> tempWorkerPointMap;
 
     auto searchKeyPoint = [&](SKeyPoint &point, std::string curveName, int keyFrame)->bool {
         QList<SKeyPoint> keyFrameList;
@@ -1354,7 +1323,6 @@ void VisualCurveWidget::reCaculateCurvePoint(int x, int y, double frameWidth, do
     for (const auto &curve : CurveManager::GetInstance().getCurveList()) {
         if (curve) {
             std::list<Point*> pointList = curve->getPointList();
-            QList<QPair<QPointF, QPointF>> pairs;
             QList<SKeyPoint> srcPoints;
             int index{0};
             for (auto point : pointList) {
@@ -1364,34 +1332,30 @@ void VisualCurveWidget::reCaculateCurvePoint(int x, int y, double frameWidth, do
                     value = *point->getDataValue()._Cast<double>();
                 }
                 keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, point->getKeyFrame(), value, pointF);
-                srcPoints.append(SKeyPoint(pointF.x(), pointF.y(), point->getInterPolationType(), point->getKeyFrame()));
+                SKeyPoint newKeyPoint(pointF.x(), pointF.y(), point->getInterPolationType(), point->getKeyFrame());
 
                 SKeyPoint oldKeyPoint;
                 if (searchKeyPoint(oldKeyPoint, curve->getCurveName(), point->getKeyFrame())) {
                     double offsetX = pointF.x() - oldKeyPoint.x;
                     double offsetY = pointF.y() - oldKeyPoint.y;
 
-                    QPair<QPointF, QPointF> oldKeyPair;
-                    VisualCurvePosManager::GetInstance().getWorkerPoint(curve->getCurveName(), index, oldKeyPair);
                     if (mouseAction_ == MOUSE_SCROLL_UP || mouseAction_ == MOUSE_SCROLL_DOWN) {
-                        QPointF leftWorkerPoint = reCaculatePoint(oldKeyPair.first, x, y, frameWidth, valueWidth);
-                        QPointF rightWorkerPoint = reCaculatePoint(oldKeyPair.second, x, y, frameWidth, valueWidth);
-                        QPair<QPointF, QPointF> pair(leftWorkerPoint, rightWorkerPoint);
-                        pairs.push_back(pair);
+                        QPointF leftWorkerPoint = reCaculatePoint(oldKeyPoint.leftPoint, x, y, frameWidth, valueWidth);
+                        QPointF rightWorkerPoint = reCaculatePoint(oldKeyPoint.rightPoint, x, y, frameWidth, valueWidth);
+                        newKeyPoint.setLeftPoint(leftWorkerPoint);
+                        newKeyPoint.setRightPoint(rightWorkerPoint);
                     } else {
-                        QPair<QPointF, QPointF> pair(QPointF(oldKeyPair.first.x() + offsetX, oldKeyPair.first.y() + offsetY), QPointF(oldKeyPair.second.x() + offsetX, oldKeyPair.second.y() + offsetY));
-                        pairs.push_back(pair);
+                        newKeyPoint.setLeftPoint(QPointF(oldKeyPoint.leftPoint.x() + offsetX, oldKeyPoint.leftPoint.y() + offsetY));
+                        newKeyPoint.setRightPoint(QPointF(oldKeyPoint.rightPoint.x() + offsetX, oldKeyPoint.rightPoint.y() + offsetY));
                     }
                 }
+                srcPoints.append(newKeyPoint);
                 index++;
-                tempWorkerPointMap.insert(curve->getCurveName(), pairs);
-                tempKeyFrameMap.insert(curve->getCurveName(), srcPoints);
             }
+            tempKeyFrameMap.insert(curve->getCurveName(), srcPoints);
         }
     }
-
     VisualCurvePosManager::GetInstance().setKeyPointMap(tempKeyFrameMap);
-    VisualCurvePosManager::GetInstance().setWorkerPointMap(tempWorkerPointMap);
 }
 
 void VisualCurveWidget::switchPointInterpolationType(EInterPolationType type) {
@@ -1402,8 +1366,6 @@ void VisualCurveWidget::switchPointInterpolationType(EInterPolationType type) {
     VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
     keyPoint.type = type;
     VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
-    QPair<QPointF, QPointF> workerPoint;
-    VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint);
 
     int curX = VisualCurvePosManager::GetInstance().getCurX();
     int curY = VisualCurvePosManager::GetInstance().getCurY();
@@ -1411,23 +1373,23 @@ void VisualCurveWidget::switchPointInterpolationType(EInterPolationType type) {
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
     int leftKeyFrame{0};
-    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
+    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyFrame);
 
     double leftKeyValue{0.0};
-    pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
+    pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyValue);
 
     int rightKeyFrame{0};
-    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyFrame);
+    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyFrame);
 
     double rightKeyValue{0.0};
-    pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyValue);
+    pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyValue);
 
     // switch curveData point interpolation type
     if (CurveManager::GetInstance().getCurve(curCurve)) {
         Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
         Point *point = curve->getPoint(keyPoint.keyFrame);
         if (point) {
-            curve->delPoint(keyPoint.keyFrame);
+            curve->takePoint(keyPoint.keyFrame);
             point->setInterPolationType(type);
             if (type == EInterPolationType::HERMIT_SPLINE || type == EInterPolationType::BESIER_SPLINE) {
                 point->setLeftData(leftKeyValue);
@@ -1437,6 +1399,108 @@ void VisualCurveWidget::switchPointInterpolationType(EInterPolationType type) {
             }
             curve->insertPoint(point);
         }
+    }
+    update();
+}
+
+void VisualCurveWidget::bezierSwitchToHermite() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    int index = VisualCurvePosManager::GetInstance().getCurrentPointInfo().second;
+
+    SKeyPoint lastPoint, nextPoint;
+    VisualCurvePosManager::GetInstance().getCurKeyPoint(lastPoint);
+    QPair<QPointF, QPointF> lastWorkerPoint(lastPoint.leftPoint, lastPoint.rightPoint);
+    if (VisualCurvePosManager::GetInstance().getKeyPoint(curve, index + 1, nextPoint)) {
+        QPair<QPointF, QPointF> nextWorkerPoint(nextPoint.leftPoint, nextPoint.rightPoint);
+
+        QList<SKeyPoint> keyPoints;
+        VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints);
+
+        QPointF endWorkerPoint(lastWorkerPoint.second);
+        QPointF startWorkerPoint(nextWorkerPoint.first);
+        if (lastWorkerPoint.second.x() > nextPoint.x) {
+            endWorkerPoint.setX(nextPoint.x);
+            double y = lastPoint.y + (nextPoint.x - lastPoint.x) / (lastWorkerPoint.second.x() - lastPoint.x) * (lastWorkerPoint.second.y() - lastPoint.y);
+            endWorkerPoint.setY(y);
+        }
+        if (nextWorkerPoint.first.x() < lastPoint.x) {
+            startWorkerPoint.setX(lastPoint.x);
+            double y = nextPoint.y + (nextPoint.x - lastPoint.x) / (nextPoint.x - nextWorkerPoint.first.x()) * (nextWorkerPoint.first.y() - nextPoint.y);
+            startWorkerPoint.setY(y);
+        }
+
+        double lastWorkerPointX = 3.0 * (endWorkerPoint.x() - lastPoint.x) + lastPoint.x;
+        double lastWorkerPointY = 3.0 * (endWorkerPoint.y() - lastPoint.y) + lastPoint.y;
+        endWorkerPoint.setX(lastWorkerPointX);
+        endWorkerPoint.setY(lastWorkerPointY);
+        qSwap(lastWorkerPoint.second, endWorkerPoint);
+        QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
+        qSwap(lastWorkerPoint.first, leftPoint);
+
+        double nextWorkerPointX = nextPoint.x - 3.0 * (nextPoint.x - startWorkerPoint.x());
+        double nextWorkerPointY = nextPoint.y - 3.0 * (nextPoint.y - startWorkerPoint.y());
+        startWorkerPoint.setX(nextWorkerPointX);
+        startWorkerPoint.setY(nextWorkerPointY);
+        qSwap(nextWorkerPoint.first, startWorkerPoint);
+        QPointF rightPoint = reCaculateRightWorkerPoint(nextPoint, nextWorkerPoint.first, nextWorkerPoint.second);
+        qSwap(nextWorkerPoint.second, rightPoint);
+
+        lastPoint.setLeftPoint(lastWorkerPoint.first);
+        lastPoint.setRightPoint(lastWorkerPoint.second);
+        nextPoint.setLeftPoint(nextWorkerPoint.first);
+        nextPoint.setRightPoint(nextWorkerPoint.second);
+
+        keyPoints.replace(index, lastPoint);
+        keyPoints.replace(index + 1, nextPoint);
+        VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
+
+        switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
+    }
+    update();
+}
+
+void VisualCurveWidget::hermiteSwitchToBezier() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    int index = VisualCurvePosManager::GetInstance().getCurrentPointInfo().second;
+
+    SKeyPoint lastPoint, nextPoint;
+    VisualCurvePosManager::GetInstance().getCurKeyPoint(lastPoint);
+    QPair<QPointF, QPointF> lastWorkerPoint(lastPoint.leftPoint, lastPoint.rightPoint);
+    if (VisualCurvePosManager::GetInstance().getKeyPoint(curve, index + 1, nextPoint)) {
+        QPair<QPointF, QPointF> nextWorkerPoint(nextPoint.leftPoint, nextPoint.rightPoint);
+
+        QList<SKeyPoint> keyPoints;
+        VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints);
+
+        QPointF endWorkerPoint(lastWorkerPoint.second);
+        QPointF startWorkerPoint(nextWorkerPoint.first);
+
+        double lastWorkerPointX = (endWorkerPoint.x() + 2 * lastPoint.x) / 3.0;
+        double lastWorkerPointY = (endWorkerPoint.y() + 2 * lastPoint.y) / 3.0;
+        endWorkerPoint.setX(lastWorkerPointX);
+        endWorkerPoint.setY(lastWorkerPointY);
+        qSwap(lastWorkerPoint.second, endWorkerPoint);
+        QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
+        qSwap(lastWorkerPoint.first, leftPoint);
+
+        double nextWorkerPointX = (2 * nextPoint.x + startWorkerPoint.x()) / 3.0;
+        double nextWorkerPointY = (2 * nextPoint.y + startWorkerPoint.y()) / 3.0;
+        startWorkerPoint.setX(nextWorkerPointX);
+        startWorkerPoint.setY(nextWorkerPointY);
+        qSwap(nextWorkerPoint.first, startWorkerPoint);
+        QPointF rightPoint = reCaculateRightWorkerPoint(nextPoint, nextWorkerPoint.first, nextWorkerPoint.second);
+        qSwap(nextWorkerPoint.second, rightPoint);
+
+        lastPoint.setLeftPoint(lastWorkerPoint.first);
+        lastPoint.setRightPoint(lastWorkerPoint.second);
+        nextPoint.setLeftPoint(nextWorkerPoint.first);
+        nextPoint.setRightPoint(nextWorkerPoint.second);
+
+        keyPoints.replace(index, lastPoint);
+        keyPoints.replace(index + 1, nextPoint);
+        VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
+
+        switchPointInterpolationType(EInterPolationType::BESIER_SPLINE);
     }
     update();
 }
@@ -1479,7 +1543,7 @@ void VisualCurveWidget::pointMove(QMouseEvent *event) {
             break;
         }
         Q_EMIT sigUpdateSelKey();
-        Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
+        Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(VisualCurvePosManager::GetInstance().getCurFrame());
     } else {
         isPressDragBtn_ = false;
         pressDragBtnMutex_.unlock();
@@ -1562,25 +1626,18 @@ void VisualCurveWidget::keyPointMove(QMouseEvent *event) {
         VisualCurvePosManager::GetInstance().setSameKeyType(SAME_NONE);
     }
 
-    keyPoints.replace(index, SKeyPoint(event->pos().x(), event->pos().y(), pressPoint.type, keyFrame));
-    keyPoints.move(index, moveIndex);
-    VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
-
     // caculate worker point pos
-    QList<QPair<QPointF, QPointF>> workerPointList;
-    QPair<QPointF, QPointF> curWorkerPoint;
-    VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPointList);
-    VisualCurvePosManager::GetInstance().getCurWorkerPoint(curWorkerPoint);
+    QPointF leftPoint(pressPoint.leftPoint.x() + offsetX, pressPoint.leftPoint.y() + offsetY);
+    QPointF rightPoint(pressPoint.rightPoint.x() + offsetX, pressPoint.rightPoint.y() + offsetY);
 
     // fill worker point list
-    QPointF leftPoint(curWorkerPoint.first.x() + offsetX, curWorkerPoint.first.y() + offsetY);
-    QPointF rightPoint(curWorkerPoint.second.x() + offsetX, curWorkerPoint.second.y() + offsetY);
-    qSwap(curWorkerPoint.first, leftPoint);
-    qSwap(curWorkerPoint.second, rightPoint);
+    SKeyPoint newKeyPoint(event->pos().x(), event->pos().y(), pressPoint.type, keyFrame);
+    newKeyPoint.setLeftPoint(leftPoint);
+    newKeyPoint.setRightPoint(rightPoint);
 
-    workerPointList.replace(index, curWorkerPoint);
-    workerPointList.move(index, moveIndex);
-    VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPointList);
+    keyPoints.replace(index, newKeyPoint);
+    keyPoints.move(index, moveIndex);
+    VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
     VisualCurvePosManager::GetInstance().setCurrentPointInfo(moveIndex);
 
     // caculate worker point keyframe and value
@@ -1598,7 +1655,7 @@ void VisualCurveWidget::keyPointMove(QMouseEvent *event) {
         if (curve->getPoint(pressPoint.keyFrame)) {
             Point *point = curve->getPoint(pressPoint.keyFrame);
             if (VisualCurvePosManager::GetInstance().getSameKeyType() == SAME_WITH_LAST_KEY) {
-                curve->delPoint(pressPoint.keyFrame);
+                curve->takePoint(pressPoint.keyFrame);
                 point->setKeyFrame(keyFrame);
                 curve->insertSamePoint(point);
             } else {
@@ -1625,17 +1682,14 @@ void VisualCurveWidget::leftWorkerPointMove(QMouseEvent *event) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    QPair<QPointF, QPointF> workerPoint;
-
-    if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         QPointF pointFLeft;
-        QPointF pointFRight = workerPoint.second;
+        QPointF pointFRight = keyPoint.rightPoint;
         pointFLeft.setX(event->pos().x());
         pointFLeft.setY(event->pos().y());
 
         std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
-        SKeyPoint keyPoint;
-        VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
         QPointF keyPointF(keyPoint.x, keyPoint.y);
 
         // handle border
@@ -1671,16 +1725,16 @@ void VisualCurveWidget::leftWorkerPointMove(QMouseEvent *event) {
         }
 
         int leftKeyFrame{0};
-        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyFrame);
 
         double leftKeyValue{0.0};
-        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyValue);
 
         int rightKeyFrame{0};
-        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyFrame);
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyFrame);
 
         double rightKeyValue{0.0};
-        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyValue);
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyValue);
 
         // fill point tangent
         if (CurveManager::GetInstance().getCurve(curCurve)) {
@@ -1697,10 +1751,9 @@ void VisualCurveWidget::leftWorkerPointMove(QMouseEvent *event) {
         }
 
         // fill worker point list
-        qSwap(workerPoint.first, pointFLeft);
-        qSwap(workerPoint.second, pointFRight);
-
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(pointFLeft);
+        keyPoint.setRightPoint(pointFRight);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         update();
     }
 }
@@ -1711,17 +1764,14 @@ void VisualCurveWidget::rightWorkerPointMove(QMouseEvent *event) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    QPair<QPointF, QPointF> workerPoint;
-
-    if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         QPointF pointFRight;
-        QPointF pointFLeft = workerPoint.first;
+        QPointF pointFLeft = keyPoint.leftPoint;
         pointFRight.setX(event->pos().x());
         pointFRight.setY(event->pos().y());
 
         std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
-        SKeyPoint keyPoint;
-        VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
         QPointF keyPointF(keyPoint.x, keyPoint.y);
 
         // handle border
@@ -1750,16 +1800,16 @@ void VisualCurveWidget::rightWorkerPointMove(QMouseEvent *event) {
         }
 
         int leftKeyFrame{0};
-        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyFrame);
 
         double leftKeyValue{0.0};
-        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyValue);
 
         int rightKeyFrame{0};
-        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyFrame);
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyFrame);
 
         double rightKeyValue{0.0};
-        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyValue);
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyValue);
 
         pointFLeft.setX(keyPointF.x() - letfX);
         if (keyPointF.y() >= pointFRight.y()) {
@@ -1783,10 +1833,9 @@ void VisualCurveWidget::rightWorkerPointMove(QMouseEvent *event) {
         }
 
         // fill worker point list
-        qSwap(workerPoint.first, pointFLeft);
-        qSwap(workerPoint.second, pointFRight);
-
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(pointFLeft);
+        keyPoint.setRightPoint(pointFRight);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         update();
     }
 }
@@ -1809,10 +1858,7 @@ void VisualCurveWidget::curveMoveX(QMouseEvent *event) {
             }
 
             QList<SKeyPoint> keyPoints, newKeyPoints;
-            QList<QPair<QPointF, QPointF> > workerPoints, newWorkerPoints;
             if (VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints)) {
-                VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPoints);
-
                 std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
                 if (CurveManager::GetInstance().getCurve(curCurve)) {
                     Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
@@ -1823,15 +1869,15 @@ void VisualCurveWidget::curveMoveX(QMouseEvent *event) {
                             int keyFrame{tempKeyPoint.keyFrame};
                             pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyFrame);
 
-                            QPair<QPointF, QPointF> tempWorkerPoint = workerPoints.at(i);
+                            QPair<QPointF, QPointF> tempWorkerPoint(tempKeyPoint.leftPoint, tempKeyPoint.rightPoint);
                             QPointF leftPoint((tempWorkerPoint.first.x() + offsetX), tempWorkerPoint.first.y());
                             QPointF rightPoint((tempWorkerPoint.second.x() + offsetX), tempWorkerPoint.second.y());
-                            qSwap(tempWorkerPoint.first, leftPoint);
-                            qSwap(tempWorkerPoint.second, rightPoint);
+                            tempKeyPoint.setLeftPoint(leftPoint);
+                            tempKeyPoint.setRightPoint(rightPoint);
+
                             int leftKeyFrame{0}, rightKeyFrame{0};
                             pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyFrame);
                             pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyFrame);
-                            newWorkerPoints.push_back(tempWorkerPoint);
 
                             if (curve->getPoint(tempKeyPoint.keyFrame)) {
                                 Point *point = curve->getPoint(tempKeyPoint.keyFrame);
@@ -1845,7 +1891,6 @@ void VisualCurveWidget::curveMoveX(QMouseEvent *event) {
                             newKeyPoints.push_back(tempKeyPoint);
                         }
                         VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
-                        VisualCurvePosManager::GetInstance().swapCurWorkerPointList(newWorkerPoints);
                     } else if (offsetX > 0) {
                         for (int i{keyPoints.size() - 1}; i >= 0; i--) {
                             SKeyPoint tempKeyPoint = keyPoints.at(i);
@@ -1853,15 +1898,15 @@ void VisualCurveWidget::curveMoveX(QMouseEvent *event) {
                             int keyFrame{tempKeyPoint.keyFrame};
                             pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyFrame);
 
-                            QPair<QPointF, QPointF> tempWorkerPoint = workerPoints.at(i);
+                            QPair<QPointF, QPointF> tempWorkerPoint(tempKeyPoint.leftPoint, tempKeyPoint.rightPoint);
                             QPointF leftPoint((tempWorkerPoint.first.x() + offsetX), tempWorkerPoint.first.y());
                             QPointF rightPoint((tempWorkerPoint.second.x() + offsetX), tempWorkerPoint.second.y());
-                            qSwap(tempWorkerPoint.first, leftPoint);
-                            qSwap(tempWorkerPoint.second, rightPoint);
+                            tempKeyPoint.setLeftPoint(leftPoint);
+                            tempKeyPoint.setRightPoint(rightPoint);
+
                             int leftKeyFrame{0}, rightKeyFrame{0};
                             pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyFrame);
                             pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyFrame);
-                            newWorkerPoints.push_front(tempWorkerPoint);
 
                             if (curve->getPoint(tempKeyPoint.keyFrame)) {
                                 Point *point = curve->getPoint(tempKeyPoint.keyFrame);
@@ -1875,7 +1920,6 @@ void VisualCurveWidget::curveMoveX(QMouseEvent *event) {
                             newKeyPoints.push_front(tempKeyPoint);
                         }
                         VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
-                        VisualCurvePosManager::GetInstance().swapCurWorkerPointList(newWorkerPoints);
                     }
                 }
             }
@@ -1901,10 +1945,7 @@ void VisualCurveWidget::curveMoveY(QMouseEvent *event) {
             }
 
             QList<SKeyPoint> keyPoints, newKeyPoints;
-            QList<QPair<QPointF, QPointF> > workerPoints, newWorkerPoints;
             if (VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints)) {
-                VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPoints);
-
                 std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
                 if (CurveManager::GetInstance().getCurve(curCurve)) {
                     Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
@@ -1915,15 +1956,15 @@ void VisualCurveWidget::curveMoveY(QMouseEvent *event) {
                         double keyValue{0.0};
                         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyValue);
 
-                        QPair<QPointF, QPointF> tempWorkerPoint = workerPoints.at(i);
+                        QPair<QPointF, QPointF> tempWorkerPoint(tempKeyPoint.leftPoint, tempKeyPoint.rightPoint);
                         QPointF leftPoint(tempWorkerPoint.first.x(), (tempWorkerPoint.first.y() + offsetY));
                         QPointF rightPoint(tempWorkerPoint.second.x(), (tempWorkerPoint.second.y() + offsetY));
-                        qSwap(tempWorkerPoint.first, leftPoint);
-                        qSwap(tempWorkerPoint.second, rightPoint);
+                        tempKeyPoint.setLeftPoint(leftPoint);
+                        tempKeyPoint.setRightPoint(rightPoint);
+
                         double leftKeyValue{0.0}, rightKeyValue{0.0};
                         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyValue);
                         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyValue);
-                        newWorkerPoints.push_back(tempWorkerPoint);
 
                         if (curve->getPoint(tempKeyPoint.keyFrame)) {
                             Point *point = curve->getPoint(tempKeyPoint.keyFrame);
@@ -1936,7 +1977,6 @@ void VisualCurveWidget::curveMoveY(QMouseEvent *event) {
                         newKeyPoints.push_back(tempKeyPoint);
                     }
                     VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
-                    VisualCurvePosManager::GetInstance().swapCurWorkerPointList(newWorkerPoints);
                 }
             }
         }
@@ -1945,116 +1985,111 @@ void VisualCurveWidget::curveMoveY(QMouseEvent *event) {
 
 void VisualCurveWidget::curveMove(QMouseEvent *event) {
     pressDragBtnMutex_.lock();
-        if (event->MouseButtonPress && !isPressDragBtn_) {
-            pressDragBtnMutex_.unlock();
-            if (VisualCurvePosManager::GetInstance().getPressAction() == MOUSE_PRESS_KEY) {
-                double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
-                double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
+    if (event->MouseButtonPress && !isPressDragBtn_) {
+        pressDragBtnMutex_.unlock();
+        if (VisualCurvePosManager::GetInstance().getPressAction() == MOUSE_PRESS_KEY) {
+            double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
+            double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
 
-                int curX = viewportOffset_.x();
-                int curY = viewportOffset_.y();
+            int curX = viewportOffset_.x();
+            int curY = viewportOffset_.y();
 
-                SKeyPoint curKeyPoint;
-                double offsetX{0};
-                if (VisualCurvePosManager::GetInstance().getCurKeyPoint(curKeyPoint)) {
-                    offsetX = event->x() - curKeyPoint.x;
-                }
-                double offsetY{0};
-                if (VisualCurvePosManager::GetInstance().getCurKeyPoint(curKeyPoint)) {
-                    offsetY = event->y() - curKeyPoint.y;
-                }
+            SKeyPoint curKeyPoint;
+            double offsetX{0};
+            if (VisualCurvePosManager::GetInstance().getCurKeyPoint(curKeyPoint)) {
+                offsetX = event->x() - curKeyPoint.x;
+            }
+            double offsetY{0};
+            if (VisualCurvePosManager::GetInstance().getCurKeyPoint(curKeyPoint)) {
+                offsetY = event->y() - curKeyPoint.y;
+            }
 
-                QList<SKeyPoint> keyPoints, newKeyPoints;
-                QList<QPair<QPointF, QPointF> > workerPoints, newWorkerPoints;
-                if (VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints)) {
-                    VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPoints);
+            QList<SKeyPoint> keyPoints, newKeyPoints;
+            if (VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints)) {
+                std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+                if (CurveManager::GetInstance().getCurve(curCurve)) {
+                    Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
+                    if (offsetX < 0) {
+                        for (int i{0}; i < keyPoints.size(); i++) {
+                            SKeyPoint tempKeyPoint = keyPoints.at(i);
+                            tempKeyPoint.setX(tempKeyPoint.x + offsetX);
+                            int keyFrame{tempKeyPoint.keyFrame};
+                            tempKeyPoint.setY(tempKeyPoint.y + offsetY);
+                            double keyValue{0.0};
+                            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyValue);
+                            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyFrame);
 
-                    std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
-                    if (CurveManager::GetInstance().getCurve(curCurve)) {
-                        Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
-                        if (offsetX < 0) {
-                            for (int i{0}; i < keyPoints.size(); i++) {
-                                SKeyPoint tempKeyPoint = keyPoints.at(i);
-                                tempKeyPoint.setX(tempKeyPoint.x + offsetX);
-                                int keyFrame{tempKeyPoint.keyFrame};
-                                tempKeyPoint.setY(tempKeyPoint.y + offsetY);
-                                double keyValue{0.0};
-                                pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyValue);
-                                pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyFrame);
+                            QPair<QPointF, QPointF> tempWorkerPoint(tempKeyPoint.leftPoint, tempKeyPoint.rightPoint);
+                            QPointF leftPoint((tempWorkerPoint.first.x() + offsetX), (tempWorkerPoint.first.y() + offsetY));
+                            QPointF rightPoint((tempWorkerPoint.second.x() + offsetX), (tempWorkerPoint.second.y() + offsetY));
+                            tempKeyPoint.setLeftPoint(leftPoint);
+                            tempKeyPoint.setRightPoint(rightPoint);
 
-                                QPair<QPointF, QPointF> tempWorkerPoint = workerPoints.at(i);
-                                QPointF leftPoint((tempWorkerPoint.first.x() + offsetX), (tempWorkerPoint.first.y() + offsetY));
-                                QPointF rightPoint((tempWorkerPoint.second.x() + offsetX), (tempWorkerPoint.second.y() + offsetY));
-                                qSwap(tempWorkerPoint.first, leftPoint);
-                                qSwap(tempWorkerPoint.second, rightPoint);
-                                int leftKeyFrame{0}, rightKeyFrame{0};
-                                pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyFrame);
-                                pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyFrame);
-                                double leftKeyValue{0.0}, rightKeyValue{0.0};
-                                pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyValue);
-                                pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyValue);
-                                newWorkerPoints.push_back(tempWorkerPoint);
+                            int leftKeyFrame{0}, rightKeyFrame{0};
+                            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyFrame);
+                            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyFrame);
+                            double leftKeyValue{0.0}, rightKeyValue{0.0};
+                            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyValue);
+                            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyValue);
 
-                                if (curve->getPoint(tempKeyPoint.keyFrame)) {
-                                    Point *point = curve->getPoint(tempKeyPoint.keyFrame);
-                                    if (point) {
-                                        point->setKeyFrame(keyFrame);
-                                        point->setLeftKeyFrame(leftKeyFrame);
-                                        point->setRightKeyFrame(rightKeyFrame);
-                                        point->setDataValue(keyValue);
-                                        point->setLeftData(leftKeyValue);
-                                        point->setRightData(rightKeyValue);
-                                    }
+                            if (curve->getPoint(tempKeyPoint.keyFrame)) {
+                                Point *point = curve->getPoint(tempKeyPoint.keyFrame);
+                                if (point) {
+                                    point->setKeyFrame(keyFrame);
+                                    point->setLeftKeyFrame(leftKeyFrame);
+                                    point->setRightKeyFrame(rightKeyFrame);
+                                    point->setDataValue(keyValue);
+                                    point->setLeftData(leftKeyValue);
+                                    point->setRightData(rightKeyValue);
                                 }
-                                tempKeyPoint.setKeyFrame(keyFrame);
-                                newKeyPoints.push_back(tempKeyPoint);
                             }
-                            VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
-                            VisualCurvePosManager::GetInstance().swapCurWorkerPointList(newWorkerPoints);
-                        } else if (offsetX >= 0) {
-                            for (int i{keyPoints.size() - 1}; i >= 0; i--) {
-                                SKeyPoint tempKeyPoint = keyPoints.at(i);
-                                tempKeyPoint.setX(tempKeyPoint.x + offsetX);
-                                int keyFrame{tempKeyPoint.keyFrame};
-                                tempKeyPoint.setY(tempKeyPoint.y + offsetY);
-                                double keyValue{0.0};
-                                pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyValue);
-                                pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyFrame);
-
-                                QPair<QPointF, QPointF> tempWorkerPoint = workerPoints.at(i);
-                                QPointF leftPoint((tempWorkerPoint.first.x() + offsetX), (tempWorkerPoint.first.y() + offsetY));
-                                QPointF rightPoint((tempWorkerPoint.second.x() + offsetX), (tempWorkerPoint.second.y() + offsetY));
-                                qSwap(tempWorkerPoint.first, leftPoint);
-                                qSwap(tempWorkerPoint.second, rightPoint);
-                                int leftKeyFrame{0}, rightKeyFrame{0};
-                                pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyFrame);
-                                pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyFrame);
-                                double leftKeyValue{0.0}, rightKeyValue{0.0};
-                                pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyValue);
-                                pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyValue);
-                                newWorkerPoints.push_front(tempWorkerPoint);
-
-                                if (curve->getPoint(tempKeyPoint.keyFrame)) {
-                                    Point *point = curve->getPoint(tempKeyPoint.keyFrame);
-                                    if (point) {
-                                        point->setKeyFrame(keyFrame);
-                                        point->setLeftKeyFrame(leftKeyFrame);
-                                        point->setRightKeyFrame(rightKeyFrame);
-                                        point->setDataValue(keyValue);
-                                        point->setLeftData(leftKeyValue);
-                                        point->setRightData(rightKeyValue);
-                                    }
-                                }
-                                tempKeyPoint.setKeyFrame(keyFrame);
-                                newKeyPoints.push_front(tempKeyPoint);
-                            }
-                            VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
-                            VisualCurvePosManager::GetInstance().swapCurWorkerPointList(newWorkerPoints);
+                            tempKeyPoint.setKeyFrame(keyFrame);
+                            newKeyPoints.push_back(tempKeyPoint);
                         }
+                        VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
+                    } else if (offsetX >= 0) {
+                        for (int i{keyPoints.size() - 1}; i >= 0; i--) {
+                            SKeyPoint tempKeyPoint = keyPoints.at(i);
+                            tempKeyPoint.setX(tempKeyPoint.x + offsetX);
+                            int keyFrame{tempKeyPoint.keyFrame};
+                            tempKeyPoint.setY(tempKeyPoint.y + offsetY);
+                            double keyValue{0.0};
+                            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyValue);
+                            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, QPointF(tempKeyPoint.x, tempKeyPoint.y), keyFrame);
+
+                            QPair<QPointF, QPointF> tempWorkerPoint(tempKeyPoint.leftPoint, tempKeyPoint.rightPoint);
+                            QPointF leftPoint((tempWorkerPoint.first.x() + offsetX), (tempWorkerPoint.first.y() + offsetY));
+                            QPointF rightPoint((tempWorkerPoint.second.x() + offsetX), (tempWorkerPoint.second.y() + offsetY));
+                            tempKeyPoint.setLeftPoint(leftPoint);
+                            tempKeyPoint.setRightPoint(rightPoint);
+
+                            int leftKeyFrame{0}, rightKeyFrame{0};
+                            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyFrame);
+                            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyFrame);
+                            double leftKeyValue{0.0}, rightKeyValue{0.0};
+                            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.first, leftKeyValue);
+                            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, tempWorkerPoint.second, rightKeyValue);
+
+                            if (curve->getPoint(tempKeyPoint.keyFrame)) {
+                                Point *point = curve->getPoint(tempKeyPoint.keyFrame);
+                                if (point) {
+                                    point->setKeyFrame(keyFrame);
+                                    point->setLeftKeyFrame(leftKeyFrame);
+                                    point->setRightKeyFrame(rightKeyFrame);
+                                    point->setDataValue(keyValue);
+                                    point->setLeftData(leftKeyValue);
+                                    point->setRightData(rightKeyValue);
+                                }
+                            }
+                            tempKeyPoint.setKeyFrame(keyFrame);
+                            newKeyPoints.push_front(tempKeyPoint);
+                        }
+                        VisualCurvePosManager::GetInstance().swapCurKeyPointList(newKeyPoints);
                     }
                 }
             }
         }
+    }
 }
 
 void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
@@ -2123,25 +2158,21 @@ void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
             VisualCurvePosManager::GetInstance().setSameKeyType(SAME_NONE);
         }
 
-        keyPoints.replace(index, SKeyPoint(movePoint.x(), movePoint.y(), pressPoint.type, keyFrame));
-        keyPoints.move(index, moveIndex);
-        VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
-
         // caculate worker point pos
-        QList<QPair<QPointF, QPointF>> workerPointList;
-        QPair<QPointF, QPointF> curWorkerPoint;
-        VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPointList);
-        VisualCurvePosManager::GetInstance().getCurWorkerPoint(curWorkerPoint);
+        QPointF leftPoint(pressPoint.leftPoint.x() + offsetX, pressPoint.leftPoint.y() + offsetY);
+        QPointF rightPoint(pressPoint.rightPoint.x() + offsetX, pressPoint.rightPoint.y() + offsetY);
+        pressPoint.setLeftPoint(leftPoint);
+        pressPoint.setRightPoint(rightPoint);
 
         // fill worker point list
-        QPointF leftPoint(curWorkerPoint.first.x() + offsetX, curWorkerPoint.first.y() + offsetY);
-        QPointF rightPoint(curWorkerPoint.second.x() + offsetX, curWorkerPoint.second.y() + offsetY);
-        qSwap(curWorkerPoint.first, leftPoint);
-        qSwap(curWorkerPoint.second, rightPoint);
+        SKeyPoint newKeyPoint(event->pos().x(), event->pos().y(), pressPoint.type, keyFrame);
+        newKeyPoint.setLeftPoint(leftPoint);
+        newKeyPoint.setRightPoint(rightPoint);
 
-        workerPointList.replace(index, curWorkerPoint);
-        workerPointList.move(index, moveIndex);
-        VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPointList);
+        keyPoints.replace(index, newKeyPoint);
+        keyPoints.move(index, moveIndex);
+        VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
+        VisualCurvePosManager::GetInstance().setCurrentPointInfo(moveIndex);
 
         // caculate worker point keyframe and value
         int leftKeyFrame{0}, rightKeyFrame{0};
@@ -2158,7 +2189,7 @@ void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
             if (curve->getPoint(pressPoint.keyFrame)) {
                 Point *point = curve->getPoint(pressPoint.keyFrame);
                 if (VisualCurvePosManager::GetInstance().getSameKeyType() == SAME_WITH_LAST_KEY) {
-                    curve->delPoint(pressPoint.keyFrame);
+                    curve->takePoint(pressPoint.keyFrame);
                     point->setKeyFrame(keyFrame);
                     curve->insertSamePoint(point);
                 } else {
@@ -2182,7 +2213,6 @@ void VisualCurveWidget::multiPointMove(QMouseEvent *event) {
     VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
     double offsetX = event->x() - keyPoint.x;
     double offsetY = event->y() - keyPoint.y;
-    qDebug() << "offsetX:" << offsetX << "offsetY:" << offsetY;
     SAME_KEY_TYPE type;
     if (offsetX >= 0) {
         type = SAME_KEY_TYPE::SAME_WITH_NEXT_KEY;
@@ -2227,7 +2257,6 @@ QPointF VisualCurveWidget::reCaculateRightWorkerPoint(SKeyPoint keyPoint, QPoint
     } else {
         rightPoint.setY(keyPoint.y - rightY);
     }
-    qDebug() << "22222:" << keyPoint.x << keyPoint.y << rightPoint.x() << rightPoint.y() << leftPoint.x() << leftPoint.y();
 
     int leftKeyFrame{0};
     pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyFrame);
@@ -2291,8 +2320,6 @@ QPointF VisualCurveWidget::reCaculateLeftWorkerPoint(SKeyPoint keyPoint, QPointF
     } else {
         leftPoint.setY(keyPoint.y - letfY);
     }
-
-    qDebug() << "11111:" << keyPoint.x << keyPoint.y << rightPoint.x() << rightPoint.y() << leftPoint.x() << leftPoint.y();
 
     int leftKeyFrame{0};
     pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyFrame);

@@ -216,14 +216,10 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
                     raco::time_axis::SKeyPoint pointF2 = pointList[i + 1];
                     if (pointF1.keyFrame < keyFrame && pointF2.keyFrame > keyFrame) {
                         QList<QPointF> srcPoints, destPoints;
-                        QPair<QPointF, QPointF> pair1;
-                        QPair<QPointF, QPointF> pair2;
-                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i, pair1);
-                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i + 1, pair2);
 
                         srcPoints.push_back(QPointF(pointF1.x, pointF1.y));
-                        srcPoints.push_back(pair1.second);
-                        srcPoints.push_back(pair2.first);
+                        srcPoints.push_back(pointF1.rightPoint);
+                        srcPoints.push_back(pointF2.leftPoint);
                         srcPoints.push_back(QPointF(pointF2.x, pointF2.y));
 
                         time_axis::createNBezierCurve(srcPoints, destPoints, 0.01);
@@ -263,15 +259,11 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
                     raco::time_axis::SKeyPoint pointF2 = pointList[i + 1];
                     if (pointF1.keyFrame < keyFrame && pointF2.keyFrame > keyFrame) {
                         QList<QPointF> srcPoints, destPoints;
-                        QPair<QPointF, QPointF> pair1;
-                        QPair<QPointF, QPointF> pair2;
-                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i, pair1);
-                        VisualCurvePosManager::GetInstance().getWorkerPoint(curve, i + 1, pair2);
 
                         srcPoints.push_back(QPointF(pointF1.x, pointF1.y));
                         srcPoints.push_back(QPointF(pointF2.x, pointF2.y));
-                        srcPoints.push_back(QPointF(pair1.second.x() - pointF1.x, pair1.second.y() - pointF1.y));
-                        srcPoints.push_back(QPointF(pointF2.x - pair2.first.x(), pointF2.y - pair2.first.y()));
+                        srcPoints.push_back(QPointF(pointF1.rightPoint.x() - pointF1.x, pointF1.rightPoint.y() - pointF1.y));
+                        srcPoints.push_back(QPointF(pointF2.x - pointF2.leftPoint.x(), pointF2.y - pointF2.leftPoint.y()));
 
                         time_axis::createHermiteCurve(srcPoints, destPoints, 0.01);
 

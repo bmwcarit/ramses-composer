@@ -40,7 +40,7 @@ bool CurveLogic::insertCurve(QString property, QString curve, QVariant value) {
 }
 
 bool CurveLogic::delCurve(QString curve) {
-    return CurveManager::GetInstance().delCurve(curve.toStdString());
+    return CurveManager::GetInstance().takeCurve(curve.toStdString());
 }
 
 bool CurveLogic::copyCurve(std::string curve) {

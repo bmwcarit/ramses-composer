@@ -10,9 +10,11 @@
 #pragma once
 
 #include "core/Project.h"
+#include "core/UndoState.h"
 
 #include <functional>
 #include <string>
+#include <memory.h>
 
 namespace raco::core {
 
@@ -23,6 +25,16 @@ class UserObjectFactoryInterface;
 
 using translateRefFunc = std::function<SEditorObject(SEditorObject)>;
 using excludePropertyPredicateFunc = std::function<bool(const std::string &)>;
+
+enum UndoType {
+    AddPoint = 0,
+    DelPoint,
+    MovePoint,
+    SwithPointType,
+    AddCurve,
+    DelCurve,
+    MoveCurve
+};
 
 class UndoHelpers {
 public:
@@ -39,15 +51,17 @@ private:
 	static void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
 };
 
+
 class UndoStack {
 public:
 	using Callback = std::function<void()>;
 
 	UndoStack(
-		BaseContext *context, const Callback &onChange = []() {});
+        BaseContext *context, const Callback &onChange = []() {});
 
 	// Add another undo stack entry.
 	void push(const std::string &description, std::string mergeId = std::string());
+    void push(const std::string &description, UndoState state);
 
 	// Number of entries on the undo stack
 	size_t size() const;
@@ -58,6 +72,8 @@ public:
 
 	// Jump backward or forward to any position in the undo stack.
 	size_t setIndex(size_t newIndex, bool force = false);
+
+    int lastProjectStateIndex();
 
 	// Go one entry backwards.
 	void undo();
@@ -75,6 +91,7 @@ protected:
 	void updateProjectState(const Project *src, Project *dest, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
 
 	void restoreProjectState(Project *src, Project *dest, BaseContext &context, UserObjectFactoryInterface &factory);
+    void restoreAnimationState(UndoState state);
 
 	bool canMerge(const DataChangeRecorder &changes);
 
@@ -84,8 +101,10 @@ protected:
 	struct Entry {
 		Entry(std::string description = std::string(), std::string mergeId = std::string());
 		std::string description;
-		std::string mergeId;
+        std::string mergeId;
 		Project state;
+        UndoState undoState;
+        bool isAnimation{false};
 	};
 
 	std::vector<std::unique_ptr<Entry>> stack_;

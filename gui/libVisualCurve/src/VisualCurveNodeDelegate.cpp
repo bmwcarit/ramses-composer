@@ -67,7 +67,7 @@ QWidget *ButtonDelegate::createEditor(QWidget *parent, const QStyleOptionViewIte
 
         if (folderMgr_->isCurve(curve)) {
             Folder *folder{nullptr};
-            SCurveProperty *curveProp{nullptr};
+            STRUCT_CURVE_PROP *curveProp{nullptr};
             if (folderMgr_->curveFromPath(curve, &folder, &curveProp)) {
                 visible = curveProp->visible_;
             }
@@ -181,7 +181,7 @@ void ButtonDelegate::btnClicked() {
 
         if (folderMgr_->isCurve(curve)) {
             Folder *folder{nullptr};
-            SCurveProperty *curveProp{nullptr};
+            STRUCT_CURVE_PROP *curveProp{nullptr};
             if (folderMgr_->curveFromPath(curve, &folder, &curveProp)) {
                 tVisible = curveProp->visible_;
             }

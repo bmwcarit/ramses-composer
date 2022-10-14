@@ -20,11 +20,13 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
-
+#include "visual_curve/VisualCurvePosManager.h"
+#include "FolderData/FolderDataManager.h"
+#include "CurveData/CurveManager.h"
+#include "signal/SignalProxy.h"
 #include <cassert>
 
 namespace raco::core {
-
 using namespace raco::data_storage;
 
 void UndoHelpers::updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
@@ -207,7 +209,6 @@ void UndoHelpers::updateEditorObject(const EditorObject *src, SEditorObject dest
 	}
 }
 
-
 void UndoStack::saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory) {
 	assert(dest->links().empty());
 	assert(dest->linkStartPoints().empty());
@@ -340,7 +341,6 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 	};
 	extrefDirty = extrefDirty || findExtref(changes.getChangedValues());
 
-
 	for (const auto &srcLink : srcLinks) {
 		auto foundDestLink = dest->findLinkByObjectID(srcLink);
 		if (!foundDestLink) {
@@ -396,12 +396,31 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 			// updateExternalReferences will create an error message that will be shown in the Error View in addition
 			// to throwing this exception.
 		}
-	}
+    }
+}
+
+void UndoStack::restoreAnimationState(UndoState state) {
+    if (state.canMergeVisualCurve()) {
+        QVariant data;
+        data.setValue(state.visualPosData().pos);
+        VisualCurvePosManager::GetInstance().merge(data);
+        raco::signal::signalProxy::GetInstance().sigRepaintVisualCurve();
+    }
+    if (state.canMergeFolderData()) {
+        QVariant data;
+        data.setValue(state.folderData().folder);
+        FolderDataManager::GetInstance().merge(data);
+    }
+    if (state.canMergeCurveData()) {
+        QVariant data;
+        data.setValue(state.curveData().list);
+        guiData::CurveManager::GetInstance().merge(data);
+    }
 }
 
 UndoStack::UndoStack(BaseContext* context, const Callback& onChange) : context_(context), onChange_ { onChange } {
 	auto initialState = &stack_.emplace_back(new Entry("Initial"))->state;
-	saveProjectState(context_->project(), initialState, nullptr, context_->modelChanges(), *context_->objectFactory());
+    saveProjectState(context_->project(), initialState, nullptr, context_->modelChanges(), *context_->objectFactory());
 }
 
 void UndoStack::reset() {
@@ -410,7 +429,7 @@ void UndoStack::reset() {
 	auto initialState = &stack_.emplace_back(new Entry("Initial"))->state;
 	context_->modelChanges().reset();
 	saveProjectState(context_->project(), initialState, nullptr, context_->modelChanges(), *context_->objectFactory());
-	onChange_();
+    onChange_();
 }
 
 bool UndoStack::canMerge(const DataChangeRecorder &changes) {
@@ -426,12 +445,22 @@ void UndoStack::push(const std::string &description, std::string mergeId) {
 	} else {
 		// not mergable -> create and fill new state
 		auto nextState = &stack_.emplace_back(new Entry(description, mergeId))->state;
-		++index_;
-		saveProjectState(context_->project(), nextState, &stack_[index_ - 1]->state, context_->modelChanges(), *context_->objectFactory());
+        ++index_;
+        saveProjectState(context_->project(), nextState, &stack_[lastProjectStateIndex()]->state, context_->modelChanges(), *context_->objectFactory());
 	}
 
 	onChange_();
-	context_->modelChanges().reset();
+    context_->modelChanges().reset();
+}
+
+void UndoStack::push(const std::string &description, UndoState state) {
+    stack_.resize(size() + 1);
+    Entry *entry = new Entry(description);
+    entry->undoState = state;
+    entry->isAnimation = true;
+    stack_.back() = std::unique_ptr<Entry>(entry);
+    index_++;
+    onChange_();
 }
 
 size_t UndoStack::size() const {
@@ -445,10 +474,27 @@ size_t UndoStack::getIndex() const {
 size_t UndoStack::setIndex(size_t newIndex, bool force) {
 	if (newIndex < size() && (newIndex != index_ || force)) {
 		index_ = newIndex;
-		restoreProjectState(&stack_[index_]->state, context_->project(), *context_, *context_->objectFactory());
-		onChange_();
+        if (stack_[index_]->isAnimation) {
+            restoreAnimationState(stack_[index_]->undoState);
+            onChange_();
+        } else {
+            restoreProjectState(&stack_[index_]->state, context_->project(), *context_, *context_->objectFactory());
+            onChange_();
+        }
 	}
-	return index_;
+    return index_;
+}
+
+int UndoStack::lastProjectStateIndex() {
+    int tempIndex = index_ - 1;
+    while (stack_[tempIndex]->isAnimation) {
+        if (tempIndex <= 0) {
+            tempIndex = 0;
+            break;
+        }
+        tempIndex--;
+    }
+    return tempIndex;
 }
 
 void UndoStack::undo() {
@@ -475,7 +521,7 @@ bool UndoStack::canUndo() const noexcept {
 }
 
 bool UndoStack::canRedo() const noexcept {
-	return getIndex() < (size()-1);
+    return getIndex() < (size()-1);
 }
 
 }  // namespace raco::core

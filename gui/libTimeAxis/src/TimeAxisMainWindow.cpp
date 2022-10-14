@@ -4,6 +4,7 @@
 #include <QActionGroup>
 #include "style/Icons.h"
 #include "core/EngineInterface.h"
+#include "core/Undo.h"
 #include "visual_curve/VisualCurvePosManager.h"
 
 using namespace raco::style;
@@ -36,14 +37,11 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(visualCurveWidget_, &VisualCurveWidget::sigSwitchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
     connect(visualCurveWidget_, &VisualCurveWidget::sigPressKey, this, &TimeAxisMainWindow::slotPressKey);
 
-    stackedWidget_->setCurrentWidget(timeAxisScrollArea_);
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
     visualCurveScrollArea_->setCenterWidget(visualCurveWidget_);
 
     visualCurveInfoWidget_ = new VisualCurveInfoWidget(this);
     visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this);
-    visualCurveInfoWidget_->hide();
-    visualCurveNodeTreeView_->hide();
 
     initTitle(this);
     initTree(this);
@@ -63,6 +61,8 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     vBoxLayout_->setStretchFactor(hBoxLayout, 7);
     this->setLayout(vBoxLayout_);
 
+    slotSwitchCurveWidget();
+
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAxis_From_NodeUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAixs_From_CurveUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInsertKeyFrame_From_NodeUI, this, &TimeAxisMainWindow::slotCreateKeyFrame);
@@ -77,6 +77,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(visualCurveWidget_, &VisualCurveWidget::sigDeleteCurve, visualCurveNodeTreeView_, &VisualCurveNodeTreeView::slotDeleteCurveFromVisualCurve);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshCursorX, visualCurveWidget_, &VisualCurveWidget::slotRefreshCursorX);
+    connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigSwitchCurveType, visualCurveWidget_, &VisualCurveWidget::slotSwitchCurveType);
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigSwitchVisualCurveInfoWidget, this, &TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget);
 }
@@ -323,6 +324,12 @@ void TimeAxisMainWindow::slotRefreshTimeAxis() {
 void TimeAxisMainWindow::slotInitCurves() {
     visualCurveNodeTreeView_->initCurves();
     visualCurveWidget_->refreshKeyFrameView();
+
+    raco::core::UndoState undoState;
+    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
+    undoState.push(FolderDataManager::GetInstance().converFolderData());
+    undoState.push(CurveManager::GetInstance().convertCurveData());
+    commandInterface_->undoStack().push("Initial Animation", undoState);
 }
 
 void TimeAxisMainWindow::slotSwitchNode(core::ValueHandle &handle) {

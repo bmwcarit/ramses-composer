@@ -135,22 +135,7 @@ void VisualCurveInfoWidget::setCursorWidgetVisible() {
 }
 
 void VisualCurveInfoWidget::slotSwitchInterpolationMode(int index) {
-    SKeyPoint keyPoint;
-    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
-        // change keypoint type
-        keyPoint.setType(index);
-        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
-        Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
-        // change curve data
-        if (curve) {
-            Point *point = curve->getPoint(keyPoint.keyFrame);
-            if (point) {
-                point->setInterPolationType(static_cast<EInterPolationType>(index));
-            }
-        }
-        switchCurveType(index);
-        Q_EMIT sigRefreshVisualCurve();
-    }
+    Q_EMIT sigSwitchCurveType(index);
 }
 
 void VisualCurveInfoWidget::slotKeyFrameChanged(int value) {
@@ -160,13 +145,10 @@ void VisualCurveInfoWidget::slotKeyFrameChanged(int value) {
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
     SKeyPoint keyPoint;
-    QPair<QPointF, QPointF> workerPoint;
     QList<SKeyPoint> keyPoints;
-    QList<QPair<QPointF, QPointF>> workerPointList;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
 
         VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints);
-        VisualCurvePosManager::GetInstance().getCurWorkerPointList(workerPointList);
         // change curve data
         Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
         if (curve) {
@@ -204,18 +186,17 @@ void VisualCurveInfoWidget::slotKeyFrameChanged(int value) {
         double offsetX = point.x() - keyPoint.x;
         keyPoint.setX(point.x());
         keyPoint.setKeyFrame(value);
+
+        QPointF leftPoint(keyPoint.leftPoint.x() + offsetX, keyPoint.leftPoint.y());
+        QPointF rightPoint(keyPoint.rightPoint.x() + offsetX, keyPoint.rightPoint.y());
+        keyPoint.setLeftPoint(leftPoint);
+        keyPoint.setRightPoint(rightPoint);
+
         keyPoints.replace(index, keyPoint);
         keyPoints.move(index, actualIndex);
         VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
-
-        VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint);
-        workerPoint.first.setX(workerPoint.first.x() + offsetX);
-        workerPoint.second.setX(workerPoint.second.x() + offsetX);
-        workerPointList.replace(index, workerPoint);
-        workerPointList.move(index, actualIndex);
         VisualCurvePosManager::GetInstance().setCurrentPointInfo(actualIndex);
 
-        VisualCurvePosManager::GetInstance().swapCurWorkerPointList(workerPointList);
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
     }
@@ -228,19 +209,18 @@ void VisualCurveInfoWidget::slotKeyValueChanged(double value) {
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
     SKeyPoint keyPoint;
-    QPair<QPointF, QPointF> workerPoint;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         QPointF point;
         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.keyFrame, value, point);
 
         double offsetY = point.y() - keyPoint.y;
         keyPoint.setY(point.y());
-        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
-        VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint);
-        workerPoint.first.setY(workerPoint.first.y() + offsetY);
-        workerPoint.second.setY(workerPoint.second.y() + offsetY);
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        QPointF leftPoint(keyPoint.leftPoint.x(), keyPoint.leftPoint.y() + offsetY);
+        QPointF rightPoint(keyPoint.rightPoint.x(), keyPoint.rightPoint.y() + offsetY);
+        keyPoint.setLeftPoint(leftPoint);
+        keyPoint.setRightPoint(rightPoint);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         // change curve data
         Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
@@ -261,9 +241,11 @@ void VisualCurveInfoWidget::slotLeftKeyFrameChanged(int value) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    QPair<QPointF, QPointF> workerPoint;
+    SKeyPoint keyPoint;
     QList<SKeyPoint> keyPointList;
-    if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
+
         int leftWorkerFrame{0};
         pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
 
@@ -287,7 +269,9 @@ void VisualCurveInfoWidget::slotLeftKeyFrameChanged(int value) {
 
         recaculateWorkerLeftPoint(workerPoint, keyPoint);
 
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
     }
@@ -299,8 +283,10 @@ void VisualCurveInfoWidget::slotLeftKeyValueChanged(double value) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    QPair<QPointF, QPointF> workerPoint;
-    if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
+
         QPointF point;
         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, 0, value, point);
         SKeyPoint keyPoint;
@@ -309,7 +295,9 @@ void VisualCurveInfoWidget::slotLeftKeyValueChanged(double value) {
 
         recaculateWorkerLeftPoint(workerPoint, keyPoint);
 
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
     }
@@ -321,15 +309,15 @@ void VisualCurveInfoWidget::slotRightKeyFrameChanged(int value) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    QPair<QPointF, QPointF> workerPoint;
+    SKeyPoint keyPoint;
     QList<SKeyPoint> keyPointList;
-    if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
+
         int rightWorkerFrame{0};
         pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightWorkerFrame);
 
         VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPointList);
-        SKeyPoint keyPoint;
-        VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
 
         if (value < keyPoint.keyFrame) {
             if (workerPoint.first.y() != workerPoint.second.y()) {
@@ -347,7 +335,9 @@ void VisualCurveInfoWidget::slotRightKeyFrameChanged(int value) {
 
         recaculateWorkerRightPoint(workerPoint, keyPoint);
 
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
     }
@@ -359,8 +349,10 @@ void VisualCurveInfoWidget::slotRightKeyValueChanged(double value) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    QPair<QPointF, QPointF> workerPoint;
-    if (VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
+
         QPointF point;
         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, 0, value, point);
         SKeyPoint keyPoint;
@@ -369,7 +361,9 @@ void VisualCurveInfoWidget::slotRightKeyValueChanged(double value) {
 
         recaculateWorkerRightPoint(workerPoint, keyPoint);
 
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
     }
@@ -388,9 +382,8 @@ void VisualCurveInfoWidget::slotLeftTangentChanged(double value) {
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
     SKeyPoint keyPoint;
-    QPair<QPointF, QPointF> workerPoint;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
-        VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint);
+        QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
 
         double leftLength = calculateTrigLen(abs(keyPoint.x - workerPoint.first.x()), abs(keyPoint.y - workerPoint.first.y()));
         double rightLength = calculateTrigLen(abs(keyPoint.x - workerPoint.second.x()), abs(keyPoint.y - workerPoint.second.y()));
@@ -409,9 +402,9 @@ void VisualCurveInfoWidget::slotLeftTangentChanged(double value) {
         rightPoint.setY(keyPoint.y + rightY);
 
         // fill worker point list
-        qSwap(workerPoint.first, leftPoint);
-        qSwap(workerPoint.second, rightPoint);
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         rightTangentSpinBox_->setValue(value);
         int leftKeyFrame{0};
@@ -460,9 +453,8 @@ void VisualCurveInfoWidget::slotRightTangentChanged(double value) {
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
     SKeyPoint keyPoint;
-    QPair<QPointF, QPointF> workerPoint;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
-        VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint);
+        QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
 
         double leftLength = calculateTrigLen(abs(keyPoint.x - workerPoint.first.x()), abs(keyPoint.y - workerPoint.first.y()));
         double rightLength = calculateTrigLen(abs(keyPoint.x - workerPoint.second.x()), abs(keyPoint.y - workerPoint.second.y()));
@@ -481,9 +473,9 @@ void VisualCurveInfoWidget::slotRightTangentChanged(double value) {
         rightPoint.setY(keyPoint.y + rightY);
 
         // fill worker point list
-        qSwap(workerPoint.first, leftPoint);
-        qSwap(workerPoint.second, rightPoint);
-        VisualCurvePosManager::GetInstance().swapCurWorkerPoint(workerPoint);
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         rightTangentSpinBox_->setValue(value);
         int leftKeyFrame{0};
@@ -595,8 +587,7 @@ void VisualCurveInfoWidget::switchCurveType(int type) {
 
 void VisualCurveInfoWidget::updateSelKey() {
     SKeyPoint keyPoint;
-    QPair<QPointF, QPointF> workerPoint;
-    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint) && VisualCurvePosManager::GetInstance().getCurWorkerPoint(workerPoint)) {
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
 
         int curX = VisualCurvePosManager::GetInstance().getCurX();
@@ -612,19 +603,19 @@ void VisualCurveInfoWidget::updateSelKey() {
         keyValueSpinBox_->setValue(value);
 
         int leftKeyFrame{0};
-        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyFrame);
         leftFrameSpinBox_->setValue(leftKeyFrame);
 
         double leftKeyValue{0};
-        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.leftPoint, leftKeyValue);
         leftValueSpinBox_->setValue(leftKeyValue);
 
         int rightKeyFrame{0};
-        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyFrame);
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyFrame);
         rightFrameSpinBox_->setValue(rightKeyFrame);
 
         double rightKeyValue{0};
-        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyValue);
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, keyPoint.rightPoint, rightKeyValue);
         rightValueSpinBox_->setValue(rightKeyValue);
 
         if (CurveManager::GetInstance().getCurve(curve)) {
@@ -650,7 +641,7 @@ void VisualCurveInfoWidget::updateCursorX() {
     cursorXSpinBox_->setValue(VisualCurvePosManager::GetInstance().getCurFrame());
 }
 
-void VisualCurveInfoWidget::recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &workerPoint, time_axis::SKeyPoint keyPoint) {
+void VisualCurveInfoWidget::recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &workerPoint, SKeyPoint keyPoint) {
     // caculate offset x,y by trigle
     double leftLength = calculateTrigLen(abs(keyPoint.x - workerPoint.first.x()), abs(keyPoint.y - workerPoint.first.y()));
     double rightLength = calculateTrigLen(abs(keyPoint.x - workerPoint.second.x()), abs(keyPoint.y - workerPoint.second.y()));

@@ -28,6 +28,8 @@ add_library(libCore
 	include/core/UserObjectFactoryInterface.h
 	include/core/Iterators.h src/Iterators.cpp 
 	include/core/Undo.h src/Undo.cpp
+        include/core/UndoState.h src/UndoState.cpp
+        include/core/ChangeBase.h src/ChangeBase.cpp
 	include/core/EngineInterface.h
 	include/core/ErrorItem.h src/ErrorItem.cpp
 	include/core/Errors.h src/Errors.cpp
@@ -44,11 +46,12 @@ add_library(libCore
 	include/core/ProxyTypes.h src/ProxyTypes.cpp
 	include/core/ProxyObjectFactory.h src/ProxyObjectFactory.cpp
 	include/core/Serialization.h src/Serialization.cpp
-    include/core/SerializationKeys.h    
+        include/core/SerializationKeys.h
 	include/core/TagDataCache.h src/TagDataCache.cpp
 	include/core/CoreAnnotations.h
 	include/core/BasicAnnotations.h
 	include/core/BasicTypes.h
+        include/core/StructCommon.h
 
     include/core/CoreFormatter.h
     include/core/ProjectSettings.h
