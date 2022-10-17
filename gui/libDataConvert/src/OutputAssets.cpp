@@ -12,7 +12,7 @@ namespace raco::dataConvert {
 using namespace raco::style;
 
 std::map<std::string, std::set<std::string>> curveNameAnimation_;
-//        curveName ,   animation1,animation2,animation3...
+//        curveName ,   animation1, animation2, animation3...
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
 	if (-1 != index) {
@@ -36,23 +36,32 @@ void OutputPtx::setMeshBaseNode(NodeData* node, HmiScenegraph::TNode* baseNode) 
 	std::string baseNodeName = nodeName + "Shape";
 	baseNode->set_name(baseNodeName);
 
-	TVector3f* scale = new TVector3f();
-	scale->set_x(1.0);
-	scale->set_y(1.0);
-	scale->set_z(1.0);
-	baseNode->set_allocated_scale(scale);
+	if (node->hasSystemData("scale")) {
+		TVector3f* scale = new TVector3f();
+		Vec3 scal = std::any_cast<Vec3>(node->getSystemData("scale"));
+		scale->set_x(scal.x);
+		scale->set_y(scal.y);
+		scale->set_z(scal.z);
+		baseNode->set_allocated_scale(scale);
+	}
+	if (node->hasSystemData("rotation")) {
+		TVector3f* rotation = new TVector3f();
+		Vec3 rota = std::any_cast<Vec3>(node->getSystemData("rotation"));
+		rotation->set_x(rota.x);
+		rotation->set_y(rota.y);
+		rotation->set_z(rota.z);
+		baseNode->set_allocated_rotation(rotation);
+	}
+	if (node->hasSystemData("translation")) {
+		TVector3f* translation = new TVector3f();
+		Vec3 tran = std::any_cast<Vec3>(node->getSystemData("translation"));
+		translation->set_x(tran.x);
+		translation->set_y(tran.y);
+		translation->set_z(tran.z);
+		baseNode->set_allocated_translation(translation);
+	}
 
-	TVector3f* rotation = new TVector3f();
-	rotation->set_x(0.0);
-	rotation->set_y(0.0);
-	rotation->set_z(0.0);
-	baseNode->set_allocated_rotation(rotation);
 
-	TVector3f* translation = new TVector3f();
-	translation->set_x(0.0);
-	translation->set_y(0.0);
-	translation->set_z(0.0);
-	baseNode->set_allocated_translation(translation);
 }
 
 
@@ -231,7 +240,7 @@ void OutputPtx::setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialDa
 		}
 	}
 }
-
+// update ptx node
 void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     std::string nodeName = childNode->getName();
 	int index = nodeName.rfind(".objectID");
@@ -240,46 +249,67 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 		nodeName = nodeName.substr(0, nodeName.length() - 9);
 	hmiNode.set_name(nodeName);
 
-	if (childNode->hasSystemData("scale")) {
+	MeshData meshData;
+	bool isMeshNode = raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData);
+
+	if (!isMeshNode) {
+		if (childNode->hasSystemData("scale")) {
+			TVector3f* scale = new TVector3f();
+			Vec3 scal = std::any_cast<Vec3>(childNode->getSystemData("scale"));
+			scale->set_x(scal.x);
+			scale->set_y(scal.y);
+			scale->set_z(scal.z);
+			hmiNode.set_allocated_scale(scale);
+		}
+		if (childNode->hasSystemData("rotation")) {
+			TVector3f* rotation = new TVector3f();
+			Vec3 rota = std::any_cast<Vec3>(childNode->getSystemData("rotation"));
+			rotation->set_x(rota.x);
+			rotation->set_y(rota.y);
+			rotation->set_z(rota.z);
+			hmiNode.set_allocated_rotation(rotation);
+		}
+		if (childNode->hasSystemData("translation")) {
+			TVector3f* translation = new TVector3f();
+			Vec3 tran = std::any_cast<Vec3>(childNode->getSystemData("translation"));
+			translation->set_x(tran.x);
+			translation->set_y(tran.y);
+			translation->set_z(tran.z);
+			hmiNode.set_allocated_translation(translation);
+		}
+	}else {// meshNode use default data
 		TVector3f* scale = new TVector3f();
-		Vec3 scal = std::any_cast<Vec3>(childNode->getSystemData("scale"));
-		scale->set_x(scal.x);
-		scale->set_y(scal.y);
-		scale->set_z(scal.z);
+		scale->set_x(1.0);
+		scale->set_y(1.0);
+		scale->set_z(1.0);
 		hmiNode.set_allocated_scale(scale);
-	}
-	if (childNode->hasSystemData("rotation")) {
+
 		TVector3f* rotation = new TVector3f();
-		Vec3 rota = std::any_cast<Vec3>(childNode->getSystemData("rotation"));
-		rotation->set_x(rota.x);
-		rotation->set_y(rota.y);
-		rotation->set_z(rota.z);
+		rotation->set_x(0.0);
+		rotation->set_y(0.0);
+		rotation->set_z(0.0);
 		hmiNode.set_allocated_rotation(rotation);
-	}
-	if (childNode->hasSystemData("translation")) {
+
 		TVector3f* translation = new TVector3f();
-		Vec3 tran = std::any_cast<Vec3>(childNode->getSystemData("translation"));
-		translation->set_x(tran.x);
-		translation->set_y(tran.y);
-		translation->set_z(tran.z);
+		translation->set_x(0.0);
+		translation->set_y(0.0);
+		translation->set_z(0.0);
 		hmiNode.set_allocated_translation(translation);
 	}
+
     // renderorder and childSortOrderRank
     hmiNode.set_renderorder(0);
 	hmiNode.set_childsortorderrank(0);
 
 	MaterialData materialData;
 	if (raco::guiData::MaterialManager::GetInstance().getMaterialData(childNode->objectID(), materialData)) {
-
 		setMaterialTextureByNodeUniforms(childNode, materialData);
-
 		raco::guiData::MaterialManager::GetInstance().deleteMateialData(childNode->objectID());
 		raco::guiData::MaterialManager::GetInstance().addMaterialData(childNode->objectID(), materialData);
 	}
 
     // mesh
-	MeshData meshData;
-	if (raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData)) {
+	if (isMeshNode) {
 		HmiScenegraph::TMesh mesh;
 		setPtxTMesh(childNode, mesh);
 		HmiScenegraph::TMesh* it = hmiNode.add_mesh();
@@ -1182,7 +1212,7 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 		text = QString::fromStdString(curveName) + "\" do not match !";
 		text = "Warning: The keyframe points in \"" + text;
 	} else if (errorNum == 4) {
-		text = QString::fromStdString(curveName) + "\" is neither linear nor hermite !";
+		text = QString::fromStdString(curveName) + "\" is neither linear nor hermite/beiser !";
 		text = "Warning: The type of curve  \"" + text;
 	} else if (errorNum == 5) {
 		text = "No animation information !";
@@ -1243,18 +1273,16 @@ void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animati
 				TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 				incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 				point->set_allocated_incomminginterpolation(incommingInterpolation);
-
 				TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 				outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 				point->set_allocated_outgoinginterpolation(outgoingInterpolation);
-			}
-			else if (pointData->getInterPolationType() == raco::guiData::HERMIT_SPLINE) {
+			} else if (pointData->getInterPolationType() == raco::guiData::BESIER_SPLINE) {	 // HERMIT_SPLINE
 				TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 				incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
 				TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
-				lefttangentVector->set_domain(0.0);
+				lefttangentVector->set_domain(pointData->getLeftKeyFrame());
 				TNumericValue* leftValue = new TNumericValue;
-				leftValue->set_float_(std::any_cast<double>(pointData->getLeftTagent()));
+				leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
 				lefttangentVector->set_allocated_value(leftValue);
 				incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
 				point->set_allocated_incomminginterpolation(incommingInterpolation);
@@ -1262,11 +1290,12 @@ void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animati
 				TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 				outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
 				TMultidimensionalPoint* RighttangentVector = new TMultidimensionalPoint;
-				RighttangentVector->set_domain(0.0);
+				RighttangentVector->set_domain(pointData->getRightKeyFrame());
 				TNumericValue* RightValue = new TNumericValue;
-				RightValue->set_float_(std::any_cast<double>(pointData->getRightTagent()));
+				//double right = std::any_cast<double>(pointData->getRightTagent());
+				RightValue->set_float_(std::any_cast<double>(pointData->getRightData()));
 				RighttangentVector->set_allocated_value(RightValue);
-				incommingInterpolation->set_allocated_tangentvector(RighttangentVector);
+				outgoingInterpolation->set_allocated_tangentvector(RighttangentVector);
 				point->set_allocated_outgoinginterpolation(outgoingInterpolation);
 			} else {
 				messageBoxError(curveData->getCurveName(), 4);
@@ -1831,6 +1860,25 @@ void OutputPtw::addVecValue2Uniform(std::pair<std::string, std::string> curvePro
 	if (isAddedUniform(uniformName, node)) {
 		return;
 	}
+
+	// get uniforms
+	bool isInUniforms = false;
+	NodeMaterial nodeMaterial;
+	raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node->objectID(), nodeMaterial);
+	// get weights
+	UniformType usedUniformType = UniformType::Null;
+	std::vector<Uniform> uniforms = nodeMaterial.getUniforms();
+	for (auto& un : uniforms) {
+		if (un.getName() == uniformName) {
+			usedUniformType = un.getType();
+			isInUniforms = true;
+			break;
+		}
+	}
+	if (!isInUniforms) {
+		return;
+	}
+
 	auto uniform = nodeParam->add_uniform();
 
 	TDataBinding* name = new TDataBinding;
@@ -1845,18 +1893,6 @@ void OutputPtw::addVecValue2Uniform(std::pair<std::string, std::string> curvePro
 	TDataProvider* valProvder = new TDataProvider;
 	TOperation* operation = new TOperation;
 	TDataBinding* value = new TDataBinding;
-
-	// get weights
-	NodeMaterial nodeMaterial;
-	UniformType usedUniformType = UniformType::Null;
-	raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node->objectID(), nodeMaterial);
-	std::vector<Uniform> uniforms = nodeMaterial.getUniforms();
-	for (auto& un : uniforms) {
-		if (un.getName() == uniformName) {
-			usedUniformType = un.getType();
-			break;
-		}
-	}
 
 	// get which weight used
 	std::string curveNameArr[4] = {""};
