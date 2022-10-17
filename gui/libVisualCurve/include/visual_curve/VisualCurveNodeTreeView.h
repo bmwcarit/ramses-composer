@@ -18,6 +18,7 @@
 #include "signal/SignalProxy.h"
 #include "VisualCurveNodeDelegate.h"
 #include "FolderData/FolderDataManager.h"
+#include "CurveData/CurveManager.h"
 
 using namespace raco::guiData;
 namespace raco::visualCurve {
@@ -34,8 +35,8 @@ public:
     void swapCurve(std::string oldCurve, std::string newCurve);
     void setFolderPath(Folder *folder, std::string path);
 private:
-    bool moveCurveToNode(Folder *srcFolder, SCurveProperty *srcCurveProp, std::string srcCurvePath, std::string destCurvePath);
-    bool moveCurveToDefaultNode(Folder *srcFolder, SCurveProperty *srcCurveProp, std::string srcCurvePath);
+    bool moveCurveToNode(Folder *srcFolder, STRUCT_CURVE_PROP *srcCurveProp, std::string srcCurvePath, std::string destCurvePath);
+    bool moveCurveToDefaultNode(Folder *srcFolder, STRUCT_CURVE_PROP *srcCurveProp, std::string srcCurvePath);
     bool moveFolderToNode(Folder *srcFolder, std::string srcCurvePath, std::string destCurvePath);
     bool moveFolderToDefaultNode(Folder *srcFolder, std::string srcCurvePath);
 signals:

@@ -2,37 +2,44 @@
 #define CURVEMANAGER_H
 
 #include "CurveData/CurveData.h"
+#include "core/ChangeBase.h"
+#include "core/StructCommon.h"
 
 namespace raco::guiData {
 
-class CurveManager {
+class CurveManager : public core::ChangeBase {
 public:
     static CurveManager& GetInstance();
     ~CurveManager();
     CurveManager(const CurveManager&) = delete;
     CurveManager& operator=(const CurveManager&) = delete;
 
-    // 添加 Curve
+    std::list<STRUCT_CURVE> convertCurveData();
+    virtual void merge(QVariant data) override;
+
+    // add Curve
     bool addCurve(Curve* curve);
-    // 删除 Curve
+    // take Curve
+    bool takeCurve(const std::string& curveNmae);
+    // del Curve
     bool delCurve(const std::string& curveNmae);
-    // 获取 Curve
+    // get Curve
     Curve *getCurve(const std::string& curveName);
-    // 修改 Curve Name
+    // modify Curve Name
     bool modifyCurveName(const std::string& curveName, const std::string& modifyName);
-    // 复制 Curve
+    // copy Curve
     bool copyCurve(const std::string& curveName);
-    // 是否有Curve
+    // has Curve
     bool hasCurve(const std::string &curveName);
-    // 清空Curve
+    // clear Curve
     bool clearCurve();
-    // 模糊搜索
+    // search
     std::list<Curve*> search(const std::string& curveNmae);
     //
     bool getCurveValue(std::string curve, int keyFrame, EInterPolationType type, double &value);
     //
     bool getPointType(std::string curve, int keyFrame, EInterPolationType &type);
-    // 获取 Curve list
+    // get Curve list
     std::list<Curve*> getCurveList();
 private:
     CurveManager();

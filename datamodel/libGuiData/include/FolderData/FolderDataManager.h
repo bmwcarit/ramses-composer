@@ -1,5 +1,6 @@
 #ifndef FOLDERDATAMANAGER_H
 #define FOLDERDATAMANAGER_H
+#include "core/StructCommon.h"
 #include "qobject.h"
 #include <list>
 #include <mutex>
@@ -8,15 +9,7 @@
 #include <map>
 #include <regex>
 #include <QStringList>
-
-struct SCurveProperty {
-    std::string curve_;
-    bool visible_{true};
-
-    SCurveProperty(std::string curve = std::string()) {
-        curve_ = curve;
-    }
-};
+#include "core/ChangeBase.h"
 
 class Folder {
 public:
@@ -36,12 +29,12 @@ public:
     std::string getFolderName();
 
     bool hasCurve(std::string curve);
-    void insertCurve(SCurveProperty *curveProp);
+    void insertCurve(STRUCT_CURVE_PROP *curveProp);
     bool insertCurve(std::string curve, bool bVisible = true);
-    SCurveProperty *takeCurve(std::string curve);
+    STRUCT_CURVE_PROP *takeCurve(std::string curve);
     bool deleteCurve(std::string curve);
-    SCurveProperty *getCurve(std::string curve);
-    std::list<SCurveProperty*> getCurveList();
+    STRUCT_CURVE_PROP *getCurve(std::string curve);
+    std::list<STRUCT_CURVE_PROP*> getCurveList();
 
     bool hasFolder(std::string folderName);
     void insertFolder(Folder *folder);
@@ -52,23 +45,34 @@ public:
     std::list<Folder*> getFolderList();
 private:
     std::string folderName_;
-    std::list<SCurveProperty*> curveList_;
+    std::list<STRUCT_CURVE_PROP*> curveList_;
     std::list<Folder*> folderList_;
     Folder *parent_{nullptr};
     bool visible_{true};
 };
 
-class FolderDataManager {
+class FolderDataManager : public raco::core::ChangeBase {
 public:
-    FolderDataManager();
+    static FolderDataManager &GetInstance();
+    ~FolderDataManager();
+    FolderDataManager(const FolderDataManager&) = delete;
+    FolderDataManager& operator=(const FolderDataManager&) = delete;
+
+    virtual void merge(QVariant data) override;
+    void mergeFolder(Folder *folder, STRUCT_FOLDER folderData);
 
     void clear();
     Folder *getRootFolder();
 
+    STRUCT_FOLDER converFolderData();
+
     bool isCurve(std::string curveName);
     bool folderFromPath(std::string path, Folder **folder);
-    bool curveFromPath(std::string curveName,  Folder **folder, SCurveProperty **curveProp);
+    bool curveFromPath(std::string curveName,  Folder **folder, STRUCT_CURVE_PROP **curveProp);
     bool pathFromCurve(std::string curve, Folder *folder, std::string &path);
+
+private:
+    FolderDataManager();
 private:
     Folder *rootFolder_{nullptr};
 };

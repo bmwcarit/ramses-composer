@@ -2,15 +2,15 @@
 #define TIMEAXISCOMMON_H
 
 #include "qpoint.h"
-#include "CurveData/CurveManager.h"
+#include <QMap>
 #include <QList>
 #include <any>
 #include <string>
 #include <vector>
+#include <QMetaType>
+#include <QVariant>
 
-
-namespace raco::time_axis{
-
+namespace raco::time_axis {
 
 #define INTERVAL_LENGTH_MIN 40
 #define INTERVAL_LENGTH_DEFAULT 50
@@ -79,6 +79,8 @@ struct SKeyPoint {
     double x{0};
     double y{0};
     int type{0};
+    QPointF leftPoint;
+    QPointF rightPoint;
 
     SKeyPoint(double v1 = 0, double v2 = 0, int t = 0, int key = 0) {
         x = v1;
@@ -97,6 +99,14 @@ struct SKeyPoint {
     }
     void setType(int t) {
         type = t;
+    }
+    void setLeftPoint(QPointF point) {
+        leftPoint.setX(point.x());
+        leftPoint.setY(point.y());
+    }
+    void setRightPoint(QPointF point) {
+        rightPoint.setX(point.x());
+        rightPoint.setY(point.y());
     }
 };
 
@@ -170,7 +180,6 @@ static void pointF2Value(int offsetWidth, int offsetHeight, double frameWidth, d
 static void pointF2KeyFrame(int offsetWidth, int offsetHeight, double frameWidth, double valueWidth, QPointF pointF, int &keyFrame) {
     keyFrame = qRound((double)(pointF.x() + offsetWidth) / frameWidth);
 }
-
 }
 
 #endif // TIMEAXISCOMMON_H

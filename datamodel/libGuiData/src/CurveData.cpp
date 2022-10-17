@@ -154,6 +154,23 @@ bool Curve::delPoint(int keyFrame) {
         auto it = pointList_.begin();
         while (it != pointList_.end()) {
             if ((*it)->getKeyFrame() == keyFrame) {
+                Point *point = (*it);
+                pointList_.erase(it);
+                delete point;
+                point = nullptr;
+                return true;
+            }
+            it++;
+        }
+    }
+    return false;
+}
+
+bool Curve::takePoint(int keyFrame) {
+    if (!pointList_.empty()) {
+        auto it = pointList_.begin();
+        while (it != pointList_.end()) {
+            if ((*it)->getKeyFrame() == keyFrame) {
                 pointList_.erase(it);
                 return true;
             }

@@ -6,6 +6,47 @@ CurveManager::CurveManager() {
 
 }
 
+std::list<STRUCT_CURVE> CurveManager::convertCurveData() {
+    std::list<STRUCT_CURVE> curveList;
+    return curveList;
+}
+
+void CurveManager::merge(QVariant data) {
+    auto mergeCurve = [=](Curve *curve, STRUCT_CURVE destCurve) {
+        curve->setCurveName(destCurve.curveName_);
+        curve->setDataType(static_cast<EDataType>(destCurve.dataType_));
+    };
+
+    auto mergePoint = [=](Point *point, STRUCT_POINT destPoint) {
+        point->setKeyFrame(destPoint.keyFrame_);
+        point->setInterPolationType(static_cast<EInterPolationType>(destPoint.interPolationType_));
+        point->setDataValue(destPoint.data_);
+        point->setLeftTagent(destPoint.leftTagent_);
+        point->setLeftKeyFrame(destPoint.keyFrame_);
+        point->setLeftData(destPoint.leftData_);
+        point->setRightData(destPoint.rightData_);
+        point->setRightKeyFrame(destPoint.rightKeyFrame_);
+        point->setRightTagent(destPoint.rightTagent_);
+    };
+
+    if (data.canConvert<std::list<STRUCT_CURVE>>()) {
+        std::list<STRUCT_CURVE> list = data.value<std::list<STRUCT_CURVE>>();
+        if (!list.empty()) {
+            clearCurve();
+            for (const auto &destCurve : list) {
+                Curve *curve = new Curve;
+                mergeCurve(curve, destCurve);
+                for (const auto &destPoint : destCurve.pointList) {
+                    Point *point = new Point;
+                    mergePoint(point, destPoint);
+                    curve->insertPoint(point);
+                }
+                addCurve(curve);
+            }
+        }
+    }
+}
+
 CurveManager &CurveManager::GetInstance() {
     // TODO: 在此处插入 return 语句
     static CurveManager Instance;
@@ -38,11 +79,26 @@ bool CurveManager::addCurve(Curve *curve) {
     return true;
 }
 
-bool CurveManager::delCurve(const std::string &curveNmae) {
+bool CurveManager::takeCurve(const std::string &curveNmae) {
     auto it = curveList_.begin();
     while (it != curveList_.end()) {
         if ((*it)->getCurveName().compare(curveNmae) == 0) {
             it = curveList_.erase(it);
+            return true;
+        }
+        it++;
+    }
+    return false;
+}
+
+bool CurveManager::delCurve(const std::string &curveNmae) {
+    auto it = curveList_.begin();
+    while (it != curveList_.end()) {
+        if ((*it)->getCurveName().compare(curveNmae) == 0) {
+            Curve *curve = *it;
+            it = curveList_.erase(it);
+            delete curve;
+            curve = nullptr;
             return true;
         }
         it++;

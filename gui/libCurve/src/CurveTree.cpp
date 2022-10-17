@@ -213,7 +213,7 @@ void CurveTree::slotDeletePoint() {
             Point* point = pointProItem->getPoint();
             Curve* curve = pointProItem->getCurve();
             if (curve && point) {
-                curve->delPoint(point->getKeyFrame());
+                curve->takePoint(point->getKeyFrame());
                 if (curve->getPointList().size() == 0) {
                     curveLogic_->delCurve(QString::fromStdString(curve->getCurveName()));
                     if (item->parentItem()) {

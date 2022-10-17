@@ -245,19 +245,19 @@ void GltfAnimationManager::updateOneGltfCurve(raco::guiData::NodeData *nodeData,
     if (invalidIndexX == 1) {
         nodeData->NodeExtendRef().curveBindingRef().deleteBindingDataItem(curAnimation_.toStdString(), propX, curveX);
         if (raco::guiData::CurveManager::GetInstance().getCurve(curveX)) {
-            raco::guiData::CurveManager::GetInstance().delCurve(curveX);
+            raco::guiData::CurveManager::GetInstance().takeCurve(curveX);
         }
     }
     if (invalidIndexY == 1) {
         nodeData->NodeExtendRef().curveBindingRef().deleteBindingDataItem(curAnimation_.toStdString(), propY, curveY);
         if (raco::guiData::CurveManager::GetInstance().getCurve(curveY)) {
-            raco::guiData::CurveManager::GetInstance().delCurve(curveY);
+            raco::guiData::CurveManager::GetInstance().takeCurve(curveY);
         }
     }
     if (invalidIndexZ == 1) {
         nodeData->NodeExtendRef().curveBindingRef().deleteBindingDataItem(curAnimation_.toStdString(), propZ, curveZ);
         if (raco::guiData::CurveManager::GetInstance().getCurve(curveZ)) {
-            raco::guiData::CurveManager::GetInstance().delCurve(curveZ);
+            raco::guiData::CurveManager::GetInstance().takeCurve(curveZ);
         }
     }
 }

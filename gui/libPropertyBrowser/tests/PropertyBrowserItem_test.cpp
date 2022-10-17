@@ -42,7 +42,7 @@ public:
 		properties_.emplace_back("table", &table_);
 	}
 
-	Property<Table> table_{{}};
+    Property<raco::data_storage::Table> table_{{}};
 };
 
 TEST(PropertyBrowserItem, displayName) {
@@ -153,7 +153,7 @@ TEST(PropertyBrowserItem, setExpanded_doesnt_influence_showChildren_ifItemHasNoC
 TEST(PropertyBrowserItem, setExpandedRecursively) {
 	PropertyBrowserItemTestHelper<MockMutableTable> data{};
 	const ValueHandle tableHandle{data.valueHandle.get("table")};
-	data.addPropertyTo("table", "vec", new Value<Vec3f>());
+    data.addPropertyTo("table", "vec", new Value<raco::core::Vec3f>());
 	const ValueHandle vecHandle{data.valueHandle.get("table").get("vec")};
 
 	PropertyBrowserItem tableItem{tableHandle, data.dispatcher, &data.commandInterface, nullptr};

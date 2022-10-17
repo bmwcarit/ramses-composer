@@ -3,14 +3,18 @@
 
 #include <QMap>
 #include <QList>
-#include "time_axis/TimeAxisCommon.h"
+#include "core/ChangeBase.h"
+#include "core/StructCommon.h"
 
 using namespace raco::time_axis;
-class VisualCurvePosManager {
+class VisualCurvePosManager : public raco::core::ChangeBase {
 public:
     static VisualCurvePosManager& GetInstance();
     VisualCurvePosManager(const VisualCurvePosManager&) = delete;
     VisualCurvePosManager& operator=(const VisualCurvePosManager&) = delete;
+
+    STRUCT_VISUAL_CURVE_POS convertDataStruct();
+    virtual void merge(QVariant data) override;
 
     void setKeyBoardType(KEY_BOARD_TYPE type);
     KEY_BOARD_TYPE getKeyBoardType();
@@ -56,41 +60,18 @@ public:
     void setCurrentPointInfo(std::string curve);
     void setCurrentPointInfo(int index);
 
+    void clearKeyPointMap();
     QMap<std::string, QList<SKeyPoint>> getKeyPointMap();
     void setKeyPointMap(QMap<std::string, QList<SKeyPoint>> map);
-
-    QMap<std::string, QList<QPair<QPointF, QPointF>>> getWorkerPointMap();
-    void setWorkerPointMap(QMap<std::string, QList<QPair<QPointF, QPointF>>> map);
-
-    void clearKeyPointMap();
-    void clearWorkerPointMap();
-
     void addKeyPointList(std::string curve, QList<SKeyPoint> points);
-    void addWorkerPointList(std::string curve, QList<QPair<QPointF, QPointF>> pairs);
-
     void deleteKeyPointList(std::string curve);
-    void deleteWorkerPointList(std::string curve);
-
     bool getCurKeyPoint(SKeyPoint &point);
-    bool getCurWorkerPoint(QPair<QPointF, QPointF> &pair);
-
     bool insertKeyPoint(int index, std::string curve, SKeyPoint keyPoint);
-    bool insertWorkerPoint(int index, std::string curve, QPair<QPointF, QPointF> pair);
-
     bool getKeyPoint(std::string curve, int index, SKeyPoint &point);
-    bool getWorkerPoint(std::string curve, int index, QPair<QPointF, QPointF> &pair);
-
     void replaceCurKeyPoint(SKeyPoint point);
-    void swapCurWorkerPoint(QPair<QPointF, QPointF> pair);
-
     bool getCurKeyPointList(QList<SKeyPoint> &pointList);
-    bool getCurWorkerPointList(QList<QPair<QPointF, QPointF>> &workerPointList);
-
     bool getKeyPointList(std::string curve, QList<SKeyPoint> &points);
-    bool getWorkerPointList(std::string curve, QList<QPair<QPointF, QPointF>> &pairs);
-
     void swapCurKeyPointList(QList<SKeyPoint> pointList);
-    void swapCurWorkerPointList(QList<QPair<QPointF, QPointF>> workerPointList);
 
     void addMultiSelPoint(int index);
     bool hasMultiSelPoint(int index);
@@ -114,7 +95,6 @@ private:
     MOUSE_PRESS_ACTION pressAction_;
     QPair<std::string, int> curPointInfo_;
     QMap<std::string, QList<SKeyPoint>> keyPointMap_;
-    QMap<std::string, QList<QPair<QPointF, QPointF>>> workerPointMap_;
     QList<std::string> hidenCurveList_;
     QList<int> multiSelPoints_;
 };

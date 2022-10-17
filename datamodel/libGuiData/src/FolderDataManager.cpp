@@ -88,7 +88,7 @@ bool Folder::hasCurve(std::string curve) {
     return false;
 }
 
-void Folder::insertCurve(SCurveProperty *curveProp) {
+void Folder::insertCurve(STRUCT_CURVE_PROP *curveProp) {
     curveList_.push_back(curveProp);
 }
 
@@ -98,16 +98,16 @@ bool Folder::insertCurve(std::string curve, bool bVisible) {
             return false;
         }
     }
-    SCurveProperty *curveProp = new SCurveProperty(curve);
+    STRUCT_CURVE_PROP *curveProp = new STRUCT_CURVE_PROP(curve);
     curveProp->visible_ = bVisible;
     curveList_.push_back(curveProp);
     return true;
 }
 
-SCurveProperty *Folder::takeCurve(std::string curve) {
+STRUCT_CURVE_PROP *Folder::takeCurve(std::string curve) {
     for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
         if ((*it)->curve_ == curve) {
-            SCurveProperty *curveProp = *it;
+            STRUCT_CURVE_PROP *curveProp = *it;
             curveList_.erase(it);
             return curveProp;
         }
@@ -118,7 +118,7 @@ SCurveProperty *Folder::takeCurve(std::string curve) {
 bool Folder::deleteCurve(std::string curve) {
     for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
         if ((*it)->curve_ == curve) {
-            SCurveProperty *curveProp = *it;
+            STRUCT_CURVE_PROP *curveProp = *it;
             curveList_.erase(it);
             delete curveProp;
             curveProp = nullptr;
@@ -128,7 +128,7 @@ bool Folder::deleteCurve(std::string curve) {
     return false;
 }
 
-SCurveProperty *Folder::getCurve(std::string curve) {
+STRUCT_CURVE_PROP *Folder::getCurve(std::string curve) {
     for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
         if ((*it)->curve_ == curve) {
             return *it;
@@ -137,7 +137,7 @@ SCurveProperty *Folder::getCurve(std::string curve) {
     return nullptr;
 }
 
-std::list<SCurveProperty *> Folder::getCurveList() {
+std::list<STRUCT_CURVE_PROP *> Folder::getCurveList() {
     return curveList_;
 }
 
@@ -206,8 +206,42 @@ std::list<Folder *> Folder::getFolderList() {
     return folderList_;
 }
 
+FolderDataManager &FolderDataManager::GetInstance() {
+    static FolderDataManager Instance;
+    return Instance;
+}
+
+FolderDataManager::~FolderDataManager() {
+    delete rootFolder_;
+    rootFolder_ = nullptr;
+}
+
 FolderDataManager::FolderDataManager() {
     rootFolder_ = new Folder;
+}
+
+void FolderDataManager::merge(QVariant data) {
+    if (data.canConvert<STRUCT_FOLDER>()) {
+        STRUCT_FOLDER destFolder = data.value<STRUCT_FOLDER>();
+        clear();
+        mergeFolder(rootFolder_, destFolder);
+    }
+}
+
+void FolderDataManager::mergeFolder(Folder *folder, STRUCT_FOLDER folderData) {
+    folder->setFolderName(folderData.folderName_);
+
+    for (const auto &destCurve : folderData.curveList) {
+        STRUCT_CURVE_PROP *curveProp = new STRUCT_CURVE_PROP;
+        curveProp->curve_ = destCurve.curve_;
+        curveProp->visible_ = destCurve.visible_;
+        folder->insertCurve(curveProp);
+    }
+    for (const auto &destFolder : folderData.folerList) {
+        Folder *childFolder = new Folder;
+        folder->insertFolder(childFolder);
+        mergeFolder(childFolder, destFolder);
+    }
 }
 
 void FolderDataManager::clear() {
@@ -216,6 +250,11 @@ void FolderDataManager::clear() {
 
 Folder *FolderDataManager::getRootFolder() {
     return rootFolder_;
+}
+
+STRUCT_FOLDER FolderDataManager::converFolderData() {
+    STRUCT_FOLDER folder;
+    return folder;
 }
 
 bool FolderDataManager::isCurve(std::string curveName) {
@@ -237,7 +276,7 @@ bool FolderDataManager::isCurve(std::string curveName) {
             return false;
         }
     }
-    SCurveProperty *curveProp = folder->getCurve(curve);
+    STRUCT_CURVE_PROP *curveProp = folder->getCurve(curve);
     if (curveProp) {
         return true;
     }
@@ -270,7 +309,7 @@ bool FolderDataManager::folderFromPath(std::string path, Folder **folder) {
     return true;
 }
 
-bool FolderDataManager::curveFromPath(std::string curveName, Folder **folder, SCurveProperty **curveProp) {
+bool FolderDataManager::curveFromPath(std::string curveName, Folder **folder, STRUCT_CURVE_PROP **curveProp) {
     auto getFolder = [=](Folder **f, std::string node)->bool {
         Folder *temp = *f;
         temp = temp->getFolder(node);
@@ -289,7 +328,7 @@ bool FolderDataManager::curveFromPath(std::string curveName, Folder **folder, SC
             return false;
         }
     }
-    SCurveProperty *tempCurve{*curveProp};
+    STRUCT_CURVE_PROP *tempCurve{*curveProp};
     if (tempFolder->hasCurve(last)) {
         tempCurve = tempFolder->getCurve(last);
     }

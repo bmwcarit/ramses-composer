@@ -9,6 +9,32 @@ VisualCurvePosManager::VisualCurvePosManager() {
 
 }
 
+STRUCT_VISUAL_CURVE_POS VisualCurvePosManager::convertDataStruct() {
+    STRUCT_VISUAL_CURVE_POS pos;
+    pos.curFrame_ = curFrame_;
+    pos.centerLinePos_ = centerLinePos_;
+    pos.cursorShow_ = cursorShow_;
+    pos.pressAction_ = pressAction_;
+    pos.curPointInfo_ = curPointInfo_;
+    pos.keyPointMap_ = keyPointMap_;
+    pos.hidenCurveList_ = hidenCurveList_;
+    return pos;
+}
+
+void VisualCurvePosManager::merge(QVariant data) {
+    if (data.canConvert<STRUCT_VISUAL_CURVE_POS>()) {
+        STRUCT_VISUAL_CURVE_POS pos = data.value<STRUCT_VISUAL_CURVE_POS>();
+
+        curFrame_ = pos.curFrame_;
+        centerLinePos_  = pos.centerLinePos_;
+        cursorShow_ = pos.cursorShow_;
+        pressAction_ = pos.pressAction_;
+        curPointInfo_ = pos.curPointInfo_;
+        keyPointMap_ = pos.keyPointMap_;
+        hidenCurveList_ = pos.hidenCurveList_;
+    }
+}
+
 void VisualCurvePosManager::setKeyBoardType(KEY_BOARD_TYPE type) {
     keyBoardType_ = type;
 }
@@ -144,36 +170,17 @@ void VisualCurvePosManager::setKeyPointMap(QMap<std::string, QList<SKeyPoint> > 
     keyPointMap_ = map;
 }
 
-QMap<std::string, QList<QPair<QPointF, QPointF> > > VisualCurvePosManager::getWorkerPointMap() {
-    return workerPointMap_;
-}
-
-void VisualCurvePosManager::setWorkerPointMap(QMap<std::string, QList<QPair<QPointF, QPointF> > > map) {
-    workerPointMap_ = map;
-}
-
 void VisualCurvePosManager::clearKeyPointMap() {
     keyPointMap_.clear();
-}
-
-void VisualCurvePosManager::clearWorkerPointMap() {
-    workerPointMap_.clear();
 }
 
 void VisualCurvePosManager::addKeyPointList(std::string curve, QList<SKeyPoint> points) {
     keyPointMap_.insert(curve, points);
 }
 
-void VisualCurvePosManager::addWorkerPointList(std::string curve, QList<QPair<QPointF, QPointF> > pairs) {
-    workerPointMap_.insert(curve, pairs);
-}
 
 void VisualCurvePosManager::deleteKeyPointList(std::string curve) {
     keyPointMap_.remove(curve);
-}
-
-void VisualCurvePosManager::deleteWorkerPointList(std::string curve) {
-    workerPointMap_.remove(curve);
 }
 
 bool VisualCurvePosManager::getCurKeyPoint(SKeyPoint &point) {
@@ -181,17 +188,6 @@ bool VisualCurvePosManager::getCurKeyPoint(SKeyPoint &point) {
         QList<SKeyPoint> pointList = keyPointMap_.value(curPointInfo_.first);
         if (pointList.size() > curPointInfo_.second) {
             point = pointList.at(curPointInfo_.second);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool VisualCurvePosManager::getCurWorkerPoint(QPair<QPointF, QPointF> &pair) {
-    if (workerPointMap_.contains(curPointInfo_.first)) {
-        QList<QPair<QPointF, QPointF>> workerPointList = workerPointMap_.value(curPointInfo_.first);
-        if (workerPointList.size() > curPointInfo_.second) {
-            pair = workerPointList.at(curPointInfo_.second);
             return true;
         }
     }
@@ -209,33 +205,11 @@ bool VisualCurvePosManager::insertKeyPoint(int index, std::string curve, SKeyPoi
     return false;
 }
 
-bool VisualCurvePosManager::insertWorkerPoint(int index, std::string curve, QPair<QPointF, QPointF> pair) {
-    if (workerPointMap_.contains(curve) && keyPointMap_.contains(curve)) {
-        QList<QPair<QPointF, QPointF>> workerPairs = workerPointMap_.value(curve);
-        workerPairs.insert(index, pair);
-        workerPointMap_.remove(curve);
-        workerPointMap_.insert(curve, workerPairs);
-        return true;
-    }
-    return false;
-}
-
 bool VisualCurvePosManager::getKeyPoint(std::string curve, int index, SKeyPoint &point) {
     if (keyPointMap_.contains(curve)) {
         QList<SKeyPoint> pointList = keyPointMap_.value(curve);
         if (pointList.size() > index && index >= 0) {
             point = pointList.at(index);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool VisualCurvePosManager::getWorkerPoint(std::string curve, int index, QPair<QPointF, QPointF> &pair) {
-    if (workerPointMap_.contains(curve)) {
-        QList<QPair<QPointF, QPointF>> workerPointList = workerPointMap_.value(curve);
-        if (workerPointList.size() > index) {
-            pair = workerPointList.at(index);
             return true;
         }
     }
@@ -250,14 +224,6 @@ bool VisualCurvePosManager::getCurKeyPointList(QList<SKeyPoint> &pointList) {
     return false;
 }
 
-bool VisualCurvePosManager::getCurWorkerPointList(QList<QPair<QPointF, QPointF> > &workerPointList) {
-    if (workerPointMap_.contains(curPointInfo_.first)) {
-        workerPointList = workerPointMap_.value(curPointInfo_.first);
-        return true;
-    }
-    return false;
-}
-
 bool VisualCurvePosManager::getKeyPointList(std::string curve, QList<SKeyPoint> &points) {
     if (keyPointMap_.contains(curve)) {
         points = keyPointMap_.value(curve);
@@ -266,22 +232,9 @@ bool VisualCurvePosManager::getKeyPointList(std::string curve, QList<SKeyPoint> 
     return false;
 }
 
-bool VisualCurvePosManager::getWorkerPointList(std::string curve, QList<QPair<QPointF, QPointF> > &pairs) {
-    if (workerPointMap_.contains(curve)) {
-        pairs = workerPointMap_.value(curve);
-        return true;
-    }
-    return false;
-}
-
 void VisualCurvePosManager::swapCurKeyPointList(QList<SKeyPoint> pointList) {
     keyPointMap_.remove(curPointInfo_.first);
     keyPointMap_.insert(curPointInfo_.first, pointList);
-}
-
-void VisualCurvePosManager::swapCurWorkerPointList(QList<QPair<QPointF, QPointF> > workerPointList) {
-    workerPointMap_.remove(curPointInfo_.first);
-    workerPointMap_.insert(curPointInfo_.first, workerPointList);
 }
 
 void VisualCurvePosManager::addMultiSelPoint(int index) {
@@ -313,9 +266,3 @@ void VisualCurvePosManager::replaceCurKeyPoint(SKeyPoint point) {
     keyPointMap_.insert(curPointInfo_.first, list);
 }
 
-void VisualCurvePosManager::swapCurWorkerPoint(QPair<QPointF, QPointF> pair) {
-    auto list = workerPointMap_.value(curPointInfo_.first);
-    list.replace(curPointInfo_.second, pair);
-    workerPointMap_.remove(curPointInfo_.first);
-    workerPointMap_.insert(curPointInfo_.first, list);
-}
