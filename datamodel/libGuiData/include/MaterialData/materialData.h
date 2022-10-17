@@ -611,6 +611,10 @@ public:
 		return uniforms_;
 	}
 
+    void clearUniforms() {
+		uniforms_.clear();
+    }
+
 private:
 	std::string name_;
 	bool isPrivate_;
