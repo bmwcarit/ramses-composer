@@ -325,11 +325,11 @@ void TimeAxisMainWindow::slotInitCurves() {
     visualCurveNodeTreeView_->initCurves();
     visualCurveWidget_->refreshKeyFrameView();
 
-    raco::core::UndoState undoState;
-    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-    undoState.push(FolderDataManager::GetInstance().converFolderData());
-    undoState.push(CurveManager::GetInstance().convertCurveData());
-    commandInterface_->undoStack().push("Initial Animation", undoState);
+//    raco::core::UndoState undoState;
+//    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
+//    undoState.push(FolderDataManager::GetInstance().converFolderData());
+//    undoState.push(CurveManager::GetInstance().convertCurveData());
+//    commandInterface_->undoStack().push("Initial Animation", undoState);
 }
 
 void TimeAxisMainWindow::slotSwitchNode(core::ValueHandle &handle) {
