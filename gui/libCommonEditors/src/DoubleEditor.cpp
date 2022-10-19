@@ -1,4 +1,5 @@
 #include "common_editors/DoubleEditor.h"
+#include "qdebug.h"
 
 namespace raco::common_editors {
 DoubleEditor::DoubleEditor(QWidget *parent)
@@ -29,6 +30,7 @@ DoubleEditor::DoubleEditor(QWidget *parent)
 
     // State change: Show spinbox or slider
     QObject::connect(slider_, &DoubleSlider::singleClicked, this, [this]() { stack_->setCurrentWidget(spinBox_); });
+    QObject::connect(slider_, &DoubleSlider::finished, this, [this]() { Q_EMIT sigEditingFinished(); });
     QObject::connect(spinBox_, &DoubleSpinBox::editingFinished, this, [this]() {
         stack_->setCurrentWidget(slider_);
         slider_->clearFocus();
@@ -60,5 +62,9 @@ void DoubleEditor::setWidth(int width) {
 void DoubleEditor::setHeight(int height) {
     spinBox_->setFixedHeight(height);
     stack_->setFixedHeight(height);
+}
+
+double DoubleEditor::value() {
+    return spinBox_->value();
 }
 }

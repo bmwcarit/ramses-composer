@@ -7,7 +7,7 @@
 
 namespace raco::guiData {
 
-class CurveManager : public core::ChangeBase {
+class CurveManager {
 public:
     static CurveManager& GetInstance();
     ~CurveManager();
@@ -15,7 +15,7 @@ public:
     CurveManager& operator=(const CurveManager&) = delete;
 
     std::list<STRUCT_CURVE> convertCurveData();
-    virtual void merge(QVariant data) override;
+    void merge(QVariant data);
 
     // add Curve
     bool addCurve(Curve* curve);

@@ -73,8 +73,6 @@ public:
 	// Jump backward or forward to any position in the undo stack.
 	size_t setIndex(size_t newIndex, bool force = false);
 
-    int lastProjectStateIndex();
-
 	// Go one entry backwards.
 	void undo();
 
@@ -85,6 +83,7 @@ public:
 	bool canRedo() const noexcept;
 
 	void reset();
+    void resetUndoState(STRUCT_VISUAL_CURVE_POS pos);
 
 protected:
 	void saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);
@@ -104,7 +103,6 @@ protected:
         std::string mergeId;
 		Project state;
         UndoState undoState;
-        bool isAnimation{false};
 	};
 
 	std::vector<std::unique_ptr<Entry>> stack_;

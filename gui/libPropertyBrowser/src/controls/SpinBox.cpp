@@ -137,7 +137,7 @@ int SpinBox<T>::outOfRange() const noexcept {
 template <typename T>
 void SpinBox<T>::setSoftRange(T min, T max) {
 	// TODO: disabled range check until we have full range handling
-	// widget_.setRange(min, max);
+//     widget_.setRange(min, max);
 }
 
 template <typename T>

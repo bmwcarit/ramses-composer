@@ -48,6 +48,7 @@ public Q_SLOTS:
     //
     void slotCreateKeyFrame(QString curve);
     void slotRefreshTimeAxis();
+    void slotRefreshTimeAxisAfterUndo();
     void slotInitCurves();
     void slotSwitchNode(raco::core::ValueHandle &handle);
     void startOrStopAnimation();
@@ -67,11 +68,13 @@ private Q_SLOTS:
     void slotCreateNew();
     void slotCurrentRowChanged(const QModelIndex &index);
     void slotItemChanged(QStandardItem *item);
+    void slotStartTimeFinished();
+    void slotEndTimeFinished();
 private:
     bool initTitle(QWidget *parent);
     bool initTree(QWidget *parent);
 	bool initAnimationMenu();
-    void loadOperation();
+    void loadOperation(bool isPush = true);
 
 private:
     TimeAxisWidget *timeAxisWidget_;
@@ -102,15 +105,16 @@ private:
     QAction *m_pProperty{nullptr};
     QAction *pasteAction_{nullptr};
 private:
+    std::string curAnimation_;
     int UUID_{1};
     QStandardItemModel* model_{nullptr};
     QString curItemName_;
     QString copyItemName_;
     QMap<QString, QStandardItem*> itemMap_;
-    QLineEdit *lineBegin_{nullptr};
-    QLineEdit *lineEnd_{nullptr};
+    Int64Editor *lineBegin_{nullptr};
+    Int64Editor *lineEnd_{nullptr};
     KeyFrameManager *keyFrameMgr_{nullptr};
-    CURVE_TYPE_ENUM curCurveType_ = CURVE_TYPE_ENUM::TIME_AXIS;
+    CURVE_TYPE_ENUM curCurveType_ = CURVE_TYPE_ENUM::VISUAL_CURVE;
     DragPushButton *button_{nullptr}; //时间轴滑动条
 };
 }

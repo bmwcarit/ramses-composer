@@ -12,7 +12,9 @@
 #include "animation/controls/TagContainerEditor.h"
 #include "signal/SignalProxy.h"
 #include "AnimationData/animationData.h"
+#include "common_editors/Int64Editor.h"
 
+using namespace raco::common_editors;
 using namespace raco::signal;
 using namespace raco::guiData;
 namespace raco::animation {
@@ -23,26 +25,26 @@ public:
 
 public Q_SLOTS:
     void initAnimationView();
-    void startTimeEditorTextChanged();
-    void endTimeEditorTextChanged();
-    void loopCountEditorTextChanged();
-    void intervalEditorTextChanged();
+    void startTimeEditorTextChanged(int value);
+    void endTimeEditorTextChanged(int value);
+    void loopCountEditorTextChanged(int value);
+    void intervalEditorTextChanged(int value);
     void returnEditorTextChanged();
-    void playSpeedTextChanged();
+    void playSpeedTextChanged(int value);
     void slotloadAnimation(QString sampleProperty);
     void slotUpdateAnimationProperty();
     void slotResetAniamitonView();
 private:
     TagContainerEditor* startTimeEditor_{nullptr};
-    QLineEdit* startTimeStrEditor_{nullptr};
+    Int64Editor* startTimeStrEditor_{nullptr};
     TagContainerEditor* endTimeEditor_{nullptr};
-    QLineEdit* endTimeStrEditor_{nullptr};
+    Int64Editor* endTimeStrEditor_{nullptr};
     TagContainerEditor* loopCountEditor_{nullptr};
-    QLineEdit* loopCountStrEditor_{nullptr};
+    Int64Editor* loopCountStrEditor_{nullptr};
     TagContainerEditor* intervalEditor_{nullptr};
-    QLineEdit* intervalStrEditor_{nullptr};
+    Int64Editor* intervalStrEditor_{nullptr};
     TagContainerEditor* playSpeedEditor_{nullptr};
-    QLineEdit* playSpeedStrEditor_{nullptr};
+    Int64Editor* playSpeedStrEditor_{nullptr};
     TagContainerEditor* returnEditor_{nullptr};
     QLineEdit* returnStrEditor_{nullptr};
 

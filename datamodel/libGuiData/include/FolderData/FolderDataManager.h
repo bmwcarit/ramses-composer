@@ -51,20 +51,21 @@ private:
     bool visible_{true};
 };
 
-class FolderDataManager : public raco::core::ChangeBase {
+class FolderDataManager {
 public:
     static FolderDataManager &GetInstance();
     ~FolderDataManager();
     FolderDataManager(const FolderDataManager&) = delete;
     FolderDataManager& operator=(const FolderDataManager&) = delete;
 
-    virtual void merge(QVariant data) override;
+    void merge(QVariant data);
     void mergeFolder(Folder *folder, STRUCT_FOLDER folderData);
+
+    STRUCT_FOLDER converFolderData();
+    void fillFolderData(STRUCT_FOLDER &data, Folder *folder);
 
     void clear();
     Folder *getRootFolder();
-
-    STRUCT_FOLDER converFolderData();
 
     bool isCurve(std::string curveName);
     bool folderFromPath(std::string path, Folder **folder);

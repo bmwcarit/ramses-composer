@@ -1,5 +1,6 @@
-#include "visual_curve/VisualCurvePosManager.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 
+namespace raco::guiData {
 VisualCurvePosManager &VisualCurvePosManager::GetInstance() {
     static VisualCurvePosManager Instance;
     return Instance;
@@ -265,4 +266,4 @@ void VisualCurvePosManager::replaceCurKeyPoint(SKeyPoint point) {
     keyPointMap_.remove(curPointInfo_.first);
     keyPointMap_.insert(curPointInfo_.first, list);
 }
-
+}

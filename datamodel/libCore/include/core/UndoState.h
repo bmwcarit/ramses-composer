@@ -41,16 +41,19 @@ public:
     void push(STRUCT_VISUAL_CURVE_POS pos);
     void push(STRUCT_FOLDER folder);
     void push(std::list<STRUCT_CURVE> list);
+    void push(STRUCT_ANIMATION data);
     bool canMergeVisualCurve();
     bool canMergeFolderData();
     bool canMergeCurveData();
     STRUCT_POS_DATA visualPosData();
     STRUCT_FOLDER_DATA folderData();
     STRUCT_CURVE_DATA curveData();
+    STRUCT_ANIMATION animationData();
 private:
     STRUCT_POS_DATA posData_;
     STRUCT_FOLDER_DATA folderData_;
     STRUCT_CURVE_DATA curveData_;
+    STRUCT_ANIMATION animationData_;
 };
 
 }  // namespace raco::core

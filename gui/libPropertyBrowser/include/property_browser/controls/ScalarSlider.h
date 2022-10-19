@@ -38,6 +38,7 @@ protected:
 	void mouseMoveEvent(QMouseEvent* event) override;
 	virtual void signalValueEdited(T value) = 0;
 	virtual void signalSingleClicked() = 0;
+    virtual void signalFinished(){;};
 
 private:
 	void addValue(T step);
@@ -61,6 +62,7 @@ public:
 Q_SIGNALS:
 	void valueEdited(double value);
 	void singleClicked();
+    void finished();
 public Q_SLOTS:
 	void setValue(double v) { slotSetValue(v); }
 
@@ -71,6 +73,9 @@ protected:
 	void signalSingleClicked() override {
 		Q_EMIT singleClicked();
 	}
+    void signalFinished() override {
+        Q_EMIT finished();
+    }
 };
 
 class IntSlider final : public ScalarSlider<int> {
@@ -101,6 +106,7 @@ public:
 Q_SIGNALS:
 	void valueEdited(int64_t value);
 	void singleClicked();
+    void finished();
 public Q_SLOTS:
 	void setValue(int64_t v) { slotSetValue(v); }
 
@@ -111,6 +117,9 @@ protected:
 	void signalSingleClicked() override {
 		Q_EMIT singleClicked();
 	}
+    void signalFinished() override {
+        Q_EMIT finished();
+    }
 };
 
 }  // namespace raco::property_browser

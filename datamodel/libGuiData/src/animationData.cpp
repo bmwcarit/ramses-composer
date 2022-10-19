@@ -96,6 +96,42 @@ const std::set<std::string>& animationData::getNodeList() {
 //----------------------------------------------------------------------------------------------------
 inline animationDataManager::animationDataManager(){}
 
+void animationDataManager::merge(QVariant data) {
+    if (data.canConvert<STRUCT_ANIMATION>()) {
+        STRUCT_ANIMATION destAnimation = data.value<STRUCT_ANIMATION>();
+        m_AnitnList.clear();
+        m_ActiveAnimation = destAnimation.activeAnimation_;
+        for (const auto &it : destAnimation.animationMap_) {
+            animationData animData;
+            animData.SetStartTime(it.second.startTime_);
+            animData.SetEndTime(it.second.endTime_);
+            animData.SetLoopCount(it.second.loopCount_);
+            animData.SetPlaySpeed(it.second.playSpeed_);
+            animData.SetUpdateInterval(it.second.updateInterval_);
+            for (const auto &node : it.second.nodeList_) {
+                animData.InsertNode(node);
+            }
+            m_AnitnList.emplace(it.first, animData);
+        }
+    }
+}
+
+STRUCT_ANIMATION animationDataManager::converFolderData() {
+    STRUCT_ANIMATION animation;
+    animation.activeAnimation_ = m_ActiveAnimation;
+    for (auto it : m_AnitnList) {
+        STRUCT_ANIMATION_DATA animationData;
+        animationData.startTime_ = it.second.GetStartTime();
+        animationData.endTime_ = it.second.GetEndTime();
+        animationData.loopCount_ = it.second.GetLoopCount();
+        animationData.playSpeed_ = it.second.GetPlaySpeed();
+        animationData.updateInterval_ = it.second.GetUpdateInterval();
+        animationData.nodeList_ = it.second.getNodeList();
+        animation.animationMap_.emplace(it.first, animationData);
+    }
+    return animation;
+}
+
 animationDataManager& animationDataManager::GetInstance()
 {
 	static animationDataManager Instance;

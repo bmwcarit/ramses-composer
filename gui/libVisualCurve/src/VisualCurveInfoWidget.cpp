@@ -1,14 +1,16 @@
 #include "visual_curve/VisualCurveInfoWidget.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "core/Undo.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 #include "CurveData/CurveManager.h"
 #include "visual_curve/VisualCurveWidget.h"
-
+#include "FolderData/FolderDataManager.h"
 #define PI (3.14159265358979323846)
 
 using namespace raco::guiData;
 namespace raco::visualCurve {
-VisualCurveInfoWidget::VisualCurveInfoWidget(QWidget *parent)
-    : QWidget{parent} {
+VisualCurveInfoWidget::VisualCurveInfoWidget(QWidget *parent, raco::core::CommandInterface *commandInterface)
+    : QWidget{parent},
+    commandInterface_(commandInterface) {
     initVisualCurveKeyWidget();
     initVisualCurveCursorWidget();
 
@@ -20,6 +22,8 @@ VisualCurveInfoWidget::VisualCurveInfoWidget(QWidget *parent)
     QVBoxLayout *vLayout = new QVBoxLayout(this);
     vLayout->addWidget(centreWidget_);
     this->setLayout(vLayout);
+
+    QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigRepaintAfterUndoOpreation, this, &VisualCurveInfoWidget::slotRefreshWidget);
 }
 
 void VisualCurveInfoWidget::initVisualCurveKeyWidget() {
@@ -92,6 +96,15 @@ void VisualCurveInfoWidget::initVisualCurveKeyWidget() {
     connect(rightValueSpinBox_, &DoubleEditor::sigValueChanged, this, &VisualCurveInfoWidget::slotRightKeyValueChanged);
     connect(leftTangentSpinBox_, &DoubleEditor::sigValueChanged, this, &VisualCurveInfoWidget::slotLeftTangentChanged);
     connect(rightTangentSpinBox_, &DoubleEditor::sigValueChanged, this, &VisualCurveInfoWidget::slotRightTangentChanged);
+
+    connect(keyFrameSpinBox_, &Int64Editor::sigEditingFinished, this, &VisualCurveInfoWidget::slotKeyFrameFinished);
+    connect(keyValueSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotKeyValueFinished);
+    connect(leftFrameSpinBox_, &Int64Editor::sigEditingFinished, this, &VisualCurveInfoWidget::slotLeftKeyFrameFinished);
+    connect(leftValueSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotLeftKeyValueFinished);
+    connect(rightFrameSpinBox_, &Int64Editor::sigEditingFinished, this, &VisualCurveInfoWidget::slotRightKeyFrameFinished);
+    connect(rightValueSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotRightKeyValueFinished);
+    connect(leftTangentSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotLeftTangentFinished);
+    connect(rightTangentSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotRightTangentFinished);
 }
 
 void VisualCurveInfoWidget::initVisualCurveCursorWidget() {
@@ -122,6 +135,8 @@ void VisualCurveInfoWidget::initVisualCurveCursorWidget() {
     connect(showCursorCheckBox_, &QCheckBox::clicked, this, &VisualCurveInfoWidget::slotCursorShow);
     connect(cursorXSpinBox_, &Int64Editor::sigValueChanged, this, &VisualCurveInfoWidget::slotCursorXChanged);
     connect(cursorYSpinBox_, &DoubleEditor::sigValueChanged, this, &VisualCurveInfoWidget::slotCursorYChanged);
+    connect(cursorXSpinBox_, &Int64Editor::sigEditingFinished, this, &VisualCurveInfoWidget::slotCursorXFinished);
+    connect(cursorYSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotCursorYFinished);
 }
 
 void VisualCurveInfoWidget::setKeyWidgetVisible() {
@@ -511,9 +526,59 @@ void VisualCurveInfoWidget::slotRightTangentChanged(double value) {
     }
 }
 
+void VisualCurveInfoWidget::slotKeyFrameFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    int keyframe = keyFrameSpinBox_->value();
+    pushState2UndoStack(fmt::format("set point keyframe ''{}'' from ''{}''", keyframe, curve));
+}
+
+void VisualCurveInfoWidget::slotKeyValueFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    double value = keyValueSpinBox_->value();
+    pushState2UndoStack(fmt::format("set point value ''{}'' from ''{}''", value, curve));
+}
+
+void VisualCurveInfoWidget::slotLeftKeyFrameFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    int keyframe = leftFrameSpinBox_->value();
+    pushState2UndoStack(fmt::format("set left worker point keyframe '{}' from '{}'", keyframe, curve));
+}
+
+void VisualCurveInfoWidget::slotLeftKeyValueFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    double value = leftValueSpinBox_->value();
+    pushState2UndoStack(fmt::format("set left worker point value '{}' from '{}'", value, curve));
+}
+
+void VisualCurveInfoWidget::slotRightKeyFrameFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    int keyframe = rightFrameSpinBox_->value();
+    pushState2UndoStack(fmt::format("set right worker point keyframe '{}' from '{}'", keyframe, curve));
+}
+
+void VisualCurveInfoWidget::slotRightKeyValueFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    double value = rightValueSpinBox_->value();
+    pushState2UndoStack(fmt::format("set right worker point value '{}' from '{}'", value, curve));
+}
+
+void VisualCurveInfoWidget::slotLeftTangentFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    double value = leftTangentSpinBox_->value();
+    pushState2UndoStack(fmt::format("set left worker point tagent '{}' from '{}'", value, curve));
+}
+
+void VisualCurveInfoWidget::slotRightTangentFinished() {
+    std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    double value = rightTangentSpinBox_->value();
+    pushState2UndoStack(fmt::format("set right worker point tagent '{}' from '{}'", value, curve));
+}
+
 void VisualCurveInfoWidget::slotCursorShow(bool checked) {
     VisualCurvePosManager::GetInstance().setCursorShow(checked);
     Q_EMIT sigRefreshVisualCurve();
+    std::string str = checked ? "show" : "hide";
+    pushState2UndoStack(fmt::format("set cursor '{}'", str));
 }
 
 void VisualCurveInfoWidget::slotCursorXChanged(int value) {
@@ -526,6 +591,16 @@ void VisualCurveInfoWidget::slotCursorYChanged(double value) {
     Q_EMIT sigRefreshVisualCurve();
 }
 
+void VisualCurveInfoWidget::slotCursorXFinished() {
+    int x = cursorXSpinBox_->value();
+    pushState2UndoStack(fmt::format("set cursor X '{}'", x));
+}
+
+void VisualCurveInfoWidget::slotCursorYFinished() {
+    double y = cursorYSpinBox_->value();
+    pushState2UndoStack(fmt::format("set cursor Y '{}'", y));
+}
+
 void VisualCurveInfoWidget::slotUpdateSelKey() {
     updateSelKey();
 }
@@ -534,22 +609,30 @@ void VisualCurveInfoWidget::slotUpdateCursorX() {
     updateCursorX();
 }
 
-void VisualCurveInfoWidget::switchCurveType(int type) {
+void VisualCurveInfoWidget::slotRefreshWidget() {
+    updateSelKey();
+    updateCursorX();
+    cursorYSpinBox_->setValue(VisualCurvePosManager::GetInstance().getCenterLinePos());
+    showCursorCheckBox_->setChecked(VisualCurvePosManager::GetInstance().getCursorShow());
+}
+
+void VisualCurveInfoWidget::switchCurveType(int type, bool isShowLeftPoint) {
     switch (type) {
     case EInterPolationType::LINER:
     case EInterPolationType::STEP: {
-        leftFrameSpinBox_->setVisible(false);
-        leftValueSpinBox_->setVisible(false);
+
         rightFrameSpinBox_->setVisible(false);
         rightValueSpinBox_->setVisible(false);
-        leftValueLabel_->setVisible(false);
         rightValueLabel_->setVisible(false);
-        leftFrameLabel_->setVisible(false);
         rightFrameLabel_->setVisible(false);
-        leftTangentLabel_->setVisible(false);
         rightTangentLabel_->setVisible(false);
-        leftTangentSpinBox_->setVisible(false);
         rightTangentSpinBox_->setVisible(false);
+        leftFrameSpinBox_->setVisible(isShowLeftPoint);
+        leftValueSpinBox_->setVisible(isShowLeftPoint);
+        leftValueLabel_->setVisible(isShowLeftPoint);
+        leftFrameLabel_->setVisible(isShowLeftPoint);
+        leftTangentLabel_->setVisible(isShowLeftPoint);
+        leftTangentSpinBox_->setVisible(isShowLeftPoint);
         break;
     }
     case EInterPolationType::HERMIT_SPLINE: {
@@ -587,8 +670,11 @@ void VisualCurveInfoWidget::switchCurveType(int type) {
 
 void VisualCurveInfoWidget::updateSelKey() {
     SKeyPoint keyPoint;
+    SKeyPoint lastKeyPoint;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         std::string curve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+        int lastIndex = VisualCurvePosManager::GetInstance().getCurrentPointInfo().second - 1;
+        VisualCurvePosManager::GetInstance().getKeyPoint(curve, lastIndex, lastKeyPoint);
 
         int curX = VisualCurvePosManager::GetInstance().getCurX();
         int curY = VisualCurvePosManager::GetInstance().getCurY();
@@ -633,7 +719,8 @@ void VisualCurveInfoWidget::updateSelKey() {
                 }
             }
         }
-        switchCurveType(keyPoint.type);
+        bool isBezier = (lastKeyPoint.type == EInterPolationType::HERMIT_SPLINE || lastKeyPoint.type == EInterPolationType::BESIER_SPLINE) ? true : false;
+        switchCurveType(keyPoint.type, isBezier);
     }
 }
 
@@ -773,5 +860,13 @@ void VisualCurveInfoWidget::recaculateWorkerRightPoint(QPair<QPointF, QPointF> &
             point->setRightData(rightKeyValue);
         }
     }
+}
+
+void VisualCurveInfoWidget::pushState2UndoStack(std::string description) {
+    raco::core::UndoState undoState;
+    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
+    undoState.push(FolderDataManager::GetInstance().converFolderData());
+    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
+    commandInterface_->undoStack().push(description, undoState);
 }
 }

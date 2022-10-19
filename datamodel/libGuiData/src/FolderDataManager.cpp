@@ -11,6 +11,12 @@ void Folder::clear() {
         (*it) = nullptr;
     }
     folderList_.clear();
+
+    for (auto it = curveList_.begin(); it != curveList_.end(); it++) {
+        delete (*it);
+        (*it) = nullptr;
+    }
+    curveList_.clear();
 }
 
 std::string Folder::createDefaultFolder() {
@@ -244,17 +250,34 @@ void FolderDataManager::mergeFolder(Folder *folder, STRUCT_FOLDER folderData) {
     }
 }
 
+STRUCT_FOLDER FolderDataManager::converFolderData() {
+    STRUCT_FOLDER data;
+    fillFolderData(data, rootFolder_);
+    return data;
+}
+
+void FolderDataManager::fillFolderData(STRUCT_FOLDER &data, Folder *folder) {
+    data.folderName_ = folder->getFolderName();
+    for (auto curve : folder->getCurveList()) {
+        STRUCT_CURVE_PROP curveProp;
+        curveProp.curve_ = curve->curve_;
+        curveProp.visible_ = curve->visible_;
+        data.curveList.push_back(curveProp);
+    }
+
+    for (auto childFolder : folder->getFolderList()) {
+        STRUCT_FOLDER childData;
+        fillFolderData(childData, childFolder);
+        data.folerList.push_back(childData);
+    }
+}
+
 void FolderDataManager::clear() {
     rootFolder_->clear();
 }
 
 Folder *FolderDataManager::getRootFolder() {
     return rootFolder_;
-}
-
-STRUCT_FOLDER FolderDataManager::converFolderData() {
-    STRUCT_FOLDER folder;
-    return folder;
 }
 
 bool FolderDataManager::isCurve(std::string curveName) {

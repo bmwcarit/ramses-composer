@@ -1,7 +1,7 @@
 #include "node_logic/NodeLogic.h"
 #include "PropertyData/PropertyType.h"
 #include "time_axis/TimeAxisCommon.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 #include <QDebug>
 
 namespace raco::node_logic {

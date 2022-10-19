@@ -43,9 +43,10 @@ public Q_SLOTS:
             const double scaleValue,
             const MOUSEACTION mouseAction);
 
-    void slotSetStartFrame();
-    void slotSetFinishFrame();
+    void slotSetStartFrame(int keyframe);
+    void slotSetFinishFrame(int keyframe);
     void slotUpdateSlider(int pix);
+    void slotFinishSlider(int pix);
     void slotSetCurFrameToBegin();
     void slotSetCurFrameToEnd();
     void slotClearKeyFrames();
@@ -56,6 +57,7 @@ public Q_SLOTS:
     void slotSwitchPoint2Step();
     void slotDeleteKeyFrame();
     void slotRefreshVisualCurve();
+    void slotRefreshVisualCurveAfterUndo();
     void slotRefreshCursorX();
     void slotInsertCurve(QString property, QString curveName, QVariant value);
     void slotSwitchCurveType(int type);
@@ -68,6 +70,8 @@ Q_SIGNALS:
     void sigUpdateCursorX();
     void sigDeleteCurve(std::string curve);
 private:
+    // init visual curve
+    void initVisualCurvePos();
     // paint keyframe
     void drawKeyFrame();
     // paint liner
@@ -110,10 +114,14 @@ private:
     void curveMove(QMouseEvent *event);
     // multi point move
     void multiPointMove(QMouseEvent *event);
-    //
+    // recaculate right worker point pos
     QPointF reCaculateRightWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint, QPointF rightPoint);
-    //
+    // recaculate left worker point pos
     QPointF reCaculateLeftWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint, QPointF rightPoint);
+    // push state to undo stack
+    void pushState2UndoStack(std::string description);
+    // push moved state
+    void pushMovedState();
 private:
     QPoint viewportOffset_;
     int intervalLength_;
@@ -134,8 +142,10 @@ private:
 
     QMutex pressDragBtnMutex_;
     bool isPressDragBtn_{false};
+    bool isMoveDrag_{false};
 
     std::map<std::string, std::string> bindingMap_;
+    raco::core::CommandInterface* commandInterface_{nullptr};
 private:
     KEY_PRESS_ACT pressAction_{KEY_PRESS_NONE};
     QMenu *menu_{nullptr};

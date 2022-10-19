@@ -20,7 +20,7 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 #include "visual_curve/VisualCurveWidget.h"
 
 #include <cassert>
@@ -47,6 +47,10 @@ void UndoState::push(std::list<STRUCT_CURVE> list) {
     curveData_.canMerge = true;
 }
 
+void UndoState::push(STRUCT_ANIMATION data) {
+    animationData_ = data;
+}
+
 bool UndoState::canMergeVisualCurve() {
     return posData_.canMerge;
 }
@@ -69,6 +73,10 @@ STRUCT_FOLDER_DATA UndoState::folderData() {
 
 STRUCT_CURVE_DATA UndoState::curveData() {
     return curveData_;
+}
+
+STRUCT_ANIMATION UndoState::animationData() {
+    return animationData_;
 }
 
 }  // namespace raco::core

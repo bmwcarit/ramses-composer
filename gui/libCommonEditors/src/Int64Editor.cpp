@@ -1,4 +1,5 @@
 #include "common_editors/Int64Editor.h"
+#include "qdebug.h"
 
 namespace raco::common_editors {
 Int64Editor::Int64Editor(QWidget *parent)
@@ -27,6 +28,7 @@ Int64Editor::Int64Editor(QWidget *parent)
 
     // State change: Show spinbox or slider
     QObject::connect(slider_, &Int64Slider::singleClicked, this, [this]() { stack_->setCurrentWidget(spinBox_); });
+    QObject::connect(slider_, &Int64Slider::finished, this, [this]() { Q_EMIT sigEditingFinished(); });
     QObject::connect(spinBox_, &Int64SpinBox::editingFinished, this, [this]() {
         stack_->setCurrentWidget(slider_);
         slider_->clearFocus();
@@ -51,6 +53,11 @@ void Int64Editor::setValue(int value) {
     spinBox_->setValue(value);
 }
 
+void Int64Editor::setSize(int width, int height) {
+    spinBox_->setFixedSize(width, height);
+    stack_->setFixedSize(width, height);
+}
+
 void Int64Editor::setWidth(int width) {
     spinBox_->setFixedWidth(width);
     stack_->setFixedWidth(width);
@@ -59,5 +66,9 @@ void Int64Editor::setWidth(int width) {
 void Int64Editor::setHeight(int height) {
     spinBox_->setFixedHeight(height);
     stack_->setFixedHeight(height);
+}
+
+int Int64Editor::value() {
+    return spinBox_->value();
 }
 }

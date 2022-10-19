@@ -50,6 +50,7 @@ public:
 	bool writeCTMFile(std::string filePathStr);
     bool readProgramFromJson(QString filePath);
 	bool updateUIFromJson(QString filePath);
+    void initFolderData();
 
 Q_SIGNALS:
     void selectObject(const QString &objectId);

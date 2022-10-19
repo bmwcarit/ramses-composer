@@ -1,4 +1,5 @@
 ﻿#include "data_Convert/ProgramManager.h"
+#include "FolderData/FolderDataManager.h"
 #include "data_Convert/ProgramDefine.h"
 #include "PropertyData/PropertyType.h"
 
@@ -1375,6 +1376,7 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
 	QJsonObject nodeObj = jsonObject.value(JSON_NODE).toObject();
 	readJsonFilleNodeData(nodeObj, NodeDataManager::GetInstance().root());
 
+    initFolderData();
 	return true;
 }
 bool ProgramManager::updateUIFromJson(QString filePath) {
@@ -1407,4 +1409,27 @@ bool ProgramManager::updateUIFromJson(QString filePath) {
 
     return true;
 }
+
+void ProgramManager::initFolderData() {
+    FolderDataManager::GetInstance().clear();
+
+    for (auto curve : CurveManager::GetInstance().getCurveList()) {
+        std::string curvePath = curve->getCurveName();
+        QStringList list = QString::fromStdString(curvePath).split("|");
+        QString curveName = list.takeLast();
+
+        Folder *folder = FolderDataManager::GetInstance().getRootFolder();
+        for (const QString &node : list) {
+            if (folder->hasFolder(node.toStdString())) {
+                folder = folder->getFolder(node.toStdString());
+            } else {
+                folder->insertFolder(node.toStdString());
+                folder = folder->getFolder(node.toStdString());
+            }
+        }
+
+        folder->insertCurve(curveName.toStdString());
+    }
+}
+
 }

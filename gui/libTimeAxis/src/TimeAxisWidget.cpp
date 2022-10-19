@@ -6,7 +6,7 @@
 #include <QMenu>
 #include <QDebug>
 #include "math.h"
-
+#include "common_editors/Int64Editor.h"
 #include "time_axis/TimeAxisScrollArea.h"
 
 namespace raco::time_axis {
@@ -80,6 +80,12 @@ void DragPushButton::mouseMoveEvent(QMouseEvent *event) {
     }
 
     QWidget::mouseMoveEvent(event);
+}
+
+void DragPushButton::mouseReleaseEvent(QMouseEvent *event) {
+    QPoint tempPoint = this->mapToParent(event->pos() - this->pressPoint_);
+    Q_EMIT buttonMoveRelease(tempPoint.x());
+    QWidget::mouseReleaseEvent(event);
 }
 
 void DragPushButton::paintEvent(QPaintEvent *event) {
@@ -346,47 +352,33 @@ void TimeAxisWidget::updateSlider(int pix) {
     update();
 }
 
-void TimeAxisWidget::setStartFrame() {
+void TimeAxisWidget::setStartFrame(int keyframe) {
     QObject* object = sender();
-    QLineEdit* editor = static_cast<QLineEdit*>(object);
+    common_editors::Int64Editor *editor = static_cast<common_editors::Int64Editor*>(object);
 
-    bool enableToInt;
-    int tempStart = editor->text().toInt(&enableToInt);
-
-    if (tempStart >= finishFrame_) {
-        editor->setText(QString::number(startFrame_));
+    startFrame_ = keyframe;
+    if (keyframe >= finishFrame_) {
+        startFrame_ = keyframe - 1;
+        editor->setValue(startFrame_);
         return;
     }
-
-    if (enableToInt) {
-       startFrame_ = tempStart;
-    }
     animationDataManager::GetInstance().getActiveAnimationData().SetStartTime(startFrame_);
-    //
     Q_EMIT signalProxy::GetInstance().sigResetAnimationProperty_From_AnimationLogic();
-
     update();
 }
 
-void TimeAxisWidget::setFinishFrame() {
+void TimeAxisWidget::setFinishFrame(int keyframe) {
     QObject* object = sender();
-    QLineEdit* editor = static_cast<QLineEdit*>(object);
+    common_editors::Int64Editor *editor = static_cast<common_editors::Int64Editor*>(object);
 
-    bool enableToInt;
-    int tempFinish = editor->text().toInt(&enableToInt);
-
-    if (tempFinish < startFrame_) {
-        editor->setText(QString::number(finishFrame_));
+    finishFrame_ = keyframe;
+    if (keyframe <= startFrame_) {
+        finishFrame_ = keyframe + 1;
+        editor->setValue(finishFrame_);
         return;
     }
-
-    if (enableToInt) {
-        finishFrame_ = tempFinish;
-    }
     animationDataManager::GetInstance().getActiveAnimationData().SetEndTime(finishFrame_);
-    //
     Q_EMIT Q_EMIT signalProxy::GetInstance().sigResetAnimationProperty_From_AnimationLogic();
-
     update();
 }
 

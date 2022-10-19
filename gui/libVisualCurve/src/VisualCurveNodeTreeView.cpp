@@ -1,5 +1,6 @@
 #include "visual_curve/VisualCurveNodeTreeView.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "core/Undo.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 
 namespace raco::visualCurve {
 
@@ -28,6 +29,7 @@ bool TreeModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int r
     stream >> vector;
     QModelIndex tempParent = parent;
     QStandardItem *parentItem = itemFromIndex(parent);
+    std::string destNode = parentItem ? parentItem->text().toStdString() : "default";
 
     for (auto p : qAsConst(vector)) {
         QModelIndex* index = (QModelIndex*)p;
@@ -77,6 +79,7 @@ bool TreeModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int r
             delete index;
         }
     }
+    Q_EMIT moveRowFinished(destNode);
     Q_EMIT signal::signalProxy::GetInstance().sigCheckCurveBindingValid_From_CurveUI();
     return true;
 }
@@ -256,8 +259,9 @@ bool TreeModel::moveFolderToDefaultNode(Folder *srcFolder, std::string srcCurveP
     return true;
 }
 
-VisualCurveNodeTreeView::VisualCurveNodeTreeView(QWidget *parent)
-    : QWidget{parent} {
+VisualCurveNodeTreeView::VisualCurveNodeTreeView(QWidget *parent, core::CommandInterface *commandInterface)
+    : QWidget{parent},
+    commandInterface_(commandInterface) {
     visualCurveTreeView_ = new QTreeView(this);
     model_ = new TreeModel(visualCurveTreeView_);
     model_->setColumnCount(2);
@@ -288,20 +292,22 @@ VisualCurveNodeTreeView::VisualCurveNodeTreeView(QWidget *parent)
     this->setLayout(vBoxLayout);
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigSwitchVisualCurve, this, &VisualCurveNodeTreeView::slotRefrenceBindingCurve);
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigInsertCurve_To_VisualCurve, this, &VisualCurveNodeTreeView::slotInsertCurve);
+    QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigRepaintAfterUndoOpreation, this, &VisualCurveNodeTreeView::slotRefreshWidget);
 
     menu_ = new QMenu{this};
     createFolder_ = new QAction("Create Floder");
     deleteFolder_ = new QAction("Delete Floder");
     createCurve_ = new QAction("Create Curve");
     deleteCurve_ = new QAction("Delete Curve");
-
     setContextMenuPolicy(Qt::CustomContextMenu);
+
     connect(this, &VisualCurveNodeTreeView::customContextMenuRequested, this, &VisualCurveNodeTreeView::slotShowContextMenu);
     connect(createFolder_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotCreateFolder);
     connect(deleteFolder_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDeleteFolder);
     connect(createCurve_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotCreateCurve);
     connect(deleteCurve_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDeleteCurve);
     connect(model_, &QStandardItemModel::itemChanged, this, &VisualCurveNodeTreeView::slotItemChanged);
+    connect(model_, &TreeModel::moveRowFinished, this, &VisualCurveNodeTreeView::slotModelMoved);
     connect(visualCurveTreeView_, &QTreeView::pressed, this, &VisualCurveNodeTreeView::slotCurrentRowChanged);
     connect(visibleButton_, &ButtonDelegate::clicked, this, &VisualCurveNodeTreeView::slotButtonDelegateClicked);
 }
@@ -481,6 +487,7 @@ void VisualCurveNodeTreeView::slotCreateFolder() {
 void VisualCurveNodeTreeView::slotDeleteFolder() {
     QModelIndex selected = visualCurveTreeView_->currentIndex();
     QStandardItem *item = model_->itemFromIndex(selected);
+    std::string folderName = item->text().toStdString();
     if (item) {
         if (item->hasChildren()) {
             QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Ramses Composer",
@@ -498,9 +505,10 @@ void VisualCurveNodeTreeView::slotDeleteFolder() {
                         CurveManager::GetInstance().takeCurve(it->curve_);
                         VisualCurvePosManager::GetInstance().deleteKeyPointList(curve + it->curve_);
                     }
-                    folder->parent()->deleteFolder(item->text().toStdString());
+                    folder->parent()->deleteFolder(folderName);
                 }
             }
+            pushState2UndoStack(fmt::format("delete curves from '{}'", folderName));
         }
         model_->removeRow(selected.row(), selected.parent());
         Q_EMIT sigRefreshVisualCurve();
@@ -529,6 +537,7 @@ void VisualCurveNodeTreeView::slotCreateCurve() {
                 Curve *tempCurve = new Curve;
                 tempCurve->setCurveName(createCurve);
                 CurveManager::GetInstance().addCurve(tempCurve);
+                pushState2UndoStack(fmt::format("create curve: '{}'", createCurve));
             }
         } else {
             Folder *folder{nullptr};
@@ -541,6 +550,7 @@ void VisualCurveNodeTreeView::slotCreateCurve() {
                 Curve *tempCurve = new Curve;
                 tempCurve->setCurveName(createCurve);
                 CurveManager::GetInstance().addCurve(tempCurve);
+                pushState2UndoStack(fmt::format("create curve: '{}'", createCurve));
             }
         }
     } else {
@@ -552,6 +562,7 @@ void VisualCurveNodeTreeView::slotCreateCurve() {
         Curve *tempCurve = new Curve;
         tempCurve->setCurveName(createCurve);
         CurveManager::GetInstance().addCurve(tempCurve);
+        pushState2UndoStack(fmt::format("create curve: '{}'", createCurve));
     }
 }
 
@@ -580,6 +591,7 @@ void VisualCurveNodeTreeView::slotDeleteCurve() {
             }
             model_->removeRow(selected.row(), selected.parent());
             Q_EMIT sigRefreshVisualCurve();
+            pushState2UndoStack(fmt::format("delete curve: '{}'", curvePath));
         }
     }
 }
@@ -605,6 +617,7 @@ void VisualCurveNodeTreeView::slotItemChanged(QStandardItem *item) {
             folderDataMgr_->pathFromCurve(curve, folder, newCurve);
             swapPoints(curvePath, newCurve);
             Q_EMIT signal::signalProxy::GetInstance().sigCheckCurveBindingValid_From_CurveUI();
+            pushState2UndoStack(fmt::format("'{}' curve name chang to '{}'", curvePath, curve));
         }
     }
 }
@@ -613,7 +626,6 @@ void VisualCurveNodeTreeView::slotCurrentRowChanged(const QModelIndex &index) {
     QStandardItem *item = model_->itemFromIndex(index);
     std::string curvePath = curveFromItem(item).toStdString();
     selNode_ = curvePath;
-    qDebug() << QString::fromStdString(curvePath);
 
     std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
     if (folderDataMgr_->isCurve(curvePath)) {
@@ -644,12 +656,16 @@ void VisualCurveNodeTreeView::slotButtonDelegateClicked(const QModelIndex &index
             } else {
                 VisualCurvePosManager::GetInstance().insertHidenCurve(curvePath);
             }
+            std::string str = curveProp->visible_ ? "show" : "hide";
+            pushState2UndoStack(fmt::format("set '{}' curve '{}'", curvePath, str));
         }
     } else {
         Folder *folder{nullptr};
         if (folderDataMgr_->folderFromPath(curvePath, &folder)) {
             bool visible = !folder->isVisible();
             setFolderVisible(folder, visible);
+            std::string str = visible ? "show" : "hide";
+            pushState2UndoStack(fmt::format("set '{}' folder '{}'", curvePath, str));
         }
     }
     Q_EMIT sigRefreshVisualCurve();
@@ -683,6 +699,25 @@ void VisualCurveNodeTreeView::slotDeleteCurveFromVisualCurve(std::string curve) 
             folder->deleteCurve(curveProp->curve_);
         }
         Q_EMIT sigRefreshVisualCurve();
+    }
+}
+
+void VisualCurveNodeTreeView::slotModelMoved(std::string dest) {
+    pushState2UndoStack(fmt::format("curves move to '{}'", dest));
+}
+
+void VisualCurveNodeTreeView::slotRefreshWidget() {
+    model_->removeRows(0, model_->rowCount());
+    Folder *folder = folderDataMgr_->getRootFolder();
+
+    for (auto curve : folder->getCurveList()) {
+        QStandardItem *curveItem = new QStandardItem(QString::fromStdString(curve->curve_));
+        model_->appendRow(curveItem);
+    }
+    for (auto childFolder : folder->getFolderList()) {
+        QStandardItem *nodeItem = new QStandardItem(QString::fromStdString(childFolder->getFolderName()));
+        model_->appendRow(nodeItem);
+        initItemFromFolder(nodeItem, childFolder);
     }
 }
 
@@ -725,5 +760,25 @@ QString VisualCurveNodeTreeView::curveFromItem(QStandardItem *item) {
         curve.insert(0, tempStr);
     }
     return curve;
+}
+
+void VisualCurveNodeTreeView::pushState2UndoStack(std::string description) {
+    raco::core::UndoState undoState;
+    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
+    undoState.push(folderDataMgr_->converFolderData());
+    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
+    commandInterface_->undoStack().push(description, undoState);
+}
+
+void VisualCurveNodeTreeView::initItemFromFolder(QStandardItem *item, Folder *folder) {
+    for (auto curve : folder->getCurveList()) {
+        QStandardItem *curveItem = new QStandardItem(QString::fromStdString(curve->curve_));
+        item->appendRow(curveItem);
+    }
+    for (auto childFolder : folder->getFolderList()) {
+        QStandardItem *nodeItem = new QStandardItem(QString::fromStdString(childFolder->getFolderName()));
+        item->appendRow(nodeItem);
+        initItemFromFolder(nodeItem, childFolder);
+    }
 }
 }
