@@ -128,6 +128,7 @@ void MateralLogic::initNodeMaterialProperty(core::ValueHandle valueHandle, NodeM
 				if (QString::fromStdString(propName).compare("uniforms") == 0) {
 					MaterialData materialData;
 					setUniformsProperty(tempHandle, materialData);
+					nodeMaterial.clearUniforms();
 					for (auto &un : materialData.getUniforms()) {
 						nodeMaterial.addUniform(un);
 					}
