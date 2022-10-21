@@ -48,7 +48,7 @@ public:
 	void set(ValueHandle const& handle, bool const& value);
 	void set(ValueHandle const& handle, int const& value);
 	void set(ValueHandle const& handle, int64_t const& value);
-	void set(ValueHandle const& handle, double const& value);
+    void set(ValueHandle const& handle, double const& value, bool push = true);
 	void set(ValueHandle const& handle, std::string const& value);
 	void set(ValueHandle const& handle, SEditorObject const& value);
 

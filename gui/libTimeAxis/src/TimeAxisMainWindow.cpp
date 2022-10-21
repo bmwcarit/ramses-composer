@@ -28,12 +28,12 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
 
     timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
-    connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startAnimation);
     connect(timeAxisWidget_, &TimeAxisWidget::switchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
 
     visualCurveWidget_ = new VisualCurveWidget(visualCurveScrollArea_->viewport(), commandInterface);
     connect(visualCurveScrollArea_, &VisualCurveScrollArea::viewportRectChanged, visualCurveWidget_, &VisualCurveWidget::setViewportRect);
-    connect(visualCurveWidget_, &VisualCurveWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigAnimationStop, this, &TimeAxisMainWindow::startAnimation);
     connect(visualCurveWidget_, &VisualCurveWidget::sigSwitchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
     connect(visualCurveWidget_, &VisualCurveWidget::sigPressKey, this, &TimeAxisMainWindow::slotPressKey);
 
@@ -83,7 +83,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigSwitchVisualCurveInfoWidget, this, &TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget);
 }
 
-void TimeAxisMainWindow::startOrStopAnimation() {
+void TimeAxisMainWindow::startAnimation() {
     if (animationStarted_) {
         startBtn_->setFlat(true);
         startBtn_->setIcon(Icons::instance().animationStart);
@@ -130,7 +130,7 @@ void TimeAxisMainWindow::slotLoad() {
         QMessageBox::Yes);
     loadAction = resBtn != QMessageBox::Cancel;
     if (resBtn == QMessageBox::Yes) {
-        loadOperation();
+        loadAnimation();
     }
 }
 
@@ -213,19 +213,13 @@ void TimeAxisMainWindow::slotItemChanged(QStandardItem* item) {
 
 void TimeAxisMainWindow::slotStartTimeFinished() {
     raco::core::UndoState undoState;
-    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
-    undoState.push(FolderDataManager::GetInstance().converFolderData());
-    undoState.push(animationDataManager::GetInstance().converFolderData());
+    undoState.saveCurrentUndoState();
 //    commandInterface_->undoStack().push(fmt::format(("change startTime To '{}'"), lineBegin_->value()), undoState);
 }
 
 void TimeAxisMainWindow::slotEndTimeFinished() {
     raco::core::UndoState undoState;
-    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
-    undoState.push(FolderDataManager::GetInstance().converFolderData());
-    undoState.push(animationDataManager::GetInstance().converFolderData());
+    undoState.saveCurrentUndoState();
 //    commandInterface_->undoStack().push(fmt::format(("change endTime To '{}'"), lineEnd_->value()), undoState);
 }
 
@@ -332,7 +326,7 @@ void TimeAxisMainWindow::slotInitAnimationMgr() {
             }
         }
         curItemName_ = QString::fromStdString(animationDataManager::GetInstance().GetActiveAnimation());
-        loadOperation();
+        loadAnimation();
     }
     timeAxisWidget_->refreshKeyFrameView();
     visualCurveWidget_->refreshKeyFrameView();
@@ -349,9 +343,6 @@ void TimeAxisMainWindow::slotRefreshTimeAxis() {
 }
 
 void TimeAxisMainWindow::slotRefreshTimeAxisAfterUndo() {
-    if (animationDataManager::GetInstance().GetActiveAnimation().compare(curAnimation_) != 0) {
-        loadOperation(false);
-    }
     int startTime = animationDataManager::GetInstance().getActiveAnimationData().GetStartTime();
     int endTime = animationDataManager::GetInstance().getActiveAnimationData().GetEndTime();
     lineBegin_->setValue(startTime);
@@ -384,7 +375,7 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     startBtn_ = new QPushButton(titleWidget_);
     startBtn_->setFlat(true);
     startBtn_->setIcon(Icons::instance().animationStart);
-    connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startAnimation);
     previousBtn_ = new QPushButton(titleWidget_);
     previousBtn_->setFlat(true);
     previousBtn_->setIcon(Icons::instance().animationPrevious);
@@ -455,7 +446,7 @@ bool TimeAxisMainWindow::initAnimationMenu() {
 	return true;
 }
 
-void TimeAxisMainWindow::loadOperation(bool isPush) {
+void TimeAxisMainWindow::loadAnimation() {
 	if (curItemName_.isEmpty()) {
 		return;
     }
@@ -475,16 +466,6 @@ void TimeAxisMainWindow::loadOperation(bool isPush) {
         item->setForeground(QBrush(Qt::white));
         if (it.first.compare(curItemName_) == 0) {
             item->setForeground(QBrush(Qt::red));
-            curAnimation_ = item->text().toStdString();
-
-            if (isPush) {
-//                raco::core::UndoState undoState;
-//                undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-//                undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
-//                undoState.push(FolderDataManager::GetInstance().converFolderData());
-//                undoState.push(animationDataManager::GetInstance().converFolderData());
-//                commandInterface_->undoStack().push(fmt::format(("load Animation '{}'"), curAnimation_), undoState);
-            }
         }
     }
 }

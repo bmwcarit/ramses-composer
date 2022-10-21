@@ -764,9 +764,7 @@ QString VisualCurveNodeTreeView::curveFromItem(QStandardItem *item) {
 
 void VisualCurveNodeTreeView::pushState2UndoStack(std::string description) {
     raco::core::UndoState undoState;
-    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-    undoState.push(folderDataMgr_->converFolderData());
-    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
+    undoState.saveCurrentUndoState();
     commandInterface_->undoStack().push(description, undoState);
 }
 

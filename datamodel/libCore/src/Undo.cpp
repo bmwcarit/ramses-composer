@@ -400,16 +400,20 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 }
 
 void UndoStack::restoreAnimationState(UndoState state) {
+    QVariant nodeData;
+    nodeData.setValue(state.nodeData());
+    guiData::NodeDataManager::GetInstance().merge(nodeData);
+
     QVariant curveData;
-    curveData.setValue(state.curveData().list);
+    curveData.setValue(state.curveData());
     guiData::CurveManager::GetInstance().merge(curveData);
 
     QVariant folderData;
-    folderData.setValue(state.folderData().folder);
-    FolderDataManager::GetInstance().merge(folderData);
+    folderData.setValue(state.folderData());
+    guiData::FolderDataManager::GetInstance().merge(folderData);
 
     QVariant posData;
-    posData.setValue(state.visualPosData().pos);
+    posData.setValue(state.visualPosData());
     guiData::VisualCurvePosManager::GetInstance().merge(posData);
     Q_EMIT raco::signal::signalProxy::GetInstance().sigRepaintAfterUndoOpreation();
 }
@@ -427,8 +431,7 @@ void UndoStack::reset() {
 	saveProjectState(context_->project(), initialState, nullptr, context_->modelChanges(), *context_->objectFactory());
 
     raco::core::UndoState undoState;
-    undoState.push(FolderDataManager::GetInstance().converFolderData());
-    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
+    undoState.saveCurrentUndoState();
     stack_.back()->undoState = undoState;
     onChange_();
 }

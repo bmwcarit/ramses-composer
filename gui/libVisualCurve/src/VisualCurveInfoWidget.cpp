@@ -864,9 +864,7 @@ void VisualCurveInfoWidget::recaculateWorkerRightPoint(QPair<QPointF, QPointF> &
 
 void VisualCurveInfoWidget::pushState2UndoStack(std::string description) {
     raco::core::UndoState undoState;
-    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-    undoState.push(FolderDataManager::GetInstance().converFolderData());
-    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
+    undoState.saveCurrentUndoState();
     commandInterface_->undoStack().push(description, undoState);
 }
 }

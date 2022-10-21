@@ -75,7 +75,7 @@ bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHan
 
 void NodeLogic::setProperty(core::ValueHandle handle, std::string property, float value) {
     if (getValueHanlde(property, handle) && commandInterface_) {
-        commandInterface_->set(handle, value);
+        commandInterface_->set(handle, value, false);
     }
 }
 

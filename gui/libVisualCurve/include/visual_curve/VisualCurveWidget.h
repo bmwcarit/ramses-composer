@@ -63,7 +63,7 @@ public Q_SLOTS:
     void slotSwitchCurveType(int type);
 
 Q_SIGNALS:
-    void AnimationStop();
+    void sigAnimationStop();
     void sigSwitchCurveType();
     void sigPressKey();
     void sigUpdateSelKey();

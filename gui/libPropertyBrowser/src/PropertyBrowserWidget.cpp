@@ -187,8 +187,9 @@ PropertyBrowserWidget::PropertyBrowserWidget(
 
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateActiveAnimation_From_AnimationLogic, this, &PropertyBrowserWidget::slotRefreshPropertyBrowser);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInsertCurveBinding_From_NodeUI, this, &PropertyBrowserWidget::slotInsertCurveBinding);
-    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &PropertyBrowserWidget::slotResetPropertyBrowser);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &PropertyBrowserWidget::slotRefreshPropertyBrowser);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInitPropertyBrowserView, this, &PropertyBrowserWidget::slotRefreshPropertyBrowser);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintPropertyBrowserAfterUndo, this, &PropertyBrowserWidget::slotRefreshPropertyBrowserAfterUndo);
 }
 
 void PropertyBrowserWidget::setLockable(bool lockable) {
@@ -227,15 +228,36 @@ void PropertyBrowserWidget::slotRefreshPropertyBrowser() {
     }
 }
 
-void PropertyBrowserWidget::slotResetPropertyBrowser() {
+void PropertyBrowserWidget::slotRefreshPropertyBrowserAfterUndo(raco::core::ValueHandle valueHandle) {
+    // refresh curvebinding widget
     if (curveBindingWidget_) {
-        curveBindingWidget_->clearCurveBinding();
+        curveBindingWidget_->initCurveBindingWidget();
     }
     if (meshWidget_) {
-        meshWidget_->clearMesh();
+        meshWidget_->initPropertyBrowserMeshWidget();
     }
     if (customWidget_) {
-        customWidget_->clearPropertyBrowserCustomWidget();
+        customWidget_->initPropertyBrowserCustomWidget();
+    }
+
+    // refresh propertyBrowser widget
+    if (propertyBrowser_ && propertyBrowser_->getCurrentObjectID() == valueHandle.rootObject()->objectID()) {
+        // No need to update the Value Handle if we still are referencing to the same object.
+        // This happens for example when the display name changes, thus the tree view will update and then restore the selected item in the property browser.
+        return;
+    }
+    if (!locked_) {
+        emptyLabel_->setVisible(false);
+        subscription_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this, valueHandle](core::SEditorObject obj) {
+            if (valueHandle.rootObject() == obj) {
+                if (locked_) {
+                    setLocked(false);
+                }
+                clearValueHandle(true);
+            }
+        });
+        propertyBrowser_.reset(new PropertyBrowserView{new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, model_}, model_, this});
+        layout_.addWidget(propertyBrowser_.get(), 1, 0);
     }
 }
 
@@ -251,6 +273,10 @@ void PropertyBrowserWidget::switchNode(std::string objectID) {
     if (customWidget_) {
 		customWidget_->initPropertyBrowserCustomWidget();
     }
+    raco::core::UndoState undoState;
+    undoState.saveCurrentUndoState();
+    std::string description = fmt::format("switch active node to '{}'", nodeData->getName());
+    commandInterface_->undoStack().push(description, undoState);
 }
 
 void PropertyBrowserWidget::clear() {
@@ -332,7 +358,7 @@ void PropertyBrowserWidget::initPropertyBrowserWidget() {
     layout_.addWidget(customNodeWidget_, 3, 0, Qt::AlignTop);
 
     curveBindingNodeWidget_ = new PropertyBrowserNodeWidget(QString("CurveBinding"), this, true);
-    curveBindingWidget_ = new PropertyBrowserCurveBindingWidget(curveBindingNodeWidget_);
+    curveBindingWidget_ = new PropertyBrowserCurveBindingWidget(commandInterface_ ,curveBindingNodeWidget_);
     QObject::connect(curveBindingNodeWidget_, &PropertyBrowserNodeWidget::insertData, curveBindingWidget_, &PropertyBrowserCurveBindingWidget::insertData);
     QObject::connect(curveBindingNodeWidget_, &PropertyBrowserNodeWidget::removeData, curveBindingWidget_, &PropertyBrowserCurveBindingWidget::removeData);
     curveBindingNodeWidget_->setShowWidget(curveBindingWidget_);

@@ -11,6 +11,7 @@
 #include <QStringList>
 #include "core/ChangeBase.h"
 
+namespace raco::guiData {
 class Folder {
 public:
     Folder();
@@ -77,5 +78,6 @@ private:
 private:
     Folder *rootFolder_{nullptr};
 };
+}
 
 #endif // FOLDERDATAMANAGER_H

@@ -1,5 +1,6 @@
 #include "FolderData/FolderDataManager.h"
 
+namespace raco::guiData {
 Folder::Folder() {
 
 }
@@ -378,6 +379,6 @@ bool FolderDataManager::pathFromCurve(std::string curve, Folder *folder, std::st
     }
     return true;
 }
-
+}
 
 

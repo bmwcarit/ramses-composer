@@ -16,6 +16,9 @@
 #include "signal/SignalProxy.h"
 #include "property_browser/editors/SearchEditor.h"
 #include "property_browser/controls/ResultTree.h"
+#include "core/Undo.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
+#include "FolderData/FolderDataManager.h"
 
 using namespace raco::signal;
 using namespace raco::guiData;
@@ -23,10 +26,11 @@ namespace raco::property_browser {
 class PropertyBrowserCurveBindingView : public QWidget {
     Q_OBJECT
 public:
-    explicit PropertyBrowserCurveBindingView(QString sampleProperty, QString property, QString curve, QWidget *parent = nullptr);
+    explicit PropertyBrowserCurveBindingView(raco::core::CommandInterface* commandInterface, QString sampleProperty, QString property, QString curve, QWidget *parent = nullptr);
     bool isSelected();
     bool deleteCurveBinding();
     void checkCurveIsValid(QString curve);
+    std::string property();
 
 Q_SIGNALS:
     void updateIcon(bool bExpanded);
@@ -39,6 +43,8 @@ public Q_SLOTS:
     void slotSamplePropertyChanged();
     void slotSearchBtnClicked();
     void slotRefrenceBtnClicked();
+private:
+    void pushUndoState(std::string description);
 protected:
     void mousePressEvent(QMouseEvent *event);
 
@@ -64,6 +70,7 @@ private:
     QString curve_;
     QString property_;
     QString sampleProperty_;
+    raco::core::CommandInterface* commandInterface_{nullptr};
 };
 }
 

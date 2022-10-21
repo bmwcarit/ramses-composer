@@ -11,7 +11,7 @@ namespace raco::property_browser {
 class PropertyBrowserCurveBindingWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit PropertyBrowserCurveBindingWidget(QWidget *parent = nullptr);
+    explicit PropertyBrowserCurveBindingWidget(raco::core::CommandInterface* commandInterface, QWidget *parent = nullptr);
 
     void initCurveBindingWidget();
     void insertCurveBinding(QString sampleProperty, QString property, QString curve);
@@ -29,6 +29,7 @@ private:
     QGridLayout *layout_{nullptr};
     QScrollArea* scroll_{nullptr};
     int index_{1};
+    raco::core::CommandInterface* commandInterface_{nullptr};
 };
 }
 

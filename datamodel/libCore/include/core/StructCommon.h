@@ -74,8 +74,13 @@ Q_DECLARE_METATYPE(STRUCT_ANIMATION_DATA)
 
 struct STRUCT_ANIMATION {
     std::map<std::string, STRUCT_ANIMATION_DATA> animationMap_;
-    std::string activeAnimation_;
 };
 Q_DECLARE_METATYPE(STRUCT_ANIMATION)
+
+struct STRUCT_NODE {
+    std::string activeNodeId;
+    std::map<std::string, std::map<std::string, std::string>> bindingMap_;
+};
+Q_DECLARE_METATYPE(STRUCT_NODE)
 
   // namespace raco::core

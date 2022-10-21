@@ -51,7 +51,7 @@ public Q_SLOTS:
     void slotRefreshTimeAxisAfterUndo();
     void slotInitCurves();
     void slotSwitchNode(raco::core::ValueHandle &handle);
-    void startOrStopAnimation();
+    void startAnimation();
     void slotUpdateAnimation();
     void slotUpdateAnimationKey(QString oldKey, QString newKey);
     void slotResetAnimation();
@@ -74,7 +74,7 @@ private:
     bool initTitle(QWidget *parent);
     bool initTree(QWidget *parent);
 	bool initAnimationMenu();
-    void loadOperation(bool isPush = true);
+    void loadAnimation();
 
 private:
     TimeAxisWidget *timeAxisWidget_;
@@ -105,7 +105,6 @@ private:
     QAction *m_pProperty{nullptr};
     QAction *pasteAction_{nullptr};
 private:
-    std::string curAnimation_;
     int UUID_{1};
     QStandardItemModel* model_{nullptr};
     QString curItemName_;

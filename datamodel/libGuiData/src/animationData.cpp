@@ -100,7 +100,6 @@ void animationDataManager::merge(QVariant data) {
     if (data.canConvert<STRUCT_ANIMATION>()) {
         STRUCT_ANIMATION destAnimation = data.value<STRUCT_ANIMATION>();
         m_AnitnList.clear();
-        m_ActiveAnimation = destAnimation.activeAnimation_;
         for (const auto &it : destAnimation.animationMap_) {
             animationData animData;
             animData.SetStartTime(it.second.startTime_);
@@ -118,7 +117,6 @@ void animationDataManager::merge(QVariant data) {
 
 STRUCT_ANIMATION animationDataManager::converFolderData() {
     STRUCT_ANIMATION animation;
-    animation.activeAnimation_ = m_ActiveAnimation;
     for (auto it : m_AnitnList) {
         STRUCT_ANIMATION_DATA animationData;
         animationData.startTime_ = it.second.GetStartTime();

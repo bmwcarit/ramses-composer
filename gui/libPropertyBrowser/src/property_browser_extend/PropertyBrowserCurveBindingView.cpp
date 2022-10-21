@@ -4,8 +4,9 @@
 
 using namespace raco::style;
 namespace raco::property_browser {
-PropertyBrowserCurveBindingView::PropertyBrowserCurveBindingView(QString sampleProperty, QString property, QString curve, QWidget *parent)
+PropertyBrowserCurveBindingView::PropertyBrowserCurveBindingView(core::CommandInterface *commandInterface, QString sampleProperty, QString property, QString curve, QWidget *parent)
     : QWidget{parent},
+      commandInterface_{commandInterface},
       sampleProperty_{sampleProperty},
       property_{property},
       curve_{curve} {
@@ -95,6 +96,10 @@ void PropertyBrowserCurveBindingView::checkCurveIsValid(QString curve) {
     }
 }
 
+std::string PropertyBrowserCurveBindingView::property() {
+    return propertyEditor_->text().toStdString();
+}
+
 void PropertyBrowserCurveBindingView::slotCheckAllCurveIsValid() {
     checkCurveIsValid(curveEditor_->text());
 }
@@ -115,6 +120,7 @@ void PropertyBrowserCurveBindingView::slotExpandedWidget() noexcept {
 }
 
 void PropertyBrowserCurveBindingView::slotCurveChanged() {
+    std::string oldCurve = curve_.toStdString();
     QString curve = curveEditor_->text();
     std::map<std::string, std::string> bindingDataMap;
     NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty_.toStdString(), bindingDataMap);
@@ -129,9 +135,11 @@ void PropertyBrowserCurveBindingView::slotCurveChanged() {
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
 
     checkCurveIsValid(curve_);
+    pushUndoState(fmt::format("change curve of curveBinding ''{}'' to ''{}''", oldCurve, curve.toStdString()));
 }
 
 void PropertyBrowserCurveBindingView::slotPropertyChanged() {
+    std::string oldProperty = property_.toStdString();
     QString property = propertyEditor_->text();
     std::map<std::string, std::string> bindingDataMap;
     NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().getPropCurve(sampleProperty_.toStdString(), bindingDataMap);
@@ -151,9 +159,12 @@ void PropertyBrowserCurveBindingView::slotPropertyChanged() {
     property_ = property;
     NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().insertBindingDataItem(sampleProperty_.toStdString(), property_.toStdString(), curve_.toStdString());
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
+
+    pushUndoState(fmt::format("change property of curveBinding ''{}'' to ''{}''", oldProperty, property.toStdString()));
 }
 
 void PropertyBrowserCurveBindingView::slotSamplePropertyChanged() {
+    std::string oldSampleProperty = sampleProperty_.toStdString();
     QString sampleProperty = sampleEditor_->text();
 
     std::map<std::string, std::string> bindingDataMap;
@@ -176,6 +187,8 @@ void PropertyBrowserCurveBindingView::slotSamplePropertyChanged() {
         NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().insertAnimation(str, newMap);
     }
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
+
+    pushUndoState(fmt::format("change sampleProperty of curveBinding ''{}'' to ''{}''", oldSampleProperty, str));
 }
 
 void PropertyBrowserCurveBindingView::slotSearchBtnClicked() {
@@ -205,6 +218,12 @@ void PropertyBrowserCurveBindingView::slotRefrenceBtnClicked() {
     std::string curve = curveEditor_->text().toStdString();
     std::string property = propertyEditor_->text().toStdString();
     Q_EMIT signalProxy::GetInstance().sigSwitchVisualCurve(samplePro, property, curve);
+}
+
+void PropertyBrowserCurveBindingView::pushUndoState(std::string description) {
+    raco::core::UndoState undoState;
+    undoState.saveCurrentUndoState();
+    commandInterface_->undoStack().push(description, undoState);
 }
 
 void PropertyBrowserCurveBindingView::mousePressEvent(QMouseEvent *event) {

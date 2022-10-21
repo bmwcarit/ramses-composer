@@ -246,7 +246,7 @@ void VisualCurveWidget::timerEvent(QTimerEvent *event) {
     int curFrame_ = VisualCurvePosManager::GetInstance().getCurFrame();
     if (curLoop_ >= loopCount_) {
         stopAnimation();
-        Q_EMIT AnimationStop();
+        Q_EMIT sigAnimationStop();
         return;
     }
 
@@ -324,12 +324,12 @@ void VisualCurveWidget::mousePressEvent(QMouseEvent *event) {
                 }
             }
         }
+        VisualCurvePosManager::GetInstance().resetCurrentPointInfo();
         if (VisualCurvePosManager::GetInstance().getPressAction() != MOUSE_PRESS_NONE) {
             pushState2UndoStack("select none");
         }
         VisualCurvePosManager::GetInstance().setKeyBoardType(KEY_BOARD_TYPE::POINT_MOVE);
         VisualCurvePosManager::GetInstance().setPressAction(MOUSE_PRESS_NONE);
-        VisualCurvePosManager::GetInstance().resetCurrentPointInfo();
         VisualCurvePosManager::GetInstance().clearMultiSelPoints();
         Q_EMIT sigPressKey();
         update();
@@ -804,6 +804,7 @@ void VisualCurveWidget::slotRefreshVisualCurveAfterUndo() {
     button_->setText(VisualCurvePosManager::GetInstance().getCurFrame());
     button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)VisualCurvePosManager::GetInstance().getCurFrame() - viewportOffset_.x() - button_->width()/2, 0);
     update();
+    Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(VisualCurvePosManager::GetInstance().getCurFrame());
 }
 
 void VisualCurveWidget::slotRefreshCursorX() {
@@ -2365,9 +2366,7 @@ QPointF VisualCurveWidget::reCaculateLeftWorkerPoint(SKeyPoint keyPoint, QPointF
 
 void VisualCurveWidget::pushState2UndoStack(std::string description) {
     raco::core::UndoState undoState;
-    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-    undoState.push(raco::guiData::CurveManager::GetInstance().convertCurveData());
-    undoState.push(FolderDataManager::GetInstance().converFolderData());
+    undoState.saveCurrentUndoState();
     commandInterface_->undoStack().push(description, undoState);
 }
 
