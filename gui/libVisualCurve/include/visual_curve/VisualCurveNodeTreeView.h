@@ -40,7 +40,7 @@ private:
     bool moveFolderToNode(Folder *srcFolder, std::string srcCurvePath, std::string destCurvePath);
     bool moveFolderToDefaultNode(Folder *srcFolder, std::string srcCurvePath);
 signals:
-    void moveOneRow(const QModelIndex &source);
+    void moveRowFinished(std::string dest);
 private:
     FolderDataManager *folderDataMgr_{nullptr};
 };
@@ -48,7 +48,7 @@ private:
 class VisualCurveNodeTreeView : public QWidget {
     Q_OBJECT
 public:
-    explicit VisualCurveNodeTreeView(QWidget *parent = nullptr);
+    explicit VisualCurveNodeTreeView(QWidget *parent,  raco::core::CommandInterface* commandInterface);
     ~VisualCurveNodeTreeView();
     void initCurves();
     void switchCurSelCurve(std::string curve);
@@ -66,6 +66,8 @@ public Q_SLOTS:
     void slotCurrentRowChanged(const QModelIndex &index);
     void slotButtonDelegateClicked(const QModelIndex &index);
     void slotDeleteCurveFromVisualCurve(std::string curve);
+    void slotModelMoved(std::string dest);
+    void slotRefreshWidget();
 
 signals:
     void sigRefreshVisualCurve();
@@ -75,6 +77,8 @@ private:
     void searchCurve(NodeData *pNode, std::string &property, std::string curve, std::string sampleProp);
     bool itemFromPath(QStandardItem **item, QString node);
     QString curveFromItem(QStandardItem *item);
+    void pushState2UndoStack(std::string description);
+    void initItemFromFolder(QStandardItem *item, Folder* folder);
 private:
     TreeModel *model_{nullptr};
     QTreeView *visualCurveTreeView_{nullptr};
@@ -86,6 +90,7 @@ private:
     FolderDataManager *folderDataMgr_{nullptr};
     std::string selNode_;
     ButtonDelegate *visibleButton_{nullptr};
+    raco::core::CommandInterface* commandInterface_{nullptr};
 };
 }
 

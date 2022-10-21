@@ -31,10 +31,12 @@ public:
 
 Q_SIGNALS:
     void buttonMove(int pix);
+    void buttonMoveRelease(int pix);
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
+    virtual void mouseReleaseEvent(QMouseEvent *event) override;
     virtual void paintEvent(QPaintEvent *event) override;
 
 private:
@@ -68,8 +70,8 @@ public Q_SLOTS:
             const double scaleValue,
             const MOUSEACTION mouseAction);
 
-    void setStartFrame();
-    void setFinishFrame();
+    void setStartFrame(int keyframe);
+    void setFinishFrame(int keyframe);
     void updateSlider(int pix);    //拖动时间线的处理函数
     void setCurFrameToBegin();
     void setCurFrameToEnd();

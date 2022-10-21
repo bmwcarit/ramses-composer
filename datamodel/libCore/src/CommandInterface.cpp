@@ -117,12 +117,14 @@ void CommandInterface::set(ValueHandle const& handle, int64_t const& value) {
 	}
 }
 
-void CommandInterface::set(ValueHandle const& handle, double const& value) {
+void CommandInterface::set(ValueHandle const& handle, double const& value, bool push) {
     if (checkScalarHandleForSet(handle, PrimitiveType::Double) && handle.asDouble() != value) {
         context_->set(handle, value);
         PrefabOperations::globalPrefabUpdate(*context_);
-        undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
-            fmt::format("{}", handle.getPropertyPath(true)));
+        if (push) {
+            undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+                fmt::format("{}", handle.getPropertyPath(true)));
+        }
     }
 }
 
@@ -341,7 +343,8 @@ size_t CommandInterface::moveScenegraphChildren(std::vector<SEditorObject> const
 			throw std::runtime_error(fmt::format("Scenegraph move: insertion index '{}' for new parent '{}' is out of range", insertBeforeIndex, newParent->objectName()));
 		}
 	} else {
-		if (insertBeforeIndex != -1) {
+        // *RAMSES*
+        if (insertBeforeIndex != 0) {
 			throw std::runtime_error(fmt::format("Scenegraph move: insertion index '{}' for new parent <root> is out of range", insertBeforeIndex));
 		}
 	}

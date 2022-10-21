@@ -191,7 +191,9 @@ void ScalarSlider<T>::mouseReleaseEvent(QMouseEvent* event) {
 		} else {
 			signalSingleClicked();
 		}
-	}
+    } else {
+        signalFinished();
+    }
 	mouseIsDragging_ = false;
 	setCursor(Qt::CursorShape::SizeHorCursor);
 	clearFocus();

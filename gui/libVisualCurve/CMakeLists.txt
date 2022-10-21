@@ -13,7 +13,7 @@ add_library(libVisualCurve
     include/visual_curve/VisualCurveNodeDelegate.h src/VisualCurveNodeDelegate.cpp
     include/visual_curve/VisualCurveNodeTreeView.h src/VisualCurveNodeTreeView.cpp
     include/visual_curve/VisualCurveInfoWidget.h src/VisualCurveInfoWidget.cpp
-    include/visual_curve/VisualCurvePosManager.h src/VisualCurvePosManager.cpp
+#    include/visual_curve/VisualCurvePosManager.h src/VisualCurvePosManager.cpp
 #    include/visual_curve/ObjectTreeNode.h src/ObjectTreeNode.cpp
 #    include/visual_curve/ObjectTreeView.h src/ObjectTreeView.cpp
 #    include/visual_curve/ObjectTreeViewDefaultModel.h src/ObjectTreeViewDefaultModel.cpp

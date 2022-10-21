@@ -8,6 +8,25 @@ CurveManager::CurveManager() {
 
 std::list<STRUCT_CURVE> CurveManager::convertCurveData() {
     std::list<STRUCT_CURVE> curveList;
+    for (auto curve : curveList_) {
+        STRUCT_CURVE tempCurve;
+        tempCurve.curveName_ = curve->getCurveName();
+        tempCurve.dataType_ = curve->getDataType();
+        for (auto point : curve->getPointList()) {
+            STRUCT_POINT tempPoint;
+            tempPoint.keyFrame_ = point->getKeyFrame();
+            tempPoint.leftKeyFrame_ = point->getLeftKeyFrame();
+            tempPoint.rightKeyFrame_ = point->getRightKeyFrame();
+            tempPoint.interPolationType_ = point->getInterPolationType();
+            tempPoint.data_ = point->getDataValue();
+            tempPoint.leftData_ = point->getLeftData();
+            tempPoint.rightData_ = point->getRightData();
+            tempPoint.leftTagent_ = point->getLeftTagent();
+            tempPoint.rightTagent_ = point->getRightTagent();
+            tempCurve.pointList.push_back(tempPoint);
+        }
+        curveList.push_back(tempCurve);
+    }
     return curveList;
 }
 

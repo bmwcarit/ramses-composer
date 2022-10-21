@@ -1,4 +1,5 @@
 #pragma once
+#include "core/StructCommon.h"
 #include <string>
 #include <map>
 #include <set>
@@ -44,6 +45,9 @@ public:
 	~animationDataManager(){}
 	animationDataManager(const animationDataManager&) = delete;
 	animationDataManager& operator=(const animationDataManager&) = delete;
+
+    void merge(QVariant data);
+    STRUCT_ANIMATION converFolderData();
 public:
 	bool InsertAmimation(std::string sampleProperty);
 	bool CopyAmimation(std::string src,std::string dest);

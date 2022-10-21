@@ -20,8 +20,9 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 #include "visual_curve/VisualCurveWidget.h"
+#include "FolderData/FolderDataManager.h"
 
 #include <cassert>
 
@@ -32,43 +33,36 @@ UndoState::UndoState() {
 
 }
 
-void UndoState::push(STRUCT_VISUAL_CURVE_POS pos) {
-    posData_.pos = pos;
-    posData_.canMerge = true;
+void UndoState::saveCurrentUndoState() {
+    posData_ = raco::guiData::VisualCurvePosManager::GetInstance().convertDataStruct();
+    curveData_ = raco::guiData::CurveManager::GetInstance().convertCurveData();
+    folderData_ = raco::guiData::FolderDataManager::GetInstance().converFolderData();
+//    animationData_ = raco::guiData::animationDataManager::GetInstance().converFolderData();
+    nodeData_ = raco::guiData::NodeDataManager::GetInstance().convertCurveData();
 }
 
-void UndoState::push(STRUCT_FOLDER folder) {
-    folderData_.folder = folder;
-    folderData_.canMerge = true;
+void UndoState::push(STRUCT_VISUAL_CURVE_POS data) {
+    posData_ = data;
 }
 
-void UndoState::push(std::list<STRUCT_CURVE> list) {
-    curveData_.list = list;
-    curveData_.canMerge = true;
-}
-
-bool UndoState::canMergeVisualCurve() {
-    return posData_.canMerge;
-}
-
-bool UndoState::canMergeFolderData() {
-    return folderData_.canMerge;
-}
-
-bool UndoState::canMergeCurveData() {
-    return curveData_.canMerge;
-}
-
-STRUCT_POS_DATA UndoState::visualPosData() {
+STRUCT_VISUAL_CURVE_POS UndoState::visualPosData() {
     return posData_;
 }
 
-STRUCT_FOLDER_DATA UndoState::folderData() {
+STRUCT_FOLDER UndoState::folderData() {
     return folderData_;
 }
 
-STRUCT_CURVE_DATA UndoState::curveData() {
+std::list<STRUCT_CURVE> UndoState::curveData() {
     return curveData_;
+}
+
+//STRUCT_ANIMATION UndoState::animationData() {
+//    return animationData_;
+//}
+
+STRUCT_NODE UndoState::nodeData() {
+    return nodeData_;
 }
 
 }  // namespace raco::core

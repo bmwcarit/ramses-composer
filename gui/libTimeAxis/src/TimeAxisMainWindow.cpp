@@ -5,7 +5,7 @@
 #include "style/Icons.h"
 #include "core/EngineInterface.h"
 #include "core/Undo.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 
 using namespace raco::style;
 namespace raco::time_axis{
@@ -28,20 +28,20 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
 
     timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
-    connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startAnimation);
     connect(timeAxisWidget_, &TimeAxisWidget::switchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
 
     visualCurveWidget_ = new VisualCurveWidget(visualCurveScrollArea_->viewport(), commandInterface);
     connect(visualCurveScrollArea_, &VisualCurveScrollArea::viewportRectChanged, visualCurveWidget_, &VisualCurveWidget::setViewportRect);
-    connect(visualCurveWidget_, &VisualCurveWidget::AnimationStop, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(visualCurveWidget_, &VisualCurveWidget::sigAnimationStop, this, &TimeAxisMainWindow::startAnimation);
     connect(visualCurveWidget_, &VisualCurveWidget::sigSwitchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
     connect(visualCurveWidget_, &VisualCurveWidget::sigPressKey, this, &TimeAxisMainWindow::slotPressKey);
 
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
     visualCurveScrollArea_->setCenterWidget(visualCurveWidget_);
 
-    visualCurveInfoWidget_ = new VisualCurveInfoWidget(this);
-    visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this);
+    visualCurveInfoWidget_ = new VisualCurveInfoWidget(this, commandInterface);
+    visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this, commandInterface);
 
     initTitle(this);
     initTree(this);
@@ -63,6 +63,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
 
     slotSwitchCurveWidget();
 
+    connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintAfterUndoOpreation, this, &TimeAxisMainWindow::slotRefreshTimeAxisAfterUndo);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAxis_From_NodeUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintTimeAixs_From_CurveUI, this, &TimeAxisMainWindow::slotRefreshTimeAxis);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInsertKeyFrame_From_NodeUI, this, &TimeAxisMainWindow::slotCreateKeyFrame);
@@ -82,7 +83,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigSwitchVisualCurveInfoWidget, this, &TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget);
 }
 
-void TimeAxisMainWindow::startOrStopAnimation() {
+void TimeAxisMainWindow::startAnimation() {
     if (animationStarted_) {
         startBtn_->setFlat(true);
         startBtn_->setIcon(Icons::instance().animationStart);
@@ -129,7 +130,7 @@ void TimeAxisMainWindow::slotLoad() {
         QMessageBox::Yes);
     loadAction = resBtn != QMessageBox::Cancel;
     if (resBtn == QMessageBox::Yes) {
-        loadOperation();
+        loadAnimation();
     }
 }
 
@@ -210,11 +211,30 @@ void TimeAxisMainWindow::slotItemChanged(QStandardItem* item) {
     }
 }
 
+void TimeAxisMainWindow::slotStartTimeFinished() {
+    raco::core::UndoState undoState;
+    undoState.saveCurrentUndoState();
+//    commandInterface_->undoStack().push(fmt::format(("change startTime To '{}'"), lineBegin_->value()), undoState);
+}
+
+void TimeAxisMainWindow::slotEndTimeFinished() {
+    raco::core::UndoState undoState;
+    undoState.saveCurrentUndoState();
+//    commandInterface_->undoStack().push(fmt::format(("change endTime To '{}'"), lineEnd_->value()), undoState);
+}
+
 void TimeAxisMainWindow::slotUpdateAnimation() {
     timeAxisWidget_->stopAnimation();
-    lineBegin_->setText(QString::number(animationDataManager::GetInstance().getActiveAnimationData().GetStartTime()));
-    lineEnd_->setText(QString::number(animationDataManager::GetInstance().getActiveAnimationData().GetEndTime()));
+    int startTime = animationDataManager::GetInstance().getActiveAnimationData().GetStartTime();
+    int endTime = animationDataManager::GetInstance().getActiveAnimationData().GetEndTime();
+    lineBegin_->setValue(startTime);
+    lineEnd_->setValue(endTime);
+    timeAxisWidget_->setStartFrame(startTime);
+    timeAxisWidget_->setFinishFrame(endTime);
+    visualCurveWidget_->slotSetStartFrame(startTime);
+    visualCurveWidget_->slotSetFinishFrame(endTime);
     timeAxisWidget_->update();
+    visualCurveWidget_->update();
 }
 
 void TimeAxisMainWindow::slotUpdateAnimationKey(QString oldKey, QString newKey) {
@@ -306,9 +326,11 @@ void TimeAxisMainWindow::slotInitAnimationMgr() {
             }
         }
         curItemName_ = QString::fromStdString(animationDataManager::GetInstance().GetActiveAnimation());
-        loadOperation();
+        loadAnimation();
     }
     timeAxisWidget_->refreshKeyFrameView();
+    visualCurveWidget_->refreshKeyFrameView();
+    visualCurveNodeTreeView_->initCurves();
 }
 
 void TimeAxisMainWindow::slotCreateKeyFrame(QString curve) {
@@ -318,18 +340,23 @@ void TimeAxisMainWindow::slotCreateKeyFrame(QString curve) {
 
 void TimeAxisMainWindow::slotRefreshTimeAxis() {
     timeAxisWidget_->refreshKeyFrameView();
-//    visualCurveNodeTreeView_->initCurves();
+}
+
+void TimeAxisMainWindow::slotRefreshTimeAxisAfterUndo() {
+    int startTime = animationDataManager::GetInstance().getActiveAnimationData().GetStartTime();
+    int endTime = animationDataManager::GetInstance().getActiveAnimationData().GetEndTime();
+    lineBegin_->setValue(startTime);
+    lineEnd_->setValue(endTime);
+    timeAxisWidget_->setStartFrame(startTime);
+    timeAxisWidget_->setFinishFrame(endTime);
+    visualCurveWidget_->slotSetStartFrame(startTime);
+    visualCurveWidget_->slotSetFinishFrame(endTime);
+    timeAxisWidget_->update();
+    visualCurveWidget_->update();
 }
 
 void TimeAxisMainWindow::slotInitCurves() {
-    visualCurveNodeTreeView_->initCurves();
-    visualCurveWidget_->refreshKeyFrameView();
 
-//    raco::core::UndoState undoState;
-//    undoState.push(VisualCurvePosManager::GetInstance().convertDataStruct());
-//    undoState.push(FolderDataManager::GetInstance().converFolderData());
-//    undoState.push(CurveManager::GetInstance().convertCurveData());
-//    commandInterface_->undoStack().push("Initial Animation", undoState);
 }
 
 void TimeAxisMainWindow::slotSwitchNode(core::ValueHandle &handle) {
@@ -348,7 +375,7 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     startBtn_ = new QPushButton(titleWidget_);
     startBtn_->setFlat(true);
     startBtn_->setIcon(Icons::instance().animationStart);
-    connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startOrStopAnimation);
+    connect(startBtn_, &QPushButton::clicked, this, &TimeAxisMainWindow::startAnimation);
     previousBtn_ = new QPushButton(titleWidget_);
     previousBtn_->setFlat(true);
     previousBtn_->setIcon(Icons::instance().animationPrevious);
@@ -362,17 +389,21 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     QWidget* spacerRight = new QWidget(titleWidget_);
     spacerRight->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    lineBegin_ = new QLineEdit(titleWidget_);
+    lineBegin_ = new Int64Editor(titleWidget_);
     lineBegin_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    lineBegin_->resize(100, 20);
-    lineBegin_->setText("0");
+    lineBegin_->setSize(120, 20);
+    lineBegin_->setValue(0);
 
-    lineEnd_ = new QLineEdit(titleWidget_);
+    lineEnd_ = new Int64Editor(titleWidget_);
     lineEnd_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    lineEnd_->resize(100, 20);
-    lineEnd_->setText("200");
-    connect(lineBegin_, &QLineEdit::textChanged, timeAxisWidget_, &TimeAxisWidget::setStartFrame);
-	connect(lineEnd_, &QLineEdit::textChanged, timeAxisWidget_, &TimeAxisWidget::setFinishFrame);
+    lineEnd_->setSize(120, 20);
+    lineEnd_->setValue(200);
+    connect(lineBegin_, &Int64Editor::sigValueChanged, timeAxisWidget_, &TimeAxisWidget::setStartFrame);
+    connect(lineEnd_, &Int64Editor::sigValueChanged, timeAxisWidget_, &TimeAxisWidget::setFinishFrame);
+    connect(lineBegin_, &Int64Editor::sigValueChanged, visualCurveWidget_, &VisualCurveWidget::slotSetStartFrame);
+    connect(lineEnd_, &Int64Editor::sigValueChanged, visualCurveWidget_, &VisualCurveWidget::slotSetFinishFrame);
+    connect(lineBegin_, &Int64Editor::sigEditingFinished, this, &TimeAxisMainWindow::slotStartTimeFinished);
+    connect(lineEnd_, &Int64Editor::sigEditingFinished, this, &TimeAxisMainWindow::slotEndTimeFinished);
 
     hTitleLayout->addWidget(spacerLeft);
     hTitleLayout->addWidget(previousBtn_);
@@ -415,7 +446,7 @@ bool TimeAxisMainWindow::initAnimationMenu() {
 	return true;
 }
 
-void TimeAxisMainWindow::loadOperation() {
+void TimeAxisMainWindow::loadAnimation() {
 	if (curItemName_.isEmpty()) {
 		return;
     }
@@ -423,8 +454,8 @@ void TimeAxisMainWindow::loadOperation() {
     timeAxisWidget_->stopAnimation();
     animationDataManager::GetInstance().SetActiveAnimation(curItemName_.toStdString());
     animationData data = animationDataManager::GetInstance().getAnimationData(curItemName_.toStdString());
-    lineBegin_->setText(QString::number(data.GetStartTime()));
-    lineEnd_->setText(QString::number(data.GetEndTime()));
+    lineBegin_->setValue(data.GetStartTime());
+    lineEnd_->setValue(data.GetEndTime());
     timeAxisWidget_->update();
 
     Q_EMIT signalProxy::GetInstance().sigUpdateActiveAnimation_From_AnimationLogic(curItemName_);

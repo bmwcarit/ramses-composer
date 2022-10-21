@@ -1,8 +1,9 @@
 #include "property_browser_extend/PropertyBrowserCurveBindingWidget.h"
 
 namespace raco::property_browser {
-PropertyBrowserCurveBindingWidget::PropertyBrowserCurveBindingWidget(QWidget *parent)
-    : QWidget{parent} {
+PropertyBrowserCurveBindingWidget::PropertyBrowserCurveBindingWidget(core::CommandInterface *commandInterface, QWidget *parent)
+    : QWidget{parent},
+    commandInterface_(commandInterface) {
     QWidget* mainWidget = new QWidget(this);
     layout_ = new QGridLayout(this);
     layout_->setSizeConstraint(QVBoxLayout::SetMinAndMaxSize);
@@ -38,7 +39,7 @@ void PropertyBrowserCurveBindingWidget::initCurveBindingWidget() {
 
 void PropertyBrowserCurveBindingWidget::insertCurveBinding(QString sampleProperty, QString property, QString curve) {
 
-    PropertyBrowserCurveBindingView* widget = new PropertyBrowserCurveBindingView(sampleProperty, property, curve, this);
+    PropertyBrowserCurveBindingView* widget = new PropertyBrowserCurveBindingView(commandInterface_, sampleProperty, property, curve, this);
     layout_->addWidget(widget, listWidget_.size(), 0);
     listWidget_.append(widget);
 }
@@ -75,18 +76,24 @@ void PropertyBrowserCurveBindingWidget::insertData() {
     insertCurveBinding(sampleProperty, property, curve);
     NodeDataManager::GetInstance().getActiveNode()->NodeExtendRef().curveBindingRef().insertBindingDataItem(sampleProperty.toStdString(), property.toStdString(), curve.toStdString());
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
+
+    raco::core::UndoState undoState;
+    undoState.saveCurrentUndoState();
+    std::string description = fmt::format("insert curveBinding to '{}'", NodeDataManager::GetInstance().getActiveNode()->getName());
+    commandInterface_->undoStack().push(description, undoState);
 }
 
 void PropertyBrowserCurveBindingWidget::removeData() {
     std::string stdStrSampleProperty = animationDataManager::GetInstance().GetActiveAnimation();
-    QString sampleProperty = QString::fromStdString(stdStrSampleProperty);
     if (stdStrSampleProperty == std::string()) {
         return;
     }
+    std::string property;
     for (QWidget* widget : qAsConst(listWidget_)) {
 		if (widget != nullptr) {
 			PropertyBrowserCurveBindingView* view = dynamic_cast<PropertyBrowserCurveBindingView*>(widget);
             if (view->isSelected()) {
+                property = view->property();
 				view->deleteCurveBinding();
 				layout_->removeWidget(widget);
                 listWidget_.removeOne(widget);
@@ -96,6 +103,11 @@ void PropertyBrowserCurveBindingWidget::removeData() {
 		}
     }
     Q_EMIT signalProxy::GetInstance().sigRepaintTimeAxis_From_NodeUI();
+
+    raco::core::UndoState undoState;
+    undoState.saveCurrentUndoState();
+    std::string description = fmt::format("delete '{}' property of curveBinding from '{}'", property, NodeDataManager::GetInstance().getActiveNode()->getName());
+    commandInterface_->undoStack().push(description, undoState);
 }
 
 bool PropertyBrowserCurveBindingWidget::isInValidBindingData(QString sampleProperty, QString property, QString curve) {

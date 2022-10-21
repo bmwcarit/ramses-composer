@@ -6,15 +6,16 @@
 #include "core/ChangeBase.h"
 #include "core/StructCommon.h"
 
+namespace raco::guiData {
 using namespace raco::time_axis;
-class VisualCurvePosManager : public raco::core::ChangeBase {
+class VisualCurvePosManager  {
 public:
     static VisualCurvePosManager& GetInstance();
     VisualCurvePosManager(const VisualCurvePosManager&) = delete;
     VisualCurvePosManager& operator=(const VisualCurvePosManager&) = delete;
 
     STRUCT_VISUAL_CURVE_POS convertDataStruct();
-    virtual void merge(QVariant data) override;
+    void merge(QVariant data);
 
     void setKeyBoardType(KEY_BOARD_TYPE type);
     KEY_BOARD_TYPE getKeyBoardType();
@@ -98,5 +99,6 @@ private:
     QList<std::string> hidenCurveList_;
     QList<int> multiSelPoints_;
 };
+}
 
 #endif // VISUALCURVEDATAMANAGER_H

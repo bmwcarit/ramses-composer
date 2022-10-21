@@ -62,14 +62,13 @@ public Q_SLOTS:
     void slotInsertCurveBinding(QString property, QString curve);
     void slotTreeMenu(const QPoint& pos);
     void slotRefreshPropertyBrowser();
-    void slotResetPropertyBrowser();
+    void slotRefreshPropertyBrowserAfterUndo(raco::core::ValueHandle valueHandle);
 	void slotRefreshCurveBindingWidget();
 
 private:
 	void setLocked(bool locked);
 	void clearValueHandle(bool restorable);
     void switchNode(std::string objectID);
-
 
 	raco::components::SDataChangeDispatcher dispatcher_;
 	raco::core::CommandInterface* commandInterface_;

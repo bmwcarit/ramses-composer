@@ -4,7 +4,33 @@
 namespace raco::guiData {
 NodeDataManager& NodeDataManager::GetInstance() {
 	static NodeDataManager Instance;
-	return Instance;
+    return Instance;
+}
+
+STRUCT_NODE NodeDataManager::convertCurveData() {
+    STRUCT_NODE node;
+    if (activeNode_) {
+        node.activeNodeId = activeNode_->objectID();
+        node.bindingMap_ = activeNode_->NodeExtendRef().curveBindingRef().bindingMap();
+    } else {
+        node.activeNodeId = root_.objectID();
+        node.bindingMap_ = root_.NodeExtendRef().curveBindingRef().bindingMap();
+    }
+    return node;
+}
+
+void NodeDataManager::merge(QVariant data) {
+    if (data.canConvert<STRUCT_NODE>()) {
+        STRUCT_NODE node = data.value<STRUCT_NODE>();
+        NodeData* activeNode = searchNodeByID(node.activeNodeId);
+        setActiveNode(activeNode);
+        CurveBinding curveBinding;
+        for (auto it : node.bindingMap_) {
+            std::string animation = it.first;
+            curveBinding.insertAnimation(animation, it.second);
+        }
+        activeNode->NodeExtendRef().setCurveBinding(curveBinding);
+    }
 }
 
 void NodeDataManager::insertNode(NodeData& pNode) {

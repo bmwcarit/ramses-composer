@@ -75,7 +75,9 @@ Q_SIGNALS:
     //
     void sigUpdatePointTagent();
     //
-    void sigRepaintVisualCurve();
+    void sigRepaintAfterUndoOpreation();
+    //
+    void sigRepaintPropertyBrowserAfterUndo(raco::core::ValueHandle valueHandle);
 };
 
 }

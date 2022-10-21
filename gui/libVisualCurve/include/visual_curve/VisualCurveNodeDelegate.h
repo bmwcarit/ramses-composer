@@ -13,6 +13,8 @@
 #include <QDebug>
 
 namespace raco::visualCurve {
+using namespace raco::guiData;
+
 class ButtonDelegate : public QStyledItemDelegate {
     Q_OBJECT
 public:

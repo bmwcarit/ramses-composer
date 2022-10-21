@@ -1,7 +1,7 @@
 #include "node_logic/NodeLogic.h"
 #include "PropertyData/PropertyType.h"
 #include "time_axis/TimeAxisCommon.h"
-#include "visual_curve/VisualCurvePosManager.h"
+#include "VisualCurveData/VisualCurvePosManager.h"
 #include <QDebug>
 
 namespace raco::node_logic {
@@ -75,7 +75,7 @@ bool NodeLogic::getValueHanlde(std::string property, core::ValueHandle &valueHan
 
 void NodeLogic::setProperty(core::ValueHandle handle, std::string property, float value) {
     if (getValueHanlde(property, handle) && commandInterface_) {
-        commandInterface_->set(handle, value);
+        commandInterface_->set(handle, value, false);
     }
 }
 

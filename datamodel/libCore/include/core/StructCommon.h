@@ -11,6 +11,7 @@
 
 #include <QMetaType>
 #include <any>
+#include <set>
 #include "time_axis/TimeAxisCommon.h"
 
 struct STRUCT_POINT {
@@ -60,5 +61,26 @@ struct STRUCT_VISUAL_CURVE_POS {
     QList<std::string> hidenCurveList_;
 };
 Q_DECLARE_METATYPE(STRUCT_VISUAL_CURVE_POS)
+
+struct STRUCT_ANIMATION_DATA {
+    int startTime_;
+    int endTime_;
+    int loopCount_;
+    int updateInterval_;
+    double playSpeed_;
+    std::set<std::string> nodeList_;
+};
+Q_DECLARE_METATYPE(STRUCT_ANIMATION_DATA)
+
+struct STRUCT_ANIMATION {
+    std::map<std::string, STRUCT_ANIMATION_DATA> animationMap_;
+};
+Q_DECLARE_METATYPE(STRUCT_ANIMATION)
+
+struct STRUCT_NODE {
+    std::string activeNodeId;
+    std::map<std::string, std::map<std::string, std::string>> bindingMap_;
+};
+Q_DECLARE_METATYPE(STRUCT_NODE)
 
   // namespace raco::core

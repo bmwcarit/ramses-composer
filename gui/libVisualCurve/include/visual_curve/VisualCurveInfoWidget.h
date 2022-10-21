@@ -12,6 +12,7 @@
 #include <QFormLayout>
 #include "common_editors/DoubleEditor.h"
 #include "common_editors/Int64Editor.h"
+#include "core/CommandInterface.h"
 #include "time_axis/TimeAxisCommon.h"
 
 using namespace raco::time_axis;
@@ -20,7 +21,7 @@ namespace raco::visualCurve {
 class VisualCurveInfoWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit VisualCurveInfoWidget(QWidget *parent = nullptr);
+    explicit VisualCurveInfoWidget(QWidget *parent, raco::core::CommandInterface* commandInterface);
 
     void initVisualCurveKeyWidget();
     void initVisualCurveCursorWidget();
@@ -38,24 +39,36 @@ public Q_SLOTS:
     void slotLeftTangentChanged(double value);
     void slotRightTangentChanged(double value);
 
+    void slotKeyFrameFinished();
+    void slotKeyValueFinished();
+    void slotLeftKeyFrameFinished();
+    void slotLeftKeyValueFinished();
+    void slotRightKeyFrameFinished();
+    void slotRightKeyValueFinished();
+    void slotLeftTangentFinished();
+    void slotRightTangentFinished();
+
     void slotCursorShow(bool checked);
     void slotCursorXChanged(int value);
     void slotCursorYChanged(double value);
+    void slotCursorXFinished();
+    void slotCursorYFinished();
 
     void slotUpdateSelKey();
     void slotUpdateCursorX();
+    void slotRefreshWidget();
 
 signals:
     void sigRefreshCursorX();
     void sigRefreshVisualCurve();
     void sigSwitchCurveType(int type);
 private:
-    void switchCurveType(int type);
+    void switchCurveType(int type, bool isShowLeftPoint = false);
     void updateSelKey();
     void updateCursorX();
     void recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &workerPoint, SKeyPoint keyPoint);
     void recaculateWorkerRightPoint(QPair<QPointF, QPointF> &workerPoint, SKeyPoint keyPoint);
-
+    void pushState2UndoStack(std::string description);
 private:
     QWidget *visualCurveKeyWidget_{nullptr};
     QWidget *visualCurveCursorWidget_{nullptr};
@@ -82,6 +95,7 @@ private:
     QCheckBox *showCursorCheckBox_{nullptr};
     Int64Editor *cursorXSpinBox_{nullptr};
     DoubleEditor *cursorYSpinBox_{nullptr};
+    raco::core::CommandInterface *commandInterface_;
 };
 }
 

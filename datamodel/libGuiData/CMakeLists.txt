@@ -20,6 +20,7 @@ add_library(libGuiData
     include/MeshData/MeshDataManager.h src/MeshDataManager.cpp
     include/PropertyData/PropertyType.h
     include/FolderData/FolderDataManager.h src/FolderDataManager.cpp
+    include/VisualCurveData/VisualCurvePosManager.h src/VisualCurvePosManager.cpp
 )
 
 target_include_directories(libGuiData PUBLIC include)

@@ -640,9 +640,9 @@ void MainWindow::openProject(const QString& file) {
 	restoreCachedLayout();
 	configureDebugActions(ui, this, racoApplication_->activeRaCoProject().commandInterface());
 
-	updateApplicationTitle();
-	updateActiveProjectConnection();
-	programManager_.updateUIFromJson(file);
+    updateApplicationTitle();
+    updateActiveProjectConnection();
+    programManager_.updateUIFromJson(file);
 
 	if (racoApplication_->activeRaCoProject().project()->settings()->enableTimerFlag_.asBool() == true) {
 		ui->menuDebug->addAction(ui->actionEnableRuntimeScriptPreview);

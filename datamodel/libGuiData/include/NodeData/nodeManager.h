@@ -4,6 +4,7 @@
 #include "NodeData/nodeDataEx.h"
 #include "core/CommandInterface.h"
 #include "PropertyData/PropertyType.h"
+#include "core/StructCommon.h"
 #include <iostream>
 #include <set>
 #include <vector>
@@ -277,6 +278,9 @@ public:
 	~NodeDataManager() {}
 	NodeDataManager(const NodeDataManager&) = delete;
 	NodeDataManager& operator=(const NodeDataManager&) = delete;
+
+    STRUCT_NODE convertCurveData();
+    void merge(QVariant data);
 
 public:
     NodeData* getActiveNode() {

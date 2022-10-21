@@ -17,11 +17,14 @@ public:
 
     void setRange(int min, int max);
     void setValue(int value);
+    void setSize(int width, int height);
     void setWidth(int width);
     void setHeight(int height);
+    int value();
 
 Q_SIGNALS:
     void sigValueChanged(int value);
+    void sigEditingFinished();
 protected:
     QStackedWidget* stack_;
     Int64SpinBox* spinBox_;

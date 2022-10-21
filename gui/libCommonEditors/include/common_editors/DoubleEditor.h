@@ -20,9 +20,11 @@ public:
     void setValue(double value);
     void setWidth(int width);
     void setHeight(int height);
+    double value();
 
 Q_SIGNALS:
     void sigValueChanged(double value);
+    void sigEditingFinished();
 protected:
     QStackedWidget* stack_;
     DoubleSlider* slider_;
