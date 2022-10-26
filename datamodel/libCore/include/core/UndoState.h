@@ -25,16 +25,15 @@ public:
 
     void saveCurrentUndoState();
     void push(STRUCT_VISUAL_CURVE_POS data);
+    void push(STRUCT_NODE node);
     STRUCT_VISUAL_CURVE_POS visualPosData();
     STRUCT_FOLDER folderData();
     std::list<STRUCT_CURVE> curveData();
-//    STRUCT_ANIMATION animationData();
     STRUCT_NODE nodeData();
 private:
     STRUCT_VISUAL_CURVE_POS posData_;
     STRUCT_FOLDER folderData_;
     std::list<STRUCT_CURVE> curveData_;
-//    STRUCT_ANIMATION animationData_;
     STRUCT_NODE nodeData_;
 };
 

@@ -75,22 +75,30 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 }
 
 void EditMenu::globalUndoCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager *objectTreeDockManager) {
-	if (racoApplication->activeRaCoProject().undoStack()->canUndo()) {
+    bool isOpreatObject = false;
+    if (racoApplication->activeRaCoProject().undoStack()->canUndo()) {
 		racoApplication->activeRaCoProject().undoStack()->undo();
+        isOpreatObject = racoApplication->activeRaCoProject().undoStack()->curIndexIsOpreatObject();
 	}
     if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
         auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
-        focusedTreeView->globalOpreations();
+        if (isOpreatObject) {
+            focusedTreeView->globalOpreations();
+        }
     }
 }
 
 void EditMenu::globalRedoCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager *objectTreeDockManager) {
-	if (racoApplication->activeRaCoProject().undoStack()->canRedo()) {
-		racoApplication->activeRaCoProject().undoStack()->redo();
+    bool isOpreatObject = false;
+    if (racoApplication->activeRaCoProject().undoStack()->canRedo()) {
+        racoApplication->activeRaCoProject().undoStack()->redo();
+        isOpreatObject = racoApplication->activeRaCoProject().undoStack()->curIndexIsOpreatObject();
 	}
     if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
         auto focusedTreeView = activeObjectTreeDockWithSelection->getCurrentlyActiveTreeView();
-        focusedTreeView->globalOpreations();
+        if (isOpreatObject) {
+            focusedTreeView->globalOpreations();
+        }
     }
 }
 

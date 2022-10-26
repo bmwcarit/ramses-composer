@@ -188,7 +188,7 @@ PropertyBrowserWidget::PropertyBrowserWidget(
     connect(&signalProxy::GetInstance(), &signalProxy::sigUpdateActiveAnimation_From_AnimationLogic, this, &PropertyBrowserWidget::slotRefreshPropertyBrowser);
     connect(&signalProxy::GetInstance(), &signalProxy::sigInsertCurveBinding_From_NodeUI, this, &PropertyBrowserWidget::slotInsertCurveBinding);
     connect(&signalProxy::GetInstance(), &signalProxy::sigResetAllData_From_MainWindow, this, &PropertyBrowserWidget::slotRefreshPropertyBrowser);
-    connect(&signalProxy::GetInstance(), &signalProxy::sigInitPropertyBrowserView, this, &PropertyBrowserWidget::slotRefreshPropertyBrowser);
+    connect(&signalProxy::GetInstance(), &signalProxy::sigInitPropertyBrowserView, this, &PropertyBrowserWidget::slotInitPropertyBrowser);
     connect(&signalProxy::GetInstance(), &signalProxy::sigRepaintPropertyBrowserAfterUndo, this, &PropertyBrowserWidget::slotRefreshPropertyBrowserAfterUndo);
 }
 
@@ -214,6 +214,19 @@ void PropertyBrowserWidget::slotTreeMenu(const QPoint &pos) {
     menu.addAction(action);
 
     menu.exec(QCursor::pos());
+}
+
+void PropertyBrowserWidget::slotInitPropertyBrowser() {
+    commandInterface_->undoStack().resetUndoState(raco::guiData::NodeDataManager::GetInstance().convertCurveData());
+    if (curveBindingWidget_) {
+        curveBindingWidget_->initCurveBindingWidget();
+    }
+    if (meshWidget_) {
+        meshWidget_->initPropertyBrowserMeshWidget();
+    }
+    if (customWidget_) {
+        customWidget_->initPropertyBrowserCustomWidget();
+    }
 }
 
 void PropertyBrowserWidget::slotRefreshPropertyBrowser() {
@@ -263,6 +276,9 @@ void PropertyBrowserWidget::slotRefreshPropertyBrowserAfterUndo(raco::core::Valu
 
 void PropertyBrowserWidget::switchNode(std::string objectID) {
 	NodeData* nodeData = NodeDataManager::GetInstance().searchNodeByID(objectID);
+    if (!nodeData) {
+        return;
+    }
 	NodeDataManager::GetInstance().setActiveNode(nodeData);
     if (curveBindingWidget_) {
         curveBindingWidget_->initCurveBindingWidget();

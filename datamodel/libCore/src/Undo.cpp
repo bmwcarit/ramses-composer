@@ -296,7 +296,7 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 
 	// Remove dest objects not present in src
 	SEditorObjectSet toRemove;
-	for (auto destObj : dest->instances()) {
+    for (const auto &destObj : dest->instances()) {
 		if (!src->getInstanceByID(destObj->objectID())) {
 			toRemove.insert(destObj);
 			changes.recordDeleteObject(destObj);
@@ -438,6 +438,15 @@ void UndoStack::reset() {
 
 void UndoStack::resetUndoState(STRUCT_VISUAL_CURVE_POS pos) {
     stack_.front()->undoState.push(pos);
+}
+
+void UndoStack::resetUndoState(STRUCT_NODE node) {
+    stack_.front()->undoState.push(node);
+}
+
+bool UndoStack::curIndexIsOpreatObject() {
+    bool isObject = stack_[index_]->description.find("object") == std::string::npos ? false : true;
+    return isObject;
 }
 
 bool UndoStack::canMerge(const DataChangeRecorder &changes) {

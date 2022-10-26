@@ -417,8 +417,8 @@ void VisualCurveInfoWidget::slotLeftTangentChanged(double value) {
         rightPoint.setY(keyPoint.y + rightY);
 
         // fill worker point list
-        keyPoint.setLeftPoint(workerPoint.first);
-        keyPoint.setRightPoint(workerPoint.second);
+        keyPoint.setLeftPoint(leftPoint);
+        keyPoint.setRightPoint(rightPoint);
         VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         rightTangentSpinBox_->setValue(value);
@@ -488,8 +488,8 @@ void VisualCurveInfoWidget::slotRightTangentChanged(double value) {
         rightPoint.setY(keyPoint.y + rightY);
 
         // fill worker point list
-        keyPoint.setLeftPoint(workerPoint.first);
-        keyPoint.setRightPoint(workerPoint.second);
+        keyPoint.setLeftPoint(leftPoint);
+        keyPoint.setRightPoint(rightPoint);
         VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         rightTangentSpinBox_->setValue(value);
@@ -681,7 +681,9 @@ void VisualCurveInfoWidget::updateSelKey() {
         double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
         double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
+        interpolationComboBox_->blockSignals(true);
         interpolationComboBox_->setCurrentIndex(keyPoint.type);
+        interpolationComboBox_->blockSignals(false);
         keyFrameSpinBox_->setValue(keyPoint.keyFrame);
 
         double value{0};
