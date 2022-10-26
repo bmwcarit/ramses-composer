@@ -5,14 +5,21 @@
 #include "style/Icons.h"
 
 #include <set>
+#include <stack>
 #include <QMessageBox>
 #include <cmath>
 
 namespace raco::dataConvert {
 using namespace raco::style;
 
+// A curve is bound by multiple animations.
 std::map<std::string, std::set<std::string>> curveNameAnimation_;
 //        curveName ,   animation1, animation2, animation3...
+
+// A property of a node is bound by different curves of different animations.
+std::map<std::string, std::vector<std::map<std::string, std::vector<std::map<std::string, CurvesSingleProp>>>>> pNodePropCurveNames_;
+//        pNodeID ,	          <   propertyName,  [ < Animation, CurvesSingleProp > ]	>
+
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
 	if (-1 != index) {
@@ -60,10 +67,7 @@ void OutputPtx::setMeshBaseNode(NodeData* node, HmiScenegraph::TNode* baseNode) 
 		translation->set_z(tran.z);
 		baseNode->set_allocated_translation(translation);
 	}
-
-
 }
-
 
 bool uniformCompare(Uniform data, Uniform myUni) {
 	bool result = false;
@@ -338,6 +342,213 @@ void OutputPtx::setRootSRT(HmiScenegraph::TNode* hmiNode) {
 	hmiNode->set_allocated_translation(translation);
 }
 
+
+bool isUniformAndIndex(std::string propName, int& index) {
+	std::string subLast = propName.substr(propName.length() - 2, propName.length());
+	index = -1;
+	if (subLast == ".x") {
+		index = 0;
+	} else if (subLast == ".y") {
+		index = 1;
+	} else if (subLast == ".z") {
+		index = 2;
+	} else if (subLast == ".w") {
+		index = 3;
+	}
+	int r = propName.rfind("uniforms.");
+	if (-1 == r) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
+
+float getUniformValueByType(Uniform data, int index) {
+	UniformType type = data.getType();
+	switch (type) {
+		case raco::guiData::Vec2f: {
+			Vec2 temp = std::any_cast<Vec2>(data.getValue());
+			switch (index) {
+				case 0:
+					return temp.x;
+				case 1:
+					return temp.y;
+				default:
+					return 0;
+			}
+		}
+		case raco::guiData::Vec3f: {
+			Vec3 temp = std::any_cast<Vec3>(data.getValue());
+			switch (index) {
+				case 0:
+					return temp.x;
+				case 1:
+					return temp.y;
+				case 2:
+					return temp.z;
+				default:
+					return 0;
+			}
+		}
+		case raco::guiData::Vec4f: {
+			Vec4 temp = std::any_cast<Vec4>(data.getValue());
+			switch (index) {
+				case 0:
+					return temp.x;
+				case 1:
+					return temp.y;
+				case 2:
+					return temp.z;
+				case 3:
+					return temp.w;
+				default:
+					return 0;
+			}
+		}
+		case raco::guiData::Vec2i: {
+			Vec2int temp = std::any_cast<Vec2int>(data.getValue());
+			switch (index) {
+				case 0:
+					return temp.x;
+				case 1:
+					return temp.y;
+				default:
+					return 0;
+			}
+		}
+		case raco::guiData::Vec3i: {
+			Vec3int temp = std::any_cast<Vec3int>(data.getValue());
+			switch (index) {
+				case 0:
+					return temp.x;
+				case 1:
+					return temp.y;
+				case 2:
+					return temp.z;
+				default:
+					return 0;
+			}
+		}
+		case raco::guiData::Vec4i: {
+			Vec4int temp = std::any_cast<Vec4int>(data.getValue());
+			switch (index) {
+				case 0:
+					return temp.x;
+				case 1:
+					return temp.y;
+				case 2:
+					return temp.z;
+				case 3:
+					return temp.w;
+				default:
+					return 0;
+			}
+		}
+	}
+	return 0;
+}
+
+float setCurvesPropData(NodeData* pNode, std::string propName) {
+	int index;
+	bool isUniform = isUniformAndIndex(propName, index);
+	if (index != -1 && !isUniform) {
+		propName = propName.substr(0, propName.length()-2);
+		auto systemProp = pNode->systemDataMapNewRef();
+		auto it = systemProp.find(propName);
+		if (it != systemProp.end()) {
+			Vec3 valueVec = std::any_cast<Vec3>(pNode->getSystemData(propName));
+			if (index == 0) {
+				return valueVec.x;
+			} else if (index == 1) {
+				return valueVec.y;
+			} else if (index == 2) {
+				return valueVec.z;
+			} else {
+				return 0;
+			}
+		}
+	} 
+	if (isUniform) {
+		NodeMaterial nodeMaterial;
+		raco::guiData::MaterialManager::GetInstance().getNodeMaterial(pNode->objectID(), nodeMaterial);
+		propName = delUniformNamePrefix(propName);
+		if (index == -1) {
+			for (auto un : nodeMaterial.getUniforms()) {
+				if (un.getName() == propName) {
+					return std::any_cast<double>(un.getValue());
+				}
+			}
+		} else {
+			for (auto un : nodeMaterial.getUniforms()) {
+				if (un.getName() == propName.substr(0, propName.length() - 2)) {
+					return getUniformValueByType(un, index);
+				}
+			}
+		}
+	} 
+	return 0;
+}
+
+void searchRepeatPropInNode(NodeData* pNode, std::string name) {
+	auto bindyMap = pNode->NodeExtendRef().curveBindingRef().bindingMap();
+	
+	std::vector<std::map<std::string, CurvesSingleProp>> curvesName;
+	for (auto animation : bindyMap) {
+		for (auto prop : animation.second) {
+			std::string propName = prop.first;
+			if (propName == name) {
+				std::map<std::string, CurvesSingleProp> aniProp;
+				CurvesSingleProp curveSingleProp;
+				curveSingleProp.curveName = prop.second;
+				//curveSingleProp.defaultData = setCurvesPropData(pNode, name);
+				aniProp.emplace(animation.first, curveSingleProp);
+				curvesName.push_back(aniProp);
+			}
+		}
+	}
+
+	if (curvesName.size() > 1) {
+		std::vector<std::map<std::string, std::vector<std::map<std::string, CurvesSingleProp>>>> propCurves;
+		std::map<std::string, std::vector<std::map<std::string, CurvesSingleProp>>> propCurve;
+		double defultData = setCurvesPropData(pNode, name);
+		for (int i = 0; i < curvesName.size(); ++i) {
+			curvesName[i].begin()->second.defaultData = defultData;
+		}
+		auto ret = propCurve.emplace(name, curvesName);
+		bool a = ret.second;
+		propCurves.push_back(propCurve);
+		std::string ID = pNode->objectID();
+		auto nodeIt = pNodePropCurveNames_.find(ID);
+		if (nodeIt != pNodePropCurveNames_.end()) {
+			nodeIt->second.push_back(propCurve);
+		}
+		else {
+			pNodePropCurveNames_.emplace(ID, propCurves);
+		}
+
+		//auto re = pNodePropCurveNames_.emplace(ID, propCurves);
+		//a = re.second;
+		//qDebug() << a;
+	}
+}
+
+void updatePNodePropCurveMap(NodeData* pNode) {
+	std::set<std::string> peopertys;
+	const std::map<std::string, std::map<std::string, std::string>>& bindyMap = pNode->NodeExtendRef().curveBindingRef().bindingMap();
+	for (auto animation : bindyMap) {
+		for (auto prop : animation.second) {
+			std::string propName = prop.first;
+			auto it = peopertys.find(propName);
+			if (it == peopertys.end()) {
+				peopertys.insert(propName);
+				searchRepeatPropInNode(pNode, propName);
+			}
+
+		}
+	}
+}
+
 void updateCurveAnimationMap(NodeData* pNode) {
 	const std::map<std::string, std::map<std::string, std::string>>& bindyMap = pNode->NodeExtendRef().curveBindingRef().bindingMap();
 	for (auto animation : bindyMap) {
@@ -361,6 +572,7 @@ void OutputPtx::writeNodePtx(NodeData* pNode, HmiScenegraph::TNode* parent) {
 	HmiScenegraph::TNode hmiNode;
 	setPtxNode(pNode, hmiNode);
 	updateCurveAnimationMap(pNode);
+	updatePNodePropCurveMap(pNode);
 	HmiScenegraph::TNode* it = parent->add_child();
 	*it = hmiNode;
 	parent = const_cast<HmiScenegraph::TNode*>(&(parent->child(parent->child_size() - 1)));
@@ -990,6 +1202,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	file.resize(0);
 	nodeWithMaterial_.clear();
 	curveNameAnimation_.clear();
+	pNodePropCurveNames_.clear();
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -1004,31 +1217,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 			continue;
 		}
 
-		// Root Child
-		HmiScenegraph::TNode hmiNodeChild;
-		hmiNodeChild.set_name("sceneChild" + std::to_string(rootChildIndex));
-		rootChildIndex++;
-		HmiScenegraph::TNode* it = tRoot->add_child();
-		TVector3f* scaleChild = new TVector3f();
-		scaleChild->set_x(1.0);
-		scaleChild->set_y(1.0);
-		scaleChild->set_z(1.0);
-		hmiNodeChild.set_allocated_scale(scaleChild);
-		// rotation
-		TVector3f* rotationChild = new TVector3f();
-		rotationChild->set_x(0.0);
-		rotationChild->set_y(0.0);
-		rotationChild->set_z(0.0);
-		hmiNodeChild.set_allocated_rotation(rotationChild);
-		// translation
-		TVector3f* translationChild = new TVector3f();
-		translationChild->set_x(0.0);
-		translationChild->set_y(0.0);
-		translationChild->set_z(0.0);
-		hmiNodeChild.set_allocated_translation(translationChild);
-
-		writeNodePtx(childNode, &hmiNodeChild);
-		*it = hmiNodeChild;
+		writeNodePtx(childNode, tRoot);
 	}
     scene.set_allocated_root(tRoot);
 
@@ -1135,7 +1324,6 @@ int OutputPtw::switchAnimations(HmiWidget::TWidget* widget) {
 	return numSwitchAn;
 }
 
-
 void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 	std::string animation_interal;
 	auto animationList = raco::guiData::animationDataManager::GetInstance().getAnitnList();
@@ -1170,17 +1358,22 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 
 		auto operand1 = operation->add_operand();
 		TIdentifier* key = new TIdentifier;
-		key->set_valuestring(animation.first + "_extenal");
-		operand1->set_allocated_key(key);
 		TDataProvider* provider1 = new TDataProvider;
-		provider1->set_source(TEProviderSource_ExtModelValue);
+		if (addTrigger_) {
+			key->set_valuestring(animation.first + "_domain");
+			provider1->set_source(TEProviderSource_IntModelValue);
+		} else {
+			key->set_valuestring(animation.first + "_extenal");
+			provider1->set_source(TEProviderSource_ExtModelValue);
+		}
+		operand1->set_allocated_key(key);
 		operand1->set_allocated_provider(provider1);
 
 		auto operand2 = operation->add_operand();
 		TDataProvider* provider2 = new TDataProvider;
 		TVariant* variant1 = new TVariant;
 		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(1000.0 / float(animation.second.GetUpdateInterval()));
+		numeric->set_float_(float(animation.second.GetEndTime() - animation.second.GetStartTime()));
 		variant1->set_allocated_numeric(numeric);
 		provider2->set_allocated_variant(variant1);
 
@@ -1188,8 +1381,201 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		provider->set_allocated_operation(operation);
 		binding->set_allocated_provider(provider);
 		internalModelValue->set_allocated_binding(binding);
+
+		addAnimationDomain(widget, animation.first);
 	}
 	switchAnimations(widget);
+}
+
+void addDomainSwitchType2Operation(TOperation* operation) {
+	operation->set_operator_(TEOperatorType_Switch);
+	operation->add_datatype(TEDataType_Identifier);
+	// operand -> key
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("UsedAnimationName");
+	// operand -> provider
+	TDataProvider* provider = new TDataProvider;
+	provider->set_source(TEProviderSource_ExtModelValue);
+	// operation.operand add key,provider
+	auto operand = operation->add_operand();
+	operand->set_allocated_key(key);
+	operand->set_allocated_provider(provider);
+}
+
+void addDomainSwitchCase2Operation(TOperation* operation, std::string anName, bool isDefault = false) {
+	if (!isDefault) {
+		operation->add_datatype(TEDataType_Identifier);
+		operation->add_datatype(TEDataType_Float);
+
+		auto operandAn = operation->add_operand();
+		TDataProvider* providerAn = new TDataProvider;
+		TVariant* variantAn = new TVariant;
+		TIdentifier* identifierAn = new TIdentifier;
+		identifierAn->set_valuestring(anName);
+		variantAn->set_allocated_identifier(identifierAn);
+		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
+		providerAn->set_allocated_variant(variantAn);
+		operandAn->set_allocated_provider(providerAn);
+
+		auto operandIn = operation->add_operand();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("domain");
+		operandIn->set_allocated_key(key);
+		TDataProvider* providerIn = new TDataProvider;
+		providerIn->set_source(TEProviderSource_IntModelValue);
+		operandIn->set_allocated_provider(providerIn);
+	} else {
+		operation->add_datatype(TEDataType_Float);
+
+		auto operandIn = operation->add_operand();
+		TDataProvider* providerAn = new TDataProvider;
+		TVariant* variantAn = new TVariant;
+
+		TNumericValue* nuneric = new TNumericValue;
+		nuneric->set_float_(0.0);
+		variantAn->set_allocated_numeric(nuneric);
+		providerAn->set_allocated_variant(variantAn);
+		operandIn->set_allocated_provider(providerAn);
+	}
+}
+
+void OutputPtw::addAnimationDomain(HmiWidget::TWidget* widget, std::string animationName) {
+	// internalModelValue
+	auto internalModelValue = widget->add_internalmodelvalue();
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring(animationName + "_domain");
+	internalModelValue->set_allocated_key(key);
+	// add binding
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+
+	addDomainSwitchType2Operation(operation);
+	addDomainSwitchCase2Operation(operation, animationName);
+	addDomainSwitchCase2Operation(operation, animationName, true);
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internalModelValue->set_allocated_binding(binding);
+}
+
+// multi curves binding single property.
+void OutputPtw::multiCurvesBindingSingleProp(HmiWidget::TWidget* widget) {
+
+}
+
+
+void addCompositeAnimation(HmiWidget::TWidget* widget) {
+	// compositeAnimation
+	auto compositeAnimation = widget->add_compositeanimation();
+	TIdentifier* compositeidentifier = new TIdentifier;
+	compositeidentifier->set_valuestring("compositeAnimation");
+	compositeAnimation->set_allocated_compositeidentifier(compositeidentifier);
+
+	// returnValue
+	// returnValue.key
+	auto returnValue = compositeAnimation->add_returnvalue();
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("compositeAnimation.output");
+	returnValue->set_allocated_key(key);
+
+	// returnValue.animation
+	auto animation = returnValue->add_animation();
+	// returnValue.animation.Identifier
+	auto anIdentifier = new TIdentifier;
+	anIdentifier->set_valuestring("animation");
+	animation->set_allocated_identifier(anIdentifier);
+
+	// returnValue.animation.WidgetAnimation
+	auto widgetAnimation = new HmiWidget::TWidgetAnimation;
+	auto startValue = new TNumericValue;
+	startValue->set_float_(0.0);
+	widgetAnimation->set_allocated_startvalue(startValue);
+	auto endValue = new TNumericValue;
+	endValue->set_float_(1.0);
+	widgetAnimation->set_allocated_endvalue(endValue);
+	widgetAnimation->set_durationvalue(8000);
+	widgetAnimation->set_interpolator(TEAnimationInterpolator::TEAnimationInterpolator_Linear);
+	widgetAnimation->set_returntype(TEDataType::TEDataType_Float);
+	widgetAnimation->set_loopcount(0);
+	widgetAnimation->set_updateinterval(33);
+	animation->set_allocated_widgetanimation(widgetAnimation);
+
+	// returnValue.animation.trigger
+	auto triggerIter = animation->add_trigger();
+	triggerIter->set_action(HmiWidget::TEAnimationSlot::TEAnimationSlot_SlotAnimationStart);
+	returnValue->set_returntype(TEDataType::TEDataType_Float);
+}
+
+void addTrigger(HmiWidget::TWidget* widget) {
+	auto trigger = widget->add_trigger();
+	TIdentifier* triggeridentifier = new TIdentifier;
+	triggeridentifier->set_valuestring("StartStopCompositeAnimation");
+	trigger->set_allocated_identifier(triggeridentifier);
+
+	auto conditionalTrigger = new HmiWidget::TConditionalTrigger;
+	auto condition = new TDataBinding;
+	auto key = new TIdentifier;
+	key->set_valuestring("Play");
+	condition->set_allocated_key(key);
+
+	TDataProvider* provider = new TDataProvider;
+	provider->set_source(TEProviderSource_ExtModelValue);
+	condition->set_allocated_provider(provider);
+
+	conditionalTrigger->set_allocated_condition(condition);
+
+	auto commond = new HmiWidget::TCommand;
+	auto antrigger = new HmiWidget::TAnimationTrigger;
+	auto animation = new TIdentifier;
+	animation->set_valuestring("compositeAnimation");
+	antrigger->set_allocated_animation(animation);
+	antrigger->set_action(HmiWidget::TEAnimationAction::TEAnimationAction_Start);
+	commond->set_allocated_animationtrigger(antrigger);
+	conditionalTrigger->set_allocated_command(commond);
+	
+	auto elseCommond = new HmiWidget::TCommand;
+	auto antriggerElse = new HmiWidget::TAnimationTrigger;
+	auto animationElse = new TIdentifier;
+	animationElse->set_valuestring("compositeAnimation");
+	antriggerElse->set_allocated_animation(animationElse);
+	antriggerElse->set_action(HmiWidget::TEAnimationAction::TEAnimationAction_Stop);
+	elseCommond->set_allocated_animationtrigger(antriggerElse);
+	conditionalTrigger->set_allocated_elsecommand(elseCommond);
+
+	trigger->set_allocated_conditionaltrigger(conditionalTrigger);
+}
+
+void addPlayDomain(HmiWidget::TWidget* widget) {
+	auto play = widget->add_externalmodelvalue();
+	TIdentifier* playKey = new TIdentifier;
+	playKey->set_valuestring("Play");
+	play->set_allocated_key(playKey);
+	TVariant* variant = new TVariant;
+	variant->set_bool_(true);
+	play->set_allocated_variant(variant);
+
+	auto domain = widget->add_internalmodelvalue();
+	TIdentifier* domainKey = new TIdentifier;
+	domainKey->set_valuestring("domain");
+	domain->set_allocated_key(domainKey);
+
+	auto binding = new TDataBinding;
+	auto bindKey = new TIdentifier;
+	bindKey->set_valuestring("compositeAnimation.output");
+	binding->set_allocated_key(bindKey);
+	TDataProvider* provider = new TDataProvider;
+	provider->MutableExtension(HmiWidget::animation)->set_valuestring("compositeAnimation");
+	binding->set_allocated_provider(provider);
+	domain->set_allocated_binding(binding);
+}
+
+void OutputPtw::triggerByInternalModel(HmiWidget::TWidget* widget) {
+	addCompositeAnimation(widget);
+
+	addTrigger(widget);
+
+	addPlayDomain(widget);
 }
 
 void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
@@ -1310,7 +1696,7 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 		HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
 		TIdentifier* identifier = new TIdentifier;
 		NodeMaterial nodeMaterial;
-		if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node.objectID(), nodeMaterial) && nodeMaterial.isPrivate()) {
+		if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node.objectID(), nodeMaterial)) {
 			identifier->set_valuestring(node.getName() + "Shape");
 		} else {
 			identifier->set_valuestring(node.getName());
@@ -1324,12 +1710,12 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 		TDataBinding* paramnode = new TDataBinding;
 		TDataProvider* provider = new TDataProvider;
 		TVariant* variant = new TVariant;
-		if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node.objectID(), nodeMaterial) && nodeMaterial.isPrivate()) {
+		if (raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node.objectID(), nodeMaterial)) {
 			variant->set_asciistring(node.getName() + "Shape");
 		} else {
 			variant->set_asciistring(node.getName());
 		}
-		
+
 		provider->set_allocated_variant(variant);
 		paramnode->set_allocated_provider(provider);
 		nodeParam->set_allocated_node(paramnode);
@@ -1340,7 +1726,7 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 					if (nodeParam->has_transform()) {
 						auto transform = nodeParam->mutable_transform();
 						if (transform->has_translation()) {
-							ModifyTranslation(curveProP, transform);
+							ModifyTranslation(curveProP, transform, node);
 						} else {
 							CreateTranslation(curveProP, transform, node);
 						}
@@ -1376,7 +1762,21 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 						nodeParam->set_allocated_transform(transform);
 					}
 				} else {
-					AddUniform(curveProP, nodeParam, &node);
+					AddUniform(widget, curveProP, nodeParam, &node);
+				}
+			}
+		}
+
+		for (auto cuvebindList : animationList) {
+			for (auto curveProP : cuvebindList.second) {
+				std::vector<std::map<std::string, CurvesSingleProp>> curves;
+				bool hasMultiCurveSingleProp = hasMultiCurveOneProp(curveProP.first, &node, curves);
+				if (!hasMultiCurveSingleProp) {
+					continue;
+				}
+				if (curveProP.first.find("scale") == 0 || curveProP.first.find("translation") == 0 || curveProP.first.find("rotation") == 0) {
+					auto transform = nodeParam->mutable_transform();
+					modifyMultiCurveTransform(widget, transform, curveProP.first, curves);
 				}
 			}
 		}
@@ -1395,9 +1795,14 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
 
+	addTrigger_ = true;
+
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
+	if (addTrigger_) {
+		triggerByInternalModel(widget);
+	}
 	ConvertAnimationInfo(widget);
 	std::string animation_interal = "";
 	ConvertCurveInfo(widget, animation_interal);
@@ -1419,6 +1824,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 		QFile::remove(QString::fromStdString(filePath) + "/widget.ptw");
 		isPtwOutputError_ = false;
 	}
+	addTrigger_ = false;
 }
 
 void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
@@ -1454,12 +1860,238 @@ void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
 	externalModelValue->set_allocated_variant(variant2);
 }
 
-void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform) {
+void addMultiCurveBindingSwitchType2Operation(TOperation* operation) {
+	operation->set_operator_(TEOperatorType_Switch);
+	operation->add_datatype(TEDataType_Identifier);
+	// operand -> key
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("UsedAnimationName");
+	// operand -> provider
+	TDataProvider* provider = new TDataProvider;
+	provider->set_source(TEProviderSource_ExtModelValue);
+	// operation.operand add key,provider
+	auto operand = operation->add_operand();
+	operand->set_allocated_key(key);
+	operand->set_allocated_provider(provider);
+}
+
+void addMultiCurveBindingSwitchCase2Operation(TOperation* operation, std::map<std::string, CurvesSingleProp> anName, bool isDefault = false) {
+	if (!isDefault) {
+		operation->add_datatype(TEDataType_Identifier);
+		operation->add_datatype(TEDataType_Float);
+
+		auto operandAn = operation->add_operand();
+		TDataProvider* providerAn = new TDataProvider;
+		TVariant* variantAn = new TVariant;
+		TIdentifier* identifierAn = new TIdentifier;
+		identifierAn->set_valuestring(anName.begin()->first);
+		variantAn->set_allocated_identifier(identifierAn);
+		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
+		providerAn->set_allocated_variant(variantAn);
+		operandAn->set_allocated_provider(providerAn);
+
+		auto operandIn = operation->add_operand();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring(anName.begin()->second.curveName + ".output");
+		operandIn->set_allocated_key(key);
+		TDataProvider* providerIn = new TDataProvider;
+
+		TIdentifier* curveReference = new TIdentifier;
+		curveReference->set_valuestring(anName.begin()->second.curveName);
+		providerIn->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		operandIn->set_allocated_provider(providerIn);
+	} else {
+		operation->add_datatype(TEDataType_Float);
+		auto operandIn = operation->add_operand();
+		TDataProvider* providerAn = new TDataProvider;
+		TVariant* variantAn = new TVariant;
+
+		TNumericValue* nuneric = new TNumericValue;
+		nuneric->set_float_(anName.begin()->second.defaultData);
+		variantAn->set_allocated_numeric(nuneric);
+		providerAn->set_allocated_variant(variantAn);
+		operandIn->set_allocated_provider(providerAn);
+	}
+}
+
+void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
+	auto internalModelValue = widget->add_internalmodelvalue();
+	// add result key
+	TIdentifier* key_re = new TIdentifier;
+	key_re->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+	internalModelValue->set_allocated_key(key_re);
+	// add binding
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+	// add switch condition to operation
+	addMultiCurveBindingSwitchType2Operation(operation);
+	// add switch case to operation
+	for (auto anName : curves) {
+		addMultiCurveBindingSwitchCase2Operation(operation, anName);
+	}
+	addMultiCurveBindingSwitchCase2Operation(operation, *curves.begin(), true);
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internalModelValue->set_allocated_binding(binding);
+}
+
+void modifyMultiCurveTranslation(HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
 	auto translation = transform->mutable_translation();
 	auto provider = translation->mutable_provider();
 	auto operation = provider->mutable_operation();
+
+	if (propName.compare("translation.x") == 0) {
+		TDataBinding* operand = operation->mutable_operand(0);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	} else if (propName.compare("translation.y") == 0) {
+		TDataBinding* operand = operation->mutable_operand(1);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	} else if (propName.compare("translation.z") == 0) {
+		TDataBinding* operand = operation->mutable_operand(2);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	}
+}
+
+void modifyMultiCurveRotation(HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
+	auto rotation = transform->mutable_rotation();
+	auto provider = rotation->mutable_provider();
+	auto operation = provider->mutable_operation();
+
+	if (propName.compare("rotation.x") == 0) {
+		TDataBinding* operand = operation->mutable_operand(0);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	} else if (propName.compare("rotation.y") == 0) {
+		TDataBinding* operand = operation->mutable_operand(1);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	} else if (propName.compare("rotation.z") == 0) {
+		TDataBinding* operand = operation->mutable_operand(2);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	}
+}
+
+void modifyMultiCurveScale(HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
+	auto scale = transform->mutable_scale();
+	auto provider = scale->mutable_provider();
+	auto operation = provider->mutable_operation();
+
+	if (propName.compare("scale.x") == 0) {
+		TDataBinding* operand = operation->mutable_operand(0);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	} else if (propName.compare("scale.y") == 0) {
+		TDataBinding* operand = operation->mutable_operand(1);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	} else if (propName.compare("scale.z") == 0) {
+		TDataBinding* operand = operation->mutable_operand(2);
+		operand->clear_provider();
+		TDataProvider* provide = operand->mutable_provider();
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+		TDataProvider* provider = new TDataProvider;
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	}
+}
+
+void OutputPtw::modifyMultiCurveTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
+	if (propName.find("translation") == 0) {
+		modifyMultiCurveTranslation(transform, propName, curves);
+	} else if (propName.find("rotation") == 0) {
+		modifyMultiCurveRotation(transform, propName, curves);
+	} else if (propName.find("scale") == 0) {
+		modifyMultiCurveScale(transform, propName, curves);
+	}
+	multiCurveBindingSinglePropSwitch(widget, propName, curves);
+}
+
+// std::map<std::string, std::vector<std::map<std::string, std::vector<std::map<std::string, std::string>>>>> pNodePropCurveNames_;
+//        pNodeID ,	          <   propertyName,  [ < Animation, curveName > ]	>
+bool OutputPtw::hasMultiCurveOneProp(std::string prop, NodeData* pNode, std::vector<std::map<std::string, CurvesSingleProp>>& curves) {
+	curves.clear();
+	std::map<std::string, std::vector<std::map<std::string, std::vector<std::map<std::string, CurvesSingleProp>>>>> test = pNodePropCurveNames_;
+	auto it = pNodePropCurveNames_.find(pNode->objectID());
+	if (it != pNodePropCurveNames_.end()) {
+		std::vector<std::map<std::string, std::vector<std::map<std::string, CurvesSingleProp>>>>& propCurves = it->second;
+		for (auto& propCurve : propCurves) {
+			auto itProp = propCurve.find(prop);
+			if (itProp != propCurve.end()) {
+				curves = itProp->second;
+				propCurve.erase(itProp->first);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, NodeData& node) {
+	auto translation = transform->mutable_translation();
+	auto provider = translation->mutable_provider();
+	auto operation = provider->mutable_operation();
+
 	if (curveProP.first.compare("translation.x") == 0) {
 		TDataBinding* operand = operation->mutable_operand(0);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1467,6 +2099,10 @@ void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP,
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
 	} else if (curveProP.first.compare("translation.y") == 0) {
 		TDataBinding* operand = operation->mutable_operand(1);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1474,15 +2110,20 @@ void OutputPtw::ModifyTranslation(std::pair<std::string, std::string> curveProP,
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
 	} else if (curveProP.first.compare("translation.z") == 0) {
 		TDataBinding* operand = operation->mutable_operand(2);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
 		curveReference->set_valuestring(curveProP.second);
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
 	}
+
 }
 
-void OutputPtw::CreateTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform , raco::guiData::NodeData node) {
+void OutputPtw::CreateTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform , raco::guiData::NodeData& node) {
 	TDataBinding* translation = new TDataBinding;
 	TDataProvider* provider = new TDataProvider;
 	TOperation* operation = new TOperation;
@@ -1519,7 +2160,6 @@ void OutputPtw::CreateTranslation(std::pair<std::string, std::string> curveProP,
 		TDataProvider* provide = new TDataProvider;
 		TVariant* variant = new TVariant;
 		TNumericValue* nuneric = new TNumericValue;
-		float a = std::any_cast<Vec3>(node.getSystemData("translation")).y;
 		nuneric->set_float_(std::any_cast<Vec3>(node.getSystemData("translation")).y);
 		variant->set_allocated_numeric(nuneric);
 		provide->set_allocated_variant(variant);
@@ -1552,6 +2192,10 @@ void OutputPtw::ModifyScale(std::pair<std::string, std::string> curveProP, HmiWi
 	auto operation = provider->mutable_operation();
 	if (curveProP.first.compare("scale.x") == 0) {
 		TDataBinding* operand = operation->mutable_operand(0);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1559,6 +2203,10 @@ void OutputPtw::ModifyScale(std::pair<std::string, std::string> curveProP, HmiWi
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
 	} else if (curveProP.first.compare("scale.y") == 0) {
 		TDataBinding* operand = operation->mutable_operand(1);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1567,6 +2215,10 @@ void OutputPtw::ModifyScale(std::pair<std::string, std::string> curveProP, HmiWi
 
 	} else if (curveProP.first.compare("scale.z") == 0) {
 		TDataBinding* operand = operation->mutable_operand(2);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1644,6 +2296,10 @@ void OutputPtw::ModifyRotation(std::pair<std::string, std::string> curveProP, Hm
 	auto operation = provider->mutable_operation();
 	if (curveProP.first.compare("rotation.x") == 0) {
 		TDataBinding* operand = operation->mutable_operand(0);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1651,6 +2307,10 @@ void OutputPtw::ModifyRotation(std::pair<std::string, std::string> curveProP, Hm
 		provide->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
 	} else if (curveProP.first.compare("rotation.y") == 0) {
 		TDataBinding* operand = operation->mutable_operand(1);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1659,6 +2319,10 @@ void OutputPtw::ModifyRotation(std::pair<std::string, std::string> curveProP, Hm
 
 	} else if (curveProP.first.compare("rotation.z") == 0) {
 		TDataBinding* operand = operation->mutable_operand(2);
+		// has multi curves binding
+		if (operand->has_key() && operand->has_provider()) {
+			return;
+		}
 		operand->clear_provider();
 		TDataProvider* provide = operand->mutable_provider();
 		TIdentifier* curveReference = new TIdentifier;
@@ -1704,7 +2368,6 @@ void OutputPtw::CreateRotation(std::pair<std::string, std::string> curveProP, Hm
 		TDataProvider* provide = new TDataProvider;
 		TVariant* variant = new TVariant;
 		TNumericValue* nuneric = new TNumericValue;
-		float a = std::any_cast<Vec3>(node.getSystemData("rotation")).y;
 		nuneric->set_float_(std::any_cast<Vec3>(node.getSystemData("rotation")).y);
 		variant->set_allocated_numeric(nuneric);
 		provide->set_allocated_variant(variant);
@@ -1746,16 +2409,25 @@ size_t getArrIndex(std::string name) {
 	return -1;
 }
 
-void OutputPtw::addOperandCurveRef2Operation(TOperation* operation, std::string curveName) {
+void OutputPtw::addOperandCurveRef2Operation(TOperation* operation, std::string curveName, std::string multiCurveName) {
 	auto operand = operation->add_operand();
-	TDataProvider* provider = new TDataProvider;
-	TIdentifier* curveReference = new TIdentifier;
-	curveReference->set_valuestring(curveName);
-	provider->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-	operand->set_allocated_provider(provider);
+	if (multiCurveName == "") {
+		TDataProvider* provider = new TDataProvider;
+		TIdentifier* curveReference = new TIdentifier;
+		curveReference->set_valuestring(curveName);
+		provider->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+		operand->set_allocated_provider(provider);
+	} else {
+		TDataProvider* provider = new TDataProvider;
+		TIdentifier* key = new TIdentifier;
+		key->set_valuestring(multiCurveName);
+		provider->set_source(TEProviderSource_IntModelValue);
+		operand->set_allocated_key(key);
+		operand->set_allocated_provider(provider);
+	}
 }
 
-void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperation* operation, std::string* curveNameArr) {
+void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperation* operation, std::string* curveNameArr, std::string multiCurveName) {
 	switch (usedUniformType) {
 		case raco::guiData::Vec2f:
 			operation->set_operator_(TEOperatorType_MuxVec2);
@@ -1764,7 +2436,7 @@ void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperatio
 				if (curveNameArr[i] == "") {
 					addOperandOne2Operation(operation);
 				} else {
-					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+					addOperandCurveRef2Operation(operation, curveNameArr[i], multiCurveName);
 				}
 			}
 			break;
@@ -1775,7 +2447,7 @@ void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperatio
 				if (curveNameArr[i] == "") {
 					addOperandOne2Operation(operation);
 				} else {
-					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+					addOperandCurveRef2Operation(operation, curveNameArr[i], multiCurveName);
 				}
 			}
 			break;
@@ -1786,7 +2458,7 @@ void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperatio
 				if (curveNameArr[i] == "") {
 					addOperandOne2Operation(operation);
 				} else {
-					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+					addOperandCurveRef2Operation(operation, curveNameArr[i], multiCurveName);
 				}
 			}
 			break;
@@ -1797,7 +2469,7 @@ void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperatio
 				if (curveNameArr[i] == "") {
 					addOperandOne2Operation(operation);
 				} else {
-					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+					addOperandCurveRef2Operation(operation, curveNameArr[i], multiCurveName);
 				}
 			}
 			break;
@@ -1808,7 +2480,7 @@ void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperatio
 				if (curveNameArr[i] == "") {
 					addOperandOne2Operation(operation);
 				} else {
-					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+					addOperandCurveRef2Operation(operation, curveNameArr[i], multiCurveName);
 				}
 			}
 			break;
@@ -1819,7 +2491,7 @@ void OutputPtw::setUniformOperationByType(UniformType usedUniformType, TOperatio
 				if (curveNameArr[i] == "") {
 					addOperandOne2Operation(operation);
 				} else {
-					addOperandCurveRef2Operation(operation, curveNameArr[i]);
+					addOperandCurveRef2Operation(operation, curveNameArr[i], multiCurveName);
 				}
 			}
 			break;
@@ -1853,7 +2525,7 @@ bool findFromUniform(std::string property, std::string name) {
 	return false;
 }
 
-void OutputPtw::addVecValue2Uniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
+void OutputPtw::addVecValue2Uniform(HmiWidget::TWidget* widget, std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
 	// set uniform name
 	std::string uniformName = curveProP.first.substr(9, curveProP.first.length() - 11);
 
@@ -1905,9 +2577,16 @@ void OutputPtw::addVecValue2Uniform(std::pair<std::string, std::string> curvePro
 			}
 		}
 	}
-
-	// set operation
-	setUniformOperationByType(usedUniformType, operation, curveNameArr);
+	std::vector<std::map<std::string, CurvesSingleProp>> curves;
+	bool hasMultiCurveSingleProp = hasMultiCurveOneProp(curveProP.first, node, curves);
+	if (!hasMultiCurveSingleProp) {
+		// set operation
+		setUniformOperationByType(usedUniformType, operation, curveNameArr);
+	} else {
+		std::string multiCurveName = "Multi-" + (curves.at(0).begin())->second.curveName;
+		setUniformOperationByType(usedUniformType, operation, curveNameArr, multiCurveName);
+		multiCurveBindingSinglePropSwitch(widget, curveProP.first, curves);
+	}
 
 	// add to value
 	valProvder->set_allocated_operation(operation);
@@ -1935,10 +2614,16 @@ void OutputPtw::addOperandOne2Operation(TOperation* operation) {
 	operand->set_allocated_provider(provider);
 }
 
-void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
+void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
+	auto uniforms = nodeParam->uniform();
+	for (auto un : uniforms) {
+		std::string nameBinding = un.name().provider().variant().asciistring();
+		if (nameBinding == delUniformNamePrefix(curveProP.first)) {
+			return;
+		}
+	}
 	if (!isVecUniformValue(curveProP.first)) {
 		auto uniform = nodeParam->add_uniform();
-
 		// set uniform name
 		TDataBinding* name = new TDataBinding;
 		TDataProvider* namePrivder = new TDataProvider;
@@ -1948,23 +2633,32 @@ void OutputPtw::AddUniform(std::pair<std::string, std::string> curveProP, HmiWid
 		name->set_allocated_provider(namePrivder);
 		uniform->set_allocated_name(name);
 
-		// set uniform value
-		TDataBinding* value = new TDataBinding;
-		TDataProvider* privder = new TDataProvider;
-		TIdentifier* curveReference = new TIdentifier;
-		curveReference->set_valuestring(curveProP.second);
-		privder->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-		value->set_allocated_provider(privder);
-		uniform->set_allocated_value(value);
+		std::vector<std::map<std::string, CurvesSingleProp>> curves;
+		bool hasMultiCurveSingleProp = hasMultiCurveOneProp(curveProP.first, node, curves);
+		if (!hasMultiCurveSingleProp) {
+			// set uniform value
+			TDataBinding* value = new TDataBinding;
+			TDataProvider* privder = new TDataProvider;
+			TIdentifier* curveReference = new TIdentifier;
+			curveReference->set_valuestring(curveProP.second);
+			privder->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
+			value->set_allocated_provider(privder);
+			uniform->set_allocated_value(value);
+		} else {
+			TDataBinding* value = new TDataBinding;
+			TIdentifier* key = new TIdentifier;
+			TDataProvider* provider = new TDataProvider;
+			key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+			provider->set_source(TEProviderSource_IntModelValue);
+			value->set_allocated_key(key);
+			value->set_allocated_provider(provider);
+			uniform->set_allocated_value(value);
+
+			multiCurveBindingSinglePropSwitch(widget, curveProP.first, curves);
+		}
 	} else {
-		addVecValue2Uniform(curveProP, nodeParam, node);
+		addVecValue2Uniform(widget, curveProP, nodeParam, node);
 	}
 }
-
-//void OutputPtw::switchAnimation(std::vector<std::string> caseList, ) {
-//
-//}
-
-
 
 }  // namespace raco::dataConvert
