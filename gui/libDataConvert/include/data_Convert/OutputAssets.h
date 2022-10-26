@@ -38,6 +38,11 @@ struct NodeWithMaterial {
 	MaterialData material;
 };
 
+struct CurvesSingleProp{
+	std::string curveName;
+	double defaultData;
+};
+
 
 
 class OutputPtx : public QObject {
@@ -83,8 +88,8 @@ public:
 	void WriteBasicInfo(HmiWidget::TWidget* widget);
 
 private:
-	void ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
-	void CreateTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
+	void ModifyTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, NodeData& node);
+	void CreateTranslation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData& node);
 
 	void ModifyScale(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
 	void CreateScale(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
@@ -99,18 +104,24 @@ private:
 
 	bool isAddedUniform(std::string name, raco::guiData::NodeData* node);
 	bool isVecUniformValue(std::string name);
-	void addOperandCurveRef2Operation(TOperation* operation, std::string curveName);
-	void setUniformOperationByType(UniformType type, TOperation* operation, std::string* curveNameArr);
-	void addVecValue2Uniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node);
+	void addOperandCurveRef2Operation(TOperation* operation, std::string curveName, std::string multiCurveName = "");
+	void setUniformOperationByType(UniformType type, TOperation* operation, std::string* curveNameArr, std::string multiCurveName = "");
+	void addVecValue2Uniform(HmiWidget::TWidget* widget, std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node);
 	void addOperandOne2Operation(TOperation* operation);
-	void AddUniform(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node);
+	void AddUniform(HmiWidget::TWidget* widget, std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node);
 	void messageBoxError(std::string curveName, int errorNum);
-
+	void addAnimationDomain(HmiWidget::TWidget* widget, std::string animationName);
+	void triggerByInternalModel(HmiWidget::TWidget* widget);
+	void multiCurvesBindingSingleProp(HmiWidget::TWidget* widget);
+	bool hasMultiCurveOneProp(std::string prop, NodeData* node, std::vector<std::map<std::string, CurvesSingleProp>>& curves);
+	void modifyMultiCurveTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
 
 	bool isPtwOutputError_{false};
+
+	bool addTrigger_{false};
 };
 }
 
