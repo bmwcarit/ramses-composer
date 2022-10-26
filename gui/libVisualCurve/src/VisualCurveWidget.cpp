@@ -61,11 +61,10 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     interpolationMenu->addAction(stepAct_);
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &VisualCurveWidget::customContextMenuRequested, this, &VisualCurveWidget::slotShowContextMenu);
-
-    initVisualCurvePos();
-
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigInsertCurve_To_VisualCurve, this, &VisualCurveWidget::slotInsertCurve);
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigRepaintAfterUndoOpreation, this, &VisualCurveWidget::slotRefreshVisualCurveAfterUndo);
+
+    initVisualCurvePos();
 }
 
 void VisualCurveWidget::refreshKeyFrameView() {
@@ -729,7 +728,7 @@ void VisualCurveWidget::slotSwitchPoint2Hermite() {
         } else {
             switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
         }
-        pushState2UndoStack(fmt::format("switch curve type to Bezier from '{}', {} point", curve, index));
+        pushState2UndoStack(fmt::format("switch curve type to Hermite from '{}', {} point", curve, index));
         Q_EMIT sigUpdateSelKey();
     }
 }
@@ -745,7 +744,7 @@ void VisualCurveWidget::slotSwitchPoint2Bezier() {
         } else {
             switchPointInterpolationType(EInterPolationType::BESIER_SPLINE);
         }
-        pushState2UndoStack(fmt::format("switch curve type to Hermite from '{}', {} point", curve, index));
+        pushState2UndoStack(fmt::format("switch curve type to Bezier from '{}', {} point", curve, index));
         Q_EMIT sigUpdateSelKey();
     }
 }

@@ -61,6 +61,7 @@ public Q_SLOTS:
 
     void slotInsertCurveBinding(QString property, QString curve);
     void slotTreeMenu(const QPoint& pos);
+    void slotInitPropertyBrowser();
     void slotRefreshPropertyBrowser();
     void slotRefreshPropertyBrowserAfterUndo(raco::core::ValueHandle valueHandle);
 	void slotRefreshCurveBindingWidget();

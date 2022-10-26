@@ -84,6 +84,9 @@ public:
 
 	void reset();
     void resetUndoState(STRUCT_VISUAL_CURVE_POS pos);
+    void resetUndoState(STRUCT_NODE node);
+
+    bool curIndexIsOpreatObject();
 
 protected:
 	void saveProjectState(const Project *src, Project *dest, Project *ref, const DataChangeRecorder &changes, UserObjectFactoryInterface &factory);

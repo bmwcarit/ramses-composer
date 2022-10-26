@@ -37,12 +37,15 @@ void UndoState::saveCurrentUndoState() {
     posData_ = raco::guiData::VisualCurvePosManager::GetInstance().convertDataStruct();
     curveData_ = raco::guiData::CurveManager::GetInstance().convertCurveData();
     folderData_ = raco::guiData::FolderDataManager::GetInstance().converFolderData();
-//    animationData_ = raco::guiData::animationDataManager::GetInstance().converFolderData();
     nodeData_ = raco::guiData::NodeDataManager::GetInstance().convertCurveData();
 }
 
 void UndoState::push(STRUCT_VISUAL_CURVE_POS data) {
     posData_ = data;
+}
+
+void UndoState::push(STRUCT_NODE node) {
+    nodeData_ = node;
 }
 
 STRUCT_VISUAL_CURVE_POS UndoState::visualPosData() {
@@ -56,10 +59,6 @@ STRUCT_FOLDER UndoState::folderData() {
 std::list<STRUCT_CURVE> UndoState::curveData() {
     return curveData_;
 }
-
-//STRUCT_ANIMATION UndoState::animationData() {
-//    return animationData_;
-//}
 
 STRUCT_NODE UndoState::nodeData() {
     return nodeData_;
