@@ -23,6 +23,9 @@ void NodeDataManager::merge(QVariant data) {
     if (data.canConvert<STRUCT_NODE>()) {
         STRUCT_NODE node = data.value<STRUCT_NODE>();
         NodeData* activeNode = searchNodeByID(node.activeNodeId);
+        if (!activeNode) {
+            return;
+        }
         setActiveNode(activeNode);
         CurveBinding curveBinding;
         for (auto it : node.bindingMap_) {

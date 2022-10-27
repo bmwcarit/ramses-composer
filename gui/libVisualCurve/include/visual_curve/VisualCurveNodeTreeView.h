@@ -79,6 +79,8 @@ private:
     QString curveFromItem(QStandardItem *item);
     void pushState2UndoStack(std::string description);
     void initItemFromFolder(QStandardItem *item, Folder* folder);
+    void swapCurve(std::string oldCurve, std::string newCurve);
+    void setFolderPath(Folder *folder, std::string path);
 private:
     TreeModel *model_{nullptr};
     QTreeView *visualCurveTreeView_{nullptr};

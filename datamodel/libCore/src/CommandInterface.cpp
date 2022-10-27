@@ -344,7 +344,7 @@ size_t CommandInterface::moveScenegraphChildren(std::vector<SEditorObject> const
 		}
 	} else {
         // *RAMSES*
-        if (insertBeforeIndex != 0) {
+        if (insertBeforeIndex != -1) {
 			throw std::runtime_error(fmt::format("Scenegraph move: insertion index '{}' for new parent <root> is out of range", insertBeforeIndex));
 		}
 	}
