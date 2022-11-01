@@ -70,7 +70,11 @@ void ObjectTreeDock::addTreeView(ObjectTreeView *treeView) {
 }
 
 ObjectTreeView *raco::object_tree::view::ObjectTreeDock::getCurrentlyActiveTreeView() const {
-	return dynamic_cast<ObjectTreeView *>(treeViewStack_->currentWidget());
+    return dynamic_cast<ObjectTreeView *>(treeViewStack_->currentWidget());
+}
+
+ObjectTreeView *ObjectTreeDock::getSceneTreeView() const {
+    return dynamic_cast<ObjectTreeView *>(savedTreeViews_["Scene Graph"]);
 }
 
 void raco::object_tree::view::ObjectTreeDock::resetSelection() {

@@ -45,7 +45,7 @@ void DragPushButton::setText(int num)
 
 void DragPushButton::mousePressEvent(QMouseEvent *event) {
     if(event->button() == Qt::LeftButton){
-        this->raise(); //将此按钮移动到顶层显示
+        this->raise();
         this->pressPoint_ = event->pos();
     }
 }
@@ -56,7 +56,6 @@ void DragPushButton::mouseMoveEvent(QMouseEvent *event) {
 
         this->move(tempPoint.x(), 0);
 
-        //防止按钮移出父窗口
         if(this->mapToParent(this->rect().topLeft()).x() <= 0) {
             this->move(0, this->pos().y());
             Q_EMIT buttonMove(0);
@@ -95,7 +94,7 @@ void DragPushButton::paintEvent(QPaintEvent *event) {
 
     QPainter painter(this);
 
-    QBrush brush;   //画刷。填充几何图形的调色板，由颜色和填充风格组成
+    QBrush brush;
     brush.setColor(QColor(81,123,189,255));
     brush.setStyle(Qt::SolidPattern);
     painter.setBrush(brush);
@@ -105,7 +104,7 @@ void DragPushButton::paintEvent(QPaintEvent *event) {
     painter.drawRoundedRect(QRect(0, 5, width, *numHeight - 7), 4, 4);
     painter.drawLine(QPoint(width/2, *numHeight), QPoint(width/2, height));
 
-    QFont font("宋体", 8, QFont::Bold, false);
+    QFont font("SimSun", 8, QFont::Bold, false);
     painter.setFont(font);
     painter.setPen(QColor(255, 255, 255, 255));
 
@@ -125,7 +124,7 @@ TimeAxisWidget::TimeAxisWidget(QWidget *parent, raco::core::CommandInterface* co
     keyFrameMgr_(keyFrameManager) {
     button_ = new DragPushButton(parent);
     button_->resize(DEFAULT_BUTTON_WIDTH, this->height());
-    connect(button_, &DragPushButton::buttonMove, this, &TimeAxisWidget::updateSlider);
+    connect(button_, &DragPushButton::buttonMove, this, &TimeAxisWidget::slotUpdateSlider);
 
     viewportOffset_.setX(moveNumX_ * intervalLength_);
 
@@ -182,7 +181,7 @@ void TimeAxisWidget::paintEvent(QPaintEvent *event) {
     double animationFrameLength = (finishFrame_ - startFrame_) * eachFrameWidth;
     double animationLeft = startFrame_ * eachFrameWidth - curX;
     double animationRight = finishFrame_ * eachFrameWidth - curX;
-    //绘制动画活动区域
+
     if (curX < animationFrameLength) {
         painter.fillRect(QRect(QPoint(animationLeft, *numHeight), QPoint(animationRight, height)), QColor(66, 66, 66, 255));
         painter.setPen(QColor(0, 0, 0, 255));
@@ -193,7 +192,6 @@ void TimeAxisWidget::paintEvent(QPaintEvent *event) {
     QPen pen(QColor(41, 41, 41, 255), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
     painter.setPen(pen);
 
-    //绘制竖线
     for (int count = 0; count <= num; count++) {
         painter.drawLine((count+offsetNum)*intervalLength_, 20, (count+offsetNum)*intervalLength_, height);
     }
@@ -212,7 +210,7 @@ void TimeAxisWidget::resizeEvent(QResizeEvent *event) {
 void TimeAxisWidget::timerEvent(QTimerEvent *event) {
     if (curLoop_ >= loopCount_) {
         stopAnimation();
-        Q_EMIT AnimationStop();
+        Q_EMIT sigAnimationStop();
         return;
     }
 
@@ -251,7 +249,7 @@ void TimeAxisWidget::mousePressEvent(QMouseEvent *event) {
 void TimeAxisWidget::keyPressEvent(QKeyEvent *event) {
     if(event->modifiers() == Qt::ControlModifier) {
         if(event->key() == Qt::Key_Tab) {
-            Q_EMIT switchCurveType();
+            Q_EMIT sigSwitchCurveType();
         }
     }
     QWidget::keyPressEvent(event);
@@ -276,8 +274,6 @@ void TimeAxisWidget::setViewportRect(const QSize areaSize,
         offsetX_ += 1;
     }
 
-    //1.计算两条线间隔长度
-    //2.计算最上面数字的间隔
     QString strNum = QString::number(numTextInterval_);
     if (mouseAction_ == MOUSE_SCROLL_UP) {
         intervalLength_ += INTERVAL_STEP;
@@ -323,7 +319,7 @@ void TimeAxisWidget::startAnimation() {
 
         loopCount_ = animationDataManager::GetInstance().getActiveAnimationData().GetLoopCount();
         if (0 == loopCount_)
-            loopCount_ = INT32_MAX;	// 如果loopCount_为0.改成循环int最大值次数
+            loopCount_ = INT32_MAX;
         curLoop_ = 0;
         int timer = animationDataManager::GetInstance().getActiveAnimationData().GetUpdateInterval() * animationDataManager::GetInstance().getActiveAnimationData().GetPlaySpeed();
         timerId_ = startTimer(timer);
@@ -343,16 +339,26 @@ void TimeAxisWidget::createKeyFrame() {
     }
 }
 
-void TimeAxisWidget::updateSlider(int pix) {
+void TimeAxisWidget::slotUpdateSlider(int pix) {
     int n = ((double)numTextInterval_ / (double)intervalLength_) * (pix + viewportOffset_.x() + button_->width()/2);
     curFrame_ = n;
     button_->setText(curFrame_);
 
+    Q_EMIT sigUpdateSlider(n);
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(n);
     update();
 }
 
-void TimeAxisWidget::setStartFrame(int keyframe) {
+void TimeAxisWidget::slotUpdateSliderPos(int keyFrame) {
+    curFrame_ = keyFrame;
+    button_->setText(keyFrame);
+
+    button_->blockSignals(true);
+    button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
+    button_->blockSignals(false);
+}
+
+void TimeAxisWidget::slotSetStartFrame(int keyframe) {
     QObject* object = sender();
     common_editors::Int64Editor *editor = static_cast<common_editors::Int64Editor*>(object);
 
@@ -367,7 +373,7 @@ void TimeAxisWidget::setStartFrame(int keyframe) {
     update();
 }
 
-void TimeAxisWidget::setFinishFrame(int keyframe) {
+void TimeAxisWidget::slotSetFinishFrame(int keyframe) {
     QObject* object = sender();
     common_editors::Int64Editor *editor = static_cast<common_editors::Int64Editor*>(object);
 
@@ -382,14 +388,14 @@ void TimeAxisWidget::setFinishFrame(int keyframe) {
     update();
 }
 
-void TimeAxisWidget::setCurFrameToBegin() {
+void TimeAxisWidget::slotSetCurFrameToBegin() {
     curFrame_ = startFrame_;
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
 }
 
-void TimeAxisWidget::setCurFrameToEnd() {
+void TimeAxisWidget::slotSetCurFrameToEnd() {
     curFrame_ = finishFrame_;
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextInterval_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
@@ -401,7 +407,6 @@ void TimeAxisWidget::clearKeyFrames() {
     update();
 }
 
-//绘制关键帧的点
 void TimeAxisWidget::drawKeyFrame(QPainter &painter) {
     if (keyFrameMgr_) {
        QSet<int> keyFrameList = keyFrameMgr_->getMeshNodeKeyFrameList();

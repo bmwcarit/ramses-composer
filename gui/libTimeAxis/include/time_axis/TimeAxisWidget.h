@@ -53,6 +53,7 @@ public:
     void createKeyFrame();
     void refreshKeyFrameView();
     int getCurrentKeyFrame();
+    void clearKeyFrames();
 
 protected:
     virtual void paintEvent(QPaintEvent *event) override;
@@ -70,16 +71,17 @@ public Q_SLOTS:
             const double scaleValue,
             const MOUSEACTION mouseAction);
 
-    void setStartFrame(int keyframe);
-    void setFinishFrame(int keyframe);
-    void updateSlider(int pix);    //拖动时间线的处理函数
-    void setCurFrameToBegin();
-    void setCurFrameToEnd();
-    void clearKeyFrames();
+    void slotSetStartFrame(int keyframe);
+    void slotSetFinishFrame(int keyframe);
+    void slotUpdateSlider(int pix);    //拖动时间线的处理函数
+    void slotUpdateSliderPos(int keyFrame);
+    void slotSetCurFrameToBegin();
+    void slotSetCurFrameToEnd();
 
 Q_SIGNALS:
-    void AnimationStop();
-    void switchCurveType();
+    void sigAnimationStop();
+    void sigSwitchCurveType();
+    void sigUpdateSlider(int keyFrame);
 private:
     // 绘制关键帧
     void drawKeyFrame(QPainter &painter);

@@ -28,14 +28,17 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
 
     timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
-    connect(timeAxisWidget_, &TimeAxisWidget::AnimationStop, this, &TimeAxisMainWindow::startAnimation);
-    connect(timeAxisWidget_, &TimeAxisWidget::switchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
+    connect(timeAxisWidget_, &TimeAxisWidget::sigAnimationStop, this, &TimeAxisMainWindow::startAnimation);
+    connect(timeAxisWidget_, &TimeAxisWidget::sigSwitchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
 
     visualCurveWidget_ = new VisualCurveWidget(visualCurveScrollArea_->viewport(), commandInterface);
     connect(visualCurveScrollArea_, &VisualCurveScrollArea::viewportRectChanged, visualCurveWidget_, &VisualCurveWidget::setViewportRect);
     connect(visualCurveWidget_, &VisualCurveWidget::sigAnimationStop, this, &TimeAxisMainWindow::startAnimation);
     connect(visualCurveWidget_, &VisualCurveWidget::sigSwitchCurveType, this, &TimeAxisMainWindow::slotSwitchCurveWidget);
     connect(visualCurveWidget_, &VisualCurveWidget::sigPressKey, this, &TimeAxisMainWindow::slotPressKey);
+
+    connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateSlider, timeAxisWidget_, &TimeAxisWidget::slotUpdateSliderPos);
+    connect(timeAxisWidget_, &TimeAxisWidget::sigUpdateSlider, visualCurveWidget_, &VisualCurveWidget::slotUpdateSliderPos);
 
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
     visualCurveScrollArea_->setCenterWidget(visualCurveWidget_);
@@ -229,8 +232,8 @@ void TimeAxisMainWindow::slotUpdateAnimation() {
     int endTime = animationDataManager::GetInstance().getActiveAnimationData().GetEndTime();
     lineBegin_->setValue(startTime);
     lineEnd_->setValue(endTime);
-    timeAxisWidget_->setStartFrame(startTime);
-    timeAxisWidget_->setFinishFrame(endTime);
+    timeAxisWidget_->slotSetStartFrame(startTime);
+    timeAxisWidget_->slotSetFinishFrame(endTime);
     visualCurveWidget_->slotSetStartFrame(startTime);
     visualCurveWidget_->slotSetFinishFrame(endTime);
     timeAxisWidget_->update();
@@ -350,8 +353,8 @@ void TimeAxisMainWindow::slotRefreshTimeAxisAfterUndo() {
     int endTime = animationDataManager::GetInstance().getActiveAnimationData().GetEndTime();
     lineBegin_->setValue(startTime);
     lineEnd_->setValue(endTime);
-    timeAxisWidget_->setStartFrame(startTime);
-    timeAxisWidget_->setFinishFrame(endTime);
+    timeAxisWidget_->slotSetStartFrame(startTime);
+    timeAxisWidget_->slotSetFinishFrame(endTime);
     visualCurveWidget_->slotSetStartFrame(startTime);
     visualCurveWidget_->slotSetFinishFrame(endTime);
     timeAxisWidget_->update();
@@ -382,12 +385,12 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     previousBtn_ = new QPushButton(titleWidget_);
     previousBtn_->setFlat(true);
     previousBtn_->setIcon(Icons::instance().animationPrevious);
-    connect(previousBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToBegin);
+    connect(previousBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::slotSetCurFrameToBegin);
 
     nextBtn_ = new QPushButton(titleWidget_);
     nextBtn_->setFlat(true);
     nextBtn_->setIcon(Icons::instance().animationNext);
-    connect(nextBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::setCurFrameToEnd);
+    connect(nextBtn_, &QPushButton::clicked, timeAxisWidget_, &TimeAxisWidget::slotSetCurFrameToEnd);
 
     QWidget* spacerRight = new QWidget(titleWidget_);
     spacerRight->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -401,8 +404,8 @@ bool TimeAxisMainWindow::initTitle(QWidget* parent) {
     lineEnd_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     lineEnd_->setSize(120, 20);
     lineEnd_->setValue(200);
-    connect(lineBegin_, &Int64Editor::sigValueChanged, timeAxisWidget_, &TimeAxisWidget::setStartFrame);
-    connect(lineEnd_, &Int64Editor::sigValueChanged, timeAxisWidget_, &TimeAxisWidget::setFinishFrame);
+    connect(lineBegin_, &Int64Editor::sigValueChanged, timeAxisWidget_, &TimeAxisWidget::slotSetStartFrame);
+    connect(lineEnd_, &Int64Editor::sigValueChanged, timeAxisWidget_, &TimeAxisWidget::slotSetFinishFrame);
     connect(lineBegin_, &Int64Editor::sigValueChanged, visualCurveWidget_, &VisualCurveWidget::slotSetStartFrame);
     connect(lineEnd_, &Int64Editor::sigValueChanged, visualCurveWidget_, &VisualCurveWidget::slotSetFinishFrame);
     connect(lineBegin_, &Int64Editor::sigEditingFinished, this, &TimeAxisMainWindow::slotStartTimeFinished);

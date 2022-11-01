@@ -32,6 +32,7 @@ public:
 
 	void addTreeView(ObjectTreeView *treeView);
 	ObjectTreeView *getCurrentlyActiveTreeView() const;
+    ObjectTreeView *getSceneTreeView() const;
 
 public Q_SLOTS:
 	void selectTreeView(const QString &treeViewTitle);

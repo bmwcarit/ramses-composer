@@ -112,7 +112,7 @@ void VisualCurveWidget::insertKeyFrame() {
             QList<SKeyPoint> keyPoints;
             VisualCurvePosManager::GetInstance().getKeyPointList(curveName, keyPoints);
             int index{keyPoints.size()};
-            for (int i{0}; i < keyPoints.size(); i++) {
+            for (int i{0}; i < keyPoints.   size(); i++) {
                 if (keyPoints.at(i).keyFrame > curFrame_) {
                     index = i;
                     break;
@@ -153,7 +153,7 @@ void VisualCurveWidget::paintEvent(QPaintEvent *event) {
 
     QPainter painter(this);
     painter.fillRect(QRect(QPoint(0, 0), QPoint(width, *numHeight)), QColor(43, 43, 43, 255));
-    QFont font("", 8, QFont::Bold, false);
+    QFont font("SimSun", 8, QFont::Bold, false);
     painter.setFont(font);
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
@@ -466,8 +466,6 @@ void VisualCurveWidget::setViewportRect(const QSize areaSize,
     double oldEachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
     double oldEachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
 
-    //1.计算两条线间隔长度
-    //2.计算最上面数字的间隔
     QString strNumX = QString::number(numTextIntervalX_);
     QString strNumY = QString::number(numTextIntervalY_);
     if (mouseAction_ == MOUSE_SCROLL_UP) {
@@ -549,7 +547,7 @@ void VisualCurveWidget::startAnimation() {
 
         loopCount_ = animationDataManager::GetInstance().getActiveAnimationData().GetLoopCount();
         if (0 == loopCount_)
-            loopCount_ = INT32_MAX;	// 如果loopCount_为0.改成循环int最大值次数
+            loopCount_ = INT32_MAX;
         curLoop_ = 0;
         int timer = animationDataManager::GetInstance().getActiveAnimationData().GetUpdateInterval() * animationDataManager::GetInstance().getActiveAnimationData().GetPlaySpeed();
         timerId_ = startTimer(timer);
@@ -643,9 +641,19 @@ void VisualCurveWidget::slotUpdateSlider(int pix) {
     VisualCurvePosManager::GetInstance().setCurFrame(n);
     button_->setText(n);
 
+    Q_EMIT sigUpdateSlider(n);
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(n);
     Q_EMIT sigUpdateCursorX();
     update();
+}
+
+void VisualCurveWidget::slotUpdateSliderPos(int keyFrame) {
+    VisualCurvePosManager::GetInstance().setCurFrame(keyFrame);
+    button_->setText(keyFrame);
+
+    button_->blockSignals(true);
+    button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)keyFrame - viewportOffset_.x() - button_->width()/2, 0);
+    button_->blockSignals(false);
 }
 
 void VisualCurveWidget::slotFinishSlider(int pix) {
@@ -811,6 +819,7 @@ void VisualCurveWidget::slotRefreshCursorX() {
     button_->setText(curFrame_);
     button_->move((double)intervalLength_ / (double)numTextIntervalX_ * (double)curFrame_ - viewportOffset_.x() - button_->width()/2, 0);
     update();
+    Q_EMIT sigUpdateSlider(curFrame_);
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(curFrame_);
 }
 
@@ -976,19 +985,24 @@ void VisualCurveWidget::drawKeyFrame() {
             if (i == 0) {
                 SKeyPoint nextPoint = lastPoint;
                 lastPoint.setX(0);
-                drawLiner(painter, it.first, lastPoint, nextPoint);
-
+                if (lastPoint.y >= *numHeight) {
+                    drawLiner(painter, it.first, lastPoint, nextPoint);
+                }
             }
             if (i == it.second.size() - 1) {
                 SKeyPoint nextPoint(this->width(), lastPoint.y);
-                drawLiner(painter, it.first, lastPoint, nextPoint);
+                if (nextPoint.y >= *numHeight) {
+                    drawLiner(painter, it.first, lastPoint, nextPoint);
+                }
             }
 
             // paint worker point
             painter.setPen(pen);
             painter.setBrush(brush);
             painter.save();
-            drawWorkerPoint(painter, lastPoint, lastWorkerPoint, i, it.first);
+            if (lastPoint.y >= *numHeight) {
+                drawWorkerPoint(painter, lastPoint, lastWorkerPoint, i, it.first);
+            }
         }
 
         painter.setBrush(brush);
@@ -996,6 +1010,9 @@ void VisualCurveWidget::drawKeyFrame() {
         painter.save();
         // paint keyframe
         for (auto i = 0; i < it.second.size(); i++) {
+            if (it.second.at(i).y < *numHeight) {
+                continue;
+            }
             if (VisualCurvePosManager::GetInstance().getPressAction() == MOUSE_PRESS_KEY && (curCurve == it.first && index == i)) {
                 auto brush = painter.brush();
                 brush.setColor(QColor(255, 255, 255, 255));
@@ -1023,14 +1040,28 @@ void VisualCurveWidget::drawLiner(QPainter &painter, std::string curve, SKeyPoin
     QPointF lastKey(lastPoint.x, lastPoint.y);
     QPointF nextKey(nextPoint.x, nextPoint.y);
 
+    int lastY = lastPoint.y;
+    int nextY = nextPoint.y;
+    if (lastY < *numHeight && nextY < *numHeight) {
+        return;
+    }
+    lastY = lastY < *numHeight ? *numHeight : lastY;
+    nextY = nextY < *numHeight ? *numHeight : nextY;
+
     painter.setBrush(QBrush());
-    painter.drawLine(lastPoint.x, lastPoint.y, nextPoint.x, nextPoint.y);
+    painter.drawLine(lastPoint.x, lastY, nextPoint.x, nextY);
 }
 
 void VisualCurveWidget::drawBezier(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint, QPair<QPointF, QPointF> lastWorkerPoint, QPair<QPointF, QPointF> nextWorkerPoint) {
     // beizer curve
     QPointF lastKey(lastPoint.x, lastPoint.y);
     QPointF nextKey(nextPoint.x, nextPoint.y);
+
+    int lastY = lastPoint.y;
+    int nextY = nextPoint.y;
+    if (lastY < *numHeight && nextY < *numHeight) {
+        return;
+    }
 
     // get worker point
     QPointF endWorkerPoint(lastWorkerPoint.second);
@@ -1058,8 +1089,10 @@ void VisualCurveWidget::drawBezier(QPainter &painter, std::string curve, SKeyPoi
     // paint bezier curve
     QPainterPath painterPath;
     painterPath.moveTo(destPoints.at(0));
-    for (auto i = 1; i < destPoints.size(); i++) {;
-        painterPath.lineTo(destPoints.at(i));
+    for (auto i = 1; i < destPoints.size(); i++) {
+        if (destPoints.at(i).y() >= *numHeight) {
+            painterPath.lineTo(destPoints.at(i));
+        }
     }
     painter.setBrush(QBrush());
     painter.drawPath(painterPath);
@@ -1069,6 +1102,12 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
     // hermite curve
     QPointF lastKey(lastPoint.x, lastPoint.y);
     QPointF nextKey(nextPoint.x, nextPoint.y);
+
+    int lastY = lastPoint.y;
+    int nextY = nextPoint.y;
+    if (lastY < *numHeight && nextY < *numHeight) {
+        return;
+    }
 
     QPointF offsetKey(nextKey.x() - lastKey.x(), nextKey.y() - lastKey.y());
 
@@ -1106,8 +1145,10 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
     // paint hermite curve
     QPainterPath painterPath;
     painterPath.moveTo(destPoints.at(0));
-    for (auto i = 1; i < destPoints.size(); i++) {;
-        painterPath.lineTo(destPoints.at(i));
+    for (auto i = 1; i < destPoints.size(); i++) {
+        if (destPoints.at(i).y() >= *numHeight) {
+            painterPath.lineTo(destPoints.at(i));
+        }
     }
     painter.setBrush(QBrush());
     painter.drawPath(painterPath);
@@ -1156,9 +1197,19 @@ void VisualCurveWidget::drawStep(QPainter &painter, std::string curve, SKeyPoint
     QPointF lastKey(lastPoint.x, lastPoint.y);
     QPointF nextKey(nextPoint.x, nextPoint.y);
 
+    int lastY = lastPoint.y;
+    int nextY = nextPoint.y;
+    if (lastY < *numHeight && nextY < *numHeight) {
+        return;
+    }
+    lastY = lastY < *numHeight ? *numHeight : lastY;
+    nextY = nextY < *numHeight ? *numHeight : nextY;
+
     painter.setBrush(QBrush());
-    painter.drawLine(lastPoint.x, lastPoint.y, nextPoint.x, lastPoint.y);
-    painter.drawLine(nextPoint.x, lastPoint.y, nextPoint.x, nextPoint.y);
+    if (lastPoint.y >= *numHeight) {
+        painter.drawLine(lastPoint.x, lastPoint.y, nextPoint.x, lastPoint.y);
+    }
+    painter.drawLine(nextPoint.x, lastY, nextPoint.x, nextY);
 }
 
 void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPair<QPointF, QPointF> workerPoint, int index, std::string curve) {
