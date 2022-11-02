@@ -104,6 +104,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
 
     QObject::connect(&signalProxy::GetInstance(), &signalProxy::sigDeleteAniamtionNode, this, &ObjectTreeView::deleteAnimationHandle);
+    QObject::connect(&signalProxy::GetInstance(), &signalProxy::sigReLoadNodeData, this, &ObjectTreeView::globalOpreations);
 }
 
 std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {

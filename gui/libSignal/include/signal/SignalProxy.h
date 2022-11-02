@@ -78,6 +78,8 @@ Q_SIGNALS:
     void sigRepaintAfterUndoOpreation();
     //
     void sigRepaintPropertyBrowserAfterUndo(raco::core::ValueHandle valueHandle);
+    //
+    void sigReLoadNodeData();
 };
 
 }
