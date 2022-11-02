@@ -157,7 +157,7 @@ void TimeAxisWidget::paintEvent(QPaintEvent *event) {
 
     QPainter painter(this);
     painter.fillRect(QRect(QPoint(0, 0), QPoint(width, *numHeight)), QColor(43, 43, 43, 255));
-    QFont font("宋体", 8, QFont::Bold, false);
+    QFont font("Helvetica", 8, QFont::Bold, false);
     painter.setFont(font);
     painter.setPen(QColor(188, 188, 188, 255));
 

@@ -75,7 +75,7 @@ private:
     // init visual curve
     void initVisualCurvePos();
     // paint keyframe
-    void drawKeyFrame();
+    void drawKeyFrame(QPainter &painter);
     // paint liner
     void drawLiner(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint);
     // paint bezier

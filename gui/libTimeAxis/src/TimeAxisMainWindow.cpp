@@ -45,6 +45,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
 
     visualCurveInfoWidget_ = new VisualCurveInfoWidget(this, commandInterface);
     visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this, commandInterface);
+    visualCurveNodeTreeView_->initCurves();
 
     initTitle(this);
     initTree(this);
