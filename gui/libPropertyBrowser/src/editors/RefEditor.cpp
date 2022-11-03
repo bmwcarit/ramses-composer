@@ -55,7 +55,7 @@ RefEditor::RefEditor(
 		emptyReference_ = (index == PropertyBrowserRef::EMPTY_REF_INDEX);
 		goToRefObjectButton_->setDisabled(emptyReference_);
 		if (item->displayName() == "material") {
-			setNodeDataMaterialChanged(index);
+			//setNodeDataMaterialChanged(index);
 		}
 
 		comboBox_->setToolTip(comboBox_->itemData(index, Qt::ToolTipRole).toString());
