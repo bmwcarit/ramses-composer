@@ -584,7 +584,6 @@ void InitNodeJson(QJsonObject& jsonObj, raco::guiData::NodeData& node) {
 		initCustomPropertyProerty(customProperty, node);
         jsonObj.insert(JSON_CUSTOM_PROPERTY, customProperty);
 	}
-
     if (0 != node.getUniformsSize()) {
 		QJsonArray uniformProperty;
 		initUniformPropertyProerty(uniformProperty, node);
@@ -1006,6 +1005,11 @@ void readUniforms2NodeData(QJsonObject JsonUniform, Uniform &un) {
 		tempValue.z = array[2].toObject().value("z").toInt();
 		tempValue.w = array[3].toObject().value("w").toInt();
 		un.setValue(tempValue);
+	} 
+    else if (jsonType.compare("ref") == 0) {
+		un.setType(UniformType::Ref);
+		QString temp = JsonUniform.value("value").toString();
+		un.setValue(temp.toStdString());
 	} else {
 		qDebug() << "ERROR Type !";
 	}
@@ -1375,7 +1379,7 @@ bool ProgramManager::readProgramFromJson(QString filePath) {
 	NodeDataManager::GetInstance().clearNodeData();
 	QJsonObject nodeObj = jsonObject.value(JSON_NODE).toObject();
 	readJsonFilleNodeData(nodeObj, NodeDataManager::GetInstance().root());
-
+	NodeDataManager::GetInstance().setFirstInit(true);
     initFolderData();
 	return true;
 }

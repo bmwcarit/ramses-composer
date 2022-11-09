@@ -294,6 +294,12 @@ public:
 		}
         activeNode_ = pNode;
     }
+	void setFirstInit(bool isFirst) {
+		firstInit_ = isFirst;
+	}
+	bool IsFirstInit() {
+		return firstInit_;
+	}
 
     NodeData& root() {
         return root_;
@@ -324,6 +330,7 @@ private:
     NodeData* activeNode_;
     NodeData root_;
     NodeData* searchedNode_;
+	bool firstInit_;
 };
 }
 

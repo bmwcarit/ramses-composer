@@ -104,14 +104,6 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 			checkUniformName_.clear();
 			auto material = item->siblingItem("material");
 			QObject::connect(material, &PropertyBrowserItem::valueChanged, this, &PropertySubtreeView::updateMaterial);
-			std::vector<Uniform> uniforms = Item2Uniform(item);
-			raco::guiData::MaterialManager::GetInstance().curUniformClear();
-			NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
-			pNode->uniformClear();
-			for (auto& un : uniforms) {
-				raco::guiData::MaterialManager::GetInstance().addCurUniform(un);
-				pNode->insertUniformData(un);
-			}
 			updateUniformCombox();
 		}
 
@@ -408,6 +400,7 @@ void PropertySubtreeView::delUniformButtonClicked() {
 
 void PropertySubtreeView::slotUniformNameChanged(QString s) {
 	NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
+	auto root = NodeDataManager::GetInstance().root();
 	if (s == "add") {
 		return;
 	}
@@ -415,7 +408,7 @@ void PropertySubtreeView::slotUniformNameChanged(QString s) {
 		auto materialOject = item_->siblingItem("material")->valueHandle().asRef();
 		core::ValueHandle uniformsHandle = {materialOject, &user_types::Material::uniforms_};
 		Uniform un;
-		un.setName(s.toStdString());
+		
 		for (int i{0}; i < uniformsHandle.size(); i++) {
 			if (s.toStdString() == uniformsHandle[i].getPropName()) {
 				setUniformsProperty(uniformsHandle[i], un);
@@ -430,6 +423,7 @@ void PropertySubtreeView::slotUniformNameChanged(QString s) {
 }
 void PropertySubtreeView::setUniformsProperty(core::ValueHandle valueHandle, Uniform& tempUniform) {
 	using PrimitiveType = core::PrimitiveType;
+	tempUniform.setName(valueHandle.getPropName());
 	std::string property = valueHandle.getPropName();
 	switch (valueHandle.type()) {
 			case PrimitiveType::String: {
