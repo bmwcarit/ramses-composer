@@ -162,7 +162,6 @@ void VisualCurveInfoWidget::slotKeyFrameChanged(int value) {
     SKeyPoint keyPoint;
     QList<SKeyPoint> keyPoints;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
-
         VisualCurvePosManager::GetInstance().getCurKeyPointList(keyPoints);
         // change curve data
         Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);

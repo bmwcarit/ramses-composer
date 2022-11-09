@@ -47,7 +47,7 @@ public:
 	void mousePressEvent(QMouseEvent* event);
 	void setUniformControls(PropertyBrowserItem* item, PropertyBrowserHBoxLayout* labelLayout);
 	std::vector<Uniform> Item2Uniform(PropertyBrowserItem* item);
-
+	void setUniformsProperty(core::ValueHandle valueHandle, Uniform& tempUniform);
 
 public Q_SLOTS:
 	void playStructureChangeAnimation();

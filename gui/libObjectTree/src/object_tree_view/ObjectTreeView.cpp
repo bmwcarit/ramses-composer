@@ -104,6 +104,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
 
     QObject::connect(&signalProxy::GetInstance(), &signalProxy::sigDeleteAniamtionNode, this, &ObjectTreeView::deleteAnimationHandle);
+	QObject::connect(&signalProxy::GetInstance(), &signalProxy::sigReLoadNodeData, this, &ObjectTreeView::globalOpreations);
 }
 
 std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
@@ -112,48 +113,149 @@ std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
 	return std::set<ValueHandle>(selectedObjects.begin(), selectedObjects.end());
 }
 
+void ObjectTreeView::setUniformsProperty(core::ValueHandle valueHandle, Uniform &tempUniform) {
+	using PrimitiveType = core::PrimitiveType;
+	tempUniform.setName(valueHandle.getPropName());
+	std::string property = valueHandle.getPropName();
+	switch (valueHandle.type()) {
+		case PrimitiveType::String: {
+			tempUniform.setName(property);
+			tempUniform.setType(UniformType::String);
+			tempUniform.setValue(valueHandle.asString());
+			break;
+		}
+		case PrimitiveType::Bool: {
+			tempUniform.setName(property);
+			tempUniform.setType(UniformType::Bool);
+			tempUniform.setValue(valueHandle.asBool());
+			break;
+		}
+		case PrimitiveType::Int: {
+			tempUniform.setName(property);
+			tempUniform.setType(UniformType::Int);
+			tempUniform.setValue(valueHandle.asInt());
+			break;
+		}
+		case PrimitiveType::Double: {
+			tempUniform.setName(property);
+			tempUniform.setType(UniformType::Double);
+			tempUniform.setValue(valueHandle.asDouble());
+			break;
+		}
+		case PrimitiveType::Ref: {
+			tempUniform.setName(property);
+			tempUniform.setType(UniformType::Ref);
+			if (valueHandle.asRef())
+				tempUniform.setValue(valueHandle.asRef()->objectName());
+			//TextureData textureData;
+			//textureData.setUniformName(property);
+			//setTexturePorperty(tempHandle.asRef(), materialData, textureData);
+
+			//if (textureData.getName().empty()) {
+			//	textureData.setName("empty");
+			//	textureData.setBitmapRef("empty");
+			//}
+			//materialData.addTexture(textureData);
+			break;
+		}
+		case PrimitiveType::Table:
+		case PrimitiveType::Struct: {
+			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
+			if (typeDesc == &core::Vec2f::typeDescription) {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Vec2f);
+				Vec2 value;
+				value.x = valueHandle[0].asDouble();
+				value.y = valueHandle[1].asDouble();
+				tempUniform.setValue(value);
+			} else if (typeDesc == &core::Vec3f::typeDescription) {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Vec3f);
+				Vec3 value;
+				value.x = valueHandle[0].asDouble();
+				value.y = valueHandle[1].asDouble();
+				value.z = valueHandle[2].asDouble();
+				tempUniform.setValue(value);
+			} else if (typeDesc == &core::Vec4f::typeDescription) {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Vec4f);
+				Vec4 value;
+				value.x = valueHandle[0].asDouble();
+				value.y = valueHandle[1].asDouble();
+				value.z = valueHandle[2].asDouble();
+				value.w = valueHandle[3].asDouble();
+				tempUniform.setValue(value);
+			} else if (typeDesc == &core::Vec2i::typeDescription) {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Vec4i);
+				Vec2int value;
+				value.x = valueHandle[0].asInt();
+				value.y = valueHandle[1].asInt();
+				tempUniform.setValue(value);
+			} else if (typeDesc == &core::Vec3i::typeDescription) {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Vec3i);
+				Vec3int value;
+				value.x = valueHandle[0].asInt();
+				value.y = valueHandle[1].asInt();
+				value.z = valueHandle[2].asInt();
+				tempUniform.setValue(value);
+			} else if (typeDesc == &core::Vec4i::typeDescription) {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Vec4i);
+				Vec4int value;
+				value.x = valueHandle[0].asInt();
+				value.y = valueHandle[1].asInt();
+				value.z = valueHandle[2].asInt();
+				value.w = valueHandle[3].asInt();
+				tempUniform.setValue(value);
+			}
+			break;
+		}
+		default: {
+			break;
+		}
+	};
+}
 void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap) {
-	if (!model()->hasChildren(index)) {
-		core::ValueHandle tempHandle = indexToSEditorObject(index);
-		NodeData tempNode;
-		std::string str;
-		str = tempHandle[0].getPropertyPath();
-		tempNode.setName(str);
-		str = tempHandle[0].asString();
-		NodeNameHandleReMap.emplace(str, tempHandle);
-		tempNode.setObjectID(str);
+	
+	core::ValueHandle tempHandle = indexToSEditorObject(index);
+	NodeData tempNode;
+	std::string str;
+	str = tempHandle[0].getPropertyPath();
+	tempNode.setName(str);
+	str = tempHandle[0].asString();
+	NodeNameHandleReMap.emplace(str, tempHandle);
+	tempNode.setObjectID(str);
+	if (tempHandle.get("mesh")) {
+		auto materials = tempHandle.get("materials");
+		auto material = materials[0];
+		if (material) {
+			auto uniforms = material.get("uniforms");
+			if (uniforms) {
+				for (int i = 0; i < uniforms.size(); i++) {
+					Uniform un;
+					un.setName(uniforms[i].getPropName());
+					setUniformsProperty(uniforms[i], un);
+					tempNode.insertUniformData(un);
+				}
+			}
+		}
+	}
+	tempNode.setParent(parent);
+    NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
+    if (data) {
+        tempNode.setNodeExtend(data->NodeExtendRef());
+    }
+	parent->childMapRef().emplace(tempNode.getName(), tempNode);
 
-		tempNode.setParent(parent);
-
-        NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
-        if (data) {
-            tempNode.setNodeExtend(data->NodeExtendRef());
-        }
-
-		parent->childMapRef().emplace(tempNode.getName(), std::move(tempNode));
-	} else {
-		core::ValueHandle tempHandle = indexToSEditorObject(index);
-		NodeData tempNode;
-		std::string str;
-		str = tempHandle[0].getPropertyPath();
-		tempNode.setName(str);
-		str = tempHandle[0].asString();
-		tempNode.setObjectID(str);
-		tempNode.setParent(parent);
-
-        NodeData* data = nodeDataManager.searchNodeByID(tempNode.objectID());
-        if (data) {
-            tempNode.setNodeExtend(data->NodeExtendRef());
-        }
-
-		parent->childMapRef().emplace(tempNode.getName(), tempNode);
+	if (model()->hasChildren(index)) {
 		NodeData *pNode = &(parent->childMapRef().find(tempNode.getName())->second);
 		for (int i{0}; i < model()->rowCount(index); i++) {
 			QModelIndex tempIndex = model()->index(i, 0, index);
 			core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
 			getOnehandle(tempIndex, pNode, nodeDataManager, NodeNameHandleReMap);
 		}
-
 		NodeNameHandleReMap.emplace(tempNode.objectID(), tempHandle);
     }
 }
@@ -269,7 +371,6 @@ void ObjectTreeView::getOneMaterials(QModelIndex index, std::map<std::string, co
 std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
 	std::map<std::string, core::ValueHandle> NodeNameHandleReMap;
 	raco::guiData::NodeDataManager &nodeDataManager = raco::guiData::NodeDataManager::GetInstance();
-
     NodeData *parent = new NodeData;
 
 	int row = model()->rowCount();
@@ -277,11 +378,14 @@ std::map<std::string, core::ValueHandle> ObjectTreeView::updateNodeTree() {
 		QModelIndex index = model()->index(i, 0);
         getOnehandle(index, parent, nodeDataManager, NodeNameHandleReMap);
 	}
-
-    nodeDataManager.clearNodeData();
-    nodeDataManager.setRoot(*parent);
-    nodeDataManager.setActiveNode(parent);
-
+	if (nodeDataManager.IsFirstInit()) {
+		nodeDataManager.setFirstInit(false);
+	} else {
+		nodeDataManager.clearNodeData();
+		nodeDataManager.setRoot(*parent);
+		nodeDataManager.setActiveNode(parent);
+	}
+	
 	return NodeNameHandleReMap;
 }
 

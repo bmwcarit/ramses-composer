@@ -104,14 +104,6 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 			checkUniformName_.clear();
 			auto material = item->siblingItem("material");
 			QObject::connect(material, &PropertyBrowserItem::valueChanged, this, &PropertySubtreeView::updateMaterial);
-			std::vector<Uniform> uniforms = Item2Uniform(item);
-			raco::guiData::MaterialManager::GetInstance().curUniformClear();
-			NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
-			pNode->uniformClear();
-			for (auto& un : uniforms) {
-				raco::guiData::MaterialManager::GetInstance().addCurUniform(un);
-				pNode->insertUniformData(un);
-			}
 			updateUniformCombox();
 		}
 
@@ -408,14 +400,20 @@ void PropertySubtreeView::delUniformButtonClicked() {
 
 void PropertySubtreeView::slotUniformNameChanged(QString s) {
 	NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
+	auto root = NodeDataManager::GetInstance().root();
 	if (s == "add") {
 		return;
 	}
 	if (!pNode->hasUniform(s.toStdString())) {
+		auto materialOject = item_->siblingItem("material")->valueHandle().asRef();
+		core::ValueHandle uniformsHandle = {materialOject, &user_types::Material::uniforms_};
 		Uniform un;
-		un.setName(s.toStdString());
-		un.setType(UniformType::Bool);
-		un.setValue(true);
+		
+		for (int i{0}; i < uniformsHandle.size(); i++) {
+			if (s.toStdString() == uniformsHandle[i].getPropName()) {
+				setUniformsProperty(uniformsHandle[i], un);
+			}
+		}
 		pNode->insertUniformData(un);
 	}
 	updateUniformCombox();
@@ -423,7 +421,110 @@ void PropertySubtreeView::slotUniformNameChanged(QString s) {
 	privateItem->set(false);
 	privateItem->set(true);
 }
+void PropertySubtreeView::setUniformsProperty(core::ValueHandle valueHandle, Uniform& tempUniform) {
+	using PrimitiveType = core::PrimitiveType;
+	tempUniform.setName(valueHandle.getPropName());
+	std::string property = valueHandle.getPropName();
+	switch (valueHandle.type()) {
+			case PrimitiveType::String: {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::String);
+				tempUniform.setValue(valueHandle.asString());
+				break;
+			}
+			case PrimitiveType::Bool: {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Bool);
+				tempUniform.setValue(valueHandle.asBool());
+				break;
+			}
+			case PrimitiveType::Int: {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Int);
+				tempUniform.setValue(valueHandle.asInt());
+				break;
+			}
+			case PrimitiveType::Double: {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Double);
+				tempUniform.setValue(valueHandle.asDouble());
+				break;
+			}
+			case PrimitiveType::Ref: {
+				tempUniform.setName(property);
+				tempUniform.setType(UniformType::Ref);
+				if (valueHandle.asRef())
+					tempUniform.setValue(valueHandle.asRef()->objectName());
+				//TextureData textureData;
+				//textureData.setUniformName(property);
+				//setTexturePorperty(tempHandle.asRef(), materialData, textureData);
 
+				//if (textureData.getName().empty()) {
+				//	textureData.setName("empty");
+				//	textureData.setBitmapRef("empty");
+				//}
+				//materialData.addTexture(textureData);
+				break;
+			}
+			case PrimitiveType::Table:
+			case PrimitiveType::Struct: {
+				auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
+				if (typeDesc == &core::Vec2f::typeDescription) {
+					tempUniform.setName(property);
+					tempUniform.setType(UniformType::Vec2f);
+					Vec2 value;
+					value.x = valueHandle[0].asDouble();
+					value.y = valueHandle[1].asDouble();
+					tempUniform.setValue(value);
+				} else if (typeDesc == &core::Vec3f::typeDescription) {
+					tempUniform.setName(property);
+					tempUniform.setType(UniformType::Vec3f);
+					Vec3 value;
+					value.x = valueHandle[0].asDouble();
+					value.y = valueHandle[1].asDouble();
+					value.z = valueHandle[2].asDouble();
+					tempUniform.setValue(value);
+				} else if (typeDesc == &core::Vec4f::typeDescription) {
+					tempUniform.setName(property);
+					tempUniform.setType(UniformType::Vec4f);
+					Vec4 value;
+					value.x = valueHandle[0].asDouble();
+					value.y = valueHandle[1].asDouble();
+					value.z = valueHandle[2].asDouble();
+					value.w = valueHandle[3].asDouble();
+					tempUniform.setValue(value);
+				} else if (typeDesc == &core::Vec2i::typeDescription) {
+					tempUniform.setName(property);
+					tempUniform.setType(UniformType::Vec4i);
+					Vec2int value;
+					value.x = valueHandle[0].asInt();
+					value.y = valueHandle[1].asInt();
+					tempUniform.setValue(value);
+				} else if (typeDesc == &core::Vec3i::typeDescription) {
+					tempUniform.setName(property);
+					tempUniform.setType(UniformType::Vec3i);
+					Vec3int value;
+					value.x = valueHandle[0].asInt();
+					value.y = valueHandle[1].asInt();
+					value.z = valueHandle[2].asInt();
+					tempUniform.setValue(value);
+				} else if (typeDesc == &core::Vec4i::typeDescription) {
+					tempUniform.setName(property);
+					tempUniform.setType(UniformType::Vec4i);
+					Vec4int value;
+					value.x = valueHandle[0].asInt();
+					value.y = valueHandle[1].asInt();
+					value.z = valueHandle[2].asInt();
+					value.w = valueHandle[3].asInt();
+					tempUniform.setValue(value);
+				}
+				break;
+			}
+			default: {
+				break;
+			}
+		};
+}
 bool PropertySubtreeView::isValidValueHandle(QStringList list, core::ValueHandle handle) {
 	// lamada
 	auto func = [&](QStringList tempList, raco::core::ValueHandle tempHandle) -> bool {

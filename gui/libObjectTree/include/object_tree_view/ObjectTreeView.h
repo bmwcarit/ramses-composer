@@ -37,7 +37,7 @@ public:
 
 	std::set<ValueHandle> getSelectedHandles() const;
 	QString getViewTitle() const;
-
+	void setUniformsProperty(core::ValueHandle valueHandle, Uniform &tempUniform);
 	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
     void getOneMeshHandle(QModelIndex index);
     bool getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData);

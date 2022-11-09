@@ -23,12 +23,24 @@ class UndoState {
 public:
     explicit UndoState();
 
+    // save Current Undo State
     void saveCurrentUndoState();
+
+    // push state-visualcurve
     void push(STRUCT_VISUAL_CURVE_POS data);
+    // push state-node
     void push(STRUCT_NODE node);
+
+    // get VisualCurve data
     STRUCT_VISUAL_CURVE_POS visualPosData();
+
+    // get Folder Data
     STRUCT_FOLDER folderData();
+
+    // get Curve Data
     std::list<STRUCT_CURVE> curveData();
+
+    // get Node Data
     STRUCT_NODE nodeData();
 private:
     STRUCT_VISUAL_CURVE_POS posData_;

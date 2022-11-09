@@ -46,6 +46,7 @@ public Q_SLOTS:
     void slotSetStartFrame(int keyframe);
     void slotSetFinishFrame(int keyframe);
     void slotUpdateSlider(int pix);
+    void slotUpdateSliderPos(int keyFrame);
     void slotFinishSlider(int pix);
     void slotSetCurFrameToBegin();
     void slotSetCurFrameToEnd();
@@ -69,11 +70,12 @@ Q_SIGNALS:
     void sigUpdateSelKey();
     void sigUpdateCursorX();
     void sigDeleteCurve(std::string curve);
+    void sigUpdateSlider(int keyFrame);
 private:
     // init visual curve
     void initVisualCurvePos();
     // paint keyframe
-    void drawKeyFrame();
+    void drawKeyFrame(QPainter &painter);
     // paint liner
     void drawLiner(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint);
     // paint bezier
