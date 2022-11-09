@@ -251,11 +251,11 @@ void PreviewMainWindow::setAxesIcon(const bool& z_up) {
         axesIcon_->clear();
         if (z_up) {
             QPixmap pix = QPixmap(":zUp");
-            axesIcon_->setPixmap(pix);
+//            axesIcon_->setPixmap(pix);
             upLabel_->setText("+Z_UP");
         } else {
             QPixmap pix = QPixmap(":yUp");
-            axesIcon_->setPixmap(pix);
+//            axesIcon_->setPixmap(pix);
             upLabel_->setText("+Y_UP");
         }
 		scrollAreaWidget_->setForceUpdateFlag(true);
@@ -324,7 +324,7 @@ void PreviewMainWindow::commit() {
         sceneSize_ = areaSize;
         QRect scrollRect = QRect(scrollAreaWidget_->pos(), scrollAreaWidget_->size());
         setAxesIcon(zUp_);
-        axesIcon_->setGeometry(scrollRect.width() - 100, scrollRect.y(), 100, 100);
+//        axesIcon_->setGeometry(scrollRect.width() - 100, scrollRect.y(), 100, 100);
     }
 	previewWidget_->commit();
 }

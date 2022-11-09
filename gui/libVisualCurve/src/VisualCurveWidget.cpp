@@ -210,7 +210,6 @@ void VisualCurveWidget::paintEvent(QPaintEvent *event) {
     for (int count = 0; count <= numX; count++) {
         painter.drawLine((count+offsetNum)*intervalLength_, 20, (count+offsetNum)*intervalLength_, height);
     }
-
     // paint line y up
     for (int count = 0; count <= numYUp; count++) {
         painter.drawLine(0, curY - count*intervalLength_, width, curY - count*intervalLength_);
@@ -1083,6 +1082,7 @@ void VisualCurveWidget::drawBezier(QPainter &painter, std::string curve, SKeyPoi
     // get bezier points
     createNBezierCurve(srcPoints, destPoints, 0.01);
 
+    bool hasSecondCurve = false;
     int beginIndex{1}, endIndex{destPoints.size() - 1};
     for (auto i = 1; i < destPoints.size(); i++) {
         if (destPoints.at(i).y() >= *numHeight) {
@@ -1110,16 +1110,18 @@ void VisualCurveWidget::drawBezier(QPainter &painter, std::string curve, SKeyPoi
         for (auto i = endIndex; i < destPoints.size(); i++) {
             if (destPoints.at(i).y() >= *numHeight) {
                 beginIndex = i;
+                hasSecondCurve = true;
                 break;
             }
         }
-
-        QPainterPath painterPath2;
-        painterPath2.moveTo(destPoints.at(beginIndex));
-        for (auto i = beginIndex; i < destPoints.size(); i++) {
-            painterPath2.lineTo(destPoints.at(i));
+        if (hasSecondCurve) {
+            QPainterPath painterPath2;
+            painterPath2.moveTo(destPoints.at(beginIndex));
+            for (auto i = beginIndex; i < destPoints.size(); i++) {
+                painterPath2.lineTo(destPoints.at(i));
+            }
+            painter.drawPath(painterPath2);
         }
-        painter.drawPath(painterPath2);
     }
 }
 
@@ -1167,6 +1169,7 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
     // get hermite points
     createHermiteCurve(srcPoints, destPoints, 0.01);
 
+    bool hasSecondCurve = false;
     int beginIndex{1}, endIndex{destPoints.size() - 1};
     for (auto i = 1; i < destPoints.size(); i++) {
         if (destPoints.at(i).y() >= *numHeight) {
@@ -1194,16 +1197,18 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
         for (auto i = endIndex; i < destPoints.size(); i++) {
             if (destPoints.at(i).y() >= *numHeight) {
                 beginIndex = i;
+                hasSecondCurve = true;
                 break;
             }
         }
-
-        QPainterPath painterPath2;
-        painterPath2.moveTo(destPoints.at(beginIndex));
-        for (auto i = beginIndex; i < destPoints.size(); i++) {
-            painterPath2.lineTo(destPoints.at(i));
+        if (hasSecondCurve) {
+            QPainterPath painterPath2;
+            painterPath2.moveTo(destPoints.at(beginIndex));
+            for (auto i = beginIndex; i < destPoints.size(); i++) {
+                painterPath2.lineTo(destPoints.at(i));
+            }
+            painter.drawPath(painterPath2);
         }
-        painter.drawPath(painterPath2);
     }
 }
 
