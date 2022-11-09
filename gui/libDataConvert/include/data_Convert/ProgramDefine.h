@@ -100,5 +100,17 @@
 #define JSON_GENERATE_MIPMAPS       QString("generateMipMaps")
 #define JSON_MATERIAL_REF			QString("materialReference")
 #define PTX_SCENE_NAME				QString("Scene")
+#define PTW_USED_ANIMATION_NAME             "UsedAnimationName"
+#define PTW_PREFIX_CURVES_SINGLE_PROP		"Multi-CurvesSingleProp-"
+#define PTW_PREFIX_ANIMATIONS_SINGLE_CURVE  "Multi-AnimationsSingleCurve-"
+#define PTW_SUFFIX_ANIMATION_DOMAIN		    "_domain"
+#define PTW_SUFFIX_CURVE_INETERAL			"_interal"
+#define PTW_ROOT_NODE_NAME				    "Node"
+#define PTW_SCALE_DIVIDE_VALUE				"ScaleDivideValue.outputX"
+#define PTW_SCALE_DIV_RESULT_MUL_VALUE		"ScaleDivResultMulValue.outputX"
+#define PTW_EX_SCALE_NAME					"iScale"
+#define PTW_EX_OPACITY_NAME				    "iOpacity"
+#define PTW_FRAG_CTRL_OPACITY				"Ctrl_Opacity"
+
 
 #endif // PROGRAMDEFINE_H

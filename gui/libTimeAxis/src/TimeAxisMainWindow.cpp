@@ -347,7 +347,7 @@ void TimeAxisMainWindow::slotRefreshTimeAxis() {
 }
 
 void TimeAxisMainWindow::slotRefreshTimeAxisAfterUndo() {
-    if (animationDataManager::GetInstance().GetActiveAnimation().empty()) {
+	if (animationDataManager::GetInstance().GetActiveAnimation().empty() || animationDataManager::GetInstance().getAniamtionNameList().empty()) {
         return;
     }
     int startTime = animationDataManager::GetInstance().getActiveAnimationData().GetStartTime();
