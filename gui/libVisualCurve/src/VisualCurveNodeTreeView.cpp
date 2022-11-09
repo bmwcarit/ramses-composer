@@ -296,16 +296,14 @@ VisualCurveNodeTreeView::VisualCurveNodeTreeView(QWidget *parent, core::CommandI
 
     menu_ = new QMenu{this};
     createFolder_ = new QAction("Create Floder");
-    deleteFolder_ = new QAction("Delete Floder");
+    delete_ = new QAction("Delete");
     createCurve_ = new QAction("Create Curve");
-    deleteCurve_ = new QAction("Delete Curve");
     setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(this, &VisualCurveNodeTreeView::customContextMenuRequested, this, &VisualCurveNodeTreeView::slotShowContextMenu);
     connect(createFolder_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotCreateFolder);
-    connect(deleteFolder_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDeleteFolder);
+    connect(delete_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDelete);
     connect(createCurve_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotCreateCurve);
-    connect(deleteCurve_, &QAction::triggered, this, &VisualCurveNodeTreeView::slotDeleteCurve);
     connect(model_, &QStandardItemModel::itemChanged, this, &VisualCurveNodeTreeView::slotItemChanged);
     connect(model_, &TreeModel::moveRowFinished, this, &VisualCurveNodeTreeView::slotModelMoved);
     connect(visualCurveTreeView_, &QTreeView::pressed, this, &VisualCurveNodeTreeView::slotCurrentRowChanged);
@@ -435,11 +433,7 @@ void VisualCurveNodeTreeView::slotShowContextMenu(const QPoint &p) {
     menu_->clear();
     if (item) {
         std::string curve = curveFromItem(item).toStdString();
-        if (folderDataMgr_->isCurve(curve)) {
-            menu_->addAction(deleteCurve_);
-        } else {
-            menu_->addAction(deleteFolder_);
-        }
+        menu_->addAction(delete_);
     } else {
         visualCurveTreeView_->setCurrentIndex(QModelIndex());
     }
@@ -481,39 +475,6 @@ void VisualCurveNodeTreeView::slotCreateFolder() {
         QStandardItem *folderItem = new QStandardItem(QString::fromStdString(defaultFolder));
         folderDataMgr_->getRootFolder()->insertFolder(defaultFolder);
         model_->appendRow(folderItem);
-    }
-}
-
-void VisualCurveNodeTreeView::slotDeleteFolder() {
-    QModelIndex selected = visualCurveTreeView_->currentIndex();
-    QStandardItem *item = model_->itemFromIndex(selected);
-    std::string folderName = item->text().toStdString();
-    if (item) {
-        if (item->hasChildren()) {
-            QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Ramses Composer",
-                tr("Delete Folder?\n"),
-                QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
-                QMessageBox::Yes);
-            if (resBtn == QMessageBox::No) {
-                return;
-            }
-            std::string curve = curveFromItem(item).toStdString();
-            if (!folderDataMgr_->isCurve(curve)) {
-                Folder *folder{nullptr};
-                if (folderDataMgr_->folderFromPath(curve, &folder)) {
-                    for (auto it : folder->getCurveList()) {
-                        std::string curveName;
-                        folderDataMgr_->pathFromCurve(it->curve_, folder, curveName);
-                        CurveManager::GetInstance().takeCurve(curveName);
-                        VisualCurvePosManager::GetInstance().deleteKeyPointList(curveName);
-                    }
-                    folder->parent()->deleteFolder(folderName);
-                }
-            }
-            pushState2UndoStack(fmt::format("delete curves from '{}'", folderName));
-        }
-        model_->removeRow(selected.row(), selected.parent());
-        Q_EMIT sigRefreshVisualCurve();
     }
 }
 
@@ -568,34 +529,31 @@ void VisualCurveNodeTreeView::slotCreateCurve() {
     }
 }
 
-void VisualCurveNodeTreeView::slotDeleteCurve() {
-    QModelIndex selected = visualCurveTreeView_->currentIndex();
-    QStandardItem *item = model_->itemFromIndex(selected);
-    if (item) {
-        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Ramses Composer",
-            tr("Delete Curve?\n"),
-            QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
-            QMessageBox::Yes);
-        if (resBtn == QMessageBox::No) {
-            return;
-        }
+void VisualCurveNodeTreeView::slotDelete() {
+    QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Ramses Composer",
+        tr("Delete?\n"),
+        QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
+        QMessageBox::Yes);
+    if (resBtn == QMessageBox::No) {
+        return;
+    }
 
-        std::string curve = item->text().toStdString();
-        std::string curvePath = curveFromItem(item).toStdString();
-
-        Folder *folder{nullptr};
-        STRUCT_CURVE_PROP *curveProp{nullptr};
-        if (folderDataMgr_->isCurve(curvePath)) {
-            if (folderDataMgr_->curveFromPath(curvePath, &folder, &curveProp)) {
-                folder->deleteCurve(curve);
-                CurveManager::GetInstance().takeCurve(curvePath);
-                VisualCurvePosManager::GetInstance().deleteKeyPointList(curvePath);
+    std::string info;
+    QModelIndexList selectedIndexs = visualCurveTreeView_->selectionModel()->selectedRows();
+    for (auto selected : selectedIndexs) {
+        QStandardItem *item = model_->itemFromIndex(selected);
+        if (item) {
+            std::string itemName = curveFromItem(item).toStdString();
+            if (folderDataMgr_->isCurve(itemName)) {
+                deleteCurve(item);
+            } else {
+                deleteFolder(item);
             }
-            model_->removeRow(selected.row(), selected.parent());
-            Q_EMIT sigRefreshVisualCurve();
-            pushState2UndoStack(fmt::format("delete curve: '{}'", curvePath));
+            info += itemName + ";";
         }
     }
+    Q_EMIT sigRefreshVisualCurve();
+    pushState2UndoStack(fmt::format("delete curves/nodes: '{}'", info));
 }
 
 void VisualCurveNodeTreeView::slotItemChanged(QStandardItem *item) {
@@ -806,5 +764,45 @@ void VisualCurveNodeTreeView::setFolderPath(Folder *folder, std::string path) {
     for (auto it = folderList.begin(); it != folderList.end(); ++it) {
         setFolderPath(*it, std::string(path + "|" + (*it)->getFolderName()));
     }
+}
+
+void VisualCurveNodeTreeView::deleteCurve(QStandardItem *item) {
+    QModelIndex index = item->index();
+    if (item) {
+        std::string curve = item->text().toStdString();
+        std::string curvePath = curveFromItem(item).toStdString();
+
+        Folder *folder{nullptr};
+        STRUCT_CURVE_PROP *curveProp{nullptr};
+        if (folderDataMgr_->isCurve(curvePath)) {
+            if (folderDataMgr_->curveFromPath(curvePath, &folder, &curveProp)) {
+                folder->deleteCurve(curve);
+                CurveManager::GetInstance().takeCurve(curvePath);
+                VisualCurvePosManager::GetInstance().deleteKeyPointList(curvePath);
+            }
+            model_->removeRow(index.row(), index.parent());
+        }
+    }
+}
+
+void VisualCurveNodeTreeView::deleteFolder(QStandardItem *item) {
+    QModelIndex index = item->index();
+    std::string folderName = item->text().toStdString();
+    if (item) {
+        std::string curve = curveFromItem(item).toStdString();
+        if (!folderDataMgr_->isCurve(curve)) {
+            Folder *folder{nullptr};
+            if (folderDataMgr_->folderFromPath(curve, &folder)) {
+                for (auto it : folder->getCurveList()) {
+                    std::string curveName;
+                    folderDataMgr_->pathFromCurve(it->curve_, folder, curveName);
+                    CurveManager::GetInstance().takeCurve(curveName);
+                    VisualCurvePosManager::GetInstance().deleteKeyPointList(curveName);
+                }
+                folder->parent()->deleteFolder(folderName);
+            }
+        }
+    }
+    model_->removeRow(index.row(), index.parent());
 }
 }

@@ -59,9 +59,8 @@ public Q_SLOTS:
     void slotRefrenceBindingCurve(std::string smapleProp, std::string prop, std::string curve);
     void slotShowContextMenu(const QPoint &p);
     void slotCreateFolder();
-    void slotDeleteFolder();
     void slotCreateCurve();
-    void slotDeleteCurve();
+    void slotDelete();
     void slotItemChanged(QStandardItem *item);
     void slotCurrentRowChanged(const QModelIndex &index);
     void slotButtonDelegateClicked(const QModelIndex &index);
@@ -81,14 +80,15 @@ private:
     void initItemFromFolder(QStandardItem *item, Folder* folder);
     void swapCurve(std::string oldCurve, std::string newCurve);
     void setFolderPath(Folder *folder, std::string path);
+    void deleteFolder(QStandardItem *item);
+    void deleteCurve(QStandardItem *item);
 private:
     TreeModel *model_{nullptr};
     QTreeView *visualCurveTreeView_{nullptr};
     QMenu *menu_{nullptr};
     QAction *createFolder_{nullptr};
-    QAction *deleteFolder_{nullptr};
+    QAction *delete_{nullptr};
     QAction *createCurve_{nullptr};
-    QAction *deleteCurve_{nullptr};
     FolderDataManager *folderDataMgr_{nullptr};
     std::string selNode_;
     ButtonDelegate *visibleButton_{nullptr};
