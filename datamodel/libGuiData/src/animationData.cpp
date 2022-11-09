@@ -9,7 +9,9 @@ animationData::animationData(int startTime, int endTime, int loopCount, int upda
 						    m_EndTime(endTime),
 						    m_LoopCount(loopCount),
                             m_UpdateInterval(updateInterval),
-                            m_PlaySpeed(playSpeed){}
+                            m_PlaySpeed(playSpeed){
+
+}
 
 void animationData::SetStartTime(const int startTime) {
 	m_StartTime = startTime;

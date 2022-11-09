@@ -15,6 +15,7 @@
 #include "MaterialData/materialManager.h"
 #include "signal/SignalProxy.h"
 #include "MeshData/MeshDataManager.h"
+#include "data_Convert/AssetsFunction.h"
 
 #include "proto/Numeric.pb.h"
 #include "proto/Common.pb.h"
@@ -40,6 +41,12 @@ struct NodeWithMaterial {
 
 struct CurvesSingleProp{
 	std::string curveName;
+	double defaultData;
+};
+
+struct AnimationsSingleCurve {
+	NodeData* pNode;
+	std::string property;
 	double defaultData;
 };
 
@@ -105,16 +112,25 @@ private:
 	bool isAddedUniform(std::string name, raco::guiData::NodeData* node);
 	bool isVecUniformValue(std::string name);
 	void addOperandCurveRef2Operation(TOperation* operation, std::string curveName, std::string multiCurveName = "");
-	void setUniformOperationByType(UniformType type, TOperation* operation, std::string* curveNameArr, std::string multiCurveName = "");
+	void setUniformOperationByType(raco::guiData::Uniform& vecUniform, TOperation* operation, std::string* curveNameArr, std::string multiCurveName = "", bool isMultiAnimationSingleCurve = false);
 	void addVecValue2Uniform(HmiWidget::TWidget* widget, std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node);
-	void addOperandOne2Operation(TOperation* operation);
+	void addOperandOne2Operation(TOperation* operation, float data);
 	void AddUniform(HmiWidget::TWidget* widget, std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node);
 	void messageBoxError(std::string curveName, int errorNum);
 	void addAnimationDomain(HmiWidget::TWidget* widget, std::string animationName);
 	void triggerByInternalModel(HmiWidget::TWidget* widget);
-	void multiCurvesBindingSingleProp(HmiWidget::TWidget* widget);
 	bool hasMultiCurveOneProp(std::string prop, NodeData* node, std::vector<std::map<std::string, CurvesSingleProp>>& curves);
 	void modifyMultiCurveTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
+	bool hasMultiAnimationOneCurve(std::string curveName, NodeData* pNode, AnimationsSingleCurve& aniSingleCurv, std::string& animationName);
+	void modifyMultiAnimaTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::string curve, AnimationsSingleCurve c, std::string na);
+	void addAnimationCurveSwitch(HmiWidget::TWidget* widget, std::string animationName, std::string curveName, AnimationsSingleCurve aniSingleCurve);
+
+	void externalScaleData(HmiWidget::TWidget* widget);
+	void externalScale(HmiWidget::TWidget* widget);
+
+	void externalOpacityData(HmiWidget::TWidget* widget);
+	void externalOpacity(HmiWidget::TWidget* widget);
+	void createResourceParam(HmiWidget::TWidget* widget, std::string materialName);
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
@@ -122,6 +138,7 @@ private:
 	bool isPtwOutputError_{false};
 
 	bool addTrigger_{false};
+	AssetsFunction assetsFun_;
 };
 }
 
