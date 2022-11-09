@@ -29,7 +29,7 @@ void DragPushButton::setText(int num)
 {
     curText_ = num;
     QPainter painter(this);
-    QFont font("宋体", 8, QFont::Bold, false);
+    QFont font("Helvetica", 8, QFont::Bold, false);
     painter.setFont(font);
     QFontMetrics fm = painter.fontMetrics();
     QString text = QString::number(curText_);
