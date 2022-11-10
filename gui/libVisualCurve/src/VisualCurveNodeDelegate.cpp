@@ -6,6 +6,8 @@
 #include "style/Icons.h"
 #include "visual_curve/VisualCurveNodeTreeView.h"
 
+using namespace raco::style;
+
 namespace raco::visualCurve {
 void ButtonDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     QPersistentModelIndex perIndex(index);
@@ -57,7 +59,7 @@ QWidget *ButtonDelegate::createEditor(QWidget *parent, const QStyleOptionViewIte
     QPushButton *btn = new QPushButton(parent);
     btn->setAutoFillBackground(false);
     btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    btn->setIcon(raco::style::Icons::instance().visibilityOn);
+    btn->setIcon(Icons::instance().visibilityOn);
 
     bool visible{true};
     QModelIndex siblingIndex = index.siblingAtColumn(0);
@@ -93,9 +95,9 @@ QWidget *ButtonDelegate::createEditor(QWidget *parent, const QStyleOptionViewIte
         }
     }
     if (visible) {
-        btn->setIcon(raco::style::Icons::instance().visibilityOn);
+        btn->setIcon(Icons::instance().visibilityOn);
     } else {
-        btn->setIcon(raco::style::Icons::instance().visibilityOff);
+        btn->setIcon(Icons::instance().visibilityOff);
     }
 
     QObject::connect(btn,&QPushButton::clicked,this, &ButtonDelegate::btnClicked);
@@ -193,9 +195,9 @@ void ButtonDelegate::btnClicked() {
         }
     }
     if (tVisible) {
-        btn->setIcon(raco::style::Icons::instance().visibilityOff);
+        btn->setIcon(Icons::instance().visibilityOff);
     } else {
-        btn->setIcon(raco::style::Icons::instance().visibilityOn);
+        btn->setIcon(Icons::instance().visibilityOn);
     }
     auto temp = const_cast<ButtonDelegate *>(this);
     emit temp->clicked(index);

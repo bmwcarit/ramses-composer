@@ -111,6 +111,8 @@
 #define PTW_EX_SCALE_NAME					"iScale"
 #define PTW_EX_OPACITY_NAME				    "iOpacity"
 #define PTW_FRAG_CTRL_OPACITY				"Ctrl_Opacity"
+#define PTW_EX_HUB_NAME						"HUD_"
+#define PTW_CONTENT_IPA_ICON_TRANSFORMATION "Content_IPAIconTransformation_C"
 
 
 #endif // PROGRAMDEFINE_H

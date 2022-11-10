@@ -104,7 +104,7 @@ private:
 	void ModifyRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
 	void CreateRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
 
-	int switchAnimations(HmiWidget::TWidget* widget);
+	void switchAnimation(HmiWidget::TWidget* widget);
 	void ConvertAnimationInfo(HmiWidget::TWidget* widget);
 	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
@@ -131,6 +131,8 @@ private:
 	void externalOpacityData(HmiWidget::TWidget* widget);
 	void externalOpacity(HmiWidget::TWidget* widget);
 	void createResourceParam(HmiWidget::TWidget* widget, std::string materialName);
+
+	void externalColorData(HmiWidget::TWidget* widget);
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
