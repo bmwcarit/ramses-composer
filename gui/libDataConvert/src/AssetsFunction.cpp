@@ -171,6 +171,27 @@ TDataBinding* AssetsFunction::BindingTypeConvert(TDataBinding& Operand, TEDataTy
 	return binding;
 }
 
+TDataBinding* AssetsFunction::BindingTypeMix(TDataBinding& Operand1, TDataBinding& Operand2, TDataBinding& Operand3, TEDataType type1, TEDataType type2, TEDataType type3) {
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+
+	operation->set_operator_(TEOperatorType_Mix);
+	operation->add_datatype(type1);
+	operation->add_datatype(type2);
+	operation->add_datatype(type3);
+	auto it = operation->add_operand();
+	*it = Operand1;
+	it = operation->add_operand();
+	*it = Operand2;
+	it = operation->add_operand();
+	*it = Operand3;
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	return binding;
+}
+
 void AssetsFunction::CreateHmiWidgetUniform(HmiWidget::TUniform* uniform, std::string name, std::string value, TEProviderSource src) {
 	TDataBinding* nameBinding = new TDataBinding;
 	nameBinding->set_allocated_provider(ProviderAsciiString(name));
@@ -242,19 +263,29 @@ void AssetsFunction::PTWSwitch(HmiWidget::TInternalModelParameter* internalModel
 }
 ///////////////   switch case end   ///////////
 
-void AssetsFunction::ColorExternal(HmiWidget::TExternalModelParameter* external, std::string str) {
+void AssetsFunction::ColorIPAIconExternal(HmiWidget::TExternalModelParameter* external, std::string str) {
 	TDataBinding* binding = new TDataBinding;
 	DataBindingKeyProvider(binding, str, TEProviderSource_ColorRegistry);
 	external->set_allocated_key(Key(str));
 	external->set_allocated_binding(binding);
 }
 
-void AssetsFunction::ColorExternal(HmiWidget::TExternalModelParameter* external, std::string reStr, std::string ExStr) {
-	external->set_allocated_key(Key(reStr));
+void AssetsFunction::ColorIPAIconInternal(HmiWidget::TInternalModelParameter* internal, std::string reStr, std::string ExStr) {
+	internal->set_allocated_key(Key(reStr));
 	TDataBinding Operand;
 	OperandKeySrc(Operand, ExStr, TEProviderSource_ExtModelValue);
 	BindingTypeConvert(Operand, TEDataType_Vec4, TEDataType_Color);
-	external->set_allocated_binding(BindingTypeConvert(Operand, TEDataType_Vec4, TEDataType_Color));
+	internal->set_allocated_binding(BindingTypeConvert(Operand, TEDataType_Vec4, TEDataType_Color));
+}
+void AssetsFunction::ColorModeMixInternal(HmiWidget::TInternalModelParameter* internal , std::string colorMode, std::string IPAIconV4, std::string HUD_IPAIconV4, std::string HUD) {
+	internal->set_allocated_key(Key(colorMode));
+	TDataBinding Operand1;
+	OperandKeySrc(Operand1, IPAIconV4, TEProviderSource_IntModelValue);
+	TDataBinding Operand2;
+	OperandKeySrc(Operand2, HUD_IPAIconV4, TEProviderSource_IntModelValue);
+	TDataBinding Operand3;
+	OperandKeySrc(Operand3, HUD, TEProviderSource_ExtModelValue);
+	internal->set_allocated_binding(BindingTypeMix(Operand1, Operand2, Operand3, TEDataType_Vec4, TEDataType_Vec4, TEDataType_Float));
 }
 
 }  // namespace raco::dataConvert

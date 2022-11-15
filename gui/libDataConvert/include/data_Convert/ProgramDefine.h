@@ -2,6 +2,7 @@
 #define PROGRAMDEFINE_H
 #include <QString>
 #include <QStringLiteral>
+#include <string>
 
 #define JSON_X                      QString("x")
 #define JSON_Y                      QString("y")
@@ -100,19 +101,24 @@
 #define JSON_GENERATE_MIPMAPS       QString("generateMipMaps")
 #define JSON_MATERIAL_REF			QString("materialReference")
 #define PTX_SCENE_NAME				QString("Scene")
-#define PTW_USED_ANIMATION_NAME             "UsedAnimationName"
-#define PTW_PREFIX_CURVES_SINGLE_PROP		"Multi-CurvesSingleProp-"
-#define PTW_PREFIX_ANIMATIONS_SINGLE_CURVE  "Multi-AnimationsSingleCurve-"
-#define PTW_SUFFIX_ANIMATION_DOMAIN		    "_domain"
-#define PTW_SUFFIX_CURVE_INETERAL			"_interal"
-#define PTW_ROOT_NODE_NAME				    "Node"
-#define PTW_SCALE_DIVIDE_VALUE				"ScaleDivideValue.outputX"
-#define PTW_SCALE_DIV_RESULT_MUL_VALUE		"ScaleDivResultMulValue.outputX"
-#define PTW_EX_SCALE_NAME					"iScale"
-#define PTW_EX_OPACITY_NAME				    "iOpacity"
-#define PTW_FRAG_CTRL_OPACITY				"Ctrl_Opacity"
-#define PTW_EX_HUB_NAME						"HUD_"
-#define PTW_CONTENT_IPA_ICON_TRANSFORMATION "Content_IPAIconTransformation_C"
+#define PTW_USED_ANIMATION_NAME		std::string("UsedAnimationName")
+#define PTW_PRE_CURVES_ONE_PROP		std::string("Multi-CurvesSingleProp-")
+#define PTW_PRE_ANIMATS_ONE_CURVE   std::string("Multi-AnimationsSingleCurve-")
+#define PTW_SUF_ANIMAT_DOMAIN	    std::string("_domain")
+#define PTW_SUF_CURVE_INETERAL		std::string("_interal")
+#define PTW_ROOT_NODE_NAME		    std::string("Node")
+#define PTW_SCALE_DIVIDE_VALUE		std::string("ScaleDivideValue.outputX")
+#define PTW_SCALE_DIV_MUL_VALUE		std::string("ScaleDivResultMulValue.outputX")
+#define PTW_EX_SCALE_NAME			std::string("iScale")
+#define PTW_EX_OPACITY_NAME		    std::string("iOpacity")
+#define PTW_FRAG_CTRL_OPACITY		std::string("Ctrl_Opacity")
+#define PTW_EX_HUD_NAME				std::string("HUD")
+#define PTW_CONTENT_IPA_ICON_C		std::string("Content_IPAIconTransformation_C")
+#define PTW_HUD_CONTENT_IPA_ICON_C	std::string("HUD_Content_IPAIconTransformation_C")
+#define PTW_V4						std::string("_V4")
+#define PTW_COLOR_MODE				std::string("colorMode_color")
+#define PTW_U_COLOR					std::string("u_color")
+#define PTW_EX_TRIGGLE_ANIMATION	std::string("Animation")
 
 
 #endif // PROGRAMDEFINE_H

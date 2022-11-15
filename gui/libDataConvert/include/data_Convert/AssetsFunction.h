@@ -63,8 +63,10 @@ public:
 
 	// binding = float(ValueStr) op float(num)
 	TDataBinding* BindingValueStrNumericOperatorType(std::string ValueStr, TEProviderSource src, float num, TEOperatorType op);
-	// binding =  op (operand type1 -->  type2)
+	// convert <typ2-->type1> (Operand)
 	TDataBinding* BindingTypeConvert(TDataBinding& Operand, TEDataType type1, TEDataType type2);
+	// Mix (Operand1, Operand2, Operand3)
+	TDataBinding* BindingTypeMix(TDataBinding& Operand1, TDataBinding& Operand2, TDataBinding& Operand3, TEDataType type1, TEDataType type2, TEDataType type3);
 
 	void TransformCreateScale(HmiWidget::TNodeTransform* transform, TDataBinding& operandX, TDataBinding& operandY, TDataBinding& operandZ);
 
@@ -79,8 +81,10 @@ public:
 	void SwitchType2Operation(TOperation* operation, Condition condition);
 	void SwitchCase2Operation(TOperation* operation, Case caseData, TEDataType type, bool isDefault = false);
 
-	void ColorExternal(HmiWidget::TExternalModelParameter* external, std::string str);
-	void ColorExternal(HmiWidget::TExternalModelParameter* external, std::string reStr, std::string ExStr);
+	void ColorIPAIconExternal(HmiWidget::TExternalModelParameter* external, std::string str);
+	void ColorIPAIconInternal(HmiWidget::TInternalModelParameter* internal, std::string reStr, std::string ExStr);
+	void ColorModeMixInternal(HmiWidget::TInternalModelParameter* internal, std::string colorMode, std::string IPAIconV4, std::string HUB_IPAIconV4, std::string HUB);
+
 
 private:
 

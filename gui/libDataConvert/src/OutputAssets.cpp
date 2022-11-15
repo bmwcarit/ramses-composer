@@ -21,9 +21,15 @@ std::map<std::string, std::map<std::string, std::vector<AnimationsSingleCurve>>>
 std::map<std::string, std::vector<std::map<std::string, std::vector<std::map<std::string, CurvesSingleProp>>>>> pNodePropCurveNames_;
 //        pNodeID ,	          <   propertyName,  [ < Animation, CurvesSingleProp > ]	>
 
+std::map<std::string, std::set<int>> NodeIDUColorNums_;
+//			  NodeID , ucolors
+
+std::set<int> uColorNums_;
+
 std::set<std::string> HasOpacityMaterials_;
 
 float NodeScaleSize_;
+
 
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
@@ -162,6 +168,24 @@ bool uniformCompare(Uniform data, Uniform myUni) {
 	return result;
 }
 
+void updateNodeIDUColors(std::string NodeID, std::vector<Uniform> uniforms) {
+	for (auto& un : uniforms) {
+		int index = un.getName().rfind("u_color");
+		if (-1 != index) {
+			std::string str = un.getName().substr(7, un.getName().length());
+			int n = std::stoi(str);
+			uColorNums_.emplace(n);
+			auto it = NodeIDUColorNums_.find(NodeID);
+			if (it != NodeIDUColorNums_.end()) {
+				it->second.emplace(n);
+			} else {
+				std::set<int> uColorNums;
+				uColorNums.emplace(n);
+				NodeIDUColorNums_.emplace(NodeID, uColorNums);
+			}
+		}
+	}
+}
 
 void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 	// set baseNode data
@@ -189,6 +213,9 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 			raco::guiData::MaterialManager::GetInstance().getNodeMaterial(node->objectID(), nodeMaterial);
 			// set material reference name
 			tMesh.set_materialreference(materialData.getObjectName());
+
+			// update map:: NodeIDUColors
+			updateNodeIDUColors(node->objectID(), materialData.getUniforms());
 
 			// uniforms for mesh
 			if (nodeMaterial.isPrivate()) {
@@ -1109,6 +1136,7 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 		// uniforms
 		for (auto& uniform : data.getUniforms()) {
 			HmiScenegraph::TUniform tUniform;
+
 			uniformTypeValue(uniform, tUniform);
 			HmiScenegraph::TUniform* tUniformIt = tMaterial.add_uniform();
 			*tUniformIt = tUniform;
@@ -1210,6 +1238,8 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	curveNameAnimations_.clear();
 	pNodePropCurveNames_.clear();
 	HasOpacityMaterials_.clear();
+	NodeIDUColorNums_.clear();
+	uColorNums_.clear();
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -1282,7 +1312,7 @@ void addAnimationSwitchCase2Operation(TOperation* operation, std::string anName,
 
 		auto operandIn = operation->add_operand();
 		TIdentifier* key = new TIdentifier;
-		key->set_valuestring(anName + PTW_SUFFIX_CURVE_INETERAL);
+		key->set_valuestring(anName + PTW_SUF_CURVE_INETERAL);
 		operandIn->set_allocated_key(key);
 		TDataProvider* providerIn = new TDataProvider;
 		providerIn->set_source(TEProviderSource_IntModelValue);
@@ -1292,7 +1322,7 @@ void addAnimationSwitchCase2Operation(TOperation* operation, std::string anName,
 
 		auto operandIn = operation->add_operand();
 		TIdentifier* key = new TIdentifier;
-		key->set_valuestring(anName + PTW_SUFFIX_CURVE_INETERAL);
+		key->set_valuestring(anName + PTW_SUF_CURVE_INETERAL);
 		operandIn->set_allocated_key(key);
 		TDataProvider* providerIn = new TDataProvider;
 		providerIn->set_source(TEProviderSource_IntModelValue);
@@ -1315,7 +1345,7 @@ void OutputPtw::switchAnimation(HmiWidget::TWidget* widget) {
 				Case caseData;
 				caseData.Identifier = anName.first;
 				caseData.IdentifierType = TEIdentifierType_ParameterValue;
-				caseData.key = anName.first + PTW_SUFFIX_CURVE_INETERAL;
+				caseData.key = anName.first + PTW_SUF_CURVE_INETERAL;
 				caseData.src = TEProviderSource_IntModelValue;
 				switchData.caseArr.push_back(caseData);
 			}
@@ -1346,7 +1376,7 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 	for (auto animation : animationList) {
 		auto internalModelValue = widget->add_internalmodelvalue();
 		TIdentifier* key_int = new TIdentifier;
-		animation_interal = animation.first + PTW_SUFFIX_CURVE_INETERAL;
+		animation_interal = animation.first + PTW_SUF_CURVE_INETERAL;
 		key_int->set_valuestring(animation_interal);
 		internalModelValue->set_allocated_key(key_int);
 		TDataBinding* binding = new TDataBinding;
@@ -1360,13 +1390,8 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		auto operand1 = operation->add_operand();
 		TIdentifier* key = new TIdentifier;
 		TDataProvider* provider1 = new TDataProvider;
-		if (addTrigger_) {
-			key->set_valuestring(animation.first + PTW_SUFFIX_ANIMATION_DOMAIN);
-			provider1->set_source(TEProviderSource_IntModelValue);
-		} else {
-			key->set_valuestring(animation.first + "_extenal");
-			provider1->set_source(TEProviderSource_ExtModelValue);
-		}
+		key->set_valuestring(animation.first + PTW_SUF_ANIMAT_DOMAIN);
+		provider1->set_source(TEProviderSource_IntModelValue);
 		operand1->set_allocated_key(key);
 		operand1->set_allocated_provider(provider1);
 
@@ -1444,7 +1469,7 @@ void OutputPtw::addAnimationDomain(HmiWidget::TWidget* widget, std::string anima
 	// internalModelValue
 	auto internalModelValue = widget->add_internalmodelvalue();
 	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(animationName + PTW_SUFFIX_ANIMATION_DOMAIN);
+	key->set_valuestring(animationName + PTW_SUF_ANIMAT_DOMAIN);
 	internalModelValue->set_allocated_key(key);
 	// add binding
 	TDataBinding* binding = new TDataBinding;
@@ -1573,6 +1598,16 @@ void OutputPtw::triggerByInternalModel(HmiWidget::TWidget* widget) {
 	addPlayDomain(widget);
 }
 
+void OutputPtw::triggerByExternalModel(HmiWidget::TWidget* widget) {
+	externalAnimation(widget);
+	auto domain = widget->add_internalmodelvalue();
+	domain->set_allocated_key(assetsFun_.Key("domain"));
+	// todo: Ex_Triggle_Animation * 1.0 -> domain
+	auto binding = assetsFun_.BindingValueStrNumericOperatorType(PTW_EX_TRIGGLE_ANIMATION, TEProviderSource_ExtModelValue, 3.5, TEOperatorType_Mul);
+
+	domain->set_allocated_binding(binding);
+}
+
 void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	if (isPtwOutputError_) {
 		return;
@@ -1614,7 +1649,7 @@ bool getAnimationInteral(std::string curveName, std::string& animationInteral) {
 			animationInteral = curveName + "_interal_switch";
 		} else {
 			// bugs
-			animationInteral = animations.begin()->first + PTW_SUFFIX_CURVE_INETERAL;
+			animationInteral = animations.begin()->first + PTW_SUF_CURVE_INETERAL;
 		}
 		return true;
 	} else {
@@ -1687,8 +1722,17 @@ void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animati
 	}
 }
 
+
+bool hasUColorUniform(std::string id) {
+	auto it = NodeIDUColorNums_.find(id);
+	if (it != NodeIDUColorNums_.end()) {
+		return true;
+	}
+	return false;
+}
+
 void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node) {
-	if (0 != node.getBindingySize()) {
+	if (0 != node.getBindingySize() || hasUColorUniform(node.objectID())) {
 		HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
 		TIdentifier* identifier = new TIdentifier;
 		NodeMaterial nodeMaterial;
@@ -1757,11 +1801,13 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 						CreateScale(curveProP, transform, node);
 						nodeParam->set_allocated_transform(transform);
 					}
-				} else {
+				} else { // find uniform curve
 					AddUniform(widget, curveProP, nodeParam, &node);
 				}
 			}
 		}
+		// add u_color uniforms
+		AddUColorUniforms(nodeParam, &node);
 
 		for (auto cuvebindList : animationList) {
 			for (auto curveProP : cuvebindList.second) {
@@ -1807,21 +1853,24 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
 
-	addTrigger_ = true;
+	addTrigger_ = false; // todo:
 
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
 	externalScaleData(widget);
-	externalColorData(widget);
 	if (addTrigger_) {
 		triggerByInternalModel(widget);
+	}
+	else {
+		triggerByExternalModel(widget);
 	}
 	ConvertAnimationInfo(widget);
 	std::string animation_interal = "";
 	ConvertCurveInfo(widget, animation_interal);
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
 	externalOpacityData(widget);
+	externalColorData(widget);
 
 	std::string output;
 	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
@@ -1934,7 +1983,7 @@ void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string p
 	auto internalModelValue = widget->add_internalmodelvalue();
 	// add result key
 	TIdentifier* key_re = new TIdentifier;
-	key_re->set_valuestring(PTW_PREFIX_CURVES_SINGLE_PROP + (curves.at(0).begin())->second.curveName);
+	key_re->set_valuestring(PTW_PRE_CURVES_ONE_PROP + (curves.at(0).begin())->second.curveName);
 	internalModelValue->set_allocated_key(key_re);
 	// add binding
 	TDataBinding* binding = new TDataBinding;
@@ -2067,7 +2116,7 @@ void modifyMultiCurveScale(HmiWidget::TNodeTransform* transform, std::string pro
 }
 
 void OutputPtw::modifyMultiCurveTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
-	std::string curveName = std::string(PTW_PREFIX_CURVES_SINGLE_PROP) + (curves.at(0).begin())->second.curveName;
+	std::string curveName = std::string(PTW_PRE_CURVES_ONE_PROP) + (curves.at(0).begin())->second.curveName;
 	if (propName.find("translation") == 0) {
 		modifyMultiCurveTranslation(transform, propName, curveName);
 	} else if (propName.find("rotation") == 0) {
@@ -2774,6 +2823,19 @@ void OutputPtw::addOperandOne2Operation(TOperation* operation, float data) {
 	operand->set_allocated_provider(provider);
 }
 
+void OutputPtw::AddUColorUniforms(HmiWidget::TNodeParam* nodeParam, NodeData* node) {
+	auto it = NodeIDUColorNums_.find(node->objectID());
+	if (it != NodeIDUColorNums_.end()) {
+		for (auto num : it->second) {
+			HmiWidget::TUniform unform;
+			externalColorUniform(unform, num);
+			auto uniformIt = nodeParam->add_uniform();
+			*uniformIt = unform;
+		}
+	}
+
+}
+
 void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std::string> curveProP, HmiWidget::TNodeParam* nodeParam, raco::guiData::NodeData* node) {
 	auto uniforms = nodeParam->uniform();
 	for (auto un : uniforms) {
@@ -2862,7 +2924,7 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 
 	// add scale Mul NodeScaleSize_
 	internalModelValue = widget->add_internalmodelvalue();
-	internalModelValue->set_allocated_key(assetsFun_.Key(PTW_SCALE_DIV_RESULT_MUL_VALUE));
+	internalModelValue->set_allocated_key(assetsFun_.Key(PTW_SCALE_DIV_MUL_VALUE));
 	internalModelValue->set_allocated_binding(assetsFun_.BindingValueStrNumericOperatorType(PTW_SCALE_DIVIDE_VALUE, TEProviderSource_IntModelValue, NodeScaleSize_, TEOperatorType_Mul));
 
 	// add nodeParam of Node scale
@@ -2871,11 +2933,11 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 	assetsFun_.NodeParamAddNode(nodeParam, PTW_ROOT_NODE_NAME);
 	auto transform = nodeParam->mutable_transform();
 	TDataBinding operandX;
-	assetsFun_.OperandKeySrc(operandX, PTW_SCALE_DIV_RESULT_MUL_VALUE, TEProviderSource_IntModelValue);
+	assetsFun_.OperandKeySrc(operandX, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);
 	TDataBinding operandY;
-	assetsFun_.OperandKeySrc(operandY, PTW_SCALE_DIV_RESULT_MUL_VALUE, TEProviderSource_IntModelValue);
+	assetsFun_.OperandKeySrc(operandY, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);
 	TDataBinding operandZ;
-	assetsFun_.OperandKeySrc(operandZ, PTW_SCALE_DIV_RESULT_MUL_VALUE, TEProviderSource_IntModelValue);
+	assetsFun_.OperandKeySrc(operandZ, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);
 	assetsFun_.TransformCreateScale(transform, operandX, operandY, operandZ);
 }
 
@@ -2911,35 +2973,53 @@ void OutputPtw::externalOpacityData(HmiWidget::TWidget* widget) {
 	}
 }
 
+void OutputPtw::externalAnimation(HmiWidget::TWidget* widget) {
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_TRIGGLE_ANIMATION));
+	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
+}
+
 void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
-	int ExColorNum = 6;
-	for (int i = 0; i < ExColorNum; ++i) {
+	if (uColorNums_.empty()) {
+		return ;
+	}
+	for (int i : uColorNums_) {
 		// CONTENT..._Ci
 		auto externalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorExternal(externalModelValueCi, PTW_CONTENT_IPA_ICON_TRANSFORMATION + std::to_string(i + 1));
+		assetsFun_.ColorIPAIconExternal(externalModelValueCi, PTW_CONTENT_IPA_ICON_C + std::to_string(i));
 	}
 
-	for (int i = 0; i < ExColorNum; ++i) {
+	for (int i : uColorNums_) {
 		// HUD_CONTENT..._Ci
 		auto HUD_ExternalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorExternal(HUD_ExternalModelValueCi, std::string(PTW_EX_HUB_NAME) + PTW_CONTENT_IPA_ICON_TRANSFORMATION + std::to_string(i + 1));
+		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, PTW_HUD_CONTENT_IPA_ICON_C + std::to_string(i));
 	}
 
-	// HUB
+	// HUD
 	auto externalModelValue = widget->add_externalmodelvalue();
-	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_HUB_NAME));
+	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_HUD_NAME));
 	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(0));
 
 	// CONTENT..._Ci_V4
-	for (int i = 0; i < ExColorNum; ++i) {
-		auto externalModelValueCiV4 = widget->add_externalmodelvalue();
-		assetsFun_.ColorExternal(externalModelValueCiV4, PTW_CONTENT_IPA_ICON_TRANSFORMATION + std::to_string(i + 1) + "_V4", PTW_CONTENT_IPA_ICON_TRANSFORMATION + std::to_string(i + 1));
+	for (int i : uColorNums_) {
+		auto internalModelValueCiV4 = widget->add_internalmodelvalue();
+		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_CONTENT_IPA_ICON_C + std::to_string(i));
 	}
 	//	HUD_CONTENT..._Ci_V4
-	for (int i = 0; i < ExColorNum; ++i) {
-		auto HUB_ExternalModelValueCiV4 = widget->add_externalmodelvalue();
-		assetsFun_.ColorExternal(HUB_ExternalModelValueCiV4, std::string(PTW_EX_HUB_NAME) + PTW_CONTENT_IPA_ICON_TRANSFORMATION + std::to_string(i + 1) + "_V4", std::string(PTW_EX_HUB_NAME) + PTW_CONTENT_IPA_ICON_TRANSFORMATION + std::to_string(i + 1));
+	for (int i : uColorNums_) {
+		auto HUB_InternalModelValueCiV4 = widget->add_internalmodelvalue();
+		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, PTW_EX_HUD_NAME + "_" + PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_EX_HUD_NAME + "_" + PTW_CONTENT_IPA_ICON_C + std::to_string(i));
 	}
+
+	// ColorMode
+	for (int i : uColorNums_) {
+		auto InternalColorModelV4 = widget->add_internalmodelvalue();
+		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_COLOR_MODE + std::to_string(i), PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_HUD_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_EX_HUD_NAME);
+	}
+}
+
+void OutputPtw::externalColorUniform(HmiWidget::TUniform& tUniform, int index) {
+	assetsFun_.CreateHmiWidgetUniform(&tUniform, PTW_U_COLOR + std::to_string(index), PTW_COLOR_MODE + std::to_string(index) ,TEProviderSource_IntModelValue);
 }
 
 }  // namespace raco::dataConvert
