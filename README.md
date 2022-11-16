@@ -12,7 +12,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ![](styles/ramses-composer-logo.png)
 
 The authoring tool for the RAMSES rendering ecosystem.
-Find the [user manual here](https://github.com/bmwcarit/ramses-composer-docs).
+Find the [user documentation here](https://ramses-composer.readthedocs.io/).
 Find a broader overview of [the Ramses SDK here](https://ramses-sdk.readthedocs.io/).
 
 
@@ -29,7 +29,7 @@ To build Ramses Composer you first need to checkout and initialize it's dependen
 ## Environment variables
 
 If your Qt installation is not in the default location (Currently: ```C:/Qt/5.15.2/msvc2019_64```),
-set the environment variable ```RACO_QT_BASE``` to it. 
+set the environment variable ```RACO_QT_BASE``` to it.
 
 ## Build with CMake
 
@@ -69,7 +69,7 @@ The ```<PATH_TO_PROJECT_FILE>``` has to be either an absolute path or relative t
 
 ### Starting on Linux (Ubuntu 18.04)
 
-The Linux release contains all required Qt shared libraries. Ramses Composer Headless and Ramses Composer can be started using the 
+The Linux release contains all required Qt shared libraries. Ramses Composer Headless and Ramses Composer can be started using the
 provided shell script `./RaCoHeadless.sh` resp. `./RamsesComposer.sh`.
 
 The shell scripts together with the `qt.conf` allow the localization of all required Qt shared libraries.
@@ -86,7 +86,7 @@ The various file locations are determined by the [PathManager.h](datamodel/libCo
 
 #### Log file and Configuration files
 
-The Ramses Composer looks for the the folder 
+The Ramses Composer looks for the the folder
 ```
 ../../configfiles
 ```
@@ -101,7 +101,7 @@ Files in this directory are:
 #### Build process
 
 The build process for the Ramses Composer generates a "release" folder in the CMake build directory which matches
-the distributed zip-files - so after building Ramses Composer the developer will run Ramses Composer in the 
+the distributed zip-files - so after building Ramses Composer the developer will run Ramses Composer in the
 same environment as the user.
 
 ## Linux (Ubuntu 18.04)
@@ -134,7 +134,7 @@ sudo apt install python3.8-dev
 ## Development
 
 ### Logging system
-Our logging system facade, which uses [spdlog](https://github.com/gabime/spdlog) as a backend, can be found in 
+Our logging system facade, which uses [spdlog](https://github.com/gabime/spdlog) as a backend, can be found in
 ```headless/libLogSystem/```.
 To use the logging system link against the target
 ```raco::LogSystem```.
@@ -162,7 +162,7 @@ Further information about capabailites and formatting can be found at [spdlog](h
 Example of how to use the raco::testing library:
 
 ```
-set(TEST_LIBRARIES 
+set(TEST_LIBRARIES
     libRamsesBase
     raco::testing  # include testing
 )
@@ -181,7 +181,7 @@ This example will create the setup for having a working directory with the speci
 
 ## Third Party Components
 
-The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/bmwcarit/ramses-composer/releases/download/v0.8.1/qt-src-5.15.2.tgz). 
+The UI is based on [Qt](https://www.qt.io). Qt is used as Open Source under the LGPL 3 license in the form of unmodified dynamic libraries from Qt 5.15.2. You can find the [source code here](https://github.com/bmwcarit/ramses-composer/releases/download/v0.8.1/qt-src-5.15.2.tgz).
 
 Ramses Composer uses a number of third party libraries:
 
@@ -190,14 +190,14 @@ Ramses Composer uses a number of third party libraries:
 * googletest
 * OpenCTM-1.0.3
 * Qt Advanced Docking System
-* RAMSES 
+* RAMSES
 * RAMSES logic
 * spdlog
 * tinygltf
 * zip
 
 Their source code and respective licenses can be found in the ```third_party/``` folder.
-	
+
 ## License
 
 Ramses Composer is published under the [Mozilla Public License 2.0](LICENSE.txt).
