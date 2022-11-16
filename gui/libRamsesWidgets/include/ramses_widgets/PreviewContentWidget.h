@@ -28,7 +28,7 @@ public:
 	ramses::sceneId_t getSceneId();
 	void setSceneId(ramses::sceneId_t id);
 	void setBackgroundColor(core::Vec4f backgroundColor);
-	void setFilteringMode(PreviewFilteringMode mode);
+	void setMsaaSampleRate(PreviewMultiSampleRate sampleRate);
 	void commit(bool forceUpdate);
 
 public Q_SLOTS:

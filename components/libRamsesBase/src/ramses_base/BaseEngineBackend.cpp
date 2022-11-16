@@ -20,7 +20,9 @@ R"(1 - LogicEngine v1.0.3
     - Added AnchorPoint
     - Added RamsesRenderPassBinding 
     - Added 'enabled' input property to RamsesNodeBinding
-    - Added createRamsesCameraBindingWithFrustumPlanes 
+    - Added createRamsesCameraBindingWithFrustumPlanes
+3 - LogicEngine v1.2.0
+    - Added RenderGroupBinding
 )";
 
 BaseEngineBackend::BaseEngineBackend(

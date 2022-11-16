@@ -15,9 +15,11 @@
 
 namespace raco::ramses_widgets {
 
-enum class PreviewFilteringMode {
-	NearestNeighbor,
-	Linear
+enum PreviewMultiSampleRate {
+	MSAA_1X = 1,
+	MSAA_2X = 2,
+	MSAA_4X = 4,
+	MSAA_8X = 8
 };
 
 class PreviewFramebufferScene final {
@@ -27,7 +29,7 @@ public:
 	explicit PreviewFramebufferScene(ramses::RamsesClient& client, ramses::sceneId_t sceneId);
 
 	ramses::sceneId_t getSceneId() const;
-	ramses::dataConsumerId_t setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewFilteringMode filteringMode);
+	ramses::dataConsumerId_t setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewMultiSampleRate sampleRate);
 	void setViewport(const QPoint& viewportPosition, const QSize& viewportSize, const QSize& virtualSize);
 
 private:
@@ -45,8 +47,8 @@ private:
 	raco::ramses_base::RamsesMeshNode meshNode_;
 
 	// Offscreen texture and consumer
-	raco::ramses_base::RamsesTexture2D framebufferTexture_;
-	raco::ramses_base::RamsesTextureSampler sampler_;
+	raco::ramses_base::RamsesRenderBuffer renderbuffer_;
+	raco::ramses_base::RamsesTextureSamplerMS samplerMS_;
 	ramses::dataConsumerId_t framebufferSampleId_;
 };
 

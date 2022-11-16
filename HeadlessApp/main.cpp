@@ -90,7 +90,7 @@ public Q_SLOTS:
 
 				std::string error;
 				if (!app->exportProject(ramsesPath.toStdString(), logicPath.toStdString(), compressExport_, error)) {
-					LOG_ERROR(raco::log_system::COMMON, "error exporting to {}\n{}", error.c_str(), ramsesPath.toStdString());
+					LOG_ERROR(raco::log_system::COMMON, "error exporting to {}\n{}", ramsesPath.toStdString(), error.c_str());
 					exitCode_ = 1;
 				}
 			}

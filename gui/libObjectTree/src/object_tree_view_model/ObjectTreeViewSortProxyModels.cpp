@@ -29,7 +29,8 @@ bool ObjectTreeViewDefaultSortFilterProxyModel::sortingEnabled() const {
 
 QVariant ObjectTreeViewDefaultSortFilterProxyModel::data(const QModelIndex& index, int role) const {
 	if (index.isValid()) {
-		if (static_cast<ObjectTreeNode*>(mapToSource(index).internalPointer())->getType() == ObjectTreeNodeType::ExtRefGroup) {
+		auto nodeType = static_cast<ObjectTreeNode*>(mapToSource(index).internalPointer())->getType();
+		if (nodeType == ObjectTreeNodeType::ExtRefGroup || nodeType == ObjectTreeNodeType::TypeParent) {
 			return QSortFilterProxyModel::data(index, role);
 		}
 
@@ -47,6 +48,33 @@ QVariant ObjectTreeViewDefaultSortFilterProxyModel::data(const QModelIndex& inde
 	}
 
 	return QSortFilterProxyModel::data(index, role);
+}
+
+bool ObjectTreeViewResourceSortFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const {
+	auto leftType = static_cast<ObjectTreeNode*>(source_left.internalPointer())->getType();
+	if (leftType == ObjectTreeNodeType::ExtRefGroup) {
+		return sortOrder() == Qt::SortOrder::AscendingOrder;
+	}
+
+	auto rightType = static_cast<ObjectTreeNode*>(source_right.internalPointer())->getType();
+	if (rightType == ObjectTreeNodeType::ExtRefGroup) {
+		return sortOrder() == Qt::SortOrder::DescendingOrder;
+	}
+
+	if (leftType == rightType) {
+		if (leftType == ObjectTreeNodeType::TypeParent) {
+			auto left = static_cast<ObjectTreeNode*>(source_left.internalPointer())->getDisplayName();
+			auto right = static_cast<ObjectTreeNode*>(source_right.internalPointer())->getDisplayName();
+
+			return sortOrder() == Qt::SortOrder::AscendingOrder
+					   ? left < right
+					   : left > right;
+		}
+
+		return QSortFilterProxyModel::lessThan(source_left, source_right);
+	}
+
+	return false;
 }
 
 bool ObjectTreeViewTopLevelSortFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const {

@@ -11,13 +11,12 @@
 
 #include "RaCoDockManager.h"
 #include "common_widgets/TimingsWidget.h"
+#include "common_widgets/log_model/LogViewModel.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
 #include "ramses_widgets/RendererBackend.h"
-#include "common_widgets/log_model/LogViewModel.h"
 
 #include <QListWidget>
 #include <QMainWindow>
-#include <QTextEdit>
 
 namespace Ui {
 class MainWindow;
@@ -87,7 +86,8 @@ protected Q_SLOTS:
 	void openProject(const QString& file = {}, int featureLevel = -1);
 	bool saveActiveProject();
 	bool upgradeActiveProject(int newFeatureLevel);
-	bool saveAsActiveProject();
+	bool saveAsActiveProject(bool newID = false);
+	bool saveAsActiveProjectWithNewID();
 	void resetDockManager();
 	void updateActiveProjectConnection();
 	void updateProjectSavedConnection();
@@ -102,7 +102,6 @@ private:
 	OpenRecentMenu* recentFileMenu_;
 	RaCoDockManager* dockManager_;
 	QListWidget* sceneObjectList_;
-	QMenu* upgradeMenu_;
 	const std::vector<std::wstring> pythonSearchPaths_;
 
 	raco::ramses_widgets::RendererBackend* rendererBackend_;

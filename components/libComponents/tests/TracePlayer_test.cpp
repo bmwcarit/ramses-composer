@@ -1034,10 +1034,11 @@ TEST_F(TracePlayerTest, TF104_Disregarded_Properties) {
 	{
 		loadTrace("raco_traces/g05_demo_withExtras.rctrace");
 		const auto& log{player_->getLog()};
-		ASSERT_EQ(log.size(), 3);
-		ASSERT_NE(log.find("Lua is not available in the scene! Lua and its properties are disregarded from trace ( luaObjName: ExtraLuaScript )"), log.cend());
-		ASSERT_NE(log.find("Lua property was not found in the scene! Property is disregarded from trace ( propName: SceneControls->Extra_Struct )"), log.cend());
-		ASSERT_NE(log.find("Lua property was not found in the scene! Property is disregarded from trace ( propName: SceneControls->extra_property )"), log.cend());
+		ASSERT_EQ(log.size(), 4);
+		ASSERT_NE(log.find("Step 0, Timestamp 1000, Trace line 12: Lua property was not found in the scene! Property is disregarded from trace ( propName: SceneControls->extra_property )"), log.cend());
+		ASSERT_NE(log.find("Step 4, Timestamp 1400, Trace line 55: Lua is not available in the scene! Lua and its properties are disregarded from trace ( luaObjName: ExtraLuaScript )"), log.cend());
+		ASSERT_NE(log.find("Step 21, Timestamp 3100, Trace line 240: Lua property was not found in the scene! Property is disregarded from trace ( propName: SceneControls->extra_property )"), log.cend());
+		ASSERT_NE(log.find("Step 22, Timestamp 3200, Trace line 251: Lua property was not found in the scene! Property is disregarded from trace ( propName: SceneControls->Extra_Struct )"), log.cend());
 		isStopped();
 	}
 

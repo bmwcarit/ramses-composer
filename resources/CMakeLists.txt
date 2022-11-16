@@ -49,6 +49,8 @@ set(RESOURCE_FILES
 	shaders/cubemap.vert
 	shaders/default.frag
 	shaders/default.vert
+	shaders/multisampler.frag
+	shaders/multisampler.vert
 	shaders/simple_texture.frag
 	shaders/simple_texture.vert
 	example_scene.rca

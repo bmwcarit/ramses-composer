@@ -12,6 +12,7 @@
 #include "ramses_adaptor/AnchorPointAdaptor.h"
 #include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/AnimationChannelAdaptor.h"
+#include "ramses_adaptor/BlitPassAdaptor.h"
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/LuaInterfaceAdaptor.h"
@@ -23,6 +24,7 @@
 #include "ramses_adaptor/OrthographicCameraAdaptor.h"
 #include "ramses_adaptor/PerspectiveCameraAdaptor.h"
 #include "ramses_adaptor/RenderBufferAdaptor.h"
+#include "ramses_adaptor/RenderBufferMSAdaptor.h"
 #include "ramses_adaptor/RenderTargetAdaptor.h"
 #include "ramses_adaptor/RenderPassAdaptor.h"
 #include "ramses_adaptor/RenderLayerAdaptor.h"
@@ -62,10 +64,12 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		{user_types::LuaScriptModule::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptModuleAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScriptModule>(obj)); }},
 
 		{user_types::RenderBuffer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderBufferAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderBuffer>(obj)); }},
+		{user_types::RenderBufferMS::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderBufferMSAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderBufferMS>(obj)); }},
 		{user_types::RenderTarget::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderTargetAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderTarget>(obj)); }},
 		{user_types::RenderPass::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderPassAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderPass>(obj)); }},
 		{user_types::RenderLayer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<RenderLayerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::RenderLayer>(obj)); }},
 		{user_types::Timer::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TimerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Timer>(obj)); }},
+		{user_types::BlitPass::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<BlitPassAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::BlitPass>(obj)); }},
 
 		// LOGIC ENGINE
 		{user_types::LuaScript::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScript>(obj)); }},

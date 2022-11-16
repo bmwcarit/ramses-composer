@@ -41,6 +41,7 @@ public:
 	const QIcon warning{":warningIcon"};
 	const QIcon error{":errorIcon"};
 	const QIcon typeNode{":typeNodeIcon"};
+	const QIcon typeBlitPass{":typeBlitPassIcon"};
 	const QIcon typeCamera{":typeCameraIcon"};
 	const QIcon typeMesh{":typeMeshIcon"};
 	const QIcon typeMaterial{":typeMaterialIcon"};

@@ -37,7 +37,7 @@ public:
 
 	bool isCurrent(const std::string& projectPath) const;
 
-	// @return true if loaded successfully
+	// @return project if loaded successfully
 	raco::core::Project* addExternalProject(const std::string& projectPath, core::LoadContext& loadContext) override;
 	void removeExternalProject(const std::string& projectPath) override;
 	bool canRemoveExternalProject(const std::string& projectPath) const override;

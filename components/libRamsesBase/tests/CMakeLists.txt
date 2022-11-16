@@ -13,6 +13,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 set(TEST_SOURCES
     AnimationAdaptor_test.cpp
     AnimationChannelAdaptor_test.cpp
+    BlitPassAdaptor_test.cpp
     CubeMapAdaptor_test.cpp
     EngineInterface_test.cpp
     RamsesBaseFixture.h
@@ -67,6 +68,12 @@ raco_package_add_test_resources(
     shaders/basic.vert
     shaders/simple_texture.frag
     shaders/simple_texture.vert
+    shaders/multisampler.frag
+    shaders/multisampler.vert
+    shaders/uniform-array.vert
+    shaders/uniform-array.frag
+    shaders/uniform-scalar.vert
+    shaders/uniform-scalar.frag
     meshes/Duck.glb
     meshes/meshrefless.gltf
     meshes/meshless.gltf

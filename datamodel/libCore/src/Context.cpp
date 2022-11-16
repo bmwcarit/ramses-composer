@@ -156,30 +156,39 @@ void BaseContext::setT<SEditorObject>(ValueHandle const& handle, SEditorObject c
 }
 
 template<void (EditorObject::*Handler)(ValueHandle const&) const>
-void BaseContext::callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh) {
-	const ReflectionInterface& t = vh.valueRef()->getSubstructure();
-	for (int i = 0; i < t.size(); ++i) {
-		auto v = t.get(i);
-		if (v->type() == PrimitiveType::Ref) {
-			auto vref = v->asRef();
-			if (vref) {
-				(vref.get()->*Handler)(vh[i]);
-			}
-		} else if (hasTypeSubstructure(v->type())) {
-			callReferenceToThisHandlerForAllTableEntries<Handler>(vh[i]);
+void BaseContext::callReferenceToThisHandler(ValueHandle const& vh) {
+	if (vh.type() == PrimitiveType::Ref) {
+		auto vref = vh.asRef();
+		if (vref) {
+			(vref.get()->*Handler)(vh);
 		}
-	}			
+	} else if (vh.hasSubstructure()) {
+		for (int i = 0; i < vh.size(); ++i) {
+			callReferenceToThisHandler<Handler>(vh[i]);
+		}
+	}
 }
 
 template <>
 void BaseContext::setT<Table>(ValueHandle const& handle, Table const& value) {
 	ValueBase* v = handle.valueRef();
 
-	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
+	callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
 
 	v->set(value);
 
-	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onAfterAddReferenceToThis>(handle);
+	// Cache/Restore links starting or ending on parent properties:
+	// The structure on one side of the link has changed and links need to be revalidated.
+	for (auto link : Queries::getLinksConnectedToPropertyParents(*project_, handle, true)) {
+		updateLinkValidity(link);
+	}
+
+	// Cache/Restore links starting or ending on the property or its child properties
+	for (auto link : Queries::getLinksConnectedToPropertySubtree(*project_, handle, true, true)) {
+		updateLinkValidity(link);
+	}
+
+	callReferenceToThisHandler<&EditorObject::onAfterAddReferenceToThis>(handle);
 
 	handle.object_->onAfterValueChanged(*this, handle);
 
@@ -192,11 +201,11 @@ template <>
 void BaseContext::setT<StructBase>(ValueHandle const& handle, StructBase const& value) {
 	ValueBase* v = handle.valueRef();
 
-	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
+	callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
 
 	v->setStruct(value);
 
-	callReferenceToThisHandlerForAllTableEntries<&EditorObject::onAfterAddReferenceToThis>(handle);
+	callReferenceToThisHandler<&EditorObject::onAfterAddReferenceToThis>(handle);
 
 	handle.object_->onAfterValueChanged(*this, handle);
 
@@ -286,6 +295,8 @@ ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name,
 
 	ValueBase* newValue = table.addProperty(name, std::move(newProperty), indexBefore);
 
+	ValueHandle newHandle = indexBefore == -1 ? handle[handle.size() - 1] : handle[indexBefore];
+
 	// Cache/Restore links starting or ending on parent properties:
 	// The structure on one side of the link has changed and links need to be revalidated.
 	for (auto link : Queries::getLinksConnectedToPropertyParents(*project_, handle, true)) {
@@ -293,25 +304,11 @@ ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name,
 	}
 
 	// Cache/Restore links starting or ending on the property or its child properties
-	for (auto link : Queries::getLinksConnectedToPropertySubtree(*project_, handle.get(name), true, true)) {
+	for (auto link : Queries::getLinksConnectedToPropertySubtree(*project_, newHandle, true, true)) {
 		updateLinkValidity(link);
 	}
 
-	if (newValue->type() == PrimitiveType::Ref) {
-		auto refValue = newValue->asRef();
-		if (refValue) {
-			refValue->onAfterAddReferenceToThis(handle.get(name));
-		}
-	} else if (hasTypeSubstructure(newValue->type())) {
-		for (auto prop : ValueTreeIteratorAdaptor(handle.get(name))) {
-			if (prop.type() == PrimitiveType::Ref) {
-				auto refValue = prop.valueRef()->asRef();
-				if (refValue) {
-					refValue->onAfterAddReferenceToThis(prop);
-				}
-			}
-		}
-	}
+	callReferenceToThisHandler<&EditorObject::onAfterAddReferenceToThis>(newHandle);
 
 	callReferencedObjectChangedHandlers(handle.object_);
 
@@ -339,21 +336,7 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 			updateLinkErrors.insert(*link->endObject_);
 		}
 
-		if (propHandle.type() == PrimitiveType::Ref) {
-			auto refValue = propHandle.valueRef()->asRef();
-			if (refValue) {
-				refValue->onBeforeRemoveReferenceToThis(propHandle);
-			}
-		} else if (propHandle.hasSubstructure()) {
-			for (auto prop : ValueTreeIteratorAdaptor(propHandle)) {
-				if (prop.type() == PrimitiveType::Ref) {
-					auto refValue = prop.valueRef()->asRef();
-					if (refValue) {
-						refValue->onBeforeRemoveReferenceToThis(prop);
-					}
-				}
-			}
-		}
+		callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(propHandle);
 
 		table.removeProperty(index);
 	}
@@ -761,7 +744,10 @@ void BaseContext::updateLinkValidity(SLink link) {
 		link->isValid_ = false;
 		changeMultiplexer_.recordChangeValidityOfLink(link->descriptor());
 		// recordValueChanged is needed to force the undo stack to save the current value of the endpoint property.
-		changeMultiplexer_.recordValueChanged(ValueHandle(link->endProp()));
+		ValueHandle handle(link->endProp());
+		if (handle) {
+			changeMultiplexer_.recordValueChanged(handle);
+		}
 	}
 
 	updateBrokenLinkErrors(*link->endObject_);

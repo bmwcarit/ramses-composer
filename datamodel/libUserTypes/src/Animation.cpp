@@ -16,10 +16,6 @@
 
 namespace raco::user_types {
 
-void Animation::onBeforeDeleteObject(Errors& errors) const {
-	BaseObject::onBeforeDeleteObject(errors);
-}
-
 void Animation::onAfterContextActivated(BaseContext& context) {
 	// Only set default animation channel amount when animationChannels is empty (ie. created by user)
 	// TODO: the initial creation of the channel should be in the constructor.

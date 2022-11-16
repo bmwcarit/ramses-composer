@@ -42,12 +42,14 @@ ObjectTreeViewDefaultModel::ObjectTreeViewDefaultModel(raco::core::CommandInterf
 	components::SDataChangeDispatcher dispatcher, 
 	core::ExternalProjectsStoreInterface* externalProjectStore, 
 	const std::vector<std::string>& allowedCreatableUserTypes, 
-	bool groupExternalReferences)
+	bool groupExternalReferences,
+	bool groupByType)
 	: dispatcher_{dispatcher},
 	  commandInterface_{commandInterface},
 	  externalProjectStore_{externalProjectStore},
 	  allowedUserCreatableUserTypes_(allowedCreatableUserTypes),
-	  groupExternalReferences_(groupExternalReferences) {
+	  groupExternalReferences_(groupExternalReferences),
+	  groupByType_(groupByType){
 	resetInvisibleRootNode();
 
 	lifeCycleSubscriptions_["objectLifecycle"].emplace_back(dispatcher_->registerOnObjectsLifeCycle(
@@ -89,22 +91,53 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 
 	switch (role) {
 		case Qt::DecorationRole: {
-			auto editorObj = treeNode->getRepresentedObject();
-			if (editorObj && index.column() == COLUMNINDEX_NAME) {
-				auto itr = typeIconMap.find(editorObj->getTypeDescription().typeName);
+			std::string typeName;
+			if (treeNode->getType() == ObjectTreeNodeType::TypeParent) {
+				typeName = treeNode->getTypeName();
+			} else {
+				auto editorObj = treeNode->getRepresentedObject();
+				if (editorObj) {
+					typeName = editorObj->getTypeDescription().typeName;
+				}
+			}
+
+			if (!typeName.empty() && index.column() == COLUMNINDEX_NAME) {
+				auto itr = typeIconMap.find(typeName);
 				if (itr == typeIconMap.end())
 					return QVariant();
 				return QVariant(itr->second);
 			}
 			return QVariant();
 		}
+		case Qt::FontRole: {
+			if (treeNode->getType() == ObjectTreeNodeType::TypeParent) {
+				QFont font;
+				font.setItalic(true);
+				return QVariant(font);
+			}
+
+			return QVariant();
+		}
 		case Qt::ForegroundRole: {
 			auto editorObj = treeNode->getRepresentedObject();
-			if (editorObj && editorObj->query<ExternalReferenceAnnotation>() || treeNode->getType() == ObjectTreeNodeType::ExtRefGroup) {
+			if (editorObj && editorObj->query<ExternalReferenceAnnotation>()) {
 				return QVariant(Colors::color(Colormap::externalReference));
-			} else if (editorObj && Queries::isReadOnly(editorObj)) {
+			}
+
+			if (treeNode->getType() == ObjectTreeNodeType::ExtRefGroup) {
+				return QVariant(Colors::color(Colormap::externalReferenceDisabled));
+			}
+
+			if (editorObj && Queries::isReadOnly(editorObj)) {
 				return QVariant(Colors::color(Colormap::textDisabled));
 			}
+
+			if (treeNode->getType() == ObjectTreeNodeType::TypeParent) {
+				return treeNode->getParent()->getType() == ObjectTreeNodeType::ExtRefGroup
+					? QVariant(Colors::color(Colormap::externalReferenceDisabled))
+					: QVariant(Colors::color(Colormap::textDisabled));
+			}
+
 			return QVariant(Colors::color(Colormap::text));
 		}
 		case Qt::DisplayRole: {
@@ -356,19 +389,12 @@ void ObjectTreeViewDefaultModel::buildObjectTree() {
 		return;
 	}
 
-	// We don't have a settings object in the unit tests.
-	if (project()->settings()) {
-		nodeSubscriptions_["objectName"].emplace_back(dispatcher_->registerOn(ValueHandle(project()->settings(), {"objectName"}), [this]() {
-			dirty_ = true;
-		}));
-	}
-
 	auto filteredEditorObjects = filterForTopLevelObjects(project()->instances());
 
 	beginResetModel();
 
 	resetInvisibleRootNode();
-	constructTreeUnderNode(invisibleRootNode_.get(), filteredEditorObjects, groupExternalReferences_);
+	constructTreeUnderNode(invisibleRootNode_.get(), filteredEditorObjects, groupExternalReferences_, groupByType_);
 	updateTreeIndexes();
 
 	endResetModel();
@@ -384,25 +410,44 @@ void ObjectTreeViewDefaultModel::setNodeExternalProjectInfo(ObjectTreeNode* node
 	}
 }
 
-void ObjectTreeViewDefaultModel::constructTreeUnderNode(ObjectTreeNode* rootNode, const std::vector<core::SEditorObject>& children, bool groupExternalReferences) {
+void ObjectTreeViewDefaultModel::ensureTypeParentExists(std::map<std::string, ObjectTreeNode*>& typeParentMap, const std::string& typeName, ObjectTreeNode* parentNode) {
+	if (typeParentMap.find(typeName) != typeParentMap.end()) {
+		return;
+	}
 
+	auto* parent = new ObjectTreeNode(typeName);
+	typeParentMap[typeName] = parent;
+	parentNode->addChildFront(parent);
+}
+
+void ObjectTreeViewDefaultModel::constructTreeUnderNode(ObjectTreeNode* rootNode, const std::vector<core::SEditorObject>& children, bool groupExternalReferences, bool groupByTypes) {
 	auto rootObject = rootNode->getRepresentedObject();
-	auto extrefParent = groupExternalReferences ? nullptr : rootNode;
+	auto* extRefParent = groupExternalReferences ? nullptr : rootNode;
+	std::map<std::string, ObjectTreeNode*> extRefTypeParents;
+	std::map<std::string, ObjectTreeNode*> typeParents;
 
 	for (const auto& obj : children) {
-		auto parentNode = rootNode;
+		auto* parentNode = rootNode;
 
 		if (obj->query<ExternalReferenceAnnotation>()) {
-			if (!extrefParent) {
-				extrefParent = new ObjectTreeNode(ObjectTreeNodeType::ExtRefGroup, nullptr);
-				rootNode->addChildFront(extrefParent);
+			if (extRefParent == nullptr) {
+				extRefParent = new ObjectTreeNode(ObjectTreeNodeType::ExtRefGroup, nullptr);
+				rootNode->addChildFront(extRefParent);
 			}
-			parentNode = extrefParent;
+			if (groupByTypes) {
+				ensureTypeParentExists(extRefTypeParents, obj->getTypeDescription().typeName, extRefParent);
+				parentNode = extRefTypeParents[obj->getTypeDescription().typeName];
+			} else {
+				parentNode = extRefParent;
+			}
+		} else if (groupByTypes) {
+			ensureTypeParentExists(typeParents, obj->getTypeDescription().typeName, rootNode);
+			parentNode = typeParents[obj->getTypeDescription().typeName];
 		}
 
-		auto node = new ObjectTreeNode(obj, parentNode);
+		auto* node = new ObjectTreeNode(obj, parentNode);
 		setNodeExternalProjectInfo(node);
-		constructTreeUnderNode(node, obj->children_->asVector<SEditorObject>(), false);			
+		constructTreeUnderNode(node, obj->children_->asVector<SEditorObject>(), false, false);
 	}
 }
 

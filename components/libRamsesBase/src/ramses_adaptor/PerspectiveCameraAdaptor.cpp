@@ -51,7 +51,7 @@ bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 	}
 	cameraBinding_ = raco::ramses_base::ramsesCameraBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), *editorObject_->frustumType_ == static_cast<int>(raco::user_types::EFrustumType::Planes));
 
-	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get());
+	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get(), errors);
 
 	for (size_t index = 0; index < editorObject_->frustum_->size(); index++) {
 		auto& propName = editorObject_->frustum_->name(index);

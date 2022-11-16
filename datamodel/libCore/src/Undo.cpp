@@ -74,7 +74,7 @@ void UndoHelpers::callOnBeforeRemoveReferenceHandler(raco::data_storage::Table *
 			oldObj->onBeforeRemoveReferenceToThis(destHandle[index]);
 		}
 	} else if (hasTypeSubstructure(oldValue->type())) {
-		BaseContext::callReferenceToThisHandlerForAllTableEntries<&EditorObject::onBeforeRemoveReferenceToThis>(destHandle);
+		BaseContext::callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(destHandle);
 	}
 }
 

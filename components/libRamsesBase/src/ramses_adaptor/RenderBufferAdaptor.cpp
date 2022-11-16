@@ -10,6 +10,7 @@
 
 #include "ramses_adaptor/RenderBufferAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
+#include "ramses_base/Utils.h"
 #include "core/BasicAnnotations.h"
 
 namespace raco::ramses_adaptor {
@@ -43,44 +44,30 @@ RenderBufferAdaptor::RenderBufferAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 }
 
 bool RenderBufferAdaptor::sync(core::Errors* errors) {
-	using namespace ramses;
-	std::map<ramses::ERenderBufferFormat, ramses::ERenderBufferType> bufferTypeFromFormat = {
-		{ERenderBufferFormat_RGBA4, ERenderBufferType_Color},
-		{ERenderBufferFormat_R8, ERenderBufferType_Color},
-		{ERenderBufferFormat_RG8, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGB8, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGBA8, ERenderBufferType_Color},
-		{ERenderBufferFormat_R16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_R32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RG16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RG32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGB16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGB32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGBA16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGBA32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_Depth24, ERenderBufferType_Depth},
-		{ERenderBufferFormat_Depth24_Stencil8, ERenderBufferType_DepthStencil}};
+	buffer_.reset();
 
 	ramses::ERenderBufferFormat format = static_cast<ramses::ERenderBufferFormat>(*editorObject()->format_);
-	ramses::ERenderBufferType type = bufferTypeFromFormat.at(format);
+	ramses::ERenderBufferType type = raco::ramses_base::ramsesRenderBufferTypeFromFormat(format);
 
-	const auto& widthRange = editorObject()->width_.staticQuery<raco::core::RangeAnnotation<int>>();
-	const auto& heightRange = editorObject()->height_.staticQuery<raco::core::RangeAnnotation<int>>();
+	bool allValid = true;
+	uint32_t clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBuffer::width_}, errors, &allValid);
+	uint32_t clippedHeight = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBuffer::height_}, errors, &allValid);
 
-	buffer_ = raco::ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
-		std::min(std::max(*widthRange.min_, *editorObject()->width_), *widthRange.max_),
-		std::min(std::max(*heightRange.min_, *editorObject()->height_), *heightRange.max_),
-		type,
-		format,
-		ramses::ERenderBufferAccessMode_ReadWrite,
-		0U,
-		(editorObject()->objectName() + "_Buffer").c_str());
+	if (allValid) {
+		buffer_ = raco::ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
+			clippedWidth, clippedHeight,
+			type,
+			format,
+			ramses::ERenderBufferAccessMode_ReadWrite,
+			0U,
+			(editorObject()->objectName() + "_Buffer").c_str());
+	}
 
 	if (buffer_) {
 		// For depth buffers, the UI does not display the sampler parameters - so force them to default.
 		// Using depth buffers directly as textures is not recommended.
 		ramses_base::RamsesTextureSampler textureSampler;
-		if (type == ERenderBufferType_Color) {
+		if (type == ramses::ERenderBufferType_Color) {
 			textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
 				static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapUMode_),
 				static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapVMode_),

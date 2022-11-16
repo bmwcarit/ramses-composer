@@ -26,6 +26,15 @@ protected:
 	bool sortingEnabled_;
 };
 
+// This class sorts External References always to the top. TypeParent nodes will always be sorted alphabetically in descending order. All other nodes will be sorted regularly.
+class ObjectTreeViewResourceSortFilterProxyModel : public ObjectTreeViewDefaultSortFilterProxyModel {
+public:
+	ObjectTreeViewResourceSortFilterProxyModel(QObject *parent = nullptr) : ObjectTreeViewDefaultSortFilterProxyModel(parent, true) {}
+
+protected:
+	bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const override;
+
+};
 
 // This class only sorts top-level nodes (nodes under the invisible root node in ObjectTreeView models) while keeping the scenegraph structure of child nodes.
 class ObjectTreeViewTopLevelSortFilterProxyModel : public ObjectTreeViewDefaultSortFilterProxyModel {

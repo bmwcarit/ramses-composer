@@ -26,6 +26,8 @@ class Texture;
 using STexture = std::shared_ptr<Texture>;
 class TextureSampler2DBase;
 using STextureSampler2DBase = std::shared_ptr<TextureSampler2DBase>;
+class RenderBufferMS;
+using SRenderBufferMS = std::shared_ptr<RenderBufferMS>;
 
 class BlendOptions;
 
@@ -54,6 +56,8 @@ public:
 		Property<Vec4f, DisplayNameAnnotation>,
 		Property<BlendOptions, DisplayNameAnnotation>,
 
+		Property<int, LinkEndAnnotation>,
+
 		Property<bool, EngineTypeAnnotation>,
 		Property<int, EngineTypeAnnotation>,
 		Property<int64_t, EngineTypeAnnotation>,
@@ -69,6 +73,7 @@ public:
 		Property<Vec4i, EngineTypeAnnotation>,
 		Property<STexture, EngineTypeAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkStartAnnotation>,
@@ -86,6 +91,7 @@ public:
 		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkEndAnnotation>,
@@ -103,6 +109,7 @@ public:
 		Property<Vec4i, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkEndAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>,
 	
 		Property<bool, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
@@ -118,6 +125,7 @@ public:
 		Property<Vec3i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>
 		>;
 

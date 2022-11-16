@@ -109,35 +109,50 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		});
 		ui_->toolBar->insertWidget(ui_->actionSelectSizeMode, sizeMenuButton);
 	}
-	// Filtering mode tool button
+	// MSAA button
 	{
-		auto* filteringMenu = new QMenu{ui_->toolBar};
-		filteringMenu->addAction(ui_->actionSetFilteringModeNearestNeighbor);
-		filteringMenu->addAction(ui_->actionSetFilteringModeLinear);
-		ui_->actionSetFilteringModeNearestNeighbor->setCheckable(true);
-		ui_->actionSetFilteringModeNearestNeighbor->setChecked(true);
+		auto* msaaMenu = new QMenu{ui_->toolBar};
+		msaaMenu->addAction(ui_->actionSetMSAAx1);
+		msaaMenu->addAction(ui_->actionSetMSAAx2);
+		msaaMenu->addAction(ui_->actionSetMSAAx4);
+		msaaMenu->addAction(ui_->actionSetMSAAx8);
+		ui_->actionSetMSAAx1->setCheckable(true);
+		ui_->actionSetMSAAx1->setChecked(true);
+		ui_->actionSetMSAAx2->setCheckable(true);
+		ui_->actionSetMSAAx4->setCheckable(true);
+		ui_->actionSetMSAAx8->setCheckable(true);
 
+		auto* msaaMenuButton = new QToolButton{ui_->toolBar};
+		msaaMenuButton->setMenu(msaaMenu);
+		msaaMenuButton->setPopupMode(QToolButton::InstantPopup);
 
-		auto* filteringMenuButton = new QToolButton{ui_->toolBar};
-		filteringMenuButton->setMenu(filteringMenu);
-		filteringMenuButton->setPopupMode(QToolButton::InstantPopup);
+		msaaMenuButton->setText(ui_->actionSetMSAAx1->text());
 
-		ui_->actionSetFilteringModeLinear->setCheckable(true);
-		filteringMenuButton->setText(ui_->actionSetFilteringModeNearestNeighbor->text());
+		auto updateMsaaSelection = [this, msaaMenuButton](QAction* action) {
+			msaaMenuButton->setText(action->text());
+			ui_->actionSetMSAAx1->setChecked(ui_->actionSetMSAAx1 == action);
+			ui_->actionSetMSAAx2->setChecked(ui_->actionSetMSAAx2 == action);
+			ui_->actionSetMSAAx4->setChecked(ui_->actionSetMSAAx4 == action);
+			ui_->actionSetMSAAx8->setChecked(ui_->actionSetMSAAx8 == action);
+		};
 
-		connect(ui_->actionSetFilteringModeNearestNeighbor, &QAction::triggered, this, [this, filteringMenuButton]() {
-			previewWidget_->setFilteringMode(PreviewFilteringMode::NearestNeighbor);
-			filteringMenuButton->setText(ui_->actionSetFilteringModeNearestNeighbor->text());
-			ui_->actionSetFilteringModeNearestNeighbor->setChecked(true);
-			ui_->actionSetFilteringModeLinear->setChecked(false);
+		connect(ui_->actionSetMSAAx1, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
+			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_1X);
+			updateMsaaSelection(ui_->actionSetMSAAx1);
 		});
-		connect(ui_->actionSetFilteringModeLinear, &QAction::triggered, this, [this, filteringMenuButton]() {
-			previewWidget_->setFilteringMode(PreviewFilteringMode::Linear);
-			filteringMenuButton->setText(ui_->actionSetFilteringModeLinear->text());
-			ui_->actionSetFilteringModeNearestNeighbor->setChecked(false);
-			ui_->actionSetFilteringModeLinear->setChecked(true);
+		connect(ui_->actionSetMSAAx2, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
+			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_2X);
+			updateMsaaSelection(ui_->actionSetMSAAx2);
 		});
-		ui_->toolBar->insertWidget(ui_->actionSelectFilteringMode, filteringMenuButton);
+		connect(ui_->actionSetMSAAx4, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
+			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_4X);
+			updateMsaaSelection(ui_->actionSetMSAAx4);
+		});
+		connect(ui_->actionSetMSAAx8, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
+			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_8X);
+			updateMsaaSelection(ui_->actionSetMSAAx8);
+		});
+		ui_->toolBar->insertWidget(ui_->actionSelectSizeMode, msaaMenuButton);
 	}
 }
 

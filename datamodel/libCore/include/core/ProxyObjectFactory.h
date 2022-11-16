@@ -87,6 +87,7 @@ public:
 		Property<Vec4i, EngineTypeAnnotation>,
 		Property<STexture, EngineTypeAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkStartAnnotation>,
@@ -104,6 +105,7 @@ public:
 		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation, LinkStartAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkEndAnnotation>,
@@ -121,6 +123,7 @@ public:
 		Property<Vec4i, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STexture, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkEndAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkEndAnnotation>,
 
 		Property<bool, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
@@ -136,6 +139,7 @@ public:
 		Property<Vec3i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<Vec4i, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<STextureSampler2DBase, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<SRenderBufferMS, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 
 		// EditorObject
@@ -206,10 +210,12 @@ public:
 		Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation>,
 		Property<Table, RenderableTagContainerAnnotation, HiddenProperty, DisplayNameAnnotation>,
 		Property<bool, DisplayNameAnnotation, EnumerationAnnotation>,
+		Property<int, LinkEndAnnotation>,
 
 		// RenderTarget
 		Property<SRenderBuffer, DisplayNameAnnotation>,
 		Property<SRenderBuffer, DisplayNameAnnotation, ExpectEmptyReference>,
+		Property<SRenderBufferMS, DisplayNameAnnotation, ExpectEmptyReference>,
 
 		// Texture
 		Property<std::string, URIAnnotation, DisplayNameAnnotation>,

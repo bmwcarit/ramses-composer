@@ -47,14 +47,21 @@ public:
 	SceneAdaptor* sceneAdaptor() const {
 		return scene_.get();
 	}
-
-	bool sceneValid() const override;
+	
+	core::ErrorLevel sceneValid() const override;
 	std::string getValidationReport(core::ErrorLevel minLevel) const override;
 	uint64_t currentSceneIdValue() const override;
 	std::vector<SceneItemDesc> getSceneItemDescriptions() const override;
 	std::string getExportedObjectNames(SEditorObject editorObject) const override;
 
 private:
+	/**
+	 * @brief call LogicEngine validate() and filter out warnings that RamsesComposer is 
+	 * deliberately ignoring.
+	*/
+	std::vector<rlogic::WarningData> logicEngineFilteredValidation() const;
+	std::string ramsesFilteredValidationReport(core::ErrorLevel minLevel) const;
+
 	ramses::RamsesClient* client() const;
 	ramses_base::LogicEngine* logicEngine() const;
 

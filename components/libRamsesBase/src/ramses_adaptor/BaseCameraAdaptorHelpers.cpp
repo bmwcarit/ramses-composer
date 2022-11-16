@@ -20,14 +20,22 @@
 
 namespace raco::ramses_adaptor {
 
-void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, rlogic::RamsesCameraBinding* cameraBinding) {
-	ramsesCamera->setViewport(*editorObject->viewport_->offsetX_, *editorObject->viewport_->offsetY_, *editorObject->viewport_->width_, *editorObject->viewport_->height_);
+void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, rlogic::RamsesCameraBinding* cameraBinding, core::Errors* errors) {
+	bool allValid = true;
+	int clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject, {"viewport", "width"}}, errors, &allValid);
+	int clippedHeight = raco::ramses_base::clipAndCheckIntProperty({editorObject, {"viewport", "height"}}, errors, &allValid);
+
+	if (allValid) {
+		ramsesCamera->setViewport(*editorObject->viewport_->offsetX_, *editorObject->viewport_->offsetY_, clippedWidth, clippedHeight);
+	}
+
 	cameraBinding->setName(std::string(editorObject->objectName() + "_CameraBinding").c_str());
-	cameraBinding->getInputs()->getChild("viewport")->getChild("offsetX")->set(static_cast<int>(*editorObject->viewport_->offsetX_));
-	cameraBinding->getInputs()->getChild("viewport")->getChild("offsetY")->set(static_cast<int>(*editorObject->viewport_->offsetY_));
-	// Ramses asserts if the viewport width/height <=0. Unfortunately we cannot prevent a link from setting the value to <=0?
-	cameraBinding->getInputs()->getChild("viewport")->getChild("width")->set(std::max(1, static_cast<int>(*editorObject->viewport_->width_)));
-	cameraBinding->getInputs()->getChild("viewport")->getChild("height")->set(std::max(1, static_cast<int>(*editorObject->viewport_->height_)));
+	cameraBinding->getInputs()->getChild("viewport")->getChild("offsetX")->set<int>(*editorObject->viewport_->offsetX_);
+	cameraBinding->getInputs()->getChild("viewport")->getChild("offsetY")->set<int>(*editorObject->viewport_->offsetY_);
+	if (allValid) {
+		cameraBinding->getInputs()->getChild("viewport")->getChild("width")->set<int>(clippedWidth);
+		cameraBinding->getInputs()->getChild("viewport")->getChild("height")->set<int>(clippedHeight);
+	}
 }
 
 const rlogic::Property* BaseCameraAdaptorHelpers::getProperty(rlogic::RamsesCameraBinding* cameraBinding, const std::vector<std::string>& propertyNamesVector) {

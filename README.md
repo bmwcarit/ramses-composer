@@ -40,7 +40,7 @@ set the environment variable ```RACO_QT_BASE``` to it.
 \raco\build> cmake --build . --target RaCoEditor --config <CONFIG>       # <CONFIG> either Release or Debug
 ```
 
-Ramses Composer is built on Windows 10 with Visual Studio 2019 and on Ubuntu 18.04 with gcc 7.5.0.
+Ramses Composer is built on Windows 10 with Visual Studio 2019 and on Ubuntu 18.04 with gcc 8.4.0.
 
 ## Starting Ramses Composer
 
@@ -106,7 +106,7 @@ same environment as the user.
 
 ## Linux (Ubuntu 18.04)
 
-The linux build needs newer versions of CMake and Qt than available from the Ubuntu 18.04 repositories. Install CMake >= 3.19 and Qt 5.15.2.
+The linux build needs newer versions of CMake and Qt than available from the Ubuntu 18.04 repositories. Install CMake >= 3.19 and Qt 5.15.2. It also needs gcc/g++ >=8 which is available from the Ubuntu 18.04 repositories.
 
 Installing Qt into /usr/local/opt/Qt/5.15.2 can be done like this:
 ```console

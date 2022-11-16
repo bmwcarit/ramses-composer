@@ -163,9 +163,15 @@ QJsonArray const* const TracePlayer::loadTrace(const std::string& fileName) {
 		return nullptr;
 	}
 
+	/// prepare text stream to extract line numbers
+	const QByteArray jsonByteArray = qTraceFile.readAll();
+	QString jsonString(jsonByteArray);
+	textStream_.setString(&jsonString);
+	keyLineNumber_ = 0;
+
 	/// parse trace QFile
 	QJsonParseError qjParseError{};
-	const auto qjDocument{QJsonDocument::fromJson(qTraceFile.readAll(), &qjParseError)};
+	const auto qjDocument{QJsonDocument::fromJson(jsonByteArray, &qjParseError)};
 	qTraceFile.close();
 
 	/// validate trace QJsonDocument format
@@ -258,7 +264,7 @@ void TracePlayer::qjParseErrMsg(const QJsonParseError& qjParseError, const std::
 	addError(errorMsg, core::ErrorLevel::ERROR);
 }
 
-QJsonValue TracePlayer::deepAddMissingProperties(const QJsonValue& qjPrev, const QJsonValue& qjCurrent, std::vector<std::string>& propertyPath) {
+QJsonValue TracePlayer::deepAddMissingProperties(const QJsonValue& qjPrev, const QJsonValue& qjCurrent, std::vector<std::string>& propertyPath, int index) {
 	if (qjCurrent.type() == QJsonValue::Object) {
 		auto qjCurrObj{qjCurrent.toObject()};
 		const auto qjPrevObj{qjPrev.toObject()};
@@ -269,7 +275,7 @@ QJsonValue TracePlayer::deepAddMissingProperties(const QJsonValue& qjPrev, const
 			const auto qjCurrItr{qjCurrObj.find(propName)};
 			propertyPath.push_back(propName.toStdString());
 			if (qjCurrItr != qjCurrObj.end()) {
-				qjCurrObj[qjCurrItr.key()] = deepAddMissingProperties(qjPrevItr.value(), qjCurrItr.value(), propertyPath);
+				qjCurrObj[qjCurrItr.key()] = deepAddMissingProperties(qjPrevItr.value(), qjCurrItr.value(), propertyPath, index);
 			} else {
 				qjCurrObj.insert(propName, qjPrevItr.value());
 			}
@@ -281,12 +287,14 @@ QJsonValue TracePlayer::deepAddMissingProperties(const QJsonValue& qjPrev, const
 		while (qjCurrItr != qjCurrObj.end()) {
 			if (qjPrevObj.find(qjCurrItr.key()) == qjPrevObj.constEnd()) {
 				const auto propPathStream{streamKeysChain(propertyPath)};
-				if (propertyPath.size() == 0) {
-					addError("Lua is not available in the scene! Lua and its properties are disregarded from trace ( luaObjName: " + propPathStream + qjCurrItr.key().toStdString() + " )", core::ErrorLevel::WARNING);
+				const auto timestamp = parseTimestamp(parseTracePlayerData(parseFrame(index)));
+				const int lineNumber = getPropertyLineNumber(qjCurrItr.key());
+				if (propertyPath.empty()) {
+					addError("Step " + std::to_string(index) + ", Timestamp " + std::to_string(timestamp) + ", Trace line " + std::to_string(lineNumber) + ": Lua is not available in the scene! Lua and its properties are disregarded from trace ( luaObjName: " + propPathStream + qjCurrItr.key().toStdString() + " )", core::ErrorLevel::WARNING, false);
 				} else if (!qjCurrItr->isUndefined() && !qjCurrItr->isNull()) {
-					addError("Lua property was not found in the scene! Property is disregarded from trace ( propName: " + propPathStream + "->" + qjCurrItr.key().toStdString() + " )", core::ErrorLevel::WARNING);
+					addError("Step " + std::to_string(index) + ", Timestamp " + std::to_string(timestamp) + ", Trace line " + std::to_string(lineNumber) + ": Lua property was not found in the scene! Property is disregarded from trace ( propName: " + propPathStream + "->" + qjCurrItr.key().toStdString() + " )", core::ErrorLevel::WARNING, false);
 				} else {
-					addError("Unexpected JSON type! ( propName: " + qjCurrItr.key().toStdString() + " )", core::ErrorLevel::ERROR);
+					addError("Step " + std::to_string(index) + ", Timestamp " + std::to_string(timestamp) + ", Trace line " + std::to_string(lineNumber) + ": Unexpected JSON type! ( propName: " + qjCurrItr.key().toStdString() + " )", core::ErrorLevel::ERROR, false);
 				}
 				qjCurrItr = qjCurrObj.erase(qjCurrItr);
 			} else {
@@ -320,13 +328,49 @@ void TracePlayer::makeFramesConsistent() {
 	for (int frameIndex{1}; frameIndex < getTraceLen(); ++frameIndex) {
 		rebuildFrameSceneData(frameIndex, parseSceneData(parseFrame(frameIndex - 1)), parseSceneData(parseFrame(frameIndex)));
 	}
+
+	if (onLogChange_) {
+		onLogChange_(logReport_, highestCriticality_);
+	}
+	traceFileLines_.clear();
 }
 
 void TracePlayer::rebuildFrameSceneData(int index, const QJsonValue& qjPrev, const QJsonValue& qjCurr) {
 	auto qjFrameObj{parseFrame(index)};
 	std::vector<std::string> propertyPath;
-	qjFrameObj["SceneData"] = deepAddMissingProperties(qjPrev, qjCurr, propertyPath);
+	readLinesForNextFrame();
+	qjFrameObj["SceneData"] = deepAddMissingProperties(qjPrev, qjCurr, propertyPath, index);
 	(*qjRoot_)[index] = qjFrameObj;
+}
+
+void TracePlayer::readLinesForNextFrame() {
+	auto line = textStream_.readLine();
+
+	traceFileLines_.push_front({0, line});
+	keyLineNumber_++;
+
+	while (!textStream_.atEnd()) {
+		line = textStream_.readLine();
+		keyLineNumber_++;
+		traceFileLines_.push_front({keyLineNumber_, line});
+		if (line.contains("TracePlayerData")) {
+			break;
+		}
+	}
+}
+
+int TracePlayer::getPropertyLineNumber(const QString& propertyKey) {
+	int propertyLine = -1;
+	auto itToErase = traceFileLines_.before_begin();
+
+	for (auto it = traceFileLines_.begin(); it != traceFileLines_.end(); ++it, ++itToErase) {
+		if (it->second.contains("\"" + propertyKey + "\"")) {
+			propertyLine = it->first;
+			traceFileLines_.erase_after(itToErase);
+			break;
+		}
+	}
+	return propertyLine;
 }
 
 QJsonValue TracePlayer::deepCopyFromLua(raco::core::ValueHandle const& luaValHandle) {
@@ -482,6 +526,7 @@ QJsonObject TracePlayer::parseFrame(int frameIndex) {
 		addError("Frame entry was not found! ( frameNr: " + std::to_string(frameIndex) + " )", core::ErrorLevel::ERROR);
 		return QJsonObject();
 	}
+
 	const QJsonObject qjFrame{qjFrameVal.toObject()};
 	if (qjFrame.isEmpty()) {
 		addError("Invalid frame >> Empty frame! ( frameNr: " + std::to_string(frameIndex) + " )", core::ErrorLevel::ERROR);
@@ -711,7 +756,7 @@ void TracePlayer::updateLuaProperty(const core::SEditorObject& lua, const std::v
 	}
 }
 
-void TracePlayer::addError(const std::string& msg, core::ErrorLevel level) {
+void TracePlayer::addError(const std::string& msg, core::ErrorLevel level, bool callLogChange) {
 	if (tracePlayerLog_.insert(std::make_pair(msg, level)).second) {
 		const std::string errLvl = "[" + std::string(CriticalToString(level)) + "] ";
 		logReport_.push_back(errLvl + msg);
@@ -733,7 +778,7 @@ void TracePlayer::addError(const std::string& msg, core::ErrorLevel level) {
 		if (highestCriticality_ < level) {
 			highestCriticality_ = level;
 		}
-		if (onLogChange_) {
+		if (onLogChange_ && callLogChange) {
 			onLogChange_(logReport_, highestCriticality_);
 		}
 	}

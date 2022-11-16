@@ -31,7 +31,8 @@ enum class Colormap {
 	warningColor,
 	errorColorDark,
 	dockTitleBackground,
-	externalReference
+	externalReference,
+	externalReferenceDisabled,
 };
 
 class Colors {

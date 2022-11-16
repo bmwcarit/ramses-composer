@@ -18,6 +18,7 @@
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
 #include "property_browser/PropertySubtreeView.h"
+#include "core/ProjectSettings.h"
 #include "style/Icons.h"
 #include <QApplication>
 #include <QDebug>
@@ -73,19 +74,12 @@ PropertyBrowserView::PropertyBrowserView(raco::core::SceneBackendInterface* scen
 	: currentObjectID_(item->valueHandle().rootObject()->objectID()), sceneBackend_{sceneBackend}, QWidget{parent} {
 	item->setParent(this);
 	auto* layout = new PropertyBrowserGridLayout{this};
-	layout->setColumnStretch(0, 1);
 	auto* content = new QWidget{this};
 	auto* contentLayout = new PropertyBrowserVBoxLayout{content};
-	contentLayout->setAlignment(Qt::AlignTop);
 	contentLayout->setContentsMargins(0, 0, 5, 0);
 	content->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
 
-	auto* scrollArea = new QScrollArea{this};
-	scrollArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
-	scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOn);
-	layout->addWidget(scrollArea, 0, 0, 3, Qt::AlignTop);
-	scrollArea->setWidget(content);
-	scrollArea->setWidgetResizable(true);
+	layout->addWidget(content, 0, 0);
 
 	auto* topNotificationWidget = createNotificationWidget<Qt::TopEdge>(model, this);
 	layout->addWidget(topNotificationWidget, 0, 0);
@@ -124,15 +118,6 @@ PropertyBrowserView::PropertyBrowserView(raco::core::SceneBackendInterface* scen
 			verticalPivot_ = mapFromGlobal(focusWidget->mapToGlobal({0, 0}));
 			verticalPivotWidget_ = focusWidget;
 		}
-	});
-
-	QObject::connect(scrollArea->verticalScrollBar(), &QScrollBar::rangeChanged, this, [this, scrollArea](int min, int max) {
-		if (verticalPivotWidget_) {
-			auto newPosition = mapFromGlobal(verticalPivotWidget_->mapToGlobal({0, 0}));
-			scrollArea->verticalScrollBar()->setValue(scrollArea->verticalScrollBar()->value() + (newPosition.y() - verticalPivot_.y()));
-		}
-		verticalPivotWidget_ = nullptr;
-		verticalPivot_ = {0, 0};
 	});
 
 	contentLayout->addWidget(new PropertySubtreeView{sceneBackend_, model, item, this});
@@ -215,10 +200,17 @@ void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
 		restorableObjectId_ = valueHandle.rootObject()->objectID();
 		subscription_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this, valueHandle](core::SEditorObject obj) {
 			if (valueHandle.rootObject() == obj) {
-				if (locked_) {
-					setLocked(false);
+				// SaveAs with new project ID will delete the ProjecSettings object and create a new one in order to change the object ID.
+				// We want to move a ProjectSettings property browser to the new ProjectSettings object automatically,
+				// so we detect this case and instead of clearing we find the new settings object and set a new ValueHandle with it.
+				if (obj->isType<raco::core::ProjectSettings>()) {
+					setValueHandle({commandInterface_->project()->settings()});
+				} else {
+					if (locked_) {
+						setLocked(false);
+					}
+					clearValueHandle(true);
 				}
-				clearValueHandle(true);
 			}
 		});
 		propertyBrowser_.reset(new PropertyBrowserView{sceneBackend_, new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, sceneBackend_, model_}, model_, this});

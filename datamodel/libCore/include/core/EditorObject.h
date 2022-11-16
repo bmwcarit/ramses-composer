@@ -60,6 +60,7 @@ public:
 
 	EditorObject(std::string name = std::string(), std::string id = std::string());
 
+	virtual ~EditorObject() = default;
 
 	template<class C>
 	std::shared_ptr<C> as() {

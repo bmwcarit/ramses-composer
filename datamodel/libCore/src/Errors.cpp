@@ -28,27 +28,27 @@ bool Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandl
 	return true;
 }
 
-void Errors::logError(const ErrorItem& error) const {
+std::string Errors::formatError(const ErrorItem& error) {
+	auto handle = error.valueHandle();
+	const auto& message = error.message();
+	if (!handle) {
+		return fmt::format("Project-global: {}", message);
+	} else if (handle.isObject()) {
+		return fmt::format("{}[{}]: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), message);
+	} else {
+		return fmt::format("{}[{}]#{}: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), handle.getPropName(), message);
+	}
+}
+
+void Errors::logError(const ErrorItem& error) {
 	auto handle = error.valueHandle();
 	const auto& message = error.message();
 	switch (error.level()) {
 		case ErrorLevel::ERROR:
-			if (!handle) {
-				LOG_ERROR(log_system::CONTEXT, "Project-global error: {}", message);
-			} else if (handle.isObject()) {
-				LOG_ERROR(log_system::CONTEXT, "{}[{}]: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), message);
-			} else {
-				LOG_ERROR(log_system::CONTEXT, "{}[{}]#{}: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), handle.getPropName(), message);
-			}
+			LOG_ERROR(log_system::CONTEXT, formatError(error));
 			break;
 		case ErrorLevel::WARNING:
-			if (!handle) {
-				LOG_WARNING(log_system::CONTEXT, "Project-global warning: {}", message);
-			} else if (handle.isObject()) {
-				LOG_WARNING(log_system::CONTEXT, "{}[{}]: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), message);
-			} else {
-				LOG_WARNING(log_system::CONTEXT, "{}[{}]#{}: {}", handle.rootObject()->objectName(), handle.rootObject()->objectID(), handle.getPropName(), message);
-			}
+			LOG_WARNING(log_system::CONTEXT, formatError(error));
 			break;
 		default:
 			break;

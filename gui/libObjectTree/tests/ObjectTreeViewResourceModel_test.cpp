@@ -15,8 +15,10 @@
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "user_types/AnchorPoint.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/BlitPass.h"
 #include "user_types/LuaScriptModule.h"
 #include "user_types/RenderBuffer.h"
+#include "user_types/RenderBufferMS.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
@@ -31,6 +33,7 @@ public:
 			{
 				AnchorPoint::typeDescription.typeName,
 				AnimationChannel::typeDescription.typeName,
+				BlitPass::typeDescription.typeName,
 				CubeMap::typeDescription.typeName,
 				Material::typeDescription.typeName,
 				Mesh::typeDescription.typeName,
@@ -38,6 +41,7 @@ public:
 				Texture::typeDescription.typeName,
 				Timer::typeDescription.typeName,
 				RenderBuffer::typeDescription.typeName,
+				RenderBufferMS::typeDescription.typeName,
 				RenderTarget::typeDescription.typeName,
 				RenderLayer::typeDescription.typeName,
 				RenderPass::typeDescription.typeName}));
@@ -49,6 +53,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 	std::vector<std::string> allowedTypesAssert {
 		AnchorPoint::typeDescription.typeName,
 		AnimationChannel::typeDescription.typeName,
+		BlitPass::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
 		Material::typeDescription.typeName,
 		Mesh::typeDescription.typeName,
@@ -56,6 +61,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 		Texture::typeDescription.typeName,
 		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
+		RenderBufferMS::typeDescription.typeName,
 		RenderTarget::typeDescription.typeName,
 		RenderLayer::typeDescription.typeName,
 		RenderPass::typeDescription.typeName};

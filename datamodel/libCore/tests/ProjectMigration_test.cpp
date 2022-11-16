@@ -663,6 +663,37 @@ TEST_F(MigrationTest, migrate_from_V43) {
 	checkLinks(*racoproject->project(), {{{{lua, {"outputs", "float"}}, {pcam, {"frustum", "farPlane"}}}}});
 }
 
+TEST_F(MigrationTest, migrate_from_V44) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V44.rca").string()));
+
+	auto layer = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderLayer")->as<raco::user_types::RenderLayer>();
+
+	auto anno_red = layer->renderableTags_->get("red")->query<LinkEndAnnotation>();
+	EXPECT_TRUE(anno_red != nullptr);
+	EXPECT_EQ(*anno_red->featureLevel_, 3);
+	auto anno_green = layer->renderableTags_->get("green")->query<LinkEndAnnotation>();
+	EXPECT_TRUE(anno_green != nullptr);
+	EXPECT_EQ(*anno_green->featureLevel_, 3);
+}
+
+TEST_F(MigrationTest, migrate_from_V45) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V45.rca").string()));
+
+	auto perspCamera = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
+
+	EXPECT_EQ(*perspCamera->viewport_->get("width")->query<RangeAnnotation<int>>()->min_, 1);
+	EXPECT_EQ(*perspCamera->viewport_->get("height")->query<RangeAnnotation<int>>()->min_, 1);
+
+	auto orthoCamera = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
+
+	EXPECT_EQ(*orthoCamera->viewport_->get("width")->query<RangeAnnotation<int>>()->min_, 1);
+	EXPECT_EQ(*orthoCamera->viewport_->get("height")->query<RangeAnnotation<int>>()->min_, 1);
+
+	auto renderTarget = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<raco::user_types::RenderTarget>();
+
+	EXPECT_TRUE(renderTarget->buffer0_.query<ExpectEmptyReference>() != nullptr);
+}
+
 
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.

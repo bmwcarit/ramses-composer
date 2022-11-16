@@ -42,6 +42,13 @@ void PreviewContentWidget::setBackgroundColor(core::Vec4f backgroundColor) {
 	}
 }
 
+void PreviewContentWidget::setMsaaSampleRate(PreviewMultiSampleRate sampleRate) {
+	if (ramsesPreview_) {
+		ramsesPreview_->nextState().sampleRate = sampleRate;
+		update();
+	}
+}
+
 ramses::sceneId_t PreviewContentWidget::getSceneId() {
 	if (ramsesPreview_) {
 		return ramsesPreview_->nextState().sceneId;
@@ -101,14 +108,6 @@ void PreviewContentWidget::paintEvent(QPaintEvent* e) {
 		ramsesPreview_->commit();
 	}
 }
-
-void PreviewContentWidget::setFilteringMode(PreviewFilteringMode filteringMode) {
-	if (ramsesPreview_) {
-		ramsesPreview_->nextState().filteringMode = filteringMode;
-		update();
-	}
-}
-
 
 void PreviewContentWidget::commit(bool forceUpdate) {
 	const auto& currentState = ramsesPreview_->currentState();

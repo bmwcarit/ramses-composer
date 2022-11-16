@@ -36,6 +36,8 @@ using namespace raco::user_types;
 
 class ContextTest : public TestEnvironmentCore {
 public:
+	ContextTest() : TestEnvironmentCore(&TestObjectFactory::getInstance()) {
+	}
 
 	void checkedDeleteObjects(std::vector<SEditorObject> const& objects) {
 		auto numObjects = project.instances().size();
@@ -981,4 +983,55 @@ TEST_F(ContextTest, meshnode_shared_mat_modify_material) {
 
 	context.set({material, {"uniforms", "u_color", "x"}}, 0.5);
 	ASSERT_EQ(meshnode->getUniformContainer(0)->size(), 0);
+}
+
+
+TEST_F(ContextTest, link_validity_change_add_remove_property) {
+	auto source = context.createObject(Foo::typeDescription.typeName, "foo");
+	auto target = context.createObject(ObjectWithTableProperty::typeDescription.typeName, "mock");
+
+	context.addProperty({target, &ObjectWithTableProperty::t_}, "f", std::make_unique<Property<double, LinkEndAnnotation>>(1.0, LinkEndAnnotation()));
+
+	context.addLink({source, &Foo::x_}, {target, {"t", "f"}});
+	checkLinks({{{source, {"x"}}, {target, {"t", "f"}}, true, false}});
+
+	context.removeProperty({target, &ObjectWithTableProperty::t_}, "f");
+	checkLinks({{{source, {"x"}}, {target, {"t", "f"}}, false, false}});
+
+	context.addProperty({target, &ObjectWithTableProperty::t_}, "f", std::make_unique<Property<double, LinkEndAnnotation>>(2.0, LinkEndAnnotation()));
+	checkLinks({{{source, {"x"}}, {target, {"t", "f"}}, true, false}});
+}
+
+TEST_F(ContextTest, link_validity_change_set_table) {
+	auto lua = context.createObject(LuaScript::typeDescription.typeName, "lua_script");
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN,OUT)
+	OUT.int = Type:Int32()
+end
+function run(IN,OUT)
+end
+)");
+	context.set({lua, &LuaScript::uri_}, scriptFile);
+
+	auto mock = context.createObject(ObjectWithTableProperty::typeDescription.typeName, "mock");
+
+	raco::data_storage::Table tags;
+	tags.addProperty("main", new Property<int, LinkEndAnnotation>(1, {}));
+	context.set({mock, &ObjectWithTableProperty::renderableTags_}, tags);
+
+	context.addLink({lua, {"outputs", "int"}}, {mock, {"renderableTags", "main"}});
+
+	checkLinks({{{lua, {"outputs", "int"}}, {mock, {"renderableTags", "main"}}, true, false}});
+
+	tags.removeProperty("main");
+	tags.addProperty("alt", new Property<int, LinkEndAnnotation>(2, {}));
+	context.set({mock, &ObjectWithTableProperty::renderableTags_}, tags);
+
+	checkLinks({{{lua, {"outputs", "int"}}, {mock, {"renderableTags", "main"}}, false, false}});
+
+	tags.removeProperty("alt");
+	tags.addProperty("main", new Property<int, LinkEndAnnotation>(3, {}));
+	context.set({mock, &ObjectWithTableProperty::renderableTags_}, tags);
+
+	checkLinks({{{lua, {"outputs", "int"}}, {mock, {"renderableTags", "main"}}, true, false}});
 }

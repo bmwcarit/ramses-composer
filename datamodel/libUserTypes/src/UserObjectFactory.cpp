@@ -18,6 +18,7 @@
 #include "user_types/BaseCamera.h"
 #include "user_types/BaseObject.h"
 #include "user_types/BaseTexture.h"
+#include "user_types/BlitPass.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaInterface.h"
 #include "user_types/LuaScript.h"
@@ -31,6 +32,7 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderBuffer.h"
+#include "user_types/RenderBufferMS.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
@@ -86,7 +88,8 @@ UserObjectFactory::UserObjectFactory() {
 		AnchorPoint,
 		Animation,
 		AnimationChannel,
-        CubeMap,
+		BlitPass,
+		CubeMap,
 		Node,
 		MeshNode,
 		Mesh,
@@ -101,6 +104,7 @@ UserObjectFactory::UserObjectFactory() {
 		Texture,
 		Timer,
 		RenderBuffer,
+		RenderBufferMS,
 		RenderLayer,
 		RenderTarget,
 		RenderPass

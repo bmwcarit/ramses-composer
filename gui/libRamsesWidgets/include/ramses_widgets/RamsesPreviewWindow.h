@@ -39,16 +39,16 @@ public:
 		QSize targetSize{0, 0};
 		QSize virtualSize{0, 0};
 		QColor backgroundColor{};
-		PreviewFilteringMode filteringMode{PreviewFilteringMode::NearestNeighbor};
+		PreviewMultiSampleRate sampleRate{MSAA_1X};
 
 		bool operator!=(const State & other) const {
 			return this->backgroundColor != other.backgroundColor
-				|| this->filteringMode != other.filteringMode
 				|| this->sceneId != other.sceneId
 				|| this->targetSize != other.targetSize
 				|| this->viewportOffset != other.viewportOffset
 				|| this->viewportSize != other.viewportSize
-				|| this->virtualSize != other.virtualSize;
+				|| this->virtualSize != other.virtualSize
+				|| this->sampleRate != other.sampleRate;
 		}
 	};
 

@@ -75,6 +75,7 @@ struct fmt::formatter<raco::core::EnginePrimitive> : formatter<string_view> {
 			{raco::core::EnginePrimitive::Struct, "Struct"},
 			{raco::core::EnginePrimitive::Array, "Arrray"},
 			{raco::core::EnginePrimitive::TextureSampler2D, "TextureSampler2D"},
+			{raco::core::EnginePrimitive::TextureSampler2DMS, "TextureSampler2DMS"},
 			{raco::core::EnginePrimitive::TextureSampler3D, "TextureSampler3D"},
 			{raco::core::EnginePrimitive::TextureSamplerCube, "TextureSamplerCube"}};
 		return formatter<string_view>::format(nameMap.at(type), ctx);

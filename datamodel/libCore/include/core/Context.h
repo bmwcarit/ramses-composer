@@ -193,7 +193,7 @@ private:
 	void removeReferencesTo(SEditorObjectSet const& objects);
 
 	template <void (EditorObject::*Handler)(ValueHandle const&) const>
-	static void callReferenceToThisHandlerForAllTableEntries(ValueHandle const& vh);
+	static void callReferenceToThisHandler(ValueHandle const& vh);
 	
 	ValueTreeIterator erase(const ValueTreeIterator& it);
 

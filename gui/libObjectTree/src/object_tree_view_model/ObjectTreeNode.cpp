@@ -11,7 +11,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <core/ExternalReferenceAnnotation.h>
+#include "core/ProxyTypes.h"
 
 namespace raco::object_tree::model {
 
@@ -36,6 +36,13 @@ ObjectTreeNode::ObjectTreeNode(ObjectTreeNodeType type, ObjectTreeNode* parent)
 		assert(type != ObjectTreeNodeType::Root);
 		parent_->addChild(this);
 	}
+}
+
+ObjectTreeNode::ObjectTreeNode(const std::string& typeName)
+	: parent_{nullptr},
+	  type_{ObjectTreeNodeType::TypeParent},
+      representedObject_{nullptr},
+	  typeName_{typeName} {
 }
 
 ObjectTreeNode::~ObjectTreeNode() {
@@ -88,6 +95,12 @@ ObjectTreeNodeType ObjectTreeNode::getType() const {
 	return type_;
 }
 
+namespace {
+	std::map<std::string, std::string> irregularObjectTypePluralNames{
+		{raco::serialization::proxy::meshTypeName, "Meshes"},
+		{raco::serialization::proxy::renderPassTypeName, "RenderPasses"}};
+}
+
 std::string ObjectTreeNode::getDisplayName() const {
 	switch (type_) {
 		case ObjectTreeNodeType::EditorObject:
@@ -96,7 +109,13 @@ std::string ObjectTreeNode::getDisplayName() const {
 			return externalProjectPath_;
 		case ObjectTreeNodeType::ExtRefGroup:
 			return "External References";
-		default: 
+		case ObjectTreeNodeType::TypeParent:
+			if (irregularObjectTypePluralNames.find(typeName_) != irregularObjectTypePluralNames.end()) {
+				return irregularObjectTypePluralNames[typeName_];
+			}
+
+			return typeName_ + "s";
+		default:
 			return "";
 	}
 }
@@ -109,6 +128,10 @@ std::string ObjectTreeNode::getDisplayType() const {
 		default:
 			return "";
 	}
+}
+
+std::string ObjectTreeNode::getTypeName() const {
+	return typeName_;
 }
 
 std::string ObjectTreeNode::getExternalProjectPath() const {
@@ -133,6 +156,10 @@ std::string ObjectTreeNode::getID() const {
 			return externalProjectPath_;
 		case ObjectTreeNodeType::ExtRefGroup:
 			return "External References";
+		case ObjectTreeNodeType::TypeParent:
+			return parent_->getType() == ObjectTreeNodeType::ExtRefGroup
+				? "external " + typeName_
+				: typeName_;
 		case ObjectTreeNodeType::Root:
 			return "Root";
 		default:
@@ -143,7 +170,6 @@ std::string ObjectTreeNode::getID() const {
 SEditorObject ObjectTreeNode::getRepresentedObject() const {
 	return representedObject_;
 }
-
 void ObjectTreeNode::setParent(ObjectTreeNode* parent) {
 	parent_ = parent;
 }

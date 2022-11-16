@@ -79,7 +79,7 @@ public:
 
 	bool dirty() const noexcept;
 	bool save(std::string &outError);
-	bool saveAs(const QString& fileName, std::string& outError, bool setProjectName = false);
+	bool saveAs(const QString& fileName, std::string& outError, bool setProjectName = false, bool setNewID = false);
 
 	// @exception ExtrefError
 	void updateExternalReferences(core::LoadContext& loadContext);
@@ -96,13 +96,15 @@ public:
 	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
 	void applyDefaultCachedPaths();
-	void subscribeDefaultCachedPathChanges(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
-	
+	void setupCachedPathSubscriptions(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
+		
 Q_SIGNALS:
 	void activeProjectFileChanged();
 	void projectSuccessfullySaved();
 
 private:
+	void subscribeDefaultCachedPathChanges(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
+
 	// @exception ExtrefError
 	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, core::LoadContext& loadContext);
 
@@ -118,6 +120,7 @@ private:
 	raco::core::Errors errors_;
 	raco::core::Project project_;
 
+	raco::components::Subscription lifecycleSubscription_;
 	raco::components::Subscription imageSubdirectoryUpdateSubscription_;
 	raco::components::Subscription meshSubdirectoryUpdateSubscription_;
 	raco::components::Subscription scriptSubdirectoryUpdateSubscription_;

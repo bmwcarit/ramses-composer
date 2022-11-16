@@ -14,6 +14,7 @@
 #include "OpenRecentMenu.h"
 #include "RaCoDockManager.h"
 #include "SavedLayoutsDialog.h"
+#include "application/RaCoApplication.h"
 #include "common_widgets/ErrorView.h"
 #include "common_widgets/ExportDialog.h"
 #include "common_widgets/LogView.h"
@@ -22,13 +23,13 @@
 #include "common_widgets/RunScriptDialog.h"
 #include "common_widgets/TracePlayerWidget.h"
 #include "common_widgets/UndoView.h"
-#include "core/Context.h"
+#include "components/RaCoPreferences.h"
+#include "core/BasicTypes.h"
 #include "core/EditorObject.h"
 #include "core/Handles.h"
 #include "core/PathManager.h"
 #include "core/Project.h"
-#include "core/Queries.h"
-#include "core/BasicTypes.h"
+#include "core/ProjectMigration.h"
 #include "data_storage/Value.h"
 #include "gui_python_api/GUIPythonAPI.h"
 #include "log_system/log.h"
@@ -39,23 +40,18 @@
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
-#include "ramses_widgets/PreviewMainWindow.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserModel.h"
 #include "property_browser/PropertyBrowserWidget.h"
 #include "ramses_adaptor/SceneBackend.h"
-#include "ramses_base/LogicEngineFormatter.h"
 #include "ramses_base/BaseEngineBackend.h"
-#include "components/Naming.h"
-#include "application/RaCoApplication.h"
-#include "components/RaCoPreferences.h"
-#include "core/ProjectMigration.h"
-#include "core/Serialization.h"
+#include "ramses_widgets/PreviewMainWindow.h"
 #include "ui_mainwindow.h"
 
 #include "user_types/AnchorPoint.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/BlitPass.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaInterface.h"
 #include "user_types/LuaScript.h"
@@ -67,36 +63,30 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderBuffer.h"
+#include "user_types/RenderBufferMS.h"
 #include "user_types/RenderLayer.h"
-#include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
-#include "user_types/Timer.h"
+#include "user_types/RenderTarget.h"
 #include "user_types/Texture.h"
+#include "user_types/Timer.h"
 
-#include "utils/FileUtils.h"
-#include "versiondialog.h"
 #include "utils/u8path.h"
+#include "versiondialog.h"
 
-#include "python_api/PythonAPI.h"
 #include "DockAreaWidget.h"
-#include "DockSplitter.h"
 #include "ads_globals.h"
+#include "python_api/PythonAPI.h"
 
 #include <DockWidget.h>
 #include <IconProvider.h>
-#include <QDesktopWidget>
 #include <QDialog>
-#include <QDockWidget>
-#include <QFile>
 #include <QFileDialog>
-#include <QGuiApplication>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QObject>
 #include <QScreen>
 #include <QShortcut>
 #include <QShortcutEvent>
-#include <QTimer>
 #include <algorithm>
 #include <chrono>
 #include <string>
@@ -168,7 +158,7 @@ ads::CDockAreaWidget* createAndAddPropertyBrowser(MainWindow* mainWindow, const 
 	QObject::connect(mainWindow, &MainWindow::objectFocusRequestedForPropertyBrowser, propertyBrowser, &raco::property_browser::PropertyBrowserWidget::setValueHandleFromObjectId);
 	connectPropertyBrowserAndTreeDockManager(propertyBrowser, treeDockManager);
 	auto* dockWidget = createDockWidget(MainWindow::DockWidgetTypes::PROPERTY_BROWSER, mainWindow);
-	dockWidget->setWidget(propertyBrowser, ads::CDockWidget::ForceNoScrollArea);
+	dockWidget->setWidget(propertyBrowser);
 	dockWidget->setObjectName(dockObjName);
 	return dockManager->addDockWidget(ads::RightDockWidgetArea, dockWidget);
 }
@@ -189,7 +179,11 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 	dockModel->buildObjectTree();
 	auto newTreeView = new raco::object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
 	if (sortFilterModel && sortFilterModel->sortingEnabled()) {
-		newTreeView->sortByColumn(raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE, Qt::SortOrder::AscendingOrder);
+		newTreeView->sortByColumn(
+			title == MainWindow::DockWidgetTypes::RESOURCES
+			 	? raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_NAME
+				: raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE,
+			Qt::SortOrder::AscendingOrder);
 	}
 	dockObjectView->setTreeView(newTreeView);
 	treeDockManager.addTreeDock(dockObjectView);
@@ -210,6 +204,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 	static const std::vector<std::string> allowedCreateableUserTypes{
 		AnchorPoint::typeDescription.typeName,
 		AnimationChannel::typeDescription.typeName,
+		BlitPass::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
 		LuaScriptModule::typeDescription.typeName,
 		Material::typeDescription.typeName,
@@ -217,13 +212,14 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 		Texture::typeDescription.typeName,
 		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
+		RenderBufferMS::typeDescription.typeName,
 		RenderTarget::typeDescription.typeName,
 		RenderLayer::typeDescription.typeName,
 		RenderPass::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewResourceModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(
-		MainWindow::DockWidgetTypes::RESOURCES, dockObjName, model, new raco::object_tree::model::ObjectTreeViewTopLevelSortFilterProxyModel(mainWindow),
+		MainWindow::DockWidgetTypes::RESOURCES, dockObjName, model, new raco::object_tree::model::ObjectTreeViewResourceSortFilterProxyModel(mainWindow),
 		ads::BottomDockWidgetArea, mainWindow, dockManager, treeDockManager, dockArea);
 }
 
@@ -386,9 +382,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 	});
 	ui->menuFile->insertMenu(ui->actionSave, recentFileMenu_);
 
-	upgradeMenu_ = new QMenu("&Upgrade Feature Level", this);
-	ui->menuFile->insertMenu(ui->actionSave, upgradeMenu_);
-	upgradeMenu_->setDisabled(true);
+	updateUpgradeMenu();
 
 	dockManager_ = createDockManager(this);
 	setWindowIcon(QIcon(":applicationLogo"));
@@ -419,12 +413,13 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 		ui->actionSave->setShortcut(QKeySequence::Save);
 		ui->actionSave->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionSave, &QAction::triggered, this, &MainWindow::saveActiveProject);
-
+		
 		ui->actionSaveAs->setShortcut(QKeySequence::SaveAs);
 		ui->actionSaveAs->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveAsActiveProject);
+		
+		QObject::connect(ui->actionSaveAsWithNewID, &QAction::triggered, this, &MainWindow::saveAsActiveProjectWithNewID);
 	}
-
 
 	QObject::connect(ui->actionOpen, &QAction::triggered, [this]() {
 		auto file = QFileDialog::getOpenFileName(this, "Open", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca);; All files (*.*)");
@@ -689,18 +684,26 @@ bool MainWindow::upgradeActiveProject(int newFeatureLevel) {
 		return false;
 	}
 
-	if (racoApplication_->canSaveActiveProject()) {
-		std::string errorMsg;
-		if (racoApplication_->activeRaCoProject().save(errorMsg)) {
-			openProject(QString::fromStdString(racoApplication_->activeProjectPath()), newFeatureLevel);
-			return true;
+	const int currentFeatureLevel = racoApplication_->activeRaCoProject().project()->featureLevel();
+	const auto upgradeConfirmed = QMessageBox::question(this, "Upgrade feature level",
+		"The scene will be upgraded from feature level " + QString::number(currentFeatureLevel) +
+			" to feature level " + QString::number(newFeatureLevel) + ". This can't be reverted after the scene is saved! Are you sure?");
+
+	if (upgradeConfirmed == QMessageBox::Yes) {
+		if (racoApplication_->canSaveActiveProject()) {
+			std::string errorMsg;
+			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
+				openProject(QString::fromStdString(racoApplication_->activeProjectPath()), newFeatureLevel);
+				return true;
+			} else {
+				updateApplicationTitle();
+				QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+			}
 		} else {
-			updateApplicationTitle();
-			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+			QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 		}
-	} else {
-		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 	}
+	
 	return false;
 }
 
@@ -711,6 +714,7 @@ bool MainWindow::saveActiveProject() {
 		} else {
 			std::string errorMsg;
 			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
+				updateUpgradeMenu();
 				return true;
 			} else {
 				updateApplicationTitle();	
@@ -724,18 +728,20 @@ bool MainWindow::saveActiveProject() {
 	return false;
 }
 
-bool MainWindow::saveAsActiveProject() {
+bool MainWindow::saveAsActiveProject(bool newID) {
 	if (racoApplication_->canSaveActiveProject()) {
-		bool setProjectName = racoApplication_->activeProjectPath().empty();
-		auto newPath = QFileDialog::getSaveFileName(this, "Save As...", QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
+		const bool setProjectName = racoApplication_->activeProjectPath().empty();
+		const auto dialogCaption = newID ? "Save As with new ID..." : "Save As...";
+		auto newPath = QFileDialog::getSaveFileName(this, dialogCaption, QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string()), "Ramses Composer Assembly (*.rca)");
 		if (newPath.isEmpty()) {
 			return false;
 		}
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		std::string errorMsg;
-		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
+		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName, newID)) {
 			updateActiveProjectConnection();
 			updateProjectSavedConnection();
+			updateUpgradeMenu();
 			return true;
 		} else {
 			updateApplicationTitle();
@@ -745,6 +751,10 @@ bool MainWindow::saveAsActiveProject() {
 		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);
 	}
 	return false;
+}
+
+bool MainWindow::saveAsActiveProjectWithNewID() {
+	return saveAsActiveProject(true);
 }
 
 void MainWindow::updateSavedLayoutMenu() {
@@ -761,16 +771,16 @@ void MainWindow::updateSavedLayoutMenu() {
 void MainWindow::updateUpgradeMenu() {
 	auto maxFeatureLevel = static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
 	auto currentFeatureLevel = racoApplication_->activeRaCoProject().project()->featureLevel();
-	if (currentFeatureLevel < maxFeatureLevel) {
-		upgradeMenu_->clear();
+	if ((currentFeatureLevel < maxFeatureLevel) && (!racoApplication_->activeProjectPath().empty())) {
+		ui->menuUpgrade->clear();
 		for (int fl = currentFeatureLevel + 1; fl <= maxFeatureLevel; fl++) {
-			upgradeMenu_->addAction(QString::fromStdString(fmt::format("&{}. Feature Level {}", fl, fl)), [fl, this]() {
+			ui->menuUpgrade->addAction(QString::fromStdString(fmt::format("&{}. Feature Level {}", fl, fl)), [fl, this]() {
 				upgradeActiveProject(fl);
 			});
 		}
-		upgradeMenu_->setDisabled(false);	
+		ui->menuUpgrade->setDisabled(false);
 	} else {
-		upgradeMenu_->setDisabled(true);	
+		ui->menuUpgrade->setDisabled(true);
 	}
 }
 

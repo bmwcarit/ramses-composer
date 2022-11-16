@@ -80,9 +80,13 @@ extern const char textureTypeName[];
 using Texture = Proxy<textureTypeName, TextureSampler2DBase>;
 using STexture = std::shared_ptr<Texture>;
 
-// BaseTexture -> Texture
+// BaseTexture -> CubeMap
 // BaseTexture -> TextureSampler2DBase -> Texture
 //                                     -> RenderBuffer
+
+extern const char blitPassTypeName[];
+using BlitPass = Proxy<blitPassTypeName>;
+using SBlitPass = std::shared_ptr<BlitPass>;
 
 extern const char cubeMapTypeName[];
 using CubeMap = Proxy<cubeMapTypeName>;
@@ -103,6 +107,10 @@ using SOrthographicCamera = std::shared_ptr<OrthographicCamera>;
 extern const char renderBufferTypeName[];
 using RenderBuffer = Proxy<renderBufferTypeName, TextureSampler2DBase>;
 using SRenderBuffer = std::shared_ptr<RenderBuffer>;
+
+extern const char renderBufferMSTypeName[];
+using RenderBufferMS = Proxy<renderBufferMSTypeName>;
+using SRenderBufferMS = std::shared_ptr<RenderBufferMS>;
 
 extern const char renderLayerTypeName[];
 using RenderLayer = Proxy<renderLayerTypeName>;

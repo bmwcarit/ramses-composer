@@ -84,9 +84,17 @@ namespace raco::serialization {
  *     - renamed "order" -> "renderOrder"
  *     - made 'enabled', 'renderOrder', and 'clearColor' linkable
  *     Added "frustumType" property to PerspectiveCamera and changed frustum from static struct to dynamic Table.
+ * 45: RenderLayer changes
+*      - added LinkEndAnnotation to all properties in the renderableTags property
+*      - removed HiddenProperty from renderableTags property
+ * 46: Added BlitPass usertype.
+ *     Added RenderBufferMS usertype.
+ *     Added 8 RenderBufferMS reference properties to RenderTarget.
+ *     Changed BaseCamera viewport width and height ranges.
+ *     Added ExpectEmptyReference annotation to RenderTarget::buffer0 property.
 */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 44;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 46;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

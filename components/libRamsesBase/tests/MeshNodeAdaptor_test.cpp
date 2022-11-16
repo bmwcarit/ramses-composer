@@ -13,10 +13,12 @@
 #include "ramses_adaptor/MeshNodeAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
+#include "user_types/RenderBufferMS.h"
 
 using namespace raco;
 using raco::ramses_adaptor::MeshNodeAdaptor;
 using raco::ramses_adaptor::SceneAdaptor;
+using raco::user_types::RenderBufferMS;
 using raco::user_types::Material;
 using raco::user_types::Mesh;
 using raco::user_types::MeshNode;
@@ -324,6 +326,24 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_materialReset_and_dep
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
 	EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
 	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+}
+
+TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_multiSampledMaterial_invalidNoCrash) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto material = create_material("Material", "shaders/multisampler.vert", "shaders/multisampler.frag");
+	auto meshNode = create_meshnode("MeshNode", mesh, material);
+	auto renderBufferMS = create<RenderBufferMS>("RBMS", {});
+
+	context.set(ValueHandle{material}.get("uniforms").get("textureSampler"), renderBufferMS);
+	dispatch();
+
+	context.set({renderBufferMS, &RenderBufferMS::sampleCount_}, -1);
+	dispatch();
+	ASSERT_TRUE(context.errors().hasError(ValueHandle{material}.get("uniforms").get("textureSampler")));
+
+	context.set({renderBufferMS, &RenderBufferMS::sampleCount_}, 2);
+	dispatch();
+	ASSERT_FALSE(context.errors().hasError(ValueHandle{material}.get("uniforms").get("textureSampler")));
 }
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicCreation_meshBeforeMeshNode) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");

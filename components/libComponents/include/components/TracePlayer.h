@@ -11,10 +11,12 @@
 
 #include <functional>
 #include <memory>
+#include <QTextStream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <forward_list>
 
 class QJsonArray;
 class QJsonObject;
@@ -99,13 +101,15 @@ private:
 	bool isLastFrame() const;
 	timeInMilliSeconds getNextTs();
 	void setState(PlayerState newState);
-	void addError(const std::string& msg, core::ErrorLevel level);
+	void addError(const std::string& msg, core::ErrorLevel level, bool callLogChange = true);
 	void lockLua();
 	void makeFramesConsistent();
-	QJsonValue deepAddMissingProperties(const QJsonValue& qjPrev, const QJsonValue& qjCurr, std::vector<std::string>& propertyPath);
+	QJsonValue deepAddMissingProperties(const QJsonValue& qjPrev, const QJsonValue& qjCurr, std::vector<std::string>& propertyPath, int index);
 	QJsonValue buildFullFrameFromLua(std::unordered_set<core::SEditorObject> const& sceneLuaList);
 	QJsonValue deepCopyFromLua(raco::core::ValueHandle const& luaValHandle);
 	void rebuildFrameSceneData(int index, const QJsonValue& qjPrev, const QJsonValue& qjCurr);
+	void readLinesForNextFrame();
+	int getPropertyLineNumber(const QString& propertyKey);
 
 	class CodeControlledObjectExtension;
 	std::unique_ptr<CodeControlledObjectExtension> racoCoreInterface_;
@@ -125,6 +129,9 @@ private:
 	bool looping_{false};
 	std::string filePath_{};
 	std::vector<int> framesTsList_{};
+	int keyLineNumber_{0};
+	QTextStream textStream_;
+	std::forward_list<std::pair<int, QString>> traceFileLines_;
 };
 
 }  // namespace raco::components

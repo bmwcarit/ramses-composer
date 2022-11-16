@@ -78,19 +78,62 @@ void SceneBackend::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	}
 }
 
+std::vector<rlogic::WarningData> SceneBackend::logicEngineFilteredValidation() const {
+	std::vector<rlogic::WarningData> filteredWarnings;
+	std::vector<rlogic::WarningData> warnings = logicEngine()->validate();
 
-bool SceneBackend::sceneValid() const {
-	return currentScene()->validate() == ramses::StatusOK && logicEngine()->validate().empty();
+	for (auto& warning : warnings) {
+		if (warning.message.find("has no ingoing links! Node should be deleted or properly linked!") != std::string::npos) {
+			continue;
+		}
+		if (warning.message.find("has no outgoing links! Node should be deleted or properly linked!") != std::string::npos) {
+			continue;
+		}
+		filteredWarnings.emplace_back(warning);
+	}
+	return filteredWarnings;
+}
+
+
+std::string SceneBackend::ramsesFilteredValidationReport(core::ErrorLevel minLevel) const {
+	auto report = currentScene()->getValidationReport(minLevel == core::ErrorLevel::ERROR ? ramses::EValidationSeverity_Error : ramses::EValidationSeverity_Warning);
+
+	std::istringstream stream(report);
+	std::string line;
+	std::string filtered;
+	while (std::getline(stream, line)) {
+		if (line.find("rendergroup does not contain any meshes") != std::string::npos) {
+			continue;
+		}
+		filtered.append(line).append("\n");
+	}
+	return filtered;
+}
+
+core::ErrorLevel SceneBackend::sceneValid() const {
+	auto status = currentScene()->validate();
+	if (status != ramses::StatusOK) {
+		std::string msg = currentScene()->getStatusMessage(status);
+		if (msg == "Validation error" && !ramsesFilteredValidationReport(core::ErrorLevel::ERROR).empty()) {
+			return core::ErrorLevel::ERROR;
+		} else if (msg == "Validation warning" && !ramsesFilteredValidationReport(core::ErrorLevel::WARNING).empty()) {
+			return core::ErrorLevel::WARNING;
+		}
+	}
+	if (!logicEngineFilteredValidation().empty()) {
+		return core::ErrorLevel::ERROR;
+	}
+	return core::ErrorLevel::NONE;
 }
 
 std::string SceneBackend::getValidationReport(core::ErrorLevel minLevel) const {
-	auto logicErrors = logicEngine()->validate();
+	auto logicErrors = logicEngineFilteredValidation();
 	std::string logicErrorMessages;
 	for (const auto& logicError : logicErrors) {
 		logicErrorMessages.append(logicError.message).append("\n");
 	}
 
-	return currentScene()->getValidationReport(minLevel == core::ErrorLevel::ERROR ? ramses::EValidationSeverity_Error : ramses::EValidationSeverity_Warning) + logicErrorMessages;
+	return ramsesFilteredValidationReport(minLevel) + logicErrorMessages;
 }
 
 uint64_t SceneBackend::currentSceneIdValue() const {
@@ -209,6 +252,11 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 
 	for (const auto* anchorPoint : logicEngine()->getCollection<rlogic::AnchorPoint>()) {
 		sceneItems.emplace_back("AnchorPoint", anchorPoint->getName().data(), -1);
+	}
+
+	for (const auto* binding : logicEngine()->getCollection<rlogic::RamsesRenderGroupBinding>()) {
+		auto parentIdx = parents[&binding->getRamsesRenderGroup()];
+		sceneItems.emplace_back("RenderGroupBinding", binding->getName().data(), parentIdx);
 	}
 
 	return sceneItems;

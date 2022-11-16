@@ -54,6 +54,32 @@ TEST_F(MaterialTest, validShader) {
 	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
 }
 
+TEST_F(MaterialTest, uniform_array) {
+	auto mat = create_material("material", (test_path() / "shaders/uniform-array.vert").string(), (test_path() / "shaders/uniform-array.frag").string());
+
+	auto checkArray = [](const Table& container, std::string propName, int size, PrimitiveType type) {
+		EXPECT_TRUE(container.hasProperty(propName));
+		EXPECT_EQ(container.get(propName)->type(), PrimitiveType::Table);
+		auto& array = container.get(propName)->asTable();
+		EXPECT_EQ(array.size(), size);
+		for (int index = 0; index < size; index++) {
+			EXPECT_EQ(array.name(index), std::to_string(index + 1));
+			EXPECT_EQ(array.get(index)->type(), type);
+		}
+	};
+
+	checkArray(*mat->uniforms_, "ivec", 2, PrimitiveType::Int);
+	checkArray(*mat->uniforms_, "fvec", 5, PrimitiveType::Double);
+
+	checkArray(*mat->uniforms_, "avec2", 4, PrimitiveType::Struct);
+	checkArray(*mat->uniforms_, "avec3", 5, PrimitiveType::Struct);
+	checkArray(*mat->uniforms_, "avec4", 6, PrimitiveType::Struct);
+
+	checkArray(*mat->uniforms_, "aivec2", 4, PrimitiveType::Struct);
+	checkArray(*mat->uniforms_, "aivec3", 5, PrimitiveType::Struct);
+	checkArray(*mat->uniforms_, "aivec4", 6, PrimitiveType::Struct);
+}
+
 TEST_F(MaterialTest, settingShaderShouldAutomaticallySetOtherShadersIfPresent) {
 	auto def = makeFile("shaders/basic.def", "");
 

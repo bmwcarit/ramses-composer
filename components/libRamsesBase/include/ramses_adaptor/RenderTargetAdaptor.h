@@ -23,7 +23,10 @@ public:
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	std::array<components::Subscription, 8> subscriptions_;
+	template <typename RenderBufferAdaptorClass>
+	bool collectBuffers(std::vector<ramses_base::RamsesRenderBuffer>& buffers, const std::initializer_list<raco::core::SEditorObject>& userTypeBuffers, ramses::RenderTargetDescription& rtDesc, core::Errors* errors);
+
+	std::array<components::Subscription, 16> subscriptions_;
 };
 
 };	// namespace raco::ramses_adaptor

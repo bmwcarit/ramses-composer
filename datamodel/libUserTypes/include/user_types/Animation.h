@@ -44,8 +44,6 @@ public:
 		properties_.emplace_back("outputs", &outputs_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
-
 	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;

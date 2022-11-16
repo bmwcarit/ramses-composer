@@ -33,7 +33,7 @@ OrthographicCameraAdaptor::~OrthographicCameraAdaptor() {
 
 bool OrthographicCameraAdaptor::sync(core::Errors* errors) {
 	SpatialAdaptor::sync(errors);
-	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get());
+	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get(), errors);
 	(*ramsesObject()).setFrustum(static_cast<float>(*editorObject()->frustum_->left_), static_cast<float>(*editorObject()->frustum_->right_), static_cast<float>(*editorObject()->frustum_->bottom_), static_cast<float>(*editorObject()->frustum_->top_), static_cast<float>(*editorObject()->frustum_->near_), static_cast<float>(*editorObject()->frustum_->far_));
 	// The logic engine will always set the entire struct even if there is a link for only one of the values, and use the default values in the binding
 	// for the non-linked elements in the struct - so we need to also set the default values for the bindings.

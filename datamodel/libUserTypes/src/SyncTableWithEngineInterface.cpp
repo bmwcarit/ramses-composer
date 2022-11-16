@@ -18,6 +18,7 @@
 #include "user_types/Texture.h"
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/UserObjectFactory.h"
+#include "user_types/RenderBufferMS.h"
 
 namespace raco::user_types {
 
@@ -74,6 +75,10 @@ raco::data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
 
 		case EnginePrimitive::TextureSampler2D:
 			return UserObjectFactory::staticCreateProperty<STextureSampler2DBase, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::TextureSampler2DMS:
+			return UserObjectFactory::staticCreateProperty<SRenderBufferMS, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
 			break;
 
 		case EnginePrimitive::TextureSamplerCube:

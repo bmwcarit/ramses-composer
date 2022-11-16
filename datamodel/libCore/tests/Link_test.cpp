@@ -1570,3 +1570,14 @@ end
 	app.doOneLoop();
 	checkLinks(*app.activeRaCoProject().project(), {{sprop, eprop, true}});
 }
+
+TEST_F(LinkTest, uniform_array) {
+	auto mat = create_material("material", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
+	auto lua = create_lua("lua", "scripts/array.lua");
+
+	auto [spropel, epropel] = link(lua, {"outputs", "float_array", "1"}, mat, {"uniforms", "fvec", "2"});
+	checkLinks({{spropel, epropel, true}});
+
+	auto [sproparr, eproparr] = link(lua, {"outputs", "float_array"}, mat, {"uniforms", "fvec"});
+	checkLinks({{sproparr, eproparr, true}});
+}

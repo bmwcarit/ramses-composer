@@ -106,12 +106,13 @@ RamsesPreviewWindow::State& RamsesPreviewWindow::nextState() {
 }
 
 void RamsesPreviewWindow::commit(bool forceUpdate) {
-	if (forceUpdate || !displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.filteringMode != current_.filteringMode) {
+	if (forceUpdate || !displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.sampleRate != current_.sampleRate) {
 		// Unload current scenes
 		reduceAndWaitSceneState(rendererBackend_, (displayId_.isValid()) ? ramses::RendererSceneState::Available : ramses::RendererSceneState::Unavailable, framebufferScene_, current_.sceneId);
 
-		if (next_.viewportSize.width() > 0 && next_.viewportSize.height() > 0) {
+		if (next_.viewportSize.width() > 0 && next_.viewportSize.height() > 0 || next_.sampleRate != current_.sampleRate) {
 			auto& sceneControlAPI = *rendererBackend_.renderer().getSceneControlAPI();
+
 			if (!displayId_.isValid()) {
 				ramses::DisplayConfig displayConfig = {};
 				/// @todo maybe this setWindowRectangle is not needed?
@@ -138,6 +139,7 @@ void RamsesPreviewWindow::commit(bool forceUpdate) {
 				sceneControlAPI.setSceneMapping(framebufferScene_->getSceneId(), displayId_);
 			}
 			current_.viewportSize = next_.viewportSize;
+			current_.sampleRate = next_.sampleRate;
 
 			if (next_.sceneId.isValid()) {
 				/// @todo maybe we need to reset old scene mapping?
@@ -150,9 +152,8 @@ void RamsesPreviewWindow::commit(bool forceUpdate) {
 			// but an offscreen render buffer created with RamsesRenderer::createOffscreenBuffer to avoid creating the
 			// offscreen render buffer in the scene we eventually export (and in fact for Ramses this offscreen render buffer is
 			// the framebuffer - that we use it later on to blit it into our preview makes for the Ramses scene no difference).
-			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize, next_.filteringMode);
-			current_.filteringMode = next_.filteringMode;
-			offscreenBufferId_ = rendererBackend_.renderer().createOffscreenBuffer(displayId_, next_.targetSize.width(), next_.targetSize.height());
+			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize, next_.sampleRate);
+			offscreenBufferId_ = rendererBackend_.renderer().createOffscreenBuffer(displayId_, next_.targetSize.width(), next_.targetSize.height(), next_.sampleRate);
 			rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_, next_.backgroundColor.redF(), next_.backgroundColor.greenF(),
 				next_.backgroundColor.blueF(), next_.backgroundColor.alphaF());
 			rendererBackend_.renderer().flush();

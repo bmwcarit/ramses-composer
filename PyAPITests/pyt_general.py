@@ -18,6 +18,16 @@ class GeneralTests(unittest.TestCase):
     def cwd(self):
         return os.getcwd()
 
+    def findObjectByName(self, name):
+        for object in raco.instances():
+            if object.objectName.value() == name:
+                return object
+
+    def findObjectByType(self, type):
+        for object in raco.instances():
+            if object.typeName() == type:
+                return object
+
     def test_reset(self):
         raco.reset()
         self.assertEqual(len(raco.instances()), 1)
@@ -79,6 +89,30 @@ class GeneralTests(unittest.TestCase):
         raco.load(self.cwd() + "/../resources/empty-fl2.rca", 2)
         self.assertEqual(raco.projectFeatureLevel(), 2)
 
+    def test_save_check_object_id(self):
+        objectInitID = self.findObjectByType("ProjectSettings").objectID()
+        raco.save(self.cwd() + "/project.rca")
+        self.assertEqual(self.findObjectByType("ProjectSettings").objectID(), objectInitID)
+
+    def test_save_check_object_name(self):
+        raco.reset()
+        raco.save(self.cwd() + "/project.rca")
+        self.assertEqual("project", self.findObjectByType("ProjectSettings").objectName.value())
+        raco.load(self.cwd() + "/project.rca")
+        self.assertEqual("project", self.findObjectByType("ProjectSettings").objectName.value())
+
+    def test_save_as_with_new_id(self):
+        objectInitID = self.findObjectByType("ProjectSettings").objectID()
+        raco.save(self.cwd() + "/project.rca", True)
+        self.assertNotEqual(self.findObjectByType("ProjectSettings").objectID(), objectInitID)
+
+    def test_save_as_with_new_id_same_path(self):
+        objectInitID = self.findObjectByType("ProjectSettings").objectID()
+        raco.save(self.cwd() + "/project.rca", True)
+        objectNewID1 = self.findObjectByType("ProjectSettings").objectID()
+        raco.save(self.cwd() + "/project.rca", True)
+        objectNewID2 = self.findObjectByType("ProjectSettings").objectID()
+        self.assertNotEqual(objectNewID1, objectNewID2)
 
     def test_project_path(self):
         self.assertEqual(raco.projectPath(), "")
@@ -1011,3 +1045,99 @@ class GeneralTests(unittest.TestCase):
         mesh.meshIndex = 1
         self.assertEqual({'prop1': 'truck mesh property'}, mesh.metadata())
 
+    def test_setTags(self):
+        node = raco.create("Node", "node")
+        node.setTags(['foo', 'bar'])
+        self.assertEqual(node.getTags(), ['foo', 'bar'])
+
+        material = raco.create("Material", "mat")
+        material.setTags(['foo', 'bar'])
+        self.assertEqual(material.getTags(), ['foo', 'bar'])
+
+        layer = raco.create("RenderLayer", "layer")
+        layer.setTags(['foo', 'bar'])
+        self.assertEqual(layer.getTags(), ['foo', 'bar'])
+
+    def test_setMaterialFilterTags(self):
+        layer = raco.create("RenderLayer", "layer")
+        layer.setMaterialFilterTags(['foo', 'bar'])
+        self.assertEqual(layer.getMaterialFilterTags(), ['foo', 'bar'])
+
+    def test_setRenderableTags(self):
+        layer = raco.create("RenderLayer", "layer")
+        self.assertEqual(layer.renderableTags.keys(), [])
+
+        layer.setRenderableTags([("red", 1), ("blue", 3)])
+
+        self.assertEqual(layer.renderableTags.keys(), ["red", "blue"])
+        self.assertEqual(layer.renderableTags.red.value(), 1)
+        self.assertEqual(layer.renderableTags.blue.value(), 3)
+
+    def test_feature_level_3_render_order(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+        
+        layer = raco.create("RenderLayer", "layer")
+        layer.setRenderableTags([("red", 1), ("blue", 3)])
+
+        self.assertEqual(layer.getRenderableTags(), [("red", 1), ("blue", 3)])
+        self.assertEqual(layer.renderableTags.keys(), ["red", "blue"])
+        self.assertEqual(layer.renderableTags.red.value(), 1)
+        self.assertEqual(layer.renderableTags.blue.value(), 3)
+
+        link_order = raco.addLink(lua.outputs.ointeger, layer.renderableTags.red)
+
+        self.assertEqual(layer.renderableTags.red.value(), 0)
+        lua.inputs.integer = 3
+        self.assertEqual(layer.renderableTags.red.value(), 6)
+        self.assertEqual(layer.getRenderableTags(), [("red", 6), ("blue", 3)])
+
+    def test_add_external_project(self):
+        raco.addExternalProject(self.cwd() + R"/../resources/example_scene.rca")
+
+    def test_add_external_project_invalid_path(self):
+        with self.assertRaises(ValueError):
+            raco.addExternalProject("thisShouldNotExist.rca")
+
+    def test_add_external_references_empty_project(self):
+        with self.assertRaises(ValueError):
+            raco.addExternalReferences("thisShouldNotExist.rca", "Texture")
+
+    def test_add_external_references(self):
+        result = raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Texture")
+        self.assertEqual(1, len(result))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckTexture" and x.typeName() == "Texture", result)))
+
+        instances = raco.instances()
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckTexture" and x.typeName() == "Texture", instances)))
+        self.assertFalse(any(filter(lambda x: x.objectName.value() == "DuckMaterial" and x.typeName() == "Material", instances)))
+        self.assertFalse(any(filter(lambda x: x.objectName.value() == "DuckMesh" and x.typeName() == "Mesh", instances)))
+
+    def test_add_external_references_should_also_add_dependencies(self):
+        raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Material")
+        instances = raco.instances()
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckTexture" and x.typeName() == "Texture", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckMaterial" and x.typeName() == "Material", instances)))
+        self.assertFalse(any(filter(lambda x: x.objectName.value() == "DuckMesh" and x.typeName() == "Mesh", instances)))
+
+    def test_add_external_references_multiple_times_different_types_should_work(self):
+        raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Texture")
+        raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Mesh")
+        instances = raco.instances()
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckTexture" and x.typeName() == "Texture", instances)))
+        self.assertFalse(any(filter(lambda x: x.objectName.value() == "DuckMaterial" and x.typeName() == "Material", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckMesh" and x.typeName() == "Mesh", instances)))
+
+    def test_add_external_references_multiple_types_should_work(self):
+        result = raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", ["Texture", "Mesh"])
+        self.assertEqual(2, len(result))
+
+        instances = raco.instances()
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckTexture" and x.typeName() == "Texture", instances)))
+        self.assertFalse(any(filter(lambda x: x.objectName.value() == "DuckMaterial" and x.typeName() == "Material", instances)))
+        self.assertTrue(any(filter(lambda x: x.objectName.value() == "DuckMesh" and x.typeName() == "Mesh", instances)))
+
+    def test_add_external_references_multiple_times_same_types_should_work(self):
+        raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Texture")
+        second_result = raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Texture")
+        self.assertEqual(0, len(second_result))

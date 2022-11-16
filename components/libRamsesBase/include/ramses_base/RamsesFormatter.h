@@ -210,6 +210,8 @@ struct fmt::formatter<ramses::ERamsesObjectType> : formatter<string_view> {
 				return format_to(ctx.out(), "BlitPass");
 			case ramses::ERamsesObjectType::ERamsesObjectType_TextureSampler:
 				return format_to(ctx.out(), "TextureSampler");
+			case ramses::ERamsesObjectType::ERamsesObjectType_TextureSamplerMS:
+				return format_to(ctx.out(), "TextureSamplerMS");
 			case ramses::ERamsesObjectType::ERamsesObjectType_RenderBuffer:
 				return format_to(ctx.out(), "RenderBuffer");
 			case ramses::ERamsesObjectType::ERamsesObjectType_RenderTarget:

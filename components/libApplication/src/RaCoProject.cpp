@@ -129,7 +129,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 	// Mechanism for losing the module references:
 	// - reroot / set LuaModule uri property
 	// - call LuaScript::onAfterReferencedObjectChanged as side effect of operation above
-	// - LuaScript module sync will now remove the module properties because the lua file can't be loaded because 
+	// - LuaScript module sync will now remove the module properties because the lua file can't be loaded because
 	//   the LuaScript uri property has not been rerooted yet but is resolved using the new project path.
 	// - reroot / set LuaScript uri property
 	//   restores the module properties again but the reference values are now lost (not anymore, caching works again)
@@ -138,7 +138,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 	// - set all uri properties before calling the side effect handlers; problematic because we would be opening the
 	//   BaseContext::set function and reordering the steps it takes. might be necessary though.
 	// update: we now have module caching in the LuaScript working again;
-	// but: we still potentially call some callback handlers multiple times; 
+	// but: we still potentially call some callback handlers multiple times;
 	// it would be nice the optimize this but that needs an extension of the second solution above.
 	auto instances{project_.instances()};
 	for (auto& object : instances) {
@@ -187,6 +187,16 @@ void RaCoProject::applyDefaultCachedPaths() {
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, raco::utils::u8path(defaultFolders->scriptSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, raco::utils::u8path(defaultFolders->interfaceSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Shader, raco::utils::u8path(defaultFolders->shaderSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+}
+
+void RaCoProject::setupCachedPathSubscriptions(const raco::components::SDataChangeDispatcher& dataChangeDispatcher) {
+	lifecycleSubscription_ = dataChangeDispatcher->registerOnObjectsLifeCycle([this, dataChangeDispatcher](SEditorObject obj) {
+		if (obj->isType<ProjectSettings>()) {
+			subscribeDefaultCachedPathChanges(dataChangeDispatcher);
+		} 
+	}, 
+	[](auto) {});
+	subscribeDefaultCachedPathChanges(dataChangeDispatcher);
 }
 
 void RaCoProject::subscribeDefaultCachedPathChanges(const raco::components::SDataChangeDispatcher& dataChangeDispatcher) {
@@ -275,7 +285,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 
 		result->context_->set({sRenderPass, &user_types::RenderPass::camera_}, sCamera);
 		result->context_->set({sRenderPass, &user_types::RenderPass::layer0_}, sRenderLayer);
-		result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Value<int>>(0));
+		result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Property<int, LinkEndAnnotation>>(0, LinkEndAnnotation(3)));
 
 		result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
 		result->context_->set({sCamera, &user_types::Node::translation_, &Vec3f::z}, 10.0);
@@ -391,7 +401,7 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		}
 	}
 
-	// Selectively log errors: 
+	// Selectively log errors:
 	// - we need to log errors when loading external projects here
 	// - we don't need to log errors here when called from RaCoApplication::switchActiveRacoProject; see comment there
 	if (logErrors) {
@@ -435,7 +445,7 @@ QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::st
 QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
 	// On discarding objects during save
 	// - we discard all objects which can not be recreated by the external reference and/or prefab update during load.
-	// 
+	//
 	// The rules in detail
 	// - local PrefabInstance children are discarded
 	//   - except the modifiable lua interface scripts
@@ -456,7 +466,7 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 	//   - an object can't be discarded if it is referenced by a non-discarded object or part of a non-discarded link.
 	// 	   otherwise we would loose the references in the saved file.
 
-	// Implementation note: we destructively delete the discarded objects and links here and restore them after serialization 
+	// Implementation note: we destructively delete the discarded objects and links here and restore them after serialization
 	// of the project from the current undo stack entry.
 
 	// Reset model changes to allow data loss detection below.
@@ -513,8 +523,8 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 		// - extref objects
 		// - children of prefab instances but only if read-only, i.e. no interface lua scripts
 		auto newPartitionPoint = std::partition(instances.begin(), instances.end(), [](SEditorObject object) -> bool {
-			return (PrefabOperations::findContainingPrefabInstance(object->getParent()) && Queries::isReadOnly(object)) || 
-				object->query<ExternalReferenceAnnotation>();
+			return (PrefabOperations::findContainingPrefabInstance(object->getParent()) && Queries::isReadOnly(object)) ||
+				   object->query<ExternalReferenceAnnotation>();
 		});
 
 		// Iteratively remove objects from the discardable set until we achieved a stable discardable set
@@ -547,9 +557,9 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 					}
 				}
 
-				// Can't discard LuaScriptModules which are used since this might lead to a LuaScript to lose its 
+				// Can't discard LuaScriptModules which are used since this might lead to a LuaScript to lose its
 				// properties as a side effect of the reference removal which is not allowed for interface lua scripts.
-				// This needs to take into account potential nesting of modules so it is not sufficient to check if 
+				// This needs to take into account potential nesting of modules so it is not sufficient to check if
 				// the referencing object is an interface lua script.
 				if (object->as<user_types::LuaScriptModule>()) {
 					if (!object->referencesToThis().empty()) {
@@ -677,16 +687,38 @@ bool RaCoProject::save(std::string& outError) {
 	return true;
 }
 
-bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool setProjectName) {
+bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool setProjectName, bool setNewID) {
 	auto oldPath = project_.currentPath();
 	auto oldProjectFolder = project_.currentFolder();
 	QString absPath = QFileInfo(fileName).absoluteFilePath();
 	auto newPath = absPath.toStdString();
-	if (newPath == oldPath) {
+	if ((newPath == oldPath) && (!setNewID)) {
 		return save(outError);
 	} else {
-		project_.setCurrentPath(newPath);
-		onAfterProjectPathChange(oldProjectFolder, project_.currentFolder());
+		// Note on the undo stack:
+		// both the creation of a new ProjectSettings object and the project name change will be recorded in the change recorder
+		// by the context operations, but no undo stack entry will be created.
+		// But we need an undo stack entry since the save below wil performa a restore from the undo stack.
+		// However the onAfterProjectPathChange will perform an unconditional undo stack push.
+		// This means that using the context in the operations below is OK as long as we perform the onAfterProjectPathChange afterwards.
+		if (setNewID) {
+			// We can't change the id of an object so we need some trickery here:
+			// Create a new ProjectSettings object, copy the properties from the old one (except objectID) and then delete the old object
+			auto newProjectSettingsObject = context_->createObject(ProjectSettings::typeDescription.typeName, project_.settings()->objectName());
+			auto translateRef = [this](SEditorObject srcObj) -> SEditorObject {
+				return srcObj;
+			};
+			DataChangeRecorder localChanges;
+			UndoHelpers::updateEditorObject(
+				project_.settings().get(), newProjectSettingsObject, translateRef,
+				[](const std::string& propName) {
+					return propName == "objectID";
+				},
+				*context_->objectFactory(),
+				&localChanges, true, false);
+
+			context_->deleteObjects(std::vector<SEditorObject>{project_.settings()});
+		}
 		if (setProjectName) {
 			auto projName = raco::utils::u8path(newPath).stem().string();
 			auto settings = project_.settings();
@@ -694,6 +726,10 @@ bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool se
 				context_->set({settings, &raco::core::EditorObject::objectName_}, projName);
 			}
 		}
+		project_.setCurrentPath(newPath);
+		// Note: this will perform an undo stack push
+		onAfterProjectPathChange(oldProjectFolder, project_.currentFolder());
+		// Note: save will perform a restore from the undo stack as part of the file save optimization
 		if (save(outError)) {
 			undoStack_.reset();
 			dirty_ = false;
@@ -701,7 +737,6 @@ bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool se
 		} else {
 			return false;
 		}
-			
 	}
 }
 
@@ -721,7 +756,7 @@ Errors* RaCoProject::errors() {
 	return &errors_;
 }
 
-const Errors* RaCoProject::errors() const{
+const Errors* RaCoProject::errors() const {
 	return &errors_;
 }
 

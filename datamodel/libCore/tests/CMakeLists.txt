@@ -45,6 +45,8 @@ raco_package_add_test_resources(
     shaders/basic.vert
     shaders/simple_texture.frag
     shaders/simple_texture.vert
+    shaders/uniform-array.vert
+    shaders/uniform-array.frag
     meshes/Duck.glb
     meshes/defaultQuad.gltf
     meshes/InterpolationTest/InterpolationTest.gltf
@@ -58,6 +60,7 @@ raco_package_add_test_resources(
     scripts/struct-nested.lua
     scripts/SimpleScript.lua
     scripts/interface-scalar-types.lua
+    scripts/array.lua
 )
 
 
@@ -147,6 +150,8 @@ raco_package_add_test_resources(
     migrationTestData/V40.rca
     migrationTestData/V41.rca
     migrationTestData/V43.rca
+    migrationTestData/V44.rca
+    migrationTestData/V45.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

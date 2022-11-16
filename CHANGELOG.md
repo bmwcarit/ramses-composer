@@ -24,6 +24,41 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.5.0] Multisampling, dynamic render order control, Python API improvements
+
+* **File version number has changed. Files saved with RaCo 1.5.0 cannot be opened by previous versions.**
+* **Export now supports ramses-logic feature levels up to 3. Scenes exported with feature level 3 can't be opened with ramses-logic before v1.2.0.**
+
+### Added
+* Available at feature level 3: Dynamic control of render order by making the individual `renderableTags` properties for each tag linkable.
+* Python API changes
+    * Added `get/setTags`, `get/setMaterialFilterTags`, and `get/setRenderableTags` functions to access the `tags`, `materialFilterTags`, and `renderableTags` properties en bloc.
+    * The `renderableTags` property in `RenderLayer` objects is now visible from Python to allow linking it.
+	* Added `addExternalProject(path)` to add a project as external reference.
+	* Added `addExternalReferences(path, type)` to import all objects of a certain type as external references. Type can be either a single string or a list of strings to import multiple types at once. Returns the imported objects.
+* Multisampling support
+  * Added MSAA option to Ramses preview window.
+  * Added RenderBufferMS usertype that handles Ramses TextureSampler2DMS objects.
+  * Added Material support for shader uniform type sampler2DMS.
+  * Added new example shaders multisampler.(frag/vert).
+* Added BlitPass usertype.
+* Added support for array uniforms in shaders. Only simple types but not struct are supported as array elements.
+
+### Changes
+* Update ramses-logic from 1.1.0 to 1.3.0.
+* Update ramses from 27.0.121 to 27.0.126.
+* Items in the Resource View are now grouped by their type.
+* If exporting in headless fails, the errors causing that failure are now always logged into the console output.
+* Upgrade Feature Level menu moved down below Save As...
+* TracePlayer now throws an error together with the trace line number, timestamp and the step at which error occurs.
+* "Save As with new ID" added.
+
+### Fixes
+* Removed double scrollbar in Project Settings.
+* Fixed wrong Feature Level number in RCA file after upgrade.
+* Fixed misleading error message sometimes appearing for empty texture uniforms.
+
+
 ## [1.4.0] Python API enhancements, various usability improvements and bugfixes
 
 ### Added

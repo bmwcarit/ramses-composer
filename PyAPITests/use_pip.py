@@ -22,7 +22,7 @@ class UsePip(unittest.TestCase):
         if platform.system() == "Windows":
             self._tested_module_path = '../build/release/bin/python-3.8.10-with-pip/Lib/site-packages/simplejson/__init__.py'
         elif platform.system() == "Linux":
-            self._tested_module_path = '../build/release/bin/python-3.8.10-with-pip/python3.8/lib/python3.8/site-packages/simplejson/__init__.py'
+            self._tested_module_path = '../build/release/bin/python-3.8.0-with-pip/python3.8/lib/python3.8/site-packages/simplejson/__init__.py'
         else:
             raise RuntimeError('Unknown platform')
             

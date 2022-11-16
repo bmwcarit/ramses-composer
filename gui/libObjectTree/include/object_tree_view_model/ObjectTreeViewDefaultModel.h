@@ -51,7 +51,7 @@ public:
 	};
 
 	ObjectTreeViewDefaultModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string> &allowedCreatableUserTypes,
-		bool groupExternalReferences = false);
+		bool groupExternalReferences = false, bool groupByType = false);
 	
 	int columnCount(const QModelIndex& parent = QModelIndex()) const override;
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -130,13 +130,14 @@ protected:
 	components::Subscription afterDispatchSubscription_;
 	components::Subscription extProjectChangedSubscription_;
 	bool groupExternalReferences_;
+	bool groupByType_;
 
 	// The dirty flag is set if the tree needs to be rebuilt. See afterDispatchSubscription_ member variable usage.
 	bool dirty_ = false;
 
 	virtual std::vector<core::SEditorObject> filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const;
 	virtual void setNodeExternalProjectInfo(ObjectTreeNode* node) const;
-	void constructTreeUnderNode(ObjectTreeNode* rootNode, const std::vector<core::SEditorObject>& children, bool groupExternalReferences);
+	void constructTreeUnderNode(ObjectTreeNode* rootNode, const std::vector<core::SEditorObject>& children, bool groupExternalReferences, bool groupByTypes);
 
 	void resetInvisibleRootNode();
 	void updateTreeIndexes();
@@ -161,11 +162,13 @@ protected:
 		{"AnimationChannel", raco::style::Icons::instance().typeAnimationChannel},
 		{"Animation", raco::style::Icons::instance().typeAnimation},
 		{"Timer", raco::style::Icons::instance().typeTimer},
-		{"AnchorPoint", raco::style::Icons::instance().typeAnchorPoint}
+		{"AnchorPoint", raco::style::Icons::instance().typeAnchorPoint},
+		{"BlitPass", raco::style::Icons::instance().typeBlitPass}
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;
 	QMimeData* generateMimeData(const QModelIndexList& indexes, const std::string& originPath) const;
+	void ensureTypeParentExists(std::map<std::string, ObjectTreeNode*>& typeParentMap, const std::string& typeName, ObjectTreeNode* parentNode);
 };
 
 }

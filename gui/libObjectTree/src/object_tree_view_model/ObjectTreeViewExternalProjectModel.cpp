@@ -159,7 +159,7 @@ void ObjectTreeViewExternalProjectModel::buildObjectTree() {
 		projectRootNode->setBelongsToExternalProject(projectPath, projectName);
 		if (commandInterface) {
 			auto filteredExternalProjectObjects = filterForTopLevelObjects(commandInterface->project()->instances());
-			constructTreeUnderNode(projectRootNode, filteredExternalProjectObjects, groupExternalReferences_);
+			constructTreeUnderNode(projectRootNode, filteredExternalProjectObjects, groupExternalReferences_, false);
 		}
 	}
 	updateTreeIndexes();

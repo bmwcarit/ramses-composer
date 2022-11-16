@@ -15,6 +15,7 @@ add_library(libUserTypes
 	include/user_types/BaseCamera.h
 	include/user_types/BaseObject.h
 	include/user_types/BaseTexture.h
+	include/user_types/BlitPass.h src/BlitPass.cpp
 	include/user_types/CubeMap.h src/CubeMap.cpp
 	include/user_types/DefaultValues.h
 	include/user_types/EngineTypeAnnotation.h
@@ -32,6 +33,7 @@ add_library(libUserTypes
 	include/user_types/Prefab.h src/Prefab.cpp
 	include/user_types/PrefabInstance.h src/PrefabInstance.cpp
 	include/user_types/RenderBuffer.h
+	include/user_types/RenderBufferMS.h src/RenderBufferMS.cpp
 	include/user_types/RenderLayer.h
 	include/user_types/RenderPass.h src/RenderPass.cpp
 	include/user_types/RenderTarget.h

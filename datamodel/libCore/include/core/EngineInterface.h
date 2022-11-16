@@ -60,7 +60,8 @@ enum class EnginePrimitive {
 	TextureSampler3D,
 	TextureSamplerCube,
 	// Types added later, in the bottom of the enum to avoid file format changing
-	Int64
+	Int64,
+	TextureSampler2DMS
 };
 
 struct PropertyInterface;
@@ -90,6 +91,7 @@ struct PropertyInterface {
 			{EnginePrimitive::Array, data_storage::PrimitiveType::Table},
 			{EnginePrimitive::Struct, data_storage::PrimitiveType::Table},
 			{EnginePrimitive::TextureSampler2D, data_storage::PrimitiveType::Ref},
+			{EnginePrimitive::TextureSampler2DMS, data_storage::PrimitiveType::Ref},
 			{EnginePrimitive::TextureSampler3D, data_storage::PrimitiveType::Ref},
 			{EnginePrimitive::TextureSamplerCube, data_storage::PrimitiveType::Ref}};
 

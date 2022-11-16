@@ -25,6 +25,7 @@
 #include "ramses_adaptor/TimerAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/Animation.h"
+#include "user_types/BlitPass.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Prefab.h"
 #include "user_types/RenderPass.h"
@@ -463,19 +464,21 @@ void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changed
 		rebuildSortedDependencyGraph(SEditorObjectSet(project_->instances().begin(), project_->instances().end()));
 		// Check if all render passes have a unique order index, otherwise Ramses renders them in arbitrary order.
 		errors_->removeIf([](core::ErrorItem const& error) {
-			return error.valueHandle().isRefToProp(&user_types::RenderPass::renderOrder_);
+			return error.valueHandle().isRefToProp(&user_types::RenderPass::renderOrder_) || error.valueHandle().isRefToProp(&user_types::BlitPass::renderOrder_);
 		});
-		auto renderPasses = core::Queries::filterByTypeName(project_->instances(), {user_types::RenderPass::typeDescription.typeName});
-		std::map<int, std::vector<user_types::SRenderPass>> orderIndices;
-		for (auto const& rpObj : renderPasses) {
-			auto rp = rpObj->as<user_types::RenderPass>();
-			orderIndices[rp->renderOrder_.asInt()].emplace_back(rp);
+
+		std::map<int, std::vector<raco::core::SEditorObject>> orderIndices;
+		for (auto const& obj : project_->instances()) {
+			if (obj->isType<raco::user_types::RenderPass>() || obj->isType<raco::user_types::BlitPass>()) {
+				int order = obj->get("renderOrder")->asInt();
+				orderIndices[order].emplace_back(obj);
+			}
 		}
 		for (auto const& oi : orderIndices) {
 			if (oi.second.size() > 1) {				
-				auto errorMsg = fmt::format("The render passes {} have the same order index and will be rendered in arbitrary order.", oi.second);
-				for (auto const& rp : oi.second) {
-					errors_->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, ValueHandle{rp, &user_types::RenderPass::renderOrder_}, errorMsg);
+				auto errorMsg = fmt::format("The render/blit passes {} have the same order index and will be rendered in arbitrary order.", oi.second);
+				for (auto const& obj : oi.second) {
+					errors_->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, ValueHandle{obj, {"renderOrder"}}, errorMsg);
 				}
 			}
 		}

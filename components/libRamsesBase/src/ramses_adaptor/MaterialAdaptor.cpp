@@ -13,13 +13,15 @@
 
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
+#include "ramses_adaptor/RenderBufferAdaptor.h"
+#include "ramses_adaptor/RenderBufferMSAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
-#include "ramses_adaptor/RenderBufferAdaptor.h"
 #include "ramses_base/Utils.h"
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Material.h"
 #include "user_types/RenderBuffer.h"
+#include "user_types/RenderBufferMS.h"
 #include "utils/FileUtils.h"
 
 namespace raco::ramses_adaptor {
@@ -136,11 +138,10 @@ std::vector<ExportInformation> MaterialAdaptor::getExportInformation() const {
 }
 
 void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsHandle, const core::ValueHandle& uniformsHandle) {
-
 	int colorOp = static_cast<ramses::EBlendOperation>(optionsHandle.get("blendOperationColor").as<int>());
 	int alphaOp = static_cast<ramses::EBlendOperation>(optionsHandle.get("blendOperationAlpha").as<int>());
 	if (colorOp == ramses::EBlendOperation::EBlendOperation_Disabled && alphaOp != ramses::EBlendOperation::EBlendOperation_Disabled) {
-		errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, optionsHandle.get("blendOperationAlpha"), 
+		errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, optionsHandle.get("blendOperationAlpha"),
 			"Inconsistent Blend Operation settings: Color disabled while Alpha is not.");
 	} else {
 		errors->removeError(optionsHandle.get("blendOperationAlpha"));
@@ -152,7 +153,6 @@ void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ra
 		errors->removeError(optionsHandle.get("blendOperationColor"));
 	}
 
-
 	setDepthWrite(appearance->get(), optionsHandle.get("depthwrite"));
 	setDepthFunction(appearance->get(), optionsHandle.get("depthFunction"));
 	setBlendMode(appearance->get(), optionsHandle);
@@ -160,6 +160,7 @@ void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ra
 	setCullMode(appearance->get(), optionsHandle.get("cullmode"));
 
 	std::vector<raco::ramses_base::RamsesTextureSampler> newSamplers;
+	std::vector<raco::ramses_base::RamsesTextureSamplerMS> newSamplersMS;
 
 	for (size_t i{0}; i < uniformsHandle.size(); i++) {
 		setUniform(appearance->get(), uniformsHandle[i]);
@@ -168,38 +169,58 @@ void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ra
 			auto anno = uniformsHandle[i].query<user_types::EngineTypeAnnotation>();
 			auto engineType = anno->type();
 
-			raco::ramses_base::RamsesTextureSampler sampler = nullptr;
-			if (engineType == raco::core::EnginePrimitive::TextureSampler2D) {
-				if (auto texture = uniformsHandle[i].asTypedRef<user_types::Texture>()) {
-					if (auto adaptor = sceneAdaptor->lookup<TextureSamplerAdaptor>(texture)) {
-						sampler = adaptor->getRamsesObjectPointer();
-					}
-				} else if (auto buffer = uniformsHandle[i].asTypedRef<user_types::RenderBuffer>()) {
-					if (auto adaptor = sceneAdaptor->lookup<RenderBufferAdaptor>(buffer)) {
-						sampler = adaptor->getRamsesObjectPointer();
-					}
-				} else {
-					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "Texture or RenderBuffer needed for this uniform.");
-				}
-			} else if (engineType == raco::core::EnginePrimitive::TextureSamplerCube) {
-				if (auto texture = uniformsHandle[i].asTypedRef<user_types::CubeMap>()) {
-					if (auto adaptor = sceneAdaptor->lookup<CubeMapAdaptor>(texture)) {
-						sampler = adaptor->getRamsesObjectPointer();
+			if (engineType == raco::core::EnginePrimitive::TextureSampler2DMS) {
+				if (auto buffer = uniformsHandle[i].asTypedRef<user_types::RenderBufferMS>()) {
+					if (auto adaptor = sceneAdaptor->lookup<RenderBufferMSAdaptor>(buffer)) {
+						if (auto samplerMS = adaptor->getRamsesObjectPointer()) {
+							ramses::UniformInput input;
+							(*appearance)->getEffect().findUniformInput(uniformsHandle[i].getPropName().c_str(), input);
+							(*appearance)->setInputTexture(input, *samplerMS);
+							newSamplersMS.emplace_back(samplerMS);
+						} else {
+							errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "Sampler for this RenderBufferMS not available.");
+						}
 					}
 				} else {
-					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "CubeMap needed for this uniform.");
+					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "RenderBufferMS needed for this uniform.");
 				}
-			}
+			} else {
+				raco::ramses_base::RamsesTextureSampler sampler = nullptr;
+				if (engineType == raco::core::EnginePrimitive::TextureSampler2D) {
+					if (auto texture = uniformsHandle[i].asTypedRef<user_types::Texture>()) {
+						if (auto adaptor = sceneAdaptor->lookup<TextureSamplerAdaptor>(texture)) {
+							sampler = adaptor->getRamsesObjectPointer();
+						}
+					} else if (auto buffer = uniformsHandle[i].asTypedRef<user_types::RenderBuffer>()) {
+						if (auto adaptor = sceneAdaptor->lookup<RenderBufferAdaptor>(buffer)) {
+							sampler = adaptor->getRamsesObjectPointer();
+							if (!sampler) {
+								errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "Sampler for this RenderBuffer not available.");
+							}
+						}
+					} else {
+						errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "Texture or RenderBuffer needed for this uniform.");
+					}
+				} else if (engineType == raco::core::EnginePrimitive::TextureSamplerCube) {
+					if (auto texture = uniformsHandle[i].asTypedRef<user_types::CubeMap>()) {
+						if (auto adaptor = sceneAdaptor->lookup<CubeMapAdaptor>(texture)) {
+							sampler = adaptor->getRamsesObjectPointer();
+						}
+					} else {
+						errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "CubeMap needed for this uniform.");
+					}
+				}
 
-			if (sampler) {
-				ramses::UniformInput input;
-				(*appearance)->getEffect().findUniformInput(uniformsHandle[i].getPropName().c_str(), input);
-				(*appearance)->setInputTexture(input, *sampler);
-				newSamplers.emplace_back(sampler);
+				if (sampler) {
+					ramses::UniformInput input;
+					(*appearance)->getEffect().findUniformInput(uniformsHandle[i].getPropName().c_str(), input);
+					(*appearance)->setInputTexture(input, *sampler);
+					newSamplers.emplace_back(sampler);
+				}
 			}
 		}
 	}
-	appearance->replaceTrackedSamplers(newSamplers);
+	appearance->replaceTrackedSamplers(newSamplers, newSamplersMS);
 }
 
 };	// namespace raco::ramses_adaptor

@@ -74,21 +74,37 @@
     <string>Original fit</string>
    </property>
   </action>
-  <action name="actionSelectFilteringMode"/>
-  <action name="actionSetFilteringModeNearestNeighbor">
+  <action name="actionSelectMSAA"/>
+  <action name="actionSetMSAAx1">
    <property name="text">
-    <string>Nearest filtering</string>
+    <string>MSAA x1</string>
    </property>
    <property name="toolTip">
-    <string>Nearest filtering</string>
+    <string>MSAA x1</string>
    </property>
   </action>
-  <action name="actionSetFilteringModeLinear">
+  <action name="actionSetMSAAx2">
    <property name="text">
-    <string>Linear filtering</string>
+    <string>MSAA x2</string>
    </property>
    <property name="toolTip">
-    <string>Linear filtering</string>
+    <string>MSAA x2</string>
+   </property>
+  </action>
+  <action name="actionSetMSAAx4">
+   <property name="text">
+    <string>MSAA x4</string>
+   </property>
+   <property name="toolTip">
+    <string>MSAA x4</string>
+   </property>
+  </action>
+  <action name="actionSetMSAAx8">
+   <property name="text">
+    <string>MSAA x8</string>
+   </property>
+   <property name="toolTip">
+    <string>MSAA x8</string>
    </property>
   </action>
  </widget>

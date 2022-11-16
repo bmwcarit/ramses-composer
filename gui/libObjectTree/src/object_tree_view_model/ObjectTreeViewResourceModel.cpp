@@ -21,7 +21,7 @@
 namespace raco::object_tree::model {
 
 ObjectTreeViewResourceModel::ObjectTreeViewResourceModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes)
-	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectStore, allowedCreatableUserTypes, true) {}
+	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectStore, allowedCreatableUserTypes, true, true) {}
 
 
 bool ObjectTreeViewResourceModel::pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects) {

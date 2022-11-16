@@ -19,6 +19,7 @@
 #include "data_storage/Value.h"
 #include "ramses_adaptor/BuildOptions.h"
 #include "ramses_base/RamsesHandles.h"
+#include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Material.h"
 #include "user_types/Node.h"
 #include "utils/MathUtils.h"
@@ -320,36 +321,123 @@ inline void getOutputFromEngine(const rlogic::Property& property, const core::Va
 	}
 }
 
+template<typename PropertyType, typename RamsesType>
+std::vector<RamsesType> flattenUniformArrayOfVector(const core::ValueHandle& handle, int numComponents) {
+	std::vector<RamsesType> values;
+	for (size_t index = 0; index < handle.size(); index++) {
+		for (size_t component = 0; component < numComponents; component++) {
+			values.emplace_back(handle[index][component].as<PropertyType>());
+		}
+	}
+	return values;
+}
+
 inline void setUniform(ramses::Appearance* appearance, const core::ValueHandle& valueHandle) {
 	using core::PrimitiveType;
 	ramses::UniformInput input;
 	appearance->getEffect().findUniformInput(valueHandle.getPropName().c_str(), input);
 
-	switch (valueHandle.type()) {
-		case PrimitiveType::Double:
+	auto engineTypeAnno = valueHandle.query<raco::user_types::EngineTypeAnnotation>();
+	switch (engineTypeAnno->type()) {
+		case core::EnginePrimitive::Double:
 			appearance->setInputValueFloat(input, valueHandle.as<float>());
 			break;
-		case PrimitiveType::Int:
+		case core::EnginePrimitive::Int32:
+		case core::EnginePrimitive::UInt16:
+		case core::EnginePrimitive::UInt32:
 			appearance->setInputValueInt32(input, static_cast<int32_t>(valueHandle.as<int>()));
 			break;
 
-		case PrimitiveType::Struct: {
-			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
-			if (typeDesc == &core::Vec2f::typeDescription) {
-				appearance->setInputValueVector2f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>());
-			} else if (typeDesc == &core::Vec3f::typeDescription) {
-				appearance->setInputValueVector3f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>());
-			} else if (typeDesc == &core::Vec4f::typeDescription) {
-				appearance->setInputValueVector4f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>());
-			} else if (typeDesc == &core::Vec2i::typeDescription) {
-				appearance->setInputValueVector2i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()));
-			} else if (typeDesc == &core::Vec3i::typeDescription) {
-				appearance->setInputValueVector3i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()));
-			} else if (typeDesc == &core::Vec4i::typeDescription) {
-				appearance->setInputValueVector4i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()), static_cast<int32_t>(valueHandle[3].as<int>()));
-			}
+		case core::EnginePrimitive::Vec2f:
+			appearance->setInputValueVector2f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>());
 			break;
+
+		case core::EnginePrimitive::Vec3f:
+			appearance->setInputValueVector3f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>());
+			break;
+
+		case core::EnginePrimitive::Vec4f:
+			appearance->setInputValueVector4f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>());
+			break;
+
+		case core::EnginePrimitive::Vec2i:
+			appearance->setInputValueVector2i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()));
+			break;
+
+		case core::EnginePrimitive::Vec3i:
+			appearance->setInputValueVector3i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()));
+			break;
+
+		case core::EnginePrimitive::Vec4i:
+			appearance->setInputValueVector4i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()), static_cast<int32_t>(valueHandle[3].as<int>()));
+			break;
+
+		case core::EnginePrimitive::Array: {
+			assert(valueHandle.size() >= 1);
+
+			auto elementAnno = valueHandle[0].query<user_types::EngineTypeAnnotation>();
+			switch (elementAnno->type()) {
+				case core::EnginePrimitive::Double: {
+					std::vector<float> values;
+					for (size_t index = 0; index < valueHandle.size(); index++) {
+						values.emplace_back(valueHandle[index].as<float>());
+					}
+					appearance->setInputValueFloat(input, values.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Int32:
+				case core::EnginePrimitive::UInt16:
+				case core::EnginePrimitive::UInt32: {
+					std::vector<int32_t> values;
+					for (size_t index = 0; index < valueHandle.size(); index++) {
+						values.emplace_back(valueHandle[index].as<int>());
+					}
+					appearance->setInputValueInt32(input, values.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Vec2f: {
+					auto values{flattenUniformArrayOfVector<double, float>(valueHandle, 2)};
+					appearance->setInputValueVector2f(input, valueHandle.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Vec3f: {
+					auto values{flattenUniformArrayOfVector<double, float>(valueHandle, 3)};
+					appearance->setInputValueVector3f(input, valueHandle.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Vec4f: {
+					auto values{flattenUniformArrayOfVector<double, float>(valueHandle, 4)};
+					appearance->setInputValueVector4f(input, valueHandle.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Vec2i: {
+					auto values{flattenUniformArrayOfVector<int, int32_t>(valueHandle, 2)};
+					appearance->setInputValueVector2i(input, valueHandle.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Vec3i: {
+					auto values{flattenUniformArrayOfVector<int, int32_t>(valueHandle, 3)};
+					appearance->setInputValueVector3i(input, valueHandle.size(), values.data());
+					break;
+				}
+
+				case core::EnginePrimitive::Vec4i: {
+					auto values{flattenUniformArrayOfVector<int, int32_t>(valueHandle, 4)};
+					appearance->setInputValueVector4i(input, valueHandle.size(), values.data());
+					break;
+				}
+
+				default:
+					break;
+			}
 		}
+
 		default:
 			break;
 	}

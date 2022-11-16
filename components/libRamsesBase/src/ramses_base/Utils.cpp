@@ -17,6 +17,7 @@
 #include "user_types/LuaScriptModule.h"
 #include "utils/FileUtils.h"
 #include "utils/MathUtils.h"
+#include "core/CoreFormatter.h"
 
 #include <ramses-client-api/TextureEnums.h>
 #include <ramses-logic/Logger.h>
@@ -173,6 +174,7 @@ static std::map<ramses::EEffectInputDataType, raco::core::EnginePrimitive> shade
 	//{ramses::EEffectInputDataType_Matrix44F, },
 
 	{ramses::EEffectInputDataType_TextureSampler2D, raco::core::EnginePrimitive::TextureSampler2D},
+	{ramses::EEffectInputDataType_TextureSampler2DMS, raco::core::EnginePrimitive::TextureSampler2DMS},
 	{ramses::EEffectInputDataType_TextureSampler3D, raco::core::EnginePrimitive::TextureSampler3D},
 	{ramses::EEffectInputDataType_TextureSamplerCube, raco::core::EnginePrimitive::TextureSamplerCube}};
 
@@ -216,9 +218,21 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 			effect->getUniformInput(i, uniform);
 			if (uniform.getSemantics() == ramses::EEffectUniformSemantic::Invalid) {
 				if (shaderTypeMap.find(uniform.getDataType()) != shaderTypeMap.end()) {
-					outUniforms.emplace_back(std::string{uniform.getName()}, shaderTypeMap[uniform.getDataType()]);
+					if (uniform.getElementCount() > 1) {
+						auto engineType = shaderTypeMap[uniform.getDataType()];
+						if (engineType >= core::EnginePrimitive::Int32 && engineType <= core::EnginePrimitive::Vec4i) {
+							auto &item = outUniforms.emplace_back(std::string{uniform.getName()}, raco::core::EnginePrimitive::Array);
+							for (int index = 0; index < uniform.getElementCount(); index++) {
+								item.children.emplace_back(std::string(), shaderTypeMap[uniform.getDataType()]);
+							}
+						} else {
+							outError += fmt::format("Uniform '{}' has unsupported array element type '{}'", uniform.getName(), engineType);
+						}
+					} else {
+						outUniforms.emplace_back(std::string{uniform.getName()}, shaderTypeMap[uniform.getDataType()]);
+					}
 				} else {
-					outError += std::string(uniform.getName()) + " has unsupported type  ";
+					outError += std::string(uniform.getName()) + " has unsupported type";
 				}
 			}
 		}
@@ -455,7 +469,7 @@ PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat 
 	if (downConvertableTextureFormat != downConvertableTextureFormats[pngFormat].end()) {
 		return {fmt::format("Selected format {} is not equal to PNG color type {} - image will be converted.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::INFORMATION, true};
 	}
-	return {fmt::format("[Deprecated Warning - this will be an error in a future version] Selected format {} is not equal to PNG color type {} - empty channels will be created.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::WARNING, true};
+	return {fmt::format("Selected format {} is not equal to PNG color type {} - empty channels will be created.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::WARNING, true};
 }
 
 std::string ramsesTextureFormatToString(ramses::ETextureFormat textureFormat) {
@@ -599,6 +613,42 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 	}
 
 	return data;
+}
+
+int clipAndCheckIntProperty(const raco::core::ValueHandle value, core::Errors *errors, bool *allValid) {
+	auto range = value.constValueRef()->query<raco::core::RangeAnnotation<int>>();
+	int clippedValue = std::min(std::max(*range->min_, value.asInt()), *range->max_);
+
+	if (clippedValue != value.asInt()) {
+		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, value,
+			fmt::format("'{}' property outside valid range", value.getPropName()));
+		*allValid = false;
+	} else {
+		errors->removeError(value);
+	}
+	return clippedValue;
+}
+
+ramses::ERenderBufferType ramsesRenderBufferTypeFromFormat(ramses::ERenderBufferFormat format) {
+	using namespace ramses;
+	std::map<ramses::ERenderBufferFormat, ramses::ERenderBufferType> bufferTypeFromFormat = {
+		{ERenderBufferFormat_RGBA4, ERenderBufferType_Color},
+		{ERenderBufferFormat_R8, ERenderBufferType_Color},
+		{ERenderBufferFormat_RG8, ERenderBufferType_Color},
+		{ERenderBufferFormat_RGB8, ERenderBufferType_Color},
+		{ERenderBufferFormat_RGBA8, ERenderBufferType_Color},
+		{ERenderBufferFormat_R16F, ERenderBufferType_Color},
+		{ERenderBufferFormat_R32F, ERenderBufferType_Color},
+		{ERenderBufferFormat_RG16F, ERenderBufferType_Color},
+		{ERenderBufferFormat_RG32F, ERenderBufferType_Color},
+		{ERenderBufferFormat_RGB16F, ERenderBufferType_Color},
+		{ERenderBufferFormat_RGB32F, ERenderBufferType_Color},
+		{ERenderBufferFormat_RGBA16F, ERenderBufferType_Color},
+		{ERenderBufferFormat_RGBA32F, ERenderBufferType_Color},
+		{ERenderBufferFormat_Depth24, ERenderBufferType_Depth},
+		{ERenderBufferFormat_Depth24_Stencil8, ERenderBufferType_DepthStencil}};
+
+	return bufferTypeFromFormat.at(format);
 }
 
 }  // namespace raco::ramses_base

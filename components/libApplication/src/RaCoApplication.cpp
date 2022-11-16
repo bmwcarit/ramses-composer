@@ -142,7 +142,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 	logicEngineNeedsUpdate_ = true;
 
 	activeProject_->applyDefaultCachedPaths();
-	activeProject_->subscribeDefaultCachedPathChanges(dataChangeDispatcher_);
+	activeProject_->setupCachedPathSubscriptions(dataChangeDispatcher_);
 
 	setupScene(false);
 	startTime_ = std::chrono::high_resolution_clock::now();
@@ -159,20 +159,12 @@ core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector
 
 	outDescription = scenesBackend_->getSceneItemDescriptions();
 
-	core::ErrorLevel errorLevel = core::ErrorLevel::NONE;
-	std::string message;
-	if (!scenesBackend_->sceneValid()) {
-		message = sceneBackend()->getValidationReport(core::ErrorLevel::ERROR);
-		if (!message.empty()) {
-			errorLevel = core::ErrorLevel::ERROR;
-		} else {
-			message = sceneBackend()->getValidationReport(core::ErrorLevel::WARNING);
-			if (!message.empty()) {
-				errorLevel = core::ErrorLevel::WARNING;
-			}
-		}
+	core::ErrorLevel errorLevel = scenesBackend_->sceneValid();
+	if (errorLevel != core::ErrorLevel::NONE) {
+		outMessage = sceneBackend()->getValidationReport(errorLevel);
+	} else {
+		outMessage = std::string();
 	}
-	outMessage = message;
 
 	setupScene(false);
 	logicEngineNeedsUpdate_ = true;
@@ -201,11 +193,18 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const s
 
 	if (!forceExportWithErrors) {
 		if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
-			outError = "Export failed: scene contains Composer errors";
+			outError = "Export failed: scene contains Composer errors:\n";
+			auto errors = activeRaCoProject().errors()->getAllErrors();
+			for (const auto& item : errors) {
+				auto error = item.second;
+				if (error.level() >= raco::core::ErrorLevel::ERROR) {
+					outError.append(raco::core::Errors::formatError(error));
+				}
+			}
 			return false;
 		}
-		if (!sceneBackend()->sceneValid()) {
-			outError = "Export failed: scene contains Ramses errors";
+		if (sceneBackend()->sceneValid() != core::ErrorLevel::NONE) {
+			outError = "Export failed: scene contains Ramses errors:\n" + sceneBackend()->getValidationReport(core::ErrorLevel::WARNING);
 			return false;
 		}
 	}
@@ -215,7 +214,9 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const s
 		return false;
 	}
 	rlogic::SaveFileConfig metadata;
-	metadata.setValidationEnabled(!forceExportWithErrors);
+	// Since the SceneBackend filters some validation warnings we have to disable validation when saving, because
+	// we can't selectively disable some validation warnings here:
+	metadata.setValidationEnabled(false);
 	// Use JSON format for the metadata string to allow future extensibility
 	// CAREFUL: only include data here which we are certain all users agree to have included in the exported files.
 	metadata.setMetadataString(fmt::format(

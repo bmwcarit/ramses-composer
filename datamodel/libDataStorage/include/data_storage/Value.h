@@ -154,6 +154,8 @@ class ValueBase {
 public:
 	static std::unique_ptr<ValueBase> create(PrimitiveType type);
 
+	virtual ~ValueBase() = default;
+
 	virtual PrimitiveType type() const = 0;
 
 	// Basic typename of the property not including annotation information.

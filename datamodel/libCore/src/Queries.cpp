@@ -422,6 +422,14 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 		}
 	}
 
+	auto renderlayer = handle.rootObject()->as<user_types::RenderLayer>();
+	if (renderlayer) {
+		if (*renderlayer->sortOrder_ == static_cast<int>(user_types::ERenderLayerOrder::SceneGraph) &&
+			ValueHandle(renderlayer, &user_types::RenderLayer::renderableTags_).contains(handle)) {
+			return true;
+		}
+	}
+
 	if (handle.query<LinkStartAnnotation>() && !handle.query<LinkEndAnnotation>()) {
 		return true;
 	}

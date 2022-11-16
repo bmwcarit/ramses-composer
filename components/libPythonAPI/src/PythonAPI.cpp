@@ -29,10 +29,12 @@
 
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/PrefabOperations.h"
+
+#include "user_types/Enumerations.h"
 #include "user_types/Mesh.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
-#include "user_types/Enumerations.h"
+#include "user_types/RenderLayer.h"
 
 #include <ramses-client-api/AppearanceEnums.h>
 #include <ramses-client-api/TextureEnums.h>
@@ -121,10 +123,29 @@ void checkObject(raco::core::SEditorObject object) {
 	}
 }
 
+template <typename UserType>
+void checkTypedObject(raco::core::SEditorObject object) {
+	checkObject(object);
+	if (!object->isType<UserType>()) {
+		throw std::runtime_error(fmt::format("Object '{}' is not of expected type '{}'", object->objectName(), UserType::typeDescription.typeName));
+	}
+}
+
 void checkProperty(const raco::core::PropertyDescriptor& desc) {
 	checkObject(desc.object());
 	raco::core::ValueHandle handle{desc};
 	if (!handle || handle.constValueRef()->query<raco::core::HiddenProperty>()) {
+		throw std::runtime_error(fmt::format("Property '{}' doesn't exist in object '{}'", desc.getPropertyPath(), desc.object()->objectName()));
+	}
+	if (auto anno = handle.query<raco::core::FeatureLevel>(); anno && *anno->featureLevel_ > app->activeRaCoProject().project()->featureLevel()) {
+		throw std::runtime_error(fmt::format("Property {} inaccessible at feature level {}", handle.getPropertyPath(), app->activeRaCoProject().project()->featureLevel()));
+	}
+}
+
+void checkHiddenProperty(const raco::core::PropertyDescriptor& desc) {
+	checkObject(desc.object());
+	raco::core::ValueHandle handle{desc};
+	if (!handle) {
 		throw std::runtime_error(fmt::format("Property '{}' doesn't exist in object '{}'", desc.getPropertyPath(), desc.object()->objectName()));
 	}
 	if (auto anno = handle.query<raco::core::FeatureLevel>(); anno && *anno->featureLevel_ > app->activeRaCoProject().project()->featureLevel()) {
@@ -192,9 +213,7 @@ void python_load_project(std::string& path, int featureLevel) {
 
 void python_import_gltf(const std::string path, const raco::core::SEditorObject parent) {
 	auto fileLocation = raco::utils::u8path(path);
-	if (!fileLocation.is_absolute()) {
-		fileLocation = fileLocation.normalizedAbsolutePath(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, app->activeProjectFolder()));
-	}
+	fileLocation = fileLocation.normalizedAbsolutePath(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, app->activeProjectFolder()));
 
 	raco::core::MeshDescriptor meshDesc;
 	meshDesc.absPath = fileLocation.string();
@@ -210,6 +229,42 @@ void python_import_gltf(const std::string path, const raco::core::SEditorObject 
 	}
 
 	app->doOneLoop();
+}
+
+raco::core::Project* python_add_external_project(const std::string& path) {
+	auto projectFileLocation = raco::utils::u8path(path);
+	projectFileLocation = projectFileLocation.normalizedAbsolutePath(app->activeProjectFolder());
+
+	raco::core::LoadContext loadContext;
+	loadContext.featureLevel = app->activeRaCoProject().project()->featureLevel();
+	loadContext.pathStack.emplace_back(app->activeRaCoProject().project()->currentPath());
+	auto* project = app->externalProjects()->addExternalProject(projectFileLocation.string(), loadContext);
+	if (project == nullptr) {
+		throw std::invalid_argument("Unable to add external project from " + projectFileLocation.string());
+	}
+
+	return project;
+}
+
+py::object python_add_external_references(const std::string& path, const std::vector<std::string>& types) {
+	auto* project = python_add_external_project(path);
+	if (project == nullptr) {
+		return py::cast(std::vector<raco::core::SEditorObject>());
+	}
+	std::vector<raco::core::SEditorObject> editorObjects;
+	for (const auto& type : types) {
+		for (const auto& item : project->instances()) {
+			if (item->getTypeDescription().typeName == type) {
+				editorObjects.push_back(item);
+			}
+		}
+	}
+
+	auto* projectInterface = app->externalProjects()->getExternalProjectCommandInterface(project->currentPath());
+	auto value = projectInterface->copyObjects(editorObjects, false);
+	auto result = app->activeRaCoProject().commandInterface()->pasteObjects(value, nullptr, true);
+
+	return py::cast(result);
 }
 
 py::object getPropertyChildProperties(const raco::core::PropertyDescriptor& desc) {
@@ -236,6 +291,30 @@ py::object getObjectChildProperties(raco::core::SEditorObject obj) {
 		}
 	}
 	return py::cast(propNames);
+}
+
+std::vector<std::string> getTags(raco::core::SEditorObject obj, std::string tagPropertyName) {
+	raco::core::PropertyDescriptor desc(obj, {tagPropertyName});
+	checkHiddenProperty(desc);
+	raco::core::ValueHandle handle(desc);
+	if (handle.query<raco::core::TagContainerAnnotation>()) {
+		return handle.constValueRef()->asTable().asVector<std::string>();
+	} else {
+		throw std::runtime_error(fmt::format("Property '{}' is not a tag container.", desc.getPropertyPath()));
+	}
+	return std::vector<std::string>();
+}
+
+void setTags(raco::core::SEditorObject obj, std::vector<std::string> tags, std::string tagPropertyName) {
+	raco::core::PropertyDescriptor desc(obj, {tagPropertyName});
+	checkHiddenProperty(desc);
+	raco::core::ValueHandle handle(desc);
+	if (handle.query<raco::core::TagContainerAnnotation>()) {
+		app->activeRaCoProject().commandInterface()->setTags(handle, tags);
+		app->doOneLoop();
+	} else {
+		throw std::runtime_error(fmt::format("Property '{}' is not a tag container.", desc.getPropertyPath()));
+	}
 }
 
 }  // namespace
@@ -422,6 +501,17 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 	});
 
+	m.def("save", [](std::string path, bool setNewID) {
+		if (app->canSaveActiveProject()) {
+			std::string errorMsg;
+			if (!app->activeRaCoProject().saveAs(QString::fromStdString(path), errorMsg, app->activeProjectPath().empty(), setNewID)) {
+				throw std::runtime_error(fmt::format("Saving project to '{}' failed with error '{}'.", path, errorMsg));
+			}
+		} else {
+			throw std::runtime_error(fmt::format("Can not save project: externally referenced projects not clean."));
+		}
+	});
+
 	m.def("projectPath", []() {
 		return app->activeProjectPath();
 	});
@@ -463,7 +553,19 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 	m.def("importGLTF", [](const std::string path, const raco::core::SEditorObject parent) {
 		checkObject(parent);
 		python_import_gltf(path, parent);
-	 });
+	});
+
+	m.def("addExternalProject", [](const std::string& path) {
+		python_add_external_project(path);
+	});
+
+	m.def("addExternalReferences", [](const std::string& path, const std::vector<std::string> types) -> py::object {
+		return python_add_external_references(path, types);
+	});
+
+	m.def("addExternalReferences", [](const std::string& path, const std::string& type) -> py::object {
+		return python_add_external_references(path, {type});
+	});
 
 	py::class_<raco::core::PropertyDescriptor>(m, "PropertyDescriptor")
 		.def("__repr__", [](const raco::core::PropertyDescriptor& desc) {
@@ -607,6 +709,35 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 				}
 			}
 			return py::cast(nullptr);
+		})
+		.def("getTags", [](raco::core::SEditorObject obj) -> std::vector<std::string> {
+			return getTags(obj, "tags");
+		})		
+		.def("setTags", [](raco::core::SEditorObject obj, std::vector<std::string> tags) {
+			setTags(obj, tags, "tags");
+		})
+		.def("getMaterialFilterTags", [](raco::core::SEditorObject obj) -> std::vector<std::string> {
+			return getTags(obj, "materialFilterTags");
+		})
+		.def("setMaterialFilterTags", [](raco::core::SEditorObject obj, std::vector<std::string> tags) {
+			setTags(obj, tags, "materialFilterTags");
+		})
+		.def("getRenderableTags", [](raco::core::SEditorObject obj) -> std::vector<std::pair<std::string, int>> {
+			checkTypedObject<raco::user_types::RenderLayer>(obj);
+			raco::core::ValueHandle handle(obj, &raco::user_types::RenderLayer::renderableTags_);
+			std::vector<std::pair<std::string, int>> renderables;
+			for (size_t index = 0; index < handle.size(); index++) {
+				renderables.emplace_back(handle[index].getPropName(), handle[index].asInt());
+			}
+			return renderables;
+		})
+		.def("setRenderableTags", [](raco::core::SEditorObject obj, std::vector<std::pair<std::string, int>> renderables) {
+			checkTypedObject<raco::user_types::RenderLayer>(obj);
+			raco::core::ValueHandle handle(obj, &raco::user_types::RenderLayer::renderableTags_);
+			if (handle) {
+				app->activeRaCoProject().commandInterface()->setRenderableTags(handle, renderables);
+				app->doOneLoop();
+			}
 		});
 
 	py::class_<raco::core::LinkDescriptor>(m, "LinkDescriptor")
@@ -761,9 +892,9 @@ bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring
 		pythonPaths += path + pythonPathDelimiter;
 	}
 	pythonPaths += L"" + pythonPathDelimiter +
-		shippedPythonRoot.wstring() + pythonPathDelimiter +
-		(shippedPythonRoot / "python38.zip").wstring() + pythonPathDelimiter +
-		(shippedPythonRoot / "lib" / "site-packages").wstring();
+				   shippedPythonRoot.wstring() + pythonPathDelimiter +
+				   (shippedPythonRoot / "python38.zip").wstring() + pythonPathDelimiter +
+				   (shippedPythonRoot / "lib" / "site-packages").wstring();
 	auto pip_prefix = shippedPythonRoot.wstring();
 	std::replace(std::begin(pip_prefix), std::end(pip_prefix), L'/', L'\\');
 	// It is necessary to set PIP_PREFIX as an environment variable - otherwise pip just uses the default installation directory (Linux) or the executable dir (Windows)
@@ -781,9 +912,9 @@ bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring
 		pythonPaths += path + pythonPathDelimiter;
 	}
 	pythonPaths += L"" + pythonPathDelimiter +
-		(shippedPythonRoot / "python3.8").wstring() + pythonPathDelimiter +
-		(shippedPythonRoot / "python3.8" / "lib-dynload").wstring() + pythonPathDelimiter +
-		(shippedPythonRoot / "python3.8" / "lib" / "python3.8" / "site-packages").wstring();
+				   (shippedPythonRoot / "python3.8").wstring() + pythonPathDelimiter +
+				   (shippedPythonRoot / "python3.8" / "lib-dynload").wstring() + pythonPathDelimiter +
+				   (shippedPythonRoot / "python3.8" / "lib" / "python3.8" / "site-packages").wstring();
 	const auto pip_prefix = (shippedPythonRoot / "python3.8").string();
 	// It is necessary to set PIP_PREFIX as an environment variable - otherwise pip just uses the default installation directory (Linux) or the executable dir (Windows)
 	// as the target directory. See also https://pip.pypa.io/en/stable/topics/configuration/ and https://docs.python.org/3/install/index.html ("How installation works")

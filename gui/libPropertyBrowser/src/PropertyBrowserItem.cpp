@@ -140,7 +140,8 @@ PropertyBrowserItem::PropertyBrowserItem(
 	// when certain conditions depending on another property are fulfilled.
 	static const std::map<data_storage::ReflectionInterface::TypeDescriptor const*, std::string> requiredChildSubscriptions = {
 		{&user_types::RenderPass::typeDescription, "target"},
-		{&user_types::RenderBuffer::typeDescription, "format"}
+		{&user_types::RenderBuffer::typeDescription, "format"},
+		{&user_types::RenderLayer::typeDescription, "sortOrder"}
 	};
 	if (const auto itChildSub = requiredChildSubscriptions.find(&valueHandle_.rootObject()->getTypeDescription()); valueHandle_.depth() == 0 && itChildSub != requiredChildSubscriptions.end()) {
 		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {itChildSub->second}}, [this, sceneBackend] {
@@ -248,7 +249,8 @@ bool PropertyBrowserItem::editable() noexcept {
 }
 
 bool PropertyBrowserItem::expandable() const noexcept {
-	return valueHandle_.isObject() || !(query<core::TagContainerAnnotation>() || query<core::RenderableTagContainerAnnotation>());	
+	return valueHandle_.isObject() || 
+		valueHandle_.hasSubstructure() && !query<core::TagContainerAnnotation>();
 }
 
 bool PropertyBrowserItem::showChildren() const {
@@ -363,29 +365,22 @@ void PropertyBrowserItem::setTags(std::vector<std::pair<std::string, int>> const
 
 void PropertyBrowserItem::createChildren(core::SceneBackendInterface* sceneBackend) {
 	children_.reserve(static_cast<int>(valueHandle_.size()));
-	if (const auto& renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && renderPass->target_.asRef() == nullptr) {
+
+	for (int i{0}; i < valueHandle_.size(); i++) {
+		bool hidden = raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i]);
+
 		// The render passes flags for clearing the target can only be used for offscreen rendering.
 		// For the default framebuffer, the settings are in the project settings.
 		// Given that this is a dynamic setting, do it here explicitly and not in Queries::isHidden for now.
-		// This needs to be refactored, see RAOS-XXX.
-		for (int i{0}; i < valueHandle_.size(); i++) {
-			if (!raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i]) && !renderPass->isClearTargetProperty(valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
-			}
+		if (const auto& renderPass = valueHandle_.rootObject()->as<user_types::RenderPass>(); renderPass != nullptr && renderPass->target_.asRef() == nullptr && renderPass->isClearTargetProperty(valueHandle_[i])) {
+			hidden = true;
+		} else if (const auto& renderBuffer = valueHandle_.rootObject()->as<user_types::RenderBuffer>(); renderBuffer != nullptr && !renderBuffer->areSamplingParametersSupported(engineInterface()) && renderBuffer->isSamplingProperty(valueHandle_[i])) {
+			hidden = true;
 		}
-	} else if (const auto& renderBuffer = valueHandle_.rootObject()->as<user_types::RenderBuffer>(); renderBuffer != nullptr && !renderBuffer->areSamplingParametersSupported(engineInterface())) {
-		// For the render buffer, the sampling properties should only be available for color formats, not for depth or stencil formats. 
-		for (int i{0}; i < valueHandle_.size(); i++) {
-			if (!raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i]) && !renderBuffer->isSamplingProperty(valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
-			}
+
+		if (!hidden) {
+			children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
 		}
-	} else {
-		for (int i{0}; i < valueHandle_.size(); i++) {
-			if (!raco::core::Queries::isHiddenInPropertyBrowser(*project(), valueHandle_[i])) {
-				children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
-			}
-		}			
 	}
 }
 

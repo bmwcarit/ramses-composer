@@ -17,6 +17,7 @@ enum class ObjectTreeNodeType {
 	EditorObject,
 	ExternalProject,
 	ExtRefGroup,
+	TypeParent,
 	Root
 };
 
@@ -24,6 +25,7 @@ class ObjectTreeNode {
 public:
 	explicit ObjectTreeNode(core::SEditorObject obj, ObjectTreeNode *parent);
 	explicit ObjectTreeNode(ObjectTreeNodeType type, ObjectTreeNode *parent);
+	explicit ObjectTreeNode(const std::string& typeName);
 
 	~ObjectTreeNode();
 
@@ -43,6 +45,7 @@ public:
 	std::string getID() const;
 	std::string getDisplayName() const;
 	std::string getDisplayType() const;
+	std::string getTypeName() const;
 	std::string getExternalProjectName() const;
 	std::string getExternalProjectPath() const;
 	void setBelongsToExternalProject(const std::string &path, const std::string &name);
@@ -52,6 +55,7 @@ protected:
 	ObjectTreeNodeType type_;
 	std::string externalProjectPath_ = "";
 	std::string externalProjectName_ = "";
+	std::string typeName_ = "";
     std::vector<ObjectTreeNode*> children_;
 	core::SEditorObject representedObject_;
 };

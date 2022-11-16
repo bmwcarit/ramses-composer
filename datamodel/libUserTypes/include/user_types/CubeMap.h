@@ -87,6 +87,7 @@ public:
 		properties_.emplace_back("level4uriBack", &level4uriBack_);
 	}
 
+	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	void updateFromExternalFile(BaseContext& context) override;
 

@@ -416,6 +416,43 @@ TEST_F(RaCoProjectFixture, saveAsToDifferentDriveSetsRelativeURIsToAbsolute) {
 }
 #endif
 
+TEST_F(RaCoProjectFixture, saveAsWithNewID) {
+	RaCoApplication app{backend};
+	std::string msg;
+	const auto objectInitID = app.activeRaCoProject().project()->settings()->objectID();
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, true));
+	const auto objectNewID = app.activeRaCoProject().project()->settings()->objectID();
+	ASSERT_NE(objectInitID, objectNewID);
+
+	raco::core::LoadContext loadContext;
+	auto project = raco::application::RaCoProject::loadFromFile(QString::fromUtf8((test_path() / "project.rca").string().data()), &app, loadContext);
+	ASSERT_EQ(project->project()->settings()->objectID(), objectNewID);
+}
+
+TEST_F(RaCoProjectFixture, saveAsWithNewIDSamePath) {
+	RaCoApplication app{backend};
+	std::string msg;
+	const auto objectInitID = app.activeRaCoProject().project()->settings()->objectID();
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, true));
+	const auto objectNewID1 = app.activeRaCoProject().project()->settings()->objectID();
+	ASSERT_NE(objectNewID1, objectInitID);
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, true));
+	const auto objectNewID2 = app.activeRaCoProject().project()->settings()->objectID();
+	ASSERT_NE(objectNewID1, objectNewID2);
+}
+
+TEST_F(RaCoProjectFixture, saveAsSetProjectName) {
+	RaCoApplication app{backend};
+	std::string msg;
+	ASSERT_TRUE(app.activeRaCoProject().project()->settings()->objectName().empty());
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, true, false));
+	ASSERT_EQ("project", app.activeRaCoProject().project()->settings()->objectName());
+
+	raco::core::LoadContext loadContext;
+	auto project = raco::application::RaCoProject::loadFromFile(QString::fromUtf8((test_path() / "project.rca").string().data()), &app, loadContext);
+	ASSERT_EQ("project", project->project()->settings()->objectName());
+}
+
 TEST_F(RaCoProjectFixture, idChange) {
 	RaCoApplication app{backend};
 	app.activeRaCoProject().project()->setCurrentPath((test_path() / "project.rca").string());
@@ -520,6 +557,70 @@ TEST_F(RaCoProjectFixture, launchApplicationWithResourceSubFoldersCachedPathsAre
 	auto shaderSubdirectory = defaultResourceDirectories->shaderSubdirectory_.asString();
 
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project), newProjectFolder);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + meshSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + scriptSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder + "/" + interfaceSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + imageSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + shaderSubdirectory);
+}
+
+TEST_F(RaCoProjectFixture, saveAs_set_path_updates_cached_path) {
+	std::string imageSubdirectory = u8"images abc";
+	std::string meshSubdirectory = u8"meshes def";
+	std::string scriptSubdirectory = u8"shared";
+	std::string interfaceSubdirectory = u8"shared";
+	std::string shaderSubdirectory = u8"shared";
+
+	using namespace raco::user_types;
+
+	RaCoApplication app{backend};
+	std::string msg;
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, false));
+
+	const auto& settings = app.activeRaCoProject().project()->settings();
+	const auto& commandInterface = app.activeRaCoProject().commandInterface();
+
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
+	app.doOneLoop();
+
+	std::string newProjectFolder = app.activeRaCoProject().project()->currentFolder();
+
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + meshSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + scriptSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder + "/" + interfaceSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Image), newProjectFolder + "/" + imageSubdirectory);
+	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Shader), newProjectFolder + "/" + shaderSubdirectory);
+}
+
+TEST_F(RaCoProjectFixture, saveAs_with_new_id_set_path_updates_cached_path) {
+	std::string imageSubdirectory = u8"images abc";
+	std::string meshSubdirectory = u8"meshes def";
+	std::string scriptSubdirectory = u8"shared";
+	std::string interfaceSubdirectory = u8"shared";
+	std::string shaderSubdirectory = u8"shared";
+
+	using namespace raco::user_types;
+
+	RaCoApplication app{backend};
+	std::string msg;
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg,  false, true));
+
+	const auto& settings = app.activeRaCoProject().project()->settings();
+	const auto& commandInterface = app.activeRaCoProject().commandInterface();
+
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
+	app.doOneLoop();
+
+	std::string newProjectFolder = app.activeRaCoProject().project()->currentFolder();
+	
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), newProjectFolder + "/" + meshSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script), newProjectFolder + "/" + scriptSubdirectory);
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Interface), newProjectFolder + "/" + interfaceSubdirectory);

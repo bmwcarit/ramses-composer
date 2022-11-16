@@ -45,6 +45,7 @@ public:
 	const std::vector<SEditorObject>& instances() const;
 
 	std::string projectName() const;
+	
 	std::string projectID() const;
 
 	std::string getProjectNameForObject(SEditorObject const& object, bool fallbackToLocalProject = true) const;

@@ -26,7 +26,7 @@ namespace raco::core {
 			int parentIndex_;
 		};
 
-		virtual bool sceneValid() const = 0;
+		virtual core::ErrorLevel sceneValid() const = 0;
 
 		virtual std::string getValidationReport(core::ErrorLevel minLevel) const = 0;
 

@@ -28,6 +28,7 @@ set(TEST_SOURCES
 set(TEST_LIBRARIES
     raco::RamsesBase
     raco::UserTypes
+    raco::ApplicationLib
     raco::Testing
 )
 raco_package_add_headless_test(
@@ -58,4 +59,6 @@ raco_package_add_test_resources(
     scripts/types-scalar.lua
     shaders/basic.vert
     shaders/basic.frag
+    shaders/uniform-array.vert
+    shaders/uniform-array.frag
 )

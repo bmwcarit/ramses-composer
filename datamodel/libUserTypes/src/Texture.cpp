@@ -14,6 +14,12 @@
 
 namespace raco::user_types {
 
+void Texture::onAfterContextActivated(BaseContext& context) {
+	BaseObject::onAfterContextActivated(context);
+
+	validateMipmapLevel(context);
+}
+
 void Texture::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	BaseObject::onAfterValueChanged(context, value);
 
@@ -55,14 +61,15 @@ void Texture::validateURIs(BaseContext& context) {
 
 void Texture::validateMipmapLevel(BaseContext& context) {
 	auto mipmapLevelValue = ValueHandle{shared_from_this(), &raco::user_types::Texture::mipmapLevel_};
-	context.errors().removeError(mipmapLevelValue);
-
+	
 	if (*mipmapLevel_ < 1 || *mipmapLevel_ > 4) {
 		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, mipmapLevelValue,
 			"Invalid mipmap level - only mipmap levels 1 to 4 are allowed.");
 	} else if (*generateMipmaps_ && *mipmapLevel_ != 1) {
 		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, mipmapLevelValue,
 			"Mipmap level larger than 1 specified while auto-generation flag is on - Ramses will ignore the auto-generation flag and still try to use the manually specified URIs.");
+	} else {
+		context.errors().removeError(mipmapLevelValue);
 	}
 }
 

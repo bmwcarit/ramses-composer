@@ -29,6 +29,7 @@
         <file alias="RobotoLight">_Default/fonts/Roboto-Light.ttf</file>
         <file alias="typeAnimationIcon">_Default/icons/typeAnimation.svg</file>
         <file alias="typeAnimationChannelIcon">_Default/icons/typeAnimationChannel.svg</file>
+        <file alias="typeBlitPassIcon">_Default/icons/typeBlitPass.svg</file>
         <file alias="typeNodeIcon">_Default/icons/typeNode.svg</file>
         <file alias="typeCameraIcon">_Default/icons/typeCamera.svg</file>
         <file alias="typeMeshIcon">_Default/icons/typeMesh.svg</file>

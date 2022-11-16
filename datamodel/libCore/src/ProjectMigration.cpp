@@ -458,10 +458,10 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 					(*options)->addProperty("blendFactorDestColor", optionsCont.get("blendFactorDestColor")->clone({}), -1);
 					(*options)->addProperty("blendFactorSrcAlpha", optionsCont.get("blendFactorSrcAlpha")->clone({}), -1);
 					(*options)->addProperty("blendFactorDestAlpha", optionsCont.get("blendFactorDestAlpha")->clone({}), -1);
-					(*options)->addProperty("blendColor", optionsCont.get("blendColor"), -1);
-					(*options)->addProperty("depthwrite", optionsCont.get("depthwrite"), -1);
-					(*options)->addProperty("depthFunction", optionsCont.get("depthFunction"), -1);
-					(*options)->addProperty("cullmode", optionsCont.get("cullmode"), -1);
+					(*options)->addProperty("blendColor", optionsCont.get("blendColor")->clone({}), -1);
+					(*options)->addProperty("depthwrite", optionsCont.get("depthwrite")->clone({}), -1);
+					(*options)->addProperty("depthFunction", optionsCont.get("depthFunction")->clone({}), -1);
+					(*options)->addProperty("cullmode", optionsCont.get("cullmode")->clone({}), -1);
 
 					matCont.replaceProperty("options", options);
 				}
@@ -1108,7 +1108,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 					auto frustumTable = new Property<Table, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Frustum"}, {}};
 
-					(*frustumTable)->addProperty("nearPlane", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> (frustumStruct->asStruct().get("nearPlane")->asDouble(), DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), {}), -1);
+					(*frustumTable)->addProperty("nearPlane", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>(frustumStruct->asStruct().get("nearPlane")->asDouble(), DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), {}), -1);
 
 					(*frustumTable)->addProperty("farPlane", new Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>(frustumStruct->asStruct().get("farPlane")->asDouble(), DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), {}), -1);
 
@@ -1135,6 +1135,50 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 					auto oldClearColor = dynObj->extractProperty("clearColor");
 					auto newClearColor = dynObj->addProperty("clearColor", new Property<Vec4f, DisplayNameAnnotation, LinkEndAnnotation>({}, {"Clear Color"}, {2}), -1);
 					*newClearColor = *oldClearColor;
+				}
+			}
+		}
+	}
+
+	// File version 45 : Added LinkEndAnnotation to all properties in the RenderLayer::renderableTags property
+	if (deserializedIR.fileVersion < 45) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "RenderLayer") {
+				if (dynObj->hasProperty("renderableTags")) {
+					auto oldRenderables = dynObj->extractProperty("renderableTags");
+					auto newRenderables = new Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation>{{}, {}, {"Renderable Tags"}};
+
+					Table& oldTable = oldRenderables->asTable();
+					for (size_t i = 0; i < oldTable.size(); i++) {
+						int oldValue = oldTable.get(i)->asInt();
+						(*newRenderables)->addProperty(oldTable.name(i), new Property<int, LinkEndAnnotation>(oldValue, {3}), -1);
+					}
+
+					dynObj->addProperty("renderableTags", newRenderables, -1);
+				}
+			}
+		}
+	}
+
+	// File version 46: changed BaseCamera viewport width and height ranges
+	if (deserializedIR.fileVersion < 46) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+			if (instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera") {
+				if (dynObj->hasProperty("viewport")) {
+					auto& viewportprop = dynObj->get("viewport")->asStruct();
+					auto widthRange = viewportprop.get("width")->query<RangeAnnotation<int>>();
+					widthRange->min_ = 1;
+					auto heightRange = viewportprop.get("height")->query<RangeAnnotation<int>>();
+					heightRange->min_ = 1;
+				}
+			}
+
+			if (instanceType == "RenderTarget") {
+				if (dynObj->hasProperty("buffer0")) {
+					auto oldProp = dynObj->extractProperty("buffer0");
+					auto newProp = dynObj->addProperty("buffer0", new Property<SRenderBuffer, DisplayNameAnnotation, ExpectEmptyReference>({}, {"Buffer 0"}, {}), -1);
+					*newProp = oldProp->asRef();
 				}
 			}
 		}

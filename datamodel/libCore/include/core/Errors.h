@@ -39,7 +39,9 @@ public:
 	 */
 	bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
 
-	void logError(const ErrorItem& error) const;
+	static std::string formatError(const ErrorItem& error);
+
+	static void logError(const ErrorItem& error);
 	void logAllErrors() const;
 
 	/**

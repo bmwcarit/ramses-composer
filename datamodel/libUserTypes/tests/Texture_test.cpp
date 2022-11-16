@@ -8,6 +8,9 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "testing/TestEnvironmentCore.h"
+#include "application/RaCoApplication.h"
+#include "application/RaCoProject.h"
+#include "core/Errors.h"
 #include "user_types/Texture.h"
 #include <gtest/gtest.h>
 
@@ -46,4 +49,32 @@ TEST_F(TextureTest, levelOtherThanOneWhenGenerationFlagIsActivated) {
 
 	commandInterface.set({texture, &raco::user_types::Texture::generateMipmaps_}, false);
 	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+}
+
+TEST_F(TextureTest, error_present_after_load) {
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+
+	{
+		raco::application::RaCoApplication app{backend};
+		auto& cmd = *app.activeRaCoProject().commandInterface();
+
+		auto texture{cmd.createObject(Texture::typeDescription.typeName, "texture")};
+		cmd.set({texture, &raco::user_types::Texture::mipmapLevel_}, -1);
+		ASSERT_TRUE(cmd.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+
+		std::string msg;
+		app.activeRaCoProject().saveAs(QString::fromStdString((test_path() / "test.rca").string()), msg);
+	}
+
+	{
+		raco::application::RaCoApplicationLaunchSettings settings;
+		settings.initialProject = (test_path() / "test.rca").string().c_str();
+		raco::application::RaCoApplication app{backend, settings};
+
+		auto& project = *app.activeRaCoProject().project();
+
+		auto texture = raco::core::Queries::findByName(project.instances(), "texture");
+
+		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	}
 }

@@ -66,7 +66,7 @@ public:
 	// contains tag name -> order index map as normal Value<int> properties
 	// - property name is the tag name
 	// - property value is the order index 
-	Property<Table, RenderableTagContainerAnnotation, HiddenProperty, DisplayNameAnnotation> renderableTags_{{}, {}, {}, {"Renderable Tags"}};
+	Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation> renderableTags_{{}, {}, {"Renderable Tags"}};
 
 	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> materialFilterTags_{{}, {}, {}, {}, {"Material Filter Tags"}};
 	Property<int, DisplayNameAnnotation, EnumerationAnnotation> materialFilterMode_{static_cast<int>(ERenderLayerMaterialFilterMode::Exclusive), {"Material Filter Mode"}, EngineEnumeration::RenderLayerMaterialFilterMode};

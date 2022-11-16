@@ -36,30 +36,37 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	renderPass_->setClearFlags(ramses::EClearFlags_None);
 
 	static const std::string vertexShader =
-		"#version 300 es\n\
+		"#version 310 es\n\
 		precision mediump float;\n\
-		in vec3 aPosition;\n\
-		in vec2 aUVSet0;\n\
-		\n\
-		out vec2 vTC0;\n\
 		uniform mat4 mvpMatrix;\n\
+		\n\
+		in vec3 a_Position;\n\
+		in vec2 a_TextureCoordinate;\n\
+		out vec2 vTC0;\n\
+\n\
 		void main() {\n\
-			vTC0 = aUVSet0;\n\
-			gl_Position = mvpMatrix * vec4(aPosition.xyz, 1.0);\n\
+			gl_Position = mvpMatrix * vec4(a_Position, 1.0);\n\
+			vTC0 = a_TextureCoordinate;\n\
 		}";
 
 	static const std::string fragmentShader =
-		"#version 300 es\n\
+		"#version 310 es\n\
 		precision mediump float;\n\
 		\n\
 		in vec2 vTC0;\n\
-		uniform sampler2D uTex0;\n\
+		uniform mediump sampler2DMS uTex0;\n\
+		uniform int sampleCount;\n\
 		\n\
 		out vec4 FragColor;\n\
 		\n\
 		void main() {\n\
-			vec3 clr0 = texture(uTex0, vTC0).rgb;\n\
-			FragColor = vec4(clr0, 1.0); \n\
+			vec4 color = vec4(0.0);\n\
+\n\
+			for (int i = 0; i < sampleCount; i++)\n\
+				color += texelFetch(uTex0, ivec2(vTC0 * vec2(textureSize(uTex0))), i);\n\
+\n\
+			color /= float(sampleCount);\n\
+			FragColor = color;\n\
 		}";
 
 	ramses::EffectDescription effectDescription{};
@@ -97,11 +104,11 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	(*geometryBinding_)->setIndices(*indexDataBuffer_.get());
 
 	ramses::AttributeInput vertexInput;
-	effect_->findAttributeInput("aPosition", vertexInput);
+	effect_->findAttributeInput("a_Position", vertexInput);
 	(*geometryBinding_)->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
 
 	ramses::AttributeInput uvInput;
-	effect_->findAttributeInput("aUVSet0", uvInput);
+	effect_->findAttributeInput("a_TextureCoordinate", uvInput);
 	(*geometryBinding_)->setInputBuffer(uvInput, *uvDataBuffer_.get());
 
 	meshNode_ =  ramsesMeshNode(scene_.get());
@@ -132,36 +139,36 @@ ramses::sceneId_t PreviewFramebufferScene::getSceneId() const {
 	return scene_->getSceneId();
 }
 
-ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewFilteringMode filteringMode) {
-	ramses::ETextureSamplingMethod samplingMethod = ramses::ETextureSamplingMethod_Nearest;
-	if (filteringMode == PreviewFilteringMode::Linear) {
-		samplingMethod = ramses::ETextureSamplingMethod_Linear;
-	}
-
-	if (framebufferTexture_ && framebufferTexture_->getWidth() == size.width() && framebufferTexture_->getHeight() == size.height() && sampler_->getMagSamplingMethod() == samplingMethod && sampler_->getMinSamplingMethod() == samplingMethod) {
+ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewMultiSampleRate sampleRate) {
+	if (renderbuffer_ && renderbuffer_->getWidth() == size.width() && renderbuffer_->getHeight() == size.height() && renderbuffer_->getSampleCount() == sampleRate) {
 		return framebufferSampleId_;
 	}
-
 	auto& client = backend.client();
 	ramses::UniformInput texUniformInput;
 	(*appearance_)->getEffect().findUniformInput("uTex0", texUniformInput);
+
+	ramses::UniformInput sampleRateUniformInput;
+	(*appearance_)->getEffect().findUniformInput("sampleCount", sampleRateUniformInput);
 
 	std::vector<uint8_t> data(4 * size.width() * size.height(), 0);
 
 	ramses::MipLevelData mipData(static_cast<uint32_t>(data.size()), data.data());
 	const ramses::TextureSwizzle textureSwizzle{};
 
-	framebufferTexture_ = ramsesTexture2D(scene_.get(), ramses::ETextureFormat::RGBA8, size.width(), size.height(), 1, &mipData, false, textureSwizzle, ramses::ResourceCacheFlag_DoNotCache, "framebuffer texture");
+	renderbuffer_ = ramsesRenderBuffer(scene_.get(), size.width(), size.height(), ramses::ERenderBufferType_Color, ramses::ERenderBufferFormat_RGBA8, ramses::ERenderBufferAccessMode_ReadWrite, sampleRate);
 
+	ramses::RenderTargetDescription rtDesc;
+	rtDesc.addRenderBuffer(*renderbuffer_);
 
-	sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode_Clamp, ramses::ETextureAddressMode_Clamp, samplingMethod, samplingMethod, framebufferTexture_.get(), 1, "framebuffer sampler");
-	(*appearance_)->setInputTexture(texUniformInput, *sampler_.get());
+	samplerMS_ = ramsesTextureSamplerMS(scene_.get(), renderbuffer_);
+	(*appearance_)->setInputTexture(texUniformInput, *samplerMS_.get());
+	(*appearance_)->setInputValueInt32(sampleRateUniformInput, sampleRate);
 	scene_->flush();
 
 	static ramses::dataConsumerId_t id{42u};
 
 	framebufferSampleId_ = backend.internalDataConsumerId();
-	scene_->createTextureConsumer(*sampler_.get(), framebufferSampleId_);
+	scene_->createTextureConsumer(*samplerMS_.get(), framebufferSampleId_);
 
 	static const ramses::sceneVersionTag_t SCENE_VERSION_TAG_DATA_CONSUMER_CREATED{42};
 	static const ramses::sceneVersionTag_t SCENE_VERSION_TAG_RESET{41};

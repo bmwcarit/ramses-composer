@@ -35,22 +35,26 @@ end
 
 function run(IN,OUT)
 	local v = IN.vector3f
-	-- OUT.ofloat = v[0]
-	OUT.ofloat = GLOBAL.test(IN.vector3f)
+	
+	OUT.ofloat = IN.float
 	
 	OUT.ointeger = 2*IN.integer
 	OUT.ointeger64 = 2*IN.integer64
-	OUT.ovector3f = {IN.float, 2*IN.float, 3.0}
+
+	OUT.ovector2f = {IN.float, 2 * IN.float}
+	OUT.ovector3f = {IN.float, 2 * IN.float, 3 * IN.float}
+	OUT.ovector4f = {IN.float, 2 * IN.float, 3 * IN.float, 4 * IN.float}
+
+	OUT.ovector2i = {IN.integer, 2 * IN.integer}
+	OUT.ovector3i = {IN.integer, 2 * IN.integer, 3 * IN.integer}
+	OUT.ovector4i = {IN.integer, 2 * IN.integer, 3 * IN.integer, 4 * IN.integer}
 	
-	OUT.ovector4f = {v[1], IN.float, IN.vector3f[1], IN.vector3f[2]}
-	OUT.obool = not IN.bool
-	OUT.flag = IN.float > 0.5
-	-- OUT.flag = IN.vector3f
-
-
 	if IN.bool then
 		OUT.foo = IN.float
 	else
 		OUT.bar = IN.float
 	end
+
+	OUT.obool = not IN.bool
+	OUT.flag = IN.float > 0.5
 end

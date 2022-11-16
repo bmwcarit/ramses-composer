@@ -16,6 +16,13 @@
 
 
 namespace raco::user_types {
+
+void CubeMap::onAfterContextActivated(BaseContext& context) {
+	BaseObject::onAfterContextActivated(context);
+
+	validateMipmapLevel(context);
+}
+
 void CubeMap::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	BaseObject::onAfterValueChanged(context, value);
 
@@ -26,6 +33,7 @@ void CubeMap::onAfterValueChanged(BaseContext& context, ValueHandle const& value
 		validateMipmapLevel(context);
 	}
 }
+
 void CubeMap::updateFromExternalFile(BaseContext& context) {
 	validateURIs(context);
 
@@ -95,7 +103,6 @@ void CubeMap::validateURIs(BaseContext& context) {
 
 void CubeMap::validateMipmapLevel(BaseContext& context) {
 	auto mipmapLevelValue = ValueHandle{shared_from_this(), &raco::user_types::CubeMap::mipmapLevel_};
-	context.errors().removeError(mipmapLevelValue);
 
 	if (*mipmapLevel_ < 1 || *mipmapLevel_ > 4) {
 		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, mipmapLevelValue,
@@ -103,6 +110,8 @@ void CubeMap::validateMipmapLevel(BaseContext& context) {
 	} else if (*generateMipmaps_ && *mipmapLevel_ != 1) {
 		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, mipmapLevelValue,
 			"Mipmap level larger than 1 specified while auto-generation flag is on - Ramses will ignore the auto-generation flag and still try to use the manually specified URIs.");
+	} else {
+		context.errors().removeError(mipmapLevelValue);
 	}
 }
 

@@ -281,7 +281,8 @@ void CommandInterface::setRenderableTags(ValueHandle const& handle, std::vector<
 
 		data_storage::Table table;
 		for (auto const& p : renderableTags) {
-			table.addProperty(p.first, new Value<int>(p.second));
+			// Note: render order is only linkable starting at feature level 3.
+			table.addProperty(p.first, new Property<int, LinkEndAnnotation>(p.second, {3}));
 		}
 
 		if (!(handle.constValueRef()->asTable() == table)) {
