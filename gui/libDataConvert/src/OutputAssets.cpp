@@ -30,6 +30,23 @@ std::set<std::string> HasOpacityMaterials_;
 
 float NodeScaleSize_;
 
+void DEBUG(QString FILE, QString FUNCTION, int LINE) {
+	QMessageBox msgBox;
+	msgBox.setWindowTitle("Debug message box");
+	QPushButton* okButton = msgBox.addButton("OK", QMessageBox::ActionRole);
+	msgBox.setIcon(QMessageBox::Icon::Warning);
+
+	QString info;
+	info += FILE + QString(" ") + LINE + QString(" ") + FUNCTION;
+	msgBox.setWindowTitle("OutputAssets.cpp Line：emplace error " + info);
+
+	msgBox.setText(info);
+	msgBox.exec();
+
+	if (msgBox.clickedButton() == (QAbstractButton*)(okButton)) {
+		//isPtwOutputError_ = true;
+	}
+}
 
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
@@ -242,32 +259,10 @@ void OutputPtx::setPtxTCamera(NodeData* childNode, HmiScenegraph::TNode& hmiNode
 	hmiNode.set_allocated_camera(camera);
 }
 
-//void OutputPtx::setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& data) {
-//	//data.setObjectName(childNode->getName() + "_" + data.getObjectName());
-//	TextureData texData;
-//	for (auto& textureData : data.getTextures()) {
-//		std::string textureProperty = textureData.getUniformName();
-//		std::vector<Uniform> Uniforms = childNode->getUniforms();
-//		for (auto& un : Uniforms) {
-//			if (un.getName() == textureProperty && un.getType() == UniformType::String && un.getValue().type() == typeid(std::string)) {
-//				std::string textureName = std::any_cast<std::string>(un.getValue());
-//				if (textureName != textureData.getName()) {
-//					raco::guiData::MaterialManager::GetInstance().getTexture(textureName, texData);
-//					texData.setUniformName(textureProperty);
-//
-//					data.clearTexture();
-//					data.addTexture(texData);
-//				}
-//				return;
-//			}
-//		}
-//	}
-//}
 // update ptx node
 void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
     std::string nodeName = childNode->getName();
 	hmiNode.set_name(nodeName);
-
 	MeshData meshData;
 	bool isMeshNode = raco::guiData::MeshDataManager::GetInstance().getMeshData(childNode->objectID(), meshData);
 
@@ -542,7 +537,9 @@ void searchRepeatPropInNode(NodeData* pNode, std::string name) {
 			nodeIt->second.push_back(propCurve);
 		}
 		else {
-			pNodePropCurveNames_.emplace(ID, propCurves);
+			if (!pNodePropCurveNames_.emplace(ID, propCurves).second) {
+				DEBUG(__FILE__, __FUNCTION__, __LINE__);
+			}
 		}
 	}
 }
@@ -560,24 +557,6 @@ void updatePNodePropCurveMap(NodeData* pNode) {
 			}
 
 		}
-	}
-}
-
-void DEBUG(QString FILE, QString FUNCTION, int LINE) {
-	QMessageBox msgBox;
-	msgBox.setWindowTitle("Debug message box");
-	QPushButton* okButton = msgBox.addButton("OK", QMessageBox::ActionRole);
-	msgBox.setIcon(QMessageBox::Icon::Warning);
-
-	QString info;
-	info += FILE + QString(" ") + LINE + QString(" ") + FUNCTION;
-	msgBox.setWindowTitle("OutputAssets.cpp Line：emplace error " + info);
-
-	msgBox.setText(info);
-	msgBox.exec();
-
-	if (msgBox.clickedButton() == (QAbstractButton*)(okButton)) {
-		//isPtwOutputError_ = true;
 	}
 }
 
@@ -2780,7 +2759,7 @@ void OutputPtw::addVecValue2Uniform(HmiWidget::TWidget* widget, std::pair<std::s
 		// set operation
 		setUniformOperationByType(vecUniform, operation, curveNameArr);
 	} else if (hasMultiCurveSingleProp && !hasMultiAnimationSingleCurve) {
-		std::string multiCurveName = "Multi-" + (curves.at(0).begin())->second.curveName;
+		std::string multiCurveName = PTW_PRE_CURVES_ONE_PROP + (curves.at(0).begin())->second.curveName;
 		setUniformOperationByType(vecUniform, operation, curveNameArr, multiCurveName);
 		multiCurveBindingSinglePropSwitch(widget, curveProP.first, curves);
 	} else if (!hasMultiCurveSingleProp && hasMultiAnimationSingleCurve) {
@@ -2875,7 +2854,7 @@ void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std
 			TDataBinding* value = new TDataBinding;
 			TIdentifier* key = new TIdentifier;
 			TDataProvider* provider = new TDataProvider;
-			key->set_valuestring("Multi-" + (curves.at(0).begin())->second.curveName);
+			key->set_valuestring(PTW_PRE_CURVES_ONE_PROP + (curves.at(0).begin())->second.curveName);
 			provider->set_source(TEProviderSource_IntModelValue);
 			value->set_allocated_key(key);
 			value->set_allocated_provider(provider);

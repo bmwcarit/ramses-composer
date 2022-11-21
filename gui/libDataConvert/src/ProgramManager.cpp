@@ -1276,7 +1276,7 @@ bool ProgramManager::writeCTMFile(std::string filePathStr) {
 
         ctmDefineMesh(context, aVertices, aVerCount, aIndices, aTriCount, aNormals);
 
-        // uv maps
+        // uv maps a_TextureCoordinate
         posIndex = attriIndex(mesh.getAttributes(), "a_TextureCoordinate");
         if (posIndex != -1) {
             aUVMaps = new CTMfloat[aVerCount * 2];
@@ -1287,6 +1287,19 @@ bool ProgramManager::writeCTMFile(std::string filePathStr) {
                 qDebug() << "uv failed";
             }
         }
+
+        // uv maps a_TextureCoordinate1
+		posIndex = attriIndex(mesh.getAttributes(), "a_TextureCoordinate1");
+		if (posIndex != -1) {
+			aUVMaps = new CTMfloat[aVerCount * 2];
+			Attribute attri = mesh.getAttributes().at(posIndex);
+			auto uvMapsData = reinterpret_cast<float *>(attri.data.data());
+			;
+			std::memcpy(aUVMaps, uvMapsData, aVerCount * 2 * sizeof(float));
+			if (CTM_NONE == ctmAddUVMap(context, aUVMaps, "a_TextureCoordinate1", NULL)) {
+				qDebug() << "uv failed";
+			}
+		}
 
         ctmCompressionMethod(context, CTM_METHOD_MG1);
 
