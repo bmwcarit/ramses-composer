@@ -41,9 +41,11 @@ bool Project::removeInstances(SEditorObjectSet const& objects, bool gcExternalPr
 }
 
 void Project::addInstance(SEditorObject object) {
-	assert(instanceMap_.find(object->objectID()) == instanceMap_.end());
-	instances_.push_back(object);
-	instanceMap_[object->objectID()] = object;
+	if (object) {
+		assert(instanceMap_.find(object->objectID()) == instanceMap_.end());
+		instances_.push_back(object);
+		instanceMap_[object->objectID()] = object;
+	}
 }
 
 const std::vector<SEditorObject>& Project::instances() const {

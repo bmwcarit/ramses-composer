@@ -104,7 +104,7 @@ private:
 	void ModifyRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform);
 	void CreateRotation(std::pair<std::string, std::string> curveProP, HmiWidget::TNodeTransform* transform, raco::guiData::NodeData node);
 
-	int switchAnimations(HmiWidget::TWidget* widget);
+	void switchAnimation(HmiWidget::TWidget* widget);
 	void ConvertAnimationInfo(HmiWidget::TWidget* widget);
 	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
@@ -119,6 +119,7 @@ private:
 	void messageBoxError(std::string curveName, int errorNum);
 	void addAnimationDomain(HmiWidget::TWidget* widget, std::string animationName);
 	void triggerByInternalModel(HmiWidget::TWidget* widget);
+	void triggerByExternalModel(HmiWidget::TWidget* widget);
 	bool hasMultiCurveOneProp(std::string prop, NodeData* node, std::vector<std::map<std::string, CurvesSingleProp>>& curves);
 	void modifyMultiCurveTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
 	bool hasMultiAnimationOneCurve(std::string curveName, NodeData* pNode, AnimationsSingleCurve& aniSingleCurv, std::string& animationName);
@@ -129,8 +130,13 @@ private:
 	void externalScale(HmiWidget::TWidget* widget);
 
 	void externalOpacityData(HmiWidget::TWidget* widget);
+	void externalAnimation(HmiWidget::TWidget* widget);
 	void externalOpacity(HmiWidget::TWidget* widget);
 	void createResourceParam(HmiWidget::TWidget* widget, std::string materialName);
+
+	void externalColorData(HmiWidget::TWidget* widget);
+	void externalColorUniform(HmiWidget::TUniform& tUniform, int index);
+	void AddUColorUniforms(HmiWidget::TNodeParam* nodeParam, NodeData* node);
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
