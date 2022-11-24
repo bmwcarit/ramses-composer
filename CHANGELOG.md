@@ -24,6 +24,17 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.5.1] Bugfix release
+
+### Changes
+* Import dialog items are split into Scene Graph and Resources categories.
+
+### Fixes
+* Control of render order by manually changing a renderableTags child property of a RenderLayer now works correctly.
+* Make error color in Python runner readable.
+* Ignore RenderBufferMS-related errors when exporting as a workaround for a Ramses bug.
+
+
 ## [1.5.0] Multisampling, dynamic render order control, Python API improvements
 
 * **File version number has changed. Files saved with RaCo 1.5.0 cannot be opened by previous versions.**

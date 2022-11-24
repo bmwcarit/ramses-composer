@@ -29,6 +29,7 @@ RenderLayerAdaptor::RenderLayerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_p
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::materialFilterTags_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::materialFilterMode_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::sortOrder_}, [this]() { tagDirty(); }),
+		  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject, &user_types::RenderLayer::renderableTags_}, [this](auto) { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOnPropertyChange("children", [this](core::ValueHandle handle) { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOnPropertyChange("tags", [this](core::ValueHandle handle) { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOnPropertyChange("renderableTags", [this](core::ValueHandle handle) { tagDirty(); })} {

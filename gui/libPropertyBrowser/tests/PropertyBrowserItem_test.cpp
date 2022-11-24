@@ -15,6 +15,8 @@
 #include "user_types/UserObjectFactory.h"
 #include "user_types/Node.h"
 
+#include "testing/MockUserTypes.h"
+
 #include "ramses_base/HeadlessEngineBackend.h"
 #include <property_browser/PropertyBrowserItem.h>
 
@@ -27,24 +29,6 @@ using namespace raco::user_types;
 
 namespace raco::property_browser {
 
-class MockMutableTable : public EditorObject {
-public:
-	static inline const TypeDescriptor typeDescription = {"MockMutableTable", true};
-	TypeDescriptor const& getTypeDescription() const override {
-		return typeDescription;
-	}
-	MockMutableTable(MockMutableTable const&) = delete;
-	MockMutableTable(std::string name = std::string(), std::string id = std::string()) : EditorObject(name, id) {
-		fillPropertyDescription();
-	}
-
-	void fillPropertyDescription() {
-		properties_.emplace_back("table", &table_);
-	}
-
-	Property<Table> table_{{}};
-};
-
 TEST(PropertyBrowserItem, displayName) {
 	PropertyBrowserItemTestHelper<Node> data{};
 
@@ -56,7 +40,7 @@ TEST(PropertyBrowserItem, displayName) {
 }
 
 TEST(PropertyBrowserItem, addNewChildToTable_emits_childrenChanged) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle propertyHandle{data.valueHandle.get("table")};
 
 	PropertyBrowserItem itemUnderTest{propertyHandle, data.dispatcher, &data.commandInterface, data.sceneBackend, nullptr};
@@ -71,7 +55,7 @@ TEST(PropertyBrowserItem, addNewChildToTable_emits_childrenChanged) {
 }
 
 TEST(PropertyBrowserItem, removeChildFromTable_emits_childrenChanged) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle propertyHandle{data.valueHandle.get("table")};
 	data.addPropertyTo("table", PrimitiveType::Double);
 
@@ -87,7 +71,7 @@ TEST(PropertyBrowserItem, removeChildFromTable_emits_childrenChanged) {
 }
 
 TEST(PropertyBrowserItem, structuralModification_emits_childrenChangedOrCollapsedChildChanged) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle propertyHandle{data.valueHandle.get("table")};
 	data.addPropertyTo("table", PrimitiveType::Table, "child");
 
@@ -102,7 +86,7 @@ TEST(PropertyBrowserItem, structuralModification_emits_childrenChangedOrCollapse
 }
 
 TEST(PropertyBrowserItem, structuralModification_inCollapsedStructure_emits_childrenChangedOrCollapsedChildChanged) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle propertyHandle{data.valueHandle.get("table")};
 	data.addPropertyTo("table", PrimitiveType::Table, "child");
 
@@ -120,7 +104,7 @@ TEST(PropertyBrowserItem, structuralModification_inCollapsedStructure_emits_chil
 }
 
 TEST(PropertyBrowserItem, setExpanded_influence_showChildren_ifItemHasChildren) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle propertyHandle{data.valueHandle.get("table")};
 	data.addPropertyTo("table", PrimitiveType::Double);
 
@@ -136,7 +120,7 @@ TEST(PropertyBrowserItem, setExpanded_influence_showChildren_ifItemHasChildren) 
 }
 
 TEST(PropertyBrowserItem, setExpanded_doesnt_influence_showChildren_ifItemHasNoChildren) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle propertyHandle{data.valueHandle.get("table")};
 
 	PropertyBrowserItem itemUnderTest{propertyHandle, data.dispatcher, &data.commandInterface, data.sceneBackend, nullptr};
@@ -151,7 +135,7 @@ TEST(PropertyBrowserItem, setExpanded_doesnt_influence_showChildren_ifItemHasNoC
 }
 
 TEST(PropertyBrowserItem, setExpandedRecursively) {
-	PropertyBrowserItemTestHelper<MockMutableTable> data{};
+	PropertyBrowserItemTestHelper<MockTableObject> data{};
 	const ValueHandle tableHandle{data.valueHandle.get("table")};
 	data.addPropertyTo("table", "vec", new Value<Vec3f>());
 	const ValueHandle vecHandle{data.valueHandle.get("table").get("vec")};

@@ -59,6 +59,31 @@ TEST_F(RenderLayerAdaptorTest, renderables_meshnode_root) {
 	ASSERT_TRUE(engineGroupNested->containsMeshNode(*engineMeshNode));
 }
 
+TEST_F(RenderLayerAdaptorTest, renderables_set_sortorder_check_update) {
+	auto meshnode = create<MeshNode>("meshnode", nullptr, {"render_main"});
+	auto layer = create_layer("layer", {}, {{"render_main", 0}});
+
+	dispatch();
+
+	auto engineMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode");
+	auto engineGroup = select<ramses::RenderGroup>(*sceneContext.scene(), "layer");
+	auto engineGroupNested = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_main");
+
+	ASSERT_FALSE(engineGroup->containsMeshNode(*engineMeshNode));
+	ASSERT_TRUE(engineGroupNested->containsMeshNode(*engineMeshNode));
+
+	ASSERT_EQ(getSortOrder(*engineGroupNested, *engineMeshNode), 0);
+
+	context.set({layer, {"renderableTags", "render_main"}}, 3);
+
+	dispatch();
+
+	engineMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode");
+	engineGroupNested = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_main");
+
+	ASSERT_EQ(getSortOrder(*engineGroupNested, *engineMeshNode), 3);
+}
+
 TEST_F(RenderLayerAdaptorTest, renderables_meshnode_child) {
 	auto root = create<Node>("root", nullptr, {"render_main"});
 	auto meshnode = create<MeshNode>("meshnode", root);

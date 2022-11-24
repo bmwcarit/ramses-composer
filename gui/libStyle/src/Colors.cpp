@@ -26,6 +26,7 @@ Colors::Colors() noexcept {
 		{Colormap::warningColor, QColor(170, 100, 30)},
 		{Colormap::errorColor, QColor(180, 20, 20)},
 		{Colormap::errorColorDark, QColor(140, 0, 0)},
+		{Colormap::errorColorLight, QColor(255, 120, 120)},
 		{Colormap::dockTitleBackground, QColor(0, 0, 0)},
 		{Colormap::externalReference, QColor(170, 250, 70)},
 		{Colormap::externalReferenceDisabled, QColor(115, 195, 15)}};

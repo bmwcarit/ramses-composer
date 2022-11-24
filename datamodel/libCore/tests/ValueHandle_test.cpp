@@ -13,6 +13,8 @@
 #include "user_types/Node.h"
 #include "user_types/PerspectiveCamera.h"
 
+#include "testing/MockUserTypes.h"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -22,24 +24,7 @@
 using namespace raco::core;
 using namespace raco::user_types;
 
-class MockTableObject : public EditorObject {
-public:
-	static inline const TypeDescriptor typeDescription = {"MockTableObject", true};
-	TypeDescriptor const& getTypeDescription() const override {
-		return typeDescription;
-	}
-	MockTableObject(MockTableObject const&) = delete;
-	MockTableObject(std::string name = std::string(), std::string id = std::string()) : EditorObject(name, id) {
-		fillPropertyDescription();
-	}
 
-	void fillPropertyDescription() {
-		properties_.emplace_back("table", &table_);
-	}
-
-	Property<Table> table_{{}};
-};
- 
 TEST(ValueHandle, ValueHandle_std_collections_capable) {
 	const std::shared_ptr<Node> editorObject1{std::make_shared<Node>("SomeName1")};
 	const std::shared_ptr<Node> editorObject2{std::make_shared<Node>("SomeName2")};

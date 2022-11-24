@@ -34,7 +34,7 @@ private:
 
 	raco::ramses_base::RamsesRenderGroupBinding binding_;
 
-	std::array<components::Subscription, 9> subscriptions_;
+	std::array<components::Subscription, 10> subscriptions_;
 };
 
 };	// namespace raco::ramses_adaptor

@@ -41,7 +41,10 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 			});
 		} else if (item->checkState(0) == Qt::Checked) {
 			for (auto parent = item->parent(); parent; parent = parent->parent()) {
-				parent->setCheckState(0, Qt::Checked);
+				// Skip top-level items.
+				if (parent->parent()) {
+					parent->setCheckState(0, Qt::Checked);
+				}
 			}
 
 			iterateThroughChildren(item, [](auto* item) {
@@ -55,27 +58,15 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	selectAllButton_ = new QPushButton("Check All", this);
 	connect(selectAllButton_, &QPushButton::clicked, [this]() {
 		widget_->blockSignals(true);
-
-		for (auto* nodeItem : nodeTreeList_) {
-			nodeItem->setCheckState(0, Qt::Checked);
-		}
-		for (auto* meshItem : meshTreeList_) {
-			meshItem->setCheckState(0, Qt::Checked);
-		}
-		for (auto& [node, primitives] : nodeToPrimitiveTreeList_) {
-			for (auto* primitive : primitives) {
-				primitive->setCheckState(0, Qt::Checked);
-			}
-		}
-
+		checkAll(Qt::Checked);
 		widget_->blockSignals(false);
 	});
 
 	deselectAllButton_ = new QPushButton("Uncheck All", this);
 	connect(deselectAllButton_, &QPushButton::clicked, [this]() {
-		for (auto topLevelIndex = 0; topLevelIndex < widget_->topLevelItemCount(); ++topLevelIndex) {
-			widget_->topLevelItem(topLevelIndex)->setCheckState(0, Qt::Unchecked);
-		}
+		widget_->blockSignals(true);
+		checkAll(Qt::Unchecked);
+		widget_->blockSignals(false);
 	});
 
 	massSelectButtonLayout_ = new QHBoxLayout(nullptr);
@@ -102,6 +93,12 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	layout_->addLayout(massSelectButtonLayout_, 2, 0);
 	layout_->addWidget(dialogButtonBox_, 3, 0);
 
+	auto sceneGraphRootItem = new QTreeWidgetItem({"Scene Graph", ""});
+	widget_->addTopLevelItem(sceneGraphRootItem);
+
+	auto resourcesRootItem = new QTreeWidgetItem({"Resources", ""});
+	widget_->addTopLevelItem(resourcesRootItem);
+
 	for (auto i = 0; i < sceneGraph_.nodes.size(); ++i) {
 		auto& node = sceneGraph_.nodes[i].value();
 
@@ -110,7 +107,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		item->setIcon(0, node.subMeshIndeces.size() == 1 ? raco::style::Icons::instance().typeMesh : raco::style::Icons::instance().typeNode);
 		item->setCheckState(0, Qt::CheckState::Checked);
 		if (node.parentIndex == raco::core::MeshScenegraphNode::NO_PARENT) {
-			widget_->addTopLevelItem(item);
+			sceneGraphRootItem->addChild(item);
 		}
 
 		// Handle edge case of a node containing multiple primitives:
@@ -150,7 +147,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		auto item = meshTreeList_[i] = new QTreeWidgetItem({QString::fromStdString(mesh), QString::fromStdString(raco::user_types::Mesh::typeDescription.typeName)});
 		item->setIcon(0, raco::style::Icons::instance().typeMesh);
 		item->setCheckState(0, Qt::CheckState::Checked);
-		widget_->addTopLevelItem(item);
+		resourcesRootItem->addChild(item);
 	}
 
 	for (auto animIndex = 0; animIndex < sceneGraph_.animations.size(); ++animIndex) {
@@ -158,7 +155,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		auto animItem = animTreeList_[animIndex] = new QTreeWidgetItem({QString::fromStdString(anim.name), QString::fromStdString(raco::user_types::Animation::typeDescription.typeName)});
 		animItem->setIcon(0, raco::style::Icons::instance().typeAnimation);
 		animItem->setCheckState(0, Qt::CheckState::Checked);
-		widget_->addTopLevelItem(animItem);
+		resourcesRootItem->addChild(animItem);
 
 		for (auto samplerIndex = 0; samplerIndex < sceneGraph_.animationSamplers[animIndex].size(); ++samplerIndex) {
 			auto& sampler = sceneGraph_.animationSamplers[animIndex][samplerIndex];
@@ -166,8 +163,21 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 			animSamplerItemMap_[animIndex].emplace_back(sampItem);
 			sampItem->setIcon(0, raco::style::Icons::instance().typeAnimationChannel);
 			sampItem->setCheckState(0, Qt::CheckState::Checked);
-			widget_->addTopLevelItem(sampItem);
+			resourcesRootItem->addChild(sampItem);
 		}
+	}
+
+	sceneGraphRootItem->setExpanded(true);
+	resourcesRootItem->setExpanded(true);
+}
+
+// Set check state to all but top-level items.
+void MeshAssetImportDialog::checkAll(Qt::CheckState state) {
+	for (auto topLevelIndex = 0; topLevelIndex < widget_->topLevelItemCount(); ++topLevelIndex) {
+		auto topLevelItem = widget_->topLevelItem(topLevelIndex);
+		iterateThroughChildren(topLevelItem, [&](auto* item) {
+			item->setCheckState(0, state);
+		});
 	}
 }
 

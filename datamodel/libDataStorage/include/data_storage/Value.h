@@ -585,6 +585,9 @@ const U& Value<T>::asImplConst() const {
 template <typename T, class... Args>
 class Property : public Value<T> {
 public:
+	// By design the Property type should be used only when annotations are included, and the Value type otherwise.
+	static_assert(std::tuple_size_v<std::tuple<Args...>> != 0, "Property type must have annotations. Use Value instead.");
+
 	static constexpr bool hasAnnotations() {
 		return (sizeof...(Args) > 0);
 	}

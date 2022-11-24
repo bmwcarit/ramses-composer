@@ -12,6 +12,7 @@
 #include "FileChangeCallback.h"
 
 #include <memory>
+#include <string>
 
 namespace raco::core {
 

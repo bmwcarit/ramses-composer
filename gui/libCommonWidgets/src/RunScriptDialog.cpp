@@ -88,7 +88,7 @@ void RunScriptDialog::addPythonOutput(const std::string& outBuffer, const std::s
 	statusTextBlock_->appendPlainText(QString::fromStdString(outBuffer));
 
 	if (!errorBuffer.empty()) {
-		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(raco::style::Colors::color(raco::style::Colormap::errorColor).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));
+		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(raco::style::Colors::color(raco::style::Colormap::errorColorLight).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));
 	}
 	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 FINISHED =====</font></b><br>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
 }

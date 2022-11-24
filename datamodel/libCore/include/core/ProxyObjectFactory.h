@@ -176,7 +176,6 @@ public:
 
 		// BaseCamera
 		Property<CameraViewport, DisplayNameAnnotation, LinkEndAnnotation>,
-		Property<double>,
 
 		// LuaScript
 		Property<LuaStandardModuleSelection, DisplayNameAnnotation>,

@@ -105,6 +105,13 @@ std::string SceneBackend::ramsesFilteredValidationReport(core::ErrorLevel minLev
 		if (line.find("rendergroup does not contain any meshes") != std::string::npos) {
 			continue;
 		}
+		// The next two are a workaround for a ramses bug: remove eventually
+		if (line.find("There is no valid content source set in TextureSampler") != std::string::npos) {
+			continue;
+		}
+		if (line.find("RenderBuffer") != std::string::npos) {
+			continue;
+		}
 		filtered.append(line).append("\n");
 	}
 	return filtered;

@@ -37,6 +37,7 @@ public:
 private:
 	void iterateThroughChildren(QTreeWidgetItem* item, const std::function<void(QTreeWidgetItem*)> &func);
 	void applyChangesToScenegraph();
+	void checkAll(Qt::CheckState state);
 
 	raco::core::MeshScenegraph& sceneGraph_;
 	std::vector<QTreeWidgetItem*> nodeTreeList_;

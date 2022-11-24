@@ -9,6 +9,8 @@
  */
 #include "data_storage/Value.h"
 
+#include "data_storage/AnnotationBase.h"
+
 #include "StructTypes.h"
 
 #include <memory>
@@ -20,13 +22,33 @@
 
 using namespace raco::data_storage;
 
+// Duplicate of Dummy class in MockUserTypes.h:
+// Dedpulicating this would need to create a new cmake library which seem overkill for a single helper class only used once here.
+class Dummy: public AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"Dummy", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+
+	Dummy() : AnnotationBase({}) {}
+
+	Dummy(const Dummy& other) : AnnotationBase({}) {}
+
+	Dummy& operator=(const Dummy& other) {
+		return *this;
+	}
+};
 TEST(PropertyTest, Scalar)
 {
 
-	Property<bool> bv { false };
-	Property<int> iv { 0 };
+	Property<bool, Dummy> bv{false, {}};
+	Property<int, Dummy> iv{0, {}};
 
-	Property<double> dv { 0.0 };
+	Property<double, Dummy> dv{0.0, {}};
 	dv = 2.0;
 	EXPECT_EQ(*dv, 2.0);
 
@@ -46,12 +68,12 @@ TEST(PropertyTest, Struct) {
 	s.bb = false;
 	s.dd = 2.0;
 
-	Property<SimpleStruct> vs;
-	const Property<SimpleStruct> cvs(s);
-	Property<AltStruct> va;
+	Property<SimpleStruct, Dummy> vs{{}, {}};
+	const Property<SimpleStruct, Dummy> cvs(s, {});
+	Property<AltStruct, Dummy> va;
 
 	EXPECT_EQ(vs.type(), PrimitiveType::Struct);
-	EXPECT_EQ(vs.typeName(), "SimpleStruct");
+	EXPECT_EQ(vs.typeName(), "SimpleStruct::Dummy");
 
 	EXPECT_THROW(vs.asBool(), std::runtime_error);
 	EXPECT_THROW(vs.as<bool>(), std::runtime_error);

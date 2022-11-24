@@ -18,6 +18,43 @@
 namespace raco::user_types {
 using namespace raco::core;
 
+class Dummy : public AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"Dummy", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+
+	Dummy() : AnnotationBase({}) {}
+
+	Dummy(const Dummy& other) : AnnotationBase({}) {}
+
+	Dummy& operator=(const Dummy& other) {
+		return *this;
+	}
+};
+
+class MockTableObject : public raco::core::EditorObject {
+public:
+	static inline const TypeDescriptor typeDescription = {"MockTableObject", true};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	MockTableObject(MockTableObject const&) = delete;
+	MockTableObject(std::string name = std::string(), std::string id = std::string()) : EditorObject(name, id) {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("table", &table_);
+	}
+
+	Property<Table, Dummy> table_{{}, {}};
+};
+
 class MockLuaScript : public EditorObject {
 public:
 	static inline const TypeDescriptor typeDescription = {"MockLuaScript", true};
@@ -60,8 +97,8 @@ public:
 		properties_.emplace_back("outputs", &outputs_);
 	}
 
-	Property<Table> inputs_{{}};
-	Property<Table> outputs_{{}};
+	Property<Table, Dummy> inputs_{{}, {}};
+	Property<Table, Dummy> outputs_{{}, {}};
 };
 
 class StructWithRef : public StructBase {

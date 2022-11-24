@@ -9,6 +9,7 @@
  */
 #include "core/BasicTypes.h"
 #include "data_storage/Value.h"
+#include "testing/MockUserTypes.h"
 
 #include <memory>
 #include <stdexcept>
@@ -19,12 +20,13 @@
 
 using namespace raco::core;
 using namespace raco::data_storage;
+using raco::user_types::Dummy;
 
 class PropTest {
 public:
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>> val{0.0, DisplayNameAnnotation{"Foo"}, RangeAnnotation(0.0, 1.0)};
 
-	Property<double> bare{0.0};
+	Property<double, Dummy> bare{0.0, {}};
 };
 
 TEST(AnnotationQueryTest, Scalar)
@@ -66,7 +68,7 @@ TEST(AnnotationQueryTest, Vec3f)
 	EXPECT_EQ(&range, p_range);
 
 
-	Property<Vec3f> pv { Vec3f(0.0) };
+	Property<Vec3f, Dummy> pv{Vec3f(0.0), {}};
 	RangeAnnotation<double>& prange = pv->x.staticQuery<RangeAnnotation<double>>();
 	RangeAnnotation<double>* p_prange = pv->x.dynamicQuery<RangeAnnotation<double>>();
 	EXPECT_EQ(&prange, p_prange);
@@ -74,7 +76,7 @@ TEST(AnnotationQueryTest, Vec3f)
 
 class ClassWithVec3f {
 public:
-	Property<Vec3f> v { Vec3f(0.0) };
+	Property<Vec3f, Dummy> v{Vec3f(0.0), {}};
 };
 
 TEST(AnnotationQueryTest, ClassWithVec3f)

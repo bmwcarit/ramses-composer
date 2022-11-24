@@ -284,14 +284,14 @@ TEST_F(ContextTest, SpecializedReferenceProperties) {
 	SMesh mesh{new Mesh("mesh")};
 	SMeshNode meshnode{new MeshNode("meshnode")};
 
-	Property<SMeshNode> vmn = meshnode;
+	Property<SMeshNode, Dummy> vmn{meshnode, {}};
 	EXPECT_EQ(*vmn, meshnode);
 	// This does (intentionally) not compile:
 	// vmn = mesh;
 	// SMesh mymesh = *vmn;
 
 	SNode node{new Node("node")};
-	Property<SNode> vnode{{}};
+	Property<SNode, Dummy> vnode{{}, {}};
 	vnode = node;
 	vnode = meshnode;
 
