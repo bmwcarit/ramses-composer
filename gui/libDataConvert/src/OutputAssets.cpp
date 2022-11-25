@@ -48,6 +48,28 @@ void DEBUG(QString FILE, QString FUNCTION, int LINE) {
 	}
 }
 
+void OutputPtx::isNotAddedAttribute(std::string name) {
+	if (name == "a_Position" || name == "a_TextureCoordinate" || name == "a_TextureCoordinate1") {
+		return;
+	}
+
+	QMessageBox msgBox;
+	msgBox.setWindowTitle("Attribute Not added message box");
+	QPushButton* okButton = msgBox.addButton("OK", QMessageBox::ActionRole);
+	msgBox.setIcon(QMessageBox::Icon::Warning);
+
+	QString info;
+	// The currently used attribute has not been added yet!
+	info = QString::fromStdString(name) + "\" has not been added yet!";
+	info = "Warning: The currently used attribute \"" + info;
+	msgBox.setText(info);
+	msgBox.exec();
+
+	if (msgBox.clickedButton() == (QAbstractButton*)(okButton)) {
+		isPtxOutputError_ = true;
+	}
+}
+
 std::string delUniformNamePrefix(std::string nodeName) {
 	int index = nodeName.rfind("uniforms.");
 	if (-1 != index) {
@@ -221,6 +243,7 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 		// usedAttributes
 		if (raco::guiData::MaterialManager::GetInstance().getMaterialData(node->objectID(), materialData)) {
 			for (auto& attr : materialData.getUsedAttributes()) {
+				isNotAddedAttribute(attr.name);
 				HmiScenegraph::TMesh_TAttributeParamteter tempAttr;
 				tempAttr.set_name(attr.name);
 				HmiScenegraph::TMesh_TAttributeParamteter* itAttr = tMesh.add_attributeparameter();
@@ -1060,7 +1083,7 @@ void OutputPtx::messageBoxError(std::string materialName, int type) {
 
 bool updateHasOpacityMaterial(std::vector<Uniform> uniforms, std::string materialName) {
 	for (auto& uniform : uniforms) {
-		if (uniform.getName() == PTW_FRAG_CTRL_OPACITY) {
+		if (uniform.getName() == PTW_FRAG_SYS_OPACITY) {
 			auto it = HasOpacityMaterials_.find(materialName);
 			if (it == HasOpacityMaterials_.end()) {
 				HasOpacityMaterials_.emplace(materialName);
@@ -1635,6 +1658,59 @@ bool getAnimationInteral(std::string curveName, std::string& animationInteral) {
 		return false;
 	}
 }
+// if Curve only has one point, add Point.
+void OutputPtw::modifyOnePointCurve(Point* point, TCurveDefinition* curveDefinition, std::string curveName) {
+	Point* pointTemp = new Point(*point);
+	int key = pointTemp->getKeyFrame();
+	if (key == 0) {
+		pointTemp->setKeyFrame(key+1);
+	} else {
+		pointTemp->setKeyFrame(key-1);
+	}
+	addPoint2Curve(pointTemp, curveDefinition, curveName);
+}
+
+void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefinition, std::string curveName) {
+	auto point = curveDefinition->add_point();
+	TMultidimensionalPoint* pot = new TMultidimensionalPoint;
+	TNumericValue* value = new TNumericValue;
+	value->set_float_(std::any_cast<double>(pointData->getDataValue()));
+	pot->set_domain(pointData->getKeyFrame());
+	pot->set_allocated_value(value);
+	point->set_allocated_point(pot);
+
+	if (pointData->getInterPolationType() == raco::guiData::LINER) {
+		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
+		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
+		point->set_allocated_incomminginterpolation(incommingInterpolation);
+		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
+		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
+		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
+	} else if (pointData->getInterPolationType() == raco::guiData::BESIER_SPLINE) {	 // HERMIT_SPLINE
+		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
+		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
+		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
+		lefttangentVector->set_domain(pointData->getLeftKeyFrame());
+		TNumericValue* leftValue = new TNumericValue;
+		leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
+		lefttangentVector->set_allocated_value(leftValue);
+		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
+		point->set_allocated_incomminginterpolation(incommingInterpolation);
+
+		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
+		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
+		TMultidimensionalPoint* RighttangentVector = new TMultidimensionalPoint;
+		RighttangentVector->set_domain(pointData->getRightKeyFrame());
+		TNumericValue* RightValue = new TNumericValue;
+		//double right = std::any_cast<double>(pointData->getRightTagent());
+		RightValue->set_float_(std::any_cast<double>(pointData->getRightData()));
+		RighttangentVector->set_allocated_value(RightValue);
+		outgoingInterpolation->set_allocated_tangentvector(RighttangentVector);
+		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
+	} else {
+		messageBoxError(curveName, 4);
+	}
+}
 
 void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal) {
 	for (auto curveData : raco::guiData::CurveManager::GetInstance().getCurveList()) {
@@ -1657,45 +1733,10 @@ void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animati
 		TCurveDefinition* curveDefinition = new TCurveDefinition;
 		curveDefinition->set_curvevaluetype(TENumericType_float);
 		for (auto pointData : curveData->getPointList()) {
-			auto point = curveDefinition->add_point();
-			TMultidimensionalPoint* pot = new TMultidimensionalPoint;
-			TNumericValue* value = new TNumericValue;
-			value->set_float_(std::any_cast<double>(pointData->getDataValue()));
-			pot->set_domain(pointData->getKeyFrame());
-			pot->set_allocated_value(value);
-			point->set_allocated_point(pot);
-
-			if (pointData->getInterPolationType() == raco::guiData::LINER) {
-				TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
-				incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
-				point->set_allocated_incomminginterpolation(incommingInterpolation);
-				TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
-				outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
-				point->set_allocated_outgoinginterpolation(outgoingInterpolation);
-			} else if (pointData->getInterPolationType() == raco::guiData::BESIER_SPLINE) {	 // HERMIT_SPLINE
-				TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
-				incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
-				TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
-				lefttangentVector->set_domain(pointData->getLeftKeyFrame());
-				TNumericValue* leftValue = new TNumericValue;
-				leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
-				lefttangentVector->set_allocated_value(leftValue);
-				incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
-				point->set_allocated_incomminginterpolation(incommingInterpolation);
-
-				TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
-				outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
-				TMultidimensionalPoint* RighttangentVector = new TMultidimensionalPoint;
-				RighttangentVector->set_domain(pointData->getRightKeyFrame());
-				TNumericValue* RightValue = new TNumericValue;
-				//double right = std::any_cast<double>(pointData->getRightTagent());
-				RightValue->set_float_(std::any_cast<double>(pointData->getRightData()));
-				RighttangentVector->set_allocated_value(RightValue);
-				outgoingInterpolation->set_allocated_tangentvector(RighttangentVector);
-				point->set_allocated_outgoinginterpolation(outgoingInterpolation);
-			} else {
-				messageBoxError(curveData->getCurveName(), 4);
-			}
+			addPoint2Curve(pointData, curveDefinition, curveData->getCurveName());
+		}
+		if (curveData->getPointList().size() == 1) {
+			modifyOnePointCurve(curveData->getPointList().front(), curveDefinition, curveData->getCurveName());
 		}
 		curve->set_allocated_curvedefinition(curveDefinition);
 	}
@@ -1832,7 +1873,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
 
-	addTrigger_ = false; // todo:
+	addTrigger_ = true; // todo:
 
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
@@ -2935,7 +2976,7 @@ void OutputPtw::createResourceParam(HmiWidget::TWidget* widget, std::string mate
 	assetsFun_.ResourceParamAddResource(resParam, materialName);
 	// appearance
 	HmiWidget::TAppearanceParam* appearance = new HmiWidget::TAppearanceParam;
-	assetsFun_.AddUniform2Appearance(appearance, PTW_FRAG_CTRL_OPACITY, PTW_EX_OPACITY_NAME, TEProviderSource_ExtModelValue);
+	assetsFun_.AddUniform2Appearance(appearance, PTW_FRAG_SYS_OPACITY, PTW_EX_OPACITY_NAME, TEProviderSource_ExtModelValue);
 	resParam->set_allocated_appearance(appearance);
 }
 

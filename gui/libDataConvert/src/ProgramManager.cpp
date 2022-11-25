@@ -1300,6 +1300,29 @@ bool ProgramManager::writeCTMFile(std::string filePathStr) {
 				qDebug() << "uv failed";
 			}
 		}
+  //      // a_Tangent
+// 		posIndex = attriIndex(mesh.getAttributes(), "a_Tangent");
+// 		if (posIndex != -1) {
+// 			CTMfloat *aTangent = new CTMfloat[aVerCount * 3];
+// 			Attribute attri = mesh.getAttributes().at(posIndex);
+// 			auto tangentData = reinterpret_cast<float *>(attri.data.data());
+// 			std::memcpy(aTangent, tangentData, aVerCount * 3 * sizeof(float));
+// 			if (CTM_NONE == ctmAddAttribMap(context, aTangent, "a_Tangent")) {
+// 				qDebug() << "a_Tangent failed";
+// 			}
+// 		}
+
+//   ////      // a_Bitangent
+// 		posIndex = attriIndex(mesh.getAttributes(), "a_Bitangent");
+// 		if (posIndex != -1) {
+// 			CTMfloat *aBitangent = new CTMfloat[aVerCount * 3];
+// 			Attribute attri = mesh.getAttributes().at(posIndex);
+// 			auto BitangentData = reinterpret_cast<float *>(attri.data.data());
+// 			std::memcpy(aBitangent, BitangentData, aVerCount * 3 * sizeof(float));
+// 			if (CTM_NONE == ctmAddAttribMap(context, aBitangent, "a_Bitangent")) {
+// 				qDebug() << "a_Bitangent failed";
+// 			}
+// 		}
 
         ctmCompressionMethod(context, CTM_METHOD_MG1);
 

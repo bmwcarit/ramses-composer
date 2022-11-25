@@ -111,7 +111,7 @@
 #define PTW_SCALE_DIV_MUL_VALUE		std::string("ScaleDivResultMulValue.outputX")
 #define PTW_EX_SCALE_NAME			std::string("iScale")
 #define PTW_EX_OPACITY_NAME		    std::string("iOpacity")
-#define PTW_FRAG_CTRL_OPACITY		std::string("Ctrl_Opacity")
+#define PTW_FRAG_SYS_OPACITY		std::string("Sys_Opacity")
 #define PTW_EX_HUD_NAME				std::string("HUD")
 #define PTW_CONTENT_IPA_ICON_C		std::string("Content_IPAIconTransformation_C")
 #define PTW_HUD_CONTENT_IPA_ICON_C	std::string("HUD_Content_IPAIconTransformation_C")
