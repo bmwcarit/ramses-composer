@@ -1246,16 +1246,16 @@ bool ProgramManager::writeCTMFile(std::string filePathStr) {
         context = ctmNewContext(CTM_EXPORT);
 
         // fill attributes
-        for (auto attriIt : mesh.getAttributes()) {
-            int size = attriIt.data.size();
-            CTMfloat *aAttribute = new CTMfloat[size];
-            auto attriData = reinterpret_cast<float *>(attriIt.data.data());
-            std::memcpy(aAttribute, attriData, size * sizeof(float));
-            if (CTM_NONE == ctmAddAttribMap(context, aAttribute, attriIt.name.c_str())) {
-                qDebug() << "color failed";
-            }
-            delete[] aAttribute;
-        }
+		for (auto attriIt : mesh.getAttributes()) {
+			int size = attriIt.data.size();
+			CTMfloat *aAttribute = new CTMfloat[size];
+			auto attriData = reinterpret_cast<float *>(attriIt.data.data());
+			std::memcpy(aAttribute, attriData, size * sizeof(float));
+			if (CTM_NONE == ctmAddAttribMap(context, aAttribute, attriIt.name.c_str())) {
+				qDebug() << "color failed";
+			}
+			delete[] aAttribute;
+		}
 
         // normals
         int posIndex = attriIndex(mesh.getAttributes(), "a_Normal");

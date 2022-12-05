@@ -60,6 +60,7 @@ public:
 	void setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& materialData);
     void setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
     void setPtxTCamera(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
+	bool isEqualUniform(std::vector<Uniform> publicUniforms, Uniform privateUniform);
 	void setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& mesh);
 	void setMeshBaseNode(NodeData* node, HmiScenegraph::TNode* baseNode);
 	void setRootSRT(HmiScenegraph::TNode* hmiNode);
@@ -82,6 +83,8 @@ public:
 	void writeShaders2MaterialLib(QString& filePath, QString& oldPath, HmiScenegraph::TMaterialLib* materialLibrary);
 	void writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialLibrary);
 	void writeMaterialLib2Ptx(QString& filePath, QString& oldPath, HmiScenegraph::TMaterialLib* materialLibrary);
+	void isNotAddedAttribute(std::string name);
+
 Q_SIGNALS:
 
 private:
@@ -108,7 +111,8 @@ private:
 	void ConvertAnimationInfo(HmiWidget::TWidget* widget);
 	void ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData& node);
 	void ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animation_interal);
-
+	void modifyOnePointCurve(Point* point, TCurveDefinition* curveDefinition, std::string curveName);
+	void addPoint2Curve(Point* pointData, TCurveDefinition* curveDefinition, std::string curveName);
 	bool isAddedUniform(std::string name, raco::guiData::NodeData* node);
 	bool isVecUniformValue(std::string name);
 	void addOperandCurveRef2Operation(TOperation* operation, std::string curveName, std::string multiCurveName = "");
