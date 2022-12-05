@@ -30,22 +30,20 @@ std::set<std::string> HasOpacityMaterials_;
 
 float NodeScaleSize_;
 
-void DEBUG(QString FILE, QString FUNCTION, int LINE) {
+std::string SceneChildName_;
+
+void DEBUG(QString FILE, QString FUNCTION, int LINE, QString msg) {
 	QMessageBox msgBox;
 	msgBox.setWindowTitle("Debug message box");
 	QPushButton* okButton = msgBox.addButton("OK", QMessageBox::ActionRole);
 	msgBox.setIcon(QMessageBox::Icon::Warning);
 
 	QString info;
-	info += FILE + QString(" ") + LINE + QString(" ") + FUNCTION;
-	msgBox.setWindowTitle("OutputAssets.cpp Line：emplace error " + info);
-
+	info += FILE + QString(" ") + QString::number(LINE) + QString(" ") + FUNCTION;
+	info += ": " + msg;
+	//msgBox.setWindowTitle("OutputAssets.cpp Line：emplace error " + info);
 	msgBox.setText(info);
 	msgBox.exec();
-
-	if (msgBox.clickedButton() == (QAbstractButton*)(okButton)) {
-		//isPtwOutputError_ = true;
-	}
 }
 
 void OutputPtx::isNotAddedAttribute(std::string name) {
@@ -207,12 +205,49 @@ bool uniformCompare(Uniform data, Uniform myUni) {
 	return result;
 }
 
+bool Vec4Equal(Vec4 left, Vec4 right) {
+	if (left.x == right.x && left.y == right.y && left.z == right.z && left.w == right.w) {
+		return true;
+	}
+	return false;
+}
+
+bool isCorrectUColor(int index, std::any value) {
+	Vec4 u_colorX = std::any_cast<Vec4>(value);
+	Vec4 u_color1 = {1, 0.960784316, 0.909803927, 1};
+	Vec4 u_color2 = {1, 0.850980401, 0.65882355, 1};
+	Vec4 u_color3 = {0.75686276, 0.631372571, 0.443137258, 1};
+	Vec4 u_color4 = {0.541176498, 0.356862754, 0.376470596, 1};
+	Vec4 u_color5 = {0.16862746, 0.22352943, 0.32549021, 1};
+	Vec4 u_color6 = {0.0, 0.0, 0.0, 1};
+	switch (index) {
+		case 1:
+			return Vec4Equal(u_colorX, u_color1);
+		case 2:
+			return Vec4Equal(u_colorX, u_color2);
+		case 3:
+			return Vec4Equal(u_colorX, u_color3);
+		case 4:
+			return Vec4Equal(u_colorX, u_color4);
+		case 5:
+			return Vec4Equal(u_colorX, u_color5);
+		case 6:
+			return Vec4Equal(u_colorX, u_color6);
+		default:
+			DEBUG(__FILE__, __FUNCTION__, __LINE__, "u_color's index is error!");
+	}
+	return false;
+}
+
 void updateNodeIDUColors(std::string NodeID, std::vector<Uniform> uniforms) {
 	for (auto& un : uniforms) {
 		int index = un.getName().rfind("u_color");
 		if (-1 != index) {
 			std::string str = un.getName().substr(7, un.getName().length());
 			int n = std::stoi(str);
+			if (!isCorrectUColor(n, un.getValue())) {
+				DEBUG(__FILE__, __FUNCTION__, __LINE__, "u_color's value is error!");
+			}
 			uColorNums_.emplace(n);
 			auto it = NodeIDUColorNums_.find(NodeID);
 			if (it != NodeIDUColorNums_.end()) {
@@ -224,6 +259,16 @@ void updateNodeIDUColors(std::string NodeID, std::vector<Uniform> uniforms) {
 			}
 		}
 	}
+}
+
+bool OutputPtx::isEqualUniform(std::vector<Uniform> publicUniforms, Uniform privateUniform) {
+	for (auto un : publicUniforms) {
+		if (un.getName() == privateUniform.getName()) {
+			return uniformCompare(un, privateUniform);
+		}
+	}
+	DEBUG(__FILE__, __FUNCTION__, __LINE__, "private Uniform is out of range from public Uniforms!");
+	return false;
 }
 
 void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
@@ -260,10 +305,12 @@ void OutputPtx::setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& tMesh) {
 			// uniforms for mesh
 			if (nodeMaterial.isPrivate()) {
 				for (auto& uniform : nodeMaterial.getUniforms()) {
-					HmiScenegraph::TUniform tUniform;
-					uniformTypeValue(uniform, tUniform);
-					HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
-					*itMesh = tUniform;
+					if (!isEqualUniform(materialData.getUniforms(), uniform)) {
+						HmiScenegraph::TUniform tUniform;
+						uniformTypeValue(uniform, tUniform);
+						HmiScenegraph::TUniform* itMesh = tMesh.add_uniform();
+						*itMesh = tUniform;
+					}
 				}
 			}
 		}
@@ -296,7 +343,7 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 			scale->set_x(scal.x);
 			scale->set_y(scal.y);
 			scale->set_z(scal.z);
-			if (nodeName == PTW_ROOT_NODE_NAME) {
+			if (nodeName == SceneChildName_) {
 				NodeScaleSize_ = scal.x;
 			}
 			hmiNode.set_allocated_scale(scale);
@@ -561,7 +608,7 @@ void searchRepeatPropInNode(NodeData* pNode, std::string name) {
 		}
 		else {
 			if (!pNodePropCurveNames_.emplace(ID, propCurves).second) {
-				DEBUG(__FILE__, __FUNCTION__, __LINE__);
+				DEBUG(__FILE__, __FUNCTION__, __LINE__, "pNodePropCurveNames_ emplace failed!");
 			}
 		}
 	}
@@ -596,10 +643,10 @@ void updateCurveAnimationMap(NodeData* pNode) {
 				data.property = curve.first;
 				datas.push_back(data);
 				if (!animations.emplace(animation.first, datas).second) {
-					DEBUG(__FILE__, __FUNCTION__, __LINE__);
+					DEBUG(__FILE__, __FUNCTION__, __LINE__, "animations emplace failed!");
 				}
 				if (!curveNameAnimations_.emplace(curve.second, animations).second) {
-					DEBUG(__FILE__, __FUNCTION__, __LINE__);
+					DEBUG(__FILE__, __FUNCTION__, __LINE__, "curveNameAnimations_ emplace failed!");
 				}
 			} else {
 				data.pNode = pNode;
@@ -620,7 +667,7 @@ void updateCurveAnimationMap(NodeData* pNode) {
 					std::vector<AnimationsSingleCurve> datas;
 					datas.push_back(data);
 					if (!it->second.emplace(animation.first, datas).second) {
-						DEBUG(__FILE__, __FUNCTION__, __LINE__);
+						DEBUG(__FILE__, __FUNCTION__, __LINE__, "it->second emplace failed!");
 					}
 				}
 			}
@@ -872,21 +919,11 @@ void OutputPtx::uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform
 	TNumericValue* tNumericValue = new TNumericValue();
 	UniformType dataType = data.getType();
 	switch (dataType) {
-		case raco::guiData::Null:
-			// Do not have
-			break;
-		case raco::guiData::Bool: {
-			uint32_t temp = std::any_cast<bool>(data.getValue());
-			tNumericValue->set_uint(temp);
-			tUniform.set_allocated_value(tNumericValue);
-			tUniform.set_type(TENumericType::TENumericType_unsignedInteger);
-			break;
-		}
 		case raco::guiData::Int: {
 			int temp = std::any_cast<int>(data.getValue());
 			tNumericValue->set_int_(temp);
 			tUniform.set_allocated_value(tNumericValue);
-			tUniform.set_type(TENumericType::TENumericType_unsignedInteger);
+			tUniform.set_type(TENumericType::TENumericType_integer);
 			break;
 		}
 		case raco::guiData::Double: {
@@ -896,15 +933,6 @@ void OutputPtx::uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform
 			tUniform.set_type(TENumericType::TENumericType_float);
 			break;
 		}
-		case raco::guiData::String:
-			// Do not have
-			break;
-		case raco::guiData::Ref:
-			// Do not have
-			break;
-		case raco::guiData::Table:
-			// Do not have
-			break;
 		case raco::guiData::Vec2f: {
 			Vec2 temp = std::any_cast<Vec2>(data.getValue());
 			TVector2f* tVec2f = new TVector2f();
@@ -971,10 +999,8 @@ void OutputPtx::uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform
 			tUniform.set_type(TENumericType::TENumericType_intVector4);
 			break;
 		}
-		case raco::guiData::Struct:
-			// Do not have
-			break;
 		default:
+			DEBUG(__FILE__, __FUNCTION__, __LINE__, "Uniform type is not match with TUniform!");
 			break;
 	}
 }
@@ -1242,6 +1268,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	HasOpacityMaterials_.clear();
 	NodeIDUColorNums_.clear();
 	uColorNums_.clear();
+	SceneChildName_.clear();
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -1251,14 +1278,19 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	setRootSRT(tRoot);
 	int rootChildIndex = 0;
 	NodeScaleSize_ = 0;
+	int nodeNum = 0;
     for (auto& child : rootNode->childMapRef()) {
 		NodeData* childNode = &(child.second);
 		if (-1 != childNode->getName().find("PerspectiveCamera")) {
 			continue;
 		}
-
+		nodeNum++;
+		SceneChildName_ = childNode->getName();
 		writeNodePtx(childNode, tRoot);
-
+		if (nodeNum > 1) {
+			// Scene Child more than one.
+			DEBUG(__FILE__, __FUNCTION__, __LINE__, "Scene Child more than one!");
+		}
 	}
     scene.set_allocated_root(tRoot);
 
@@ -1661,6 +1693,7 @@ bool getAnimationInteral(std::string curveName, std::string& animationInteral) {
 // if Curve only has one point, add Point.
 void OutputPtw::modifyOnePointCurve(Point* point, TCurveDefinition* curveDefinition, std::string curveName) {
 	Point* pointTemp = new Point(*point);
+
 	int key = pointTemp->getKeyFrame();
 	if (key == 0) {
 		pointTemp->setKeyFrame(key+1);
@@ -2814,7 +2847,7 @@ void OutputPtw::addVecValue2Uniform(HmiWidget::TWidget* widget, std::pair<std::s
 		}
 	}
 	else { // Step4
-		DEBUG(__FILE__, __FUNCTION__, __LINE__);
+		DEBUG(__FILE__, __FUNCTION__, __LINE__, "The Step4 of multi-animation needs to be improved.");
 	}
 
 	// add to value
@@ -2914,7 +2947,7 @@ void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std
 			uniform->set_allocated_value(value);
 			addAnimationCurveSwitch(widget, animaitionName, curveProP.second, aniSingleCurve);
 		} else {
-			DEBUG(__FILE__, __FUNCTION__, __LINE__);
+			DEBUG(__FILE__, __FUNCTION__, __LINE__, "The Step4 of multi-animation needs to be improved.");
 			qDebug() << "Step4";
 		}
 	} else {
@@ -2931,7 +2964,7 @@ void OutputPtw::externalScale(HmiWidget::TWidget* widget) {
 
 void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 	if (!NodeScaleSize_) {
-		DEBUG(__FILE__, __FUNCTION__, __LINE__);
+		DEBUG(__FILE__, __FUNCTION__, __LINE__, "NodeScaleSize_ is 0!");
 	}
 
 	//  add exteral scale
@@ -2949,8 +2982,8 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 
 	// add nodeParam of Node scale
 	HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
-	assetsFun_.NodeParamAddIdentifier(nodeParam, PTW_ROOT_NODE_NAME);
-	assetsFun_.NodeParamAddNode(nodeParam, PTW_ROOT_NODE_NAME);
+	assetsFun_.NodeParamAddIdentifier(nodeParam, SceneChildName_);
+	assetsFun_.NodeParamAddNode(nodeParam, SceneChildName_);
 	auto transform = nodeParam->mutable_transform();
 	TDataBinding operandX;
 	assetsFun_.OperandKeySrc(operandX, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);

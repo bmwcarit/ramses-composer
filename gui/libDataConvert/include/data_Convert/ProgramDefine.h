@@ -106,7 +106,6 @@
 #define PTW_PRE_ANIMATS_ONE_CURVE   std::string("Multi-AnimationsSingleCurve-")
 #define PTW_SUF_ANIMAT_DOMAIN	    std::string("_domain")
 #define PTW_SUF_CURVE_INETERAL		std::string("_interal")
-#define PTW_ROOT_NODE_NAME		    std::string("Node")
 #define PTW_SCALE_DIVIDE_VALUE		std::string("ScaleDivideValue.outputX")
 #define PTW_SCALE_DIV_MUL_VALUE		std::string("ScaleDivResultMulValue.outputX")
 #define PTW_EX_SCALE_NAME			std::string("iScale")

@@ -60,6 +60,7 @@ public:
 	void setMaterialTextureByNodeUniforms(NodeData* childNode, MaterialData& materialData);
     void setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
     void setPtxTCamera(NodeData* childNode, HmiScenegraph::TNode& hmiNode);
+	bool isEqualUniform(std::vector<Uniform> publicUniforms, Uniform privateUniform);
 	void setPtxTMesh(NodeData* node, HmiScenegraph::TMesh& mesh);
 	void setMeshBaseNode(NodeData* node, HmiScenegraph::TNode* baseNode);
 	void setRootSRT(HmiScenegraph::TNode* hmiNode);
