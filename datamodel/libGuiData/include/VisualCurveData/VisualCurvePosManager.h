@@ -53,6 +53,7 @@ public:
     void insertHidenCurve(std::string curve);
     void deleteHidenCurve(std::string curve);
     bool hasHidenCurve(std::string curve);
+    void clearHidenCurve();
 
     void resetCurrentPointInfo();
     QPair<std::string, int> getCurrentPointInfo();

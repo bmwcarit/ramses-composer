@@ -86,4 +86,14 @@ bool MeshDataManager::getMeshData(std::string id, MeshData& meshdata) {
 std::map<std::string, MeshData> MeshDataManager::getMeshDataMap() {
     return meshDataMap_;
 }
+
+int MeshDataManager::attriIndex(std::vector<Attribute> attrs, std::string aName) {
+    for (int i{0}; i < attrs.size(); i++) {
+        auto attrIt = attrs.at(i);
+        if (attrIt.name.compare(aName) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 }

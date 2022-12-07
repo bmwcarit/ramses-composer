@@ -142,6 +142,10 @@ bool VisualCurvePosManager::hasHidenCurve(std::string curve) {
     return hidenCurveList_.contains(curve);
 }
 
+void VisualCurvePosManager::clearHidenCurve() {
+    hidenCurveList_.clear();
+}
+
 void VisualCurvePosManager::resetCurrentPointInfo() {
     QPair<std::string, int>().swap(curPointInfo_);
 }

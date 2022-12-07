@@ -67,9 +67,10 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     initVisualCurvePos();
 }
 
-void VisualCurveWidget::refreshKeyFrameView() {
+void VisualCurveWidget::initFrameView() {
     bindingMap_ = getBindingMap();
     updateCurvePoint();
+    VisualCurvePosManager::GetInstance().clearHidenCurve();
     update();
 }
 
@@ -198,6 +199,7 @@ void VisualCurveWidget::paintEvent(QPaintEvent *event) {
         int leftMovePix = 5;
         painter.drawText(leftMovePix, curY + count*intervalLength_ + leftMovePix, QString::number(curNumber));
     }
+
     // paint centre text value
     painter.drawText(5, curY + 5, QString::number(0));
 
@@ -217,6 +219,18 @@ void VisualCurveWidget::paintEvent(QPaintEvent *event) {
     // paint line y down
     for (int count = 1; count <= numYDown; count++) {
         painter.drawLine(0, curY + count*intervalLength_, width, curY + count*intervalLength_);
+    }
+
+    // paint focus frame line
+    if (isSymbolFocus_) {
+        QPen tempPen(Qt::white, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        painter.setPen(tempPen);
+        int space = 5;
+        double x = eachFrameWidth * (double)centerFrame_ - curX;
+        for (int i{20}; i <= height; i += space) {
+            painter.drawLine(x, i, x, i + space);
+            i += 3;
+        }
     }
 
     // paint centre line
@@ -274,6 +288,14 @@ void VisualCurveWidget::mousePressEvent(QMouseEvent *event) {
     if(event->button() == Qt::LeftButton) {
         double xPos = event->pos().x();
         double yPos = event->pos().y();
+
+        if (focusZoom_) {
+            QPointF point(xPos, yPos);
+            centerFrame_ = calculateFocusFrame(point);
+            isSymbolFocus_ = true;
+            update();
+            return;
+        }
 
         SKeyPoint keyPoint;
         if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
@@ -419,6 +441,10 @@ void VisualCurveWidget::keyPressEvent(QKeyEvent *event) {
             Q_EMIT sigSwitchCurveType();
             return;
         }
+        if (event->key() == Qt::Key_R) {
+            focusZoom_ = true;
+            this->setCursor(Qt::CrossCursor);
+        }
         pressAction_ = KEY_PRESS_ACT::KEY_PRESS_CTRL;
     }
     if(event->modifiers() == Qt::AltModifier) {
@@ -430,14 +456,22 @@ void VisualCurveWidget::keyPressEvent(QKeyEvent *event) {
             VisualCurvePosManager::GetInstance().setKeyBoardType(KEY_BOARD_TYPE::CURVE_MOVE);
         }
     }
-    if(event->key() == Qt::Key_I) {
+    if (event->key() == Qt::Key_I) {
         insertKeyFrame();
+    }
+    if (event->key() == Qt::Key_Escape) {
+        if (focusZoom_) {
+            focusZoom_ = false;
+            isSymbolFocus_ = false;
+            this->setCursor(Qt::ArrowCursor);
+        }
     }
     QWidget::keyPressEvent(event);
 }
 
 void VisualCurveWidget::keyReleaseEvent(QKeyEvent *event) {
     pressAction_ = KEY_PRESS_ACT::KEY_PRESS_NONE;
+    update();
     QWidget::keyReleaseEvent(event);
 }
 
@@ -449,9 +483,13 @@ void VisualCurveWidget::setViewportRect(const QSize areaSize,
 
     mouseAction_ = mouseAction;
     if (mouseAction_ == MOUSE_LEFT_EXTEND || mouseAction_ == MOUSE_LEFT_MOVE) {
-        offsetX_ -= 1;
+        offsetX_ -= step_;
+        moveNumX_ -= step_;
+        centerFrame_ -= 10 * step_;
     } else if (mouseAction_== MOUSE_RIGHT_MOVE || mouseAction_ == MOUSE_RIGHT_EXTEND) {
-        offsetX_ += 1;
+        offsetX_ += step_;
+        moveNumX_ += step_;
+        centerFrame_ += 10 * step_;
     }
 
     if (mouseAction_ == MOUSE_TOP_EXTEND || mouseAction_ == MOUSE_TOP_MOVE) {
@@ -518,9 +556,10 @@ void VisualCurveWidget::setViewportRect(const QSize areaSize,
 
     int width = this->width();
     int height = this->height();
-    double frameLength = (finishFrame_ - startFrame_) * ((double)intervalLength_/(double)numTextIntervalX_);
 
-    moveNumX_ = ((frameLength - width) / 2) / (double)intervalLength_ + offsetX_;
+    // TODO CALCULATE MOVEOFFSET
+    double centerFrameLen = (centerFrame_ - startFrame_) * ((double)intervalLength_/(double)numTextIntervalX_);
+    moveNumX_ = (centerFrameLen - (width / 2.0)) / (double)intervalLength_;
     moveNumY_ = (height / (double)intervalLength_) / 2.0 + offsetY_;
 
     viewportOffset_.setX(moveNumX_ * intervalLength_);
@@ -670,6 +709,7 @@ void VisualCurveWidget::slotSetStartFrame(int keyframe) {
         editor->setValue(startFrame_);
         return;
     }
+    calculateMoveStep();
     update();
 }
 
@@ -683,6 +723,7 @@ void VisualCurveWidget::slotSetFinishFrame(int keyframe) {
         editor->setValue(finishFrame_);
         return;
     }
+    calculateMoveStep();
     update();
 }
 
@@ -896,6 +937,20 @@ void VisualCurveWidget::slotSwitchCurveType(int type) {
         break;
     }
     }
+}
+
+void VisualCurveWidget::slotUpdateCursorX(int cursorX) {
+    int frameLen = (this->width() / 2.0) / (double)intervalLength_/(double)numTextIntervalX_;
+    int borderStartFrame = centerFrame_ - frameLen;
+    int borderEndFrame = centerFrame_ + frameLen;
+    if (cursorX >= startFrame_ && cursorX <= finishFrame_) {
+        if (!(cursorX >= borderStartFrame && cursorX <= borderEndFrame)) {
+            centerFrame_ = cursorX;
+            double centerFrameLen = (centerFrame_ - startFrame_) * ((double)intervalLength_/(double)numTextIntervalX_);
+            moveNumX_ = (centerFrameLen - (this->width() / 2.0)) / (double)intervalLength_;
+        }
+    }
+    update();
 }
 
 void VisualCurveWidget::initVisualCurvePos() {
@@ -2558,5 +2613,30 @@ void VisualCurveWidget::pushMovedState() {
     default:
         break;
     }
+}
+
+void VisualCurveWidget::calculateMoveStep() {
+    int frameLen = finishFrame_ - startFrame_;
+    if (frameLen > 0 && frameLen < 1000) {
+        step_ = 1;
+    } else if (frameLen >= 1000 && frameLen < 10000) {
+        step_ = 3;
+    } else if (frameLen >= 10000 && frameLen < 100000) {
+        step_ = 10;
+    } else if (frameLen >= 100000) {
+        step_ = 25;
+    }
+}
+
+int VisualCurveWidget::calculateFocusFrame(QPointF point) {
+    double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
+    double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
+
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    int keyFrame{0};
+    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, point, keyFrame);
+
+    return keyFrame;
 }
 }

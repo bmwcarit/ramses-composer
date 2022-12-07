@@ -21,7 +21,7 @@ public:
     void startAnimation();
     void stopAnimation();
     void createKeyFrame(QString curveName);
-    void refreshKeyFrameView();
+    void initFrameView();
     int getCurrentKeyFrame();
     void insertKeyFrame();
     std::map<std::string, std::string> getBindingMap();
@@ -62,6 +62,7 @@ public Q_SLOTS:
     void slotRefreshCursorX();
     void slotInsertCurve(QString property, QString curveName, QVariant value);
     void slotSwitchCurveType(int type);
+    void slotUpdateCursorX(int cursorX);
 
 Q_SIGNALS:
     void sigAnimationStop();
@@ -71,6 +72,7 @@ Q_SIGNALS:
     void sigUpdateCursorX();
     void sigDeleteCurve(std::string curve);
     void sigUpdateSlider(int keyFrame);
+    void sigUpdateScrollRange(int range);
 private:
     // init visual curve
     void initVisualCurvePos();
@@ -124,6 +126,10 @@ private:
     void pushState2UndoStack(std::string description);
     // push moved state
     void pushMovedState();
+    //
+    void calculateMoveStep();
+    //
+    int calculateFocusFrame(QPointF point);
 private:
     QPoint viewportOffset_;
     int intervalLength_;
@@ -136,6 +142,11 @@ private:
     double moveNumY_{0};
     int offsetX_{0};
     int offsetY_{0};
+    int step_{1};
+    int centerFrame_{100};
+    QPointF focusPoint_;
+    bool focusZoom_{false};
+    bool isSymbolFocus_{false};
 
     int startFrame_{0};
     int finishFrame_{200};

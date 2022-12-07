@@ -80,6 +80,8 @@ Q_SIGNALS:
     void sigRepaintPropertyBrowserAfterUndo(raco::core::ValueHandle valueHandle);
     //
     void sigReLoadNodeData();
+    //
+    void sigSwitchObjectNode(const QString& id);
 };
 
 }

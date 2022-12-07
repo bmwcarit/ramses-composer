@@ -264,7 +264,7 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         raco::guiData::MeshData mesh;
-        std::string objectID = tempHandle[0].asString();;
+        std::string objectID = tempHandle[0].asString();
         if (getOneMeshData(tempHandle, mesh)) {
             MeshDataManager::GetInstance().addMeshData(objectID, mesh);
         }
@@ -273,7 +273,7 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index) {
             QModelIndex tempIndex = model()->index(i, 0, index);
             core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
             raco::guiData::MeshData mesh;
-            std::string objectID = tempHandle[0].asString();;
+            std::string objectID = tempHandle[0].asString();
             if (getOneMeshData(tempHandle, mesh)) {
                 MeshDataManager::GetInstance().addMeshData(objectID, mesh);
             }
@@ -779,6 +779,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
                 if (keyAnimation) {
 					QString fileName = file.section("/",-1);
                     convertGltfAnimation(fileName);
+                    updateMeshData();
                 }
 			}
 		});

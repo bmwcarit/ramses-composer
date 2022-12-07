@@ -20,6 +20,13 @@
 #include <QMainWindow>
 #include <QToolButton>
 #include <memory>
+#include <QEvent>
+#include <QVector3D>
+#include <QVector4D>
+#include <QMatrix4x4>
+#include <QtMath>
+#include <QtAlgorithms>
+#include <QMap>
 
 namespace raco::user_types {
 
@@ -27,13 +34,6 @@ class BaseCamera;
 using SBaseCamera = std::shared_ptr<BaseCamera>;
 }
 
- //
-// Widget Hierarchy:
-// - root : PreviewMainWindow
-//   -> PreviewScrollAreaWidget
-//      -> viewport()
-//         -> PreviewContentWidget
-//
 
 namespace Ui {
 class PreviewMainWindow;
@@ -65,6 +65,10 @@ public:
 	void setAxesIcon(const bool& z_up);
 	void sceneScaleUpdate(bool zup, float scaleValue, bool scaleUp);
 
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
 public Q_SLOTS:
 	void setViewport(const QSize& sceneSize);
 	void setAxes(const bool& z_up);
@@ -72,6 +76,9 @@ public Q_SLOTS:
 	void updateAxesIconLabel();
 	void setEnableDisplayGrid(bool enable);
 	void sceneUpdate(bool z_up);
+    QMatrix4x4 getViewMatrix(QVector3D position);
+    QVector<float> checkTriCollision(QVector3D ray, QVector3D camera, QVector<QVector<QVector3D>> meshTriangles);
+    float checkSingleTriCollision(QVector3D ray, QVector3D camera, QVector<QVector3D> triganles);
 
 private:
 	std::unique_ptr<Ui::PreviewMainWindow> ui_;

@@ -62,6 +62,7 @@ signals:
     void sigRefreshCursorX();
     void sigRefreshVisualCurve();
     void sigSwitchCurveType(int type);
+    void sigUpdateCursorX(int cursorX);
 private:
     void switchCurveType(int type, bool isShowLeftPoint = false);
     void updateSelKey();

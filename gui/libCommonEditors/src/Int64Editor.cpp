@@ -18,6 +18,7 @@ Int64Editor::Int64Editor(QWidget *parent)
     {
         QObject::connect(spinBox_, &Int64SpinBox::valueEdited, this, [this](int value) {
             spinBox_->setValue(value);
+            slider_->setValue(value);
             Q_EMIT sigValueChanged(value);
         });
         QObject::connect(slider_, &Int64Slider::valueEdited, this, [this](int value) {
@@ -32,6 +33,7 @@ Int64Editor::Int64Editor(QWidget *parent)
     QObject::connect(spinBox_, &Int64SpinBox::editingFinished, this, [this]() {
         stack_->setCurrentWidget(slider_);
         slider_->clearFocus();
+        Q_EMIT sigEditingFinished();
     });
 
     stack_->addWidget(slider_);

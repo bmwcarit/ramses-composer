@@ -21,16 +21,16 @@ namespace raco::time_axis {
 
 //滚动条操作的选项
 enum MOUSEACTION {
-    MOUSE_SCROLL_DOWN = 0, //选中时间轴区域时，滚轮向下滚动
-    MOUSE_SCROLL_UP = 1, //选中时间轴区域时，滚轮向上滚动
-    MOUSE_LEFT_EXTEND = 2, //鼠标点击滚动条，向左扩展
-    MOUSE_RIGHT_EXTEND = 3, //鼠标点击滚动条，向右扩展
-    MOUSE_LEFT_MOVE = 4, //鼠标点击滚动条，向左移动
-    MOUSE_RIGHT_MOVE = 5, //鼠标点击滚动条，向右移动
-    MOUSE_TOP_EXTEND = 6, //鼠标点击滚动条，向上扩展
-    MOUSE_BUTTOM_EXTEND = 7, //鼠标点击滚动条，向下扩展
-    MOUSE_TOP_MOVE = 8, //鼠标点击滚动条，向上移动
-    MOUSE_BUTTOM_MOVE = 9, //鼠标点击滚动条，向下移动
+    MOUSE_SCROLL_DOWN = 0, // when select timeAxis area, scroll down
+    MOUSE_SCROLL_UP = 1, // when select timeAxis area, scroll up
+    MOUSE_LEFT_EXTEND = 2, // mouse click scroll, left extend
+    MOUSE_RIGHT_EXTEND = 3, // mouse click scroll, right extend
+    MOUSE_LEFT_MOVE = 4, // mouse click srcoll, left move
+    MOUSE_RIGHT_MOVE = 5, // mouse click srcoll, right move
+    MOUSE_TOP_EXTEND = 6, // mouse click srcoll, top extend
+    MOUSE_BUTTOM_EXTEND = 7, // mouse click srcoll, buttom extend
+    MOUSE_TOP_MOVE = 8, // mouse click srcoll, top move
+    MOUSE_BUTTOM_MOVE = 9, // mouse click srcoll, buttom move
     MOUSE_NO_ACTION = 10
 };
 

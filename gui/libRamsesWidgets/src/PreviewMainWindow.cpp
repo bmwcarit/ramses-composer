@@ -229,7 +229,89 @@ void PreviewMainWindow::sceneScaleUpdate(bool zup, float scaleValue, bool scaleU
                 }
 			}
 		}
-	}
+    }
+}
+
+void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
+//    if(event->button() == Qt::LeftButton){
+//        float cx, cy, cz;
+//        auto scene = const_cast<ramses::Scene *>(sceneBackend_->currentScene());
+//        ramses::RamsesObject* object = scene->findObjectByName("PerspectiveCamera");
+//        if (object) {
+//            if (object->getType() == ramses::ERamsesObjectType_PerspectiveCamera) {
+//                ramses::PerspectiveCamera* camera = static_cast<ramses::PerspectiveCamera*>(object);
+//                camera->getTranslation(cx, cy, cz);
+
+//                QVector3D position(cx, cy, cz);
+
+//                float projectionMatrix[16];
+//                camera->getProjectionMatrix(projectionMatrix);
+//                QMatrix4x4 projection_matrix(projectionMatrix);
+
+//                QMatrix4x4 view_matrix = getViewMatrix(position);
+
+//                int width = this->width();
+//                int height = this->height();
+//                float x = 2.0f * event->pos().x() / width - 1.0f;
+//                float y = 1.0f - (2.0f * event->pos().y() / height);
+
+//                QVector3D ray_nds = QVector3D(x, y, 1.0f);
+//                QVector4D ray_clip = QVector4D(ray_nds, 1.0f);
+//                QVector4D ray_eye = projection_matrix.inverted() * ray_clip;
+//                QVector4D ray_world = view_matrix.inverted() * ray_eye;
+
+//                if (ray_world.w() != 0.0f) {
+//                  ray_world.setX(ray_world.x()/ray_world.w());
+//                  ray_world.setY(ray_world.y()/ray_world.w());
+//                  ray_world.setZ(ray_world.z()/ray_world.w());
+//                }
+
+//                // ray
+//                QVector3D ray = (QVector3D(ray_world.x(), ray_world.y(), ray_world.z()) - position).normalized();
+
+//                QVector<std::string> keyList;
+//                QVector<QVector<QVector3D> > meshTriangles;
+//                for (auto it : guiData::MeshDataManager::GetInstance().getMeshDataMap()) {
+//                    int triCount = it.second.getNumVertices();
+
+//                    QVector<QVector3D> triangles;
+//                    int posIndex = guiData::MeshDataManager::GetInstance().attriIndex(it.second.getAttributes(), "a_Position");
+//                    if (posIndex != -1) {
+//                        guiData::Attribute attri = it.second.getAttributes().at(posIndex);
+//                        auto verticesData = reinterpret_cast<float *>(attri.data.data());;
+//                        for (int i{0}; i < triCount; ++i) {
+//                            QVector3D triangle;
+//                            int index = i * 3;
+//                            triangle.setX(verticesData[index]);
+//                            triangle.setY(-verticesData[index + 2]);
+//                            triangle.setZ(verticesData[index + 1]);
+//                            triangles.append(triangle);
+//                        }
+//                    }
+//                    meshTriangles.append(triangles);
+//                    keyList.append(it.first);
+//                }
+//                QVector<float> vec_t = checkTriCollision(ray, position, meshTriangles);
+
+//                QVector<float> vec_comt;
+//                for (auto iter: vec_t) {
+//                  if (iter > 0.0f)
+//                    vec_comt.push_back(iter);
+//                }
+
+//                if (!vec_comt.isEmpty()) {
+//                    std::sort(vec_comt.begin(), vec_comt.end());
+//                    int index = vec_t.indexOf(vec_comt[0]);
+//                    QString objectID = QString::fromStdString(keyList.at(index));
+//                    Q_EMIT signal::signalProxy::GetInstance().sigSwitchObjectNode(objectID);
+//                }
+//            }
+//        }
+//    }
+}
+
+void PreviewMainWindow::mouseReleaseEvent(QMouseEvent *event) {
+
 }
 
 void PreviewMainWindow::setAxesIconLabel(QLabel * axesIcon) {
@@ -334,7 +416,65 @@ void PreviewMainWindow::setEnableDisplayGrid(bool enable) {
 }
 
 void PreviewMainWindow::sceneUpdate(bool z_up) {
-	previewWidget_->sceneUpdate(z_up, scaleValue_);
+    previewWidget_->sceneUpdate(z_up, scaleValue_);
+}
+
+QMatrix4x4 PreviewMainWindow::getViewMatrix(QVector3D position) {
+    QVector3D worldUp(position.x(), position.y() + 1, position.z());
+    float yawR = qDegreesToRadians(-90.0);
+    float picthR = qDegreesToRadians(0.0);
+
+    QVector3D front3(cos(yawR) * cos(picthR), sin(picthR), sin(yawR) * cos(picthR));
+    QVector3D front = front3.normalized();
+    QVector3D right = QVector3D::crossProduct(front, worldUp).normalized();
+    QVector3D up = QVector3D::crossProduct(right, front).normalized();
+
+    QMatrix4x4 view;
+    view.lookAt(position, position + front, up);
+    return view;
+}
+
+QVector<float> PreviewMainWindow::checkTriCollision(QVector3D ray, QVector3D camera, QVector<QVector<QVector3D> > meshTriangles) {
+    QVector<float> vec_t;
+
+    for (auto triangles : meshTriangles) {
+        float t = checkSingleTriCollision(ray, camera, triangles);
+        vec_t.push_back(t);
+    }
+    return vec_t;
+}
+
+float PreviewMainWindow::checkSingleTriCollision(QVector3D ray, QVector3D camera, QVector<QVector3D> triganles) {
+    QVector3D E1 =  triganles[1] - triganles[0];
+    QVector3D E2 =  triganles[2] - triganles[0];
+
+    QVector3D P = QVector3D::crossProduct(ray, E2);
+    float det = QVector3D::dotProduct(P, E1);
+    QVector3D T;
+    if (det > 0)
+       T = camera - triganles[0];
+    else {
+       T = triganles[0] - camera;
+       det = -det;
+    }
+
+    if (det < 0.00001f)
+      return -1.0f;
+
+    float u = QVector3D::dotProduct(P, T);
+    if (u < 0.0f || u > det)
+      return -1.0f;
+
+    QVector3D Q = QVector3D::crossProduct(T, E1);
+    float v = QVector3D::dotProduct(Q, ray);
+    if(v < 0.0f || u+v > det)
+      return -1.0f;
+
+    float t = QVector3D::dotProduct(Q, E2);
+    if (t < 0.0f)
+      return -1.0f;
+
+    return t/det;
 }
 
 }  // namespace raco::ramses_widgets
