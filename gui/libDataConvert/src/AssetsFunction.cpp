@@ -22,6 +22,15 @@ TVariant* AssetsFunction::VariantAsciiString(std::string str) {
 	return variant;
 }
 
+TVariant* AssetsFunction::VariantIdenAndType(std::string str, TEIdentifierType Idtype) {
+	TVariant* variant = new TVariant;
+	TIdentifier* identifier = new TIdentifier;
+	identifier->set_valuestring(str);
+	variant->set_allocated_identifier(identifier);
+	variant->set_identifiertype(Idtype);
+	return variant;
+}
+
 TDataProvider* AssetsFunction::ProviderSrc(TEProviderSource value) {
 	TDataProvider* provider = new TDataProvider;
 	provider->set_source(value);
@@ -60,6 +69,12 @@ void AssetsFunction::OperandNumeric(TDataBinding& Operand, float num) {
 void AssetsFunction::OperandKeySrc(TDataBinding& Operand, std::string keyStr, TEProviderSource src) {
 	Operand.set_allocated_key(Key(keyStr));
 	Operand.set_allocated_provider(ProviderSrc(src));
+}
+
+void AssetsFunction::OperandProVarIdentAndType(TDataBinding& Operand, std::string Identifier, TEIdentifierType Idtype) {
+	TDataProvider* provider = new TDataProvider;
+	provider->set_allocated_variant(VariantIdenAndType(Identifier, Idtype));
+	Operand.set_allocated_provider(provider);
 }
 
 void AssetsFunction::DataBindingKeyProvider(TDataBinding* Operand, std::string keyStr, TEProviderSource src) {
@@ -139,6 +154,43 @@ TDataBinding* AssetsFunction::BindingValueStrNumericOperatorType(std::string Val
 	binding->set_allocated_provider(provider);
 	return binding;
 }
+// convert <typ2-->type1> (Operand)
+TDataBinding* AssetsFunction::BindingTypeConvert(TDataBinding& Operand, TEDataType type1, TEDataType type2) {
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+
+	operation->set_operator_(TEOperatorType_Convert);
+	operation->add_datatype(type1);
+	operation->add_datatype(type2);
+	auto it = operation->add_operand();
+	*it = Operand;
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	return binding;
+}
+
+TDataBinding* AssetsFunction::BindingTypeMix(TDataBinding& Operand1, TDataBinding& Operand2, TDataBinding& Operand3, TEDataType type1, TEDataType type2, TEDataType type3) {
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+
+	operation->set_operator_(TEOperatorType_Mix);
+	operation->add_datatype(type1);
+	operation->add_datatype(type2);
+	operation->add_datatype(type3);
+	auto it = operation->add_operand();
+	*it = Operand1;
+	it = operation->add_operand();
+	*it = Operand2;
+	it = operation->add_operand();
+	*it = Operand3;
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	return binding;
+}
 
 void AssetsFunction::CreateHmiWidgetUniform(HmiWidget::TUniform* uniform, std::string name, std::string value, TEProviderSource src) {
 	TDataBinding* nameBinding = new TDataBinding;
@@ -154,6 +206,86 @@ void AssetsFunction::AddUniform2Appearance(HmiWidget::TAppearanceParam* appear, 
 	// add OPACITY uniform
 	CreateHmiWidgetUniform(&uniform, name, value, src);
 	*(appear->add_uniform()) = uniform;
+}
+
+///////////////   switch case  start    ///////////
+void AssetsFunction::SwitchType2Operation(TOperation* operation, Condition condition) {
+	operation->set_operator_(TEOperatorType_Switch);
+	operation->add_datatype(TEDataType_Identifier);
+	auto operand = operation->add_operand();
+	operand->set_allocated_key(Key(condition.key));
+	operand->set_allocated_provider(ProviderSrc(condition.src));
+}
+
+void AssetsFunction::SwitchCase2Operation(TOperation* operation, Case caseData, TEDataType type,bool isDefault) {
+	if (!isDefault) {
+		operation->add_datatype(TEDataType_Identifier);
+		operation->add_datatype(type);
+
+		TDataBinding operand2;
+		auto it = operation->add_operand();
+		OperandProVarIdentAndType(operand2, caseData.Identifier, caseData.IdentifierType);
+		*it = operand2;
+
+		TDataBinding operand1;
+		 it = operation->add_operand();
+		OperandKeySrc(operand1, caseData.key, caseData.src);
+		*it = operand1;
+	} else {
+		operation->add_datatype(type);
+
+		TDataBinding operand1;
+		auto it = operation->add_operand();
+		OperandKeySrc(operand1, caseData.key, caseData.src);
+		*it = operand1;
+	}
+}
+
+void AssetsFunction::PTWSwitch(HmiWidget::TInternalModelParameter* internalModelValue, PTWSwitchData& switchData) {
+	// add result key
+	internalModelValue->set_allocated_key(Key(switchData.outPutKey));
+
+	// add binding
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+	// add switch condition to operation
+	SwitchType2Operation(operation, switchData.condition);
+
+	// add switch case to operation
+	for (auto caseData : switchData.caseArr) {
+		SwitchCase2Operation(operation, caseData, switchData.dataType);
+	}
+	SwitchCase2Operation(operation, switchData.caseArr.at(0), switchData.dataType, true);
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internalModelValue->set_allocated_binding(binding);
+}
+///////////////   switch case end   ///////////
+
+void AssetsFunction::ColorIPAIconExternal(HmiWidget::TExternalModelParameter* external, std::string str) {
+	TDataBinding* binding = new TDataBinding;
+	DataBindingKeyProvider(binding, str, TEProviderSource_ColorRegistry);
+	external->set_allocated_key(Key(str));
+	external->set_allocated_binding(binding);
+}
+
+void AssetsFunction::ColorIPAIconInternal(HmiWidget::TInternalModelParameter* internal, std::string reStr, std::string ExStr) {
+	internal->set_allocated_key(Key(reStr));
+	TDataBinding Operand;
+	OperandKeySrc(Operand, ExStr, TEProviderSource_ExtModelValue);
+	BindingTypeConvert(Operand, TEDataType_Vec4, TEDataType_Color);
+	internal->set_allocated_binding(BindingTypeConvert(Operand, TEDataType_Vec4, TEDataType_Color));
+}
+void AssetsFunction::ColorModeMixInternal(HmiWidget::TInternalModelParameter* internal , std::string colorMode, std::string IPAIconV4, std::string HUD_IPAIconV4, std::string HUD) {
+	internal->set_allocated_key(Key(colorMode));
+	TDataBinding Operand1;
+	OperandKeySrc(Operand1, IPAIconV4, TEProviderSource_IntModelValue);
+	TDataBinding Operand2;
+	OperandKeySrc(Operand2, HUD_IPAIconV4, TEProviderSource_IntModelValue);
+	TDataBinding Operand3;
+	OperandKeySrc(Operand3, HUD, TEProviderSource_ExtModelValue);
+	internal->set_allocated_binding(BindingTypeMix(Operand1, Operand2, Operand3, TEDataType_Vec4, TEDataType_Vec4, TEDataType_Float));
 }
 
 }  // namespace raco::dataConvert
