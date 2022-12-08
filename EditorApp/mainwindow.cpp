@@ -168,7 +168,7 @@ void connectPropertyBrowserAndTreeDockManager(MainWindow* mainWindow, raco::prop
 	QObject::connect(propertyBrowser->model(), &raco::property_browser::PropertyBrowserModel::objectSelectionRequested, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
 
 	QObject::connect(&programManager, &raco::dataConvert::ProgramManager::selectObject, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObject);
-
+    QObject::connect(&signalProxy::GetInstance(), &raco::signal::signalProxy::sigSwitchObjectNode, &treeDockManager, &raco::object_tree::view::ObjectTreeDockManager::selectObject);
 
 	// Trigger to create keyframes and curves
 
@@ -252,6 +252,7 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 
 	QString tempTitle(title);
 	if (tempTitle.compare(QString("Scene Graph")) == 0) {
+        newTreeView->updateMeshData();
 		nodeDataPro->setNodeNameHandleReMap(newTreeView->updateNodeTree());
 		nodeDataPro->AnalyzeHandle();
 	}

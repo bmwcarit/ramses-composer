@@ -544,13 +544,19 @@ void VisualCurveNodeTreeView::slotDelete() {
         QStandardItem *item = model_->itemFromIndex(selected);
         if (item) {
             std::string itemName = curveFromItem(item).toStdString();
-            if (folderDataMgr_->isCurve(itemName)) {
-                deleteCurve(item);
-            } else {
-                deleteFolder(item);
+            if (!itemName.empty()) {
+                if (folderDataMgr_->isCurve(itemName)) {
+                    deleteCurve(item);
+                } else {
+                    deleteFolder(item);
+                }
+                info += itemName + ";";
             }
-            info += itemName + ";";
         }
+    }
+    for (int i{selectedIndexs.size() - 1}; i >= 0; i--) {
+        QModelIndex selected = selectedIndexs.at(i);
+        model_->removeRow(selected.row(), selected.parent());
     }
     Q_EMIT sigRefreshVisualCurve();
     pushState2UndoStack(fmt::format("delete curves/nodes: '{}'", info));
@@ -780,7 +786,6 @@ void VisualCurveNodeTreeView::deleteCurve(QStandardItem *item) {
                 CurveManager::GetInstance().takeCurve(curvePath);
                 VisualCurvePosManager::GetInstance().deleteKeyPointList(curvePath);
             }
-            model_->removeRow(index.row(), index.parent());
         }
     }
 }
@@ -803,6 +808,5 @@ void VisualCurveNodeTreeView::deleteFolder(QStandardItem *item) {
             }
         }
     }
-    model_->removeRow(index.row(), index.parent());
 }
 }

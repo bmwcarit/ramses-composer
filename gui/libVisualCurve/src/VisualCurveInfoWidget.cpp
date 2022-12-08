@@ -593,6 +593,7 @@ void VisualCurveInfoWidget::slotCursorYChanged(double value) {
 void VisualCurveInfoWidget::slotCursorXFinished() {
     int x = cursorXSpinBox_->value();
     pushState2UndoStack(fmt::format("set cursor X '{}'", x));
+    Q_EMIT sigUpdateCursorX(x);
 }
 
 void VisualCurveInfoWidget::slotCursorYFinished() {

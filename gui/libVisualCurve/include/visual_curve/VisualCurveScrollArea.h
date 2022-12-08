@@ -1,4 +1,4 @@
-#ifndef VISUALCURVESCROLLAREA_H
+﻿#ifndef VISUALCURVESCROLLAREA_H
 #define VISUALCURVESCROLLAREA_H
 
 #include <QObject>
@@ -32,6 +32,7 @@ private:
     QPoint mousePivot_{0, 0};
     int leftNum_{0};
     int rightNum_{0};
+    int moveNum_{0};
 };
 
 class VisualCurveVScrollBar : public QScrollBar {
@@ -53,6 +54,7 @@ protected:
 private:
     QPoint mousePivot_{0, 0};
     int yNum{0};
+    int moveNum_{0};
 };
 
 class VisualCurveScrollArea : public QAbstractScrollArea {

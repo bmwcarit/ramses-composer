@@ -18,10 +18,16 @@ void VisualCurveHScrollBar::mouseReleaseEvent(QMouseEvent *event) {
 void VisualCurveHScrollBar::mouseMoveEvent(QMouseEvent *event) {
     if (event->MouseButtonPress) {
         if (event->pos().x() < mousePivot_.x()) {
-            if (this->value() == 0 && leftNum_ >= 3) {
+            if (moveNum_ < 0) {
+                Q_EMIT barLeftMove();
+                moveNum_++;
+                return;
+            }
+            if (this->value() == 0 && leftNum_ >= 2) {
                 leftNum_ = 0;
                 Q_EMIT barLeftExtend();
-            } else if (leftNum_ >= 3){
+                moveNum_++;
+            } else if (leftNum_ >= 2){
                 leftNum_ = 0;
                 Q_EMIT barLeftMove();
             } else {
@@ -29,10 +35,16 @@ void VisualCurveHScrollBar::mouseMoveEvent(QMouseEvent *event) {
             }
         }
         else if (event->pos().x() > mousePivot_.x()) {
-            if (this->value() == this->maximum() && rightNum_ >= 3) {
+            if (moveNum_ > 0) {
+                Q_EMIT barRightMove();
+                moveNum_--;
+                return;
+            }
+            if (this->value() == this->maximum() && rightNum_ >= 2) {
                 rightNum_ = 0;
                 Q_EMIT barRightExtend();
-            } else if (rightNum_ >= 3){
+                moveNum_--;
+            } else if (rightNum_ >= 2){
                 rightNum_ = 0;
                 Q_EMIT barRightMove();
             }
@@ -41,6 +53,7 @@ void VisualCurveHScrollBar::mouseMoveEvent(QMouseEvent *event) {
             }
         }
     }
+    mousePivot_ = event->pos();
     QScrollBar::mouseMoveEvent(event);
 }
 
@@ -60,11 +73,18 @@ void VisualCurveVScrollBar::mouseReleaseEvent(QMouseEvent *event) {
 
 void VisualCurveVScrollBar::mouseMoveEvent(QMouseEvent *event) {
     if (event->MouseButtonPress) {
+        qDebug() << "moveNum:"<<moveNum_;
         if (event->pos().y() < mousePivot_.y()) {
+            if (moveNum_ < 0) {
+                Q_EMIT barTopMove();
+                moveNum_++;
+                return;
+            }
             if (this->value() == 0 && yNum >= 15) {
                 yNum = 0;
                 Q_EMIT barTopExtend();
-            } else if (yNum >= 15){
+                moveNum_++;
+            } else if (yNum >= 15) {
                 yNum = 0;
                 Q_EMIT barTopMove();
             } else {
@@ -72,10 +92,16 @@ void VisualCurveVScrollBar::mouseMoveEvent(QMouseEvent *event) {
             }
         }
         else if (event->pos().y() > mousePivot_.y()) {
+            if (moveNum_ > 0) {
+                Q_EMIT barButtomMove();
+                moveNum_--;
+                return;
+            }
             if (this->value() == this->maximum() && yNum <= -15) {
                 yNum = 0;
                 Q_EMIT barButtomExtend();
-            } else if (yNum <= -15){
+                moveNum_--;
+            } else if (yNum <= -15) {
                 yNum = 0;
                 Q_EMIT barButtomMove();
             }
@@ -84,6 +110,7 @@ void VisualCurveVScrollBar::mouseMoveEvent(QMouseEvent *event) {
             }
         }
     }
+    mousePivot_ = event->pos();
     QScrollBar::mouseMoveEvent(event);
 }
 
@@ -158,7 +185,7 @@ void VisualCurveScrollArea::barRightMove() {
 }
 
 void VisualCurveScrollArea::barTopExtend() {
-    topScaleNum_ ++;
+    topScaleNum_++;
     if (vScaleValue_ < 1) {
         vScaleValue_ = 1;
     }
@@ -259,6 +286,7 @@ void VisualCurveScrollArea::updateHScrollbar(int value) noexcept {
     const QSize areaSize = viewport()->size();
     hScrollBar_->setPageStep(areaSize.width());
     hScrollBar_->setRange(0, value - areaSize.width());
+    qDebug() << value - areaSize.width() << hScaleValue_;
 }
 
 void VisualCurveScrollArea::updateVScrollbar(int value) noexcept {

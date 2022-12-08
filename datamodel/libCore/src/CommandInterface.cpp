@@ -69,7 +69,6 @@ bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 	if (Queries::currentLinkState(*project(), handle) != Queries::CurrentLinkState::NOT_LINKED) {
         throw std::runtime_error(fmt::format("Property '{}' is linked", handle.getPropertyPath()));
 	}
-
 	return true;
 }
 

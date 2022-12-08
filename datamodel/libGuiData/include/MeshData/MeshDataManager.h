@@ -65,6 +65,7 @@ public:
     void addMeshData(std::string id, MeshData mesh);
 	bool getMeshData(std::string id, MeshData& meshdata);
     std::map<std::string, MeshData> getMeshDataMap();
+    int attriIndex(std::vector<Attribute> attrs, std::string aName);
 private:
     MeshDataManager();
 private:

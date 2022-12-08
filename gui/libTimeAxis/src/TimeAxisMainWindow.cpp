@@ -26,6 +26,9 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     stackedWidget_->addWidget(timeAxisScrollArea_);
     stackedWidget_->addWidget(visualCurveScrollArea_);
 
+    visualCurveInfoWidget_ = new VisualCurveInfoWidget(this, commandInterface);
+    visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this, commandInterface);
+
     timeAxisWidget_ = new TimeAxisWidget(timeAxisScrollArea_->viewport(), commandInterface, keyFrameMgr_);
     connect(timeAxisScrollArea_, &TimeAxisScrollArea::viewportRectChanged, timeAxisWidget_, &TimeAxisWidget::setViewportRect);
     connect(timeAxisWidget_, &TimeAxisWidget::sigAnimationStop, this, &TimeAxisMainWindow::startAnimation);
@@ -43,8 +46,6 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     timeAxisScrollArea_->setCenterWidget(timeAxisWidget_);
     visualCurveScrollArea_->setCenterWidget(visualCurveWidget_);
 
-    visualCurveInfoWidget_ = new VisualCurveInfoWidget(this, commandInterface);
-    visualCurveNodeTreeView_ = new VisualCurveNodeTreeView(this, commandInterface);
     visualCurveNodeTreeView_->initCurves();
 
     initTitle(this);
@@ -80,9 +81,11 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateSelKey, visualCurveInfoWidget_, &VisualCurveInfoWidget::slotUpdateSelKey);
     connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateCursorX, visualCurveInfoWidget_, &VisualCurveInfoWidget::slotUpdateCursorX);
     connect(visualCurveWidget_, &VisualCurveWidget::sigDeleteCurve, visualCurveNodeTreeView_, &VisualCurveNodeTreeView::slotDeleteCurveFromVisualCurve);
+//    connect(visualCurveWidget_, &VisualCurveWidget::sigUpdateScrollRange, visualCurveScrollArea_, &VisualCurveScrollArea::updateScrollRange);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshCursorX, visualCurveWidget_, &VisualCurveWidget::slotRefreshCursorX);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigSwitchCurveType, visualCurveWidget_, &VisualCurveWidget::slotSwitchCurveType);
+    connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigUpdateCursorX, visualCurveWidget_, &VisualCurveWidget::slotUpdateCursorX);
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigSwitchVisualCurveInfoWidget, this, &TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget);
 }
@@ -264,8 +267,6 @@ void TimeAxisMainWindow::slotSwitchCurveWidget() {
         nextBtn_->hide();
         previousBtn_->hide();
         curCurveType_ = VISUAL_CURVE;
-        stackedWidget_->setCurrentWidget(visualCurveScrollArea_);
-        visualCurveWidget_->setFocus(Qt::MouseFocusReason);
 
         // right switch
         visualCurveNodeTreeView_->show();
@@ -274,6 +275,9 @@ void TimeAxisMainWindow::slotSwitchCurveWidget() {
         // left switch
         visualCurveInfoWidget_->show();
         visualCurveInfoWidget_->update();
+
+        stackedWidget_->setCurrentWidget(visualCurveScrollArea_);
+        visualCurveWidget_->setFocus(Qt::MouseFocusReason);
 
         break;
     }
@@ -333,7 +337,7 @@ void TimeAxisMainWindow::slotInitAnimationMgr() {
         loadAnimation();
     }
     timeAxisWidget_->refreshKeyFrameView();
-    visualCurveWidget_->refreshKeyFrameView();
+    visualCurveWidget_->initFrameView();
     visualCurveNodeTreeView_->initCurves();
 }
 
@@ -463,6 +467,8 @@ void TimeAxisMainWindow::loadAnimation() {
     animationData data = animationDataManager::GetInstance().getAnimationData(curItemName_.toStdString());
     lineBegin_->setValue(data.GetStartTime());
     lineEnd_->setValue(data.GetEndTime());
+    timeAxisWidget_->slotSetStartFrame(data.GetStartTime());
+    timeAxisWidget_->slotSetFinishFrame(data.GetEndTime());
     timeAxisWidget_->update();
 
     Q_EMIT signalProxy::GetInstance().sigUpdateActiveAnimation_From_AnimationLogic(curItemName_);

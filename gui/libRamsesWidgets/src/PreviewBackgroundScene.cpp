@@ -91,7 +91,7 @@ PreviewBackgroundScene::PreviewBackgroundScene(
     effectDesc.setUniformSemantic("ViewProjectionMatrix", ramses::EEffectUniformSemantic::ModelViewProjectionMatrix);
     effectDesc.setUniformSemantic("ProjectionMatrix", ramses::EEffectUniformSemantic::ProjectionMatrix);
     effectDesc.setUniformSemantic("ViewMatrix", ramses::EEffectUniformSemantic::ViewMatrix);
- 
+
 	effect_ = ramsesEffect(scene_.get(), effectDesc);
 	appearance_ = ramsesAppearance(scene_.get(), effect_);
     appearance_->get()->setBlendingOperations(ramses::EBlendOperation_Add, ramses::EBlendOperation_Add);
