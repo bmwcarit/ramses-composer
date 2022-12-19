@@ -206,7 +206,8 @@ bool uniformCompare(Uniform data, Uniform myUni) {
 }
 
 bool Vec4Equal(Vec4 left, Vec4 right) {
-	if (left.x == right.x && left.y == right.y && left.z == right.z && left.w == right.w) {
+	if (std::abs(left.x - right.x) < 0.00001 && std::abs(left.y - right.y) < 0.00001
+		&& std::abs(left.z - right.z) < 0.00001 &&  std::abs(left.w - right.w) < 0.00001) {
 		return true;
 	}
 	return false;
@@ -2954,7 +2955,6 @@ void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std
 		addVecValue2Uniform(widget, curveProP, nodeParam, node);
 	}
 }
-
 // add exteral scale
 void OutputPtw::externalScale(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
