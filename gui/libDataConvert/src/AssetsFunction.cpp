@@ -16,6 +16,14 @@ TVariant* AssetsFunction::VariantNumeric(float Num) {
 	return variant;
 }
 
+TVariant* AssetsFunction::VariantNumericInt(int Num) {
+	TVariant* variant = new TVariant;
+	TNumericValue* numeric = new TNumericValue;
+	numeric->set_int_(Num);
+	variant->set_allocated_numeric(numeric);
+	return variant;
+}
+
 TVariant* AssetsFunction::VariantAsciiString(std::string str) {
 	TVariant* variant = new TVariant;
 	variant->set_asciistring(str);
@@ -49,6 +57,12 @@ TDataProvider* AssetsFunction::ProviderCurve(std::string curveName) {
 TDataProvider* AssetsFunction::ProviderNumeric(float num) {
 	TDataProvider* provide = new TDataProvider;
 	provide->set_allocated_variant(VariantNumeric(num));
+	return provide;
+}
+
+TDataProvider* AssetsFunction::ProviderNumericInt(int num) {
+	TDataProvider* provide = new TDataProvider;
+	provide->set_allocated_variant(VariantNumericInt(num));
 	return provide;
 }
 
@@ -286,6 +300,132 @@ void AssetsFunction::ColorModeMixInternal(HmiWidget::TInternalModelParameter* in
 	TDataBinding Operand3;
 	OperandKeySrc(Operand3, HUD, TEProviderSource_ExtModelValue);
 	internal->set_allocated_binding(BindingTypeMix(Operand1, Operand2, Operand3, TEDataType_Vec4, TEDataType_Vec4, TEDataType_Float));
+}
+
+// comparison operation
+// resultKey(bool) = Operand1 op Operand2   (op >  <  ==)
+void AssetsFunction::CompareOperation(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TEOperatorType op) {
+	internal->set_allocated_key(Key(resultKey));
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+
+	operation->set_operator_(op);
+	operation->add_datatype(type1);
+	operation->add_datatype(type2);
+
+	auto operandIt1 = operation->add_operand();
+	*operandIt1 = Operand1;
+
+	auto operandIt2 = operation->add_operand();
+	*operandIt2 = Operand2;
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internal->set_allocated_binding(binding);
+}
+
+// IfThenElse
+void AssetsFunction::IfThenElse(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TDataBinding& Operand3, TEDataType type3) {
+	internal->set_allocated_key(Key(resultKey));
+
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+
+	operation->set_operator_(TEOperatorType_IfThenElse);
+	operation->add_datatype(type1);
+	operation->add_datatype(type2);
+	operation->add_datatype(type3);
+
+	auto operandIt1 = operation->add_operand();
+	*operandIt1 = Operand1;
+	auto operandIt2 = operation->add_operand();
+	*operandIt2 = Operand2;
+	auto operandIt3 = operation->add_operand();
+	*operandIt3 = Operand3;
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internal->set_allocated_binding(binding);
+}
+
+// sum Operands
+void AssetsFunction::addOperands(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TEDataType type, std::vector<TDataBinding>& Operands) {
+	internal->set_allocated_key(Key(resultKey));
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+	operation->set_operator_(TEOperatorType_Add);
+
+	if (Operands.size() <= 4) {
+		for (int i = 0; i < Operands.size() && i < 4; ++i) {
+			operation->add_datatype(type);
+			auto operandIt = operation->add_operand();
+			*operandIt = Operands[i];
+		}
+	} else {
+		int i = 0;
+		int n = Operands.size() / 4;
+		for (int a = 0; a < n; a++) {
+			for (i = 0; i < 3 ; ++i) {
+				operation->add_datatype(type);
+				auto operandIt = operation->add_operand();
+				*operandIt = Operands[i];
+			}
+			operation->add_datatype(type);
+			TDataBinding* OperandNew = new TDataBinding;
+			TDataProvider* providerNew = new TDataProvider;
+			TOperation* operationNew = new TOperation;
+			operationNew->set_operator_(TEOperatorType_Add);
+			int last = Operands.size() - (a + 1) * 3;
+			if (last <= 4) {
+				for (int j = 0; j < last; ++j, i++) {
+					operationNew->add_datatype(type);
+					auto operandItNew = operationNew->add_operand();
+					*operandItNew = Operands[i];
+				}
+				providerNew->set_allocated_operation(operationNew);
+				OperandNew->set_allocated_provider(providerNew);
+			}
+			auto operandIt = operation->add_operand();
+			*operandIt = *OperandNew;
+		}
+	}
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internal->set_allocated_binding(binding);
+}
+
+// switch animation
+void AssetsFunction::SwitchAnimation(HmiWidget::TInternalModelParameter* internal, struct PTWSwitch& data) {
+	internal->set_allocated_key(Key(data.outPutKey));
+	TDataBinding* binding = new TDataBinding;
+	TDataProvider* provider = new TDataProvider;
+	TOperation* operation = new TOperation;
+	// condition
+	operation->set_operator_(TEOperatorType_Switch);
+	operation->add_datatype(data.dataType1);
+	auto operandIt = operation->add_operand();
+	*operandIt = data.Operands[0];
+	// case
+	for (int i = 1; i < data.Operands.size() - 1; ++i) {
+		operation->add_datatype(data.dataType1);
+		auto operandIt = operation->add_operand();
+		*operandIt = data.Operands[i];
+		i++;
+		operation->add_datatype(data.dataType2);
+		operandIt = operation->add_operand();
+		*operandIt = data.Operands[i];
+	}
+	// default
+	operation->add_datatype(data.dataType2);
+	operandIt = operation->add_operand();
+	*operandIt = data.Operands[data.Operands.size() - 1];
+
+	provider->set_allocated_operation(operation);
+	binding->set_allocated_provider(provider);
+	internal->set_allocated_binding(binding);
 }
 
 }  // namespace raco::dataConvert

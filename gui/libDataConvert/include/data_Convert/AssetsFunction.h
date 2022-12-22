@@ -32,19 +32,31 @@ struct PTWSwitchData {
 	std::vector<Case> caseArr;
 };
 
+
+struct PTWSwitch {
+	std::string outPutKey;
+	TEDataType dataType1;
+	TEDataType dataType2;
+	std::vector<TDataBinding> Operands; // n + 2
+};
+
 class AssetsFunction  {
 public:
 	// key  
 	TIdentifier* Key(const std::string valueStr);
-	// Variant Num
+	// Variant Num Float
 	TVariant* VariantNumeric(float Num);
+	// Variant Num Int
+	TVariant* VariantNumericInt(int Num);
 	// Variant AsciiString
 	TVariant* VariantAsciiString(std::string str);
 	TVariant* VariantIdenAndType(std::string str, TEIdentifierType Idtype);
 	// provider:src 
 	TDataProvider* ProviderSrc(TEProviderSource value);
-	// provider:numeric
+	// provider:numeric  Float
 	TDataProvider* ProviderNumeric(float num);
+	// provider:numeric  Int
+	TDataProvider* ProviderNumericInt(int num);
 	// provider:asciiString
 	TDataProvider* ProviderAsciiString(std::string AsciiStr);
 	// transform operand:Curve
@@ -85,6 +97,13 @@ public:
 	void ColorIPAIconInternal(HmiWidget::TInternalModelParameter* internal, std::string reStr, std::string ExStr);
 	void ColorModeMixInternal(HmiWidget::TInternalModelParameter* internal, std::string colorMode, std::string IPAIconV4, std::string HUB_IPAIconV4, std::string HUB);
 
+	void CompareOperation(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TEOperatorType op);
+	void IfThenElse(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TDataBinding& Operand3, TEDataType type3);
+
+
+	void addOperands(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TEDataType type, std::vector<TDataBinding>& Operands);
+
+	void SwitchAnimation(HmiWidget::TInternalModelParameter* internal, struct PTWSwitch& data);
 
 private:
 

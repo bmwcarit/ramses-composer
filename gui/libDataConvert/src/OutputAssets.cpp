@@ -1323,7 +1323,7 @@ void addAnimationSwitchType2Operation(TOperation* operation) {
 	key->set_valuestring(PTW_USED_ANIMATION_NAME);
 	// operand -> provider
 	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
+	provider->set_source(TEProviderSource_IntModelValue);
 	// operation.operand add key,provider
 	auto operand = operation->add_operand();
 	operand->set_allocated_key(key);
@@ -1366,14 +1366,14 @@ void addAnimationSwitchCase2Operation(TOperation* operation, std::string anName,
 }
 
 // Only when multiple animations bind one curve
-void OutputPtw::switchAnimation(HmiWidget::TWidget* widget) {
+void OutputPtw::switchMultAnimsOneCurve(HmiWidget::TWidget* widget) {
 	for (auto curve : curveNameAnimations_) {
 		if (curve.second.size() > 1) {
 			PTWSwitchData switchData;
 			switchData.outPutKey = curve.first + "_interal_switch";
 			switchData.dataType = TEDataType_Float;
 			switchData.condition.key = PTW_USED_ANIMATION_NAME;
-			switchData.condition.src = TEProviderSource_ExtModelValue;
+			switchData.condition.src = TEProviderSource_IntModelValue;
 
 			// add switch case to operation
 			for (auto anName : curve.second) {
@@ -1397,15 +1397,15 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		messageBoxError("", 5);
 	}
 
-	// add first animation name
-	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(PTW_USED_ANIMATION_NAME);
-	externalModelValue->set_allocated_key(key);
-	TVariant* variant = new TVariant;
-	std::string* asciistring = new std::string(animationList.begin()->first);
-	variant->set_allocated_asciistring(asciistring);
-	externalModelValue->set_allocated_variant(variant);
+	// add first animation name can't use.
+	//HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	//TIdentifier* key = new TIdentifier;
+	//key->set_valuestring(PTW_USED_ANIMATION_NAME);
+	//externalModelValue->set_allocated_key(key);
+	//TVariant* variant = new TVariant;
+	//std::string* asciistring = new std::string(animationList.begin()->first);
+	//variant->set_allocated_asciistring(asciistring);
+	//externalModelValue->set_allocated_variant(variant);
 
 
 	for (auto animation : animationList) {
@@ -1445,7 +1445,7 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 
 		addAnimationDomain(widget, animation.first);
 	}
-	switchAnimation(widget);
+	switchMultAnimsOneCurve(widget);
 }
 
 void addUsedAnimationSwitchType2Operation(TOperation* operation) {
@@ -1456,7 +1456,7 @@ void addUsedAnimationSwitchType2Operation(TOperation* operation) {
 	key->set_valuestring(PTW_USED_ANIMATION_NAME);
 	// operand -> provider
 	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
+	provider->set_source(TEProviderSource_IntModelValue);
 	// operation.operand add key,provider
 	auto operand = operation->add_operand();
 	operand->set_allocated_key(key);
@@ -1906,12 +1906,12 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
-
 	addTrigger_ = true; // todo:
 
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
+	switchAnimations(widget);
 	externalScaleData(widget);
 	if (addTrigger_) {
 		triggerByInternalModel(widget);
@@ -1987,7 +1987,7 @@ void addMultiCurveBindingSwitchType2Operation(TOperation* operation) {
 	key->set_valuestring(PTW_USED_ANIMATION_NAME);
 	// operand -> provider
 	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
+	provider->set_source(TEProviderSource_IntModelValue);
 	// operation.operand add key,provider
 	auto operand = operation->add_operand();
 	operand->set_allocated_key(key);
@@ -2955,6 +2955,98 @@ void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std
 		addVecValue2Uniform(widget, curveProP, nodeParam, node);
 	}
 }
+
+// add external Animaiton name
+void OutputPtw::animationSwitchPreData(HmiWidget::TWidget* widget) {
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	int n = 1;
+	for (auto an : animations) {
+		// externalAnimationName
+		HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+		externalModelValue->set_allocated_key(assetsFun_.Key(an.first));
+		externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(0));
+		{// Greater0
+			HmiWidget::TInternalModelParameter* internalModelCompare = widget->add_internalmodelvalue();
+			TDataBinding Operand1;
+			Operand1.set_allocated_key(assetsFun_.Key(an.first));
+			Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_ExtModelValue));
+			TDataBinding Operand2;
+			Operand2.set_allocated_provider(assetsFun_.ProviderNumeric(0));
+			assetsFun_.CompareOperation(internalModelCompare, an.first + "Greater0", Operand1, TEDataType_Float, Operand2, TEDataType_Float, TEOperatorType_Greater);
+		}
+		{  // IfThenElse
+			HmiWidget::TInternalModelParameter* internalModelIfThenElse = widget->add_internalmodelvalue();
+			TDataBinding Operand1;
+			Operand1.set_allocated_key(assetsFun_.Key(an.first + "Greater0"));
+			Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+			TDataBinding Operand2;
+			Operand2.set_allocated_provider(assetsFun_.ProviderNumericInt(n));
+			TDataBinding Operand3;
+			Operand3.set_allocated_provider(assetsFun_.ProviderNumericInt(0));
+			assetsFun_.IfThenElse(internalModelIfThenElse, an.first + "Value", Operand1, TEDataType_Bool, Operand2, TEDataType_Int, Operand3, TEDataType_Int);
+		}
+		n++;
+	}
+}
+
+// sum animationValue
+void OutputPtw::sumAnimationValue(HmiWidget::TWidget* widget) {
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	std::vector<TDataBinding> Operands;
+	HmiWidget::TInternalModelParameter* internalModelAdd = widget->add_internalmodelvalue();
+	for (auto an : animations) {
+		TDataBinding Operand;
+		Operand.set_allocated_key(assetsFun_.Key(an.first + "Value"));
+		Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		Operands.push_back(Operand);
+	}
+	if (Operands.size() > 7) {
+		DEBUG(__FILE__, __FUNCTION__, __LINE__, "animations number > 7!");
+	}
+	assetsFun_.addOperands(internalModelAdd, "AnimationSumValue", TEDataType_Int, Operands);
+}
+
+// switch animation
+void OutputPtw::animationSwitch(HmiWidget::TWidget* widget) {
+	PTWSwitch data;
+	data.outPutKey = "UsedAnimationName";
+	data.dataType1 = TEDataType_Int;
+	data.dataType2 = TEDataType_AsciiString;
+
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key("AnimationSumValue"));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	data.Operands.push_back(Operand);
+
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	int n = 1;
+	for (auto an : animations) {
+		TDataBinding Operand1;
+		Operand1.set_allocated_provider(assetsFun_.ProviderNumericInt(n));
+		data.Operands.push_back(Operand1);
+
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderAsciiString(an.first));
+		data.Operands.push_back(Operand2);
+		n++;
+	}
+	TDataBinding OperandDefault;
+	OperandDefault.set_allocated_provider(assetsFun_.ProviderAsciiString(animations.begin()->first));
+	data.Operands.push_back(OperandDefault);
+
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, data);
+}
+
+void OutputPtw::switchAnimations(HmiWidget::TWidget* widget) {
+	// each animation
+	animationSwitchPreData(widget);
+	// sum value
+	sumAnimationValue(widget);
+	// switch animation
+	animationSwitch(widget);
+}
+
 // add exteral scale
 void OutputPtw::externalScale(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
