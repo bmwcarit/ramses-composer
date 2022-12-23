@@ -149,6 +149,8 @@ private:
 
 	void internalDurationValue(HmiWidget::TWidget* widget);
 
+	void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
+
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
 

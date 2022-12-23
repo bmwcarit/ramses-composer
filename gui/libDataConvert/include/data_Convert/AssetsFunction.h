@@ -13,26 +13,6 @@
 
 namespace raco::dataConvert {
 
-struct Case {
-	std::string Identifier;
-	TEIdentifierType IdentifierType;
-	std::string key;
-	TEProviderSource src;
-};
-
-struct Condition {
-	std::string key;
-	TEProviderSource src;
-};
-
-struct PTWSwitchData {
-	std::string outPutKey;
-	TEDataType dataType;
-	Condition condition;
-	std::vector<Case> caseArr;
-};
-
-
 struct PTWSwitch {
 	std::string outPutKey;
 	TEDataType dataType1;
@@ -67,8 +47,11 @@ public:
 	TDataProvider* ProviderAsciiString(std::string AsciiStr);
 	// transform operand:Curve
 	TDataProvider* ProviderCurve(std::string curveName);
-
-	void OperandCurve(TDataBinding& Operand, std::string curveName);
+	// Operand{key , curveRef}
+	void OperandKeyCurveRef(TDataBinding& Operand, std::string curveName);
+	// Operand{curveRef}
+	void OperandCurveRef(TDataBinding& Operand, std::string curveName);
+	// Operand{Float}
 	void OperandNumeric(TDataBinding& Operand, float num);
 	void OperandKeySrc(TDataBinding& Operand, std::string keyStr, TEProviderSource src);
 	void OperandProVarIdentAndType(TDataBinding& Operand, std::string Identifier, TEIdentifierType Idtype);
@@ -94,10 +77,6 @@ public:
 	void CreateHmiWidgetUniform(HmiWidget::TUniform* uniform, std::string name, std::string value, TEProviderSource src);
 
 	void AddUniform2Appearance(HmiWidget::TAppearanceParam* appear,std::string name, std::string value, TEProviderSource src);
-
-	void PTWSwitch(HmiWidget::TInternalModelParameter* internalModelValue, PTWSwitchData& switchData);
-	void SwitchType2Operation(TOperation* operation, Condition condition);
-	void SwitchCase2Operation(TOperation* operation, Case caseData, TEDataType type, bool isDefault = false);
 
 	void ColorIPAIconExternal(HmiWidget::TExternalModelParameter* external, std::string str);
 	void ColorIPAIconInternal(HmiWidget::TInternalModelParameter* internal, std::string reStr, std::string ExStr);

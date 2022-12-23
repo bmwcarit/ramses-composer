@@ -92,7 +92,12 @@ TDataProvider* AssetsFunction::ProviderAsciiString(std::string AsciiStr) {
 	return provider;
 }
 
-void AssetsFunction::OperandCurve(TDataBinding& Operand, std::string curveName) {
+void AssetsFunction::OperandKeyCurveRef(TDataBinding& Operand, std::string curveName) {
+	Operand.set_allocated_key(Key(curveName + ".output"));
+	Operand.set_allocated_provider(ProviderCurve(curveName));
+}
+
+void AssetsFunction::OperandCurveRef(TDataBinding& Operand, std::string curveName) {
 	Operand.set_allocated_provider(ProviderCurve(curveName));
 }
 
@@ -241,61 +246,6 @@ void AssetsFunction::AddUniform2Appearance(HmiWidget::TAppearanceParam* appear, 
 	CreateHmiWidgetUniform(&uniform, name, value, src);
 	*(appear->add_uniform()) = uniform;
 }
-
-///////////////   switch case  start    ///////////
-void AssetsFunction::SwitchType2Operation(TOperation* operation, Condition condition) {
-	operation->set_operator_(TEOperatorType_Switch);
-	operation->add_datatype(TEDataType_Identifier);
-	auto operand = operation->add_operand();
-	operand->set_allocated_key(Key(condition.key));
-	operand->set_allocated_provider(ProviderSrc(condition.src));
-}
-
-void AssetsFunction::SwitchCase2Operation(TOperation* operation, Case caseData, TEDataType type,bool isDefault) {
-	if (!isDefault) {
-		operation->add_datatype(TEDataType_Identifier);
-		operation->add_datatype(type);
-
-		TDataBinding operand2;
-		auto it = operation->add_operand();
-		OperandProVarIdentAndType(operand2, caseData.Identifier, caseData.IdentifierType);
-		*it = operand2;
-
-		TDataBinding operand1;
-		 it = operation->add_operand();
-		OperandKeySrc(operand1, caseData.key, caseData.src);
-		*it = operand1;
-	} else {
-		operation->add_datatype(type);
-
-		TDataBinding operand1;
-		auto it = operation->add_operand();
-		OperandKeySrc(operand1, caseData.key, caseData.src);
-		*it = operand1;
-	}
-}
-
-void AssetsFunction::PTWSwitch(HmiWidget::TInternalModelParameter* internalModelValue, PTWSwitchData& switchData) {
-	// add result key
-	internalModelValue->set_allocated_key(Key(switchData.outPutKey));
-
-	// add binding
-	TDataBinding* binding = new TDataBinding;
-	TDataProvider* provider = new TDataProvider;
-	TOperation* operation = new TOperation;
-	// add switch condition to operation
-	SwitchType2Operation(operation, switchData.condition);
-
-	// add switch case to operation
-	for (auto caseData : switchData.caseArr) {
-		SwitchCase2Operation(operation, caseData, switchData.dataType);
-	}
-	SwitchCase2Operation(operation, switchData.caseArr.at(0), switchData.dataType, true);
-	provider->set_allocated_operation(operation);
-	binding->set_allocated_provider(provider);
-	internalModelValue->set_allocated_binding(binding);
-}
-///////////////   switch case end   ///////////
 
 void AssetsFunction::ColorIPAIconExternal(HmiWidget::TExternalModelParameter* external, std::string str) {
 	TDataBinding* binding = new TDataBinding;
