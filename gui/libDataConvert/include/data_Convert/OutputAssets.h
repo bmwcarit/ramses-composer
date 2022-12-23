@@ -147,6 +147,8 @@ private:
 	void sumAnimationValue(HmiWidget::TWidget* widget);
 	void switchAnimations(HmiWidget::TWidget* widget);
 
+	void internalDurationValue(HmiWidget::TWidget* widget);
+
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
 

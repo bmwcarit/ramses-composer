@@ -1391,57 +1391,29 @@ void OutputPtw::switchMultAnimsOneCurve(HmiWidget::TWidget* widget) {
 }
 
 void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
-	std::string animation_interal;
 	auto animationList = raco::guiData::animationDataManager::GetInstance().getAnitnList();
 	if (0 == animationList.size()) {
 		messageBoxError("", 5);
 	}
 
-	// add first animation name can't use.
-	//HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	//TIdentifier* key = new TIdentifier;
-	//key->set_valuestring(PTW_USED_ANIMATION_NAME);
-	//externalModelValue->set_allocated_key(key);
-	//TVariant* variant = new TVariant;
-	//std::string* asciistring = new std::string(animationList.begin()->first);
-	//variant->set_allocated_asciistring(asciistring);
-	//externalModelValue->set_allocated_variant(variant);
-
-
 	for (auto animation : animationList) {
-		auto internalModelValue = widget->add_internalmodelvalue();
-		TIdentifier* key_int = new TIdentifier;
-		animation_interal = animation.first + PTW_SUF_CURVE_INETERAL;
-		key_int->set_valuestring(animation_interal);
-		internalModelValue->set_allocated_key(key_int);
-		TDataBinding* binding = new TDataBinding;
-		TDataProvider* provider = new TDataProvider;
-		TOperation* operation = new TOperation;
+		std::string animation_interal = animation.first + PTW_SUF_CURVE_INETERAL;
+		auto animations = animationDataManager::GetInstance().getAnitnList();
 
-		operation->set_operator_(TEOperatorType_Mul);
-		operation->add_datatype(TEDataType_Float);
-		operation->add_datatype(TEDataType_Float);
-
-		auto operand1 = operation->add_operand();
-		TIdentifier* key = new TIdentifier;
-		TDataProvider* provider1 = new TDataProvider;
-		key->set_valuestring(animation.first + PTW_SUF_ANIMAT_DOMAIN);
-		provider1->set_source(TEProviderSource_IntModelValue);
-		operand1->set_allocated_key(key);
-		operand1->set_allocated_provider(provider1);
-
-		auto operand2 = operation->add_operand();
-		TDataProvider* provider2 = new TDataProvider;
-		TVariant* variant1 = new TVariant;
-		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(float(animation.second.GetEndTime() - animation.second.GetStartTime()));
-		variant1->set_allocated_numeric(numeric);
-		provider2->set_allocated_variant(variant1);
-
-		operand2->set_allocated_provider(provider2);
-		provider->set_allocated_operation(operation);
-		binding->set_allocated_provider(provider);
-		internalModelValue->set_allocated_binding(binding);
+		std::vector<TDataBinding> Operands;
+		HmiWidget::TInternalModelParameter* internalModelMul = widget->add_internalmodelvalue();
+		TDataBinding Operand1;
+		Operand1.set_allocated_key(assetsFun_.Key(animation.first + PTW_SUF_ANIMAT_DOMAIN));
+		Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		Operands.push_back(Operand1);
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderNumeric(float(animation.second.GetEndTime() - animation.second.GetStartTime())));
+		Operands.push_back(Operand2);
+		TDataBinding Operand3;
+		Operand3.set_allocated_key(assetsFun_.Key(animation.first));
+		Operand3.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_ExtModelValue));
+		Operands.push_back(Operand3);
+		assetsFun_.operatorOperands(internalModelMul, animation_interal, TEDataType_Float, Operands, TEOperatorType_Mul);
 
 		addAnimationDomain(widget, animation.first);
 	}
@@ -1520,117 +1492,12 @@ void OutputPtw::addAnimationDomain(HmiWidget::TWidget* widget, std::string anima
 	internalModelValue->set_allocated_binding(binding);
 }
 
-void addCompositeAnimation(HmiWidget::TWidget* widget) {
-	// compositeAnimation
-	auto compositeAnimation = widget->add_compositeanimation();
-	TIdentifier* compositeidentifier = new TIdentifier;
-	compositeidentifier->set_valuestring("compositeAnimation");
-	compositeAnimation->set_allocated_compositeidentifier(compositeidentifier);
-
-	// returnValue
-	// returnValue.key
-	auto returnValue = compositeAnimation->add_returnvalue();
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring("compositeAnimation.output");
-	returnValue->set_allocated_key(key);
-
-	// returnValue.animation
-	auto animation = returnValue->add_animation();
-	// returnValue.animation.Identifier
-	auto anIdentifier = new TIdentifier;
-	anIdentifier->set_valuestring("animation");
-	animation->set_allocated_identifier(anIdentifier);
-
-	// returnValue.animation.WidgetAnimation
-	auto widgetAnimation = new HmiWidget::TWidgetAnimation;
-	auto startValue = new TNumericValue;
-	startValue->set_float_(0.0);
-	widgetAnimation->set_allocated_startvalue(startValue);
-	auto endValue = new TNumericValue;
-	endValue->set_float_(1.0);
-	widgetAnimation->set_allocated_endvalue(endValue);
-	widgetAnimation->set_durationvalue(8000);
-	widgetAnimation->set_interpolator(TEAnimationInterpolator::TEAnimationInterpolator_Linear);
-	widgetAnimation->set_returntype(TEDataType::TEDataType_Float);
-	widgetAnimation->set_loopcount(0);
-	widgetAnimation->set_updateinterval(33);
-	animation->set_allocated_widgetanimation(widgetAnimation);
-
-	// returnValue.animation.trigger
-	auto triggerIter = animation->add_trigger();
-	triggerIter->set_action(HmiWidget::TEAnimationSlot::TEAnimationSlot_SlotAnimationStart);
-	returnValue->set_returntype(TEDataType::TEDataType_Float);
-}
-
-void addTrigger(HmiWidget::TWidget* widget) {
-	auto trigger = widget->add_trigger();
-	TIdentifier* triggeridentifier = new TIdentifier;
-	triggeridentifier->set_valuestring("StartStopCompositeAnimation");
-	trigger->set_allocated_identifier(triggeridentifier);
-
-	auto conditionalTrigger = new HmiWidget::TConditionalTrigger;
-	auto condition = new TDataBinding;
-	auto key = new TIdentifier;
-	key->set_valuestring("Play");
-	condition->set_allocated_key(key);
-
-	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
-	condition->set_allocated_provider(provider);
-
-	conditionalTrigger->set_allocated_condition(condition);
-
-	auto commond = new HmiWidget::TCommand;
-	auto antrigger = new HmiWidget::TAnimationTrigger;
-	auto animation = new TIdentifier;
-	animation->set_valuestring("compositeAnimation");
-	antrigger->set_allocated_animation(animation);
-	antrigger->set_action(HmiWidget::TEAnimationAction::TEAnimationAction_Start);
-	commond->set_allocated_animationtrigger(antrigger);
-	conditionalTrigger->set_allocated_command(commond);
-	
-	auto elseCommond = new HmiWidget::TCommand;
-	auto antriggerElse = new HmiWidget::TAnimationTrigger;
-	auto animationElse = new TIdentifier;
-	animationElse->set_valuestring("compositeAnimation");
-	antriggerElse->set_allocated_animation(animationElse);
-	antriggerElse->set_action(HmiWidget::TEAnimationAction::TEAnimationAction_Stop);
-	elseCommond->set_allocated_animationtrigger(antriggerElse);
-	conditionalTrigger->set_allocated_elsecommand(elseCommond);
-
-	trigger->set_allocated_conditionaltrigger(conditionalTrigger);
-}
-
-void addPlayDomain(HmiWidget::TWidget* widget) {
-	auto play = widget->add_externalmodelvalue();
-	TIdentifier* playKey = new TIdentifier;
-	playKey->set_valuestring("Play");
-	play->set_allocated_key(playKey);
-	TVariant* variant = new TVariant;
-	variant->set_bool_(true);
-	play->set_allocated_variant(variant);
-
-	auto domain = widget->add_internalmodelvalue();
-	TIdentifier* domainKey = new TIdentifier;
-	domainKey->set_valuestring("domain");
-	domain->set_allocated_key(domainKey);
-
-	auto binding = new TDataBinding;
-	auto bindKey = new TIdentifier;
-	bindKey->set_valuestring("compositeAnimation.output");
-	binding->set_allocated_key(bindKey);
-	TDataProvider* provider = new TDataProvider;
-	provider->MutableExtension(HmiWidget::animation)->set_valuestring("compositeAnimation");
-	binding->set_allocated_provider(provider);
-	domain->set_allocated_binding(binding);
-}
-
 void OutputPtw::triggerByInternalModel(HmiWidget::TWidget* widget) {
-	addCompositeAnimation(widget);
+	internalDurationValue(widget);
 
-	addTrigger(widget);
-
-	addPlayDomain(widget);
+	assetsFun_.addCompositeAnimation(widget);
+	assetsFun_.addTrigger(widget);
+	assetsFun_.addPlayDomain(widget);
 }
 
 void OutputPtw::triggerByExternalModel(HmiWidget::TWidget* widget) {
@@ -1647,7 +1514,6 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	if (isPtwOutputError_) {
 		return;
 	}
-
 	QMessageBox customMsgBox;
 	customMsgBox.setWindowTitle("Warning message box");
 	QPushButton* okButton = customMsgBox.addButton("OK", QMessageBox::ActionRole);
@@ -1862,7 +1728,6 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 		}
 		// add u_color uniforms
 		AddUColorUniforms(nodeParam, &node);
-
 		for (auto cuvebindList : animationList) {
 			for (auto curveProP : cuvebindList.second) {
 				std::vector<std::map<std::string, CurvesSingleProp>> curves;
@@ -1947,36 +1812,23 @@ void OutputPtw::WriteAsset(std::string filePath) {
 }
 
 void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
+	// type
 	TIdentifier* type = new TIdentifier;
 	type->set_valuestring("eWidgetType_Generate");
 	widget->set_allocated_type(type);
+	// prototype
 	TIdentifier* prototype = new TIdentifier;
 	prototype->set_valuestring("eWidgetType_Model");
 	widget->set_allocated_prototype(prototype);
-	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring("WidgetNameHint");
-	externalModelValue->set_allocated_key(key);
-	TVariant* variant = new TVariant;
-	variant->set_asciistring("WIDGET_SCENE");
-	externalModelValue->set_allocated_variant(variant);
-	externalModelValue = widget->add_externalmodelvalue();
-
-	TIdentifier* key1 = new TIdentifier;
-	key1->set_valuestring("eParam_ModelResourceId");
-	externalModelValue->set_allocated_key(key1);
-	TVariant* variant1 = new TVariant;
-	variant1->set_resourceid("scene.ptx");
-	externalModelValue->set_allocated_variant(variant1);
-	externalModelValue = widget->add_externalmodelvalue();
-
-	TIdentifier* key2 = new TIdentifier;
-	key2->set_valuestring("eParam_ModelRootId");
-	externalModelValue->set_allocated_key(key2);
-	TVariant* variant2 = new TVariant;
-	variant2->set_resourceid("");
-	externalModelValue->set_allocated_variant(variant2);
+	// WidgetNameHint
+	HmiWidget::TExternalModelParameter* externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "WidgetNameHint", assetsFun_.VariantAsciiString("WIDGET_SCENE"));
+	// eParam_ModelResourceId
+	externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ModelResourceId", assetsFun_.VariantResourceId("scene.ptx"));
+	// eParam_ModelRootId
+	externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ModelRootId", assetsFun_.VariantResourceId(""));
 }
 
 void addMultiCurveBindingSwitchType2Operation(TOperation* operation) {
@@ -3003,7 +2855,7 @@ void OutputPtw::sumAnimationValue(HmiWidget::TWidget* widget) {
 	if (Operands.size() > 7) {
 		DEBUG(__FILE__, __FUNCTION__, __LINE__, "animations number > 7!");
 	}
-	assetsFun_.addOperands(internalModelAdd, "AnimationSumValue", TEDataType_Int, Operands);
+	assetsFun_.operatorOperands(internalModelAdd, "AnimationSumValue", TEDataType_Int, Operands, TEOperatorType_Add);
 }
 
 // switch animation
@@ -3050,8 +2902,7 @@ void OutputPtw::switchAnimations(HmiWidget::TWidget* widget) {
 // add exteral scale
 void OutputPtw::externalScale(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_SCALE_NAME));
-	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(300.0));
+	assetsFun_.externalKeyVariant(externalModelValue, PTW_EX_SCALE_NAME, assetsFun_.VariantNumeric(300.0));
 }
 
 void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
@@ -3165,6 +3016,37 @@ void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
 
 void OutputPtw::externalColorUniform(HmiWidget::TUniform& tUniform, int index) {
 	assetsFun_.CreateHmiWidgetUniform(&tUniform, PTW_U_COLOR + std::to_string(index), PTW_COLOR_MODE + std::to_string(index) ,TEProviderSource_IntModelValue);
+}
+
+// DurationValue
+void OutputPtw::internalDurationValue(HmiWidget::TWidget* widget) {
+	PTWSwitch data;
+	data.outPutKey = "DurationValue";
+	data.dataType1 = TEDataType_Identifier;
+	data.dataType2 = TEDataType_UInt;
+
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key("UsedAnimationName"));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	data.Operands.push_back(Operand);
+
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	for (auto an : animations) {
+		unsigned int durationTime = an.second.GetUpdateInterval() * (an.second.GetEndTime() - an.second.GetStartTime());
+		TDataBinding Operand1;
+		assetsFun_.OperandProVarIdentAndType(Operand1, an.first, TEIdentifierType_ParameterValue);
+		data.Operands.push_back(Operand1);
+
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderNumericUInt(durationTime));
+		data.Operands.push_back(Operand2);
+	}
+	TDataBinding OperandDefault;
+	OperandDefault.set_allocated_provider(assetsFun_.ProviderNumericUInt(8000));
+	data.Operands.push_back(OperandDefault);
+
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, data);
 }
 
 }  // namespace raco::dataConvert

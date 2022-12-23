@@ -48,8 +48,12 @@ public:
 	TVariant* VariantNumeric(float Num);
 	// Variant Num Int
 	TVariant* VariantNumericInt(int Num);
+	// Variant Num UInt
+	TVariant* VariantNumericUInt(unsigned int Num);
 	// Variant AsciiString
 	TVariant* VariantAsciiString(std::string str);
+	// Variant ResourceId
+	TVariant* VariantResourceId(std::string str);
 	TVariant* VariantIdenAndType(std::string str, TEIdentifierType Idtype);
 	// provider:src 
 	TDataProvider* ProviderSrc(TEProviderSource value);
@@ -57,6 +61,8 @@ public:
 	TDataProvider* ProviderNumeric(float num);
 	// provider:numeric  Int
 	TDataProvider* ProviderNumericInt(int num);
+	// provider:numeric  UInt
+	TDataProvider* ProviderNumericUInt(unsigned int num);
 	// provider:asciiString
 	TDataProvider* ProviderAsciiString(std::string AsciiStr);
 	// transform operand:Curve
@@ -101,9 +107,17 @@ public:
 	void IfThenElse(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TDataBinding& Operand3, TEDataType type3);
 
 
-	void addOperands(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TEDataType type, std::vector<TDataBinding>& Operands);
+	void operatorOperands(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TEDataType type, std::vector<TDataBinding>& Operands,TEOperatorType op);
 
 	void SwitchAnimation(HmiWidget::TInternalModelParameter* internal, struct PTWSwitch& data);
+
+
+	void addCompositeAnimation(HmiWidget::TWidget* widget);
+	void addTrigger(HmiWidget::TWidget* widget);
+	void addPlayDomain(HmiWidget::TWidget* widget);
+
+
+	void externalKeyVariant(HmiWidget::TExternalModelParameter* external, std::string keyStr, TVariant* var);
 
 private:
 
