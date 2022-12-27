@@ -1462,7 +1462,7 @@ void VisualCurveWidget::updateCurvePoint() {
                 if ((*it)->getInterPolationType() == EInterPolationType::HERMIT_SPLINE || (*it)->getInterPolationType() == EInterPolationType::BESIER_SPLINE) {
                     int leftKeyFrame = (*it)->getLeftKeyFrame();
                     int rightKeyFrame = (*it)->getRightKeyFrame();
-                    if (leftKeyFrame != 0 && rightKeyFrame != 0) {
+                    if (leftKeyFrame >= 0 && rightKeyFrame != 0) {
                         double leftData{0.0};
                         double rightData{0.0};
                         if ((*it)->getLeftData().type() == typeid(double)) {
@@ -1470,6 +1470,9 @@ void VisualCurveWidget::updateCurvePoint() {
                         }
                         if ((*it)->getRightData().type() == typeid(double)) {
                             rightData = *(*it)->getRightData()._Cast<double>();
+                        }
+                        if (leftKeyFrame == 0) {
+                            leftData = value;
                         }
                         QPointF leftPoint, rightPoint;
                         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);

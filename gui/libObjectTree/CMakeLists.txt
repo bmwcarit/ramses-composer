@@ -44,6 +44,7 @@ target_link_libraries(libObjectTree
         raco::GuiData
         raco::node_logic
         raco::material_logic
+
         Qt5::Widgets
         qtadvanceddocking
 )

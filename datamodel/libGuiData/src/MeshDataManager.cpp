@@ -57,6 +57,14 @@ std::vector<uint32_t> MeshData::getIndices() {
     return indexBuffer_;
 }
 
+void MeshData::setModelMatrix(QMatrix4x4 matrix) {
+    modelMatrix_ = matrix;
+}
+
+QMatrix4x4 MeshData::getModelMatrix() {
+    return modelMatrix_;
+}
+
 MeshDataManager &MeshDataManager::GetInstance() {
     static MeshDataManager Instance;
     return Instance;

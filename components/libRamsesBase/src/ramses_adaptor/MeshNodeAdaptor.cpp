@@ -182,6 +182,12 @@ void MeshNodeAdaptor::syncMeshObject() {
 	if (MeshAdaptor* meshAdapt = meshAdaptor()) {
 		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using meshAdaptor");
 
+        // TODO
+//        RamsesHandle<ramses::Node> sceneObject = std::shared_ptr<ramses::Node>(this->getRamsesObjectPointer(), this->getRamsesObjectPointer()->get());
+//        ramses::Node* node = sceneObject.get();
+//        float modelMatrixVec[16];
+//        node->getModelMatrix(modelMatrixVec);
+
 		auto vertexData = meshAdapt->vertexData();
 		for (uint32_t i = 0; i < currentAppearance_->effect()->getAttributeInputCount(); i++) {
 			ramses::AttributeInput attribInput;

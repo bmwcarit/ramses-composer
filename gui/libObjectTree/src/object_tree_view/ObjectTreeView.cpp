@@ -27,6 +27,7 @@
 #include "MeshData/MeshDataManager.h"
 #include "utils/u8path.h"
 #include "user_types/Texture.h"
+#include "user_types/Node.h"
 
 #include <QContextMenuEvent>
 #include <QFileDialog>
@@ -260,27 +261,34 @@ void ObjectTreeView::getOnehandle(QModelIndex index, NodeData *parent, raco::gui
     }
 }
 
-void ObjectTreeView::getOneMeshHandle(QModelIndex index) {
+void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
+        computeWorldMatrix(tempHandle, matrix);
+
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
         if (getOneMeshData(tempHandle, mesh)) {
+            mesh.setModelMatrix(matrix);
             MeshDataManager::GetInstance().addMeshData(objectID, mesh);
         }
     } else {
         for (int i{0}; i < model()->rowCount(index); i++) {
             QModelIndex tempIndex = model()->index(i, 0, index);
             core::ValueHandle tempHandle = indexToSEditorObject(tempIndex);
+            computeWorldMatrix(tempHandle, matrix);
+
             raco::guiData::MeshData mesh;
             std::string objectID = tempHandle[0].asString();
             if (getOneMeshData(tempHandle, mesh)) {
+                mesh.setModelMatrix(matrix);
                 MeshDataManager::GetInstance().addMeshData(objectID, mesh);
             }
             getOneMeshHandle(tempIndex);
         }
     }
 }
+
 bool ObjectTreeView::getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData) {
     if (valueHandle.hasProperty("mesh")) {
         raco::core::ValueHandle tempHandle = valueHandle.get("mesh");
@@ -1023,7 +1031,104 @@ void ObjectTreeView::expandAllParentsOfObject(const QModelIndex &index) {
 		if (!isExpanded(parentIndex)) {
 			expand(parentIndex);
 		}
-	}
+    }
+}
+
+void ObjectTreeView::computeWorldMatrix(ValueHandle handle, QMatrix4x4 &chainMatrix) {
+    QMatrix4x4 matrix =
+        translation(handle) *
+        rotationEuler(handle) *
+        scaling(handle);
+    chainMatrix *= matrix;
+}
+
+bool ObjectTreeView::getBasicProperty(raco::core::ValueHandle valueHandle, QString property, QVector3D &vector) {
+    for (int i{0}; i < valueHandle.size(); i++) {
+        if (!valueHandle[i].isObject()) {
+            raco::core::ValueHandle tempHandle = valueHandle[i];
+
+            double x{0.0}, y{0.0}, z{0.0};
+            if (QString::fromStdString(tempHandle.getPropName()).compare(property) == 0) {
+                x = tempHandle.get("x").asDouble();
+                y = tempHandle.get("y").asDouble();
+                z = tempHandle.get("z").asDouble();
+                vector.setX(x);
+                vector.setY(y);
+                vector.setZ(z);
+                return true;
+            }
+            getBasicProperty(valueHandle[i], property, vector);
+        }
+    }
+    return false;
+}
+
+float ObjectTreeView::Deg2Rad(float val) {
+    const float  PI_f = 3.1415926535897932384626433832795028841971693993751058209749f;
+
+    return val * (PI_f / 180.f);
+}
+
+QMatrix4x4 ObjectTreeView::translation(ValueHandle handle) {
+    QVector3D vector;
+    if (getBasicProperty(handle, "translation", vector)) {
+        double x{0.0},y{0.0},z{0.0};
+        x = vector.x();
+        y = vector.y();
+        z = vector.z();
+        return QMatrix4x4(
+            1.0f, 0.0f, 0.0f, x,
+            0.0f, 1.0f, 0.0f, y,
+            0.0f, 0.0f, 1.0f, z,
+            0.0f, 0.0f, 0.0f, 1.0f);
+    }
+    return QMatrix4x4();
+}
+
+QMatrix4x4 ObjectTreeView::rotationEuler(ValueHandle handle) {
+    QVector3D vector;
+    if (getBasicProperty(handle, "rotation", vector)) {
+
+        double x{0.0},y{0.0},z{0.0};
+        x = vector.x();
+        y = vector.y();
+        z = vector.z();
+        // Get the rotation angles in radians
+        const float rotX = Deg2Rad(x);
+        const float rotY = Deg2Rad(y);
+        const float rotZ = Deg2Rad(z);
+
+        // Save some sin and cos values for reuse in the computations
+        const float sx = std::sin(rotX);
+        const float cx = std::cos(rotX);
+        const float sy = std::sin(rotY);
+        const float cy = std::cos(rotY);
+        const float sz = std::sin(rotZ);
+        const float cz = std::cos(rotZ);
+
+        return QMatrix4x4(
+            cz * cy                 , cz * sy * sx + sz * cx    , sz * sx - cz * sy * cx, 0.0f,
+            -sz * cy                , cz * cx - sz * sy * sx    , sz * sy * cx + cz * sx, 0.0f,
+            sy                      , -cy * sx                  , cy * cx               , 0.0f,
+            0.0f                    , 0.0f                      , 0.0f                  , 0.0f);
+    }
+    return QMatrix4x4();
+}
+
+QMatrix4x4 ObjectTreeView::scaling(ValueHandle handle) {
+    QVector3D vector;
+    if (getBasicProperty(handle, "scaling", vector)) {
+        double x{0.0},y{0.0},z{0.0};
+        x = vector.x();
+        y = vector.y();
+        z = vector.z();
+        return QMatrix4x4(
+            x,          0.0f,       0.0f,       0.0f,
+            0.0f,       y,          0.0f,       0.0f,
+            0.0f,       0.0f,       z,          0.0f,
+            0.0f,       0.0f,       0.0f,       1.0f);
+    }
+    return QMatrix4x4();
 }
 
 }  // namespace raco::object_tree::view
