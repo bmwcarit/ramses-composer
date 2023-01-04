@@ -68,8 +68,10 @@ public:
 
     void clearMesh();
 
+    bool hasMeshData(std::string id);
     void addMeshData(std::string id, MeshData mesh);
 	bool getMeshData(std::string id, MeshData& meshdata);
+    void setMeshModelMatrix(std::string id, QMatrix4x4 matrix);
     std::map<std::string, MeshData> getMeshDataMap();
     int attriIndex(std::vector<Attribute> attrs, std::string aName);
 private:

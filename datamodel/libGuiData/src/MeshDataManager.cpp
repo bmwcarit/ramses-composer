@@ -78,6 +78,14 @@ void MeshDataManager::clearMesh() {
     meshDataMap_.clear();
 }
 
+bool MeshDataManager::hasMeshData(std::string id) {
+    auto iter = meshDataMap_.find(id);
+    if (iter != meshDataMap_.end()) {
+        return true;
+    }
+    return false;
+}
+
 void MeshDataManager::addMeshData(std::string id, MeshData mesh) {
     meshDataMap_.emplace(id, mesh);
 }
@@ -88,7 +96,14 @@ bool MeshDataManager::getMeshData(std::string id, MeshData& meshdata) {
 		meshdata = iter->second;
 		return true;
     }
-	return false;
+    return false;
+}
+
+void MeshDataManager::setMeshModelMatrix(std::string id, QMatrix4x4 matrix) {
+    auto iter = meshDataMap_.find(id);
+    if (iter != meshDataMap_.end()) {
+        iter->second.setModelMatrix(matrix);
+    }
 }
 
 std::map<std::string, MeshData> MeshDataManager::getMeshDataMap() {

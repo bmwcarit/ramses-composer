@@ -43,7 +43,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 		  if (valueHandle_.isObject() || hasTypeSubstructure(valueHandle_.type())) {
 			  syncChildrenWithValueHandle();
 		  }
-		  Q_EMIT valueChanged(valueHandle_);
+          Q_EMIT valueChanged(valueHandle_);
 	  })},
 	  errorSubscription_{dispatcher->registerOnErrorChanged(valueHandle_, [this]() {
 		  Q_EMIT errorChanged(valueHandle_);

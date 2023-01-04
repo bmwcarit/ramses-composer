@@ -215,9 +215,9 @@ std::string ValueHandle::getPropName() const {
 			o = &v->getSubstructure();
 		}
 
-		return o->name(indices_.back());
+        return o->name(indices_.back());
 	}
-	throw std::runtime_error("invalid property");
+    throw std::runtime_error("invalid property");
 }
 
 std::vector<std::string> ValueHandle::getPropertyNamesVector() const {

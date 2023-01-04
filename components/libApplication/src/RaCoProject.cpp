@@ -564,7 +564,7 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 
 
 	// Force restoring the project from the current undo stack entry.
-	undoStack_.setIndex(undoStack_.getIndex(), true);
+//	undoStack_.setIndex(undoStack_.getIndex(), true);
 
 
 #ifdef NDEBUG
