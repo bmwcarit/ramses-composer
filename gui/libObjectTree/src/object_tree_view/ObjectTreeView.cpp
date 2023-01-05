@@ -266,6 +266,7 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -276,6 +277,7 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     } else {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -295,6 +297,7 @@ void ObjectTreeView::getOneMeshModelMatrix(QModelIndex index, QMatrix4x4 matrix)
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -304,6 +307,7 @@ void ObjectTreeView::getOneMeshModelMatrix(QModelIndex index, QMatrix4x4 matrix)
     } else {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         std::string objectID = tempHandle[0].asString();
         if (MeshDataManager::GetInstance().hasMeshData(objectID)) {
@@ -1076,8 +1080,8 @@ void ObjectTreeView::expandAllParentsOfObject(const QModelIndex &index) {
 
 void ObjectTreeView::computeWorldMatrix(ValueHandle handle, QMatrix4x4 &chainMatrix) {
     QMatrix4x4 matrix =
-        translation(handle)/*.transposed()*/ *
-        rotationEuler(handle)/*.transposed()*/ *
+        translation(handle) *
+        rotationEuler(handle) *
         scaling(handle);
     chainMatrix *= matrix;
 }
