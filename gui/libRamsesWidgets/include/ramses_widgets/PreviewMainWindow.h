@@ -76,6 +76,7 @@ public Q_SLOTS:
 	void updateAxesIconLabel();
 	void setEnableDisplayGrid(bool enable);
 	void sceneUpdate(bool z_up);
+private:
     QMatrix4x4 getViewMatrix(QVector3D position);
     QVector<float> checkTriCollision(QVector3D ray, QVector3D camera, QVector<QVector<QVector3D>> triangles);
     float checkSingleTriCollision(QVector3D ray, QVector3D camera, QVector<QVector3D> triangle);

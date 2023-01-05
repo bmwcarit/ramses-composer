@@ -1462,44 +1462,44 @@ void VisualCurveWidget::updateCurvePoint() {
                 if ((*it)->getInterPolationType() == EInterPolationType::HERMIT_SPLINE || (*it)->getInterPolationType() == EInterPolationType::BESIER_SPLINE) {
                     int leftKeyFrame = (*it)->getLeftKeyFrame();
                     int rightKeyFrame = (*it)->getRightKeyFrame();
-//                    if (leftKeyFrame >= 0 && rightKeyFrame != 0) {
-//                        double leftData{0.0};
-//                        double rightData{0.0};
-//                        if ((*it)->getLeftData().type() == typeid(double)) {
-//                            leftData = *(*it)->getLeftData()._Cast<double>();
-//                        }
-//                        if ((*it)->getRightData().type() == typeid(double)) {
-//                            rightData = *(*it)->getRightData()._Cast<double>();
-//                        }
-//                        if (leftKeyFrame == 0) {
-//                            leftData = value;
-//                        }
-//                        QPointF leftPoint, rightPoint;
-//                        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
-//                        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);
+                    if (leftKeyFrame >= 0 && rightKeyFrame != 0) {
+                        double leftData{0.0};
+                        double rightData{0.0};
+                        if ((*it)->getLeftData().type() == typeid(double)) {
+                            leftData = *(*it)->getLeftData()._Cast<double>();
+                        }
+                        if ((*it)->getRightData().type() == typeid(double)) {
+                            rightData = *(*it)->getRightData()._Cast<double>();
+                        }
+                        if (leftKeyFrame == 0) {
+                            leftData = value;
+                        }
+                        QPointF leftPoint, rightPoint;
+                        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
+                        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);
 
-//                        keyPoint.setLeftPoint(leftPoint);
-//                        keyPoint.setRightPoint(rightPoint);
-//                        srcPoints.append(keyPoint);
-//                        it++;
-//                        continue;
+                        keyPoint.setLeftPoint(leftPoint);
+                        keyPoint.setRightPoint(rightPoint);
+                        srcPoints.append(keyPoint);
+                        it++;
+                        continue;
+                    }
+//                    double leftData{0.0};
+//                    double rightData{0.0};
+//                    if ((*it)->getLeftData().type() == typeid(double)) {
+//                        leftData = *(*it)->getLeftData()._Cast<double>();
 //                    }
-                    double leftData{0.0};
-                    double rightData{0.0};
-                    if ((*it)->getLeftData().type() == typeid(double)) {
-                        leftData = *(*it)->getLeftData()._Cast<double>();
-                    }
-                    if ((*it)->getRightData().type() == typeid(double)) {
-                        rightData = *(*it)->getRightData()._Cast<double>();
-                    }
-                    QPointF leftPoint, rightPoint;
-                    keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
-                    keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);
+//                    if ((*it)->getRightData().type() == typeid(double)) {
+//                        rightData = *(*it)->getRightData()._Cast<double>();
+//                    }
+//                    QPointF leftPoint, rightPoint;
+//                    keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
+//                    keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);
 
-                    keyPoint.setLeftPoint(leftPoint);
-                    keyPoint.setRightPoint(rightPoint);
-                    srcPoints.append(keyPoint);
-                    it++;
+//                    keyPoint.setLeftPoint(leftPoint);
+//                    keyPoint.setRightPoint(rightPoint);
+//                    srcPoints.append(keyPoint);
+//                    it++;
                 }
                 // get next point
                 int offsetLastKey{10};
