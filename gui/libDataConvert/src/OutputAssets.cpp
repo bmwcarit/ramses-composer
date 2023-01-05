@@ -206,7 +206,8 @@ bool uniformCompare(Uniform data, Uniform myUni) {
 }
 
 bool Vec4Equal(Vec4 left, Vec4 right) {
-	if (left.x == right.x && left.y == right.y && left.z == right.z && left.w == right.w) {
+	if (std::abs(left.x - right.x) < 0.00001 && std::abs(left.y - right.y) < 0.00001
+		&& std::abs(left.z - right.z) < 0.00001 &&  std::abs(left.w - right.w) < 0.00001) {
 		return true;
 	}
 	return false;
@@ -246,6 +247,7 @@ void updateNodeIDUColors(std::string NodeID, std::vector<Uniform> uniforms) {
 			std::string str = un.getName().substr(7, un.getName().length());
 			int n = std::stoi(str);
 			if (!isCorrectUColor(n, un.getValue())) {
+				std::string info = "u_color" + str + "'s value is error!";
 				DEBUG(__FILE__, __FUNCTION__, __LINE__, "u_color's value is error!");
 			}
 			uColorNums_.emplace(n);
@@ -1314,322 +1316,104 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	return true;
 }
 
-void addAnimationSwitchType2Operation(TOperation* operation) {
-	operation->set_operator_(TEOperatorType_Switch);
-	operation->add_datatype(TEDataType_Identifier);
-	// operand -> key
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(PTW_USED_ANIMATION_NAME);
-	// operand -> provider
-	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
-	// operation.operand add key,provider
-	auto operand = operation->add_operand();
-	operand->set_allocated_key(key);
-	operand->set_allocated_provider(provider);
-}
-
-void addAnimationSwitchCase2Operation(TOperation* operation, std::string anName, bool isDefault = false) {
-	if (!isDefault) {
-		operation->add_datatype(TEDataType_Identifier);
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandAn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-		TIdentifier* identifierAn = new TIdentifier;
-		identifierAn->set_valuestring(anName);
-		variantAn->set_allocated_identifier(identifierAn);
-		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
-		providerAn->set_allocated_variant(variantAn);
-		operandAn->set_allocated_provider(providerAn);
-
-		auto operandIn = operation->add_operand();
-		TIdentifier* key = new TIdentifier;
-		key->set_valuestring(anName + PTW_SUF_CURVE_INETERAL);
-		operandIn->set_allocated_key(key);
-		TDataProvider* providerIn = new TDataProvider;
-		providerIn->set_source(TEProviderSource_IntModelValue);
-		operandIn->set_allocated_provider(providerIn);
-	} else {
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandIn = operation->add_operand();
-		TIdentifier* key = new TIdentifier;
-		key->set_valuestring(anName + PTW_SUF_CURVE_INETERAL);
-		operandIn->set_allocated_key(key);
-		TDataProvider* providerIn = new TDataProvider;
-		providerIn->set_source(TEProviderSource_IntModelValue);
-		operandIn->set_allocated_provider(providerIn);
-	}
-}
-
 // Only when multiple animations bind one curve
-void OutputPtw::switchAnimation(HmiWidget::TWidget* widget) {
+void OutputPtw::switchMultAnimsOneCurve(HmiWidget::TWidget* widget) {
 	for (auto curve : curveNameAnimations_) {
 		if (curve.second.size() > 1) {
-			PTWSwitchData switchData;
+			PTWSwitch switchData;
 			switchData.outPutKey = curve.first + "_interal_switch";
-			switchData.dataType = TEDataType_Float;
-			switchData.condition.key = PTW_USED_ANIMATION_NAME;
-			switchData.condition.src = TEProviderSource_ExtModelValue;
+			switchData.dataType1 = TEDataType_Identifier;
+			switchData.dataType2 = TEDataType_Float;
+			
+			TDataBinding Operand;
+			Operand.set_allocated_key(assetsFun_.Key(PTW_USED_ANIMATION_NAME));
+			Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+			switchData.Operands.push_back(Operand);
 
-			// add switch case to operation
 			for (auto anName : curve.second) {
-				Case caseData;
-				caseData.Identifier = anName.first;
-				caseData.IdentifierType = TEIdentifierType_ParameterValue;
-				caseData.key = anName.first + PTW_SUF_CURVE_INETERAL;
-				caseData.src = TEProviderSource_IntModelValue;
-				switchData.caseArr.push_back(caseData);
+				TDataBinding Operand1;
+				assetsFun_.OperandProVarIdentAndType(Operand1, anName.first, TEIdentifierType_ParameterValue);
+				switchData.Operands.push_back(Operand1);
+
+				TDataBinding Operand2;
+				assetsFun_.OperandKeySrc(Operand2, anName.first + PTW_SUF_CURVE_INETERAL, TEProviderSource_IntModelValue);
+				switchData.Operands.push_back(Operand2);
 			}
-			auto internalModelValue = widget->add_internalmodelvalue();
-			assetsFun_.PTWSwitch(internalModelValue, switchData);
+
+			TDataBinding OperandDefault;
+			assetsFun_.OperandKeySrc(OperandDefault, curve.second.begin()->first + PTW_SUF_CURVE_INETERAL, TEProviderSource_IntModelValue);
+			switchData.Operands.push_back(OperandDefault);
+
+			HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+			assetsFun_.SwitchAnimation(internalModelswitch, switchData);
 		}
 	}
 }
 
 void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
-	std::string animation_interal;
 	auto animationList = raco::guiData::animationDataManager::GetInstance().getAnitnList();
 	if (0 == animationList.size()) {
 		messageBoxError("", 5);
 	}
 
-	// add first animation name
-	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(PTW_USED_ANIMATION_NAME);
-	externalModelValue->set_allocated_key(key);
-	TVariant* variant = new TVariant;
-	std::string* asciistring = new std::string(animationList.begin()->first);
-	variant->set_allocated_asciistring(asciistring);
-	externalModelValue->set_allocated_variant(variant);
-
-
 	for (auto animation : animationList) {
-		auto internalModelValue = widget->add_internalmodelvalue();
-		TIdentifier* key_int = new TIdentifier;
-		animation_interal = animation.first + PTW_SUF_CURVE_INETERAL;
-		key_int->set_valuestring(animation_interal);
-		internalModelValue->set_allocated_key(key_int);
-		TDataBinding* binding = new TDataBinding;
-		TDataProvider* provider = new TDataProvider;
-		TOperation* operation = new TOperation;
+		std::string animation_interal = animation.first + PTW_SUF_CURVE_INETERAL;
+		auto animations = animationDataManager::GetInstance().getAnitnList();
 
-		operation->set_operator_(TEOperatorType_Mul);
-		operation->add_datatype(TEDataType_Float);
-		operation->add_datatype(TEDataType_Float);
-
-		auto operand1 = operation->add_operand();
-		TIdentifier* key = new TIdentifier;
-		TDataProvider* provider1 = new TDataProvider;
-		key->set_valuestring(animation.first + PTW_SUF_ANIMAT_DOMAIN);
-		provider1->set_source(TEProviderSource_IntModelValue);
-		operand1->set_allocated_key(key);
-		operand1->set_allocated_provider(provider1);
-
-		auto operand2 = operation->add_operand();
-		TDataProvider* provider2 = new TDataProvider;
-		TVariant* variant1 = new TVariant;
-		TNumericValue* numeric = new TNumericValue;
-		numeric->set_float_(float(animation.second.GetEndTime() - animation.second.GetStartTime()));
-		variant1->set_allocated_numeric(numeric);
-		provider2->set_allocated_variant(variant1);
-
-		operand2->set_allocated_provider(provider2);
-		provider->set_allocated_operation(operation);
-		binding->set_allocated_provider(provider);
-		internalModelValue->set_allocated_binding(binding);
+		std::vector<TDataBinding> Operands;
+		HmiWidget::TInternalModelParameter* internalModelMul = widget->add_internalmodelvalue();
+		TDataBinding Operand1;
+		Operand1.set_allocated_key(assetsFun_.Key(animation.first + PTW_SUF_ANIMAT_DOMAIN));
+		Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		Operands.push_back(Operand1);
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderNumeric(float(animation.second.GetEndTime() - animation.second.GetStartTime())));
+		Operands.push_back(Operand2);
+		TDataBinding Operand3;
+		Operand3.set_allocated_key(assetsFun_.Key(animation.first));
+		Operand3.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_ExtModelValue));
+		Operands.push_back(Operand3);
+		assetsFun_.operatorOperands(internalModelMul, animation_interal, TEDataType_Float, Operands, TEOperatorType_Mul);
 
 		addAnimationDomain(widget, animation.first);
 	}
-	switchAnimation(widget);
+	switchMultAnimsOneCurve(widget);
 }
 
-void addUsedAnimationSwitchType2Operation(TOperation* operation) {
-	operation->set_operator_(TEOperatorType_Switch);
-	operation->add_datatype(TEDataType_Identifier);
-	// operand -> key
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(PTW_USED_ANIMATION_NAME);
-	// operand -> provider
-	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
-	// operation.operand add key,provider
-	auto operand = operation->add_operand();
-	operand->set_allocated_key(key);
-	operand->set_allocated_provider(provider);
-}
-
-void addDomainSwitchCase2Operation(TOperation* operation, std::string anName, bool isDefault = false) {
-	if (!isDefault) {
-		operation->add_datatype(TEDataType_Identifier);
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandAn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-		TIdentifier* identifierAn = new TIdentifier;
-		identifierAn->set_valuestring(anName);
-		variantAn->set_allocated_identifier(identifierAn);
-		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
-		providerAn->set_allocated_variant(variantAn);
-		operandAn->set_allocated_provider(providerAn);
-
-		auto operandIn = operation->add_operand();
-		TIdentifier* key = new TIdentifier;
-		key->set_valuestring("domain");
-		operandIn->set_allocated_key(key);
-		TDataProvider* providerIn = new TDataProvider;
-		providerIn->set_source(TEProviderSource_IntModelValue);
-		operandIn->set_allocated_provider(providerIn);
-	} else {
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandIn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-
-		TNumericValue* nuneric = new TNumericValue;
-		nuneric->set_float_(0.0);
-		variantAn->set_allocated_numeric(nuneric);
-		providerAn->set_allocated_variant(variantAn);
-		operandIn->set_allocated_provider(providerAn);
-	}
-}
-
+// animation domain switch
 void OutputPtw::addAnimationDomain(HmiWidget::TWidget* widget, std::string animationName) {
-	// internalModelValue
-	auto internalModelValue = widget->add_internalmodelvalue();
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(animationName + PTW_SUF_ANIMAT_DOMAIN);
-	internalModelValue->set_allocated_key(key);
-	// add binding
-	TDataBinding* binding = new TDataBinding;
-	TDataProvider* provider = new TDataProvider;
-	TOperation* operation = new TOperation;
+	PTWSwitch switchData;
+	switchData.outPutKey = animationName + PTW_SUF_ANIMAT_DOMAIN;
+	switchData.dataType1 = TEDataType_Identifier;
+	switchData.dataType2 = TEDataType_Float;
 
-	addUsedAnimationSwitchType2Operation(operation);
-	addDomainSwitchCase2Operation(operation, animationName);
-	addDomainSwitchCase2Operation(operation, animationName, true);
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key(PTW_USED_ANIMATION_NAME));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	switchData.Operands.push_back(Operand);
 
-	provider->set_allocated_operation(operation);
-	binding->set_allocated_provider(provider);
-	internalModelValue->set_allocated_binding(binding);
-}
+	TDataBinding Operand1;
+	assetsFun_.OperandProVarIdentAndType(Operand1, animationName, TEIdentifierType_ParameterValue);
+	switchData.Operands.push_back(Operand1);
 
-void addCompositeAnimation(HmiWidget::TWidget* widget) {
-	// compositeAnimation
-	auto compositeAnimation = widget->add_compositeanimation();
-	TIdentifier* compositeidentifier = new TIdentifier;
-	compositeidentifier->set_valuestring("compositeAnimation");
-	compositeAnimation->set_allocated_compositeidentifier(compositeidentifier);
+	TDataBinding Operand2;
+	assetsFun_.OperandKeySrc(Operand2, "domain", TEProviderSource_IntModelValue);
+	switchData.Operands.push_back(Operand2);
+	// default Numeric
+	TDataBinding OperandDefault;
+	assetsFun_.OperandNumeric(OperandDefault, 0.0);
+	switchData.Operands.push_back(OperandDefault);
 
-	// returnValue
-	// returnValue.key
-	auto returnValue = compositeAnimation->add_returnvalue();
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring("compositeAnimation.output");
-	returnValue->set_allocated_key(key);
-
-	// returnValue.animation
-	auto animation = returnValue->add_animation();
-	// returnValue.animation.Identifier
-	auto anIdentifier = new TIdentifier;
-	anIdentifier->set_valuestring("animation");
-	animation->set_allocated_identifier(anIdentifier);
-
-	// returnValue.animation.WidgetAnimation
-	auto widgetAnimation = new HmiWidget::TWidgetAnimation;
-	auto startValue = new TNumericValue;
-	startValue->set_float_(0.0);
-	widgetAnimation->set_allocated_startvalue(startValue);
-	auto endValue = new TNumericValue;
-	endValue->set_float_(1.0);
-	widgetAnimation->set_allocated_endvalue(endValue);
-	widgetAnimation->set_durationvalue(8000);
-	widgetAnimation->set_interpolator(TEAnimationInterpolator::TEAnimationInterpolator_Linear);
-	widgetAnimation->set_returntype(TEDataType::TEDataType_Float);
-	widgetAnimation->set_loopcount(0);
-	widgetAnimation->set_updateinterval(33);
-	animation->set_allocated_widgetanimation(widgetAnimation);
-
-	// returnValue.animation.trigger
-	auto triggerIter = animation->add_trigger();
-	triggerIter->set_action(HmiWidget::TEAnimationSlot::TEAnimationSlot_SlotAnimationStart);
-	returnValue->set_returntype(TEDataType::TEDataType_Float);
-}
-
-void addTrigger(HmiWidget::TWidget* widget) {
-	auto trigger = widget->add_trigger();
-	TIdentifier* triggeridentifier = new TIdentifier;
-	triggeridentifier->set_valuestring("StartStopCompositeAnimation");
-	trigger->set_allocated_identifier(triggeridentifier);
-
-	auto conditionalTrigger = new HmiWidget::TConditionalTrigger;
-	auto condition = new TDataBinding;
-	auto key = new TIdentifier;
-	key->set_valuestring("Play");
-	condition->set_allocated_key(key);
-
-	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
-	condition->set_allocated_provider(provider);
-
-	conditionalTrigger->set_allocated_condition(condition);
-
-	auto commond = new HmiWidget::TCommand;
-	auto antrigger = new HmiWidget::TAnimationTrigger;
-	auto animation = new TIdentifier;
-	animation->set_valuestring("compositeAnimation");
-	antrigger->set_allocated_animation(animation);
-	antrigger->set_action(HmiWidget::TEAnimationAction::TEAnimationAction_Start);
-	commond->set_allocated_animationtrigger(antrigger);
-	conditionalTrigger->set_allocated_command(commond);
-	
-	auto elseCommond = new HmiWidget::TCommand;
-	auto antriggerElse = new HmiWidget::TAnimationTrigger;
-	auto animationElse = new TIdentifier;
-	animationElse->set_valuestring("compositeAnimation");
-	antriggerElse->set_allocated_animation(animationElse);
-	antriggerElse->set_action(HmiWidget::TEAnimationAction::TEAnimationAction_Stop);
-	elseCommond->set_allocated_animationtrigger(antriggerElse);
-	conditionalTrigger->set_allocated_elsecommand(elseCommond);
-
-	trigger->set_allocated_conditionaltrigger(conditionalTrigger);
-}
-
-void addPlayDomain(HmiWidget::TWidget* widget) {
-	auto play = widget->add_externalmodelvalue();
-	TIdentifier* playKey = new TIdentifier;
-	playKey->set_valuestring("Play");
-	play->set_allocated_key(playKey);
-	TVariant* variant = new TVariant;
-	variant->set_bool_(true);
-	play->set_allocated_variant(variant);
-
-	auto domain = widget->add_internalmodelvalue();
-	TIdentifier* domainKey = new TIdentifier;
-	domainKey->set_valuestring("domain");
-	domain->set_allocated_key(domainKey);
-
-	auto binding = new TDataBinding;
-	auto bindKey = new TIdentifier;
-	bindKey->set_valuestring("compositeAnimation.output");
-	binding->set_allocated_key(bindKey);
-	TDataProvider* provider = new TDataProvider;
-	provider->MutableExtension(HmiWidget::animation)->set_valuestring("compositeAnimation");
-	binding->set_allocated_provider(provider);
-	domain->set_allocated_binding(binding);
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, switchData);
 }
 
 void OutputPtw::triggerByInternalModel(HmiWidget::TWidget* widget) {
-	addCompositeAnimation(widget);
+	internalDurationValue(widget);
 
-	addTrigger(widget);
-
-	addPlayDomain(widget);
+	assetsFun_.addCompositeAnimation(widget);
+	assetsFun_.addTrigger(widget);
+	assetsFun_.addPlayDomain(widget);
 }
 
 void OutputPtw::triggerByExternalModel(HmiWidget::TWidget* widget) {
@@ -1646,7 +1430,6 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	if (isPtwOutputError_) {
 		return;
 	}
-
 	QMessageBox customMsgBox;
 	customMsgBox.setWindowTitle("Warning message box");
 	QPushButton* okButton = customMsgBox.addButton("OK", QMessageBox::ActionRole);
@@ -1861,7 +1644,6 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 		}
 		// add u_color uniforms
 		AddUColorUniforms(nodeParam, &node);
-
 		for (auto cuvebindList : animationList) {
 			for (auto curveProP : cuvebindList.second) {
 				std::vector<std::map<std::string, CurvesSingleProp>> curves;
@@ -1902,15 +1684,19 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 	}
 }
 
+void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
+// todo:dot background
+}
+
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
-
 	addTrigger_ = true; // todo:
 
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
+	switchAnimations(widget);
 	externalScaleData(widget);
 	if (addTrigger_) {
 		triggerByInternalModel(widget);
@@ -1924,6 +1710,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
 	externalOpacityData(widget);
 	externalColorData(widget);
+	proExVarMapping(widget);
 
 	std::string output;
 	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
@@ -1946,112 +1733,52 @@ void OutputPtw::WriteAsset(std::string filePath) {
 }
 
 void OutputPtw::WriteBasicInfo(HmiWidget::TWidget* widget) {
+	// type
 	TIdentifier* type = new TIdentifier;
 	type->set_valuestring("eWidgetType_Generate");
 	widget->set_allocated_type(type);
+	// prototype
 	TIdentifier* prototype = new TIdentifier;
 	prototype->set_valuestring("eWidgetType_Model");
 	widget->set_allocated_prototype(prototype);
-	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring("WidgetNameHint");
-	externalModelValue->set_allocated_key(key);
-	TVariant* variant = new TVariant;
-	variant->set_asciistring("WIDGET_SCENE");
-	externalModelValue->set_allocated_variant(variant);
-	externalModelValue = widget->add_externalmodelvalue();
-
-	TIdentifier* key1 = new TIdentifier;
-	key1->set_valuestring("eParam_ModelResourceId");
-	externalModelValue->set_allocated_key(key1);
-	TVariant* variant1 = new TVariant;
-	variant1->set_resourceid("scene.ptx");
-	externalModelValue->set_allocated_variant(variant1);
-	externalModelValue = widget->add_externalmodelvalue();
-
-	TIdentifier* key2 = new TIdentifier;
-	key2->set_valuestring("eParam_ModelRootId");
-	externalModelValue->set_allocated_key(key2);
-	TVariant* variant2 = new TVariant;
-	variant2->set_resourceid("");
-	externalModelValue->set_allocated_variant(variant2);
+	// WidgetNameHint
+	HmiWidget::TExternalModelParameter* externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "WidgetNameHint", assetsFun_.VariantAsciiString("WIDGET_SCENE"));
+	// eParam_ModelResourceId
+	externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ModelResourceId", assetsFun_.VariantResourceId("scene.ptx"));
+	// eParam_ModelRootId
+	externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ModelRootId", assetsFun_.VariantResourceId(""));
 }
+// Multi Curves Binding Single Prop: Switch different curves for different animations --> curve 
+void OutputPtw::multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
+	PTWSwitch switchData;
+	switchData.outPutKey = PTW_PRE_CURVES_ONE_PROP + (curves.at(0).begin())->second.curveName;
+	switchData.dataType1 = TEDataType_Identifier;
+	switchData.dataType2 = TEDataType_Float;
 
-void addMultiCurveBindingSwitchType2Operation(TOperation* operation) {
-	operation->set_operator_(TEOperatorType_Switch);
-	operation->add_datatype(TEDataType_Identifier);
-	// operand -> key
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(PTW_USED_ANIMATION_NAME);
-	// operand -> provider
-	TDataProvider* provider = new TDataProvider;
-	provider->set_source(TEProviderSource_ExtModelValue);
-	// operation.operand add key,provider
-	auto operand = operation->add_operand();
-	operand->set_allocated_key(key);
-	operand->set_allocated_provider(provider);
-}
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key(PTW_USED_ANIMATION_NAME));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	switchData.Operands.push_back(Operand);
 
-void addMultiCurveBindingSwitchCase2Operation(TOperation* operation, std::map<std::string, CurvesSingleProp> anName, bool isDefault = false) {
-	if (!isDefault) {
-		operation->add_datatype(TEDataType_Identifier);
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandAn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-		TIdentifier* identifierAn = new TIdentifier;
-		identifierAn->set_valuestring(anName.begin()->first);
-		variantAn->set_allocated_identifier(identifierAn);
-		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
-		providerAn->set_allocated_variant(variantAn);
-		operandAn->set_allocated_provider(providerAn);
-
-		auto operandIn = operation->add_operand();
-		TIdentifier* key = new TIdentifier;
-		key->set_valuestring(anName.begin()->second.curveName + ".output");
-		operandIn->set_allocated_key(key);
-		TDataProvider* providerIn = new TDataProvider;
-
-		TIdentifier* curveReference = new TIdentifier;
-		curveReference->set_valuestring(anName.begin()->second.curveName);
-		providerIn->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-		operandIn->set_allocated_provider(providerIn);
-	} else {
-		operation->add_datatype(TEDataType_Float);
-		auto operandIn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-
-		TNumericValue* nuneric = new TNumericValue;
-		nuneric->set_float_(anName.begin()->second.defaultData);
-		variantAn->set_allocated_numeric(nuneric);
-		providerAn->set_allocated_variant(variantAn);
-		operandIn->set_allocated_provider(providerAn);
-	}
-}
-
-void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves) {
-	auto internalModelValue = widget->add_internalmodelvalue();
-	// add result key
-	TIdentifier* key_re = new TIdentifier;
-	key_re->set_valuestring(PTW_PRE_CURVES_ONE_PROP + (curves.at(0).begin())->second.curveName);
-	internalModelValue->set_allocated_key(key_re);
-	// add binding
-	TDataBinding* binding = new TDataBinding;
-	TDataProvider* provider = new TDataProvider;
-	TOperation* operation = new TOperation;
-	// add switch condition to operation
-	addMultiCurveBindingSwitchType2Operation(operation);
-	// add switch case to operation
 	for (auto anName : curves) {
-		addMultiCurveBindingSwitchCase2Operation(operation, anName);
+		TDataBinding Operand1;
+		assetsFun_.OperandProVarIdentAndType(Operand1, anName.begin()->first, TEIdentifierType_ParameterValue);
+		switchData.Operands.push_back(Operand1);
+
+		TDataBinding Operand2;
+		assetsFun_.OperandKeyCurveRef(Operand2, anName.begin()->second.curveName);
+		switchData.Operands.push_back(Operand2);
 	}
-	addMultiCurveBindingSwitchCase2Operation(operation, *curves.begin(), true);
-	provider->set_allocated_operation(operation);
-	binding->set_allocated_provider(provider);
-	internalModelValue->set_allocated_binding(binding);
+	// default Numeric
+	TDataBinding OperandDefault;
+	assetsFun_.OperandNumeric(OperandDefault, curves.begin()->begin()->second.defaultData);
+	switchData.Operands.push_back(OperandDefault);
+
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, switchData);
 }
 
 void modifyMultiCurveTranslation(HmiWidget::TNodeTransform* transform, std::string propName, std::string curveName) {
@@ -2180,64 +1907,34 @@ void OutputPtw::modifyMultiCurveTransform(HmiWidget::TWidget* widget, HmiWidget:
 	multiCurveBindingSinglePropSwitch(widget, propName, curves);
 }
 
-// more normal
-void addCurvesSwitchCase2Operation(TOperation* operation, std::string AnimationName,std::string curveName, AnimationsSingleCurve nodePropData, bool isDefault = false) {
-	if (!isDefault) {
-		operation->add_datatype(TEDataType_Identifier);
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandAn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-		TIdentifier* identifierAn = new TIdentifier;
-		identifierAn->set_valuestring(AnimationName);
-		variantAn->set_allocated_identifier(identifierAn);
-		variantAn->set_identifiertype(TEIdentifierType_ParameterValue);
-		providerAn->set_allocated_variant(variantAn);
-		operandAn->set_allocated_provider(providerAn);
-		// different
-		auto operandIn = operation->add_operand();
-		TIdentifier* curveReference = new TIdentifier;
-		TDataProvider* providerIn = new TDataProvider;
-		curveReference->set_valuestring(curveName);
-		providerIn->MutableExtension(HmiWidget::curve)->set_allocated_curvereference(curveReference);
-		operandIn->set_allocated_provider(providerIn);
-	} else {
-		operation->add_datatype(TEDataType_Float);
-
-		auto operandIn = operation->add_operand();
-		TDataProvider* providerAn = new TDataProvider;
-		TVariant* variantAn = new TVariant;
-
-		TNumericValue* nuneric = new TNumericValue;
-		nuneric->set_float_(nodePropData.defaultData);
-		variantAn->set_allocated_numeric(nuneric);
-		providerAn->set_allocated_variant(variantAn);
-		operandIn->set_allocated_provider(providerAn);
-	}
-}
-
-// refer to addAnimationDomain
+// same curve is used by different animation different node. test/05/1
 void OutputPtw::addAnimationCurveSwitch(HmiWidget::TWidget* widget, std::string animationName, std::string curveName, AnimationsSingleCurve aniSingleCurve) {
-	// internalModelValue
-	auto internalModelValue = widget->add_internalmodelvalue();
-	TIdentifier* key = new TIdentifier;
-	key->set_valuestring(animationName + "-"+ curveName);
-	internalModelValue->set_allocated_key(key);
-	// add binding
-	TDataBinding* binding = new TDataBinding;
-	TDataProvider* provider = new TDataProvider;
-	TOperation* operation = new TOperation;
+	PTWSwitch switchData;
+	switchData.outPutKey = animationName + "-" + curveName;
+	switchData.dataType1 = TEDataType_Identifier;
+	switchData.dataType2 = TEDataType_Float;
 
-	addUsedAnimationSwitchType2Operation(operation);
-	addCurvesSwitchCase2Operation(operation, animationName, curveName, aniSingleCurve);
-	addCurvesSwitchCase2Operation(operation, animationName, curveName, aniSingleCurve, true);
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key(PTW_USED_ANIMATION_NAME));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	switchData.Operands.push_back(Operand);
 
-	provider->set_allocated_operation(operation);
-	binding->set_allocated_provider(provider);
-	internalModelValue->set_allocated_binding(binding);
+	TDataBinding Operand1;
+	assetsFun_.OperandProVarIdentAndType(Operand1, animationName, TEIdentifierType_ParameterValue);
+	switchData.Operands.push_back(Operand1);
+
+	TDataBinding Operand2;
+	assetsFun_.OperandCurveRef(Operand2, curveName);
+	switchData.Operands.push_back(Operand2);
+	// default Numeric
+	TDataBinding OperandDefault;
+	assetsFun_.OperandNumeric(OperandDefault, aniSingleCurve.defaultData);
+	switchData.Operands.push_back(OperandDefault);
+
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, switchData);
 }
-
+// todo
 void OutputPtw::modifyMultiAnimaTransform(HmiWidget::TWidget* widget, HmiWidget::TNodeTransform* transform, std::string propName, std::string curve, AnimationsSingleCurve aniSingleCurve, std::string animationName) {
 	std::string curveName = animationName + "-" + curve;
 	if (propName.find("translation") == 0) {
@@ -2247,7 +1944,6 @@ void OutputPtw::modifyMultiAnimaTransform(HmiWidget::TWidget* widget, HmiWidget:
 	} else if (propName.find("scale") == 0) {
 		modifyMultiCurveScale(transform, propName, curveName);
 	}
-	//multiCurveBindingSinglePropSwitch(widget, propName, animations);
 	addAnimationCurveSwitch(widget, animationName, curve, aniSingleCurve);
 }
 
@@ -2955,11 +2651,110 @@ void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std
 	}
 }
 
+// add external Animaiton name
+void OutputPtw::animationSwitchPreData(HmiWidget::TWidget* widget) {
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	auto activeAnimation = animationDataManager::GetInstance().GetActiveAnimation();
+	int n = 1;
+	for (auto an : animations) {
+		// externalAnimationName
+		HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+		externalModelValue->set_allocated_key(assetsFun_.Key(an.first));
+		if (an.first == activeAnimation) {
+			externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
+		} else {
+			externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(0.0));
+		}
+		{// Greater0
+			HmiWidget::TInternalModelParameter* internalModelCompare = widget->add_internalmodelvalue();
+			TDataBinding Operand1;
+			Operand1.set_allocated_key(assetsFun_.Key(an.first));
+			Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_ExtModelValue));
+			TDataBinding Operand2;
+			Operand2.set_allocated_provider(assetsFun_.ProviderNumeric(0));
+			assetsFun_.CompareOperation(internalModelCompare, an.first + "Greater0", Operand1, TEDataType_Float, Operand2, TEDataType_Float, TEOperatorType_Greater);
+		}
+		{  // IfThenElse
+			HmiWidget::TInternalModelParameter* internalModelIfThenElse = widget->add_internalmodelvalue();
+			TDataBinding Operand1;
+			Operand1.set_allocated_key(assetsFun_.Key(an.first + "Greater0"));
+			Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+			TDataBinding Operand2;
+			Operand2.set_allocated_provider(assetsFun_.ProviderNumericInt(n));
+			TDataBinding Operand3;
+			Operand3.set_allocated_provider(assetsFun_.ProviderNumericInt(0));
+			assetsFun_.IfThenElse(internalModelIfThenElse, an.first + "Value", Operand1, TEDataType_Bool, Operand2, TEDataType_Int, Operand3, TEDataType_Int);
+		}
+		n++;
+	}
+}
+
+// sum animationValue
+void OutputPtw::sumAnimationValue(HmiWidget::TWidget* widget) {
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	std::vector<TDataBinding> Operands;
+	HmiWidget::TInternalModelParameter* internalModelAdd = widget->add_internalmodelvalue();
+	for (auto an : animations) {
+		TDataBinding Operand;
+		Operand.set_allocated_key(assetsFun_.Key(an.first + "Value"));
+		Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		Operands.push_back(Operand);
+	}
+	if (Operands.size() == 1) {
+		TDataBinding Operand;
+		Operand.set_allocated_provider(assetsFun_.ProviderNumericInt(0));
+		Operands.push_back(Operand);
+	}else if (Operands.size() > 7) {
+		DEBUG(__FILE__, __FUNCTION__, __LINE__, "animations number > 7!");
+	}
+	assetsFun_.operatorOperands(internalModelAdd, "AnimationSumValue", TEDataType_Int, Operands, TEOperatorType_Add);
+}
+
+// switch animation
+void OutputPtw::animationSwitch(HmiWidget::TWidget* widget) {
+	PTWSwitch data;
+	data.outPutKey = "UsedAnimationName";
+	data.dataType1 = TEDataType_Int;
+	data.dataType2 = TEDataType_AsciiString;
+
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key("AnimationSumValue"));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	data.Operands.push_back(Operand);
+
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	int n = 1;
+	for (auto an : animations) {
+		TDataBinding Operand1;
+		Operand1.set_allocated_provider(assetsFun_.ProviderNumericInt(n));
+		data.Operands.push_back(Operand1);
+
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderAsciiString(an.first));
+		data.Operands.push_back(Operand2);
+		n++;
+	}
+	TDataBinding OperandDefault;
+	OperandDefault.set_allocated_provider(assetsFun_.ProviderAsciiString(animations.begin()->first));
+	data.Operands.push_back(OperandDefault);
+
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, data);
+}
+
+void OutputPtw::switchAnimations(HmiWidget::TWidget* widget) {
+	// each animation
+	animationSwitchPreData(widget);
+	// sum value
+	sumAnimationValue(widget);
+	// switch animation
+	animationSwitch(widget);
+}
+
 // add exteral scale
 void OutputPtw::externalScale(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_SCALE_NAME));
-	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(300.0));
+	assetsFun_.externalKeyVariant(externalModelValue, PTW_EX_SCALE_NAME, assetsFun_.VariantNumeric(300.0));
 }
 
 void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
@@ -3039,13 +2834,13 @@ void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
 	for (int i : uColorNums_) {
 		// CONTENT..._Ci
 		auto externalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorIPAIconExternal(externalModelValueCi, PTW_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconExternal(externalModelValueCi, PTW_EX_CON_IPA_ICON_C + std::to_string(i));
 	}
 
 	for (int i : uColorNums_) {
 		// HUD_CONTENT..._Ci
 		auto HUD_ExternalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, PTW_HUD_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, PTW_EX_HUD_CON_IPA_ICON_C + std::to_string(i));
 	}
 
 	// HUD
@@ -3056,23 +2851,54 @@ void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
 	// CONTENT..._Ci_V4
 	for (int i : uColorNums_) {
 		auto internalModelValueCiV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_CON_IPA_ICON_C + std::to_string(i));
 	}
 	//	HUD_CONTENT..._Ci_V4
 	for (int i : uColorNums_) {
 		auto HUB_InternalModelValueCiV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, PTW_EX_HUD_NAME + "_" + PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_EX_HUD_NAME + "_" + PTW_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, PTW_EX_HUD_NAME + "_" + PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_NAME + "_" + PTW_EX_CON_IPA_ICON_C + std::to_string(i));
 	}
 
 	// ColorMode
 	for (int i : uColorNums_) {
 		auto InternalColorModelV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_COLOR_MODE + std::to_string(i), PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_HUD_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_EX_HUD_NAME);
+		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_IN_COLOR_MODE + std::to_string(i), PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_NAME);
 	}
 }
 
 void OutputPtw::externalColorUniform(HmiWidget::TUniform& tUniform, int index) {
-	assetsFun_.CreateHmiWidgetUniform(&tUniform, PTW_U_COLOR + std::to_string(index), PTW_COLOR_MODE + std::to_string(index) ,TEProviderSource_IntModelValue);
+	assetsFun_.CreateHmiWidgetUniform(&tUniform, PTW_IN_U_COLOR + std::to_string(index), PTW_IN_COLOR_MODE + std::to_string(index) ,TEProviderSource_IntModelValue);
+}
+
+// DurationValue
+void OutputPtw::internalDurationValue(HmiWidget::TWidget* widget) {
+	PTWSwitch data;
+	data.outPutKey = "DurationValue";
+	data.dataType1 = TEDataType_Identifier;
+	data.dataType2 = TEDataType_UInt;
+
+	TDataBinding Operand;
+	Operand.set_allocated_key(assetsFun_.Key("UsedAnimationName"));
+	Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+	data.Operands.push_back(Operand);
+
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	for (auto an : animations) {
+		unsigned int durationTime = an.second.GetUpdateInterval() * (an.second.GetEndTime() - an.second.GetStartTime());
+		TDataBinding Operand1;
+		assetsFun_.OperandProVarIdentAndType(Operand1, an.first, TEIdentifierType_ParameterValue);
+		data.Operands.push_back(Operand1);
+
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderNumericUInt(durationTime));
+		data.Operands.push_back(Operand2);
+	}
+	TDataBinding OperandDefault;
+	OperandDefault.set_allocated_provider(assetsFun_.ProviderNumericUInt(8000));
+	data.Operands.push_back(OperandDefault);
+
+	HmiWidget::TInternalModelParameter* internalModelswitch = widget->add_internalmodelvalue();
+	assetsFun_.SwitchAnimation(internalModelswitch, data);
 }
 
 }  // namespace raco::dataConvert

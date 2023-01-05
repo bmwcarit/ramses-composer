@@ -13,44 +13,45 @@
 
 namespace raco::dataConvert {
 
-struct Case {
-	std::string Identifier;
-	TEIdentifierType IdentifierType;
-	std::string key;
-	TEProviderSource src;
-};
-
-struct Condition {
-	std::string key;
-	TEProviderSource src;
-};
-
-struct PTWSwitchData {
+struct PTWSwitch {
 	std::string outPutKey;
-	TEDataType dataType;
-	Condition condition;
-	std::vector<Case> caseArr;
+	TEDataType dataType1;
+	TEDataType dataType2;
+	std::vector<TDataBinding> Operands; // n + 2
 };
 
 class AssetsFunction  {
 public:
 	// key  
 	TIdentifier* Key(const std::string valueStr);
-	// Variant Num
+	// Variant Num Float
 	TVariant* VariantNumeric(float Num);
+	// Variant Num Int
+	TVariant* VariantNumericInt(int Num);
+	// Variant Num UInt
+	TVariant* VariantNumericUInt(unsigned int Num);
 	// Variant AsciiString
 	TVariant* VariantAsciiString(std::string str);
+	// Variant ResourceId
+	TVariant* VariantResourceId(std::string str);
 	TVariant* VariantIdenAndType(std::string str, TEIdentifierType Idtype);
 	// provider:src 
 	TDataProvider* ProviderSrc(TEProviderSource value);
-	// provider:numeric
+	// provider:numeric  Float
 	TDataProvider* ProviderNumeric(float num);
+	// provider:numeric  Int
+	TDataProvider* ProviderNumericInt(int num);
+	// provider:numeric  UInt
+	TDataProvider* ProviderNumericUInt(unsigned int num);
 	// provider:asciiString
 	TDataProvider* ProviderAsciiString(std::string AsciiStr);
 	// transform operand:Curve
 	TDataProvider* ProviderCurve(std::string curveName);
-
-	void OperandCurve(TDataBinding& Operand, std::string curveName);
+	// Operand{key , curveRef}
+	void OperandKeyCurveRef(TDataBinding& Operand, std::string curveName);
+	// Operand{curveRef}
+	void OperandCurveRef(TDataBinding& Operand, std::string curveName);
+	// Operand{Float}
 	void OperandNumeric(TDataBinding& Operand, float num);
 	void OperandKeySrc(TDataBinding& Operand, std::string keyStr, TEProviderSource src);
 	void OperandProVarIdentAndType(TDataBinding& Operand, std::string Identifier, TEIdentifierType Idtype);
@@ -77,14 +78,25 @@ public:
 
 	void AddUniform2Appearance(HmiWidget::TAppearanceParam* appear,std::string name, std::string value, TEProviderSource src);
 
-	void PTWSwitch(HmiWidget::TInternalModelParameter* internalModelValue, PTWSwitchData& switchData);
-	void SwitchType2Operation(TOperation* operation, Condition condition);
-	void SwitchCase2Operation(TOperation* operation, Case caseData, TEDataType type, bool isDefault = false);
-
 	void ColorIPAIconExternal(HmiWidget::TExternalModelParameter* external, std::string str);
 	void ColorIPAIconInternal(HmiWidget::TInternalModelParameter* internal, std::string reStr, std::string ExStr);
 	void ColorModeMixInternal(HmiWidget::TInternalModelParameter* internal, std::string colorMode, std::string IPAIconV4, std::string HUB_IPAIconV4, std::string HUB);
 
+	void CompareOperation(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TEOperatorType op);
+	void IfThenElse(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TDataBinding& Operand1, TEDataType type1, TDataBinding& Operand2, TEDataType type2, TDataBinding& Operand3, TEDataType type3);
+
+
+	void operatorOperands(HmiWidget::TInternalModelParameter* internal, std::string resultKey, TEDataType type, std::vector<TDataBinding>& Operands,TEOperatorType op);
+
+	void SwitchAnimation(HmiWidget::TInternalModelParameter* internal, struct PTWSwitch& data);
+
+
+	void addCompositeAnimation(HmiWidget::TWidget* widget);
+	void addTrigger(HmiWidget::TWidget* widget);
+	void addPlayDomain(HmiWidget::TWidget* widget);
+
+
+	void externalKeyVariant(HmiWidget::TExternalModelParameter* external, std::string keyStr, TVariant* var);
 
 private:
 
