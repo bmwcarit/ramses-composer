@@ -266,6 +266,7 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -276,6 +277,7 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     } else {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -294,8 +296,8 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
 void ObjectTreeView::getOneMeshModelMatrix(QModelIndex index, QMatrix4x4 matrix) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
-        std::string str = tempHandle[0].getPropertyPath();
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -304,8 +306,8 @@ void ObjectTreeView::getOneMeshModelMatrix(QModelIndex index, QMatrix4x4 matrix)
         }
     } else {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
-        std::string str = tempHandle[0].getPropertyPath();
         computeWorldMatrix(tempHandle, matrix);
+        std::string str = tempHandle[1].asString();
 
         std::string objectID = tempHandle[0].asString();
         if (MeshDataManager::GetInstance().hasMeshData(objectID)) {
@@ -625,14 +627,14 @@ void ObjectTreeView::selectActiveObject() {
     }
 }
 
-void ObjectTreeView::updateMeshModelMatrix() {
+void ObjectTreeView::updateMeshModelMatrix(const std::string &objectID) {
     if (viewTitle_.compare(QString("Scene Graph")) != 0) {
         return;
     }
 
     int row = model()->rowCount();
     for (int i{0}; i < row; ++i) {
-        QModelIndex index = model()->index(i, 0);
+        QModelIndex index = indexFromTreeNodeID(objectID);
         getOneMeshModelMatrix(index);
     }
 }
@@ -1078,8 +1080,8 @@ void ObjectTreeView::expandAllParentsOfObject(const QModelIndex &index) {
 
 void ObjectTreeView::computeWorldMatrix(ValueHandle handle, QMatrix4x4 &chainMatrix) {
     QMatrix4x4 matrix =
-        translation(handle)/*.transposed()*/ *
-        rotationEuler(handle)/*.transposed()*/ *
+        translation(handle) *
+        rotationEuler(handle) *
         scaling(handle);
     chainMatrix *= matrix;
 }
@@ -1144,25 +1146,11 @@ QMatrix4x4 ObjectTreeView::rotationEuler(ValueHandle handle) {
         const float sz = std::sin(rotZ);
         const float cz = std::cos(rotZ);
 
-        QMatrix4x4 xRotation(1.0f, 0.0f, 0.0f, 0.0f,
-                             0.0f, cx, -sx, 0.0f,
-                             0.0f, sx, cx, 0.0f,
-                             0.0f, 0.0f, 0.0f, 1.0f);
-        QMatrix4x4 yRotation(cy, 0.0f, sy, 0.0f,
-                             0.0f, 1.0f, 0.0f, 0.0f,
-                             -sy, 0.0f, cy, 0.0f,
-                             0.0f, 0.0f, 0.0f, 1.0f);
-        QMatrix4x4 zRotation(cz, -sz, 0.0f, 0.0f,
-                             sz, cz, 0.0f, 0.0f,
-                             0.0f, 0.0f, 1.0f, 0.0f,
-                             0.0f, 0.0f, 0.0f, 1.0f);
-
-//        return QMatrix4x4(
-//            cz * cy                 , cz * sy * sx + sz * cx    , sz * sx - cz * sy * cx, 0.0f,
-//            -sz * cy                , cz * cx - sz * sy * sx    , sz * sy * cx + cz * sx, 0.0f,
-//            sy                      , -cy * sx                  , cy * cx               , 0.0f,
-//            0.0f                    , 0.0f                      , 0.0f                  , 1.0f);
-        return (zRotation * yRotation * xRotation);
+        return QMatrix4x4(
+            cz * cy                 , cz * sy * sx - sz * cx    , sz * sx + cz * sy * cx, 0.0f,
+            sz * cy                 , cz * cx + sz * sy * sx    , sz * sy * cx - cz * sx, 0.0f,
+            -sy                     , cy * sx                   , cy * cx,                0.0f,
+            0.0f                    , 0.0f                      , 0.0f                  , 1.0f);
     }
     return QMatrix4x4();
 }

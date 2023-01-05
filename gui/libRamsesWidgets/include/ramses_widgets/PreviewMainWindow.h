@@ -80,6 +80,8 @@ private:
     QMatrix4x4 getViewMatrix(QVector3D position);
     QVector<float> checkTriCollision(QVector3D ray, QVector3D camera, QVector<QVector<QVector3D>> triangles);
     float checkSingleTriCollision(QVector3D ray, QVector3D camera, QVector<QVector3D> triangle);
+    QMap<std::string, QVector<QVector<QVector3D> >> getMeshTriangles();
+    std::string caculateRayIntersection(QVector3D ray, QVector3D cameraPos);
 
 private:
 	std::unique_ptr<Ui::PreviewMainWindow> ui_;

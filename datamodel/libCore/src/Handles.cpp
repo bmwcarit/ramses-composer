@@ -252,7 +252,7 @@ std::string ValueHandle::getPropertyPath(bool useObjectID) const {
 		propPath += "." + o->name(indices_.back());
 		return propPath;
 	}
-	throw std::runtime_error("invalid property");
+    throw std::runtime_error("invalid property");
 }
 
 

@@ -249,15 +249,12 @@ void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
 
                 // caculate projection matrix
                 QMatrix4x4 projection_matrix;
-                double nearPlane = camera->getNearPlane();
-                double farPlane = camera->getFarPlane();
-                double fieldOfView = camera->getVerticalFieldOfView();
-                double aspectRatio = camera->getAspectRatio();
-                projection_matrix.perspective(fieldOfView, aspectRatio, nearPlane, farPlane);
+                projection_matrix.perspective(camera->getVerticalFieldOfView(), camera->getAspectRatio(), camera->getNearPlane(), camera->getFarPlane());
 
                 // caculate view matrix
                 QMatrix4x4 view_matrix = getViewMatrix(position);
 
+                // get view position
                 int width = camera->getViewportWidth();
                 int height = camera->getViewportHeight();
                 auto previewPosition = scrollAreaWidget_->globalPositionToPreviewPosition(QPoint(event->globalPos().x(), event->globalPos().y()));
@@ -268,6 +265,7 @@ void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
                 float x = 2.0f * previewPosition->x() / width - 1.0f;
                 float y = 1.0f - (2.0f * previewPosition->y() / height);
 
+                // caculate ray direction
                 QVector3D ray_nds = QVector3D(x, y, 1.0f);
                 QVector4D ray_clip = QVector4D(ray_nds, 1.0f);
                 QVector4D ray_eye = projection_matrix.inverted() * ray_clip;
@@ -278,60 +276,14 @@ void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
                     ray_world.setY(ray_world.y()/ray_world.w());
                     ray_world.setZ(ray_world.z()/ray_world.w());
                 }
-                // ray
                 QVector3D ray = (QVector3D(ray_world.x(), ray_world.y(), ray_world.z()) - position).normalized();
 
-                QMap<std::string, QVector<QVector<QVector3D> >> meshTriangles;
-                for (auto it : guiData::MeshDataManager::GetInstance().getMeshDataMap()) {
-                    QVector<QVector<QVector3D> > triangles;
-                    QMatrix4x4 modelMatrix = it.second.getModelMatrix().transposed();
+                // caculate Ray Intersection; return: node objectID
+                std::string objectID = caculateRayIntersection(ray, position);
 
-                    std::vector<uint32_t> indices = it.second.getIndices();
-                    int triCount = indices.size() / 3;
-
-                    int posIndex = guiData::MeshDataManager::GetInstance().attriIndex(it.second.getAttributes(), "a_Position");
-                    if (posIndex != -1) {
-                        guiData::Attribute attri = it.second.getAttributes().at(posIndex);
-                        auto verticesData = reinterpret_cast<float *>(attri.data.data());
-
-                        for (int i{0}; i < triCount; ++i) {
-                            uint32_t pos = i * 3;
-                            QVector<QVector3D> triangle;
-                            for (int j{0}; j < 3; j++) {
-                                int index = indices[pos + j] * 3;
-                                QVector4D temp(verticesData[index], verticesData[index + 1], verticesData[index + 2], 1.0f);
-
-                                temp = temp * modelMatrix;
-                                QVector3D vertex(temp.x(), temp.y(), temp.z());
-                                triangle.append(vertex);
-                            }
-                            triangles.append(triangle);
-                        }
-                    }
-                    meshTriangles.insert(it.first, triangles);
-                }
-
-                std::string objectId;
-                double t{1000.0};
-                for (auto it : meshTriangles.toStdMap()) {
-                    QVector<float> vec_t = checkTriCollision(ray, position, it.second);
-
-                    QVector<float> vec_comt;
-                    for (auto iter: vec_t) {
-                        if (iter > 0.0f)
-                            vec_comt.push_back(iter);
-                    }
-
-                    if (!vec_comt.isEmpty()) {
-                        std::sort(vec_comt.begin(), vec_comt.end());
-                        if (vec_comt[0] < t && vec_comt[0] > 0) {
-                            t = vec_comt[0];
-                            objectId = it.first;
-                        }
-                    }
-                }
-                if (!objectId.empty()) {
-                    Q_EMIT signal::signalProxy::GetInstance().sigSwitchObjectNode(QString::fromStdString(objectId));
+                // select node
+                if (!objectID.empty()) {
+                    Q_EMIT signal::signalProxy::GetInstance().sigSwitchObjectNode(QString::fromStdString(objectID));
                 }
             }
         }
@@ -447,44 +399,16 @@ void PreviewMainWindow::sceneUpdate(bool z_up) {
     previewWidget_->sceneUpdate(z_up, scaleValue_);
 }
 
-//QMatrix4x4 lookAtLeft(QVector3D eye, QVector3D center, QVector3D up) {
-//    QVector3D f  = QVector3D::crossProduct(center, eye).normalized();
-//    QVector3D s = QVector3D::crossProduct(up, f).normalized();
-//    QVector3D u = QVector3D::crossProduct(f, s).normalized();
-
-//    QMatrix4x4 result(s.x(), u.x());
-//    result.setColumn();
-//    Result[0][0] = s.x;
-//    Result[1][0] = s.y;
-//    Result[2][0] = s.z;
-//    Result[0][1] = u.x;
-//    Result[1][1] = u.y;
-//    Result[2][1] = u.z;
-//    Result[0][2] = f.x;
-//    Result[1][2] = f.y;
-//    Result[2][2] = f.z;
-//    Result[3][0] = -dot(s, eye);
-//    Result[3][1] = -dot(u, eye);
-//    Result[3][2] = -dot(f, eye);
-//    return Result;
-//}
-
 QMatrix4x4 PreviewMainWindow::getViewMatrix(QVector3D position) {
     QVector3D worldUp(0.0, 1.0, 0.0);
     QVector3D cameraTarget(0.0f, 0.0f, 0.0f);
-    QVector3D cameraDirection = (cameraTarget - position).normalized();
+    QVector3D front = (cameraTarget - position).normalized();
 
-//    float yawR = qDegreesToRadians(-90.0);
-//    float picthR = qDegreesToRadians(0.0);
-
-//    QVector3D front3(cos(yawR) * cos(picthR), sin(picthR), sin(yawR) * cos(picthR));
-//    QVector3D front = front3.normalized();
-//    QVector3D front(0, 0, -1);
-    QVector3D right = QVector3D::crossProduct(cameraDirection, worldUp).normalized();
-    QVector3D up = QVector3D::crossProduct(right, cameraDirection).normalized();
+    QVector3D right = QVector3D::crossProduct(front, worldUp).normalized();
+    QVector3D up = QVector3D::crossProduct(right, front).normalized();
 
     QMatrix4x4 view;
-    view.lookAt(position, position + cameraDirection, up);
+    view.lookAt(position, position + front, up);
     return view;
 }
 
@@ -529,6 +453,65 @@ float PreviewMainWindow::checkSingleTriCollision(QVector3D ray, QVector3D camera
       return -1.0f;
 
     return t/det;
+}
+
+QMap<std::string, QVector<QVector<QVector3D> > > PreviewMainWindow::getMeshTriangles() {
+    QMap<std::string, QVector<QVector<QVector3D> >> meshTriangles;
+    for (auto it : guiData::MeshDataManager::GetInstance().getMeshDataMap()) {
+        QVector<QVector<QVector3D> > triangles;
+        QMatrix4x4 modelMatrix = it.second.getModelMatrix().transposed();
+
+        std::vector<uint32_t> indices = it.second.getIndices();
+        int triCount = indices.size() / 3;
+
+        int posIndex = guiData::MeshDataManager::GetInstance().attriIndex(it.second.getAttributes(), "a_Position");
+        if (posIndex != -1) {
+            guiData::Attribute attri = it.second.getAttributes().at(posIndex);
+            auto verticesData = reinterpret_cast<float *>(attri.data.data());
+
+            for (int i{0}; i < triCount; ++i) {
+                uint32_t pos = i * 3;
+                QVector<QVector3D> triangle;
+                for (int j{0}; j < 3; j++) {
+                    int index = indices[pos + j] * 3;
+                    QVector4D temp(verticesData[index], verticesData[index + 1], verticesData[index + 2], 1.0f);
+
+                    temp = temp * modelMatrix;
+                    QVector3D vertex(temp.x(), temp.y(), temp.z());
+                    triangle.append(vertex);
+                }
+                triangles.append(triangle);
+            }
+        }
+        meshTriangles.insert(it.first, triangles);
+    }
+    return meshTriangles;
+}
+
+std::string PreviewMainWindow::caculateRayIntersection(QVector3D ray, QVector3D cameraPos) {
+    // get mesh data
+    QMap<std::string, QVector<QVector<QVector3D> >> meshTriangles = getMeshTriangles();
+
+    std::string objectID;
+    double t{1000.0};
+    for (auto it : meshTriangles.toStdMap()) {
+        QVector<float> vec_t = checkTriCollision(ray, cameraPos, it.second);
+
+        QVector<float> vec_comt;
+        for (auto iter: vec_t) {
+            if (iter > 0.0f)
+                vec_comt.push_back(iter);
+        }
+
+        if (!vec_comt.isEmpty()) {
+            std::sort(vec_comt.begin(), vec_comt.end());
+            if (vec_comt[0] < t && vec_comt[0] > 0) {
+                t = vec_comt[0];
+                objectID = it.first;
+            }
+        }
+    }
+    return objectID;
 }
 
 static QMatrix4x4 getRotateY(float r) {
