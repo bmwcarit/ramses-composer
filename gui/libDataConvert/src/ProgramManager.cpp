@@ -1260,7 +1260,7 @@ bool ProgramManager::writeCTMFile(std::string filePathStr) {
         posIndex = MeshDataManager::GetInstance().attriIndex(mesh.getAttributes(), "a_Position");
         if (posIndex != -1) {
             Attribute attri = mesh.getAttributes().at(posIndex);
-            auto verticesData = reinterpret_cast<float *>(attri.data.data());;
+            auto verticesData = reinterpret_cast<float *>(attri.data.data());
             std::memcpy(aVertices, verticesData, aVerCount * 3 * sizeof(float));
         }
 

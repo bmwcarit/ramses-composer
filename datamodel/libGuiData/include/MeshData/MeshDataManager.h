@@ -1,6 +1,7 @@
 #ifndef MESHDATAMANAGER_H
 #define MESHDATAMANAGER_H
 
+#include "qmatrix4x4.h"
 #include <list>
 #include <mutex>
 #include <string>
@@ -45,6 +46,10 @@ public:
 
     void setIndices(std::vector<uint32_t> indices);
     std::vector<uint32_t> getIndices();
+
+    void setModelMatrix(QMatrix4x4 matrix);
+    QMatrix4x4 getModelMatrix();
+
 private:
     std::string meshName_;
     std::string meshUri_;
@@ -52,6 +57,7 @@ private:
     int numVertices_{0};
     std::vector<Attribute> attributes_;
     std::vector<uint32_t> indexBuffer_;
+    QMatrix4x4 modelMatrix_;
 };
 
 class MeshDataManager {
@@ -62,8 +68,10 @@ public:
 
     void clearMesh();
 
+    bool hasMeshData(std::string id);
     void addMeshData(std::string id, MeshData mesh);
 	bool getMeshData(std::string id, MeshData& meshdata);
+    void setMeshModelMatrix(std::string id, QMatrix4x4 matrix);
     std::map<std::string, MeshData> getMeshDataMap();
     int attriIndex(std::vector<Attribute> attrs, std::string aName);
 private:

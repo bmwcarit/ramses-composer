@@ -39,7 +39,8 @@ public:
 	QString getViewTitle() const;
 	void setUniformsProperty(core::ValueHandle valueHandle, Uniform &tempUniform);
 	void getOnehandle(QModelIndex index, NodeData *parent, raco::guiData::NodeDataManager &nodeDataManager, std::map<std::string, core::ValueHandle> &NodeNameHandleReMap);
-    void getOneMeshHandle(QModelIndex index);
+    void getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix = QMatrix4x4());
+    void getOneMeshModelMatrix(QModelIndex index, QMatrix4x4 matrix = QMatrix4x4());
     bool getOneMeshData(ValueHandle valueHandle, raco::guiData::MeshData &meshData);
     bool getOneMaterialHandle(ValueHandle &valueHandle);
     void getOneMaterials(QModelIndex index, std::map<std::string, core::ValueHandle> &materialHandleMap);
@@ -91,6 +92,7 @@ public Q_SLOTS:
 	void getTextureResHandles();
     void fillMeshData();
     void selectActiveObject();
+    void updateMeshModelMatrix();
     // void deleteAnimationHandle(std::string id);
     void importBMWAssets(NodeData *nodeData, const std::vector<MaterialData>& maetrials);
     void deleteAnimationHandle(std::set<std::string> ids);
@@ -118,6 +120,15 @@ protected Q_SLOTS:
 	void restoreItemExpansionStates();
 	void restoreItemSelectionStates();
 	void expandAllParentsOfObject(const QModelIndex &index);
+
+private:
+    void computeWorldMatrix(ValueHandle handle, QMatrix4x4 &chainMatrix);
+    bool getBasicProperty(raco::core::ValueHandle valueHandle, QString property, QVector3D &vector);
+    float Deg2Rad(float val);
+    QMatrix4x4 translation(ValueHandle handle);
+    QMatrix4x4 rotationEuler(ValueHandle handle);
+    QMatrix4x4 scaling(ValueHandle handle);
+
 };
 
 }

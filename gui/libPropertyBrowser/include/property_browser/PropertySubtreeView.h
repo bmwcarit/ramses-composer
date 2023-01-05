@@ -62,6 +62,7 @@ public Q_SLOTS:
 	void delUniformButtonClicked();
 	void slotUniformNameChanged(QString s);
 	void updateMaterial(raco::core::ValueHandle& v);
+    void updateMesh(raco::core::ValueHandle& v);
 
 
 protected:

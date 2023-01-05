@@ -107,6 +107,7 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 			QObject::connect(material, &PropertyBrowserItem::valueChanged, this, &PropertySubtreeView::updateMaterial);
 			updateUniformCombox();
 		}
+        QObject::connect(item, &PropertyBrowserItem::valueChanged, this, &PropertySubtreeView::updateMesh);
 
 		auto isLuaScriptProperty = !item->valueHandle().isObject() && &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
 		if (isLuaScriptProperty) {
@@ -152,7 +153,17 @@ PropertySubtreeView::PropertySubtreeView(PropertyBrowserModel* model, PropertyBr
 void PropertySubtreeView::updateMaterial(raco::core::ValueHandle& v) {
 	NodeData* pNode = NodeDataManager::GetInstance().getActiveNode();
 	pNode->uniformClear();
-	updateUniformCombox();
+    updateUniformCombox();
+}
+
+void PropertySubtreeView::updateMesh(core::ValueHandle &v) {
+    core::ValueHandle parent = v.parent();
+    if (parent.isProperty()) {
+        std::string parentProp = parent.getPropName();
+        if (parentProp == "translation" || parentProp == "rotation" || parentProp == "scale") {
+            Q_EMIT signalProxy::GetInstance().sigUpdateMeshModelMatrix();
+        }
+    }
 }
 
 std::vector<Uniform> PropertySubtreeView::Item2Uniform(PropertyBrowserItem* item) {
