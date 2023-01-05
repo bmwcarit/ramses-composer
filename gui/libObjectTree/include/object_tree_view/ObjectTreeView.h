@@ -128,6 +128,7 @@ private:
     QMatrix4x4 translation(ValueHandle handle);
     QMatrix4x4 rotationEuler(ValueHandle handle);
     QMatrix4x4 scaling(ValueHandle handle);
+    void traversalParentNode(QModelIndex index, QVector<QMatrix4x4> &matrixs);
 
 };
 
