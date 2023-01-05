@@ -151,6 +151,8 @@ private:
 
 	void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
 
+	void proExVarMapping(HmiWidget::TWidget* widget);
+
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
 

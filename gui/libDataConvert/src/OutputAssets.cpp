@@ -247,6 +247,7 @@ void updateNodeIDUColors(std::string NodeID, std::vector<Uniform> uniforms) {
 			std::string str = un.getName().substr(7, un.getName().length());
 			int n = std::stoi(str);
 			if (!isCorrectUColor(n, un.getValue())) {
+				std::string info = "u_color" + str + "'s value is error!";
 				DEBUG(__FILE__, __FUNCTION__, __LINE__, "u_color's value is error!");
 			}
 			uColorNums_.emplace(n);
@@ -1683,6 +1684,10 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 	}
 }
 
+void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
+// todo:dot background
+}
+
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
@@ -1705,6 +1710,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
 	externalOpacityData(widget);
 	externalColorData(widget);
+	proExVarMapping(widget);
 
 	std::string output;
 	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
@@ -2648,12 +2654,17 @@ void OutputPtw::AddUniform(HmiWidget::TWidget* widget,std::pair<std::string, std
 // add external Animaiton name
 void OutputPtw::animationSwitchPreData(HmiWidget::TWidget* widget) {
 	auto animations = animationDataManager::GetInstance().getAnitnList();
+	auto activeAnimation = animationDataManager::GetInstance().GetActiveAnimation();
 	int n = 1;
 	for (auto an : animations) {
 		// externalAnimationName
 		HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
 		externalModelValue->set_allocated_key(assetsFun_.Key(an.first));
-		externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(0));
+		if (an.first == activeAnimation) {
+			externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
+		} else {
+			externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(0.0));
+		}
 		{// Greater0
 			HmiWidget::TInternalModelParameter* internalModelCompare = widget->add_internalmodelvalue();
 			TDataBinding Operand1;
@@ -2689,7 +2700,11 @@ void OutputPtw::sumAnimationValue(HmiWidget::TWidget* widget) {
 		Operand.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
 		Operands.push_back(Operand);
 	}
-	if (Operands.size() > 7) {
+	if (Operands.size() == 1) {
+		TDataBinding Operand;
+		Operand.set_allocated_provider(assetsFun_.ProviderNumericInt(0));
+		Operands.push_back(Operand);
+	}else if (Operands.size() > 7) {
 		DEBUG(__FILE__, __FUNCTION__, __LINE__, "animations number > 7!");
 	}
 	assetsFun_.operatorOperands(internalModelAdd, "AnimationSumValue", TEDataType_Int, Operands, TEOperatorType_Add);
@@ -2819,13 +2834,13 @@ void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
 	for (int i : uColorNums_) {
 		// CONTENT..._Ci
 		auto externalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorIPAIconExternal(externalModelValueCi, PTW_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconExternal(externalModelValueCi, PTW_EX_CON_IPA_ICON_C + std::to_string(i));
 	}
 
 	for (int i : uColorNums_) {
 		// HUD_CONTENT..._Ci
 		auto HUD_ExternalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, PTW_HUD_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, PTW_EX_HUD_CON_IPA_ICON_C + std::to_string(i));
 	}
 
 	// HUD
@@ -2836,23 +2851,23 @@ void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
 	// CONTENT..._Ci_V4
 	for (int i : uColorNums_) {
 		auto internalModelValueCiV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_CON_IPA_ICON_C + std::to_string(i));
 	}
 	//	HUD_CONTENT..._Ci_V4
 	for (int i : uColorNums_) {
 		auto HUB_InternalModelValueCiV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, PTW_EX_HUD_NAME + "_" + PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_EX_HUD_NAME + "_" + PTW_CONTENT_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, PTW_EX_HUD_NAME + "_" + PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_NAME + "_" + PTW_EX_CON_IPA_ICON_C + std::to_string(i));
 	}
 
 	// ColorMode
 	for (int i : uColorNums_) {
 		auto InternalColorModelV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_COLOR_MODE + std::to_string(i), PTW_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_HUD_CONTENT_IPA_ICON_C + std::to_string(i) + PTW_V4, PTW_EX_HUD_NAME);
+		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_IN_COLOR_MODE + std::to_string(i), PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_NAME);
 	}
 }
 
 void OutputPtw::externalColorUniform(HmiWidget::TUniform& tUniform, int index) {
-	assetsFun_.CreateHmiWidgetUniform(&tUniform, PTW_U_COLOR + std::to_string(index), PTW_COLOR_MODE + std::to_string(index) ,TEProviderSource_IntModelValue);
+	assetsFun_.CreateHmiWidgetUniform(&tUniform, PTW_IN_U_COLOR + std::to_string(index), PTW_IN_COLOR_MODE + std::to_string(index) ,TEProviderSource_IntModelValue);
 }
 
 // DurationValue
