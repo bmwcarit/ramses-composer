@@ -160,6 +160,9 @@ void PropertySubtreeView::updateMesh(core::ValueHandle &v) {
     core::ValueHandle parent = v.parent();
     if (parent.isProperty()) {
         std::string parentProp = parent.getPropName();
+
+
+
         if (parentProp == "translation" || parentProp == "rotation" || parentProp == "scale") {
             Q_EMIT signalProxy::GetInstance().sigUpdateMeshModelMatrix();
         }

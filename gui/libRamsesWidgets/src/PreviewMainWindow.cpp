@@ -234,13 +234,6 @@ void PreviewMainWindow::sceneScaleUpdate(bool zup, float scaleValue, bool scaleU
     }
 }
 
-QVector4D Mul(QVector4D v, QMatrix4x4 matrix) {
-    return QVector4D(v.x() * matrix.row(0).x() + v.y() * matrix.row(0).y() + v.z() * matrix.row(0).z() + v.w() * matrix.row(0).w(),
-                     v.x() * matrix.row(1).x() + v.y() * matrix.row(1).y() + v.z() * matrix.row(1).z() + v.w() * matrix.row(1).w(),
-                     v.x() * matrix.row(2).x() + v.y() * matrix.row(2).y() + v.z() * matrix.row(2).z() + v.w() * matrix.row(2).w(),
-                     v.x() * matrix.row(3).x() + v.y() * matrix.row(3).y() + v.z() * matrix.row(3).z() + v.w() * matrix.row(3).w());
-}
-
 void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         float cx, cy, cz;
