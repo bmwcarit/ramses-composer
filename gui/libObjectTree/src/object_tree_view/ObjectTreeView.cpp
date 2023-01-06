@@ -296,8 +296,8 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
 void ObjectTreeView::getOneMeshModelMatrix(QModelIndex index, QMatrix4x4 matrix) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
-        computeWorldMatrix(tempHandle, matrix);
         std::string str = tempHandle[1].asString();
+        computeWorldMatrix(tempHandle, matrix);
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -632,11 +632,14 @@ void ObjectTreeView::updateMeshModelMatrix(const std::string &objectID) {
         return;
     }
 
-    int row = model()->rowCount();
-    for (int i{0}; i < row; ++i) {
-        QModelIndex index = indexFromTreeNodeID(objectID);
-        getOneMeshModelMatrix(index);
+    QVector<QMatrix4x4> matrixs;
+    QModelIndex index = indexFromTreeNodeID(objectID);
+    traversalParentNode(index, matrixs);
+    QMatrix4x4 matrix;
+    for (QMatrix4x4 temp : qAsConst(matrixs)) {
+        matrix = matrix * temp;
     }
+    getOneMeshModelMatrix(index, matrix);
 }
 
 void ObjectTreeView::deleteAnimationHandle(std::set<std::string> ids) {
@@ -1146,11 +1149,25 @@ QMatrix4x4 ObjectTreeView::rotationEuler(ValueHandle handle) {
         const float sz = std::sin(rotZ);
         const float cz = std::cos(rotZ);
 
-        return QMatrix4x4(
-            cz * cy                 , cz * sy * sx - sz * cx    , sz * sx + cz * sy * cx, 0.0f,
-            sz * cy                 , cz * cx + sz * sy * sx    , sz * sy * cx - cz * sx, 0.0f,
-            -sy                     , cy * sx                   , cy * cx,                0.0f,
-            0.0f                    , 0.0f                      , 0.0f                  , 1.0f);
+//        QMatrix4x4 rotationX(1.0f,     0.0f,   0.0f,   0.0f,
+//                             0.0f,     cx,     -sx,    0.0f,
+//                             0.0f,     sx,     cx,     0.0f,
+//                             0.0f,     0.0f,   0.0f,   1.0f);
+//        QMatrix4x4 rotationY(cy,       0.0f,   sy,     0.0f,
+//                             0.0f,     1.0f,   0.0f,   0.0f,
+//                             -sy,      0.0f,   cy,     0.0f,
+//                             0.0f,     0.0f,   0.0f,   1.0f);
+//        QMatrix4x4 rotationZ(cz,       -sz,    0.0f,   0.0f,
+//                             sz,       cz,     0.0f,   0.0f,
+//                             0.0f,     0.0f,   1.0f,   0.0f,
+//                             0.0f,     0.0f,   0.0f,   1.0f);
+
+//        return rotationZ * rotationY * rotationX;
+
+        return QMatrix4x4(cz * cy                 , cz * sy * sx - sz * cx    , sz * sx + cz * sy * cx  ,   0.0f,
+                          sz * cy                 , cz * cx + sz * sy * sx    , sz * sy * cx - cz * sx  ,   0.0f,
+                          -sy                     , cy * sx                   , cy * cx                 ,   0.0f,
+                          0.0f                    , 0.0f                      , 0.0f                    ,   1.0f);
     }
     return QMatrix4x4();
 }
@@ -1169,6 +1186,19 @@ QMatrix4x4 ObjectTreeView::scaling(ValueHandle handle) {
             0.0f,       0.0f,       0.0f,       1.0f);
     }
     return QMatrix4x4();
+}
+
+void ObjectTreeView::traversalParentNode(QModelIndex index, QVector<QMatrix4x4> &matrixs) {
+    QModelIndex parentIndex = index.parent();
+    if (parentIndex.isValid()) {
+        core::ValueHandle tempHandle = indexToSEditorObject(parentIndex);
+        std::string str = tempHandle[1].asString();
+        QMatrix4x4 matrix;
+        computeWorldMatrix(tempHandle, matrix);
+
+        matrixs.push_front(matrix);
+        traversalParentNode(parentIndex, matrixs);
+    }
 }
 
 }  // namespace raco::object_tree::view

@@ -1438,14 +1438,13 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
 
 void VisualCurveWidget::updateCurvePoint() {
     VisualCurvePosManager::GetInstance().clearKeyPointMap();
+    VisualCurvePosManager::GetInstance().resetCurrentPointInfo();
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
     double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
 
     int curX = viewportOffset_.x();
     int curY = viewportOffset_.y();
-
-    int startFrame = animationDataManager::GetInstance().getActiveAnimationData().GetStartTime();
 
     for (const auto &curve : CurveManager::GetInstance().getCurveList()) {
         if (curve) {
@@ -1464,7 +1463,8 @@ void VisualCurveWidget::updateCurvePoint() {
                 if ((*it)->getInterPolationType() == EInterPolationType::HERMIT_SPLINE || (*it)->getInterPolationType() == EInterPolationType::BESIER_SPLINE) {
                     int leftKeyFrame = (*it)->getLeftKeyFrame();
                     int rightKeyFrame = (*it)->getRightKeyFrame();
-                    if (leftKeyFrame != 0 && rightKeyFrame != 0) {
+
+                    if (leftKeyFrame != INT_MIN && rightKeyFrame != INT_MIN) {
                         double leftData{0.0};
                         double rightData{0.0};
                         if ((*it)->getLeftData().type() == typeid(double)) {
@@ -1473,6 +1473,7 @@ void VisualCurveWidget::updateCurvePoint() {
                         if ((*it)->getRightData().type() == typeid(double)) {
                             rightData = *(*it)->getRightData()._Cast<double>();
                         }
+
                         QPointF leftPoint, rightPoint;
                         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
                         keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);

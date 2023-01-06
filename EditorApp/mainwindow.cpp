@@ -250,19 +250,20 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::setTextureResHandles, mainWindow, &MainWindow::setTextureResHandles);
 	QObject::connect(newTreeView, &raco::object_tree::view::ObjectTreeView::updateNodeHandles, mainWindow, &MainWindow::updateNodeHandles);
 
-	QString tempTitle(title);
-	if (tempTitle.compare(QString("Scene Graph")) == 0) {
-        newTreeView->updateMeshData();
-		nodeDataPro->setNodeNameHandleReMap(newTreeView->updateNodeTree());
-		nodeDataPro->AnalyzeHandle();
-	}
+    QString tempTitle(title);
 	if (sortFilterModel) {
 		newTreeView->setSortingEnabled(true);
 		newTreeView->sortByColumn(raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE, Qt::SortOrder::AscendingOrder);
 	}
 	dockObjectView->addTreeView(newTreeView);
 	treeDockManager.addTreeDock(dockObjectView);
-	dockModel->setParent(dockObjectView);
+    dockModel->setParent(dockObjectView);
+
+    if (tempTitle.compare(QString("Scene Graph")) == 0) {
+        newTreeView->updateMeshData();
+        nodeDataPro->setNodeNameHandleReMap(newTreeView->updateNodeTree());
+        nodeDataPro->AnalyzeHandle();
+    }
 
 	dockObjectView->setObjectName(dockObjName);
 	return dockManager->addDockWidget(area, dockObjectView, dockArea);

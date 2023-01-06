@@ -493,7 +493,7 @@ std::string PreviewMainWindow::caculateRayIntersection(QVector3D ray, QVector3D 
     QMap<std::string, QVector<QVector<QVector3D> >> meshTriangles = getMeshTriangles();
 
     std::string objectID;
-    double t{1000.0};
+    double t{INT_MAX};
     for (auto it : meshTriangles.toStdMap()) {
         QVector<float> vec_t = checkTriCollision(ray, cameraPos, it.second);
 
@@ -505,8 +505,8 @@ std::string PreviewMainWindow::caculateRayIntersection(QVector3D ray, QVector3D 
 
         if (!vec_comt.isEmpty()) {
             std::sort(vec_comt.begin(), vec_comt.end());
-            if (vec_comt[0] < t && vec_comt[0] > 0) {
-                t = vec_comt[0];
+            if (vec_comt.first() < t && vec_comt.first() > 0) {
+                t = vec_comt.first();
                 objectID = it.first;
             }
         }

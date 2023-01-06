@@ -73,9 +73,9 @@ private:
     std::any leftTagent_{0.0};
     std::any rightTagent_{0.0};
     std::any leftData_{0.0};
-    int leftKeyFrame_{0};
+    int leftKeyFrame_{INT_MIN};
     std::any rightData_{0.0};
-    int rightKeyFrame_{0};
+    int rightKeyFrame_{INT_MIN};
 };
 
 class Curve
