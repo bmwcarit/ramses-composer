@@ -399,7 +399,49 @@ void AssetsFunction::SwitchAnimation(HmiWidget::TInternalModelParameter* interna
 }
 
 // trigger
-void AssetsFunction::addCompositeAnimation(HmiWidget::TWidget* widget) {
+void AssetsFunction::addCompositeAnimation(HmiWidget::TWidget* widget, unsigned int durationValue) {
+	// compositeAnimation
+	auto compositeAnimation = widget->add_compositeanimation();
+	TIdentifier* compositeidentifier = new TIdentifier;
+	compositeidentifier->set_valuestring("compositeAnimation");
+	compositeAnimation->set_allocated_compositeidentifier(compositeidentifier);
+
+	// returnValue
+	// returnValue.key
+	auto returnValue = compositeAnimation->add_returnvalue();
+	TIdentifier* key = new TIdentifier;
+	key->set_valuestring("compositeAnimation.output");
+	returnValue->set_allocated_key(key);
+
+	// returnValue.animation
+	auto animation = returnValue->add_animation();
+	// returnValue.animation.Identifier
+	auto anIdentifier = new TIdentifier;
+	anIdentifier->set_valuestring("animation");
+	animation->set_allocated_identifier(anIdentifier);
+
+	// returnValue.animation.WidgetAnimation
+	auto widgetAnimation = new HmiWidget::TWidgetAnimation;
+	auto startValue = new TNumericValue;
+	startValue->set_float_(0.0);
+	widgetAnimation->set_allocated_startvalue(startValue);
+	auto endValue = new TNumericValue;
+	endValue->set_float_(1.0);
+	widgetAnimation->set_allocated_endvalue(endValue);
+	widgetAnimation->set_durationvalue(durationValue);
+	widgetAnimation->set_interpolator(TEAnimationInterpolator::TEAnimationInterpolator_Linear);
+	widgetAnimation->set_returntype(TEDataType::TEDataType_Float);
+	widgetAnimation->set_loopcount(0);
+	widgetAnimation->set_updateinterval(33);
+	animation->set_allocated_widgetanimation(widgetAnimation);
+
+	// returnValue.animation.trigger
+	auto triggerIter = animation->add_trigger();
+	triggerIter->set_action(HmiWidget::TEAnimationSlot::TEAnimationSlot_SlotAnimationStart);
+	returnValue->set_returntype(TEDataType::TEDataType_Float);
+}
+
+void AssetsFunction::addCompositeAnimationDurationBinding(HmiWidget::TWidget* widget) {
 	// compositeAnimation
 	auto compositeAnimation = widget->add_compositeanimation();
 	TIdentifier* compositeidentifier = new TIdentifier;

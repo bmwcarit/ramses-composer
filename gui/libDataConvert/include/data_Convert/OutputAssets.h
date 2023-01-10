@@ -50,8 +50,6 @@ struct AnimationsSingleCurve {
 	double defaultData;
 };
 
-
-
 class OutputPtx : public QObject {
     Q_OBJECT
 public:
@@ -133,10 +131,10 @@ private:
 	void externalScaleData(HmiWidget::TWidget* widget);
 	void externalScale(HmiWidget::TWidget* widget);
 
-	void externalOpacityData(HmiWidget::TWidget* widget);
+	void externalSysUniformData(HmiWidget::TWidget* widget);
 	void externalAnimation(HmiWidget::TWidget* widget);
 	void externalOpacity(HmiWidget::TWidget* widget);
-	void createResourceParam(HmiWidget::TWidget* widget, std::string materialName);
+	void createResourceParam(HmiWidget::TWidget* widget);
 
 	void externalColorData(HmiWidget::TWidget* widget);
 	void externalColorUniform(HmiWidget::TUniform& tUniform, int index);
@@ -152,13 +150,17 @@ private:
 	void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
 
 	void proExVarMapping(HmiWidget::TWidget* widget);
+	bool getAnimationInteral(std::string curveName, std::string& animationInteral);
+	//void externalDotbackground(HmiWidget::TWidget* widget);
+	void externalDotOpacity(HmiWidget::TWidget* widget);
+
+	void externalDotSize(HmiWidget::TWidget* widget);
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
-
 	bool isPtwOutputError_{false};
-
 	bool addTrigger_{false};
+	bool isSingleAnimation_{false};
 	AssetsFunction assetsFun_;
 };
 }

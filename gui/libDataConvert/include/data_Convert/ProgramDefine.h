@@ -109,16 +109,22 @@
 #define PTW_SCALE_DIVIDE_VALUE		std::string("ScaleDivideValue.outputX")
 #define PTW_SCALE_DIV_MUL_VALUE		std::string("ScaleDivResultMulValue.outputX")
 #define PTW_FRAG_SYS_OPACITY		std::string("Sys_Opacity")
+#define PTW_FRAG_SYS_DOT_OPACITY	std::string("Sys_DotOpacity")
+#define PTW_FRAG_SYS_DOT_SIZE		std::string("Sys_DotSize")
+#define PTW_FRAG_SYS				std::string("Sys_")
+
+//std::string ptwExDotOpacity = "DotOpacity";
+//std::string ptwExDotSize = "DotSize";
+
+
+#define PTW_SINGLE_AN_INTERVAL		std::string("Animation_domain")
 
 // externalModelValue
-#define PTW_EX_SCALE_NAME			std::string("iScale")
-#define PTW_EX_OPACITY_NAME		    std::string("iOpacity")
 #define PTW_EX_HUD_NAME				std::string("HUD")
 #define PTW_EX_CON_IPA_ICON_C		std::string("Content_IPAIconTransformation_C")
 #define PTW_EX_HUD_CON_IPA_ICON_C	std::string("HUD_Content_IPAIconTransformation_C")
 #define PTW_EX_TRIGGLE_ANIMATION	std::string("Animation")
-#define PTW_EX_DOT_OPACITY			std::string("iDotOpacity")
-#define PTW_EX_DOT_SIZE				std::string("iDotSize")
+
 
 // internalModelValue
 #define PTW_IN_V4					std::string("_V4")

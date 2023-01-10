@@ -25,12 +25,28 @@ std::map<std::string, std::set<int>> NodeIDUColorNums_;
 //			  NodeID , ucolors
 
 std::set<int> uColorNums_;
-
-std::set<std::string> HasOpacityMaterials_;
+// materialName, [Sys_uniform]
+std::map<std::string,std::set<std::string>> HasSysUniformMaterials_;
 
 float NodeScaleSize_;
 
 std::string SceneChildName_;
+
+std::string ptwExScaleName = "Scale";
+std::string ptwExOpacityName = "Opacity";
+std::string ptwExDotOpacity = "DotOpacity";
+std::string ptwExDotSize = "DotSize";
+
+
+std::string ptwExHudName = PTW_EX_HUD_NAME;
+std::string ptwExConIpaIconC = PTW_EX_CON_IPA_ICON_C;
+std::string ptwExHudConIpaIconC = PTW_EX_HUD_CON_IPA_ICON_C;
+std::string ptwExTriggleAnimation = PTW_EX_TRIGGLE_ANIMATION;
+
+bool hasSysOpacity_{false};
+bool hasSysDotOpacity_{false};
+bool hasSysDotSize_{false};
+
 
 void DEBUG(QString FILE, QString FUNCTION, int LINE, QString msg) {
 	QMessageBox msgBox;
@@ -1109,17 +1125,29 @@ void OutputPtx::messageBoxError(std::string materialName, int type) {
 	}
 }
 
-bool updateHasOpacityMaterial(std::vector<Uniform> uniforms, std::string materialName) {
+bool updateHasSysMaterial(std::vector<Uniform> uniforms, std::string materialName) {
+	auto it = HasSysUniformMaterials_.find(materialName);
+	if (it != HasSysUniformMaterials_.end()) {
+		return false;
+	}
+	std::set<std::string> sysUniforms;
 	for (auto& uniform : uniforms) {
-		if (uniform.getName() == PTW_FRAG_SYS_OPACITY) {
-			auto it = HasOpacityMaterials_.find(materialName);
-			if (it == HasOpacityMaterials_.end()) {
-				HasOpacityMaterials_.emplace(materialName);
+		if (uniform.getName().substr(0, 4) == PTW_FRAG_SYS) {
+			sysUniforms.emplace(uniform.getName());
+
+			if (uniform.getName() == PTW_FRAG_SYS_OPACITY) {
+				hasSysOpacity_ = true;
+			} else if (uniform.getName() == PTW_FRAG_SYS_DOT_OPACITY) {
+				hasSysDotOpacity_ = true;
+			} else if (uniform.getName() == PTW_FRAG_SYS_DOT_SIZE) {
+				hasSysDotSize_ = true;
+			} else {
+				DEBUG(__FILE__, __FUNCTION__, __LINE__, "unknow system uniform!");
 			}
-			return true;
 		}
 	}
-	return false;
+	HasSysUniformMaterials_.emplace(materialName, sysUniforms);
+	return true;
 }
 
 void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialLibrary) {
@@ -1172,7 +1200,7 @@ void OutputPtx::writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialL
 			*tUniformIt = tUniform;
 		}
 
-		updateHasOpacityMaterial(data.getUniforms(), data.getObjectName());
+		updateHasSysMaterial(data.getUniforms(), data.getObjectName());
 
 		HmiScenegraph::TMaterial* materialIt = materialLibrary->add_material();
 		*materialIt = tMaterial;
@@ -1267,10 +1295,13 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	nodeWithMaterial_.clear();
 	curveNameAnimations_.clear();
 	pNodePropCurveNames_.clear();
-	HasOpacityMaterials_.clear();
+	HasSysUniformMaterials_.clear();
 	NodeIDUColorNums_.clear();
 	uColorNums_.clear();
 	SceneChildName_.clear();
+	hasSysOpacity_ = false;
+	hasSysDotOpacity_ = false;
+	hasSysDotSize_ = false;
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -1358,12 +1389,17 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 
 	for (auto animation : animationList) {
 		std::string animation_interal = animation.first + PTW_SUF_CURVE_INETERAL;
+
 		auto animations = animationDataManager::GetInstance().getAnitnList();
 
 		std::vector<TDataBinding> Operands;
 		HmiWidget::TInternalModelParameter* internalModelMul = widget->add_internalmodelvalue();
 		TDataBinding Operand1;
-		Operand1.set_allocated_key(assetsFun_.Key(animation.first + PTW_SUF_ANIMAT_DOMAIN));
+		if (isSingleAnimation_) {
+			Operand1.set_allocated_key(assetsFun_.Key("domain"));
+		} else {
+			Operand1.set_allocated_key(assetsFun_.Key(animation.first + PTW_SUF_ANIMAT_DOMAIN));
+		}
 		Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
 		Operands.push_back(Operand1);
 		TDataBinding Operand2;
@@ -1374,8 +1410,9 @@ void OutputPtw::ConvertAnimationInfo(HmiWidget::TWidget* widget) {
 		Operand3.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_ExtModelValue));
 		Operands.push_back(Operand3);
 		assetsFun_.operatorOperands(internalModelMul, animation_interal, TEDataType_Float, Operands, TEOperatorType_Mul);
-
-		addAnimationDomain(widget, animation.first);
+		if (!isSingleAnimation_) {
+			addAnimationDomain(widget, animation.first);
+		}
 	}
 	switchMultAnimsOneCurve(widget);
 }
@@ -1409,21 +1446,31 @@ void OutputPtw::addAnimationDomain(HmiWidget::TWidget* widget, std::string anima
 }
 
 void OutputPtw::triggerByInternalModel(HmiWidget::TWidget* widget) {
-	internalDurationValue(widget);
+	if (!isSingleAnimation_) {
+		internalDurationValue(widget);
+		assetsFun_.addCompositeAnimationDurationBinding(widget);
+	} else {
+		auto anInfo = animationDataManager::GetInstance().getAnitnList().begin()->second;
+		unsigned int durationTime = anInfo.GetUpdateInterval() * (anInfo.GetEndTime() - anInfo.GetStartTime());
+		assetsFun_.addCompositeAnimation(widget, durationTime);
+	}
 
-	assetsFun_.addCompositeAnimation(widget);
 	assetsFun_.addTrigger(widget);
 	assetsFun_.addPlayDomain(widget);
 }
 
 void OutputPtw::triggerByExternalModel(HmiWidget::TWidget* widget) {
-	externalAnimation(widget);
-	auto domain = widget->add_internalmodelvalue();
-	domain->set_allocated_key(assetsFun_.Key("domain"));
-	// todo: Ex_Triggle_Animation * 1.0 -> domain
-	auto binding = assetsFun_.BindingValueStrNumericOperatorType(PTW_EX_TRIGGLE_ANIMATION, TEProviderSource_ExtModelValue, 3.5, TEOperatorType_Mul);
-
-	domain->set_allocated_binding(binding);
+	if (isSingleAnimation_) {
+		externalAnimation(widget);
+		auto domain = widget->add_internalmodelvalue();
+		domain->set_allocated_key(assetsFun_.Key(PTW_SINGLE_AN_INTERVAL));	// "domain"
+		auto animationInfo = animationDataManager::GetInstance().getAnitnList().begin()->second;
+		int frames = animationInfo.GetEndTime() - animationInfo.GetStartTime();
+		auto binding = assetsFun_.BindingValueStrNumericOperatorType(ptwExTriggleAnimation, TEProviderSource_ExtModelValue, frames, TEOperatorType_Mul);
+		domain->set_allocated_binding(binding);
+	} else {
+		// todo:
+	}
 }
 
 void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
@@ -1458,7 +1505,7 @@ void OutputPtw::messageBoxError(std::string curveName,int errorNum) {
 	}
 }
 
-bool getAnimationInteral(std::string curveName, std::string& animationInteral) {
+bool OutputPtw::getAnimationInteral(std::string curveName, std::string& animationInteral) {
 	auto it = curveNameAnimations_.find(curveName);
 	if (it != curveNameAnimations_.end()) {
 		auto animations = it->second;
@@ -1466,7 +1513,11 @@ bool getAnimationInteral(std::string curveName, std::string& animationInteral) {
 			animationInteral = curveName + "_interal_switch";
 		} else {
 			// bugs
-			animationInteral = animations.begin()->first + PTW_SUF_CURVE_INETERAL;
+			if (isSingleAnimation_ && !addTrigger_) {
+				animationInteral = PTW_SINGLE_AN_INTERVAL;
+			} else {
+				animationInteral = animations.begin()->first + PTW_SUF_CURVE_INETERAL;
+			}
 		}
 		return true;
 	} else {
@@ -1508,6 +1559,9 @@ void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefiniti
 		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
 		lefttangentVector->set_domain(pointData->getLeftKeyFrame());
 		TNumericValue* leftValue = new TNumericValue;
+		// debug
+		float valueTest = std::any_cast<double>(pointData->getLeftData());  // test
+		qDebug() << valueTest;
 		leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
 		lefttangentVector->set_allocated_value(leftValue);
 		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
@@ -1518,7 +1572,7 @@ void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefiniti
 		TMultidimensionalPoint* RighttangentVector = new TMultidimensionalPoint;
 		RighttangentVector->set_domain(pointData->getRightKeyFrame());
 		TNumericValue* RightValue = new TNumericValue;
-		//double right = std::any_cast<double>(pointData->getRightTagent());
+		double rightTest = std::any_cast<double>(pointData->getRightTagent());
 		RightValue->set_float_(std::any_cast<double>(pointData->getRightData()));
 		RighttangentVector->set_allocated_value(RightValue);
 		outgoingInterpolation->set_allocated_tangentvector(RighttangentVector);
@@ -1688,27 +1742,41 @@ void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
 // todo:dot background
 }
 
+void changeExNamePrefix() {
+	ptwExScaleName = "i" + ptwExScaleName;
+	ptwExOpacityName = "i" + ptwExOpacityName;
+	ptwExDotOpacity = "i" + ptwExDotOpacity;
+	ptwExDotSize = "i" + ptwExDotSize;
+}
+
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
 	addTrigger_ = true; // todo:
-
+	auto animations = animationDataManager::GetInstance().getAnitnList();
+	if (animations.size() <= 1) {
+		isSingleAnimation_ = true;
+	} else {
+		isSingleAnimation_ = false;
+	}
 	HmiWidget::TWidgetCollection widgetCollection;
 	HmiWidget::TWidget* widget = widgetCollection.add_widget();
 	WriteBasicInfo(widget);
-	switchAnimations(widget);
-	externalScaleData(widget);
+
 	if (addTrigger_) {
+		changeExNamePrefix();
 		triggerByInternalModel(widget);
+		ConvertAnimationInfo(widget);
 	}
 	else {
 		triggerByExternalModel(widget);
 	}
-	ConvertAnimationInfo(widget);
+	switchAnimations(widget);
+	externalScaleData(widget);
 	std::string animation_interal = "";
 	ConvertCurveInfo(widget, animation_interal);
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
-	externalOpacityData(widget);
+	externalSysUniformData(widget);
 	externalColorData(widget);
 	proExVarMapping(widget);
 
@@ -2743,18 +2811,30 @@ void OutputPtw::animationSwitch(HmiWidget::TWidget* widget) {
 }
 
 void OutputPtw::switchAnimations(HmiWidget::TWidget* widget) {
-	// each animation
-	animationSwitchPreData(widget);
-	// sum value
-	sumAnimationValue(widget);
-	// switch animation
-	animationSwitch(widget);
+	// Multi-animation external interface and switching logic
+	if (!isSingleAnimation_ ) {
+		// each animation
+		animationSwitchPreData(widget);
+		// sum value
+		sumAnimationValue(widget);
+		// switch animation
+		animationSwitch(widget);
+	} else if (isSingleAnimation_ && addTrigger_) {
+		auto animationName = animationDataManager::GetInstance().getAnitnList().begin()->first;
+
+		HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+		externalModelValue->set_allocated_key(assetsFun_.Key(animationName));
+		externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
+
+		//HmiWidget::TExternalModelParameter* externalModel = widget->add_externalmodelvalue();
+		//assetsFun_.externalKeyVariant(externalModel, "UsedAnimationName", assetsFun_.VariantAsciiString(animationName));
+	}
 }
 
 // add exteral scale
 void OutputPtw::externalScale(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	assetsFun_.externalKeyVariant(externalModelValue, PTW_EX_SCALE_NAME, assetsFun_.VariantNumeric(300.0));
+	assetsFun_.externalKeyVariant(externalModelValue, ptwExScaleName, assetsFun_.VariantNumeric(300.0));
 }
 
 void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
@@ -2768,12 +2848,18 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 	// add scale Div 300
 	auto internalModelValue = widget->add_internalmodelvalue();
 	internalModelValue->set_allocated_key(assetsFun_.Key(PTW_SCALE_DIVIDE_VALUE));
-	internalModelValue->set_allocated_binding(assetsFun_.BindingValueStrNumericOperatorType(PTW_EX_SCALE_NAME, TEProviderSource_ExtModelValue, 300, TEOperatorType_Div));
+	internalModelValue->set_allocated_binding(assetsFun_.BindingValueStrNumericOperatorType(ptwExScaleName, TEProviderSource_ExtModelValue, 300, TEOperatorType_Div));
 
-	// add scale Mul NodeScaleSize_
-	internalModelValue = widget->add_internalmodelvalue();
-	internalModelValue->set_allocated_key(assetsFun_.Key(PTW_SCALE_DIV_MUL_VALUE));
-	internalModelValue->set_allocated_binding(assetsFun_.BindingValueStrNumericOperatorType(PTW_SCALE_DIVIDE_VALUE, TEProviderSource_IntModelValue, NodeScaleSize_, TEOperatorType_Mul));
+
+	std::string scaleKey = PTW_SCALE_DIVIDE_VALUE;
+	if (NodeScaleSize_ != 1) {
+		DEBUG(__FILE__, __FUNCTION__, __LINE__, "root Node scale is " + QString::number(NodeScaleSize_) + ",Please change to 1!");
+		scaleKey = PTW_SCALE_DIV_MUL_VALUE;
+		// add scale Mul NodeScaleSize_
+		internalModelValue = widget->add_internalmodelvalue();
+		internalModelValue->set_allocated_key(assetsFun_.Key(PTW_SCALE_DIV_MUL_VALUE));
+		internalModelValue->set_allocated_binding(assetsFun_.BindingValueStrNumericOperatorType(PTW_SCALE_DIVIDE_VALUE, TEProviderSource_IntModelValue, NodeScaleSize_, TEOperatorType_Mul));
+	}
 
 	// add nodeParam of Node scale
 	HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
@@ -2781,49 +2867,79 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 	assetsFun_.NodeParamAddNode(nodeParam, SceneChildName_);
 	auto transform = nodeParam->mutable_transform();
 	TDataBinding operandX;
-	assetsFun_.OperandKeySrc(operandX, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);
+	assetsFun_.OperandKeySrc(operandX, scaleKey, TEProviderSource_IntModelValue);
 	TDataBinding operandY;
-	assetsFun_.OperandKeySrc(operandY, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);
+	assetsFun_.OperandKeySrc(operandY, scaleKey, TEProviderSource_IntModelValue);
 	TDataBinding operandZ;
-	assetsFun_.OperandKeySrc(operandZ, PTW_SCALE_DIV_MUL_VALUE, TEProviderSource_IntModelValue);
+	assetsFun_.OperandKeySrc(operandZ, scaleKey, TEProviderSource_IntModelValue);
 	assetsFun_.TransformCreateScale(transform, operandX, operandY, operandZ);
 }
 
 // add exteral Opacity
 void OutputPtw::externalOpacity(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_OPACITY_NAME));
+	externalModelValue->set_allocated_key(assetsFun_.Key(ptwExOpacityName));
 	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
 }
 
-void OutputPtw::createResourceParam(HmiWidget::TWidget* widget, std::string materialName) {
-	// identifier
-	HmiWidget::TResourceParam* resParam = widget->add_resourceparam();
-	assetsFun_.ResourceParamAddIdentifier(resParam, materialName + "_Opacity");	 // test
-	// resource
-	assetsFun_.ResourceParamAddResource(resParam, materialName);
-	// appearance
-	HmiWidget::TAppearanceParam* appearance = new HmiWidget::TAppearanceParam;
-	assetsFun_.AddUniform2Appearance(appearance, PTW_FRAG_SYS_OPACITY, PTW_EX_OPACITY_NAME, TEProviderSource_ExtModelValue);
-	resParam->set_allocated_appearance(appearance);
+void OutputPtw::externalDotOpacity(HmiWidget::TWidget* widget) {
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	externalModelValue->set_allocated_key(assetsFun_.Key(ptwExDotOpacity));
+	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
 }
 
-void OutputPtw::externalOpacityData(HmiWidget::TWidget* widget) {
-	if (HasOpacityMaterials_.empty()) {
+void OutputPtw::externalDotSize(HmiWidget::TWidget* widget) {
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	externalModelValue->set_allocated_key(assetsFun_.Key(ptwExDotSize));
+	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
+}
+
+void OutputPtw::createResourceParam(HmiWidget::TWidget* widget) {
+	for (auto materialSysUnifroms : HasSysUniformMaterials_) {
+		// identifier
+		HmiWidget::TResourceParam* resParam = widget->add_resourceparam();
+		assetsFun_.ResourceParamAddIdentifier(resParam, materialSysUnifroms.first + "_Sys");  // test
+		// resource
+		assetsFun_.ResourceParamAddResource(resParam, materialSysUnifroms.first);
+		// appearance
+		HmiWidget::TAppearanceParam* appearance = new HmiWidget::TAppearanceParam;
+		for (auto SysUniformName : materialSysUnifroms.second) {
+			std::string UniformName = SysUniformName.substr(4, SysUniformName.length());
+			if (addTrigger_) {
+				UniformName = "i" + UniformName;
+			}
+			assetsFun_.AddUniform2Appearance(appearance, SysUniformName, UniformName, TEProviderSource_ExtModelValue);
+		}
+		resParam->set_allocated_appearance(appearance);
+	}
+}
+
+void OutputPtw::externalSysUniformData(HmiWidget::TWidget* widget) {
+	if (HasSysUniformMaterials_.empty()) {
 		return ;
 	}
-	// external Opacity
-	externalOpacity(widget);
+	if (hasSysOpacity_) {
+		// external Opacity
+		externalOpacity(widget);
+	}
+	if (hasSysDotOpacity_) {
+		// external Opacity
+		externalDotOpacity(widget);
+	}
+	if (hasSysDotSize_) {
+		// external Opacity
+		externalDotSize(widget);
+	}
 
 	// resource Param
-	for (auto materialName : HasOpacityMaterials_) {
-		createResourceParam(widget, materialName);
-	}
+	//for (auto materialName : HasSysUniformMaterials_) {
+	createResourceParam(widget);
+	//}
 }
 
 void OutputPtw::externalAnimation(HmiWidget::TWidget* widget) {
 	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
-	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_TRIGGLE_ANIMATION));
+	externalModelValue->set_allocated_key(assetsFun_.Key(ptwExTriggleAnimation));
 	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
 }
 
@@ -2834,35 +2950,35 @@ void OutputPtw::externalColorData(HmiWidget::TWidget* widget) {
 	for (int i : uColorNums_) {
 		// CONTENT..._Ci
 		auto externalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorIPAIconExternal(externalModelValueCi, PTW_EX_CON_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconExternal(externalModelValueCi, ptwExConIpaIconC + std::to_string(i));
 	}
 
 	for (int i : uColorNums_) {
 		// HUD_CONTENT..._Ci
 		auto HUD_ExternalModelValueCi = widget->add_externalmodelvalue();
-		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, PTW_EX_HUD_CON_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconExternal(HUD_ExternalModelValueCi, ptwExHudConIpaIconC + std::to_string(i));
 	}
 
 	// HUD
 	auto externalModelValue = widget->add_externalmodelvalue();
-	externalModelValue->set_allocated_key(assetsFun_.Key(PTW_EX_HUD_NAME));
+	externalModelValue->set_allocated_key(assetsFun_.Key(ptwExHudName));
 	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(0));
 
 	// CONTENT..._Ci_V4
 	for (int i : uColorNums_) {
 		auto internalModelValueCiV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_CON_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconInternal(internalModelValueCiV4, ptwExConIpaIconC + std::to_string(i) + PTW_IN_V4, ptwExConIpaIconC + std::to_string(i));
 	}
 	//	HUD_CONTENT..._Ci_V4
 	for (int i : uColorNums_) {
 		auto HUB_InternalModelValueCiV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, PTW_EX_HUD_NAME + "_" + PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_NAME + "_" + PTW_EX_CON_IPA_ICON_C + std::to_string(i));
+		assetsFun_.ColorIPAIconInternal(HUB_InternalModelValueCiV4, ptwExHudName + "_" + ptwExConIpaIconC + std::to_string(i) + PTW_IN_V4, ptwExHudName + "_" + ptwExConIpaIconC + std::to_string(i));
 	}
 
 	// ColorMode
 	for (int i : uColorNums_) {
 		auto InternalColorModelV4 = widget->add_internalmodelvalue();
-		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_IN_COLOR_MODE + std::to_string(i), PTW_EX_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_CON_IPA_ICON_C + std::to_string(i) + PTW_IN_V4, PTW_EX_HUD_NAME);
+		assetsFun_.ColorModeMixInternal(InternalColorModelV4, PTW_IN_COLOR_MODE + std::to_string(i), ptwExConIpaIconC + std::to_string(i) + PTW_IN_V4, ptwExHudConIpaIconC + std::to_string(i) + PTW_IN_V4, ptwExHudName);
 	}
 }
 

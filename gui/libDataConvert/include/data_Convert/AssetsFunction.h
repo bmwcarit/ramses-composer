@@ -91,7 +91,10 @@ public:
 	void SwitchAnimation(HmiWidget::TInternalModelParameter* internal, struct PTWSwitch& data);
 
 
-	void addCompositeAnimation(HmiWidget::TWidget* widget);
+	void addCompositeAnimation(HmiWidget::TWidget* widget, unsigned int time);
+
+	void addCompositeAnimationDurationBinding(HmiWidget::TWidget* widget);
+
 	void addTrigger(HmiWidget::TWidget* widget);
 	void addPlayDomain(HmiWidget::TWidget* widget);
 
