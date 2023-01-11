@@ -82,8 +82,7 @@ public:
 	void writeMaterial2MaterialLib(HmiScenegraph::TMaterialLib* materialLibrary);
 	void writeMaterialLib2Ptx(QString& filePath, QString& oldPath, HmiScenegraph::TMaterialLib* materialLibrary);
 	void isNotAddedAttribute(std::string name);
-
-Q_SIGNALS:
+	void GasStation(Uniform data, HmiScenegraph::TUniform& tUniform);
 
 private:
 	bool isPtxOutputError_{false};
@@ -150,11 +149,13 @@ private:
 	void multiCurveBindingSinglePropSwitch(HmiWidget::TWidget* widget, std::string propName, std::vector<std::map<std::string, CurvesSingleProp>> curves);
 
 	void proExVarMapping(HmiWidget::TWidget* widget);
+	void addEx2GasStation(HmiWidget::TWidget* widget);
 	bool getAnimationInteral(std::string curveName, std::string& animationInteral);
 	//void externalDotbackground(HmiWidget::TWidget* widget);
 	void externalDotOpacity(HmiWidget::TWidget* widget);
 
 	void externalDotSize(HmiWidget::TWidget* widget);
+	void triggerTest();
 
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;

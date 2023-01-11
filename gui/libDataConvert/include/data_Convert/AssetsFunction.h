@@ -35,6 +35,8 @@ public:
 	// Variant ResourceId
 	TVariant* VariantResourceId(std::string str);
 	TVariant* VariantIdenAndType(std::string str, TEIdentifierType Idtype);
+	// TEScrollAreaDirection
+	TVariant* VariantScrollAreaDirection(TEScrollAreaDirection value);
 	// provider:src 
 	TDataProvider* ProviderSrc(TEProviderSource value);
 	// provider:numeric  Float
@@ -43,6 +45,10 @@ public:
 	TDataProvider* ProviderNumericInt(int num);
 	// provider:numeric  UInt
 	TDataProvider* ProviderNumericUInt(unsigned int num);
+	// provider:numeric  Vec4f
+	TVariant* VariantNumericVec4f(float x, float y, float z, float w);
+	// provider:numeric  FloatMatrix4
+	TVariant* VariantNumericFloatMatrix4(TMatrix4x4f* mat);
 	// provider:asciiString
 	TDataProvider* ProviderAsciiString(std::string AsciiStr);
 	// transform operand:Curve

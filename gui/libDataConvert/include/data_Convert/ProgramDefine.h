@@ -113,9 +113,6 @@
 #define PTW_FRAG_SYS_DOT_SIZE		std::string("Sys_DotSize")
 #define PTW_FRAG_SYS				std::string("Sys_")
 
-//std::string ptwExDotOpacity = "DotOpacity";
-//std::string ptwExDotSize = "DotSize";
-
 
 #define PTW_SINGLE_AN_INTERVAL		std::string("Animation_domain")
 
@@ -125,6 +122,11 @@
 #define PTW_EX_HUD_CON_IPA_ICON_C	std::string("HUD_Content_IPAIconTransformation_C")
 #define PTW_EX_TRIGGLE_ANIMATION	std::string("Animation")
 
+// Sys
+#define PTW_EX_SCALE_NAME			std::string("Scale")
+#define PTW_EX_OPACITY_NAME			std::string("Opacity")
+#define PTW_EX_DOT_OPACITY			std::string("DotOpacity")
+#define PTW_EX_DOT_SIZE				std::string("DotSize")
 
 // internalModelValue
 #define PTW_IN_V4					std::string("_V4")
@@ -134,6 +136,5 @@
 // projectName
 #define PRO_ELLIE					std::string("Ellie")
 #define PRO_GASSTATION				std::string("GasStation")
-
 
 #endif // PROGRAMDEFINE_H

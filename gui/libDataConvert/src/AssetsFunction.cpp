@@ -32,9 +32,36 @@ TVariant* AssetsFunction::VariantNumericUInt(unsigned int Num) {
 	return variant;
 }
 
+TVariant* AssetsFunction::VariantNumericVec4f(float x, float y,float z, float w) {
+	TVariant* variant = new TVariant;
+	TNumericValue* numeric = new TNumericValue;
+	TVector4f* vec4f = new TVector4f;
+	vec4f->set_x(x);
+	vec4f->set_y(y);
+	vec4f->set_z(z);
+	vec4f->set_w(w);
+	numeric->set_allocated_vec4f(vec4f);
+	variant->set_allocated_numeric(numeric);
+	return variant;
+}
+
+TVariant* AssetsFunction::VariantNumericFloatMatrix4(TMatrix4x4f* mat) {
+	TVariant* variant = new TVariant;
+	TNumericValue* numeric = new TNumericValue;
+	numeric->set_allocated_floatmatrix4(mat);
+	variant->set_allocated_numeric(numeric);
+	return variant;
+}
+
 TVariant* AssetsFunction::VariantAsciiString(std::string str) {
 	TVariant* variant = new TVariant;
 	variant->set_asciistring(str);
+	return variant;
+}
+
+TVariant* AssetsFunction::VariantScrollAreaDirection(TEScrollAreaDirection value) {
+	TVariant* variant = new TVariant;
+	variant->set_scrollareadirection(value);
 	return variant;
 }
 

@@ -25,17 +25,16 @@ std::map<std::string, std::set<int>> NodeIDUColorNums_;
 //			  NodeID , ucolors
 
 std::set<int> uColorNums_;
-// materialName, [Sys_uniform]
-std::map<std::string,std::set<std::string>> HasSysUniformMaterials_;
-
+// materialName, [Sys_uniform or others]
+std::map<std::string,std::set<std::string>> HasResUniformMaterials_;
 float NodeScaleSize_;
 
-std::string SceneChildName_;
+std::string ProjectName_; // rootNodeName
 
-std::string ptwExScaleName = "Scale";
-std::string ptwExOpacityName = "Opacity";
-std::string ptwExDotOpacity = "DotOpacity";
-std::string ptwExDotSize = "DotSize";
+std::string ptwExScaleName = PTW_EX_SCALE_NAME;
+std::string ptwExOpacityName = PTW_EX_OPACITY_NAME;
+std::string ptwExDotOpacity = PTW_EX_DOT_OPACITY;
+std::string ptwExDotSize = PTW_EX_DOT_SIZE;
 
 
 std::string ptwExHudName = PTW_EX_HUD_NAME;
@@ -361,7 +360,7 @@ void OutputPtx::setPtxNode(NodeData* childNode, HmiScenegraph::TNode& hmiNode) {
 			scale->set_x(scal.x);
 			scale->set_y(scal.y);
 			scale->set_z(scal.z);
-			if (nodeName == SceneChildName_) {
+			if (nodeName == ProjectName_) {
 				NodeScaleSize_ = scal.x;
 			}
 			hmiNode.set_allocated_scale(scale);
@@ -932,7 +931,26 @@ void OutputPtx::setMaterialRenderMode(RenderMode& renderMode, HmiScenegraph::TRe
 	rRenderMode->set_allocated_colorwrite(tColorWrite);
 }
 
+// special case
+void OutputPtx::GasStation(Uniform data, HmiScenegraph::TUniform& tUniform) {
+	tUniform.set_name(data.getName());
+	TNumericValue* tNumericValue = new TNumericValue();
+	TMatrix4x4f* tMat4f = new TMatrix4x4f();
+	tMat4f->set_m11(1);
+	tMat4f->set_m22(1);
+	tMat4f->set_m33(1);
+	tMat4f->set_m44(1);
+	tNumericValue->set_allocated_floatmatrix4(tMat4f);
+	tUniform.set_allocated_value(tNumericValue);
+	tUniform.set_type(TENumericType::TENumericType_floatMatrix4);
+}
+
+
 void OutputPtx::uniformTypeValue(Uniform data, HmiScenegraph::TUniform& tUniform) {
+	if (data.getName() == "u_ScrollAreaInverseWorldTransformation") {
+		GasStation(data, tUniform);
+		return;
+	}
 	tUniform.set_name(data.getName());
 	TNumericValue* tNumericValue = new TNumericValue();
 	UniformType dataType = data.getType();
@@ -1126,8 +1144,8 @@ void OutputPtx::messageBoxError(std::string materialName, int type) {
 }
 
 bool updateHasSysMaterial(std::vector<Uniform> uniforms, std::string materialName) {
-	auto it = HasSysUniformMaterials_.find(materialName);
-	if (it != HasSysUniformMaterials_.end()) {
+	auto it = HasResUniformMaterials_.find(materialName);
+	if (it != HasResUniformMaterials_.end()) {
 		return false;
 	}
 	std::set<std::string> sysUniforms;
@@ -1145,8 +1163,12 @@ bool updateHasSysMaterial(std::vector<Uniform> uniforms, std::string materialNam
 				DEBUG(__FILE__, __FUNCTION__, __LINE__, "unknow system uniform!");
 			}
 		}
+		// others
+		if (uniform.getName() == "u_ScrollAreaDirection" || uniform.getName() == "u_ScrollAreaFadeParameters" || uniform.getName() == "u_ScrollAreaInverseWorldTransformation") {
+			sysUniforms.emplace(uniform.getName());
+		}
 	}
-	HasSysUniformMaterials_.emplace(materialName, sysUniforms);
+	HasResUniformMaterials_.emplace(materialName, sysUniforms);
 	return true;
 }
 
@@ -1295,13 +1317,14 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	nodeWithMaterial_.clear();
 	curveNameAnimations_.clear();
 	pNodePropCurveNames_.clear();
-	HasSysUniformMaterials_.clear();
+	HasResUniformMaterials_.clear();
 	NodeIDUColorNums_.clear();
 	uColorNums_.clear();
-	SceneChildName_.clear();
+	ProjectName_.clear();
 	hasSysOpacity_ = false;
 	hasSysDotOpacity_ = false;
 	hasSysDotSize_ = false;
+
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
 	HmiScenegraph::TScene scene;
@@ -1318,7 +1341,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 			continue;
 		}
 		nodeNum++;
-		SceneChildName_ = childNode->getName();
+		ProjectName_ = childNode->getName();
 		writeNodePtx(childNode, tRoot);
 		if (nodeNum > 1) {
 			// Scene Child more than one.
@@ -1738,21 +1761,65 @@ void OutputPtw::ConvertBind(HmiWidget::TWidget* widget, raco::guiData::NodeData&
 	}
 }
 
-void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
-// todo:dot background
+void OutputPtw::addEx2GasStation(HmiWidget::TWidget* widget) {
+	// eParam_ScrollAreaDirection
+	HmiWidget::TExternalModelParameter* externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ScrollAreaDirection", assetsFun_.VariantScrollAreaDirection(TEScrollAreaDirection::TEScrollAreaDirection_Disabled));
+
+	// eParam_ScrollAreaFadeParameters
+	externalModel = widget->add_externalmodelvalue();
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ScrollAreaFadeParameters", assetsFun_.VariantNumericVec4f(-10000, 1, 1, 10000));
+
+	// eParam_ScrollAreaInverseWorldTransformation
+	externalModel = widget->add_externalmodelvalue();
+	TMatrix4x4f* mat4x4f = new TMatrix4x4f;
+	mat4x4f->set_m11(1);
+	mat4x4f->set_m22(1);
+	mat4x4f->set_m33(1);
+	mat4x4f->set_m44(1);
+	assetsFun_.externalKeyVariant(externalModel, "eParam_ScrollAreaInverseWorldTransformation", assetsFun_.VariantNumericFloatMatrix4(mat4x4f));
 }
 
-void changeExNamePrefix() {
-	ptwExScaleName = "i" + ptwExScaleName;
-	ptwExOpacityName = "i" + ptwExOpacityName;
-	ptwExDotOpacity = "i" + ptwExDotOpacity;
-	ptwExDotSize = "i" + ptwExDotSize;
+void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
+	if (ProjectName_ == PRO_GASSTATION) {
+		addEx2GasStation(widget);
+	}
+
+}
+
+void changeExNamePrefixAddI() {
+	ptwExScaleName = "i" + PTW_EX_SCALE_NAME;
+	ptwExOpacityName = "i" + PTW_EX_OPACITY_NAME;
+	ptwExDotOpacity = "i" + PTW_EX_DOT_OPACITY;
+	ptwExDotSize = "i" + PTW_EX_DOT_SIZE;
+}
+
+void OutputPtw::triggerTest() {
+	addTrigger_ = true;
+	QMessageBox customMsgBox;
+	customMsgBox.setWindowTitle("Warning message box");
+	QPushButton* noButton = customMsgBox.addButton("No", QMessageBox::NoRole);
+	QPushButton* okButton = customMsgBox.addButton("Yes", QMessageBox::ActionRole);
+	customMsgBox.setIcon(QMessageBox::Icon::Question);
+	QString text;
+
+	text = "Question: Is the animation triggered by itself?";
+
+	customMsgBox.setText(text);
+	customMsgBox.exec();
+
+	if (customMsgBox.clickedButton() == (QAbstractButton*)(okButton)) {
+		addTrigger_ = true;
+	}
+	else {
+		addTrigger_ = false;
+	}
 }
 
 void OutputPtw::WriteAsset(std::string filePath) {
 	filePath = filePath.substr(0, filePath.find(".rca"));
 	nodeIDUniformsName_.clear();
-	addTrigger_ = true; // todo:
+	triggerTest();
 	auto animations = animationDataManager::GetInstance().getAnitnList();
 	if (animations.size() <= 1) {
 		isSingleAnimation_ = true;
@@ -1764,7 +1831,7 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	WriteBasicInfo(widget);
 
 	if (addTrigger_) {
-		changeExNamePrefix();
+		changeExNamePrefixAddI();
 		triggerByInternalModel(widget);
 		ConvertAnimationInfo(widget);
 	}
@@ -1777,8 +1844,8 @@ void OutputPtw::WriteAsset(std::string filePath) {
 	ConvertCurveInfo(widget, animation_interal);
 	ConvertBind(widget, NodeDataManager::GetInstance().root());
 	externalSysUniformData(widget);
-	externalColorData(widget);
 	proExVarMapping(widget);
+	externalColorData(widget);
 
 	std::string output;
 	google::protobuf::TextFormat::PrintToString(widgetCollection, &output);
@@ -2863,8 +2930,8 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 
 	// add nodeParam of Node scale
 	HmiWidget::TNodeParam* nodeParam = widget->add_nodeparam();
-	assetsFun_.NodeParamAddIdentifier(nodeParam, SceneChildName_);
-	assetsFun_.NodeParamAddNode(nodeParam, SceneChildName_);
+	assetsFun_.NodeParamAddIdentifier(nodeParam, ProjectName_);
+	assetsFun_.NodeParamAddNode(nodeParam, ProjectName_);
 	auto transform = nodeParam->mutable_transform();
 	TDataBinding operandX;
 	assetsFun_.OperandKeySrc(operandX, scaleKey, TEProviderSource_IntModelValue);
@@ -2895,7 +2962,7 @@ void OutputPtw::externalDotSize(HmiWidget::TWidget* widget) {
 }
 
 void OutputPtw::createResourceParam(HmiWidget::TWidget* widget) {
-	for (auto materialSysUnifroms : HasSysUniformMaterials_) {
+	for (auto materialSysUnifroms : HasResUniformMaterials_) {
 		// identifier
 		HmiWidget::TResourceParam* resParam = widget->add_resourceparam();
 		assetsFun_.ResourceParamAddIdentifier(resParam, materialSysUnifroms.first + "_Sys");  // test
@@ -2904,18 +2971,25 @@ void OutputPtw::createResourceParam(HmiWidget::TWidget* widget) {
 		// appearance
 		HmiWidget::TAppearanceParam* appearance = new HmiWidget::TAppearanceParam;
 		for (auto SysUniformName : materialSysUnifroms.second) {
-			std::string UniformName = SysUniformName.substr(4, SysUniformName.length());
-			if (addTrigger_) {
-				UniformName = "i" + UniformName;
+			std::string strPri = SysUniformName.substr(0,4);
+			if (strPri == PTW_FRAG_SYS) {
+				std::string UniformName = SysUniformName.substr(4, SysUniformName.length());
+				if (addTrigger_) {
+					UniformName = "i" + UniformName;
+				}
+				assetsFun_.AddUniform2Appearance(appearance, SysUniformName, UniformName, TEProviderSource_ExtModelValue);
 			}
-			assetsFun_.AddUniform2Appearance(appearance, SysUniformName, UniformName, TEProviderSource_ExtModelValue);
+			else {
+				std::string ExUniformName = "eParam_" + SysUniformName.substr(2, SysUniformName.length());
+				assetsFun_.AddUniform2Appearance(appearance, SysUniformName, ExUniformName, TEProviderSource_ExtModelValue);
+			}
 		}
 		resParam->set_allocated_appearance(appearance);
 	}
 }
 
 void OutputPtw::externalSysUniformData(HmiWidget::TWidget* widget) {
-	if (HasSysUniformMaterials_.empty()) {
+	if (HasResUniformMaterials_.empty()) {
 		return ;
 	}
 	if (hasSysOpacity_) {
@@ -2932,7 +3006,7 @@ void OutputPtw::externalSysUniformData(HmiWidget::TWidget* widget) {
 	}
 
 	// resource Param
-	//for (auto materialName : HasSysUniformMaterials_) {
+	//for (auto materialName : HasResUniformMaterials_) {
 	createResourceParam(widget);
 	//}
 }
