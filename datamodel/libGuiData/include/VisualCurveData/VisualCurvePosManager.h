@@ -23,6 +23,9 @@ public:
     double getCenterLinePos();
     void setCenterLinePos(double value);
 
+    double getCurveScale();
+    void setCurveScale(double value);
+
     int getCurFrame();
     void setCurFrame(int frame);
 
@@ -87,9 +90,10 @@ private:
     int curFrame_{0};
     int curX_{0};
     int curY_{0};
-    double centerLinePos_{0};
-    double eachFrameWidth_{0};
-    double eachValueWidth_{0};
+    double centerLinePos_{0.0f};
+    double eachFrameWidth_{0.0f};
+    double eachValueWidth_{0.0f};
+    double curveScale_{1.0f};
     bool cursorShow_{true};
     QMap<int, SAME_KEY_TYPE> sameKeyPointsInfo_;
     SAME_KEY_TYPE sameKeyType_{SAME_NONE};

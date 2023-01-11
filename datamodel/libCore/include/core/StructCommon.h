@@ -21,9 +21,9 @@ struct STRUCT_POINT {
     std::any leftTagent_{0.0};
     std::any rightTagent_{0.0};
     std::any leftData_{0.0};
-    int leftKeyFrame_{0};
+    double leftKeyFrame_{0.0};
     std::any rightData_{0.0};
-    int rightKeyFrame_{0};
+    double rightKeyFrame_{0.0};
 };
 Q_DECLARE_METATYPE(STRUCT_POINT)
 

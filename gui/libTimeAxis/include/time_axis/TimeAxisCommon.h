@@ -173,12 +173,23 @@ static void keyFrame2PointF(int offsetWidth, int offsetHeight, double frameWidth
     pointF.setY(y);
 }
 
+static void keyFrame2PointF(int offsetWidth, int offsetHeight, double frameWidth, double valueWidth, double keyFrame, double value, QPointF &pointF) {
+    double x = frameWidth * keyFrame - offsetWidth;
+    double y = offsetHeight - value * valueWidth;
+    pointF.setX(x);
+    pointF.setY(y);
+}
+
 static void pointF2Value(int offsetWidth, int offsetHeight, double frameWidth, double valueWidth, QPointF pointF, double &value) {
     value = (double)(offsetHeight - pointF.y()) / valueWidth;
 }
 
 static void pointF2KeyFrame(int offsetWidth, int offsetHeight, double frameWidth, double valueWidth, QPointF pointF, int &keyFrame) {
     keyFrame = qRound((double)(pointF.x() + offsetWidth) / frameWidth);
+}
+
+static void pointF2KeyFrame(int offsetWidth, int offsetHeight, double frameWidth, double valueWidth, QPointF pointF, double &keyFrame) {
+    keyFrame = (double)(pointF.x() + offsetWidth) / frameWidth;
 }
 }
 

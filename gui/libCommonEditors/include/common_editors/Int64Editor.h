@@ -29,6 +29,8 @@ protected:
     QStackedWidget* stack_;
     Int64SpinBox* spinBox_;
     Int64Slider* slider_;
+    int min_{INT_MIN};
+    int max_{INT_MAX};
 };
 }
 

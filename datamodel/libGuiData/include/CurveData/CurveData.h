@@ -54,17 +54,17 @@ public:
     // 获取 left data
     std::any getLeftData();
     // 设置 left keyframe
-    void setLeftKeyFrame(const int keyFrame);
+    void setLeftKeyFrame(const double keyFrame);
     // 获取 left keyFrame
-    int getLeftKeyFrame();
+    double getLeftKeyFrame();
     // 设置 right data
     void setRightData(const std::any &value);
     // 获取 right data
     std::any getRightData();
     // 设置 right keyframe
-    void setRightKeyFrame(const int keyFrame);
+    void setRightKeyFrame(const double keyFrame);
     // 获取 right keyframe
-    int getRightKeyFrame();
+    double getRightKeyFrame();
 
 private:
     int keyFrame_;
@@ -73,9 +73,9 @@ private:
     std::any leftTagent_{0.0};
     std::any rightTagent_{0.0};
     std::any leftData_{0.0};
-    int leftKeyFrame_{INT_MIN};
+    double leftKeyFrame_{INT_MIN};
     std::any rightData_{0.0};
-    int rightKeyFrame_{INT_MIN};
+    double rightKeyFrame_{INT_MIN};
 };
 
 class Curve

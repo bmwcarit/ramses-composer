@@ -112,12 +112,16 @@ void VisualCurveInfoWidget::initVisualCurveCursorWidget() {
     visualCurveCursorWidget_->setFixedSize(235, 200);
     QLabel *cursorXLabel = new QLabel("Cursor X", visualCurveCursorWidget_);
     QLabel *cursorYLabel = new QLabel("Y", visualCurveCursorWidget_);
+    QLabel *curveScaleLabel = new QLabel("Curve Scale Spring", visualCurveCursorWidget_);
 
     showCursorCheckBox_ = new QCheckBox("Show Cursor", visualCurveCursorWidget_);
     showCursorCheckBox_->setChecked(true);
 
     cursorXSpinBox_ = new Int64Editor(visualCurveCursorWidget_);
     cursorYSpinBox_ = new DoubleEditor(visualCurveCursorWidget_);
+    curveScaleSpinBox_ = new DoubleEditor(visualCurveCursorWidget_);
+    curveScaleSpinBox_->setValue(1.0f);
+    curveScaleSpinBox_->setRange(0.0f, 10.0f);
 
     cursorLayout_ = new QGridLayout{visualCurveCursorWidget_};
     cursorLayout_->setVerticalSpacing(2);
@@ -129,6 +133,8 @@ void VisualCurveInfoWidget::initVisualCurveCursorWidget() {
     cursorLayout_->addWidget(cursorYLabel, 3, 0, Qt::AlignRight);
     cursorLayout_->addWidget(cursorYSpinBox_, 3, 1);
     cursorLayout_->addItem(new QSpacerItem(0, 100, QSizePolicy::Expanding, QSizePolicy::Minimum), 4, 0);
+    cursorLayout_->addWidget(curveScaleLabel, 4, 0, Qt::AlignRight);
+    cursorLayout_->addWidget(curveScaleSpinBox_, 4, 1);
 
     visualCurveCursorWidget_->setLayout(cursorLayout_);
 
@@ -137,6 +143,8 @@ void VisualCurveInfoWidget::initVisualCurveCursorWidget() {
     connect(cursorYSpinBox_, &DoubleEditor::sigValueChanged, this, &VisualCurveInfoWidget::slotCursorYChanged);
     connect(cursorXSpinBox_, &Int64Editor::sigEditingFinished, this, &VisualCurveInfoWidget::slotCursorXFinished);
     connect(cursorYSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotCursorYFinished);
+    connect(curveScaleSpinBox_, &DoubleEditor::sigValueChanged, this, &VisualCurveInfoWidget::slotCurveScaleChanged);
+    connect(curveScaleSpinBox_, &DoubleEditor::sigEditingFinished, this, &VisualCurveInfoWidget::slotCurveScaleFinished);
 }
 
 void VisualCurveInfoWidget::setKeyWidgetVisible() {
@@ -421,19 +429,19 @@ void VisualCurveInfoWidget::slotLeftTangentChanged(double value) {
         VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         rightTangentSpinBox_->setValue(value);
-        int leftKeyFrame{0};
+        double leftKeyFrame{0.0};
         pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyFrame);
         leftFrameSpinBox_->setValue(leftKeyFrame);
 
-        double leftKeyValue{0};
+        double leftKeyValue{0.0};
         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyValue);
         leftValueSpinBox_->setValue(leftKeyValue);
 
-        int rightKeyFrame{0};
+        double rightKeyFrame{0.0};
         pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, rightPoint, rightKeyFrame);
         rightFrameSpinBox_->setValue(rightKeyFrame);
 
-        double rightKeyValue{0};
+        double rightKeyValue{0.0};
         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, rightPoint, rightKeyValue);
         rightValueSpinBox_->setValue(rightKeyValue);
 
@@ -492,19 +500,19 @@ void VisualCurveInfoWidget::slotRightTangentChanged(double value) {
         VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
 
         rightTangentSpinBox_->setValue(value);
-        int leftKeyFrame{0};
+        double leftKeyFrame{0.0};
         pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyFrame);
         leftFrameSpinBox_->setValue(leftKeyFrame);
 
-        double leftKeyValue{0};
+        double leftKeyValue{0.0};
         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyValue);
         leftValueSpinBox_->setValue(leftKeyValue);
 
-        int rightKeyFrame{0};
+        double rightKeyFrame{0.0};
         pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, rightPoint, rightKeyFrame);
         rightFrameSpinBox_->setValue(rightKeyFrame);
 
-        double rightKeyValue{0};
+        double rightKeyValue{0.0};
         pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, rightPoint, rightKeyValue);
         rightValueSpinBox_->setValue(rightKeyValue);
 
@@ -590,6 +598,16 @@ void VisualCurveInfoWidget::slotCursorYChanged(double value) {
     Q_EMIT sigRefreshVisualCurve();
 }
 
+void VisualCurveInfoWidget::slotCurveScaleChanged(double value) {
+    if (value == 0.0f) {
+        return;
+    }
+
+    VisualCurvePosManager::GetInstance().setCurveScale(value);
+    Q_EMIT sigUpdateCurvePoints();
+    Q_EMIT sigRefreshVisualCurve();
+}
+
 void VisualCurveInfoWidget::slotCursorXFinished() {
     int x = cursorXSpinBox_->value();
     pushState2UndoStack(fmt::format("set cursor X '{}'", x));
@@ -599,6 +617,25 @@ void VisualCurveInfoWidget::slotCursorXFinished() {
 void VisualCurveInfoWidget::slotCursorYFinished() {
     double y = cursorYSpinBox_->value();
     pushState2UndoStack(fmt::format("set cursor Y '{}'", y));
+}
+
+void VisualCurveInfoWidget::slotCurveScaleFinished() {
+    double curveScale = curveScaleSpinBox_->value();
+    if (curveScale == 0.0f) {
+        curveScaleSpinBox_->setValue(1.0f);
+        return;
+    }
+    for (auto curve : CurveManager::GetInstance().getCurveList()) {
+        for (auto point : curve->getPointList()) {
+            int keyFrame = qRound(point->getKeyFrame() * curveScale);
+            int offsetFrame = keyFrame - point->getKeyFrame();
+            point->setKeyFrame(keyFrame);
+            point->setLeftKeyFrame(point->getLeftKeyFrame() + offsetFrame);
+            point->setRightKeyFrame(point->getRightKeyFrame() + offsetFrame);
+        }
+    }
+    curveScaleSpinBox_->setValue(1.0f);
+    slotCurveScaleChanged(1.0f);
 }
 
 void VisualCurveInfoWidget::slotUpdateSelKey() {
@@ -773,16 +810,16 @@ void VisualCurveInfoWidget::recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &w
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    int leftKeyFrame{0};
+    double leftKeyFrame{0.0};
     pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
 
-    double leftKeyValue{0};
+    double leftKeyValue{0.0};
     pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
 
-    int rightKeyFrame{0};
+    double rightKeyFrame{0.0};
     pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyFrame);
 
-    double rightKeyValue{0};
+    double rightKeyValue{0.0};
     pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyValue);
 
     if (CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first)) {
@@ -840,16 +877,16 @@ void VisualCurveInfoWidget::recaculateWorkerRightPoint(QPair<QPointF, QPointF> &
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
-    int leftKeyFrame{0};
+    double leftKeyFrame{0.0};
     pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
 
-    double leftKeyValue{0};
+    double leftKeyValue{0.0};
     pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
 
-    int rightKeyFrame{0};
+    double rightKeyFrame{0.0};
     pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyFrame);
 
-    double rightKeyValue{0};
+    double rightKeyValue{0.0};
     pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.second, rightKeyValue);
 
     if (CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first)) {

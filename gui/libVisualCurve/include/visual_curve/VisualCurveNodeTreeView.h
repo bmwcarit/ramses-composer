@@ -82,6 +82,7 @@ private:
     void setFolderPath(Folder *folder, std::string path);
     void deleteFolder(QStandardItem *item);
     void deleteCurve(QStandardItem *item);
+    bool sortIndex(const QModelIndex &index1, const QModelIndex &index2);
 private:
     TreeModel *model_{nullptr};
     QTreeView *visualCurveTreeView_{nullptr};

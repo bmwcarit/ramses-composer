@@ -52,6 +52,14 @@ void VisualCurvePosManager::setCenterLinePos(double value) {
     centerLinePos_ = value;
 }
 
+double VisualCurvePosManager::getCurveScale() {
+    return curveScale_;
+}
+
+void VisualCurvePosManager::setCurveScale(double value) {
+    curveScale_ = value;
+}
+
 int VisualCurvePosManager::getCurFrame() {
     return curFrame_;
 }

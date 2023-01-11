@@ -120,15 +120,15 @@ void PreviewScrollAreaWidget::wheelEvent(QWheelEvent* event) {
 	updateViewport();
 }
 
-void PreviewScrollAreaWidget::mousePressEvent(QMouseEvent* event) {
-	setCursor(Qt::DragMoveCursor);
-	mousePivot_ = event->pos();
-}
+//void PreviewScrollAreaWidget::mousePressEvent(QMouseEvent* event) {
+//	setCursor(Qt::DragMoveCursor);
+//	mousePivot_ = event->pos();
+//}
 
-void PreviewScrollAreaWidget::mouseReleaseEvent(QMouseEvent* event) {
-	unsetCursor();
-	mousePivot_ = event->pos();
-}
+//void PreviewScrollAreaWidget::mouseReleaseEvent(QMouseEvent* event) {
+//	unsetCursor();
+//	mousePivot_ = event->pos();
+//}
 
 void PreviewScrollAreaWidget::mouseMoveEvent(QMouseEvent* event) {
 	if (event->MouseButtonPress) {
