@@ -208,28 +208,31 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
         return true;
     }
     case EInterPolationType::BESIER_SPLINE: {
-        QList<raco::time_axis::SKeyPoint> pointList;
-        if (VisualCurvePosManager::GetInstance().getKeyPointList(curve, pointList)) {
-            for (int i{0}; i < pointList.size(); ++i) {
-                if (i + 1 < pointList.size()) {
-                    raco::time_axis::SKeyPoint pointF1 = pointList[i];
-                    raco::time_axis::SKeyPoint pointF2 = pointList[i + 1];
-                    if (pointF1.keyFrame < keyFrame && pointF2.keyFrame > keyFrame) {
+        if (CurveManager::GetInstance().hasCurve(curve)) {
+            Curve *curveData = CurveManager::GetInstance().getCurve(curve);
+            std::list<Point *> pointList = curveData->getPointList();
+            for (auto it = pointList.begin(); it != pointList.end(); it++) {
+                auto itTemp = it;
+                it++;
+                if (it != pointList.end()) {
+                    Point *point1 = *itTemp;
+                    Point *point2 = *it;
+                    if (point1->getKeyFrame() < keyFrame && point2->getKeyFrame() > keyFrame) {
                         QList<QPointF> srcPoints, destPoints;
 
-                        srcPoints.push_back(QPointF(pointF1.x, pointF1.y));
-                        srcPoints.push_back(pointF1.rightPoint);
-                        srcPoints.push_back(pointF2.leftPoint);
-                        srcPoints.push_back(QPointF(pointF2.x, pointF2.y));
+                        srcPoints.push_back(QPointF(point1->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point1->getDataValue()) * eachValueWidth));
+                        srcPoints.push_back(QPointF(point1->getRightKeyFrame() * eachFrameWidth, std::any_cast<double>(point1->getRightData()) * eachValueWidth));
+                        srcPoints.push_back(QPointF(point2->getRightKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getRightData()) * eachValueWidth));
+                        srcPoints.push_back(QPointF(point2->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getDataValue()) * eachValueWidth));
 
                         time_axis::createNBezierCurve(srcPoints, destPoints, 0.01);
 
                         // point border value
-                        double dIndex = (100.0 / (pointF2.keyFrame - pointF1.keyFrame) * (keyFrame - pointF1.keyFrame)) - 1;
+                        double dIndex = (100.0 / (point2->getKeyFrame() - point1->getKeyFrame()) * (keyFrame - point1->getKeyFrame())) - 1;
                         int iIndex = dIndex;
                         if (iIndex >= destPoints.size() - 1) {
                             iIndex = destPoints.size() - 1;
-                            time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], value);
+                            time_axis::point2Value(eachFrameWidth, eachValueWidth, destPoints[iIndex], value);
                             return true;
                         }
                         if (iIndex < 0) {
@@ -239,8 +242,8 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
                         // point value
                         double offset = dIndex - iIndex;
                         double lastValue, nextValue;
-                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], lastValue);
-                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex + 1], nextValue);
+                        time_axis::point2Value(eachFrameWidth, eachValueWidth, destPoints[iIndex], lastValue);
+                        time_axis::point2Value(eachFrameWidth, eachValueWidth, destPoints[iIndex + 1], nextValue);
                         value = (nextValue - lastValue) * offset + lastValue;
                         return true;
                     }
@@ -251,28 +254,33 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
         break;
     }
     case EInterPolationType::HERMIT_SPLINE: {
-        QList<raco::time_axis::SKeyPoint> pointList;
-        if (VisualCurvePosManager::GetInstance().getKeyPointList(curve, pointList)) {
-            for (int i{0}; i < pointList.size(); ++i) {
-                if (i + 1 < pointList.size()) {
-                    raco::time_axis::SKeyPoint pointF1 = pointList[i];
-                    raco::time_axis::SKeyPoint pointF2 = pointList[i + 1];
-                    if (pointF1.keyFrame < keyFrame && pointF2.keyFrame > keyFrame) {
+        if (CurveManager::GetInstance().hasCurve(curve)) {
+            Curve *curveData = CurveManager::GetInstance().getCurve(curve);
+            std::list<Point *> pointList = curveData->getPointList();
+            for (auto it = pointList.begin(); it != pointList.end(); it++) {
+                auto itTemp = it;
+                it++;
+                if (it != pointList.end()) {
+                    Point *point1 = *itTemp;
+                    Point *point2 = *it;
+                    if (point1->getKeyFrame() < keyFrame && point2->getKeyFrame() > keyFrame) {
                         QList<QPointF> srcPoints, destPoints;
 
-                        srcPoints.push_back(QPointF(pointF1.x, pointF1.y));
-                        srcPoints.push_back(QPointF(pointF2.x, pointF2.y));
-                        srcPoints.push_back(QPointF(pointF1.rightPoint.x() - pointF1.x, pointF1.rightPoint.y() - pointF1.y));
-                        srcPoints.push_back(QPointF(pointF2.x - pointF2.leftPoint.x(), pointF2.y - pointF2.leftPoint.y()));
+                        srcPoints.push_back(QPointF(point1->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point1->getDataValue()) * eachValueWidth));
+                        srcPoints.push_back(QPointF(point2->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getDataValue()) * eachValueWidth));
+                        srcPoints.push_back(QPointF((point1->getRightKeyFrame() - point1->getKeyFrame()) * eachFrameWidth,
+                                                    (std::any_cast<double>(point1->getRightData()) - std::any_cast<double>(point1->getDataValue())) * eachValueWidth));
+                        srcPoints.push_back(QPointF((point2->getKeyFrame() - point2->getLeftKeyFrame()) * eachFrameWidth,
+                                                    (std::any_cast<double>(point2->getDataValue()) - std::any_cast<double>(point2->getLeftData())) * eachValueWidth));
 
                         time_axis::createHermiteCurve(srcPoints, destPoints, 0.01);
 
                         // point border value
-                        double dIndex = (100.0 / (pointF2.keyFrame - pointF1.keyFrame) * (keyFrame - pointF1.keyFrame)) - 1;
+                        double dIndex = (100.0 / (point2->getKeyFrame() - point1->getKeyFrame()) * (keyFrame - point1->getKeyFrame())) - 1;
                         int iIndex = dIndex;
                         if (iIndex >= destPoints.size() - 1) {
                             iIndex = destPoints.size() - 1;
-                            time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], value);
+                            time_axis::point2Value(eachFrameWidth, eachValueWidth, destPoints[iIndex], value);
                             return true;
                         }
                         if (iIndex < 0) {
@@ -282,8 +290,8 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
                         // point value
                         double offset = dIndex - iIndex;
                         double lastValue, nextValue;
-                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex], lastValue);
-                        time_axis::pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, destPoints[iIndex + 1], nextValue);
+                        time_axis::point2Value(eachFrameWidth, eachValueWidth, destPoints[iIndex], lastValue);
+                        time_axis::point2Value(eachFrameWidth, eachValueWidth, destPoints[iIndex + 1], nextValue);
                         value = (nextValue - lastValue) * offset + lastValue;
                         return true;
                     }

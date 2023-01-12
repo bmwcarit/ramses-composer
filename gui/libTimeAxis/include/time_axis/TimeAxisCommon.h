@@ -180,6 +180,10 @@ static void keyFrame2PointF(int offsetWidth, int offsetHeight, double frameWidth
     pointF.setY(y);
 }
 
+static void point2Value(double frameWidth, double valueWidth, QPointF pointF, double &value) {
+    value = (double)(pointF.y()) / valueWidth;
+}
+
 static void pointF2Value(int offsetWidth, int offsetHeight, double frameWidth, double valueWidth, QPointF pointF, double &value) {
     value = (double)(offsetHeight - pointF.y()) / valueWidth;
 }

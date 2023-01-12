@@ -31,6 +31,10 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     button_->resize(DEFAULT_BUTTON_WIDTH, this->height());
     button_->setText(0);
 
+    double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
+    double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
+    VisualCurvePosManager::GetInstance().setWidth(eachFrameWidth, eachValueWidth);
+
     viewportOffset_.setX(moveNumX_ * intervalLength_);
     viewportOffset_.setY(this->height() / 2);
     button_->move(-viewportOffset_.x() - button_->width()/2, 0);
@@ -1800,15 +1804,11 @@ void VisualCurveWidget::keyPointMove(QMouseEvent *event) {
     double offsetY = event->pos().y() - pressPoint.y;
     int globalPosX = event->pos().x();
     int globalPosY = event->pos().y();
+    int offsetKey = offsetX / eachFrameWidth;
 
-    if (abs(offsetX) >= eachFrameWidth) {
-        if (offsetX > 0) {
-            offsetX = eachFrameWidth;
-            globalPosX = pressPoint.x + eachFrameWidth;
-        } else {
-            offsetX = -eachFrameWidth;
-            globalPosX = pressPoint.x - eachFrameWidth;
-        }
+    if (offsetKey != 0) {
+        offsetX = eachFrameWidth * offsetKey;
+        globalPosX = pressPoint.x + offsetX;
     } else {
         offsetX = 0;
         globalPosX = pressPoint.x;
@@ -2095,12 +2095,9 @@ void VisualCurveWidget::curveMoveX(QMouseEvent *event) {
             double offsetX{0};
             if (VisualCurvePosManager::GetInstance().getCurKeyPoint(curKeyPoint)) {
                 offsetX = event->x() - curKeyPoint.x;
-                if (abs(offsetX) >= eachFrameWidth) {
-                    if (offsetX > 0) {
-                        offsetX = eachFrameWidth;
-                    } else {
-                        offsetX = -eachFrameWidth;
-                    }
+                int offsetKey = offsetX / eachFrameWidth;
+                if (offsetKey != 0) {
+                    offsetX = eachFrameWidth * offsetKey;
                 } else {
                     return;
                 }
@@ -2247,13 +2244,9 @@ void VisualCurveWidget::curveMove(QMouseEvent *event) {
             double offsetX{0};
             if (VisualCurvePosManager::GetInstance().getCurKeyPoint(curKeyPoint)) {
                 offsetX = event->x() - curKeyPoint.x;
-
-                if (abs(offsetX) >= eachFrameWidth) {
-                    if (offsetX > 0) {
-                        offsetX = eachFrameWidth;
-                    } else {
-                        offsetX = -eachFrameWidth;
-                    }
+                int offsetKey = offsetX / eachFrameWidth;
+                if (offsetKey != 0) {
+                    offsetX = eachFrameWidth * offsetKey;
                 } else {
                     offsetX = 0;
                 }
