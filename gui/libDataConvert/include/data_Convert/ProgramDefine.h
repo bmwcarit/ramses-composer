@@ -107,6 +107,7 @@
 #define PTW_SUF_ANIMAT_DOMAIN	    std::string("_domain")
 #define PTW_SUF_CURVE_INETERAL		std::string("_interal")
 #define PTW_SCALE_DIVIDE_VALUE		std::string("ScaleDivideValue.outputX")
+#define PTW_SCALE_DIVIDE_MIRROR		std::string("ScaleDivideValue.outputX.Mirror")
 #define PTW_SCALE_DIV_MUL_VALUE		std::string("ScaleDivResultMulValue.outputX")
 #define PTW_FRAG_SYS_OPACITY		std::string("Sys_Opacity")
 #define PTW_FRAG_SYS_DOT_OPACITY	std::string("Sys_DotOpacity")
@@ -121,6 +122,7 @@
 #define PTW_EX_CON_IPA_ICON_C		std::string("Content_IPAIconTransformation_C")
 #define PTW_EX_HUD_CON_IPA_ICON_C	std::string("HUD_Content_IPAIconTransformation_C")
 #define PTW_EX_TRIGGLE_ANIMATION	std::string("Animation")
+#define PTW_EX_RIGHT_MIRROR			std::string("Right")
 
 // Sys
 #define PTW_EX_SCALE_NAME			std::string("Scale")

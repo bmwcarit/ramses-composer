@@ -157,6 +157,8 @@ private:
 	void externalDotSize(HmiWidget::TWidget* widget);
 	void triggerTest();
 
+	void addEx2Ellie(HmiWidget::TWidget* widget);
+
 private:
 	std::map<std::string, std::vector<std::string>> nodeIDUniformsName_;
 	bool isPtwOutputError_{false};

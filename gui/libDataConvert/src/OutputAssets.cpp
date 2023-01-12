@@ -35,6 +35,7 @@ std::string ptwExScaleName = PTW_EX_SCALE_NAME;
 std::string ptwExOpacityName = PTW_EX_OPACITY_NAME;
 std::string ptwExDotOpacity = PTW_EX_DOT_OPACITY;
 std::string ptwExDotSize = PTW_EX_DOT_SIZE;
+std::string ptwExRightMirror = PTW_EX_RIGHT_MIRROR;
 
 
 std::string ptwExHudName = PTW_EX_HUD_NAME;
@@ -1324,6 +1325,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	hasSysOpacity_ = false;
 	hasSysDotOpacity_ = false;
 	hasSysDotSize_ = false;
+	changeExNamePrefixInit();
 
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
@@ -1780,9 +1782,60 @@ void OutputPtw::addEx2GasStation(HmiWidget::TWidget* widget) {
 	assetsFun_.externalKeyVariant(externalModel, "eParam_ScrollAreaInverseWorldTransformation", assetsFun_.VariantNumericFloatMatrix4(mat4x4f));
 }
 
+void OutputPtw::addEx2Ellie(HmiWidget::TWidget* widget) {
+	// Right
+	HmiWidget::TExternalModelParameter* externalModelValue = widget->add_externalmodelvalue();
+	externalModelValue->set_allocated_key(assetsFun_.Key(ptwExRightMirror));
+	externalModelValue->set_allocated_variant(assetsFun_.VariantNumeric(1.0));
+
+	// RightGreater0
+	{
+		HmiWidget::TInternalModelParameter* internalModelCompare = widget->add_internalmodelvalue();
+		TDataBinding Operand1;
+		Operand1.set_allocated_key(assetsFun_.Key(ptwExRightMirror));
+		Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_ExtModelValue));
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderNumeric(0));
+		assetsFun_.CompareOperation(internalModelCompare, ptwExRightMirror + "Greater0", Operand1, TEDataType_Float, Operand2, TEDataType_Float, TEOperatorType_Greater);
+	}
+	// RightValue
+	{
+		HmiWidget::TInternalModelParameter* internalModelIfThenElse = widget->add_internalmodelvalue();
+		TDataBinding Operand1;
+		Operand1.set_allocated_key(assetsFun_.Key(ptwExRightMirror + "Greater0"));
+		Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		TDataBinding Operand2;
+		Operand2.set_allocated_provider(assetsFun_.ProviderNumeric(-1));
+		TDataBinding Operand3;
+		Operand3.set_allocated_provider(assetsFun_.ProviderNumeric(1));
+		assetsFun_.IfThenElse(internalModelIfThenElse, ptwExRightMirror + "Value", Operand1, TEDataType_Bool, Operand2, TEDataType_Float, Operand3, TEDataType_Float);
+	}
+	// scale * RightValue
+	{
+		std::vector<TDataBinding> Operands;
+		HmiWidget::TInternalModelParameter* internalModelMul = widget->add_internalmodelvalue();
+		TDataBinding Operand1;
+		if (NodeScaleSize_ != 1) {
+			Operand1.set_allocated_key(assetsFun_.Key(PTW_SCALE_DIV_MUL_VALUE));
+		} else {
+			Operand1.set_allocated_key(assetsFun_.Key(PTW_SCALE_DIVIDE_VALUE));
+		}
+
+		Operand1.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		Operands.push_back(Operand1);
+		TDataBinding Operand2;
+		Operand2.set_allocated_key(assetsFun_.Key(ptwExRightMirror + "Value"));
+		Operand2.set_allocated_provider(assetsFun_.ProviderSrc(TEProviderSource_IntModelValue));
+		Operands.push_back(Operand2);
+		assetsFun_.operatorOperands(internalModelMul, PTW_SCALE_DIVIDE_MIRROR, TEDataType_Float, Operands, TEOperatorType_Mul);
+	}
+}
+
 void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
 	if (ProjectName_ == PRO_GASSTATION) {
 		addEx2GasStation(widget);
+	} else if (ProjectName_ == PRO_ELLIE) {
+		addEx2Ellie(widget);
 	}
 
 }
@@ -1792,6 +1845,15 @@ void changeExNamePrefixAddI() {
 	ptwExOpacityName = "i" + PTW_EX_OPACITY_NAME;
 	ptwExDotOpacity = "i" + PTW_EX_DOT_OPACITY;
 	ptwExDotSize = "i" + PTW_EX_DOT_SIZE;
+	ptwExRightMirror = "i" + PTW_EX_RIGHT_MIRROR;
+}
+
+void changeExNamePrefixInit() {
+	ptwExScaleName = PTW_EX_SCALE_NAME;
+	ptwExOpacityName = PTW_EX_OPACITY_NAME;
+	ptwExDotOpacity =  PTW_EX_DOT_OPACITY;
+	ptwExDotSize = PTW_EX_DOT_SIZE;
+	ptwExRightMirror = PTW_EX_RIGHT_MIRROR;
 }
 
 void OutputPtw::triggerTest() {
@@ -2934,7 +2996,11 @@ void OutputPtw::externalScaleData(HmiWidget::TWidget* widget) {
 	assetsFun_.NodeParamAddNode(nodeParam, ProjectName_);
 	auto transform = nodeParam->mutable_transform();
 	TDataBinding operandX;
-	assetsFun_.OperandKeySrc(operandX, scaleKey, TEProviderSource_IntModelValue);
+	if (ProjectName_ == PRO_ELLIE) {
+		assetsFun_.OperandKeySrc(operandX, PTW_SCALE_DIVIDE_MIRROR, TEProviderSource_IntModelValue);
+	} else {
+		assetsFun_.OperandKeySrc(operandX, scaleKey, TEProviderSource_IntModelValue);
+	}
 	TDataBinding operandY;
 	assetsFun_.OperandKeySrc(operandY, scaleKey, TEProviderSource_IntModelValue);
 	TDataBinding operandZ;
