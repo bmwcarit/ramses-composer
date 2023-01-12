@@ -17,11 +17,31 @@ Int64Editor::Int64Editor(QWidget *parent)
     // connect everything to our item values
     {
         QObject::connect(spinBox_, &Int64SpinBox::valueEdited, this, [this](int value) {
+            if (value < min_) {
+                spinBox_->setValue(min_);
+                slider_->setValue(min_);
+                return;
+            }
+            if (value > max_) {
+                spinBox_->setValue(max_);
+                slider_->setValue(max_);
+                return;
+            }
             spinBox_->setValue(value);
             slider_->setValue(value);
             Q_EMIT sigValueChanged(value);
         });
         QObject::connect(slider_, &Int64Slider::valueEdited, this, [this](int value) {
+            if (value < min_) {
+                spinBox_->setValue(min_);
+                slider_->setValue(min_);
+                return;
+            }
+            if (value > max_) {
+                spinBox_->setValue(max_);
+                slider_->setValue(max_);
+                return;
+            }
             spinBox_->setValue(value);
             Q_EMIT sigValueChanged(value);
         });
@@ -29,7 +49,19 @@ Int64Editor::Int64Editor(QWidget *parent)
 
     // State change: Show spinbox or slider
     QObject::connect(slider_, &Int64Slider::singleClicked, this, [this]() { stack_->setCurrentWidget(spinBox_); });
-    QObject::connect(slider_, &Int64Slider::finished, this, [this]() { Q_EMIT sigEditingFinished(); });
+    QObject::connect(slider_, &Int64Slider::finished, this, [this]() {
+        int value = spinBox_->value();
+        if (value < min_) {
+            spinBox_->setValue(min_);
+            slider_->setValue(min_);
+            return;
+        }
+        if (value > max_) {
+            spinBox_->setValue(max_);
+            slider_->setValue(max_);
+            return;
+        }
+        Q_EMIT sigEditingFinished(); });
     QObject::connect(spinBox_, &Int64SpinBox::editingFinished, this, [this]() {
         stack_->setCurrentWidget(slider_);
         slider_->clearFocus();
@@ -42,10 +74,11 @@ Int64Editor::Int64Editor(QWidget *parent)
     stack_->setCurrentWidget(slider_);
     layout->addWidget(stack_);
     setHeight(20);
-    setRange(0, 100);
 }
 
 void Int64Editor::setRange(int min, int max) {
+    min_ = min;
+    max_ = max;
     spinBox_->setSoftRange(min, max);
     slider_->setSoftRange(min, max);
 }

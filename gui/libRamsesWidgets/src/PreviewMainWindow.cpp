@@ -252,7 +252,10 @@ void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
                 projection_matrix.perspective(camera->getVerticalFieldOfView(), camera->getAspectRatio(), camera->getNearPlane(), camera->getFarPlane());
 
                 // caculate view matrix
-                QMatrix4x4 view_matrix = getViewMatrix(position);
+                float rX{0.0f}, rY{0.0f}, rZ{0.0f};
+                ramses::ERotationConvention convention;
+                camera->getRotation(rX, rY, rZ, convention);
+                QMatrix4x4 view_matrix = getViewMatrix(position, rX, rY);
 
                 // get view position
                 int width = camera->getViewportWidth();
@@ -266,6 +269,7 @@ void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
                 float y = 1.0f - (2.0f * previewPosition->y() / height);
 
                 // caculate ray direction
+                QMatrix4x4 vec = view_matrix.inverted();
                 QVector3D ray_nds = QVector3D(x, y, 1.0f);
                 QVector4D ray_clip = QVector4D(ray_nds, 1.0f);
                 QVector4D ray_eye = projection_matrix.inverted() * ray_clip;
@@ -399,11 +403,15 @@ void PreviewMainWindow::sceneUpdate(bool z_up) {
     previewWidget_->sceneUpdate(z_up, scaleValue_);
 }
 
-QMatrix4x4 PreviewMainWindow::getViewMatrix(QVector3D position) {
+QMatrix4x4 PreviewMainWindow::getViewMatrix(QVector3D position, float rX, float rY) {
     QVector3D worldUp(0.0, 1.0, 0.0);
-    QVector3D cameraTarget(0.0f, 0.0f, 0.0f);
-    QVector3D front = (cameraTarget - position).normalized();
 
+    float yawR = qDegreesToRadians(-rY - 90.0f);
+    float picthR = qDegreesToRadians(rX);
+
+    QVector3D direction = QVector3D(cos(yawR) * cos(picthR), sin(picthR), sin(yawR) * cos(picthR));
+
+    QVector3D front = (direction).normalized();
     QVector3D right = QVector3D::crossProduct(front, worldUp).normalized();
     QVector3D up = QVector3D::crossProduct(right, front).normalized();
 

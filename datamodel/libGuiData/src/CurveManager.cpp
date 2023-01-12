@@ -41,7 +41,7 @@ void CurveManager::merge(QVariant data) {
         point->setInterPolationType(static_cast<EInterPolationType>(destPoint.interPolationType_));
         point->setDataValue(destPoint.data_);
         point->setLeftTagent(destPoint.leftTagent_);
-        point->setLeftKeyFrame(destPoint.keyFrame_);
+        point->setLeftKeyFrame(destPoint.leftKeyFrame_);
         point->setLeftData(destPoint.leftData_);
         point->setRightData(destPoint.rightData_);
         point->setRightKeyFrame(destPoint.rightKeyFrame_);

@@ -188,6 +188,7 @@ void ScalarSlider<T>::mouseReleaseEvent(QMouseEvent* event) {
 		} else if (event->localPos().x() > rect().right() - 24l) {
 			addValue(1);
 			signalValueEdited(value());
+            signalFinished();
 		} else {
 			signalSingleClicked();
 		}

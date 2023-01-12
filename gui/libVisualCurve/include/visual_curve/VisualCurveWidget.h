@@ -63,6 +63,7 @@ public Q_SLOTS:
     void slotInsertCurve(QString property, QString curveName, QVariant value);
     void slotSwitchCurveType(int type);
     void slotUpdateCursorX(int cursorX);
+    void slotUpdatePoints();
 
 Q_SIGNALS:
     void sigAnimationStop();

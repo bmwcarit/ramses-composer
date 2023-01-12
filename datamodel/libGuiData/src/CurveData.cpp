@@ -54,11 +54,11 @@ std::any Point::getLeftData() {
     return leftData_;
 }
 
-void Point::setLeftKeyFrame(const int keyFrame) {
+void Point::setLeftKeyFrame(const double keyFrame) {
     leftKeyFrame_ = keyFrame;
 }
 
-int Point::getLeftKeyFrame() {
+double Point::getLeftKeyFrame() {
     return leftKeyFrame_;
 }
 
@@ -70,11 +70,11 @@ std::any Point::getRightData() {
     return rightData_;
 }
 
-void Point::setRightKeyFrame(const int keyFrame) {
+void Point::setRightKeyFrame(const double keyFrame) {
     rightKeyFrame_ = keyFrame;
 }
 
-int Point::getRightKeyFrame() {
+double Point::getRightKeyFrame() {
     return rightKeyFrame_;
 }
 

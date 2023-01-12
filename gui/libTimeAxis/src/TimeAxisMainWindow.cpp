@@ -86,6 +86,7 @@ TimeAxisMainWindow::TimeAxisMainWindow(raco::components::SDataChangeDispatcher d
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigRefreshCursorX, visualCurveWidget_, &VisualCurveWidget::slotRefreshCursorX);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigSwitchCurveType, visualCurveWidget_, &VisualCurveWidget::slotSwitchCurveType);
     connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigUpdateCursorX, visualCurveWidget_, &VisualCurveWidget::slotUpdateCursorX);
+    connect(visualCurveInfoWidget_, &VisualCurveInfoWidget::sigUpdateCurvePoints, visualCurveWidget_, &VisualCurveWidget::slotUpdatePoints);
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigRefreshVisualCurve, visualCurveWidget_, &VisualCurveWidget::slotRefreshVisualCurve);
     connect(visualCurveNodeTreeView_, &VisualCurveNodeTreeView::sigSwitchVisualCurveInfoWidget, this, &TimeAxisMainWindow::slotSwitchVisualCurveInfoWidget);
 }

@@ -17,11 +17,31 @@ DoubleEditor::DoubleEditor(QWidget *parent)
     // connect everything to our item values
     {
         QObject::connect(spinBox_, &DoubleSpinBox::valueEdited, this, [this](double value) {
+            if (value < min_) {
+                spinBox_->setValue(min_);
+                slider_->setValue(min_);
+                return;
+            }
+            if (value > max_) {
+                spinBox_->setValue(max_);
+                slider_->setValue(max_);
+                return;
+            }
             spinBox_->setValue(value);
             slider_->setValue(value);
             Q_EMIT sigValueChanged(value);
         });
         QObject::connect(slider_, &DoubleSlider::valueEdited, this, [this](double value) {
+            if (value < min_) {
+                spinBox_->setValue(min_);
+                slider_->setValue(min_);
+                return;
+            }
+            if (value > max_) {
+                spinBox_->setValue(max_);
+                slider_->setValue(max_);
+                return;
+            }
             spinBox_->setValue(value);
             slider_->setValue(value);
             Q_EMIT sigValueChanged(value);
@@ -30,10 +50,23 @@ DoubleEditor::DoubleEditor(QWidget *parent)
 
     // State change: Show spinbox or slider
     QObject::connect(slider_, &DoubleSlider::singleClicked, this, [this]() { stack_->setCurrentWidget(spinBox_); });
-    QObject::connect(slider_, &DoubleSlider::finished, this, [this]() { Q_EMIT sigEditingFinished(); });
+    QObject::connect(slider_, &DoubleSlider::finished, this, [this]() {
+        double value = spinBox_->value();
+        if (value < min_) {
+            spinBox_->setValue(min_);
+            slider_->setValue(min_);
+            return;
+        }
+        if (value > max_) {
+            spinBox_->setValue(max_);
+            slider_->setValue(max_);
+            return;
+        }
+        Q_EMIT sigEditingFinished(); });
     QObject::connect(spinBox_, &DoubleSpinBox::editingFinished, this, [this]() {
         stack_->setCurrentWidget(slider_);
         slider_->clearFocus();
+        Q_EMIT sigEditingFinished();
     });
 
     stack_->addWidget(slider_);
@@ -45,6 +78,8 @@ DoubleEditor::DoubleEditor(QWidget *parent)
 }
 
 void DoubleEditor::setRange(double min, double max) {
+    min_ = min;
+    max_ = max;
     spinBox_->setSoftRange(min, max);
     slider_->setSoftRange(min, max);
 }

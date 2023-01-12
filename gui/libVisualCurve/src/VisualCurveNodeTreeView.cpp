@@ -540,6 +540,11 @@ void VisualCurveNodeTreeView::slotDelete() {
 
     std::string info;
     QModelIndexList selectedIndexs = visualCurveTreeView_->selectionModel()->selectedRows();
+    std::sort(selectedIndexs.begin(), selectedIndexs.end(), [this](QModelIndex index1, QModelIndex index2) {
+        QStandardItem *item1 = model_->itemFromIndex(index1);
+        QStandardItem *item2 = model_->itemFromIndex(index2);
+        return item1->row() > item2->row();
+    });
     for (auto selected : selectedIndexs) {
         QStandardItem *item = model_->itemFromIndex(selected);
         if (item) {
@@ -554,8 +559,9 @@ void VisualCurveNodeTreeView::slotDelete() {
             }
         }
     }
-    for (int i{selectedIndexs.size() - 1}; i >= 0; i--) {
+    for (int i{0}; i < selectedIndexs.size(); i++) {
         QModelIndex selected = selectedIndexs.at(i);
+        QStandardItem *item = model_->itemFromIndex(selected);
         model_->removeRow(selected.row(), selected.parent());
     }
     Q_EMIT sigRefreshVisualCurve();
@@ -788,6 +794,33 @@ void VisualCurveNodeTreeView::deleteCurve(QStandardItem *item) {
             }
         }
     }
+}
+
+bool VisualCurveNodeTreeView::sortIndex(const QModelIndex &index1, const QModelIndex &index2) {
+//    QModelIndexList indexList;
+//    for (auto selected : list) {
+//        QStandardItem *item = model_->itemFromIndex(selected);
+//        if (indexList.empty()) {
+//            indexList.append(selected);
+//        } else {
+//            bool temp{false};
+//            for (int i{0}; i < indexList.size(); i++) {
+//                QStandardItem *tempItem = model_->itemFromIndex(indexList[i]);
+//                if (item->row() > tempItem->row()) {
+//                    indexList.insert(i, selected);
+//                    temp = true;
+//                    break;
+//                }
+//            }
+//            if (!temp) {
+//                indexList.push_front(selected);
+//            }
+//        }
+//    }
+//    return indexList;
+    QStandardItem *item1 = model_->itemFromIndex(index1);
+    QStandardItem *item2 = model_->itemFromIndex(index2);
+    return item1->row() < item2->row();
 }
 
 void VisualCurveNodeTreeView::deleteFolder(QStandardItem *item) {

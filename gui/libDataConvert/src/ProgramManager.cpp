@@ -1107,9 +1107,9 @@ void readJsonFillCurveData(QJsonArray jsonAry) {
 			point->setLeftTagent(pointObj.value(JSON_LEFT_TANGENT).toDouble());
             point->setRightTagent(pointObj.value(JSON_RIGHT_TANGENT).toDouble());
             point->setKeyFrame(pointObj.value(JSON_KEYFRAME).toInt());
-            point->setLeftKeyFrame(pointObj.value(JSON_LEFT_KEYFRAME).toInt());
+            point->setLeftKeyFrame(pointObj.value(JSON_LEFT_KEYFRAME).toDouble());
             point->setLeftData(pointObj.value(JSON_LEFT_DATA).toDouble());
-            point->setRightKeyFrame(pointObj.value(JSON_RIGHT_KEYFRAME).toInt());
+            point->setRightKeyFrame(pointObj.value(JSON_RIGHT_KEYFRAME).toDouble());
             point->setRightData(pointObj.value(JSON_RIGHT_DATA).toDouble());
             curve->insertPoint(point);
         }

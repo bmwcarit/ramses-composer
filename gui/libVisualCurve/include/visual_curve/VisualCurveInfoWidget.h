@@ -51,8 +51,10 @@ public Q_SLOTS:
     void slotCursorShow(bool checked);
     void slotCursorXChanged(int value);
     void slotCursorYChanged(double value);
+    void slotCurveScaleChanged(double value);
     void slotCursorXFinished();
     void slotCursorYFinished();
+    void slotCurveScaleFinished();
 
     void slotUpdateSelKey();
     void slotUpdateCursorX();
@@ -61,6 +63,7 @@ public Q_SLOTS:
 signals:
     void sigRefreshCursorX();
     void sigRefreshVisualCurve();
+    void sigUpdateCurvePoints();
     void sigSwitchCurveType(int type);
     void sigUpdateCursorX(int cursorX);
 private:
@@ -96,6 +99,7 @@ private:
     QCheckBox *showCursorCheckBox_{nullptr};
     Int64Editor *cursorXSpinBox_{nullptr};
     DoubleEditor *cursorYSpinBox_{nullptr};
+    DoubleEditor *curveScaleSpinBox_{nullptr};
     raco::core::CommandInterface *commandInterface_;
 };
 }
