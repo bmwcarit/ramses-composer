@@ -108,16 +108,17 @@ void PreviewScrollAreaWidget::wheelEvent(QWheelEvent* event) {
 	} else {
 		s_scaleValue *= 0.95;
 		scaleUp = false;
-	}
+    }
 	Q_EMIT scaleChanged(s_scaleValue, scaleUp);
+
 	scaleValue_ = 1.0;
-	virtSize = scaledSize();
+    virtSize = scaledSize();
 
 	updateScrollbarSize(virtSize);
 	horizontalScrollBar()->setValue(centreX * virtSize.width() - mousePivot_.x());
-	verticalScrollBar()->setValue(centerY * virtSize.height() - mousePivot_.y());
+    verticalScrollBar()->setValue(centerY * virtSize.height() - mousePivot_.y());
 
-	updateViewport();
+    updateViewport();
 }
 
 //void PreviewScrollAreaWidget::mousePressEvent(QMouseEvent* event) {
