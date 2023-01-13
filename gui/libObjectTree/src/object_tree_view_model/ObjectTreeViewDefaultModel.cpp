@@ -554,11 +554,20 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 			float y = translation_y.as<float>();
 			float z = translation_z.as<float>();
 			float rot_x = rotation_x.as<float>();
-            if (importDialog->yAxesUpButton_->isChecked() && projectZup) {
+//            if (importDialog->yAxesUpButton_->isChecked() && projectZup) {
+//                commandInterface_->set(translation_y, -z);
+//                commandInterface_->set(translation_z, y);
+//                commandInterface_->set(rotation_x, rot_x + 90.0);
+//            } else if (importDialog->zAxesUpButton_->isChecked() && !projectZup) {
+//                commandInterface_->set(translation_y, z);
+//                commandInterface_->set(translation_z, -y);
+//                commandInterface_->set(rotation_x, rot_x - 90.0);
+//            }
+            if (!projectZup) {
                 commandInterface_->set(translation_y, -z);
                 commandInterface_->set(translation_z, y);
                 commandInterface_->set(rotation_x, rot_x + 90.0);
-            } else if (importDialog->zAxesUpButton_->isChecked() && !projectZup) {
+            } else if (projectZup) {
                 commandInterface_->set(translation_y, z);
                 commandInterface_->set(translation_z, -y);
                 commandInterface_->set(rotation_x, rot_x - 90.0);
