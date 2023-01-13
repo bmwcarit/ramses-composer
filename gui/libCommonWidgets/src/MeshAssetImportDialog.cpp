@@ -83,21 +83,21 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	massSelectButtonLayout_->addWidget(deselectAllButton_);
 	massSelectButtonLayout_->addStretch();
 
-	yAxesUpButton_ = new QRadioButton(this);
-	zAxesUpButton_ = new QRadioButton(this);
-	yAxesUpButton_->setChecked(true);
-    QButtonGroup *axesButtonGroup = new QButtonGroup(this);
-    axesButtonGroup->addButton(yAxesUpButton_);
-    axesButtonGroup->addButton(zAxesUpButton_);
-    axesDirectionButtonLayout_ = new QHBoxLayout(nullptr);
-    axesDirectionButtonLayout_->addWidget(new QLabel("Assets Axes Direction:"));
-    axesDirectionButtonLayout_->addStretch();
-	axesDirectionButtonLayout_->addWidget(yAxesUpButton_);
-    axesDirectionButtonLayout_->addWidget(new QLabel("+Y up, +Z forward"));
-    axesDirectionButtonLayout_->addStretch();
-	axesDirectionButtonLayout_->addWidget(zAxesUpButton_);
-    axesDirectionButtonLayout_->addWidget(new QLabel("+Z up, -Y forward"));
-    axesDirectionButtonLayout_->addStretch();
+//	yAxesUpButton_ = new QRadioButton(this);
+//	zAxesUpButton_ = new QRadioButton(this);
+//	yAxesUpButton_->setChecked(true);
+//    QButtonGroup *axesButtonGroup = new QButtonGroup(this);
+//    axesButtonGroup->addButton(yAxesUpButton_);
+//    axesButtonGroup->addButton(zAxesUpButton_);
+//    axesDirectionButtonLayout_ = new QHBoxLayout(nullptr);
+//    axesDirectionButtonLayout_->addWidget(new QLabel("Assets Axes Direction:"));
+//    axesDirectionButtonLayout_->addStretch();
+//	axesDirectionButtonLayout_->addWidget(yAxesUpButton_);
+//    axesDirectionButtonLayout_->addWidget(new QLabel("+Y up, +Z forward"));
+//    axesDirectionButtonLayout_->addStretch();
+//	axesDirectionButtonLayout_->addWidget(zAxesUpButton_);
+//    axesDirectionButtonLayout_->addWidget(new QLabel("+Z up, -Y forward"));
+//    axesDirectionButtonLayout_->addStretch();
 
     animationNodeButton_ = new QRadioButton(this);
     animationKeyFrameButton_ = new QRadioButton(this);
@@ -116,7 +116,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
     animationModeButtonLayout_->addStretch();
 
     selButtonLayout_ = new QVBoxLayout(nullptr);
-    selButtonLayout_->addLayout(axesDirectionButtonLayout_);
+//    selButtonLayout_->addLayout(axesDirectionButtonLayout_);
     selButtonLayout_->addLayout(animationModeButtonLayout_);
 
 	dialogButtonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this};

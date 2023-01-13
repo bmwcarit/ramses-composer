@@ -77,7 +77,7 @@ public Q_SLOTS:
 	void setEnableDisplayGrid(bool enable);
 	void sceneUpdate(bool z_up);
 private:
-    QMatrix4x4 getViewMatrix(QVector3D position, float rX, float rY);
+    QMatrix4x4 getViewMatrix(QVector3D position, float rX, float rY, float rZ);
     QVector<float> checkTriCollision(QVector3D ray, QVector3D camera, QVector<QVector<QVector3D>> triangles);
     float checkSingleTriCollision(QVector3D ray, QVector3D camera, QVector<QVector3D> triangle);
     QMap<std::string, QVector<QVector<QVector3D> >> getMeshTriangles();

@@ -224,11 +224,12 @@ void PreviewMainWindow::sceneScaleUpdate(bool zup, float scaleValue, bool scaleU
             if (object->getType() == ramses::ERamsesObjectType_PerspectiveCamera) {
                 ramses::PerspectiveCamera* camera = static_cast<ramses::PerspectiveCamera*>(object);
 				camera->getTranslation(x, y, z);
-                if (zup) {
-                    camera->setTranslation(x * cameraScale, y * cameraScale, z);
-                } else {
-                    camera->setTranslation(x * cameraScale, y, z * cameraScale);
-                }
+//                if (zup) {
+//                    camera->setTranslation(x * cameraScale, y * cameraScale, z);
+//                } else {
+//                    camera->setTranslation(x * cameraScale, y, z * cameraScale);
+//                }
+                camera->setTranslation(x * cameraScale, y, z * cameraScale);
 			}
 		}
     }
@@ -255,7 +256,7 @@ void PreviewMainWindow::mousePressEvent(QMouseEvent *event) {
                 float rX{0.0f}, rY{0.0f}, rZ{0.0f};
                 ramses::ERotationConvention convention;
                 camera->getRotation(rX, rY, rZ, convention);
-                QMatrix4x4 view_matrix = getViewMatrix(position, rX, rY);
+                QMatrix4x4 view_matrix = getViewMatrix(position, rX, rY, rZ);
 
                 // get view position
                 int width = camera->getViewportWidth();
@@ -350,7 +351,7 @@ void PreviewMainWindow::setAxes(const bool& z_up) {
 	setAxesIcon(z_up);
 
 	for (const auto& object : project_->instances()) {
-		if (/*&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription ||*/
+        if (/*&object->getTypeDescription() == &user_types::PerspectiveCamera::typeDescription ||*/
 			&object->getTypeDescription() == &user_types::OrthographicCamera::typeDescription ||
 			&object->getTypeDescription() == &user_types::Node::typeDescription ||
 			&object->getTypeDescription() == &user_types::MeshNode::typeDescription) {
@@ -403,11 +404,12 @@ void PreviewMainWindow::sceneUpdate(bool z_up) {
     previewWidget_->sceneUpdate(z_up, scaleValue_);
 }
 
-QMatrix4x4 PreviewMainWindow::getViewMatrix(QVector3D position, float rX, float rY) {
+QMatrix4x4 PreviewMainWindow::getViewMatrix(QVector3D position, float rX, float rY, float rZ) {
     QVector3D worldUp(0.0, 1.0, 0.0);
 
     float yawR = qDegreesToRadians(-rY - 90.0f);
     float picthR = qDegreesToRadians(rX);
+    float rollR = qDegreesToRadians(rZ);
 
     QVector3D direction = QVector3D(cos(yawR) * cos(picthR), sin(picthR), sin(yawR) * cos(picthR));
 

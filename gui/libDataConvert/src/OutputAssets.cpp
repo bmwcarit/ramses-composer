@@ -1325,7 +1325,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	hasSysOpacity_ = false;
 	hasSysDotOpacity_ = false;
 	hasSysDotSize_ = false;
-	changeExNamePrefixInit();
+//	changeExNamePrefixInit();
 
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());

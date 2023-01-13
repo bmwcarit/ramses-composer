@@ -32,9 +32,9 @@ public Q_SLOTS:
     void slotSwitchInterpolationMode(int index);
     void slotKeyFrameChanged(int value);
     void slotKeyValueChanged(double value);
-    void slotLeftKeyFrameChanged(int value);
+    void slotLeftKeyFrameChanged(double value);
     void slotLeftKeyValueChanged(double value);
-    void slotRightKeyFrameChanged(int value);
+    void slotRightKeyFrameChanged(double value);
     void slotRightKeyValueChanged(double value);
     void slotLeftTangentChanged(double value);
     void slotRightTangentChanged(double value);
@@ -88,10 +88,10 @@ private:
     QLabel *rightFrameLabel_{nullptr};
     QLabel *leftTangentLabel_{nullptr};
     QLabel *rightTangentLabel_{nullptr};
-    Int64Editor *leftFrameSpinBox_{nullptr};
+    DoubleEditor *leftFrameSpinBox_{nullptr};
     DoubleEditor *leftTangentSpinBox_{nullptr};
     DoubleEditor *leftValueSpinBox_{nullptr};
-    Int64Editor *rightFrameSpinBox_{nullptr};
+    DoubleEditor *rightFrameSpinBox_{nullptr};
     DoubleEditor *rightTangentSpinBox_{nullptr};
     DoubleEditor *rightValueSpinBox_{nullptr};
 

@@ -222,7 +222,7 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
 
                         srcPoints.push_back(QPointF(point1->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point1->getDataValue()) * eachValueWidth));
                         srcPoints.push_back(QPointF(point1->getRightKeyFrame() * eachFrameWidth, std::any_cast<double>(point1->getRightData()) * eachValueWidth));
-                        srcPoints.push_back(QPointF(point2->getRightKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getRightData()) * eachValueWidth));
+                        srcPoints.push_back(QPointF(point2->getLeftKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getLeftData()) * eachValueWidth));
                         srcPoints.push_back(QPointF(point2->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getDataValue()) * eachValueWidth));
 
                         time_axis::createNBezierCurve(srcPoints, destPoints, 0.01);
