@@ -62,6 +62,22 @@ void DEBUG(QString FILE, QString FUNCTION, int LINE, QString msg) {
 	msgBox.exec();
 }
 
+void changeExNamePrefixAddI() {
+	ptwExScaleName = "i" + PTW_EX_SCALE_NAME;
+	ptwExOpacityName = "i" + PTW_EX_OPACITY_NAME;
+	ptwExDotOpacity = "i" + PTW_EX_DOT_OPACITY;
+	ptwExDotSize = "i" + PTW_EX_DOT_SIZE;
+	ptwExRightMirror = "i" + PTW_EX_RIGHT_MIRROR;
+}
+
+void changeExNamePrefixInit() {
+	ptwExScaleName = PTW_EX_SCALE_NAME;
+	ptwExOpacityName = PTW_EX_OPACITY_NAME;
+	ptwExDotOpacity = PTW_EX_DOT_OPACITY;
+	ptwExDotSize = PTW_EX_DOT_SIZE;
+	ptwExRightMirror = PTW_EX_RIGHT_MIRROR;
+}
+
 void OutputPtx::isNotAddedAttribute(std::string name) {
 	if (name == "a_Position" || name == "a_TextureCoordinate" || name == "a_TextureCoordinate1") {
 		return;
@@ -1838,22 +1854,6 @@ void OutputPtw::proExVarMapping(HmiWidget::TWidget* widget) {
 		addEx2Ellie(widget);
 	}
 
-}
-
-void changeExNamePrefixAddI() {
-	ptwExScaleName = "i" + PTW_EX_SCALE_NAME;
-	ptwExOpacityName = "i" + PTW_EX_OPACITY_NAME;
-	ptwExDotOpacity = "i" + PTW_EX_DOT_OPACITY;
-	ptwExDotSize = "i" + PTW_EX_DOT_SIZE;
-	ptwExRightMirror = "i" + PTW_EX_RIGHT_MIRROR;
-}
-
-void changeExNamePrefixInit() {
-	ptwExScaleName = PTW_EX_SCALE_NAME;
-	ptwExOpacityName = PTW_EX_OPACITY_NAME;
-	ptwExDotOpacity =  PTW_EX_DOT_OPACITY;
-	ptwExDotSize = PTW_EX_DOT_SIZE;
-	ptwExRightMirror = PTW_EX_RIGHT_MIRROR;
 }
 
 void OutputPtw::triggerTest() {
