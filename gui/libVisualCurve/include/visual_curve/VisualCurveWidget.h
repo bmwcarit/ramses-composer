@@ -90,7 +90,7 @@ private:
     // paint step
     void drawStep(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint);
     // paint worker point
-    void drawWorkerPoint(QPainter &painter, SKeyPoint point, QPair<QPointF, QPointF> workerPoint, int index, std::string curve);
+    void drawWorkerPoint(QPainter &painter, SKeyPoint point, QPair<QPointF, QPointF> workerPoint, SKeyPoint lastPoint, int index, std::string curve);
     // update keyframe & bezier points
     void updateCurvePoint();
     // recaculate curve point

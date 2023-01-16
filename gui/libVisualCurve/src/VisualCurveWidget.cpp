@@ -1017,9 +1017,9 @@ void VisualCurveWidget::drawKeyFrame(QPainter &painter) {
         QPen pen = painterPen(QString::fromStdString(getProperty(it.first)), 1, 125);
         painter.setPen(pen);
         for (int i{0}; i < it.second.size(); ++i) {
-            SKeyPoint lastPoint = it.second.at(i);
+            SKeyPoint firstPoint = it.second.at(i);
 
-            QPair<QPointF, QPointF> lastWorkerPoint(lastPoint.leftPoint, lastPoint.rightPoint);
+            QPair<QPointF, QPointF> firstWorkerPoint(firstPoint.leftPoint, firstPoint.rightPoint);
             MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
             if ((pressAction == MOUSE_PRESS_KEY || pressAction == MOUSE_PRESS_LEFT_WORKER_KEY || pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) && curCurve == it.first) {
                 QPen tempPen = painterPen(QString::fromStdString(getProperty(it.first)), 2, 255);
@@ -1027,46 +1027,54 @@ void VisualCurveWidget::drawKeyFrame(QPainter &painter) {
             }
 
             if (i + 1 < it.second.size()) {
-                SKeyPoint nextPoint = it.second.at(i + 1);
-                QPair<QPointF, QPointF> nextWorkerPoint(nextPoint.leftPoint, nextPoint.rightPoint);
-                switch (lastPoint.type) {
+                SKeyPoint secondPoint = it.second.at(i + 1);
+                QPair<QPointF, QPointF> secondWorkerPoint(secondPoint.leftPoint, secondPoint.rightPoint);
+                switch (firstPoint.type) {
                 case EInterPolationType::LINER: {
-                    drawLiner(painter, it.first, lastPoint, nextPoint);
+                    drawLiner(painter, it.first, firstPoint, secondPoint);
                     break;
                 }
                 case EInterPolationType::BESIER_SPLINE: {
-                    drawBezier(painter, it.first, lastPoint, nextPoint, lastWorkerPoint, nextWorkerPoint);
+                    drawBezier(painter, it.first, firstPoint, secondPoint, firstWorkerPoint, secondWorkerPoint);
                     break;
                 }
                 case EInterPolationType::HERMIT_SPLINE: {
-                    drawHermite(painter, it.first, lastPoint, nextPoint, lastWorkerPoint, nextWorkerPoint);
+                    drawHermite(painter, it.first, firstPoint, secondPoint, firstWorkerPoint, secondWorkerPoint);
                     break;
                 }
                 case EInterPolationType::STEP: {
-                    drawStep(painter, it.first, lastPoint, nextPoint);
+                    drawStep(painter, it.first, firstPoint, secondPoint);
                     break;
                 }
                 }
             }
             if (i == 0) {
-                SKeyPoint nextPoint = lastPoint;
-                lastPoint.setX(0);
-                if (lastPoint.y >= *numHeight) {
-                    drawLiner(painter, it.first, lastPoint, nextPoint);
+                SKeyPoint nextPoint = firstPoint;
+                firstPoint.setX(0);
+                if (firstPoint.y >= *numHeight) {
+                    drawLiner(painter, it.first, firstPoint, nextPoint);
                 }
             }
             if (i == it.second.size() - 1) {
-                SKeyPoint nextPoint(this->width(), lastPoint.y);
+                SKeyPoint nextPoint(this->width(), firstPoint.y);
                 if (nextPoint.y >= *numHeight) {
-                    drawLiner(painter, it.first, lastPoint, nextPoint);
+                    drawLiner(painter, it.first, firstPoint, nextPoint);
                 }
             }
 
-            // paint worker point
-            painter.setPen(pen);
-            painter.setBrush(brush);
-            painter.save();
-            drawWorkerPoint(painter, lastPoint, lastWorkerPoint, i, it.first);
+            if (i == 0) {
+                // paint worker point
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                painter.save();
+                drawWorkerPoint(painter, firstPoint, firstWorkerPoint, firstPoint, i, it.first);
+            } else {
+                SKeyPoint tempPoint = it.second.at(i - 1);
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                painter.save();
+                drawWorkerPoint(painter, firstPoint, firstWorkerPoint, tempPoint, i, it.first);
+            }
         }
 
         painter.setBrush(brush);
@@ -1338,7 +1346,7 @@ void VisualCurveWidget::drawStep(QPainter &painter, std::string curve, SKeyPoint
     painter.drawLine(nextPoint.x, lastY, nextPoint.x, nextY);
 }
 
-void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPair<QPointF, QPointF> workerPoint, int index, std::string curve) {
+void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPair<QPointF, QPointF> workerPoint, SKeyPoint lastPoint, int index, std::string curve) {
 
     double eachFrameWidth = (double)intervalLength_/(double)numTextIntervalX_;
     double eachValueWidth = (double)intervalLength_/(double)numTextIntervalY_;
@@ -1416,8 +1424,8 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
             painter.drawPath(path);
             painter.restore();
         }
-    }/* else {
-        if (lastPoint.type == EInterPolationType::HERMIT_SPLINE || lastPoint.type == EInterPolationType::BESIER_SPLINE) {
+    } else {
+        if (point.type == EInterPolationType::LINER && (lastPoint.type == EInterPolationType::HERMIT_SPLINE || lastPoint.type == EInterPolationType::BESIER_SPLINE)) {
             QPainterPath workerPath;
             MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
 
@@ -1425,18 +1433,24 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
                 return;
             }
 
+            int leftX2 = workerPoint.first.x();
+            int leftY2 = workerPoint.first.y();
             if (VisualCurvePosManager::GetInstance().getCurrentPointInfo().first == curve && VisualCurvePosManager::GetInstance().getCurrentPointInfo().second == index) {
                 if (pressAction == MOUSE_PRESS_LEFT_WORKER_KEY) {
-                    auto brush = painter.brush();
-                    brush.setColor(QColor(255, 255, 255, 255));
-                    painter.setBrush(brush);
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                    if (leftY2 >= *numHeight) {
+                        auto brush = painter.brush();
+                        brush.setColor(QColor(255, 255, 255, 255));
+                        painter.setBrush(brush);
+                        painter.drawEllipse(QPointF(leftX2, leftY2) , 3, 3);
+                    }
                 } else if (pressAction == MOUSE_PRESS_KEY) {
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                    if (leftY2 >= *numHeight) {
+                        painter.drawEllipse(QPointF(leftX2, leftY2) , 3, 3);
+                    }
                 }
 
                 // first point worker path
-                workerPath.moveTo(workerPoint.first);
+                workerPath.moveTo(QPointF(leftX2, leftY2));
                 workerPath.lineTo(QPointF(point.x, point.y));
                 auto pen = painter.pen();
                 pen.setColor(QColor(255, 255, 204, 255));
@@ -1446,7 +1460,7 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
                 painter.restore();
             }
         }
-    }*/
+    }
 }
 
 void VisualCurveWidget::updateCurvePoint() {
