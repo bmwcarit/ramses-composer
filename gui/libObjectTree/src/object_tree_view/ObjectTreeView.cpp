@@ -266,7 +266,6 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     if (!model()->hasChildren(index)) {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
-        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -277,7 +276,6 @@ void ObjectTreeView::getOneMeshHandle(QModelIndex index, QMatrix4x4 matrix) {
     } else {
         core::ValueHandle tempHandle = indexToSEditorObject(index);
         computeWorldMatrix(tempHandle, matrix);
-        std::string str = tempHandle[1].asString();
 
         raco::guiData::MeshData mesh;
         std::string objectID = tempHandle[0].asString();
@@ -538,6 +536,8 @@ void ObjectTreeView::globalOpreations() {
     }
     std::map<std::string, core::ValueHandle> handleMap = updateNodeTree();
     Q_EMIT updateNodeHandles(viewTitle_, handleMap);
+
+    updateMeshData();
 }
 
 void ObjectTreeView::shortcutDelete() {
@@ -639,7 +639,6 @@ void ObjectTreeView::updateMeshModelMatrix(const std::string &objectID) {
     for (QMatrix4x4 temp : qAsConst(matrixs)) {
         matrix = matrix * temp;
     }
-    getOneMeshModelMatrix(index, matrix);
 }
 
 void ObjectTreeView::deleteAnimationHandle(std::set<std::string> ids) {
