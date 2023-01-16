@@ -1514,6 +1514,33 @@ void VisualCurveWidget::updateCurvePoint() {
                         it++;
                         continue;
                     }
+                } else if ((*it)->getInterPolationType() == LINER) {
+                    if (it != pointList.begin()) {
+                        auto itTemp = it;
+                        itTemp--;
+                        if ((*itTemp)->getInterPolationType() == HERMIT_SPLINE || (*itTemp)->getInterPolationType() == EInterPolationType::BESIER_SPLINE) {
+                            double leftKeyFrame = (*it)->getLeftKeyFrame() + offsetFrame;
+                            double rightKeyFrame = (*it)->getKeyFrame() + offsetFrame;
+
+                            if (leftKeyFrame != INT_MIN) {
+                                double leftData{0.0};
+                                double rightData = value;
+                                if ((*it)->getLeftData().type() == typeid(double)) {
+                                    leftData = *(*it)->getLeftData()._Cast<double>();
+                                }
+
+                                QPointF leftPoint, rightPoint;
+                                keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, leftKeyFrame, leftData, leftPoint);
+                                keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, rightKeyFrame, rightData, rightPoint);
+
+                                keyPoint.setLeftPoint(leftPoint);
+                                keyPoint.setRightPoint(rightPoint);
+                                srcPoints.append(keyPoint);
+                                it++;
+                                continue;
+                            }
+                        }
+                    }
                 }
                 // get next point
                 int offsetLastKey{10};

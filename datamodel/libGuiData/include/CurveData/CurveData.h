@@ -72,9 +72,9 @@ private:
     std::any data_{0.0}; //当前只考虑FLOAT type *
     std::any leftTagent_{0.0};
     std::any rightTagent_{0.0};
-    std::any leftData_{0.0};
+    std::any leftData_{(double)INT_MIN};
     double leftKeyFrame_{INT_MIN};
-    std::any rightData_{0.0};
+    std::any rightData_{(double)INT_MIN};
     double rightKeyFrame_{INT_MIN};
 };
 
