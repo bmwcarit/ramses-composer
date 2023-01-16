@@ -51,11 +51,7 @@ void Point::setLeftData(const std::any &value) {
 }
 
 std::any Point::getLeftData() {
-    if (interPolationType_ == LINER || interPolationType_ == STEP) {
-        return data_;
-    } else {
-        return leftData_;
-    }
+    return leftData_;
 }
 
 void Point::setLeftKeyFrame(const double keyFrame) {
@@ -71,11 +67,7 @@ void Point::setRightData(const std::any &value) {
 }
 
 std::any Point::getRightData() {
-    if (interPolationType_ == LINER || interPolationType_ == STEP) {
-        return data_;
-    } else {
-        return rightData_;
-    }
+    return rightData_;
 }
 
 void Point::setRightKeyFrame(const double keyFrame) {

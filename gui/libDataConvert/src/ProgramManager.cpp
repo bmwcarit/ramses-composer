@@ -632,10 +632,12 @@ void InitCurveJson(QJsonArray& jsonObj) {
             pointJson.insert(JSON_INTERPOLATION_TYPE, int(point->getInterPolationType()));
             pointJson.insert(JSON_LEFT_KEYFRAME, point->getLeftKeyFrame());
             if (point->getLeftData().type() == typeid(double)) {
+                qDebug() << "left:" << std::any_cast<double>(point->getLeftData());
                 pointJson.insert(JSON_LEFT_DATA, std::any_cast<double>(point->getLeftData()));
             }
             pointJson.insert(JSON_RIGHT_KEYFRAME, point->getRightKeyFrame());
             if (point->getRightData().type() == typeid(double)) {
+                qDebug() << "right:" << std::any_cast<double>(point->getRightData());
                 pointJson.insert(JSON_RIGHT_DATA, std::any_cast<double>(point->getRightData()));
             }
 
