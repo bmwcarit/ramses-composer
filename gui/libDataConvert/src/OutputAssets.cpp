@@ -47,6 +47,8 @@ bool hasSysOpacity_{false};
 bool hasSysDotOpacity_{false};
 bool hasSysDotSize_{false};
 
+//static EInterPolationType PrePointType;
+static Point PrePoint;
 
 void DEBUG(QString FILE, QString FUNCTION, int LINE, QString msg) {
 	QMessageBox msgBox;
@@ -1586,22 +1588,36 @@ void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefiniti
 	pot->set_domain(pointData->getKeyFrame());
 	pot->set_allocated_value(value);
 	point->set_allocated_point(pot);
-
-	if (pointData->getInterPolationType() == raco::guiData::LINER) {
+	if (pointData->getInterPolationType() == raco::guiData::LINER && PrePoint.getInterPolationType() == raco::guiData::LINER) {
 		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 		point->set_allocated_incomminginterpolation(incommingInterpolation);
 		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
-	} else if (pointData->getInterPolationType() == raco::guiData::BESIER_SPLINE) {	 // HERMIT_SPLINE
+	} else if (pointData->getInterPolationType() == raco::guiData::LINER && PrePoint.getInterPolationType() == raco::guiData::BESIER_SPLINE) {
 		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
 		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
 		lefttangentVector->set_domain(pointData->getLeftKeyFrame());
 		TNumericValue* leftValue = new TNumericValue;
+		leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
+		lefttangentVector->set_allocated_value(leftValue);
+		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
+		point->set_allocated_incomminginterpolation(incommingInterpolation);
+		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
+		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
+		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
+	}
+	else if (pointData->getInterPolationType() == raco::guiData::BESIER_SPLINE) {	 // HERMIT_SPLINE
+		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
+		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
+
+		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
+		lefttangentVector->set_domain(pointData->getLeftKeyFrame());
+		TNumericValue* leftValue = new TNumericValue;
 		// debug
-		float valueTest = std::any_cast<double>(pointData->getLeftData());  // test
+		float valueTest = std::any_cast<double>(pointData->getLeftData());	// test
 		qDebug() << valueTest;
 		leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
 		lefttangentVector->set_allocated_value(leftValue);
@@ -1643,8 +1659,11 @@ void OutputPtw::ConvertCurveInfo(HmiWidget::TWidget* widget, std::string animati
 		curve->set_allocated_sampleposition(samplePosition);
 		TCurveDefinition* curveDefinition = new TCurveDefinition;
 		curveDefinition->set_curvevaluetype(TENumericType_float);
+
+		PrePoint = *(*(curveData->getPointList().begin()));
 		for (auto pointData : curveData->getPointList()) {
 			addPoint2Curve(pointData, curveDefinition, curveData->getCurveName());
+			PrePoint = *pointData;
 		}
 		if (curveData->getPointList().size() == 1) {
 			modifyOnePointCurve(curveData->getPointList().front(), curveDefinition, curveData->getCurveName());
