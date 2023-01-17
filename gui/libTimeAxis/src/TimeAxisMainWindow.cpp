@@ -335,11 +335,13 @@ void TimeAxisMainWindow::slotInitAnimationMgr() {
             }
         }
         curItemName_ = QString::fromStdString(animationDataManager::GetInstance().GetActiveAnimation());
-        loadAnimation();
+        if (!curItemName_.isEmpty()) {
+            loadAnimation();
+            timeAxisWidget_->refreshKeyFrameView();
+            visualCurveWidget_->initFrameView();
+            visualCurveNodeTreeView_->initCurves();
+        }
     }
-    timeAxisWidget_->refreshKeyFrameView();
-    visualCurveWidget_->initFrameView();
-    visualCurveNodeTreeView_->initCurves();
 }
 
 void TimeAxisMainWindow::slotCreateKeyFrame(QString curve) {
