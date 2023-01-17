@@ -213,10 +213,10 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
             std::list<Point *> pointList = curveData->getPointList();
             for (auto it = pointList.begin(); it != pointList.end(); it++) {
                 auto itTemp = it;
-				itTemp++;
-				if (itTemp != pointList.end()) {
+                itTemp++;
+                if (itTemp != pointList.end()) {
                     Point *point1 = *it;
-					Point *point2 = *itTemp;
+                    Point *point2 = *itTemp;
                     if (point1->getKeyFrame() < keyFrame && point2->getKeyFrame() > keyFrame) {
                         QList<QPointF> srcPoints, destPoints;
                         srcPoints.push_back(QPointF(point1->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point1->getDataValue()) * eachValueWidth));
@@ -256,12 +256,12 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
         if (CurveManager::GetInstance().hasCurve(curve)) {
             Curve *curveData = CurveManager::GetInstance().getCurve(curve);
             std::list<Point *> pointList = curveData->getPointList();
-			for (auto it = pointList.begin(); it != pointList.end(); it++) {
-				auto itTemp = it;
-				itTemp++;
-				if (itTemp != pointList.end()) {
-					Point *point1 = *it;
-					Point *point2 = *itTemp;
+            for (auto it = pointList.begin(); it != pointList.end(); it++) {
+                auto itTemp = it;
+                itTemp++;
+                if (itTemp != pointList.end()) {
+                    Point *point1 = *it;
+                    Point *point2 = *itTemp;
                     if (point1->getKeyFrame() < keyFrame && point2->getKeyFrame() > keyFrame) {
                         QList<QPointF> srcPoints, destPoints;
 
