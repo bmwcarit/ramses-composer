@@ -772,6 +772,7 @@ void VisualCurveInfoWidget::recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &w
     double leftLength = calculateTrigLen(abs(keyPoint.x - workerPoint.first.x()), abs(keyPoint.y - workerPoint.first.y()));
     double rightLength = calculateTrigLen(abs(keyPoint.x - workerPoint.second.x()), abs(keyPoint.y - workerPoint.second.y()));
     double offsetY = workerPoint.first.y() - keyPoint.y;
+    double offsetX = workerPoint.first.x() - keyPoint.x;
     double sinValue = abs(offsetY) / leftLength;
     sinValue = (offsetY == 0) ? 0 : sinValue;
 
@@ -780,10 +781,10 @@ void VisualCurveInfoWidget::recaculateWorkerLeftPoint(QPair<QPointF, QPointF> &w
 
     // get tangent
     double tangAngle{0};
-    if (rightX != 0) {
-        double tangValue = rightY / rightX;
-        tangAngle = atan(tangValue) * 180 / PI;
-        tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
+    if (offsetX != 0) {
+        double tangValue = offsetY / offsetX;
+        tangAngle = -atan(tangValue) * 180 / PI;
+//        tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
     } else {
         tangAngle = (offsetY >= 0) ? 90 : (-90);
     }
@@ -839,6 +840,7 @@ void VisualCurveInfoWidget::recaculateWorkerRightPoint(QPair<QPointF, QPointF> &
     double leftLength = calculateTrigLen(abs(keyPoint.x - workerPoint.first.x()), abs(keyPoint.y - workerPoint.first.y()));
     double rightLength = calculateTrigLen(abs(keyPoint.x - workerPoint.second.x()), abs(keyPoint.y - workerPoint.second.y()));
     double offsetY = keyPoint.y - workerPoint.second.y();
+    double offsetX = keyPoint.x - workerPoint.second.x();
     double sinValue = abs(offsetY) / rightLength;
     sinValue = (offsetY == 0) ? 0 : sinValue;
 
@@ -847,10 +849,10 @@ void VisualCurveInfoWidget::recaculateWorkerRightPoint(QPair<QPointF, QPointF> &
 
     // get tangent
     double tangAngle{0};
-    if (letfX != 0) {
-        double tangValue = letfY / letfX;
-        tangAngle = atan(tangValue) * 180 / PI;
-        tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
+    if (offsetX != 0) {
+        double tangValue = offsetY / offsetX;
+        tangAngle = -atan(tangValue) * 180 / PI;
+//        tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
     } else {
         tangAngle = (offsetY >= 0) ? 90 : (-90);
     }

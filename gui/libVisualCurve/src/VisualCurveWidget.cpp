@@ -1726,9 +1726,8 @@ void VisualCurveWidget::bezierSwitchToHermite() {
         keyPoints.replace(index, lastPoint);
         keyPoints.replace(index + 1, nextPoint);
         VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
-
-        switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
     }
+    switchPointInterpolationType(EInterPolationType::HERMIT_SPLINE);
     update();
 }
 
@@ -1772,9 +1771,8 @@ void VisualCurveWidget::hermiteSwitchToBezier() {
         keyPoints.replace(index, lastPoint);
         keyPoints.replace(index + 1, nextPoint);
         VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
-
-        switchPointInterpolationType(EInterPolationType::BESIER_SPLINE);
     }
+    switchPointInterpolationType(EInterPolationType::BESIER_SPLINE);
     update();
 }
 
@@ -1982,6 +1980,7 @@ void VisualCurveWidget::leftWorkerPointMove(QMouseEvent *event) {
         double leftLength = calculateTrigLen(abs(keyPointF.x() - pointFLeft.x()), abs(keyPointF.y() - pointFLeft.y()));
         double rightLength = calculateTrigLen(abs(keyPointF.x() - pointFRight.x()), abs(keyPointF.y() - pointFRight.y()));
         double offsetY = pointFLeft.y() - keyPointF.y();
+        double offsetX = pointFLeft.x() - keyPointF.x();
         double sinValue = abs(offsetY) / leftLength;
         sinValue = (offsetY == 0) ? 0 : sinValue;
 
@@ -1989,11 +1988,11 @@ void VisualCurveWidget::leftWorkerPointMove(QMouseEvent *event) {
         double rightX = sqrt(rightLength * rightLength - rightY * rightY);
 
         // get tangent
-        double tangAngle{0};
-        if (rightX != 0) {
-            double tangValue = rightY / rightX;
-            tangAngle = atan(tangValue) * 180 / PI;
-            tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
+        double tangAngle{0.0};
+        if (offsetX != 0) {
+            double tangValue = offsetY / offsetX;
+            tangAngle = -atan(tangValue) * 180 / PI;
+//            tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
         } else {
             tangAngle = (offsetY >= 0) ? 90 : (-90);
         }
@@ -2064,6 +2063,7 @@ void VisualCurveWidget::rightWorkerPointMove(QMouseEvent *event) {
         double leftLength = calculateTrigLen(abs(keyPointF.x() - pointFLeft.x()), abs(keyPointF.y() - pointFLeft.y()));
         double rightLength = calculateTrigLen(abs(keyPointF.x() - pointFRight.x()), abs(keyPointF.y() - pointFRight.y()));
         double offsetY = keyPointF.y() - pointFRight.y();
+        double offsetX = keyPointF.x() - pointFRight.x();
         double sinValue = abs(offsetY) / rightLength;
         sinValue = (offsetY == 0) ? 0 : sinValue;
 
@@ -2071,11 +2071,11 @@ void VisualCurveWidget::rightWorkerPointMove(QMouseEvent *event) {
         double letfX = sqrt(leftLength * leftLength - letfY * letfY);
 
         // get tangent
-        double tangAngle{0};
-        if (letfX != 0) {
-            double tangValue = letfY / letfX;
-            tangAngle = atan(tangValue) * 180 / PI;
-            tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
+        double tangAngle{0.0};
+        if (offsetX != 0) {
+            double tangValue = offsetY / offsetX;
+            tangAngle = -(atan(tangValue) * 180 / PI);
+//            tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
         } else {
             tangAngle = (offsetY >= 0) ? 90 : (-90);
         }
