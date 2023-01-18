@@ -9,6 +9,8 @@
 #include <QMessageBox>
 #include <cmath>
 
+
+
 namespace raco::dataConvert {
 using namespace raco::style;
 
@@ -1595,42 +1597,51 @@ void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefiniti
 		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
-	} else if (pointData->getInterPolationType() == raco::guiData::LINER && PrePoint.getInterPolationType() == raco::guiData::BESIER_SPLINE) {
+	} else if (pointData->getInterPolationType() == raco::guiData::LINER && PrePoint.getInterPolationType() == raco::guiData::HERMIT_SPLINE) {
 		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
+		float domainL = pointData->getKeyFrame() - pointData->getLeftKeyFrame();
 		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
-		lefttangentVector->set_domain(pointData->getLeftKeyFrame());
+		lefttangentVector->set_domain(domainL);
 		TNumericValue* leftValue = new TNumericValue;
-		leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
+		double valueTest = std::tan(std::any_cast<double>(pointData->getLeftTagent()) / 180.0f * PI);
+		leftValue->set_float_(std::any_cast<double>(valueTest));
 		lefttangentVector->set_allocated_value(leftValue);
 		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
 		point->set_allocated_incomminginterpolation(incommingInterpolation);
+
+
+
 		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
-	}
-	else if (pointData->getInterPolationType() == raco::guiData::BESIER_SPLINE) {	 // HERMIT_SPLINE
+	} else if (pointData->getInterPolationType() == raco::guiData::HERMIT_SPLINE) {	 // HERMIT_SPLINE
 		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
-
+		float domainL = pointData->getKeyFrame() - pointData->getLeftKeyFrame();
 		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
-		lefttangentVector->set_domain(pointData->getLeftKeyFrame());
+		lefttangentVector->set_domain(domainL);
 		TNumericValue* leftValue = new TNumericValue;
 		// debug
-		float valueTest = std::any_cast<double>(pointData->getLeftData());	// test
-		qDebug() << valueTest;
-		leftValue->set_float_(std::any_cast<double>(pointData->getLeftData()));
+
+		//float valueTest = std::any_cast<double>(pointData->getLeftData());	// test
+		double valueTest = std::tan(std::any_cast<double>(pointData->getLeftTagent()) / 180.0f * PI);
+		leftValue->set_float_(std::any_cast<double>(valueTest));
 		lefttangentVector->set_allocated_value(leftValue);
 		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
 		point->set_allocated_incomminginterpolation(incommingInterpolation);
+
+		///////////////////////
 
 		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
 		TMultidimensionalPoint* RighttangentVector = new TMultidimensionalPoint;
-		RighttangentVector->set_domain(pointData->getRightKeyFrame());
+
+		float domainR = pointData->getRightKeyFrame() - pointData->getKeyFrame();
+		RighttangentVector->set_domain(domainR);
 		TNumericValue* RightValue = new TNumericValue;
-		double rightTest = std::any_cast<double>(pointData->getRightTagent());
-		RightValue->set_float_(std::any_cast<double>(pointData->getRightData()));
+		double rightTest = std::tan(std::any_cast<double>(pointData->getRightTagent())/ 180.0f * PI);
+		RightValue->set_float_(rightTest);
 		RighttangentVector->set_allocated_value(RightValue);
 		outgoingInterpolation->set_allocated_tangentvector(RighttangentVector);
 		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
