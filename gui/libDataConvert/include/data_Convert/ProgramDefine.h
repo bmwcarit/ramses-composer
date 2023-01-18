@@ -139,4 +139,6 @@
 #define PRO_ELLIE					std::string("Ellie")
 #define PRO_GASSTATION				std::string("GasStation")
 
+
+#define PI (3.14159265358979323846)
 #endif // PROGRAMDEFINE_H
