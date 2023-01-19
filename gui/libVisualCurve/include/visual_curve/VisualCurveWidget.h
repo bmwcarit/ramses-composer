@@ -85,8 +85,6 @@ private:
     void drawBezier(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint, QPair<QPointF, QPointF> lastWorkerPoint, QPair<QPointF, QPointF> nextWorkerPoint);
     // paint hermite
     void drawHermite(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint, QPair<QPointF, QPointF> lastWorkerPoint, QPair<QPointF, QPointF> nextWorkerPoint);
-    // paint bezier convert hermite
-    void drawBezier2Hermite(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint, QPair<QPointF, QPointF> lastWorkerPoint, QPair<QPointF, QPointF> nextWorkerPoint);
     // paint step
     void drawStep(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint);
     // paint worker point
@@ -123,6 +121,10 @@ private:
     QPointF reCaculateRightWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint, QPointF rightPoint);
     // recaculate left worker point pos
     QPointF reCaculateLeftWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint, QPointF rightPoint);
+    // recaculate right worker point pos
+    void updateRightWorkerPoint(SKeyPoint keyPoint, QPointF rightPoint);
+    // recaculate left worker point pos
+    void updateLeftWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint);
     // push state to undo stack
     void pushState2UndoStack(std::string description);
     // push moved state
