@@ -224,10 +224,10 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
                         srcPoints.push_back(QPointF(point2->getLeftKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getLeftData()) * eachValueWidth));
                         srcPoints.push_back(QPointF(point2->getKeyFrame() * eachFrameWidth, std::any_cast<double>(point2->getDataValue()) * eachValueWidth));
 
-                        time_axis::createNBezierCurve(srcPoints, destPoints, 0.01);
+                        time_axis::createNBezierCurve(srcPoints, destPoints, 0.001);
 
                         // point border value
-                        double dIndex = (100.0 / (point2->getKeyFrame() - point1->getKeyFrame()) * (keyFrame - point1->getKeyFrame())) - 1;
+                        double dIndex = (1000.0 / (point2->getKeyFrame() - point1->getKeyFrame()) * (keyFrame - point1->getKeyFrame())) - 1;
                         int iIndex = dIndex;
                         if (iIndex >= destPoints.size() - 1) {
                             iIndex = destPoints.size() - 1;
@@ -270,12 +270,12 @@ bool NodeLogic::getKeyValue(std::string curve, EInterPolationType type, int keyF
                         srcPoints.push_back(QPointF((point1->getRightKeyFrame() - point1->getKeyFrame()) * eachFrameWidth,
                                                     (std::any_cast<double>(point1->getRightData()) - std::any_cast<double>(point1->getDataValue())) * eachValueWidth));
                         srcPoints.push_back(QPointF((point2->getKeyFrame() - point2->getLeftKeyFrame()) * eachFrameWidth,
-                                                    (std::any_cast<double>(point2->getDataValue()) - std::any_cast<double>(point2->getLeftData())) * eachValueWidth));
+                                                    (std::any_cast<double>(point2->getLeftData()) - std::any_cast<double>(point2->getDataValue())) * eachValueWidth));
 
-                        time_axis::createHermiteCurve(srcPoints, destPoints, 0.01);
+                        time_axis::createHermiteCurve(srcPoints, destPoints, 0.001);
 
                         // point border value
-                        double dIndex = (100.0 / (point2->getKeyFrame() - point1->getKeyFrame()) * (keyFrame - point1->getKeyFrame())) - 1;
+                        double dIndex = (1000.0 / (point2->getKeyFrame() - point1->getKeyFrame()) * (keyFrame - point1->getKeyFrame())) - 1;
                         int iIndex = dIndex;
                         if (iIndex >= destPoints.size() - 1) {
                             iIndex = destPoints.size() - 1;

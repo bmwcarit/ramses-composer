@@ -1233,8 +1233,8 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
     QPointF tangPoint1, tangPoint2;
     tangPoint1.setX(endWorkerPoint.x() - lastKey.x());
     tangPoint1.setY(endWorkerPoint.y() - lastKey.y());
-    tangPoint2.setX(nextKey.x() - startWorkerPoint.x());
-    tangPoint2.setY(nextKey.y() - startWorkerPoint.y());
+    tangPoint2.setX(startWorkerPoint.x() - nextKey.x());
+    tangPoint2.setY(startWorkerPoint.y() - nextKey.y());
 
     QList<QPointF> srcPoints, destPoints;
     srcPoints.push_back(lastKey);
@@ -1286,44 +1286,6 @@ void VisualCurveWidget::drawHermite(QPainter &painter, std::string curve, SKeyPo
             painter.drawPath(painterPath2);
         }
     }
-}
-
-void VisualCurveWidget::drawBezier2Hermite(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint, QPair<QPointF, QPointF> lastWorkerPoint, QPair<QPointF, QPointF> nextWorkerPoint) {
-    // hermite curve
-    QPointF lastKey(lastPoint.x, lastPoint.y);
-    QPointF nextKey(nextPoint.x, nextPoint.y);
-
-    // tangency point
-    QPointF tangPoint1, tangPoint2;
-    tangPoint1.setX(lastWorkerPoint.second.x() - lastKey.x());
-    tangPoint1.setY(lastWorkerPoint.second.y() - lastKey.y());
-    tangPoint2.setX(nextKey.x() - nextWorkerPoint.first.x());
-    tangPoint2.setY(nextKey.y() - nextWorkerPoint.first.y());
-
-    // u1 u2 convert p1 p2
-    QPointF bezierPoint1, bezierPoint2;
-    bezierPoint1.setX(tangPoint1.x() / 3 + lastKey.x());
-    bezierPoint1.setY(tangPoint1.y() / 3 + lastKey.y());
-    bezierPoint2.setX(nextKey.x() - tangPoint2.x() / 3);
-    bezierPoint2.setY(nextKey.y() - tangPoint2.y() / 3);
-
-    QList<QPointF> srcPoints, destPoints;
-    srcPoints.push_back(lastKey);
-    srcPoints.push_back(bezierPoint1);
-    srcPoints.push_back(bezierPoint2);
-    srcPoints.push_back(nextKey);
-
-    // get hermite points
-    createNBezierCurve(srcPoints, destPoints, 0.01);
-
-    // paint hermite curve
-    QPainterPath painterPath;
-    painterPath.moveTo(destPoints.at(0));
-    for (auto i = 1; i < destPoints.size(); i++) {;
-        painterPath.lineTo(destPoints.at(i));
-    }
-    painter.setBrush(QBrush());
-    painter.drawPath(painterPath);
 }
 
 void VisualCurveWidget::drawStep(QPainter &painter, std::string curve, SKeyPoint lastPoint, SKeyPoint nextPoint) {
@@ -1707,16 +1669,14 @@ void VisualCurveWidget::bezierSwitchToHermite() {
         endWorkerPoint.setX(lastWorkerPointX);
         endWorkerPoint.setY(lastWorkerPointY);
         qSwap(lastWorkerPoint.second, endWorkerPoint);
-        QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
-        qSwap(lastWorkerPoint.first, leftPoint);
+        updateRightWorkerPoint(lastPoint, lastWorkerPoint.second);
 
-        double nextWorkerPointX = nextPoint.x - 3.0 * (nextPoint.x - startWorkerPoint.x());
-        double nextWorkerPointY = nextPoint.y - 3.0 * (nextPoint.y - startWorkerPoint.y());
+        double nextWorkerPointX = 3.0 * (nextPoint.x - startWorkerPoint.x()) + nextPoint.x;
+        double nextWorkerPointY = 3.0 * (nextPoint.y - startWorkerPoint.y()) + nextPoint.y;
         startWorkerPoint.setX(nextWorkerPointX);
         startWorkerPoint.setY(nextWorkerPointY);
         qSwap(nextWorkerPoint.first, startWorkerPoint);
-        QPointF rightPoint = reCaculateRightWorkerPoint(nextPoint, nextWorkerPoint.first, nextWorkerPoint.second);
-        qSwap(nextWorkerPoint.second, rightPoint);
+        updateLeftWorkerPoint(nextPoint, nextWorkerPoint.first);
 
         lastPoint.setLeftPoint(lastWorkerPoint.first);
         lastPoint.setRightPoint(lastWorkerPoint.second);
@@ -1747,16 +1707,19 @@ void VisualCurveWidget::hermiteSwitchToBezier() {
         QPointF endWorkerPoint(lastWorkerPoint.second);
         QPointF startWorkerPoint(nextWorkerPoint.first);
 
-        double lastWorkerPointX = (endWorkerPoint.x() + 2 * lastPoint.x) / 3.0;
-        double lastWorkerPointY = (endWorkerPoint.y() + 2 * lastPoint.y) / 3.0;
+        double lastWorkerPointX = lastPoint.x + (endWorkerPoint.x() - lastPoint.x) / 3.0;
+        double lastWorkerPointY = lastPoint.y + (endWorkerPoint.y() - lastPoint.y) / 3.0;
+//        double lastWorkerPointY = (endWorkerPoint.y() + 2 * lastPoint.y) / 3.0;
         endWorkerPoint.setX(lastWorkerPointX);
         endWorkerPoint.setY(lastWorkerPointY);
         qSwap(lastWorkerPoint.second, endWorkerPoint);
         QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
         qSwap(lastWorkerPoint.first, leftPoint);
 
-        double nextWorkerPointX = (2 * nextPoint.x + startWorkerPoint.x()) / 3.0;
-        double nextWorkerPointY = (2 * nextPoint.y + startWorkerPoint.y()) / 3.0;
+//        double nextWorkerPointX = (2 * nextPoint.x + startWorkerPoint.x()) / 3.0;
+//        double nextWorkerPointY = (2 * nextPoint.y + startWorkerPoint.y()) / 3.0;
+        double nextWorkerPointX = nextPoint.x - (startWorkerPoint.x() - nextPoint.x) / 3.0;
+        double nextWorkerPointY = nextPoint.y - (startWorkerPoint.y() - nextPoint.y) / 3.0;
         startWorkerPoint.setX(nextWorkerPointX);
         startWorkerPoint.setY(nextWorkerPointY);
         qSwap(nextWorkerPoint.first, startWorkerPoint);
@@ -2641,6 +2604,86 @@ QPointF VisualCurveWidget::reCaculateLeftWorkerPoint(SKeyPoint keyPoint, QPointF
         }
     }
     return leftPoint;
+}
+
+void VisualCurveWidget::updateRightWorkerPoint(SKeyPoint keyPoint, QPointF rightPoint) {
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
+    double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
+
+    // caculate offset x,y by trigle
+    double offsetY = keyPoint.y - rightPoint.y();
+    double rightY = abs(keyPoint.y - rightPoint.y());
+    double rightX = abs(keyPoint.x - rightPoint.x());
+
+    // get tangent
+    double tangAngle{0};
+    if (rightX != 0) {
+        double tangValue = rightY / rightX;
+        tangAngle = atan(tangValue) * 180 / PI;
+        tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
+    } else {
+        tangAngle = (offsetY >= 0) ? 90 : (-90);
+    }
+
+    double rightKeyFrame{0.0};
+    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, rightPoint, rightKeyFrame);
+
+    double rightKeyValue{0.0};
+    pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, rightPoint, rightKeyValue);
+
+    std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+
+    // fill point tangent
+    if (CurveManager::GetInstance().getCurve(curCurve)) {
+        Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
+        Point *point = curve->getPoint(keyPoint.keyFrame);
+        if (point) {
+            point->setRightTagent(tangAngle);
+            point->setRightData(rightKeyValue);
+            point->setRightKeyFrame(rightKeyFrame);
+        }
+    }
+}
+
+void VisualCurveWidget::updateLeftWorkerPoint(SKeyPoint keyPoint, QPointF leftPoint) {
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
+    double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
+
+    double offsetY = keyPoint.y - leftPoint.y();
+    double letfY = abs(keyPoint.y - leftPoint.y());
+    double letfX = abs(keyPoint.x - leftPoint.x());
+
+    // get tangent
+    double tangAngle{0};
+    if (letfX != 0) {
+        double tangValue = letfY / letfX;
+        tangAngle = atan(tangValue) * 180 / PI;
+        tangAngle = (offsetY >= 0) ? tangAngle : (-tangAngle);
+    } else {
+        tangAngle = (offsetY >= 0) ? 90 : (-90);
+    }
+
+    double leftKeyFrame{0.0};
+    pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyFrame);
+
+    double leftKeyValue{0.0};
+    pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, leftPoint, leftKeyValue);
+
+    std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+    // fill point tangent
+    if (CurveManager::GetInstance().getCurve(curCurve)) {
+        Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
+        Point *point = curve->getPoint(keyPoint.keyFrame);
+        if (point) {
+            point->setLeftTagent(tangAngle);
+            point->setLeftData(leftKeyValue);
+            point->setLeftKeyFrame(leftKeyFrame);
+        }
+    }
 }
 
 void VisualCurveWidget::pushState2UndoStack(std::string description) {
