@@ -11,9 +11,11 @@
 #pragma once
 
 #include "core/EditorObject.h"
+#include "core/EngineInterface.h"
 #include "core/Handles.h"
 #include "core/Link.h"
-#include "core/EngineInterface.h"
+#include "core/MeshCacheInterface.h"
+
 #include <spdlog/fmt/fmt.h>
 #include <sstream>
 
@@ -52,7 +54,6 @@ struct fmt::formatter<raco::data_storage::PrimitiveType> : formatter<string_view
 	}
 };
 
-
 template <>
 struct fmt::formatter<raco::core::EnginePrimitive> : formatter<string_view> {
 	template <typename FormatContext>
@@ -79,6 +80,31 @@ struct fmt::formatter<raco::core::EnginePrimitive> : formatter<string_view> {
 			{raco::core::EnginePrimitive::TextureSampler3D, "TextureSampler3D"},
 			{raco::core::EnginePrimitive::TextureSamplerCube, "TextureSamplerCube"}};
 		return formatter<string_view>::format(nameMap.at(type), ctx);
+	}
+};
+
+template <>
+struct fmt::formatter<raco::core::MeshAnimationInterpolation> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const raco::core::MeshAnimationInterpolation interpolation, FormatContext& ctx) {
+		switch (interpolation) {
+			case raco::core::MeshAnimationInterpolation::Linear: {
+				return formatter<string_view>::format(std::string("Linear"), ctx);
+			}
+			case raco::core::MeshAnimationInterpolation::CubicSpline: {
+				return formatter<string_view>::format(std::string("CubicSpline"), ctx);
+			}
+			case raco::core::MeshAnimationInterpolation::Step: {
+				return formatter<string_view>::format(std::string("Step"), ctx);
+			}
+			case raco::core::MeshAnimationInterpolation::Linear_Quaternion: {
+				return formatter<string_view>::format(std::string("Linear_Quaternion"), ctx);
+			}
+			case raco::core::MeshAnimationInterpolation::CubicSpline_Quaternion: {
+				return formatter<string_view>::format(std::string("CubicSpline_Quaternion"), ctx);
+			}
+		}
+		return formatter<string_view>::format(std::string("Invalid"), ctx);
 	}
 };
 
@@ -132,9 +158,9 @@ struct fmt::formatter<raco::core::SLink> : formatter<string_view> {
 	}
 };
 
-template<>
+template <>
 struct fmt::formatter<raco::core::LinkDescriptor> : formatter<string_view> {
-	template<typename FormatContext>
+	template <typename FormatContext>
 	auto format(const raco::core::LinkDescriptor& link, FormatContext& ctx) {
 		return fmt::format_to(ctx.out(), "Link {{ start: {}#{} end: {}#{} }}",
 			ObjectNameOnly{link.start.object()},
@@ -143,4 +169,3 @@ struct fmt::formatter<raco::core::LinkDescriptor> : formatter<string_view> {
 			fmt::join(link.end.propertyNames(), "."));
 	}
 };
-

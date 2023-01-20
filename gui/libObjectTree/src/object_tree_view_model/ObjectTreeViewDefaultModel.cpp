@@ -62,12 +62,17 @@ ObjectTreeViewDefaultModel::ObjectTreeViewDefaultModel(raco::core::CommandInterf
 		}
 	});
 
-	nodeSubscriptions_["objectName"].emplace_back(dispatcher_->registerOnPropertyChange("objectName", [this](ValueHandle handle) {
+	auto setDirtyAction = [this](ValueHandle handle) {
 		// Small optimization: Only set model dirty if the object with the changed name is actually in the model.
 		if (indexes_.count(handle.rootObject()->objectID()) > 0) {
 			dirty_ = true;
-		}
-	}));
+		} 
+	};
+
+	nodeSubscriptions_["objectName"].emplace_back(dispatcher_->registerOnPropertyChange("objectName", setDirtyAction));
+	nodeSubscriptions_["visibility"].emplace_back(dispatcher_->registerOnPropertyChange("visibility", setDirtyAction));
+	nodeSubscriptions_["enabled"].emplace_back(dispatcher_->registerOnPropertyChange("enabled", setDirtyAction));
+
 	nodeSubscriptions_["children"].emplace_back(dispatcher_->registerOnPropertyChange("children", [this](ValueHandle handle) {
 		dirty_ = true;
 	}));
@@ -82,6 +87,31 @@ int ObjectTreeViewDefaultModel::columnCount(const QModelIndex& parent) const {
 }
 
 
+QVariant ObjectTreeViewDefaultModel::getNodeIcon(ObjectTreeNode* treeNode) const {
+	std::string typeName;
+	if (treeNode->getType() == ObjectTreeNodeType::TypeParent) {
+		typeName = treeNode->getTypeName();
+	} else {
+		auto editorObj = treeNode->getRepresentedObject();
+		if (editorObj) {
+			typeName = editorObj->getTypeDescription().typeName;
+		}
+	}
+
+	if (!typeName.empty()) {
+		auto itr = typeIconMap.find(typeName);
+		if (itr == typeIconMap.end())
+			return QVariant();
+		return QVariant(itr->second);
+	}
+	return QVariant();
+}
+
+QVariant ObjectTreeViewDefaultModel::getVisibilityIcon(ObjectTreeNode* treeNode) const {
+	auto it = visibilityIconMap_.find(treeNode->getVisibility());
+	return it != visibilityIconMap_.end() ? it->second : QVariant();
+}
+
 QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) const {
 	if (!index.isValid()) {
 		return QVariant();
@@ -91,21 +121,10 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 
 	switch (role) {
 		case Qt::DecorationRole: {
-			std::string typeName;
-			if (treeNode->getType() == ObjectTreeNodeType::TypeParent) {
-				typeName = treeNode->getTypeName();
-			} else {
-				auto editorObj = treeNode->getRepresentedObject();
-				if (editorObj) {
-					typeName = editorObj->getTypeDescription().typeName;
-				}
-			}
-
-			if (!typeName.empty() && index.column() == COLUMNINDEX_NAME) {
-				auto itr = typeIconMap.find(typeName);
-				if (itr == typeIconMap.end())
-					return QVariant();
-				return QVariant(itr->second);
+			if (index.column() == COLUMNINDEX_NAME) {
+				return getNodeIcon(treeNode);
+			} else if (index.column() == COLUMNINDEX_VISIBILITY) {
+				return getVisibilityIcon(treeNode);
 			}
 			return QVariant();
 		}
@@ -148,9 +167,10 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 					return QVariant(QString::fromStdString(treeNode->getDisplayType()));
 				case COLUMNINDEX_ID:
 					return QVariant(QString::fromStdString(treeNode->getID()));
-				case COLUMNINDEX_PROJECT: {
+				case COLUMNINDEX_PROJECT:
 					return QVariant(QString::fromStdString(treeNode->getExternalProjectName()));
-				}
+				case COLUMNINDEX_VISIBILITY:
+					return QVariant(QString());
 			}
 		}
 		case Qt::EditRole: {
@@ -610,22 +630,21 @@ void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEdito
 }
 
 void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex) {
-	MeshDescriptor meshDesc;
-	meshDesc.absPath = filePath.toStdString();
-	meshDesc.bakeAllSubmeshes = false;
+	auto absPath = filePath.toStdString();
 
 	auto selectedObject = indexToSEditorObject(selectedIndex);
 
 	// create dummy cache entry to prevent "cache corpses" if the mesh file is otherwise not accessed by any Mesh
-	auto dummyCacheEntry = commandInterface_->meshCache()->registerFileChangedHandler(meshDesc.absPath, {nullptr, nullptr, []() {}});
-	if (auto sceneGraph = commandInterface_->meshCache()->getMeshScenegraph(meshDesc)) {
-		auto importStatus = raco::common_widgets::MeshAssetImportDialog(*sceneGraph, nullptr).exec();
+	auto dummyCacheEntry = commandInterface_->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	if (auto sceneGraphPtr = commandInterface_->meshCache()->getMeshScenegraph(absPath)) {
+		MeshScenegraph sceneGraph{*sceneGraphPtr};
+		auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, project()->featureLevel(), nullptr).exec();
 		if (importStatus == QDialog::Accepted) {
-			commandInterface_->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, selectedObject);
+			commandInterface_->insertAssetScenegraph(sceneGraph, absPath, selectedObject);
 		}
 	} else {
-		auto meshError = commandInterface_->meshCache()->getMeshError(meshDesc.absPath);
-		Q_EMIT meshImportFailed(meshDesc.absPath, meshError);
+		auto meshError = commandInterface_->meshCache()->getMeshError(absPath);
+		Q_EMIT meshImportFailed(absPath, meshError);
 	}
 }
 

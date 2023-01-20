@@ -18,6 +18,7 @@
 #include "core/MeshCacheInterface.h"
 #include "data_storage/Value.h"
 #include "ramses_adaptor/BuildOptions.h"
+#include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Material.h"
@@ -84,10 +85,6 @@ static constexpr const char* defaultIndexDataBufferName = "raco::ramses_adaptor:
 static constexpr const char* defaultVertexDataBufferName = "raco::ramses_adaptor::DefaultVertexDataBuffer";
 static constexpr const char* defaultRenderGroupName = "raco::ramses_adaptor::DefaultRenderGroup";
 static constexpr const char* defaultRenderPassName = "raco::ramses_adaptor::DefaultRenderPass";
-static constexpr const char* defaultAnimationName = "raco::ramses_adaptor::DefaultAnimation";
-static constexpr const char* defaultAnimationChannelName = "raco::ramses_adaptor::DefaultAnimationChannel";
-static constexpr const char* defaultAnimationChannelTimestampsName = "raco::ramses_adaptor::DefaultAnimationTimestamps";
-static constexpr const char* defaultAnimationChannelKeyframesName = "raco::ramses_adaptor::DefaultAnimationKeyframes";
 
 struct Vec3f {
 	float x, y, z;
@@ -498,5 +495,7 @@ inline void setCullMode(ramses::Appearance* appearance, const core::ValueHandle&
 inline bool isArrayOfStructs(const rlogic::Property& property) {
 	return property.getType() == rlogic::EPropertyType::Array && property.getChildCount() > 0 && property.getChild(0)->getType() == rlogic::EPropertyType::Struct;
 }
+
+raco::ramses_base::RamsesNodeBinding lookupNodeBinding(const SceneAdaptor* sceneAdaptor, core::SEditorObject node);
 
 };	// namespace raco::ramses_adaptor

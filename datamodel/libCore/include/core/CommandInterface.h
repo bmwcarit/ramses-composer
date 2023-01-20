@@ -49,12 +49,14 @@ class CommandInterface {
 public:
 	CommandInterface(BaseContext* context, UndoStack* undostack);
 
-	Project* project();
+	Project* project() const;
 	UserObjectFactoryInterface* objectFactory();
 	MeshCache* meshCache();
 	Errors& errors();
-	EngineInterface& engineInterface();
+	EngineInterface& engineInterface() const;
 	UndoStack& undoStack();
+
+	bool canSet(ValueHandle const& handle, int const& value) const;
 
 	// Basic property changes
 	void set(ValueHandle const& handle, bool const& value);
@@ -71,10 +73,15 @@ public:
 	void set(ValueHandle const& handle, std::array<int, 3> const& value);
 	void set(ValueHandle const& handle, std::array<int, 4> const& value);
 
+	
+	bool canSetTags(ValueHandle const& handle, std::vector<std::string> const& value) const;
+
 	// Set a tag set property
 	// The handle must be a Table property with a TagContainer annotation.
 	// All existing tags will be completed replaced by the new tag set.
 	void setTags(ValueHandle const& handle, std::vector<std::string> const& tags);
+
+	bool canSetRenderableTags(ValueHandle const& handle, std::vector<std::pair<std::string, int>> const& renderableTags) const;
 
 	// Set a renderable tag set property
 	// @param handle must be a Table property with a RenderableTagContainer annotation.
@@ -140,6 +147,9 @@ public:
 	size_t deleteUnreferencedResources();
 
 private:
+	bool canSetHandle(ValueHandle const& handle) const;
+	bool canSetHandle(ValueHandle const& handle, PrimitiveType type) const;
+
 	bool checkHandleForSet(ValueHandle const& handle);
 	bool checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type);
 

@@ -18,6 +18,7 @@
 #include <ramses-logic/RamsesNodeBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>
 #include <ramses-logic/RamsesRenderPassBinding.h>
+#include <ramses-logic/SkinBinding.h>
 
 #include "ramses_base/RamsesFormatter.h"
 #include "ramses_base/BaseEngineBackend.h"
@@ -264,6 +265,10 @@ std::vector<SceneBackend::SceneItemDesc> SceneBackend::getSceneItemDescriptions(
 	for (const auto* binding : logicEngine()->getCollection<rlogic::RamsesRenderGroupBinding>()) {
 		auto parentIdx = parents[&binding->getRamsesRenderGroup()];
 		sceneItems.emplace_back("RenderGroupBinding", binding->getName().data(), parentIdx);
+	}
+
+	for (const auto* skin : logicEngine()->getCollection<rlogic::SkinBinding>()) {
+		sceneItems.emplace_back("SkinBinding", skin->getName().data(), -1);
 	}
 
 	return sceneItems;

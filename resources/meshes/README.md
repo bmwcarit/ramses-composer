@@ -63,6 +63,15 @@ Donated by Cesium - Creative Commons Attribution 4.0 International License
 https://creativecommons.org/licenses/by/4.0/
 
 
+## SimpleSkin
+
+https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/SimpleSkin
+
+Public domain
+
+https://creativecommons.org/publicdomain/zero/1.0/
+
+
 ## ToyCar
 
 https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/ToyCar

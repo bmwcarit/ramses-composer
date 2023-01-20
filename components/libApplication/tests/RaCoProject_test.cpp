@@ -315,8 +315,9 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadAnimationKeepsChannelAmount) {
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	commandInterface->createObject(raco::user_types::Animation::typeDescription.typeName, "userAnim");
 
 	std::string msg;
@@ -580,11 +581,11 @@ TEST_F(RaCoProjectFixture, saveAs_set_path_updates_cached_path) {
 	const auto& settings = app.activeRaCoProject().project()->settings();
 	const auto& commandInterface = app.activeRaCoProject().commandInterface();
 
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
 	app.doOneLoop();
 
 	std::string newProjectFolder = app.activeRaCoProject().project()->currentFolder();
@@ -612,11 +613,11 @@ TEST_F(RaCoProjectFixture, saveAs_with_new_id_set_path_updates_cached_path) {
 	const auto& settings = app.activeRaCoProject().project()->settings();
 	const auto& commandInterface = app.activeRaCoProject().commandInterface();
 
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
 	app.doOneLoop();
 
 	std::string newProjectFolder = app.activeRaCoProject().project()->currentFolder();
@@ -649,11 +650,11 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 	RaCoApplication app{backend};
 	const auto& settings = app.activeRaCoProject().project()->settings();
 	const auto& commandInterface = app.activeRaCoProject().commandInterface();
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
-	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_}, imageSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_}, meshSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::scriptSubdirectory_}, scriptSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::interfaceSubdirectory_}, interfaceSubdirectory);
+	commandInterface->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::shaderSubdirectory_}, shaderSubdirectory);
 	std::string msg;
 	ASSERT_TRUE(app.activeRaCoProject().saveAs(QString::fromStdString(newProjectFolder + "/project.rca"), msg));
 
@@ -880,8 +881,10 @@ TEST_F(RaCoProjectFixture, copyPasteShallowAnimationReferencingAnimationChannel)
 		RaCoApplication app{backend};
 		app.activeRaCoProject().project()->setCurrentPath((test_path() / "project.rca").string());
 		auto path = (test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string();
-		auto scenegraph = app.activeRaCoProject().meshCache()->getMeshScenegraph({path, 0, false});
-		app.activeRaCoProject().commandInterface()->insertAssetScenegraph(*scenegraph, path, nullptr);
+		
+		auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(app.activeRaCoProject().meshCache(), {path, 0, false});
+
+		app.activeRaCoProject().commandInterface()->insertAssetScenegraph(scenegraph, path, nullptr);
 		app.doOneLoop();
 
 		auto anim = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "Step Scale");
@@ -902,8 +905,8 @@ TEST_F(RaCoProjectFixture, copyPasteDeepAnimationReferencingAnimationChannel) {
 		RaCoApplication app{backend};
 		app.activeRaCoProject().project()->setCurrentPath((test_path() / "project.rca").string());
 		auto path = (test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string();
-		auto scenegraph = app.activeRaCoProject().meshCache()->getMeshScenegraph({path, 0, false});
-		app.activeRaCoProject().commandInterface()->insertAssetScenegraph(*scenegraph, path, nullptr);
+		auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(app.activeRaCoProject().meshCache(), {path, 0, false});
+		app.activeRaCoProject().commandInterface()->insertAssetScenegraph(scenegraph, path, nullptr);
 		app.doOneLoop();
 
 		auto anim = raco::core::Queries::findByName(app.activeRaCoProject().project()->instances(), "Step Scale");

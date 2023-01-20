@@ -15,7 +15,13 @@
 
 namespace raco::ramses_widgets {
 
+enum class PreviewFilteringMode {
+	NearestNeighbor,
+	Linear
+};
+
 enum PreviewMultiSampleRate {
+	MSAA_0X = 0,	 // no multi-sampling
 	MSAA_1X = 1,
 	MSAA_2X = 2,
 	MSAA_4X = 4,
@@ -29,7 +35,7 @@ public:
 	explicit PreviewFramebufferScene(ramses::RamsesClient& client, ramses::sceneId_t sceneId);
 
 	ramses::sceneId_t getSceneId() const;
-	ramses::dataConsumerId_t setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewMultiSampleRate sampleRate);
+	ramses::dataConsumerId_t setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewFilteringMode filteringMode, PreviewMultiSampleRate sampleRate);
 	void setViewport(const QPoint& viewportPosition, const QSize& viewportSize, const QSize& virtualSize);
 
 private:
@@ -39,17 +45,24 @@ private:
 	std::shared_ptr<ramses::RenderGroup> renderGroup_;
 	std::shared_ptr<ramses::RenderPass> renderPass_;
 	raco::ramses_base::RamsesEffect effect_;
+	raco::ramses_base::RamsesEffect effectMS_;
 	raco::ramses_base::RamsesAppearance appearance_;
+	raco::ramses_base::RamsesAppearance appearanceMS_;
 	raco::ramses_base::RamsesArrayResource indexDataBuffer_;
 	raco::ramses_base::RamsesArrayResource vertexDataBuffer_;
 	raco::ramses_base::RamsesArrayResource uvDataBuffer_;
 	raco::ramses_base::RamsesGeometryBinding geometryBinding_;
+	raco::ramses_base::RamsesGeometryBinding geometryBindingMS_;
 	raco::ramses_base::RamsesMeshNode meshNode_;
 
 	// Offscreen texture and consumer
-	raco::ramses_base::RamsesRenderBuffer renderbuffer_;
+	raco::ramses_base::RamsesTexture2D framebufferTexture_;
+	raco::ramses_base::RamsesTextureSampler sampler_;
+	raco::ramses_base::RamsesRenderBuffer renderbufferMS_;
 	raco::ramses_base::RamsesTextureSamplerMS samplerMS_;
 	ramses::dataConsumerId_t framebufferSampleId_;
+
+	int currentSampleCount_ = 0;
 };
 
 }  // namespace raco::ramses_widgets

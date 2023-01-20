@@ -78,20 +78,8 @@ bool operator!=(const u8path& lhs, const u8path& rhs) {
 	std::error_code ec;
 	auto status = std::filesystem::status(path_, ec);
 	if (!ec) {
-#ifdef _WIN32
-		// enforce case-sensitive path name check for Windows systems to unify behavior with Linux builds
-		if (std::filesystem::exists(status)) {
-			auto canonicalPath = std::filesystem::canonical(path_, ec);
-
-			return !ec && canonicalPath == path_;
-		}
-
-		return false;
-#else
 		return std::filesystem::exists(status);
-#endif
 	}
-
 	return false;
 }
 

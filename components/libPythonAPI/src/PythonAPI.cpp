@@ -215,15 +215,13 @@ void python_import_gltf(const std::string path, const raco::core::SEditorObject 
 	auto fileLocation = raco::utils::u8path(path);
 	fileLocation = fileLocation.normalizedAbsolutePath(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, app->activeProjectFolder()));
 
-	raco::core::MeshDescriptor meshDesc;
-	meshDesc.absPath = fileLocation.string();
-	meshDesc.bakeAllSubmeshes = false;
+	auto absPath = fileLocation.string();
 
 	auto* commandInterface = app->activeRaCoProject().commandInterface();
 	// create dummy cache entry to prevent "cache corpses" if the mesh file is otherwise not accessed by any Mesh
-	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(meshDesc.absPath, {nullptr, nullptr, []() {}});
-	if (auto* sceneGraph = commandInterface->meshCache()->getMeshScenegraph(meshDesc)) {
-		commandInterface->insertAssetScenegraph(*sceneGraph, meshDesc.absPath, parent);
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	if (auto* sceneGraph = commandInterface->meshCache()->getMeshScenegraph(absPath)) {
+		commandInterface->insertAssetScenegraph(*sceneGraph, absPath, parent);
 	} else {
 		throw std::invalid_argument("Unable to import GLTF mesh at " + fileLocation.string());
 	}
@@ -849,10 +847,11 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		});
 
 	m.def("getErrors", []() {
-		std::map<raco::core::ValueHandle, raco::core::ErrorItem> racoErrors = app->activeRaCoProject().errors()->getAllErrors();
 		py::list pyErrorItems;
-		for (const auto& racoError : racoErrors) {
-			pyErrorItems.append(raco::core::ErrorItem(racoError.second));
+		for (const auto& [object, objErrors] : app->activeRaCoProject().errors()->getAllErrors()) {
+			for (const auto& [handle, error] : objErrors) {
+				pyErrorItems.append(raco::core::ErrorItem(error));
+			}
 		}
 		return pyErrorItems;
 	});

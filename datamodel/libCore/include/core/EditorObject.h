@@ -136,8 +136,7 @@ public:
 	// - Can release volatile resources associated to the object like file watchers.
 	// - Needed because cleanup via destructor will run too late since UI will in general hold
 	//   shared pointers for longer than the desired lifetime of the resources, i.e. file watchers.
-	virtual void onBeforeDeleteObject(Errors& errors) const;
-
+	virtual void onBeforeDeleteObject(BaseContext& context) const;
 
 
 	// 

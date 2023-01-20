@@ -30,6 +30,7 @@
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/Prefab.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Skin.h"
 #include "user_types/Texture.h"
 
 #include "gtest/gtest.h"
@@ -910,6 +911,20 @@ TEST_F(PrefabTest, prefab_performance_deletion_with_instance_and_10_prefab_insta
 }
 
 #endif
+
+TEST_F(PrefabTest, ref_invalid_outside_to_rw_inside_prefab_instance) {
+	auto& cmd = commandInterface;
+
+	auto prefab = create<Prefab>(cmd, "prefab");
+	auto meshnode = create<MeshNode>(cmd, "meshnode", prefab);
+	auto skin = create<Skin>(cmd, "skin");
+	auto inst = create_prefabInstance(cmd, "inst", prefab);
+	auto meshnode_inst = inst->children_->asVector<SEditorObject>().front();
+	ASSERT_TRUE(meshnode_inst != nullptr);
+
+	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*cmd.project(), ValueHandle(skin, &Skin::targets_)[0]);
+	ASSERT_TRUE(refTargets.empty());
+}
 
 TEST_F(PrefabTest, objects_in_prefab_not_refable_outside_prefab) {
 	auto prefab = create<Prefab>("prefab");

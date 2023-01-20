@@ -26,6 +26,7 @@ add_python_test(no_such_script)
 set_tests_properties(PyAPI_no_such_script PROPERTIES WILL_FAIL True)
 
 add_python_test(use_pip)
+set_tests_properties(PyAPI_use_pip PROPERTIES ENVIRONMENT PYTHON_DEPLOYMENT_FOLDER=${HEADLESS_PYTHON_DEPLOYMENT_FOLDER})
 
 add_racocommand_test("PyAPI_run_print_object_version_current" "${CMAKE_CURRENT_SOURCE_DIR}" -r ../resources/python/print_objects.py -p ../datamodel/libCore/tests/migrationTestData/version-current.rca)
 

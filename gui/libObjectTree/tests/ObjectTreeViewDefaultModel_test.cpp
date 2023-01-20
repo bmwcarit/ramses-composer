@@ -23,6 +23,7 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/Skin.h"
 
 #include <QApplication>
 #include <core/PrefabOperations.h>
@@ -34,13 +35,14 @@ using namespace raco::user_types;
 ObjectTreeViewDefaultModelTest::ObjectTreeViewDefaultModelTest()
 	: viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, application_.dataChangeDispatcher(), externalProjectStore_,
 		  {raco::user_types::Animation::typeDescription.typeName,
-			  raco::user_types::Node::typeDescription.typeName,
-			  raco::user_types::MeshNode::typeDescription.typeName,
-			  raco::user_types::PrefabInstance::typeDescription.typeName,
-			  raco::user_types::OrthographicCamera::typeDescription.typeName,
-			  raco::user_types::PerspectiveCamera::typeDescription.typeName,
-			  raco::user_types::LuaScript::typeDescription.typeName,
-			  raco::user_types::LuaInterface::typeDescription.typeName})} {
+		raco::user_types::Node::typeDescription.typeName,
+		raco::user_types::MeshNode::typeDescription.typeName,
+		raco::user_types::PrefabInstance::typeDescription.typeName,
+		raco::user_types::OrthographicCamera::typeDescription.typeName,
+		raco::user_types::PerspectiveCamera::typeDescription.typeName,
+		raco::user_types::LuaScript::typeDescription.typeName,
+		raco::user_types::LuaInterface::typeDescription.typeName,
+		raco::user_types::Skin::typeDescription.typeName})} {
 }
 
 
@@ -56,6 +58,11 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 				objValue = obj->objectName();
 				break;
 			}
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_VISIBILITY: {
+				auto visibilityTreeValue = objTreeNode->getVisibility();
+				auto visibilityObjValue = obj->get("visibility")->asBool() ? VisibilityState::Visible : VisibilityState::Invisible;
+				ASSERT_EQ(visibilityTreeValue, visibilityObjValue);	
+			} break;
 			case (ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE): {
 				treeValue = objTreeNode->getRepresentedObject()->getTypeDescription().typeName;
 				objValue = obj->getTypeDescription().typeName;
@@ -508,12 +515,12 @@ TEST_F(ObjectTreeViewDefaultModelTest, SceneGraphMoveMovingObjectsAround) {
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionJustOneObject) {
 	auto justANode = createNodes(Node::typeDescription.typeName, {"Node"}).front();
 
-	ASSERT_EQ(project.instances().size(), 1);
+	ASSERT_EQ(project.instances().size(), 2);
 
 	auto justAnIndex = viewModel_->indexFromTreeNodeID(justANode->objectID());
 
 	ASSERT_EQ(deleteObjectsAtIndices({justAnIndex}), 1);
-	ASSERT_TRUE(project.instances().empty());
+	ASSERT_EQ(project.instances().size(), 1);
 
 	justAnIndex = viewModel_->indexFromTreeNodeID(justANode->objectID());
 	ASSERT_FALSE(justAnIndex.isValid());
@@ -530,7 +537,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionChildNode) {
 
 	auto childIndex = viewModel_->indexFromTreeNodeID(childNode->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({childIndex}), 1);
-	ASSERT_EQ(project.instances().size(), 1);
+	ASSERT_EQ(project.instances().size(), 2);
 
 	auto parentIndex = viewModel_->indexFromTreeNodeID(parentNode->objectID());
 	ASSERT_EQ(viewModel_->indexToTreeNode(parentIndex)->childCount(), 0);
@@ -554,7 +561,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionParentNode) {
 
 	auto parentIndex = viewModel_->indexFromTreeNodeID(parentNode->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({parentIndex}), 3);
-	ASSERT_TRUE(project.instances().empty());
+	ASSERT_EQ(project.instances().size(), 1);
 
 	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
 	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
@@ -578,7 +585,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMidNode) {
 
 	auto midIndex = viewModel_->indexFromTreeNodeID(midNode->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({midIndex}), 3);
-	ASSERT_EQ(project.instances().size(), 1);
+	ASSERT_EQ(project.instances().size(), 2);
 
 	ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
 	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(midNode->objectID()).isValid());
@@ -602,7 +609,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPare
 	auto parentIndex = viewModel_->indexFromTreeNodeID(parentNode->objectID());
 	auto child1Index = viewModel_->indexFromTreeNodeID(childNode1->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({parentIndex, child1Index}), 3);
-	ASSERT_TRUE(project.instances().empty());
+	ASSERT_EQ(project.instances().size(), 1);
 
 	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
 	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
@@ -624,11 +631,11 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionExcludingPare
 	auto child1Index = viewModel_->indexFromTreeNodeID(childNode1->objectID());
 	auto child2Index = viewModel_->indexFromTreeNodeID(childNode2->objectID());
 	ASSERT_EQ(deleteObjectsAtIndices({child1Index, child2Index}), 2);
-ASSERT_TRUE(project.instances().size() == 1);
+	ASSERT_EQ(project.instances().size(), 2);
 
-ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
-ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
-ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
+	ASSERT_TRUE(viewModel_->indexFromTreeNodeID(parentNode->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode1->objectID()).isValid());
+	ASSERT_FALSE(viewModel_->indexFromTreeNodeID(childNode2->objectID()).isValid());
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPrefabInstanceChild) {
@@ -685,7 +692,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexEmptyIndex) {
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
 		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName };
+		LuaInterface::typeDescription.typeName,
+		Skin::typeDescription.typeName};
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -714,7 +722,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
 		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName};
+		LuaInterface::typeDescription.typeName,
+		Skin::typeDescription.typeName};
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -743,8 +752,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckAllSceneGraphObjectCombin
 				auto pastingSomethingUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
 				auto pastingSomethingUnderLuaInterface = sceneGraphNodeInScene->as<LuaInterface>();
 				auto pastingSomethingUnderAnimaton = sceneGraphNodeInScene->as<Animation>();
+				auto pastingSomethingUnderSkin = sceneGraphNodeInScene->as<Skin>();
 
-				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript || pastingSomethingUnderLuaInterface || pastingSomethingUnderAnimaton) {
+				if (pastingSomethingUnderPrefabInstance || pastingSomethingUnderLuaScript || pastingSomethingUnderLuaInterface || pastingSomethingUnderAnimaton || pastingSomethingUnderSkin) {
 					ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, newObj));
 				} else {
 					ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, newObj));
@@ -916,8 +926,9 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsCheckPrefabInstanceCombination
 		auto pastingPrefabInstanceUnderLuaScript = sceneGraphNodeInScene->as<LuaScript>();
 		auto pastingPrefabInstanceUnderLuaInterface = sceneGraphNodeInScene->as<LuaInterface>();
 		auto pastingPrefabInstanceUnderAnimation = sceneGraphNodeInScene->as<Animation>();
+		auto pastingSomethingUnderSkin = sceneGraphNodeInScene->as<Skin>();
 
-		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript || pastingPrefabInstanceUnderLuaInterface || pastingPrefabInstanceUnderAnimation) {
+		if (pastingPrefabInstanceUnderPrefabInstance || pastingPrefabInstanceUnderLuaScript || pastingPrefabInstanceUnderLuaInterface || pastingPrefabInstanceUnderAnimation || pastingSomethingUnderSkin) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, prefabInstance));
 		} else {
 			ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(sceneObjIndex, prefabInstance));

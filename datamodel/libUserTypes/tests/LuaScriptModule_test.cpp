@@ -73,3 +73,16 @@ TEST_F(LuaScriptModuleTest, table_missing_error) {
 	ASSERT_TRUE(commandInterface.errors().hasError(script));
 	ASSERT_EQ(commandInterface.errors().getError(script).message(), "[myModule] Error while loading module. Module script must return a table!");
 }
+
+TEST_F(LuaScriptModuleTest, error_stdmodule_missing) {
+	auto module = create_lua_module("lua", "scripts/module-using-math.lua");
+
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+
+	commandInterface.set({module, {"stdModules", "math"}}, false);
+	ASSERT_TRUE(commandInterface.errors().hasError({module}));
+
+	commandInterface.set({module, {"stdModules", "math"}}, true);
+	commandInterface.set({module, {"stdModules", "debug"}}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({module}));
+}

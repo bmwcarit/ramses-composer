@@ -13,6 +13,13 @@
 
 namespace raco::core {
 
+ErrorItem::ErrorItem()
+	: category_(ErrorCategory::GENERAL),
+	  level_(ErrorLevel::NONE),
+	  message_(),
+	  handle_() {
+}
+
 ErrorItem::ErrorItem(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message)
 	: category_{category}, level_{level}, handle_{handle}, message_{message} {
 	// ErrorLevel::NONE is just for convenience at should never be used to initialize an ErrorItem

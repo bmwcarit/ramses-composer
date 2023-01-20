@@ -236,6 +236,10 @@ raco::core::Project* PropertyBrowserItem::project() const {
 	return commandInterface_->project();
 }
 
+const raco::core::CommandInterface* PropertyBrowserItem::commandInterface() const {
+	return commandInterface_;
+}
+
 raco::components::SDataChangeDispatcher PropertyBrowserItem::dispatcher() const {
 	return dispatcher_;
 }

@@ -51,6 +51,7 @@ public:
 	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
 
 	const raco::ramses_base::RamsesAppearance& privateAppearance() const;
+	const raco::ramses_base::RamsesAppearanceBinding& appearanceBinding() const;
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
@@ -61,7 +62,7 @@ private:
 
 	raco::ramses_base::RamsesAppearance privateAppearance_;
 	raco::ramses_base::RamsesAppearance currentAppearance_;
-	raco::ramses_base::UniqueRamsesAppearanceBinding appearanceBinding_;
+	raco::ramses_base::RamsesAppearanceBinding appearanceBinding_;
 
 	// Subscriptions
 	components::Subscription meshSubscription_;

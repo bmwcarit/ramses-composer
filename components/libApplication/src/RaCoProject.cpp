@@ -203,31 +203,31 @@ void RaCoProject::subscribeDefaultCachedPathChanges(const raco::components::SDat
 	auto project = this->project();
 	auto settings = project_.settings();
 
-	imageSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_},
+	imageSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_},
 		[project, settings]() {
 			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->imageSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Image, path);
 		});
 
-	meshSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_},
+	meshSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_},
 		[project, settings]() {
 			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->meshSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Mesh, path);
 		});
 
-	scriptSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_},
+	scriptSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::scriptSubdirectory_},
 		[project, settings]() {
 			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->scriptSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, path);
 		});
 
-	interfaceSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_},
+	interfaceSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::interfaceSubdirectory_},
 		[project, settings]() {
 			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->interfaceSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, path);
 		});
 
-	shaderSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_},
+	shaderSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::shaderSubdirectory_},
 		[project, settings]() {
 			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->shaderSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Shader, path);
@@ -243,7 +243,7 @@ void RaCoProject::updateActiveFileListener() {
 
 RaCoProject::~RaCoProject() {
 	for (const auto& instance : project_.instances()) {
-		instance->onBeforeDeleteObject(errors_);
+		instance->onBeforeDeleteObject(*context_);
 	}
 }
 
@@ -269,11 +269,11 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 
 	const auto& prefs = raco::components::RaCoPreferences::instance();
 	auto settings = result->context_->createObject(ProjectSettings::typeDescription.typeName);
-	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::imageSubdirectory_}, prefs.imageSubdirectory.toStdString());
-	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::meshSubdirectory_}, prefs.meshSubdirectory.toStdString());
-	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::scriptSubdirectory_}, prefs.scriptSubdirectory.toStdString());
-	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::interfaceSubdirectory_}, prefs.interfaceSubdirectory.toStdString());
-	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &ProjectSettings::DefaultResourceDirectories::shaderSubdirectory_}, prefs.shaderSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_}, prefs.imageSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_}, prefs.meshSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::scriptSubdirectory_}, prefs.scriptSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::interfaceSubdirectory_}, prefs.interfaceSubdirectory.toStdString());
+	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::shaderSubdirectory_}, prefs.shaderSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::featureLevel_}, featureLevel);
 
 	if (createDefaultScene) {

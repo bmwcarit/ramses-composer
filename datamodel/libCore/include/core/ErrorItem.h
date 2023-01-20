@@ -41,6 +41,7 @@ enum class ErrorLevel {
  */
 class ErrorItem {
 public:
+	explicit ErrorItem();
 	explicit ErrorItem(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
 
 	ValueHandle valueHandle() const noexcept;

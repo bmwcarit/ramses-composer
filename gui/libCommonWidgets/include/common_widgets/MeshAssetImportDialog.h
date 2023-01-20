@@ -25,7 +25,7 @@ namespace raco::common_widgets {
 
 class MeshAssetImportDialog final : public QDialog {
 public:
-	explicit MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, QWidget* parent = nullptr);
+	explicit MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QWidget* parent = nullptr);
 
 	QGridLayout* layout_;
 	QTreeWidget* widget_;
@@ -48,6 +48,7 @@ private:
 	std::map<int, std::unordered_set<int>> meshNodeIndexReferencedByNodes_;
 	std::vector<QTreeWidgetItem*> animTreeList_;
 	std::map<int, std::vector<QTreeWidgetItem*>> animSamplerItemMap_;
+	std::vector<QTreeWidgetItem*> skinTreeList_;
 };
 
 }  // namespace raco::common_widgets

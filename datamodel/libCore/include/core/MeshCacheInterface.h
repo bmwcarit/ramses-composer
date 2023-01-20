@@ -11,7 +11,10 @@
 
 #include "FileChangeMonitor.h"
 
+#include "core/EngineInterface.h"
+
 #include <array>
+#include <cassert>
 #include <functional>
 #include <map>
 #include <memory>
@@ -33,6 +36,8 @@ public:
 	static constexpr const char* ATTRIBUTE_UVMAP    {"a_TextureCoordinate"};
 	static constexpr const char* ATTRIBUTE_UVWMAP   {"a_TextureCoordinate"};
 	static constexpr const char* ATTRIBUTE_COLOR    {"a_Color"};
+	static constexpr const char* ATTRIBUTE_WEIGHTS  {"a_Weights"};
+	static constexpr const char* ATTRIBUTE_JOINTS   {"a_Joints"};
 
 	struct IndexBufferRangeInfo {
 		uint32_t start;
@@ -79,40 +84,87 @@ public:
 
 using SharedMeshData = std::shared_ptr<MeshData>;
 
+/**
+ * @brief Holds the data needed to create a LogicEngine SkinBinding. Contains the inverse bind matrices.
+*/
+struct SkinData {
+	static constexpr const char* INV_BIND_MATRICES_UNIFORM_NAME = "u_jointMat";
+
+	std::vector<std::array<float, 16>> inverseBindMatrices;
+
+	size_t numSkins;
+};
+
+using SharedSkinData = std::shared_ptr<SkinData>;
+
 enum class MeshAnimationInterpolation {
 	Linear,
 	CubicSpline,
-	Step
+	Step,
+	Linear_Quaternion,
+	CubicSpline_Quaternion
 };
 
 // Animation sampler data holder - currently created using MeshCache::getAnimationSamplerData()
-struct MeshAnimationSamplerData {
+struct AnimationSamplerData {
 	MeshAnimationInterpolation interpolation;
 	std::vector<float> input;
 	std::vector<std::vector<float>> output;
 
+	EnginePrimitive getOutputComponentType() const {
+		assert(!output.empty());
+		switch (output.front().size()) {
+			case 1:
+				return EnginePrimitive::Array;
+				break;
+			case 3:
+				return EnginePrimitive::Vec3f;
+				break;
+			case 4:
+				return EnginePrimitive::Vec4f;
+				break;
+			default:
+				assert(false);
+		}
+		return EnginePrimitive::Undefined;
+	}
+
 	size_t getOutputComponentSize() {
 		if (output.empty()) {
 			return 0;
+		}
+		if (output.front().size() == 1) {
+			return output.size() / input.size();
 		}
 		return output.front().size();
 	}
 
 	template <typename DataType>
 	std::array<std::vector<DataType>, 3> getOutputData() {
+		// Note: Used to be used for morph targets, but wrong:
+		static_assert(!std::is_same_v<DataType, std::array<float, 2>>);
+
 		std::array<std::vector<DataType>, 3> outputData;
-		auto animInterpolationIsCubic = (interpolation == raco::core::MeshAnimationInterpolation::CubicSpline);
+		auto animInterpolationIsCubic = (interpolation == raco::core::MeshAnimationInterpolation::CubicSpline) || (interpolation == raco::core::MeshAnimationInterpolation::CubicSpline_Quaternion);
 
 		auto& tangentInData = outputData[0];
 		auto& transformedData = outputData[1];
 		auto& tangentOutData = outputData[2];
 
+
 		if (!animInterpolationIsCubic) {
-			if constexpr (std::is_same_v<DataType, std::array<float, 2>>) {
-				// edge case: weights
-				// see https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_018_MorphTargets.md
-				for (auto i = 0; i < output.size(); i += 2) {
-					transformedData.push_back({output[i][0], output[i + 1][0]});
+			if constexpr (std::is_same_v<DataType, std::vector<float>>) {
+				// Morph targets:
+				// output buffer has input.size() * number(morph targets) element vectors of size 1
+				// we need to change this in input.size() vector of length number(morph targets)
+				auto numTargets = output.size() / input.size();
+				assert(output.size() % input.size() == 0);
+				for (size_t i = 0; i < input.size(); i++) {
+					std::vector<float> vec;
+					for (size_t target = 0; target < numTargets; target++) {
+						vec.emplace_back(output[i * numTargets + target][0]);
+					}
+					transformedData.emplace_back(vec);
 				}
 			} else {
 				for (const auto& vecfKeyframe : output) {
@@ -124,47 +176,55 @@ struct MeshAnimationSamplerData {
 				}
 			}
 		} else {
-			for (auto i = 0; i < output.size(); i += 3) {
-				auto& tangentIn = output[i];
-				auto& vecfKeyframe = output[i + 1];
-				auto& tangentOut = output[i + 2];
+			if constexpr (std::is_same_v<DataType, std::vector<float>>) {
+				// Morph targets with cubic interpolation
+				// buffer structure: is a_1 ... a_k v_1 ... v_k b_1 ... b_k
+				// where 1...k are the morph targets,
+				// a/b are the in/out tangents, and v are the values
 
-				if constexpr (std::is_same_v <DataType, std::array<float, 3>>) {
-					tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2]});
-					transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2]});
-					tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2]});
-				} else if constexpr (std::is_same_v<DataType, std::array<float, 4>>) {
-					tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2], tangentIn[3]});
-					transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2], vecfKeyframe[3]});
-					tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2], tangentOut[3]});
-				} else if constexpr (std::is_same_v<DataType, std::array<float, 2>>) {
-					tangentInData.push_back({tangentIn[0], tangentIn[1]});
-					transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1]});
-					tangentOutData.push_back({tangentOut[0], tangentOut[2]});
+				auto numTargets = output.size() / (3 * input.size());
+				assert(output.size() % (3 * input.size()) == 0);
+
+				for (size_t i = 0; i < input.size(); i++) {
+					std::vector<float> tangentIn;
+					std::vector<float> value;
+					std::vector<float> tangentOut;
+
+					for (size_t target = 0; target < numTargets; target++) {
+						tangentIn.emplace_back(output[(3*i + 0) * numTargets + target][0]);
+						value.emplace_back(output[(3*i + 1) * numTargets + target][0]);
+						tangentOut.emplace_back(output[(3*i + 2) * numTargets + target][0]);
+					}
+				
+					tangentInData.push_back(tangentIn);
+					transformedData.emplace_back(value);
+					tangentOutData.push_back(tangentOut);
+				}
+
+			} else {
+				for (auto i = 0; i < output.size(); i += 3) {
+					auto& tangentIn = output[i];
+					auto& vecfKeyframe = output[i + 1];
+					auto& tangentOut = output[i + 2];
+
+					if constexpr (std::is_same_v<DataType, std::array<float, 3>>) {
+						tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2]});
+						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2]});
+						tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2]});
+					} else if constexpr (std::is_same_v<DataType, std::array<float, 4>>) {
+						tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2], tangentIn[3]});
+						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2], vecfKeyframe[3]});
+						tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2], tangentOut[3]});
+					}
 				}
 			}
 		}
 
 		return outputData;
 	}
-
-	std::string interpolationToString() const {
-		switch (interpolation) {
-			case raco::core::MeshAnimationInterpolation::Linear: {
-				return "Linear";
-			}
-			case raco::core::MeshAnimationInterpolation::CubicSpline: {
-				return "Cubic";
-			}
-			case raco::core::MeshAnimationInterpolation::Step: {
-				return "Step";
-			}
-			default: {
-				return "Invalid";
-			}
-		}
-	}
 };
+
+using SharedAnimationSamplerData = std::shared_ptr<raco::core::AnimationSamplerData>;
 
 // Low-level one-to-one mapping of animation channel data delivered by tinyglTF.
 struct MeshAnimationChannel {
@@ -180,6 +240,12 @@ struct MeshAnimation {
 	std::vector<MeshAnimationChannel> channels;
 };
 
+struct SkinDescription {
+	std::string name;
+	int meshNodeIndex;
+	std::vector<int> jointNodeIndices;
+};
+
 // A node that may be part of a complex mesh scenegraph.
 // Holds information for when we want to translate mesh scenegraph information to our scenegraph.
 // Optional values are values that can be de-/activated in the MeshAssetImportDialog.
@@ -187,7 +253,7 @@ struct MeshScenegraphNode {
 	static inline constexpr int NO_PARENT = -1;
 
 	int parentIndex{NO_PARENT};
-	std::vector<std::optional<int>> subMeshIndeces{};
+	std::vector<std::optional<int>> subMeshIndices{};
 	std::string name;
 	struct Transformations {
 		std::array<double, 3> scale;
@@ -205,6 +271,7 @@ struct MeshScenegraph {
 	std::vector<std::optional<std::string>> materials;
 	std::vector<std::optional<std::string>> meshes;
 	std::vector<std::optional<MeshAnimation>> animations;
+	std::vector<std::optional<SkinDescription>> skins;
 
 	// index of vector is index of the animation that uses the samplers
 	std::vector<std::vector<std::optional<std::string>>> animationSamplers;
@@ -245,11 +312,13 @@ public:
 	// Discard away the currently loaded file. Use this to force a reload of the file on the next loadMesh.
 	virtual void reset() = 0;
 
-	virtual MeshScenegraph* getScenegraph(const std::string& absPath) = 0;
+	virtual const MeshScenegraph* getScenegraph(const std::string& absPath) = 0;
 
 	virtual int getTotalMeshCount() = 0;
 
-	virtual std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) = 0;
+	virtual SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) = 0;
+
+	virtual SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) = 0;
 };
 
 using UniqueMeshCacheEntry = std::unique_ptr<MeshCacheEntry>;
@@ -260,12 +329,14 @@ public:
 
 	virtual SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) = 0;
 	
-	virtual MeshScenegraph* getMeshScenegraph(const raco::core::MeshDescriptor& descriptor) = 0;
+	virtual const MeshScenegraph* getMeshScenegraph(const std::string& absPath) = 0;
 	virtual std::string getMeshError(const std::string& absPath) = 0;
 
 	virtual int getTotalMeshCount(const std::string& absPath) = 0;
 
-	virtual std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) = 0;
+	virtual SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) = 0;
+
+	virtual SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) = 0;
 
 protected:
 	virtual MeshCacheEntry* getLoader(std::string absPath) = 0;

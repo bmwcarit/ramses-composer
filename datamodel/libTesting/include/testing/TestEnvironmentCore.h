@@ -19,6 +19,7 @@
 #include "core/Project.h"
 #include "core/PropertyDescriptor.h"
 #include "core/Undo.h"
+#include "core/ProjectSettings.h"
 #include "core/Queries.h"
 #include "core/SceneBackendInterface.h"
 #include "core/UserObjectFactoryInterface.h"
@@ -36,6 +37,7 @@
 #include "user_types/LuaScriptModule.h"
 #include "user_types/LuaInterface.h"
 #include "user_types/RenderLayer.h"
+#include "user_types/Skin.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/Enumerations.h"
@@ -195,6 +197,21 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return layer;
 	}
 
+	raco::user_types::SSkin create_skin(const std::string& name,
+		const std::string& relpath,
+		int skinIndex,
+		raco::user_types::SMeshNode meshnode,
+		const std::vector<raco::user_types::SNode>& nodes) {
+		auto skin = create<raco::user_types::Skin>(name);
+		commandInterface.set(raco::core::ValueHandle(skin, &raco::user_types::Skin::targets_)[0], meshnode);
+		commandInterface.set({skin, &raco::user_types::Skin::uri_}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
+		commandInterface.set({skin, &raco::user_types::Skin::skinIndex_}, skinIndex);
+		for (int index = 0; index < nodes.size(); index++) {
+			commandInterface.set(raco::core::ValueHandle(skin, &raco::user_types::Skin::joints_)[index], nodes[index]);	
+		}
+		return skin;
+	}
+
 	raco::user_types::SPrefabInstance create_prefabInstance(raco::core::CommandInterface& cmd, const std::string& name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {
 		auto inst = create<raco::user_types::PrefabInstance>(cmd, name, parent);
 		cmd.set({inst, {"template"}}, prefab);
@@ -237,8 +254,8 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		ASSERT_LE(opTimeMs, maxMs) << "Operation took longer than allowed boundary of " << maxMs << " ms\nActual operation duration: " << opTimeMs << " ms";
 	}
 
-	TestEnvironmentCoreT(UserObjectFactoryInterface* objectFactory = &UserObjectFactory::getInstance())
-		: backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel},
+	TestEnvironmentCoreT(UserObjectFactoryInterface* objectFactory = &UserObjectFactory::getInstance(), rlogic::EFeatureLevel featureLevel = raco::ramses_base::BaseEngineBackend::maxFeatureLevel)
+		: backend{featureLevel},
 		  fileChangeMonitor{std::make_unique<FileChangeMonitorImpl>()},
 		  meshCache{},
 		  project{},
@@ -253,11 +270,16 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		context.setMeshCache(&meshCache);
 		dispatcher = raco::ramses_adaptor::SceneBackend::SDataChangeDispatcher{std::make_shared<raco::components::DataChangeDispatcher>()};
 		sceneBackendInterface = new raco::ramses_adaptor::SceneBackend(backend, dispatcher);
+		auto settings = context.createObject(raco::core::ProjectSettings::typeDescription.typeName, "ProjectSettings");
+		context.set({settings, &raco::core::ProjectSettings::featureLevel_}, static_cast<int>(featureLevel));
+		undoStack.reset();
+		context.changeMultiplexer().reset();
 	}
+
 	virtual ~TestEnvironmentCoreT() {
 		// Cleanup everything
 		for (const auto& instance : context.project()->instances()) {
-			instance->onBeforeDeleteObject(errors);
+			instance->onBeforeDeleteObject(context);
 		}
 		clearQEventLoop();
 	}

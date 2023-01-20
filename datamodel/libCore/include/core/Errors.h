@@ -37,7 +37,7 @@ public:
 	 * 
 	 * @returns Returns false if an identical error already existed, true otherwise.
 	 */
-	bool addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
+	void addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message);
 
 	static std::string formatError(const ErrorItem& error);
 
@@ -53,6 +53,7 @@ public:
 	 * @returns if an error exists for the given [ValueHandle].
 	 */
 	bool hasError(const ValueHandle& handle) const noexcept;
+
 	/**
 	 * @returns reference to the [ErrorItem] for the given [ValueHandle]. Call #hasError before to check if the [ErrorItem] exists.
 	 */
@@ -71,12 +72,14 @@ public:
 	/**
 	 * @returns read-only reference to all saved errors.
 	 */
-	const std::map<ValueHandle, ErrorItem>& getAllErrors() const;
+	const std::map<SCEditorObject, std::map<ValueHandle, ErrorItem>>& getAllErrors() const;
 
 	bool hasError(ErrorLevel minLevel) const;
 
+	ErrorLevel maxErrorLevel() const;
+
 private:
-	std::map<ValueHandle, ErrorItem> errors_;
+	std::map<SCEditorObject, std::map<ValueHandle, ErrorItem>> errors_;
 	DataChangeRecorder* recorder_;
 };
 

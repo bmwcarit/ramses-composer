@@ -87,29 +87,6 @@ inline RamsesArrayResource createDefaultVertexDataBuffer(ramses::Scene* scene) {
 	return ramsesArrayResource(scene, ramses::EDataType::Vector3F, static_cast<uint32_t>(vertices.size()), vertices.data(), defaultVertexDataBufferName);
 }
 
-inline raco::ramses_base::RamsesAnimationChannelHandle createDefaultAnimationChannel(ramses_base::LogicEngine& logicEngine) {
-	auto animHandle = raco::ramses_base::RamsesAnimationChannelHandle(new ramses_base::RamsesAnimationChannelData);
-	animHandle->keyframeTimes = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelTimestampsName, {0, 0});
-	animHandle->animOutput = ramsesDataArray(std::vector<float>{0.0}, &logicEngine, defaultAnimationChannelKeyframesName, {0, 0});
-	animHandle->name = defaultAnimationChannelName;
-	animHandle->interpolationType = rlogic::EInterpolationType::Linear;
-
-	return animHandle;
-}
-
-inline ramses_base::RamsesAnimationNode createDefaultAnimation(const raco::ramses_base::RamsesAnimationChannelHandle& animChannel, ramses_base::LogicEngine& logicEngine) {
-	rlogic::AnimationNodeConfig config;
-	config.addChannel({animChannel->name,
-		animChannel->keyframeTimes.get(),
-		animChannel->animOutput.get(),
-		animChannel->interpolationType,
-		animChannel->tangentIn.get(),
-		animChannel->tangentOut.get()});
-
-	return ramsesAnimationNode(&logicEngine, config, {animChannel}, defaultAnimationName, {0, 0});
-};
-
-
 SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors, bool optimizeForExport)
 	: client_{client},
 	  logicEngine_{logicEngine},
@@ -276,10 +253,6 @@ void SceneAdaptor::deleteUnusedDefaultResources() {
 	if (defaultVertices_.use_count() == 1) {
 		defaultVertices_.reset();
 	}
-	if (defaultAnimation_.use_count() == 1) {
-		defaultAnimation_.reset();
-		defaultAnimChannel_.reset();
-	}
 }
 
 void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
@@ -372,15 +345,6 @@ const RamsesArrayResource SceneAdaptor::defaultIndices() {
 		defaultIndices_ = createDefaultIndexDataBuffer(scene_.get());
 	}
 	return defaultIndices_;
-}
-
-const ramses_base::RamsesAnimationNode SceneAdaptor::defaultAnimation() {
-	if (!defaultAnimation_) {
-		defaultAnimChannel_ = createDefaultAnimationChannel(*logicEngine_);
-		defaultAnimation_ = createDefaultAnimation(defaultAnimChannel_, *logicEngine_);
-	}
-
-	return defaultAnimation_;
 }
 
 ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObject) const {

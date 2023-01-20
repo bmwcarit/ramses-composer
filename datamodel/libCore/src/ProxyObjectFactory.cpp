@@ -84,6 +84,7 @@ namespace raco::serialization::proxy {
 			RenderLayer,
 			RenderTarget,
 			RenderPass,
+			Skin,
 			Timer
 		>();
 

@@ -92,9 +92,11 @@ namespace raco::serialization {
  *     Added 8 RenderBufferMS reference properties to RenderTarget.
  *     Changed BaseCamera viewport width and height ranges.
  *     Added ExpectEmptyReference annotation to RenderTarget::buffer0 property.
+ * 47: Added Skin user type.
+ * 48: Added LuaInterface "stdModules" and "luaModules" properties.
 */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 46;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 48;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

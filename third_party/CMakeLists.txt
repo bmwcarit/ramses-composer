@@ -151,3 +151,14 @@ if(WIN32)
 elseif(UNIX)
     add_subdirectory(python-linux)
 endif()
+
+register_python_target(RaCoPythonModuleDeployment ${PYTHON_DEPLOYMENT_FOLDER})
+register_python_target(RaCoHeadlessPythonModuleDeployment ${HEADLESS_PYTHON_DEPLOYMENT_FOLDER})
+
+macro(deploy_python_folder tgt)
+    add_dependencies(${tgt} RaCoPythonModuleDeployment)
+endmacro()
+
+macro(deploy_python_folder_headless tgt)
+    add_dependencies(${tgt} RaCoHeadlessPythonModuleDeployment)
+endmacro()

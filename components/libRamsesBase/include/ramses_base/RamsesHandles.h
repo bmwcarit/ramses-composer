@@ -57,6 +57,7 @@
 #include <ramses-logic/RamsesRenderGroupBinding.h>
 #include <ramses-logic/RamsesRenderGroupBindingElements.h>
 #include <ramses-logic/AnimationNodeConfig.h>
+#include <ramses-logic/SkinBinding.h>
 
 #include <map>
 #include <stdexcept>
@@ -78,6 +79,7 @@ using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
 using RamsesLuaScript = RamsesHandle<rlogic::LuaScript>;
 using RamsesLuaInterface = RamsesHandle<rlogic::LuaInterface>;
 using RamsesAnchorPoint = RamsesHandle<rlogic::AnchorPoint>;
+using RamsesSkinBinding = RamsesHandle<rlogic::SkinBinding>;
 
 	/** RESOURCE HANDLES */
 using RamsesEffect = RamsesHandle<ramses::Effect>;
@@ -601,7 +603,7 @@ inline RamsesBlitPass ramsesBlitPass(ramses::Scene* scene, RamsesRenderBuffer so
 		}};
 }
 
-using UniqueRamsesAppearanceBinding = std::unique_ptr<rlogic::RamsesAppearanceBinding, std::function<void(rlogic::RamsesAppearanceBinding*)>>;
+using RamsesAppearanceBinding = std::shared_ptr<rlogic::RamsesAppearanceBinding>;
 using UniqueRamsesDataArray = std::unique_ptr<rlogic::DataArray, std::function<void(rlogic::DataArray*)>>;
 using RamsesNodeBinding = std::shared_ptr<rlogic::RamsesNodeBinding>;
 using RamsesCameraBinding = std::shared_ptr<rlogic::RamsesCameraBinding>;
@@ -609,8 +611,8 @@ using UniqueRamsesRenderPassBinding = std::unique_ptr<rlogic::RamsesRenderPassBi
 using RamsesRenderGroupBinding = std::shared_ptr<rlogic::RamsesRenderGroupBinding>;
 
 
-inline UniqueRamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t> &objectID) {
-	UniqueRamsesAppearanceBinding binding{logicEngine->createRamsesAppearanceBinding(appearance, name),
+inline RamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t> &objectID) {
+	RamsesAppearanceBinding binding{logicEngine->createRamsesAppearanceBinding(appearance, name),
 		[logicEngine](rlogic::RamsesAppearanceBinding* binding) {
 			destroyLogicObject(logicEngine, binding);
 		}};
@@ -717,10 +719,29 @@ inline RamsesLuaScript ramsesLuaScript(rlogic::LogicEngine* logicEngine, const s
 	return script;
 }
 
+
+/// Old style creation function: doesn't generate error if interface text contains modules() statement
+/// used at feature level < 5
 inline RamsesLuaInterface ramsesLuaInterface(rlogic::LogicEngine* logicEngine, const std::string& interfaceText, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	RamsesLuaInterface interface{
+	RamsesLuaInterface interface {
 		logicEngine->createLuaInterface(interfaceText, name),
-		[logicEngine](rlogic::LuaInterface* interface) {
+			[logicEngine](rlogic::LuaInterface* interface) {
+				destroyLogicObject(logicEngine, interface);
+			}
+	};
+
+	if (interface) {
+		interface->setUserId(objectID.first, objectID.second);
+	}
+	return interface;
+}
+
+/// New style creation function: must supply modules if interface text contains modules() statement
+/// used at feature level >= 5
+inline RamsesLuaInterface ramsesLuaInterface(rlogic::LogicEngine* logicEngine, const std::string& interfaceText, rlogic::LuaConfig& config, std::vector<raco::ramses_base::RamsesLuaModule> modules, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesLuaInterface interface{
+		logicEngine->createLuaInterface(interfaceText, name, config),
+		[logicEngine, forceCopy = modules](rlogic::LuaInterface* interface) {
 			destroyLogicObject(logicEngine, interface);
 		}};
 
@@ -813,6 +834,29 @@ inline RamsesAnchorPoint ramsesAnchorPoint(rlogic::LogicEngine* logicEngine, Ram
 	return object;
 }
 
+inline RamsesSkinBinding ramsesSkinBinding(rlogic::LogicEngine* logicEngine, 
+	std::vector<RamsesNodeBinding> joints,
+	std::vector<std::array<float, 16>>& inverseBindMatrices,
+	RamsesAppearanceBinding& appearanceBinding,
+	ramses::UniformInput& jointMatInput,
+	const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+
+	std::vector<const rlogic::RamsesNodeBinding*> nodeBindings;
+	for (const auto& binding : joints) {
+		nodeBindings.emplace_back(binding.get());
+	}
+
+	RamsesSkinBinding object(logicEngine->createSkinBinding(nodeBindings, inverseBindMatrices, *appearanceBinding, jointMatInput, name),
+		[logicEngine, forceJointsCopy = joints, forceAppearanceBindingCopy = appearanceBinding](rlogic::SkinBinding* object) {
+			destroyLogicObject(logicEngine, object);
+		});
+
+	if (object) {
+		object->setUserId(objectID.first, objectID.second);
+	}
+
+	return object;
+}
 
 inline RamsesRenderGroupBinding ramsesRenderGroupBinding(rlogic::LogicEngine* logicEngine, RamsesRenderGroup renderGroup, const rlogic::RamsesRenderGroupBindingElements& elements, std::vector<RamsesRenderGroup> nestedGroups, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	RamsesRenderGroupBinding binding{logicEngine->createRamsesRenderGroupBinding(**renderGroup, elements, name), 

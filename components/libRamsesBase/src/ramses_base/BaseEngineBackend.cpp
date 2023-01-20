@@ -23,6 +23,10 @@ R"(1 - LogicEngine v1.0.3
     - Added createRamsesCameraBindingWithFrustumPlanes
 3 - LogicEngine v1.2.0
     - Added RenderGroupBinding
+4 - LogicEngine v1.3.0
+    - Added SkinBinding
+5 - LogicEngine v1.4.0
+    - Added support for LuaModules in LuaInterfaces
 )";
 
 BaseEngineBackend::BaseEngineBackend(

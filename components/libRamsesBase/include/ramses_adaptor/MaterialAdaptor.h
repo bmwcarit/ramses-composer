@@ -39,7 +39,7 @@ public:
 
 private:
 	raco::ramses_base::RamsesAppearance appearance_;
-	raco::ramses_base::UniqueRamsesAppearanceBinding appearanceBinding_;
+	raco::ramses_base::RamsesAppearanceBinding appearanceBinding_;
 
 	components::Subscription subscription_;
 	components::Subscription optionsSubscription_;

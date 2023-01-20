@@ -12,6 +12,7 @@
 #include "core/DynamicEditorObject.h"
 #include "core/EditorObject.h"
 #include "core/Link.h"
+#include "core/Project.h"
 #include "core/ProjectMigration.h"
 #include "core/ProjectMigrationToV23.h"
 #include "core/ProxyObjectFactory.h"
@@ -19,6 +20,7 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "user_types/UserObjectFactory.h"
 
+#include "core/CommandInterface.h"
 #include "data_storage/Table.h"
 #include "log_system/log.h"
 #include "utils/u8path.h"
@@ -223,6 +225,8 @@ std::optional<QJsonValue> serializeValueBase(const ValueBase& value, bool dynami
 		return serializePrimitiveValue(value);
 	}
 }
+
+
 
 void createMissingProperties(const std::map<std::string, std::string>& propTypeMap, ReflectionInterface& object, const raco::core::UserObjectFactoryInterface& factory) {
 	auto intf = dynamic_cast<proxy::DynamicPropertyInterface*>(&object);
@@ -679,6 +683,66 @@ std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePro
 		typesPropTypeMap[name.toStdString()] = propTypeMap;
 	}
 	return typesPropTypeMap;
+}
+
+std::string serializeProperty(const core::Project& project, const raco::data_storage::ValueBase& value) {
+	auto base = serializeValueBase(value, true);
+	if (base.has_value()) {
+		QJsonObject result;
+
+		result.insert(keys::FILE_VERSION, RAMSES_PROJECT_FILE_VERSION);
+		result.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH});
+		result.insert(keys::FEATURE_LEVEL, project.featureLevel());
+
+		auto obj = base.value().toObject();
+		result.insert(keys::PROPERTY, obj);
+
+		return QJsonDocument(result).toJson().toStdString();
+	}
+	return "";
+}
+
+std::unique_ptr<ValueBase> deserializeProperty(const core::Project& project, const std::string& json) {
+	auto document{QJsonDocument::fromJson(json.c_str())};
+	if (document.isNull()) {
+		return {};
+	}
+
+	auto container{document.object()};
+
+	if (container[keys::FILE_VERSION].isUndefined() || container[keys::FILE_VERSION].toInt() != RAMSES_PROJECT_FILE_VERSION) {
+		return {};
+	}
+	if (container[keys::RAMSES_COMPOSER_VERSION].isUndefined() || container[keys::RAMSES_COMPOSER_VERSION].toArray() != QJsonArray{RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}) {
+		return {};
+	}
+	if (container[keys::FEATURE_LEVEL].isUndefined() || container[keys::FEATURE_LEVEL].toInt() != project.featureLevel()) {
+		return {};
+	}
+
+	auto object = document[keys::PROPERTY];
+	if (object[keys::TYPENAME].isUndefined()) {
+		return nullptr;
+	}
+
+	auto factory = raco::user_types::UserObjectFactory::getInstance();
+
+	auto typeName = object[keys::TYPENAME].toString().toStdString();
+	auto value = std::unique_ptr<ValueBase>(factory.createValue(typeName));
+
+	References references;
+	deserializeValueBase(object, *value, references, raco::user_types::UserObjectFactory::getInstance(), makeStructPropertyMap(), true);
+
+	for (const auto& pair : references) {
+		auto obj = project.getInstanceByID(pair.second);
+		if (obj.get() == nullptr) {
+			LOG_WARNING(raco::log_system::DESERIALIZATION, "Load: referenced object not found: {}", pair.second);
+		} else {
+			*pair.first = obj;
+		}
+	}
+
+	return value;
 }
 
 std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo) {

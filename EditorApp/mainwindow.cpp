@@ -67,6 +67,7 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderPass.h"
 #include "user_types/RenderTarget.h"
+#include "user_types/Skin.h"
 #include "user_types/Texture.h"
 #include "user_types/Timer.h"
 
@@ -185,6 +186,14 @@ ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dock
 				: raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE,
 			Qt::SortOrder::AscendingOrder);
 	}
+
+	// Enable Visibility column only for specific tree views.
+	if (title == MainWindow::DockWidgetTypes::SCENE_GRAPH || title == MainWindow::DockWidgetTypes::PREFABS) {
+		newTreeView->resizeColumnToContents(raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_VISIBILITY);
+	} else {
+		newTreeView->setColumnHidden(raco::object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_VISIBILITY, true);
+	}
+
 	dockObjectView->setTreeView(newTreeView);
 	treeDockManager.addTreeDock(dockObjectView);
 	dockModel->setParent(dockObjectView);
@@ -235,7 +244,8 @@ ads::CDockAreaWidget* createAndAddPrefabTree(MainWindow* mainWindow, const char*
 		PerspectiveCamera::typeDescription.typeName,
 		Animation::typeDescription.typeName,
 		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName};
+		LuaInterface::typeDescription.typeName,
+		Skin::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewPrefabModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 
@@ -255,7 +265,8 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 		PerspectiveCamera::typeDescription.typeName,
 		Animation::typeDescription.typeName,
 		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName};
+		LuaInterface::typeDescription.typeName,
+		Skin::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewDefaultModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
 	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, new raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel(mainWindow, false),

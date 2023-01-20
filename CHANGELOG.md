@@ -12,7 +12,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 <!--- Template for next release section
 ## [unreleased]
 * **File version number has changed. Files saved with RaCo X.Y.Z cannot be opened by previous versions.**
-* **Export file format has changed. Scenes exported with RaCo X.Y.Z / ramses-logic A.B.C cannot be opened by previous ramses-logic versions.**
+* **Export now supports ramses-logic feature levels up to U. Scenes exported with feature level U can't be opened with ramses-logic before vX.Y.Z.**
 
 ### Known Issues
 
@@ -23,6 +23,41 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ### Fixes
 
 -->
+
+## [1.6.0] Skinning, Morphing, property copy/paste, modules for Lua interfaces, misc bugfixes
+
+* **File version number has changed. Files saved with RaCo 1.6.0 cannot be opened by previous versions.**
+* **Export now supports ramses-logic feature levels up to 5. Scenes exported with feature level 4 can't be opened with ramses-logic before v1.3.0. Scenes exported with feature level 5 can't be opened with ramses-logic before v1.4.1.**
+* **Starting at feature level 5 `modules()` statements in LuaInterfaces are not silently ignored anymore. Upgrading a scene to feature level 5 may therefore result in errors appearing in the scene which can be remedied by removing the offending `modules()` statements or supplying a module as needed.**
+
+### Known Issues
+* Animations of rotations are currently only working correctly for single-axis rotations due to an issue in the LogicEngine.
+
+### Added
+* Added support for vertex skinning and import of skinned meshes from glTF files.
+* Added basic support for morphing: morph target position and normal mesh vertex attributes and morph weight animations will now be imported from glTF files.
+* Added Copy/Paste functionality to all properties, accessible through their right-click context menu.
+* Available at feature level 5: Added support for lua modules used in lua interfaces.
+* Added indicator for nodes visibility to SceneGraph and Prefabs view.
+* Added release_headless build folder with Ramses Composer Headless. It can be shipped and run independently from Ramses Composer Editor.
+* Added "MSAA off" option to Ramses preview window and remove "MSAA 1x" option. The MSAA off option uses nearest neighbor filtering.
+
+### Changes
+* Update ramses-logic from 1.3.0 to 1.4.1.
+* Update ramses from 27.0.126 to 27.0.128.
+
+### Fixes
+* Fixed crash in GLTF import dialog when importing with some items deselected and then trying to import again from the same file.
+* Fixed crash on startup in case oldest log file is locked by a running process.
+* Restrict feature level to the maximum supported one in the GUI application on startup to avoid crash when the feature level in the ini file is too high.
+* Made error message in RenderTarget with mixed multi-sampled and normal buffers more descriptive.
+* Prevent Recent Files menu from force downloading OneDrive files.
+* Consistently show "Export with errors" in export dialog when RaCoHeadless would not export the scene.
+* Fixed broken coloring in Python runner log.
+* Consistently use relative paths in the created resource uris when importing from glTF files.
+* Fix file not found errors when encountering files with links in their paths. This removes the URI case-sensitivity on Windows systems.
+* Fix TracePlayer unintended retention of Lua properties values between trace loads.
+* The glTF mesh import has been fixed to correctly transform and normalize the normal vectors when baking all meshes in the glTF file into a single mesh object.
 
 ## [1.5.1] Bugfix release
 

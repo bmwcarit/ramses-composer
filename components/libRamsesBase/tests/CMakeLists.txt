@@ -33,6 +33,7 @@ set(TEST_SOURCES
     RenderLayerAdaptor_test.cpp
     Resources_test.cpp
     SceneContext_test.cpp
+    SkinAdaptor_test.cpp
     TimerAdaptor_test.cpp
     TextureAdaptor_test.cpp
     utilities_test.cpp
@@ -74,6 +75,8 @@ raco_package_add_test_resources(
     shaders/uniform-array.frag
     shaders/uniform-scalar.vert
     shaders/uniform-scalar.frag
+    shaders/skinning-template.vert
+    shaders/skinning-template.frag
     meshes/Duck.glb
     meshes/meshrefless.gltf
     meshes/meshless.gltf
@@ -82,4 +85,7 @@ raco_package_add_test_resources(
     meshes/InterpolationTest/InterpolationTest.gltf
     meshes/InterpolationTest/interpolation.bin
     meshes/InterpolationTest/l.jpg
+    meshes/SimpleSkin/SimpleSkin.gltf
+    meshes/AnimatedMorphCube/AnimatedMorphCube.bin
+    meshes/AnimatedMorphCube/AnimatedMorphCube.gltf
 )

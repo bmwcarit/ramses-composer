@@ -25,12 +25,13 @@ public:
 	~glTFFileLoader() override;
 
 	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
-	raco::core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
+	const raco::core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
 	int getTotalMeshCount() override;
-	std::shared_ptr<raco::core::MeshAnimationSamplerData> getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
+	raco::core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 	std::string getError() override;
 	void reset() override;
-
+	
+	raco::core::SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) override;
 
 private:
 	std::string path_;
@@ -44,6 +45,7 @@ private:
 	bool buildglTFScenegraph();
 	bool importglTFScene(const std::string& absPath);
 	void importAnimations();
+	void importSkins();
 
 };
 

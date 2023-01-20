@@ -36,8 +36,6 @@ private:
 	QLineEdit* logicEdit_;
 	QDialogButtonBox* buttonBox_;
 
-	bool hasErrors_;
-
 	application::RaCoApplication* application_;
 	void setupFilePickerButton(PropertyBrowserButton* button, QLineEdit* pathEdit, const std::string& fileType);
 	utils::u8path getAbsoluteExportFilePath(QLineEdit* path);

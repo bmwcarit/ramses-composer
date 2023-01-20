@@ -63,6 +63,7 @@ public:
 	void setTags(std::vector<std::pair<std::string, int>> const& prioritizedTags);
 
 	raco::core::Project* project() const;
+	const raco::core::CommandInterface* commandInterface() const;
 	raco::components::SDataChangeDispatcher dispatcher() const;
 	raco::core::EngineInterface& engineInterface() const;
 	raco::core::ValueHandle& valueHandle() noexcept;

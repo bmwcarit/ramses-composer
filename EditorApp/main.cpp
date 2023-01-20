@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	raco::components::RaCoPreferences::init();
-	int featureLevel = raco::components::RaCoPreferences::instance().featureLevel;
+	int featureLevel = std::min<int>(raco::components::RaCoPreferences::instance().featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
 
 	if (parser.isSet(ramsesLogicFeatureLevel)) {
 		featureLevel = parser.value(ramsesLogicFeatureLevel).toInt();

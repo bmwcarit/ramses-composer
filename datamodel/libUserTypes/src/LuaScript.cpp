@@ -8,6 +8,7 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "user_types/LuaScript.h"
+#include "LuaUtils.h"
 #include "Validation.h"
 #include "core/Context.h"
 #include "core/Handles.h"
@@ -18,7 +19,6 @@
 #include "utils/FileUtils.h"
 
 namespace raco::user_types {
-
 
 void LuaScript::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) {
 	// module changed
@@ -64,24 +64,11 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 		bool success = true;
 
 		if (syncModules) {
-			success = syncLuaModules(context, luaScript, error);
+			success = syncLuaModules(context, ValueHandle{shared_from_this(), &LuaScript::luaModules_}, luaScript, cachedModuleRefs_, error);
 		}
 
 		if (success) {
-			const auto& moduleTable = luaModules_.asTable();
-			ValueHandle moduleTableHandle{shared_from_this(), &LuaScript::luaModules_};
-			for (auto i = 0; i < moduleTable.size(); ++i) {
-				if (auto moduleRef = moduleTable.get(i)->asRef()) {
-					const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
-					if (!module->isValid()) {
-						context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
-						success = false;
-					}
-				} else {
-					context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Required LuaScriptModule '{}' is unassigned.", moduleTable.name(i)));
-					success = false;
-				}
-			}
+			success = checkLuaModules(ValueHandle{shared_from_this(), &LuaScript::luaModules_}, context.errors());
 		}
 
 		if (success) {
@@ -100,62 +87,6 @@ void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
 	context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
-}
-
-bool LuaScript::syncLuaModules(BaseContext& context, const std::string& fileContents, std::string& outError) {
-	std::vector<std::string> moduleDeps;
-	bool success = context.engineInterface().extractLuaDependencies(fileContents, moduleDeps, outError);
-	if (!success) {
-		moduleDeps.clear();
-	}
-
-	std::vector<std::string> redeclaredStandardModules;
-	for (const auto& dep : moduleDeps) {
-		if (raco::user_types::LuaScriptModule::LUA_STANDARD_MODULES.find(dep) != raco::user_types::LuaScriptModule::LUA_STANDARD_MODULES.end()) {
-			redeclaredStandardModules.emplace_back(dep);
-		}
-	}
-
-	if (!redeclaredStandardModules.empty()) {
-		outError = fmt::format("Error while parsing Lua script file: Found redeclaration of standard Lua module{} {}", redeclaredStandardModules.size() == 1 ? "" : "s", fmt::join(redeclaredStandardModules, ", "));
-		moduleDeps.clear();
-		success = false;
-	}
-
-	// Remove outdated module properties
-	std::vector<std::string> toRemove;
-	for (size_t index = 0; index < luaModules_->size(); index++) {
-		const auto& name = luaModules_->name(index);
-		if (std::find(moduleDeps.begin(), moduleDeps.end(), name) == moduleDeps.end()) {
-			toRemove.emplace_back(name);
-		}
-	}
-	ValueHandle moduleHandle{shared_from_this(), &LuaScript::luaModules_};
-	for (const auto& propName : toRemove) {
-		auto refValue = moduleHandle.get(propName).asRef();
-		if (refValue) {
-			cachedModuleRefs_[propName] = refValue->objectID();
-		}
-		context.removeProperty(moduleHandle, propName);
-	}
-
-	// Add new module properties
-	for (const auto& moduleName : moduleDeps) {
-		if (!luaModules_->hasProperty(moduleName)) {
-			std::unique_ptr<raco::data_storage::ValueBase> newValue = std::make_unique<Value<SLuaScriptModule>>();
-			auto it = cachedModuleRefs_.find(moduleName);			
-			if (it != cachedModuleRefs_.end()) {
-				std::string cachedRefID = it->second;
-				auto cachedObject = context.project()->getInstanceByID(cachedRefID);
-				if (cachedObject) {
-					*newValue = cachedObject;
-				}
-			}
-			context.addProperty(moduleHandle, moduleName, std::move(newValue));
-		}
-	}
-
-	return success;
 }
 
 }  // namespace raco::user_types

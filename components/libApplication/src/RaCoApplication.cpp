@@ -123,6 +123,9 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 	activeProject_.reset();
 	scenesBackend_->reset();
 
+	// The module cache should already by empty after removing the local and external projects but explicitly clear it anyway
+	// to avoid potential problems.
+	engine_->coreInterface()->clearModuleCache();
 	dataChangeDispatcher_->assertEmpty();
 
 	core::LoadContext loadContext;
@@ -194,11 +197,11 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const s
 	if (!forceExportWithErrors) {
 		if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
 			outError = "Export failed: scene contains Composer errors:\n";
-			auto errors = activeRaCoProject().errors()->getAllErrors();
-			for (const auto& item : errors) {
-				auto error = item.second;
-				if (error.level() >= raco::core::ErrorLevel::ERROR) {
-					outError.append(raco::core::Errors::formatError(error));
+			for (const auto& [object, objErrors] : activeRaCoProject().errors()->getAllErrors()) {
+				for (const auto& [handle, error] : objErrors) {
+					if (error.level() >= raco::core::ErrorLevel::ERROR) {
+						outError.append(raco::core::Errors::formatError(error));
+					}
 				}
 			}
 			return false;

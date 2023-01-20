@@ -302,7 +302,7 @@ void UndoStack::restoreProjectState(Project *src, Project *dest, BaseContext &co
 			extrefDirty = extrefDirty || destObj->query<ExternalReferenceAnnotation>();
 		}
 	}
-	BaseContext::deleteWithVolatileSideEffects(dest, toRemove, context.errors());
+	context.deleteWithVolatileSideEffects(dest, toRemove, context.errors());
 
 	// Create src object not present in dest
 	for (const auto &srcObj : src->instances()) {

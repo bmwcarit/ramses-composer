@@ -18,6 +18,11 @@
 
 namespace raco::user_types {
 
+void LuaScriptModule::onBeforeDeleteObject(BaseContext& context) const {
+	BaseObject::onBeforeDeleteObject(context);
+	context.engineInterface().removeModuleFromCache(shared_from_this());
+}
+
 void LuaScriptModule::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	// uri changed -> updateFromExternalFile
 	// -> sync lua modules and parse/sync script
@@ -40,7 +45,7 @@ void LuaScriptModule::sync(BaseContext& context) {
 		std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
 
 		std::string error;
-		isValid_ = context.engineInterface().parseLuaScriptModule(luaScript, objectName(), stdModules_->activeModules(), error);
+		isValid_ = context.engineInterface().parseLuaScriptModule(shared_from_this(), luaScript, objectName(), stdModules_->activeModules(), error);
 
 		if (!isValid_) {
 			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, shared_from_this(), error);
@@ -48,6 +53,7 @@ void LuaScriptModule::sync(BaseContext& context) {
 		currentScriptContents_ = luaScript;
 	} else {
 		currentScriptContents_.clear();
+		context.engineInterface().removeModuleFromCache(shared_from_this());
 		isValid_ = false;
 	}
 

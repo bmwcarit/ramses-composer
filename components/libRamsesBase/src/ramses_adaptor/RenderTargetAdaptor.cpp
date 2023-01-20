@@ -93,10 +93,14 @@ bool RenderTargetAdaptor::sync(core::Errors* errors) {
 	// This is a Ramses bug - see https://github.com/bmwcarit/ramses/issues/52
 	// If that occurs, refuse to create the render target to avoid any surprises for the user.
 
-	bool hasEmptySlots = collectBuffers<RenderBufferAdaptor>(buffers, usertypebuffers, rtDesc, errors) || 
-		collectBuffers<RenderBufferMSAdaptor>(buffersMS, usertypebuffersMS, rtDesc, errors);
+	bool haveNormalBuffers = std::any_of(usertypebuffers.begin(), usertypebuffers.end(), [](auto object) {
+		return object != nullptr;
+	});
+	bool haveMSBuffers = std::any_of(usertypebuffersMS.begin(), usertypebuffersMS.end(), [](auto object) {
+		return object != nullptr;
+	});
 
-	if (!buffers.empty() && !buffersMS.empty()) {
+	if (haveNormalBuffers && haveMSBuffers) {
 		auto errorMsg = fmt::format("Cannot create render target '{}' - all buffers need to be either single-sample or multi-sample only.", editorObject()->objectName());
 		reset(nullptr);
 		LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
@@ -105,6 +109,10 @@ bool RenderTargetAdaptor::sync(core::Errors* errors) {
 		tagDirty(false);
 		return true;
 	}
+
+	bool hasEmptySlotsNormal = collectBuffers<RenderBufferAdaptor>(buffers, usertypebuffers, rtDesc, errors);
+	bool hasEmptySlotsMS = collectBuffers<RenderBufferMSAdaptor>(buffersMS, usertypebuffersMS, rtDesc, errors);
+	bool hasEmptySlots = hasEmptySlotsNormal || hasEmptySlotsMS;
 
 	buffers.insert(buffers.end(), buffersMS.begin(), buffersMS.end());
 

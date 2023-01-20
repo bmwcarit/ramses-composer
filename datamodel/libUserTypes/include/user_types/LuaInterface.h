@@ -11,6 +11,7 @@
 
 #include "user_types/BaseObject.h"
 #include "user_types/SyncTableWithEngineInterface.h"
+#include "user_types/LuaStandardModuleSelection.h"
 
 #include <map>
 
@@ -23,7 +24,7 @@ public:
 		return typeDescription;
 	}
 
-	LuaInterface(LuaInterface const& other) : BaseObject(other), uri_(other.uri_), inputs_(other.inputs_) {
+	LuaInterface(LuaInterface const& other) : BaseObject(other), uri_(other.uri_), stdModules_(other.stdModules_), luaModules_(other.luaModules_), inputs_(other.inputs_) {
 		fillPropertyDescription();
 	}
 
@@ -34,19 +35,31 @@ public:
 
 	void fillPropertyDescription() {
 		properties_.emplace_back("uri", &uri_);
+		properties_.emplace_back("stdModules", &stdModules_);
+		properties_.emplace_back("luaModules", &luaModules_);
 		properties_.emplace_back("inputs", &inputs_);
 	}
 
+	void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	
 	void updateFromExternalFile(BaseContext& context) override;
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua interface files(*.lua);; All files (*.*)"}, DisplayNameAnnotation("URI")};
 
+	Property<LuaStandardModuleSelection, DisplayNameAnnotation, FeatureLevel> stdModules_{{}, {"Standard Modules"}, FeatureLevel{5}};
+
+	Property<Table, DisplayNameAnnotation, FeatureLevel> luaModules_{{}, DisplayNameAnnotation("Modules"), FeatureLevel{5}};
+
 	Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation> inputs_{{}, DisplayNameAnnotation("Inputs"), {}, {}};
 
 private:
+	void syncLuaScript(BaseContext& context, bool syncModules);
+
 	OutdatedPropertiesStore cachedLuaInputValues_;
+
+	// Map module name -> object id
+	std::map<std::string, std::string> cachedModuleRefs_;
 };
 
 using SLuaInterface = std::shared_ptr<LuaInterface>;

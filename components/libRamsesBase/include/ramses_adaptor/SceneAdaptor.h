@@ -45,7 +45,6 @@ public:
 	const ramses_base::RamsesAppearance defaultAppearance(bool withMeshNormals);
 	const ramses_base::RamsesArrayResource defaultVertices();
 	const ramses_base::RamsesArrayResource defaultIndices();
-	const ramses_base::RamsesAnimationNode defaultAnimation();
 	ObjectAdaptor* lookupAdaptor(const core::SEditorObject& editorObject) const;
 	Project& project() const;
 
@@ -102,9 +101,6 @@ private:
 
 	ramses_base::RamsesArrayResource defaultIndices_{};
 	ramses_base::RamsesArrayResource defaultVertices_{};
-
-	ramses_base::RamsesAnimationChannelHandle defaultAnimChannel_{};
-	ramses_base::RamsesAnimationNode defaultAnimation_{};
 
 	std::map<SEditorObject, std::unique_ptr<ObjectAdaptor>> adaptors_{};
 	

@@ -26,6 +26,7 @@
 namespace raco::core {
 class EditorObject;
 using SEditorObject = std::shared_ptr<EditorObject>;
+class Project;
 class Link;
 using SLink = std::shared_ptr<Link>;
 }  // namespace raco::core
@@ -49,6 +50,8 @@ struct ExternalProjectInfo {
 };
 
 bool operator==(const ExternalProjectInfo& lhs, const ExternalProjectInfo& rhs);
+
+std::string serializeProperty(const raco::core::Project& project, const raco::data_storage::ValueBase& value);
 
 std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo = true);
 
@@ -123,6 +126,8 @@ using ProjectDeserializationInfoIR = GenericProjectDeserializationInfo<raco::ser
 int deserializeFileVersion(const QJsonDocument& document);
 int deserializeFeatureLevel(const QJsonDocument& document);
 ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document);
+
+std::unique_ptr<ValueBase> deserializeProperty(const raco::core::Project& project, const std::string& json);
 
 std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo = true);
 

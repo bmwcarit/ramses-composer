@@ -84,6 +84,9 @@ raco_package_add_test_resources(
     raco_traces/g05_demo_Arrays.rctrace
     lua_scripts/DummyScript.lua
     raco_traces/g05_demo_withDummy.rctrace
+    lua_scripts/Interface_ChargingSlider.lua
+    raco_traces/ChargingSlider_Colors_Test.rctrace
+    raco_traces/ChargingSlider_Functions_Test.rctrace
 )
 
 add_compile_definitions(libTracePlayer_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

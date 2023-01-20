@@ -29,6 +29,7 @@
 #include "ramses_adaptor/RenderPassAdaptor.h"
 #include "ramses_adaptor/RenderLayerAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
+#include "ramses_adaptor/SkinAdaptor.h"
 #include "ramses_adaptor/TimerAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "user_types/CubeMap.h"
@@ -76,7 +77,9 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		
 		{user_types::LuaInterface::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaInterfaceAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaInterface>(obj)); }},
 
-		{user_types::AnchorPoint::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<AnchorPointAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::AnchorPoint>(obj)); }}
+		{user_types::AnchorPoint::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<AnchorPointAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::AnchorPoint>(obj)); }},
+
+		{user_types::Skin::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<SkinAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Skin>(obj)); }}
 	};
 
 	if (factoryByTypename.find(obj->getTypeDescription().typeName) != factoryByTypename.end()) {

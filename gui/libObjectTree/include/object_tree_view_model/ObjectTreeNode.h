@@ -21,6 +21,13 @@ enum class ObjectTreeNodeType {
 	Root
 };
 
+enum class VisibilityState {
+	Disabled,
+	Invisible,
+	Visible,
+	Missing
+};
+
 class ObjectTreeNode {
 public:
 	explicit ObjectTreeNode(core::SEditorObject obj, ObjectTreeNode *parent);
@@ -48,6 +55,7 @@ public:
 	std::string getTypeName() const;
 	std::string getExternalProjectName() const;
 	std::string getExternalProjectPath() const;
+	VisibilityState getVisibility() const;
 	void setBelongsToExternalProject(const std::string &path, const std::string &name);
 
 protected:

@@ -261,6 +261,13 @@ TEST_F(CommandInterfaceTest, set_ref_fail_prefab_loop_nested) {
 	EXPECT_THROW(commandInterface.set({inst_2, &PrefabInstance::template_}, prefab_1), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_ref_fail_ref_loop) {
+	auto meshnode = create<Node>("meshnode");
+	auto skin = create<Skin>("skin", meshnode);
+	EXPECT_THROW(commandInterface.set(ValueHandle(skin, &Skin::targets_)[0], meshnode), std::runtime_error);
+	EXPECT_THROW(commandInterface.set(ValueHandle(skin, &Skin::joints_)[0], meshnode), std::runtime_error);
+}
+
 TEST_F(CommandInterfaceTest, set_fail_read_only_prop_lua_output) {
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 

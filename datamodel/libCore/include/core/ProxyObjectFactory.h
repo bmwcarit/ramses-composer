@@ -170,15 +170,15 @@ public:
 
 		// LuaScript
 		Property<Table, DisplayNameAnnotation, LinkEndAnnotation>,
+		Property<LuaStandardModuleSelection, DisplayNameAnnotation>,
 
 		// LuaInterface
 		Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
+		Property<Table, DisplayNameAnnotation, FeatureLevel>,
+		Property<LuaStandardModuleSelection, DisplayNameAnnotation, FeatureLevel>,
 
 		// BaseCamera
 		Property<CameraViewport, DisplayNameAnnotation, LinkEndAnnotation>,
-
-		// LuaScript
-		Property<LuaStandardModuleSelection, DisplayNameAnnotation>,
 
 		// CameraViewport
 		Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>,
@@ -232,7 +232,11 @@ public:
 		Property<SNode, DisplayNameAnnotation>,
 		Property<AnchorPointOutputs, DisplayNameAnnotation>,
 		Property<double, DisplayNameAnnotation, LinkStartAnnotation>,
-		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>>;
+		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>,
+
+		// Skin
+		Property<SMeshNode, DisplayNameAnnotation>
+	>;
 
 	static ProxyObjectFactory& getInstance();
 

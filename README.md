@@ -18,6 +18,14 @@ Find a broader overview of [the Ramses SDK here](https://ramses-sdk.readthedocs.
 
 ## Setup
 
+Make sure you have Git LFS installed:
+
+```console
+> git lfs install
+Updated Git hooks.
+Git LFS initialized.
+```
+
 To build Ramses Composer you first need to checkout and initialize it's dependencies:
 
 ```console
@@ -205,6 +213,8 @@ Ramses Composer is published under the [Mozilla Public License 2.0](LICENSE.txt)
 Some icons originate from the [Google Material Design](https://material.io/resources/icons/?style=baseline) ([Apache 2.0 license](https://github.com/google/material-design-icons/blob/master/LICENSE)).
 
 There are some example files included in ```resources/```. For Meshes taken from the Khronos glTF library, their individual licenses [are listed here](resources/meshes/README.md). All other meshes, Lua scripts, shaders and textures are also under MPL 2.0.
+
+The ```screenshot_tests/projects/images/``` directory contains the [PNG Suite](http://www.schaik.com/pngsuite/) which is free to use ([License](screenshot_tests/projects/images/PngSuite-2017jul19/PngSuite.LICENSE)).
 
 There are no obligations on the projects you create with Ramses Composer. They are your property and you may use and license them in any way you wish. This applies to the .rca scene file, everything referenced by it and all files exported from Ramses Composer.
 

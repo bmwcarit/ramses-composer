@@ -62,8 +62,8 @@ EditorObject::ChildIterator EditorObject::end() {
 	return ChildIterator(shared_from_this(), children_->size());
 }
 
-void EditorObject::onBeforeDeleteObject(Errors& errors) const {
-	errors.removeAll(shared_from_this());
+void EditorObject::onBeforeDeleteObject(BaseContext& context) const {
+	context.errors().removeAll(shared_from_this());
 	uriListeners_.clear();
 }
 

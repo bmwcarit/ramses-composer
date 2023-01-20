@@ -73,8 +73,13 @@ public:
 	const QIcon singleArrowLeft{":singleArrowLeft"};
 	const QIcon doubleArrowLeft{":doubleArrowLeft"};
 	const QIcon typeAnchorPoint{":anchorIcon"};
+	const QIcon typeSkin{":typeSkinIcon"};
+	const QIcon visibilityDisabled{makeDisabled(":visibilityDisabledIcon")};
+	const QIcon visibilityOn{makeDisabled(":visibilityOnIcon")};
+	const QIcon visibilityOff{makeDisabled(":visibilityOffIcon")};
 
 	static const Icons &instance();
+	static QIcon makeDisabled(const QString &name);
 
 	Icons(const Icons &) = delete;
 	Icons &operator=(const Icons &) = delete;

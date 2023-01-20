@@ -11,9 +11,11 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 1.5.1)
+project(RaCoOS VERSION 1.6.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
+
+SET(HEADLESS_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release_headless)
 
 # The build and deployment process for Python works differently for Linux and Windows.
 # Windows:
@@ -22,7 +24,7 @@ SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 #   This is a normal full Python installation folder, all options except Debug Binaries off.
 # * The build process uses the third_party/python-windows/python-3.8.10-embed-amd64 folder (downloadable from Python as the "embeddable package")
 #   to generate a suitable Python folder in the release folder (containing pip and virtualenv), see third_party\python-windows\CMakeLists.txt
-# * On startup, RaCoHeadless will just use the Python folder "release/bin/python-3.8.10-with-pip-and-virtualenv" generated in the steps above.
+# * On startup, RaCoHeadless will just use the Python folder "${HEADLESS_RELEASE_DIRECTORY}/bin/python-3.8.10-with-pip-and-virtualenv" generated in the steps above.
 # * Python will be started "in isolation", so all other Python installations/environment variables on the machine will be ignored.
 # Linux:
 # * RaCo requires Python 3.8 to be installed for building.
@@ -54,6 +56,7 @@ if(WIN32)
 endif()
 set(PYTHON_DEPLOYMENT_FOLDER_NAME "python-${Python_VERSION}-with-pip")
 set(PYTHON_DEPLOYMENT_FOLDER "${RACO_RELEASE_DIRECTORY}/bin/${PYTHON_DEPLOYMENT_FOLDER_NAME}")
+set(HEADLESS_PYTHON_DEPLOYMENT_FOLDER "${HEADLESS_RELEASE_DIRECTORY}/bin/${PYTHON_DEPLOYMENT_FOLDER_NAME}")
 
 
 # Configuration - where is your Qt?
@@ -180,34 +183,34 @@ endmacro()
 #
 # Create macros to copy necessary DLLs (we might be better off using the RUNTIME_OUTPUT_DIRECTORY property in a controlled manner?)
 #
-macro(deploy_dlls_and_strip_symbols exetarget dlltarget)
+macro(deploy_dlls_and_strip_symbols exetarget dlltarget outdir)
 	add_custom_command(TARGET ${exetarget} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${dlltarget}> "$<TARGET_FILE_DIR:${exetarget}>"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${dlltarget}> "${outdir}"
 	)
 	IF(WIN32)
 		add_custom_command(TARGET ${exetarget} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_PDB_FILE:${dlltarget}> "$<TARGET_FILE_DIR:${exetarget}>"
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_PDB_FILE:${dlltarget}> "${outdir}"
 		)
 	ENDIF()
-	seperate_debug_symbols(${exetarget} "$<TARGET_FILE_DIR:${exetarget}>/$<TARGET_FILE_NAME:${dlltarget}>")
+	seperate_debug_symbols(${exetarget} "${outdir}/$<TARGET_FILE_NAME:${dlltarget}>")
 endmacro()
-macro(deploy_ramses_client_only_shared_dlls tgt)
-	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-lib-client-only)
-	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-logic-lib-client-only)
+macro(deploy_ramses_client_only_shared_dlls tgt outdir)
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-lib-client-only "${outdir}")
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-logic-lib-client-only "${outdir}")
 endmacro()
 macro(deploy_ramses_with_renderer_shared_dlls tgt)
-	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-lib)
-	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-logic-lib)
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-lib "$<TARGET_FILE_DIR:${tgt}>")
+	deploy_dlls_and_strip_symbols(${tgt} raco::ramses-logic-lib "$<TARGET_FILE_DIR:${tgt}>")
 endmacro()
 macro(deploy_headless_shared_dlls tgt)
-	deploy_dlls_and_strip_symbols(${tgt} openctm)
+	deploy_dlls_and_strip_symbols(${tgt} openctm "$<TARGET_FILE_DIR:${tgt}>")
 endmacro()
 macro(deploy_gui_shared_dlls tgt)
 	deploy_headless_shared_dlls(${tgt})
-	deploy_dlls_and_strip_symbols(${tgt} qtadvanceddocking)
+	deploy_dlls_and_strip_symbols(${tgt} qtadvanceddocking "$<TARGET_FILE_DIR:${tgt}>")
 endmacro()
 macro(deploy_viewer tgt)
-	deploy_dlls_and_strip_symbols(${tgt} ramses-logic-viewer)
+	deploy_dlls_and_strip_symbols(${tgt} ramses-logic-viewer "$<TARGET_FILE_DIR:${tgt}>")
 endmacro()
 macro(deploy_python_dlls tgt)
 	IF(WIN32)
@@ -216,9 +219,9 @@ macro(deploy_python_dlls tgt)
 		)
 	else()
 		# Make sure RaCoHeadless starts if Python is not used and Python is not installed.
-		add_custom_command(TARGET ${tgt} POST_BUILD
+	add_custom_command(TARGET ${tgt} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different "/usr/lib/x86_64-linux-gnu/libpython3.8.so.1.0" "$<TARGET_FILE_DIR:${tgt}>"
-		)
+	)
 	ENDIF()
 endmacro()
 
@@ -275,12 +278,12 @@ if(PACKAGE_TESTS)
 	macro(raco_package_add_headless_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
 		deploy_headless_shared_dlls(${TESTNAME})
-		deploy_ramses_client_only_shared_dlls(${TESTNAME})
+		deploy_ramses_client_only_shared_dlls(${TESTNAME} "$<TARGET_FILE_DIR:${TESTNAME}>")
 	endmacro()
 	macro(raco_package_add_gui_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
 		deploy_gui_shared_dlls(${TESTNAME})
-		deploy_ramses_client_only_shared_dlls(${TESTNAME})
+		deploy_ramses_client_only_shared_dlls(${TESTNAME} "$<TARGET_FILE_DIR:${TESTNAME}>")
 	endmacro()
 	function(raco_package_test_resources_process TESTNAME SOURCE_DIRECTORY)
 		foreach(fname ${ARGN}) 
@@ -352,35 +355,26 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 #
-# Create necessary files and folders in the packaged release folder
+# Macros creating necessary files and folders in the packaged release folder
 #
-set(raco_RELEASE_ROOT_FILES
-	README.md
-	CHANGELOG.md
-)
+macro(add_file_copy SRC_FILE DEST_FILE)
+	add_custom_command(OUTPUT "${DEST_FILE}"
+		MAIN_DEPENDENCY "${SRC_FILE}"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SRC_FILE}" "${DEST_FILE}"
+		VERBATIM
+	)
+endmacro()
 
-add_custom_command(OUTPUT ${RACO_RELEASE_DIRECTORY}/migrate_to_v1_0.py
-	MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/third_party/ramses-logic/tools/migrate/migrate_to_v1_0.py"
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/third_party/ramses-logic/tools/migrate/migrate_to_v1_0.py" "${RACO_RELEASE_DIRECTORY}/migrate_to_v1_0.py"
-	VERBATIM)
-LIST(APPEND ROOT_FILES_OUTPUT "${RACO_RELEASE_DIRECTORY}/migrate_to_v1_0.py")
+function(create_folder_structure FILE_LIST DEST_DIR TARGET_NAME)
+	foreach(filepath ${FILE_LIST})
+		get_filename_component(filename ${filepath} NAME)
+		add_file_copy(${filepath} ${DEST_DIR}/${filename})
+		LIST(APPEND OUTPUT_FILE_LIST ${destpath})
+	endforeach(filepath)
 
-foreach(relpath ${raco_RELEASE_ROOT_FILES})
-	add_custom_command(OUTPUT "${RACO_RELEASE_DIRECTORY}/${relpath}"
-					MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}"
-					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}" "${RACO_RELEASE_DIRECTORY}/${relpath}"
-					VERBATIM)
-	LIST(APPEND ROOT_FILES_OUTPUT ${RACO_RELEASE_DIRECTORY}/${relpath})
-endforeach(relpath)
-
-ADD_CUSTOM_TARGET(RaCoPrepareReleaseFolder DEPENDS ${ROOT_FILES_OUTPUT} SOURCES ${raco_RELEASE_ROOT_FILES})
-set_target_properties (RaCoPrepareReleaseFolder PROPERTIES FOLDER Packaging)
-
-# Create default directories for configuration files and project files.
-add_custom_command(TARGET RaCoPrepareReleaseFolder POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/projects"
-	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/python"
-)
+	add_custom_target(${TARGET_NAME} DEPENDS ${OUTPUT_FILE_LIST} SOURCES ${FILE_LIST})
+	set_target_properties (${TARGET_NAME} PROPERTIES FOLDER Packaging)
+endfunction()
 
 #
 # Adding the subprojects
@@ -402,3 +396,4 @@ add_subdirectory(EditorApp)
 add_subdirectory(resources)
 
 add_subdirectory(PyAPITests)
+add_subdirectory(screenshot_tests)

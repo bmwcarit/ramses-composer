@@ -9,7 +9,10 @@
  */
 #pragma once
 
+#include "core/Handles.h"
+#include "core/Project.h"
 #include <QWidget>
+#include <iostream>
 
 namespace raco::property_browser {
 
@@ -21,8 +24,30 @@ public:
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
 
+	void pasteValue();
+	virtual void copyValue();
+
 protected:
 	PropertyBrowserItem* item_;
+
+private:
+	static void pasteInt(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteInt64(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteDouble(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteBool(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteString(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteRef(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteStruct(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pasteTable(PropertyBrowserItem* item, core::ValueBase* value);
+
+	static bool isVector(PropertyBrowserItem* item);
+	static bool isVector(core::ValueBase* value);
+	template <typename T>
+	static T getFittingVectorValueForPasting(data_storage::ReflectionInterface& substructure, const std::string& keyInIntVector, const std::string& keyInDoubleVector);
+	template <typename T>
+	static void pasteVector(PropertyBrowserItem* item, core::ValueBase* value);
+	static void pastePropertyOfSameType(PropertyBrowserItem* item, data_storage::ValueBase* value);
+	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value);
 };
 
 }  // namespace raco::property_browser

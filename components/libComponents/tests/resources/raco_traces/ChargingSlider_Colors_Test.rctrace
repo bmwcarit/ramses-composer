@@ -1,0 +1,331 @@
+[
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.0,
+                "StateOfChargeValue": 1.0,
+                "SystemColors": {
+                    "C1": {
+                        "x": 0.71373,
+                        "y": 0.96863,
+                        "z": 1.0
+                    },
+                    "C2": {
+                        "x": 0.27843,
+                        "y": 0.92549,
+                        "z": 1.0
+                    },
+                    "C3": {
+                        "x": 0.0,
+                        "y": 0.47059,
+                        "z": 1.0
+                    },
+                    "C4": {
+                        "x": 0.11765,
+                        "y": 0.28235,
+                        "z": 1.0
+                    },
+                    "C5": {
+                        "x": 0.16078,
+                        "y": 0.0,
+                        "z": 0.75294
+                    },
+                    "C6": {
+                        "x": 0.05490,
+                        "y": 0.09412,
+                        "z": 0.34510
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C1": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C1": {
+                        "x": 0.71373,
+                        "y": 0.96863,
+                        "z": 1.0
+                    },
+                    "C2": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C2": {
+                        "x": 0.27843,
+                        "y": 0.92549,
+                        "z": 1.0
+                    },
+                    "C3": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 3001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C3": {
+                        "x": 0.0,
+                        "y": 0.47059,
+                        "z": 1.0
+                    },
+                    "C4": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 4001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C4": {
+                        "x": 0.11765,
+                        "y": 0.28235,
+                        "z": 1.0
+                    },
+                    "C5": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 5001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 1.0,
+                "SystemColors": {
+                    "C5": {
+                        "x": 0.16078,
+                        "y": 0.0,
+                        "z": 0.75294
+                    },
+                    "C6": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 6001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C6": {
+                        "x": 0.05490,
+                        "y": 0.09412,
+                        "z": 0.34510
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 7001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 8001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C1": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 9001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C1": {
+                        "x": 0.71373,
+                        "y": 0.96863,
+                        "z": 1.0
+                    },
+                    "C2": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 10001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C2": {
+                        "x": 0.27843,
+                        "y": 0.92549,
+                        "z": 1.0
+                    },
+                    "C3": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 11001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C3": {
+                        "x": 0.0,
+                        "y": 0.47059,
+                        "z": 1.0
+                    },
+                    "C4": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 12001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C4": {
+                        "x": 0.11765,
+                        "y": 0.28235,
+                        "z": 1.0
+                    },
+                    "C5": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 13001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 1.0,
+                "SystemColors": {
+                    "C5": {
+                        "x": 0.16078,
+                        "y": 0.0,
+                        "z": 0.75294
+                    },
+                    "C6": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 14001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SystemColors": {
+                    "C6": {
+                        "x": 0.05490,
+                        "y": 0.09412,
+                        "z": 0.34510
+                    }
+                }
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 15001
+        }
+    }
+]

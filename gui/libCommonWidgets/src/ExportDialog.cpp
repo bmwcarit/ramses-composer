@@ -149,27 +149,12 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	sceneDescriptionView->setColumnWidth(0, 500);
 	tabWidget->addTab(sceneDescriptionView, QString{"Scene ID: %1"}.arg(application->sceneBackend()->currentSceneIdValue()));
 
-	hasErrors_ = false;
-
-	auto* commandInterface = application->activeRaCoProject().commandInterface();
-	if (!commandInterface->errors().getAllErrors().empty()) {
-		bool hasComposerErrors = false;
-		bool hasComposerWarnings = false;
-
-		for (const auto& errorPair : commandInterface->errors().getAllErrors()) {
-			if (errorPair.second.level() == raco::core::ErrorLevel::WARNING) {
-				hasComposerWarnings = true;
-			} else if (errorPair.second.level() == raco::core::ErrorLevel::ERROR) {
-				hasErrors_ = true;
-				hasComposerErrors = true;
-				break;
-			}
-		}
-
-		if (hasComposerErrors || hasComposerWarnings) {
-			auto* errorView = new ErrorView(commandInterface, application->dataChangeDispatcher(), true, logViewModel, this);
-			tabWidget->setCurrentIndex(tabWidget->addTab(errorView, hasComposerErrors ? "Composer Errors" : "Composer Warnings"));
-		}
+	auto racoErrorLevel = application->activeRaCoProject().errors()->maxErrorLevel();
+	bool showExportWithErrors = racoErrorLevel == raco::core::ErrorLevel::ERROR;
+	if (racoErrorLevel >= raco::core::ErrorLevel::WARNING) {
+		auto* commandInterface = application->activeRaCoProject().commandInterface();
+		auto* errorView = new ErrorView(commandInterface, application->dataChangeDispatcher(), true, logViewModel, this);
+		tabWidget->setCurrentIndex(tabWidget->addTab(errorView, racoErrorLevel == raco::core::ErrorLevel::ERROR ? "Composer Errors" : "Composer Warnings"));
 	}
 
 	if (sceneStatus != raco::core::ErrorLevel::NONE) {
@@ -177,7 +162,7 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 		textBox->setAcceptRichText(false);
 
 		textBox->setText(QString::fromStdString(message));
-		hasErrors_ = sceneStatus == raco::core::ErrorLevel::ERROR;
+		showExportWithErrors = true;
 
 		tabWidget->setCurrentIndex(tabWidget->addTab(textBox, sceneStatus == raco::core::ErrorLevel::ERROR ? "Ramses Errors" : "Ramses Warnings"));
 	}
@@ -197,6 +182,7 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	QObject::connect(ramsesEdit_, &QLineEdit::textChanged, this, &ExportDialog::updatePaths);
 	QObject::connect(logicEdit_, &QLineEdit::textChanged, this, &ExportDialog::updatePaths);
 	updatePaths();
+	buttonBox_->button(QDialogButtonBox::Ok)->setText(showExportWithErrors ? "Export (with errors)" : "Export");
 
 	setAttribute(Qt::WA_DeleteOnClose);
 }
@@ -241,7 +227,6 @@ void ExportDialog::updatePaths() {
 void ExportDialog::updateButtonStates() {
 	const bool enableButton = !ramsesEdit_->text().isEmpty() && !logicEdit_->text().isEmpty();
 	buttonBox_->button(QDialogButtonBox::Ok)->setEnabled(enableButton);
-	buttonBox_->button(QDialogButtonBox::Ok)->setText(enableButton && hasErrors_ ? "Export (with errors)" : "Export");
 }
 
 void ExportDialog::setupFilePickerButton(PropertyBrowserButton* button, QLineEdit* pathEdit, const std::string& fileType) {

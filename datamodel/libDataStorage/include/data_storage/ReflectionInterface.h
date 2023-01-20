@@ -17,6 +17,7 @@
 namespace raco::core {
 class EditorObject;
 using SEditorObject = std::shared_ptr<EditorObject>;
+using SCEditorObject = std::shared_ptr<const EditorObject>;
 }  // namespace raco::core
 
 namespace raco::data_storage {

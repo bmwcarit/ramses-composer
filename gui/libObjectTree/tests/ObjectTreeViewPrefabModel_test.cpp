@@ -14,6 +14,7 @@
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
 #include "user_types/LuaInterface.h"
+#include "user_types/Skin.h"
 
 using namespace raco::user_types;
 
@@ -21,7 +22,8 @@ class ObjectTreeViewPrefabModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewPrefabModelTest() : ObjectTreeViewDefaultModelTest() {
 		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewPrefabModel(&commandInterface, application_.dataChangeDispatcher(), nullptr,
-			{Animation::typeDescription.typeName,
+			{
+				Animation::typeDescription.typeName,
 				Node::typeDescription.typeName,
 				MeshNode::typeDescription.typeName,
 				Prefab::typeDescription.typeName,
@@ -29,13 +31,15 @@ public:
 				OrthographicCamera::typeDescription.typeName,
 				PerspectiveCamera::typeDescription.typeName,
 				LuaScript::typeDescription.typeName,
-				LuaInterface::typeDescription.typeName}));
+				LuaInterface::typeDescription.typeName,
+				Skin::typeDescription.typeName
+			}));
 	}
 };
 
 TEST_F(ObjectTreeViewPrefabModelTest, TypesAllowedIntoIndexEmptyIndex) {
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex({});
-	std::vector<std::string> allowedTypesAssert {Prefab::typeDescription.typeName};
+	std::vector<std::string> allowedTypesAssert{Prefab::typeDescription.typeName};
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -63,14 +67,15 @@ TEST_F(ObjectTreeViewPrefabModelTest, TypesAllowedIntoIndexNode) {
 	moveScenegraphChildren({node}, prefab);
 
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(node->objectID()));
-	std::vector<std::string> allowedTypesAssert {Animation::typeDescription.typeName,
+	std::vector<std::string> allowedTypesAssert{Animation::typeDescription.typeName,
 		Node::typeDescription.typeName,
 		MeshNode::typeDescription.typeName,
 		PrefabInstance::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
 		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName};
+		LuaInterface::typeDescription.typeName,
+		Skin::typeDescription.typeName};
 
 	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
 	for (int i = 0; i < allowedTypes.size(); ++i) {
@@ -78,16 +83,14 @@ TEST_F(ObjectTreeViewPrefabModelTest, TypesAllowedIntoIndexNode) {
 	}
 }
 
-
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedOnTopLevel) {
 	for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
 		auto newObj = context.createObject(typeName);
 		if (raco::core::Queries::isResource(newObj)) {
-			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({} , newObj));
+			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 		}
 	}
 }
-
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedUnderPrefab) {
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
@@ -227,7 +230,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsNothingIsAllowedUnderExtRef) {
 		auto newObj = context.createObject(typeName);
 		ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefPrefabIndex, newObj));
 	}
-	
+
 	auto extRefGroupIndex = viewModel_->index(0, 0);
 	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
 	ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, context.createObject(Node::typeDescription.typeName)));
@@ -254,7 +257,6 @@ TEST_F(ObjectTreeViewPrefabModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds));
 	ASSERT_TRUE(viewModel_->canPasteIntoIndex(extRefGroupIndex, parsedObjs, sourceProjectTopLevelObjectIds));
 }
-
 
 TEST_F(ObjectTreeViewPrefabModelTest, DuplicationPrefabCanBeDuplicated) {
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
@@ -313,7 +315,6 @@ TEST_F(ObjectTreeViewPrefabModelTest, DuplicationPrefabInstanceChildrenInPrefabC
 TEST_F(ObjectTreeViewPrefabModelTest, DuplicationDifferentNodesInDifferentPrefabsCanNotBeDuplicated) {
 	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"p1", "p2"});
 	auto nodes = createNodes(Node::typeDescription.typeName, {"n11", "n12", "n21"});
-
 
 	moveScenegraphChildren({nodes[0]}, prefabs[0]);
 	moveScenegraphChildren({nodes[1]}, nodes[0]);

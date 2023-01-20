@@ -9,23 +9,23 @@
 # 
 import unittest
 import sys
-import runpy
 import os
 import platform
-import shutil
 import subprocess
 
 class UsePip(unittest.TestCase):
     def setUp(self):
         self._install_script = '../resources/python/use_pip_to_install_module.py'
         self._uninstall_script = '../resources/python/use_pip_to_uninstall_module.py'
+        python_folder = os.environ["PYTHON_DEPLOYMENT_FOLDER"]
+
         if platform.system() == "Windows":
-            self._tested_module_path = '../build/release/bin/python-3.8.10-with-pip/Lib/site-packages/simplejson/__init__.py'
+            self._tested_module_path = os.path.join(python_folder, 'Lib/site-packages/simplejson/__init__.py')
         elif platform.system() == "Linux":
-            self._tested_module_path = '../build/release/bin/python-3.8.0-with-pip/python3.8/lib/python3.8/site-packages/simplejson/__init__.py'
+            self._tested_module_path = os.path.join(python_folder, 'python3.8/lib/python3.8/site-packages/simplejson/__init__.py')
         else:
             raise RuntimeError('Unknown platform')
-            
+
         # Make sure the module we test with is not already installed.
         if os.path.exists(self._tested_module_path):
             raise RuntimeError('The simplejson module used for testing is already installed in the environment')

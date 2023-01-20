@@ -9,12 +9,12 @@
  */
 #include "ramses_widgets/PreviewMainWindow.h"
 
+#include "ramses_adaptor/SceneAdaptor.h"
+#include "ramses_adaptor/SceneBackend.h"
 #include "ramses_widgets/PreviewContentWidget.h"
 #include "ramses_widgets/PreviewScrollAreaWidget.h"
 #include "user_types/BaseCamera.h"
 #include "user_types/PerspectiveCamera.h"
-#include "ramses_adaptor/SceneAdaptor.h"
-#include "ramses_adaptor/SceneBackend.h"
 
 #include "ui_PreviewMainWindow.h"
 #include <QLabel>
@@ -112,12 +112,12 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 	// MSAA button
 	{
 		auto* msaaMenu = new QMenu{ui_->toolBar};
-		msaaMenu->addAction(ui_->actionSetMSAAx1);
+		msaaMenu->addAction(ui_->actionSetMSAAx0);
 		msaaMenu->addAction(ui_->actionSetMSAAx2);
 		msaaMenu->addAction(ui_->actionSetMSAAx4);
 		msaaMenu->addAction(ui_->actionSetMSAAx8);
-		ui_->actionSetMSAAx1->setCheckable(true);
-		ui_->actionSetMSAAx1->setChecked(true);
+		ui_->actionSetMSAAx0->setCheckable(true);
+		ui_->actionSetMSAAx0->setChecked(true);
 		ui_->actionSetMSAAx2->setCheckable(true);
 		ui_->actionSetMSAAx4->setCheckable(true);
 		ui_->actionSetMSAAx8->setCheckable(true);
@@ -126,19 +126,19 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		msaaMenuButton->setMenu(msaaMenu);
 		msaaMenuButton->setPopupMode(QToolButton::InstantPopup);
 
-		msaaMenuButton->setText(ui_->actionSetMSAAx1->text());
+		msaaMenuButton->setText(ui_->actionSetMSAAx0->text());
 
 		auto updateMsaaSelection = [this, msaaMenuButton](QAction* action) {
 			msaaMenuButton->setText(action->text());
-			ui_->actionSetMSAAx1->setChecked(ui_->actionSetMSAAx1 == action);
+			ui_->actionSetMSAAx0->setChecked(ui_->actionSetMSAAx0 == action);
 			ui_->actionSetMSAAx2->setChecked(ui_->actionSetMSAAx2 == action);
 			ui_->actionSetMSAAx4->setChecked(ui_->actionSetMSAAx4 == action);
 			ui_->actionSetMSAAx8->setChecked(ui_->actionSetMSAAx8 == action);
 		};
 
-		connect(ui_->actionSetMSAAx1, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
-			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_1X);
-			updateMsaaSelection(ui_->actionSetMSAAx1);
+		connect(ui_->actionSetMSAAx0, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
+			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_0X);
+			updateMsaaSelection(ui_->actionSetMSAAx0);
 		});
 		connect(ui_->actionSetMSAAx2, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
 			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_2X);

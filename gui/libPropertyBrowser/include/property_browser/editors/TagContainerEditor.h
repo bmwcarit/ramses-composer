@@ -35,7 +35,7 @@ public:
 Q_SIGNALS:
 	void tagCacheDirty();
 
-private:	
+private:
 	void editButtonClicked() const;
 	void updateTags() const;
 	void updateRenderedBy() const;

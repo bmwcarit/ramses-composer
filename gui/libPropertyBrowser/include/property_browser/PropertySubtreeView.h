@@ -23,6 +23,7 @@
 
 namespace raco::property_browser {
 class PropertyControl;
+class PropertyEditor;
 
 class EmbeddedPropertyBrowserView final : public QFrame {
 public:
@@ -48,6 +49,7 @@ private:
 	void recalculateLabelWidth();
 	void collectTabWidgets(QObject* item, QWidgetList& tabWidgets);
 	void recalculateTabOrder();
+	void registerCopyPasteContextMenu(QWidget* widget);
 
 	raco::core::SceneBackendInterface* sceneBackend_;
 
@@ -56,7 +58,7 @@ private:
 	PropertyBrowserGridLayout layout_{nullptr};
 	QWidget* decorationWidget_{nullptr};
 	QLabel* label_{nullptr};
-	QWidget* propertyControl_{nullptr};
+	PropertyEditor* propertyControl_{nullptr};
 	PropertySubtreeChildrenContainer* childrenContainer_{nullptr};
 	int labelWidth_{0};
 	float highlight_{0};

@@ -218,21 +218,22 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 			effect->getUniformInput(i, uniform);
 			if (uniform.getSemantics() == ramses::EEffectUniformSemantic::Invalid) {
 				if (shaderTypeMap.find(uniform.getDataType()) != shaderTypeMap.end()) {
+					auto engineType = shaderTypeMap[uniform.getDataType()];
 					if (uniform.getElementCount() > 1) {
-						auto engineType = shaderTypeMap[uniform.getDataType()];
 						if (engineType >= core::EnginePrimitive::Int32 && engineType <= core::EnginePrimitive::Vec4i) {
-							auto &item = outUniforms.emplace_back(std::string{uniform.getName()}, raco::core::EnginePrimitive::Array);
-							for (int index = 0; index < uniform.getElementCount(); index++) {
-								item.children.emplace_back(std::string(), shaderTypeMap[uniform.getDataType()]);
-							}
+							outUniforms.emplace_back(raco::core::PropertyInterface::makeArrayOf(uniform.getName(), engineType, uniform.getElementCount()));
 						} else {
 							outError += fmt::format("Uniform '{}' has unsupported array element type '{}'", uniform.getName(), engineType);
 						}
 					} else {
-						outUniforms.emplace_back(std::string{uniform.getName()}, shaderTypeMap[uniform.getDataType()]);
+						outUniforms.emplace_back(std::string{uniform.getName()}, engineType);
 					}
 				} else {
-					outError += std::string(uniform.getName()) + " has unsupported type";
+					// mat4 uniforms are needed for skinning: they will be set directly by the LogicEngine 
+					// so we don't need to expose but they shouldn't generate errors either:
+					if (uniform.getDataType() != ramses::EEffectInputDataType_Matrix44F) {
+						outError += std::string(uniform.getName()) + " has unsupported type";
+					}
 				}
 			}
 		}

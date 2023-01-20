@@ -17,22 +17,23 @@ using namespace raco::ramses_base;
 
 AnimationAdaptor::AnimationAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimation animation)
 	: UserTypeObjectAdaptor{sceneAdaptor, animation},
-	  animNode_{sceneAdaptor_->defaultAnimation()},
+	  animNode_{},
 	  progressSubscription_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::progress_}, [this]() { tagDirty(); })},
 	  dirtySubscription_{
 		  sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })},
 	  nameSubscription_{
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::objectName_}, [this]() { tagDirty(); })}
- {
+		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::Animation::objectName_}, [this]() { tagDirty(); })} {
 }
 
 void AnimationAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
-	logicNodes.emplace_back(animNode_->get());
+	if (animNode_) {
+		logicNodes.emplace_back(animNode_->get());
+	}
 }
 
 const rlogic::Property* AnimationAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
-	if (animNode_->get()) {
+	if (animNode_) {
 		if (propertyNamesVector.size() > 1 && propertyNamesVector[0] == "outputs") {
 			return ILogicPropertyProvider::getPropertyRecursive((*animNode_)->getOutputs(), propertyNamesVector, 1);
 		} else if (propertyNamesVector.size() == 1) {
@@ -55,7 +56,7 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 
 	std::vector<raco::ramses_base::RamsesAnimationChannelHandle> newChannelHandles;
 
-	const auto &channelTable = editorObject_->animationChannels_.asTable();
+	const auto& channelTable = editorObject_->animationChannels_.asTable();
 	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
 		auto channel = channelTable.get(channelIndex)->asRef();
 		auto channelAdaptor = sceneAdaptor_->lookup<raco::ramses_adaptor::AnimationChannelAdaptor>(channel);
@@ -66,7 +67,7 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 		}
 	}
 
-	if (animNode_->channels() != newChannelHandles || (**animNode_).getName() != editorObject_->objectName()) {
+	if (!animNode_ || animNode_->channels() != newChannelHandles || (**animNode_).getName() != editorObject_->objectName()) {
 		rlogic::AnimationNodeConfig config;
 		for (auto i = 0; i < newChannelHandles.size(); i++) {
 			auto& newHandle = newChannelHandles[i];
@@ -79,12 +80,21 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 					newHandle->tangentOut.get()});
 			}
 		}
+		if (!config.getChannels().empty()) {
+			animNode_ = raco::ramses_base::ramsesAnimationNode(&sceneAdaptor_->logicEngine(), config, newChannelHandles, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 
-		animNode_ = raco::ramses_base::ramsesAnimationNode(&sceneAdaptor_->logicEngine(), config, newChannelHandles, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
-		if (!animNode_) {
-			animNode_ = sceneAdaptor_->defaultAnimation();
+			if (animNode_) {
+				updateGlobalAnimationStats(errors);
+				errors->removeError({editorObject()});
+			} else {
+				errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, {editorObject()},
+					fmt::format("RamsesLogic Error: {}", sceneAdaptor_->logicEngine().getErrors().at(0).message));
+			}
+		} else {
+			animNode_.reset();
+			errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, {editorObject()},
+				fmt::format("Can't create RamsesLogic AnimationNode: Animation '{}' contains no valid AnimationChannels.", editorObject()->objectName()));
 		}
-		updateGlobalAnimationStats(errors);
 	}
 
 	updateGlobalAnimationSettings();
@@ -94,19 +104,25 @@ bool AnimationAdaptor::sync(core::Errors* errors) {
 }
 
 void AnimationAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
-	core::ValueHandle animOutputs{editorObject_, &user_types::Animation::outputs_};
-	getOutputFromEngine(*(*animNode_)->getOutputs(), animOutputs, recorder);
+	if (animNode_) {
+		core::ValueHandle animOutputs{editorObject_, &user_types::Animation::outputs_};
+		getOutputFromEngine(*(*animNode_)->getOutputs(), animOutputs, recorder);
+	}
 }
 
 void AnimationAdaptor::updateGlobalAnimationSettings() {
-	(*animNode_)->getInputs()->getChild("progress")->set<float>(*editorObject_->progress_);
+	if (animNode_) {
+		(*animNode_)->getInputs()->getChild("progress")->set<float>(*editorObject_->progress_);
+	}
 }
 
 void AnimationAdaptor::updateGlobalAnimationStats(core::Errors* errors) {
-	auto duration = (*animNode_)->getOutputs()->getChild("duration")->get<float>().value();
-	auto infoText = fmt::format("Total Duration: {:.2f} s", duration);
-	errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, 
-		{editorObject_->shared_from_this(), &user_types::Animation::outputs_}, infoText);
+	if (animNode_) {
+		auto duration = (*animNode_)->getOutputs()->getChild("duration")->get<float>().value();
+		auto infoText = fmt::format("Total Duration: {:.2f} s", duration);
+		errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION,
+			{editorObject_->shared_from_this(), &user_types::Animation::outputs_}, infoText);
+	}
 }
 
 std::vector<ExportInformation> AnimationAdaptor::getExportInformation() const {

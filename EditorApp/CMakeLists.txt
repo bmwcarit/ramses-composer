@@ -39,6 +39,22 @@ target_compile_definitions( RaCoEditor PUBLIC -DRLOGIC_VERSION="${RLOGIC_VERSION
 enable_warnings_as_errors(RaCoEditor)
 
 set_target_properties(RaCoEditor PROPERTIES OUTPUT_NAME "RamsesComposer" RUNTIME_OUTPUT_DIRECTORY "${RACO_RELEASE_DIRECTORY}/bin/$<CONFIG>")
+
+# Copy release root folder files
+set(RACO_RELEASE_ROOT_FILES
+	${CMAKE_SOURCE_DIR}/README.md
+	${CMAKE_SOURCE_DIR}/CHANGELOG.md
+	${CMAKE_SOURCE_DIR}/third_party/ramses-logic/tools/migrate/migrate_to_v1_0.py
+)
+
+create_folder_structure("${RACO_RELEASE_ROOT_FILES}" ${RACO_RELEASE_DIRECTORY} RaCoPrepareReleaseFolder)
+
+# Create default directories for configuration files and project files.
+add_custom_command(TARGET RaCoPrepareReleaseFolder POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/projects"
+	COMMAND ${CMAKE_COMMAND} -E make_directory "${RACO_RELEASE_DIRECTORY}/python"
+)
+
 add_dependencies(RaCoEditor RaCoResources RaCoPrepareReleaseFolder)
 
 target_link_libraries(RaCoEditor
@@ -67,3 +83,5 @@ deploy_ramses_with_renderer_shared_dlls(RaCoEditor)
 deploy_qt(RaCoEditor)
 deploy_raco_cppruntime_dlls(RaCoEditor)
 deploy_viewer(RaCoEditor)
+deploy_python_dlls(RaCoEditor)
+deploy_python_folder(RaCoEditor)

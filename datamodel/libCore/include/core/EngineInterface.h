@@ -69,6 +69,14 @@ using PropertyInterfaceList = std::vector<PropertyInterface>;
 struct PropertyInterface {
 	PropertyInterface(const std::string_view _name, EnginePrimitive _type) : name{_name}, type{_type} {}
 
+	static PropertyInterface makeArrayOf(const std::string_view name, EnginePrimitive componentType, size_t numComponents) {
+		PropertyInterface interface(name, EnginePrimitive::Array);
+		for (size_t index = 0; index < numComponents; index++) {
+			interface.children.emplace_back(std::string(), componentType);
+		}
+		return interface;
+	}
+
 	std::string name;
 	EnginePrimitive type;
 	PropertyInterfaceList children{};
@@ -119,11 +127,15 @@ public:
 
 	// Parse lua interface definition using ramses logic and return set of inout parameters with name and type.
 	// Returns true if script can be successfully parsed.
-	virtual bool parseLuaInterface(const std::string& luaScript, PropertyInterfaceList& outInputs, std::string& error) = 0;
+	virtual bool parseLuaInterface(const std::string& luaScript, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, bool useModules, PropertyInterfaceList& outInputs, std::string& error) = 0;
 
 	// Parse luascript module using ramses logic.
 	// Returns true if module can be successfully parsed.
-	virtual bool parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) = 0;
+	virtual bool parseLuaScriptModule(raco::core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) = 0;
+
+	virtual void removeModuleFromCache(raco::core::SCEditorObject object) = 0;
+	virtual void clearModuleCache() = 0;
+
 
 	// Extract module dependencies from lua script using ramses logic to parse the script.
 	//

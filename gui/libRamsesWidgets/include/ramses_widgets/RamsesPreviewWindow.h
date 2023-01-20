@@ -39,7 +39,8 @@ public:
 		QSize targetSize{0, 0};
 		QSize virtualSize{0, 0};
 		QColor backgroundColor{};
-		PreviewMultiSampleRate sampleRate{MSAA_1X};
+		PreviewFilteringMode filteringMode{PreviewFilteringMode::NearestNeighbor};
+		PreviewMultiSampleRate sampleRate{MSAA_0X};
 
 		bool operator!=(const State & other) const {
 			return this->backgroundColor != other.backgroundColor

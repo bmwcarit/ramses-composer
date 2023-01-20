@@ -13,7 +13,7 @@
 
 namespace {
 template <typename DataType>
-void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandle& handle, rlogic::LogicEngine *engine, const DataType& tangentInData, const DataType& outputData, const DataType& tangentOutData, const std::pair<uint64_t, uint64_t> &objectID) {
+void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandle& handle, rlogic::LogicEngine* engine, const DataType& tangentInData, const DataType& outputData, const DataType& tangentOutData, const std::pair<uint64_t, uint64_t>& objectID) {
 	auto outputName = handle->name + ".keyframes";
 	auto tangentInName = handle->name + ".tangentIn";
 	auto tangentOutName = handle->name + ".tangentOut";
@@ -27,7 +27,7 @@ void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandl
 	}
 }
 
-}
+}  // namespace
 
 namespace raco::ramses_adaptor {
 
@@ -40,9 +40,8 @@ AnimationChannelAdaptor::AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, rac
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnimationChannel::animationIndex_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnimationChannel::uri_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnimationChannel::samplerIndex_}, [this]() { tagDirty(); })},
-	  previewDirtySubscription_ {sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })}
-{}
-
+	  previewDirtySubscription_{sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })} {
+}
 
 bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
@@ -54,61 +53,44 @@ bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 		handle_.reset(new raco::ramses_base::RamsesAnimationChannelData);
 		handle_->name = editorObject_->objectName();
 		handle_->keyframeTimes = ramsesDataArray(animSampler->input, &sceneAdaptor_->logicEngine(), handle_->name + ".timestamps", objectID);
-		auto componentSize = animSampler->getOutputComponentSize();
 
-		switch (animSampler->interpolation) {
-			case raco::core::MeshAnimationInterpolation::Linear: {
-				handle_->interpolationType = (componentSize == 4) ? rlogic::EInterpolationType::Linear_Quaternions : rlogic::EInterpolationType::Linear;
+		std::map<raco::core::MeshAnimationInterpolation, rlogic::EInterpolationType> interpolationTypeMap = {
+			{raco::core::MeshAnimationInterpolation::Linear, rlogic::EInterpolationType::Linear},
+			{raco::core::MeshAnimationInterpolation::CubicSpline, rlogic::EInterpolationType::Cubic},
+			{raco::core::MeshAnimationInterpolation::Step, rlogic::EInterpolationType::Step},
+			{raco::core::MeshAnimationInterpolation::Linear_Quaternion, rlogic::EInterpolationType::Linear_Quaternions},
+			{raco::core::MeshAnimationInterpolation::CubicSpline_Quaternion, rlogic::EInterpolationType::Cubic_Quaternions}
+		};
+
+		handle_->interpolationType = interpolationTypeMap.at(animSampler->interpolation);
+
+		switch (animSampler->getOutputComponentType()) {
+			case raco::core::EnginePrimitive::Array: {
+				// Morph target weights
+				// We can create DataArrays with std::vector<float> only with feature level >= 4, so we
+				// switch this off at smaller feature levels.
+				// Strictly this breaks backwards compatibility but morphing was not supported anyway so this should be OK.
+
+				if (sceneAdaptor_->featureLevel() >= 4) {
+					const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<std::vector<float>>();
+					createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
+				} else {
+					handle_.reset();
+				}
 				break;
 			}
-			case raco::core::MeshAnimationInterpolation::CubicSpline: {
-				handle_->interpolationType = (componentSize == 4) ? rlogic::EInterpolationType::Cubic_Quaternions : rlogic::EInterpolationType::Cubic;
-				break;
-			}
-			case raco::core::MeshAnimationInterpolation::Step: {
-				handle_->interpolationType = rlogic::EInterpolationType::Step;
-				break;
-			}
-		}
-
-		if (componentSize == 1) {
-			// edge case: weights
-			// see https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_018_MorphTargets.md
-			const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec2f>();
-
-			if (outputData.size() > animSampler->input.size()) {
-				// edge case of edge case: Multiple morph targets in single animation sampler
-				// ramses-logic only allows output data to be the same size as input, so for now we only load the first morph target data
-				// - see README of glTF example "MorphStressTest"
-				auto morphTargetAmount = outputData.size() / animSampler->input.size();
-				std::vector<rlogic::vec2f> singularTangentInData;
-				std::vector<rlogic::vec2f> singularOutputData(animSampler->input.size());
-				std::vector<rlogic::vec2f> singularTangentOutData;
-
-				for (auto i = 0; i < animSampler->input.size(); ++i) {
-					singularOutputData[i] = outputData[i * morphTargetAmount];
-				}
-				if (!tangentInData.empty()) {
-					for (auto i = 0; i < animSampler->input.size(); ++i) {
-						singularTangentInData[i] = tangentInData[i * morphTargetAmount];
-					}
-				}
-				if (!tangentOutData.empty()) {
-					for (auto i = 0; i < animSampler->input.size(); ++i) {
-						singularTangentOutData[i] = tangentOutData[i * morphTargetAmount];
-					}
-				}
-
-				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), singularTangentInData, singularOutputData, singularTangentOutData, objectID);
-			} else {
+			case raco::core::EnginePrimitive::Vec3f: {
+				const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec3f>();
 				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
+				break;
 			}
-		} else if (componentSize == 3) {
-			const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec3f>();
-			createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
-		} else if (componentSize == 4) {
-			const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec4f>();
-			createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
+			case raco::core::EnginePrimitive::Vec4f: {
+				const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec4f>();
+				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
+				break;
+			}
+			default:
+				assert(false);
 		}
 	}
 

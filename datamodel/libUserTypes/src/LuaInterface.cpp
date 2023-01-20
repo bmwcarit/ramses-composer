@@ -16,8 +16,15 @@
 #include "core/Project.h"
 #include "core/Queries.h"
 #include "utils/FileUtils.h"
+#include "LuaUtils.h"
 
 namespace raco::user_types {
+
+void LuaInterface::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) {
+	// module changed
+	// -> only script parsing/sync
+	syncLuaScript(context, false);
+}
 
 void LuaInterface::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	BaseObject::onAfterValueChanged(context, value);
@@ -25,9 +32,24 @@ void LuaInterface::onAfterValueChanged(BaseContext& context, ValueHandle const& 
 	if (value.isRefToProp(&LuaInterface::objectName_)) {
 		context.updateBrokenLinkErrorsAttachedTo(shared_from_this());
 	}
+
+	ValueHandle stdModulesHandle(shared_from_this(), &LuaInterface::stdModules_);
+	if (stdModulesHandle.contains(value)) {
+		syncLuaScript(context, true);
+	}
+
+	ValueHandle modulesHandle(shared_from_this(), &LuaInterface::luaModules_);
+	if (modulesHandle.contains(value)) {
+		// -> only script parsing
+		syncLuaScript(context, true);
+	}
 }
 
 void LuaInterface::updateFromExternalFile(BaseContext& context) {
+	syncLuaScript(context, true);
+}
+
+void LuaInterface::syncLuaScript(BaseContext& context, bool syncModules) {
 	context.errors().removeAll({shared_from_this()});
 
 	PropertyInterfaceList inputs{};
@@ -36,7 +58,23 @@ void LuaInterface::updateFromExternalFile(BaseContext& context) {
 		std::string luaInterface = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaInterface::uri_}));
 
 		std::string error{};
-		bool success = context.engineInterface().parseLuaInterface(luaInterface, inputs, error);
+		bool success = true;
+		
+		if (context.project()->featureLevel() >= 5) {
+			if (syncModules) {
+				success = syncLuaModules(context, ValueHandle{shared_from_this(), &LuaInterface::luaModules_}, luaInterface, cachedModuleRefs_, error);
+			}
+
+			if (success) {
+				success = checkLuaModules(ValueHandle{shared_from_this(), &LuaInterface::luaModules_}, context.errors());
+			}
+
+			if (success) {
+				success = context.engineInterface().parseLuaInterface(luaInterface, stdModules_->activeModules(), *luaModules_, true, inputs, error);
+			}
+		} else {
+			success = context.engineInterface().parseLuaInterface(luaInterface, {}, *luaModules_, false, inputs, error);
+		}
 
 		if (!success) {
 			if (!error.empty()) {

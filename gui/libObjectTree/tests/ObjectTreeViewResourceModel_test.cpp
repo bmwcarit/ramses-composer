@@ -193,7 +193,7 @@ TEST_F(ObjectTreeViewResourceModelTest, PastePastingMaterialsUnderMaterialCreate
 	materialIndex = viewModel_->indexFromTreeNodeID(material->objectID());
 	ASSERT_TRUE(materialIndex.isValid());
 	ASSERT_EQ(viewModel_->indexToTreeNode(materialIndex)->childCount(), 0);
-	ASSERT_EQ(viewModel_->project()->instances().size(), 2);
+	ASSERT_EQ(viewModel_->project()->instances().size(), 3);
 }
 
 TEST_F(ObjectTreeViewResourceModelTest, AllowedObjsDeepCopiedSceneGraphWithResourcesIsAllowed) {

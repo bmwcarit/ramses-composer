@@ -8,6 +8,7 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "object_tree_view_model/ObjectTreeNode.h"
+#include "user_types/Node.h"
 
 #include <algorithm>
 #include <cassert>
@@ -140,6 +141,21 @@ std::string ObjectTreeNode::getExternalProjectPath() const {
 
 std::string ObjectTreeNode::getExternalProjectName() const {
 	return externalProjectName_;
+}
+
+VisibilityState ObjectTreeNode::getVisibility() const {
+	auto visibility = VisibilityState::Missing;
+	if (representedObject_) {
+		if (auto node = representedObject_->as<raco::user_types::Node>()) {
+			// If Enabled property is set to False, Visibility is ignored by runtime.
+			if (*node->enabled_) {
+				visibility = *node->visibility_ ? VisibilityState::Visible : VisibilityState::Invisible;
+			} else {
+				visibility = VisibilityState::Disabled;
+			}
+		}
+	}
+	return visibility;
 }
 
 void ObjectTreeNode::setBelongsToExternalProject(const std::string& path, const std::string& name) {

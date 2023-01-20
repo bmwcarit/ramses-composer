@@ -21,6 +21,7 @@ set(TEST_SOURCES
     LuaScript_test.cpp
     LuaScriptModule_test.cpp
     LuaInterface_test.cpp
+    Skin_test.cpp
     Texture_test.cpp
     Timer_test.cpp
 )
@@ -48,6 +49,7 @@ raco_package_add_test_resources(
     meshes/InterpolationTest/l.jpg
     meshes/Duck.glb
     meshes/meshless.gltf
+    meshes/SimpleSkin/SimpleSkin.gltf
     scripts/array.lua
     scripts/compile-error.lua
     scripts/moduleDefinition.lua
@@ -56,6 +58,8 @@ raco_package_add_test_resources(
     scripts/using-math.lua
     scripts/module-using-math.lua
     scripts/using-module-using-math.lua
+    scripts/interface-using-math.lua
+    scripts/interface-using-module.lua
     scripts/types-scalar.lua
     shaders/basic.vert
     shaders/basic.frag

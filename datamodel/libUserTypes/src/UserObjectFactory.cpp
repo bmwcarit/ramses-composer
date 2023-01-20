@@ -36,6 +36,7 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Skin.h"
 #include "user_types/Texture.h"
 #include "user_types/Timer.h"
 
@@ -107,7 +108,8 @@ UserObjectFactory::UserObjectFactory() {
 		RenderBufferMS,
 		RenderLayer,
 		RenderTarget,
-		RenderPass
+		RenderPass,
+		Skin
 		>();
 
 	annotations_ = makeAnnotationMap<
@@ -122,7 +124,7 @@ UserObjectFactory::UserObjectFactory() {
 		raco::core::Vec3i,
 		raco::core::Vec4i,
 		BlendOptions,
-		ProjectSettings::DefaultResourceDirectories,
+		DefaultResourceDirectories,
 		CameraViewport,
 		OrthographicFrustum,
 		LuaStandardModuleSelection,

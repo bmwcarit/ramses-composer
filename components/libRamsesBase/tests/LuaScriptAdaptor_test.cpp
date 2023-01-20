@@ -56,6 +56,50 @@ end
 	ASSERT_EQ(engineObj->getUserId(), luaScript->objectIDAsRamsesLogicID());
 }
 
+TEST_F(LuaScriptAdaptorFixture, invalid_global) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+nonsense
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+end
+)");
+	auto script = create_lua("script", scriptFile);
+	dispatch();
+
+	EXPECT_TRUE(commandInterface.errors().hasError({script}));
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
+}
+
+TEST_F(LuaScriptAdaptorFixture, invalid_error_in_interface) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+	error()
+end
+function run(IN,OUT)
+end
+)");
+	auto script = create_lua("script", scriptFile);
+	dispatch();
+
+	EXPECT_TRUE(commandInterface.errors().hasError({script}));
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 0);
+}
+
+TEST_F(LuaScriptAdaptorFixture, innvalid_error_in_run) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto script = create_lua("script", scriptFile);
+	dispatch();
+	
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaScript>().size(), 1);
+}
+
 TEST_F(LuaScriptAdaptorFixture, nameChange) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 

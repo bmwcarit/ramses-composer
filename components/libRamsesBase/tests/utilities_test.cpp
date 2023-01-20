@@ -9,14 +9,15 @@
  */
 #include <gtest/gtest.h>
 
+#include "ramses_adaptor/ObjectAdaptor.h"
 #include "ramses_adaptor/utilities.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "user_types/Node.h"
 
-using raco::user_types::Node;
 using raco::ramses_adaptor::Rotation;
-using raco::ramses_adaptor::Translation;
 using raco::ramses_adaptor::Scaling;
+using raco::ramses_adaptor::Translation;
+using raco::user_types::Node;
 
 TEST(Rotation, initialSpatialProperties_areEqual) {
 	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
@@ -39,19 +40,19 @@ TEST(Rotation, spatialProperties_areEqual_afterSync) {
 	auto nodeBinding = backend.logicEngine().createRamsesNodeBinding(*ramsesNode);
 
 	auto dataNode = std::make_shared<Node>();
-    dataNode->scaling_->x = 10.0;
-    dataNode->scaling_->y = 15.0;
-    dataNode->scaling_->z = 4.0;
-    dataNode->translation_->x = -10.0;
-    dataNode->translation_->y = 8.0;
-    dataNode->translation_->z = 3.0;
-    dataNode->rotation_->x = 50.0;
-    dataNode->rotation_->y = -3.0;
-    dataNode->rotation_->z = 77.0;
+	dataNode->scaling_->x = 10.0;
+	dataNode->scaling_->y = 15.0;
+	dataNode->scaling_->z = 4.0;
+	dataNode->translation_->x = -10.0;
+	dataNode->translation_->y = 8.0;
+	dataNode->translation_->z = 3.0;
+	dataNode->rotation_->x = 50.0;
+	dataNode->rotation_->y = -3.0;
+	dataNode->rotation_->z = 77.0;
 
-    Rotation::sync(dataNode, *ramsesNode);
-    Translation::sync(dataNode, *ramsesNode);
-    Scaling::sync(dataNode, *ramsesNode);
+	Rotation::sync(dataNode, *ramsesNode);
+	Translation::sync(dataNode, *ramsesNode);
+	Scaling::sync(dataNode, *ramsesNode);
 
 	EXPECT_EQ(Rotation::from(*ramsesNode), Rotation::from(dataNode));
 	EXPECT_EQ(Translation::from(*ramsesNode), Translation::from(dataNode));

@@ -153,9 +153,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectNodeAmount) {
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	// generated objects:
 	// * Wheels
@@ -191,9 +190,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphVectorsGetLinked) {
 	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	ASSERT_EQ(application.activeRaCoProject().project()->links().size(), 9) << "InterpolationTest has 9 animations, all of them should be running";
 }
@@ -206,9 +204,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshWithNegativeScaleWillBeIm
 	desc.absPath = test_path().append("meshes/negativeScaleQuad.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	auto node = raco::core::ValueHandle(raco::core::Queries::findByName(raco::core::Queries::filterForNotResource(commandInterface->project()->instances()), "Quad"));
 	constexpr auto DELTA = 0.0001;
 
@@ -226,9 +223,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCachedMeshPathGetsChanged) {
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
 
 	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), test_path() / "meshes/CesiumMilkTruck");
@@ -242,9 +238,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTru
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
 
 	// structure of scenegraph as currently imported by tinyGLTF:
@@ -289,9 +284,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectRootNodeInsertion) {
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, myRoot);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, myRoot);
 
 	auto yup2Zup = raco::core::Queries::findByName(commandInterface->project()->instances(), "Yup2Zup");
 	auto meshSceneRoot = raco::core::Queries::findByName(commandInterface->project()->instances(), "CesiumMilkTruck.gltf");
@@ -307,9 +301,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectRootNodeRenaming) {
 	desc.absPath = test_path().append("meshes/ToyCar/ToyCar.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	auto root = raco::core::Queries::findByName(commandInterface->project()->instances(), "ToyCar.gltf");
 	ASSERT_NE(root, nullptr);
@@ -326,9 +319,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwice) {
 	desc.bakeAllSubmeshes = false;
 
 
-	auto sceneGraph = application.activeRaCoProject().meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, firstRoot);
-	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, secondRoot);
+	auto [sceneGraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, firstRoot);
+	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, secondRoot);
 
 	//double amount of scenegraph nodes (see importglTFScenegraphCorrectNodeAmount) - 4 duplicate meshes - 2 duplicate AnimationChannels + 2 roots
 	ASSERT_EQ(commandInterface->project()->instances().size(), 33);
@@ -345,8 +338,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshe
 	desc.bakeAllSubmeshes = false;
 
 
-	auto sceneGraph = application.activeRaCoProject().meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, firstRoot);
+	auto [sceneGraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, firstRoot);
 
 	auto allMeshes = raco::core::Queries::filterByTypeName(commandInterface->project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
 	commandInterface->set({allMeshes[0], {"uri"}}, std::string("blah"));
@@ -359,7 +352,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshe
 	commandInterface->set({allMeshes[3], {"bakeMeshes"}}, true);
 	commandInterface->set({allMeshes[3], {"uri"}}, std::string("blah"));
 
-	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, secondRoot);
+	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, secondRoot);
 
 	//double amount of scenegraph nodes (see importglTFScenegraphCorrectNodeAmount), 8 meshes - 2 duplicate AnimationChannels + 2 roots
 	ASSERT_EQ(commandInterface->project()->instances().size(), 37);
@@ -376,15 +369,15 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButAnima
 	desc.bakeAllSubmeshes = false;
 
 
-	auto sceneGraph = application.activeRaCoProject().meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, firstRoot);
+	auto [sceneGraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, firstRoot);
 
 	auto allAnimChannels = raco::core::Queries::filterByTypeName(commandInterface->project()->instances(), {raco::user_types::AnimationChannel::typeDescription.typeName});
 	commandInterface->set({allAnimChannels[0], {"animationIndex"}}, 2);
 
 	commandInterface->set({allAnimChannels[1], {"samplerIndex"}}, 3);
 
-	commandInterface->insertAssetScenegraph(*sceneGraph, desc.absPath, secondRoot);
+	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, secondRoot);
 
 	//double amount of scenegraph nodes (see importglTFScenegraphCorrectNodeAmount), 4 meshes + 2 roots
 	ASSERT_EQ(commandInterface->project()->instances().size(), 35);
@@ -399,8 +392,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnbakedMeshesGetTransformed) 
 	desc.bakeAllSubmeshes = false;
 
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
 
 	auto instances = commandInterface->project()->instances();
@@ -440,8 +433,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	desc.bakeAllSubmeshes = false;
 
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	std::map<std::string, raco::core::SEditorObject> materialMap = {
 		{"Cesium_Milk_Truck_meshnode_0", truck},
@@ -470,17 +463,17 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnmarkedNodesDoNotGetImported
 	desc.bakeAllSubmeshes = false;
 
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	auto nodeToRemoveIndex = std::find_if(scenegraph->nodes.begin(), scenegraph->nodes.end(), [](const auto& node) { return node->name == "Node.001"; }) - scenegraph->nodes.begin();
-	for (auto& node : scenegraph->nodes) {
+	auto nodeToRemoveIndex = std::find_if(scenegraph.nodes.begin(), scenegraph.nodes.end(), [](const auto& node) { return node->name == "Node.001"; }) - scenegraph.nodes.begin();
+	for (auto& node : scenegraph.nodes) {
 			if (node->parentIndex == nodeToRemoveIndex) {
 				node.reset();
 			}
 		}
-	scenegraph->nodes[nodeToRemoveIndex].reset();
+	scenegraph.nodes[nodeToRemoveIndex].reset();
 
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	// structure of modified scenegraph:
 	// - CesiumMilkTruck.gltf
@@ -510,9 +503,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportedAnimationDoesNotGetPa
 	desc.bakeAllSubmeshes = false;
 
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	auto allAnims = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
 
@@ -529,12 +522,11 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationsDoNotGetI
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	scenegraph.animations.front().reset();
 
-	scenegraph->animations.front().reset();
-
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	auto allAnims = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
 	ASSERT_TRUE(allAnims.empty());
@@ -550,14 +542,13 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedNodesWillNotCreateL
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-
-	for (auto& node : scenegraph->nodes) {
+	for (auto& node : scenegraph.nodes) {
 		node.reset();
 	}
 
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	ASSERT_TRUE(application.activeRaCoProject().project()->links().size() == 0);
 }
@@ -570,16 +561,15 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationChannelsDo
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-
-	for (auto& samplers : scenegraph->animationSamplers) {
+	for (auto& samplers : scenegraph.animationSamplers) {
 		for (auto& sampler : samplers) {
 			sampler.reset();
 		}
 	}
 
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	auto allAnimChannels = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::AnimationChannel::typeDescription.typeName});
 	ASSERT_TRUE(allAnimChannels.empty());
@@ -598,11 +588,10 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyScenegra
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
-	desc.absPath = test_path().append("nonexistentFile.gltf").string();
-	desc.bakeAllSubmeshes = false;
+	auto absPath = test_path().append("nonexistentFile.gltf").string();
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(absPath);
 
 	ASSERT_EQ(scenegraph, nullptr);
 }
@@ -611,7 +600,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyAnimSamp
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	auto animSampler = commandInterface->meshCache()->getAnimationSamplerData(test_path().append("nonexistentFile.gltf").string(), 0, 0);
+	auto absPath = test_path().append("nonexistentFile.gltf").string();
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	auto animSampler = commandInterface->meshCache()->getAnimationSamplerData(absPath, 0, 0);
 
 	ASSERT_EQ(animSampler, nullptr);
 }
@@ -624,10 +615,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshes) {
 	desc.absPath = test_path().append("meshes/meshless.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	
-	ASSERT_NE(scenegraph, nullptr);
-	ASSERT_EQ(scenegraph->nodes.size(), 3);
+	ASSERT_EQ(scenegraph.nodes.size(), 3);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshesAndNoNodes) {
@@ -654,97 +644,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshesAndNoNodes) {
 	desc.absPath = nodeless;
 	desc.bakeAllSubmeshes = false;
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	ASSERT_NE(scenegraph, nullptr);
-	ASSERT_TRUE(scenegraph->nodes.empty());
-}
-
-TEST_F(RaCoApplicationFixture, importglTFScenegraphFileChange) {
-	auto* commandInterface = application.activeRaCoProject().commandInterface();
-	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-
-	auto scene = makeFile("scene.gltf", R"(
-{
-    "asset" : {
-        "generator" : "Khronos glTF Blender I/O v1.8.19",
-        "version" : "2.0"
-    },
-    "scene" : 0,
-    "scenes" : [
-        {
-            "name" : "Scene",
-            "nodes" : [
-                1
-            ]
-        }
-    ],
-    "nodes" : [
-        {
-            "name" : "Node B",
-            "translation" : [
-                2,
-                0,
-                -2
-            ]
-        },
-        {
-            "children" : [
-                0
-            ],
-            "name" : "Node A"
-        }
-    ]
-}
-
-)");
-
-	raco::core::MeshDescriptor desc;
-	desc.absPath = scene;
-	desc.bakeAllSubmeshes = false;
-
-	{
-		auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-		auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(desc.absPath, {nullptr, nullptr, []() {}});
-
-		ASSERT_TRUE(scenegraph->nodes.front()->hasParent());
-		ASSERT_FALSE(scenegraph->nodes.back()->hasParent());
-	}
-
-	scene = makeFile("scene.gltf", R"(
-{
-    "asset" : {
-        "generator" : "Khronos glTF Blender I/O v1.8.19",
-        "version" : "2.0"
-    },
-    "scene" : 0,
-    "scenes" : [
-        {
-            "name" : "Scene",
-            "nodes" : [
-                0,
-                1
-            ]
-        }
-    ],
-    "nodes" : [
-        {
-            "name" : "Node A"
-        },
-        {
-            "name" : "Node B"
-        }
-    ]
-}
-
-)");
-	{
-		auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
-		auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(desc.absPath, {nullptr, nullptr, []() {}});
-
-		ASSERT_FALSE(scenegraph->nodes.front()->hasParent());
-		ASSERT_FALSE(scenegraph->nodes.back()->hasParent());
-	}
+	ASSERT_TRUE(scenegraph.nodes.empty());
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselectedMeshes) {
@@ -755,20 +657,20 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselec
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(desc);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
-	auto meshToRemoveIndex = std::find_if(scenegraph->meshes.begin(), scenegraph->meshes.end(), [](const auto& meshName) { return meshName.value() == "Cesium_Milk_Truck.0"; }) - scenegraph->meshes.begin();
-	scenegraph->meshes[meshToRemoveIndex].reset();
+	auto meshToRemoveIndex = std::find_if(scenegraph.meshes.begin(), scenegraph.meshes.end(), [](const auto& meshName) { return meshName.value() == "Cesium_Milk_Truck.0"; }) - scenegraph.meshes.begin();
+	scenegraph.meshes[meshToRemoveIndex].reset();
 
-	for (auto& node : scenegraph->nodes) {
-		for (auto& index : node->subMeshIndeces) {
+	for (auto& node : scenegraph.nodes) {
+		for (auto& index : node->subMeshIndices) {
 			if (index == meshToRemoveIndex) {
 				index = -1;
 			}
 		}
 	}
 
-	commandInterface->insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	auto allMeshNodes = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::MeshNode::typeDescription.typeName});
 	ASSERT_EQ(allMeshNodes.size(), 5);

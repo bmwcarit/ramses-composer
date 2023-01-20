@@ -34,4 +34,6 @@ raco_package_add_test_resources(
     meshes/MosquitoInAmber/MosquitoInAmber.gltf
     meshes/MosquitoInAmber/MosquitoInAmber.bin
     meshes/MultipleVCols/multiple_VCols.gltf
+    meshes/SimpleSkin/SimpleSkin.gltf
+    meshes/SimpleSkin/SimpleSkin-multi-joint-set.gltf
 )

@@ -27,7 +27,7 @@ class BaseEngineBackend {
 	Q_DISABLE_COPY(BaseEngineBackend)
 public:
 	static const rlogic::EFeatureLevel minFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_01;
-	static const rlogic::EFeatureLevel maxFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_03;
+	static const rlogic::EFeatureLevel maxFeatureLevel = rlogic::EFeatureLevel::EFeatureLevel_05;
 	static const std::string featureLevelDescriptions;
 
 	typedef std::unique_ptr<ramses::RamsesClient, std::function<void(ramses::RamsesClient*)>> UniqueClient;

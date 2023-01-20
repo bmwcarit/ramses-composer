@@ -20,27 +20,11 @@ using namespace raco::user_types;
 
 class AnimationAdaptorTest : public RamsesBaseFixture<> {};
 
-TEST_F(AnimationAdaptorTest, defaultConstruction) {
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
+class AnimationAdaptorTest_FL3 : public RamsesBaseFixture<> {
+public:
+	AnimationAdaptorTest_FL3() : RamsesBaseFixture(false, static_cast<rlogic::EFeatureLevel>(3)) {}
+};
 
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-
-	auto rlogicID = sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getUserId();
-	ASSERT_EQ(rlogicID, (std::pair<uint64_t, uint64_t>{0, 0}));
-	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
-}
-
-TEST_F(AnimationAdaptorTest, defaultConstruction_2_empty_anims) {
-	context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	context.createObject(Animation::typeDescription.typeName, "Animation Name 2");
-
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
-}
 
 TEST_F(AnimationAdaptorTest, animNode_Creation) {
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
@@ -74,12 +58,12 @@ TEST_F(AnimationAdaptorTest, animNode_Deletion) {
 	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	dispatch();
 
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+
 	context.set({anim, {"animationChannels", "Channel 0"}}, SEditorObject{});
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getUserId(), (std::pair<uint64_t, uint64_t>(0, 0)));
-	ASSERT_STREQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getName().data(), raco::ramses_adaptor::defaultAnimationName);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 0);
 }
 
 TEST_F(AnimationAdaptorTest, animNode_animName) {
@@ -206,36 +190,6 @@ TEST_F(AnimationAdaptorTest, afterSync_dataArrays_get_cleaned_up) {
 	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut"), nullptr);
 }
 
-TEST_F(AnimationAdaptorTest, link_lua_to_animation) {
-	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
-
-	std::string uriPath{(test_path() / "script.lua").string()};
-	raco::utils::file::write(uriPath, R"(
-function interface(IN,OUT)
-	IN.in_value = Type:Float()
-	OUT.out_value = Type:Float()
-end
-
-function run(IN,OUT)
-	OUT.out_value = IN.in_value
-end
-
-)");
-	context.set({luaScript, &raco::user_types::LuaScript::uri_}, uriPath);
-	dispatch();
-
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	dispatch();
-
-	commandInterface.addLink({luaScript, {"outputs", "out_value"}}, {anim, &raco::user_types::Animation::progress_});
-	dispatch();
-
-	context.set({luaScript, {"inputs", "in_value"}}, 2.0);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().begin()->getInputs()->getChild("progress")->get<float>(), 2.0);
-}
-
 TEST_F(AnimationAdaptorTest, link_animation_to_node) {
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
 	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
@@ -262,3 +216,31 @@ TEST_F(AnimationAdaptorTest, link_animation_to_node) {
 	EXPECT_EQ(x, 1.0);
 }
 
+TEST_F(AnimationAdaptorTest, component_type_array_valid) {
+	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
+	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
+
+	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
+	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	dispatch();
+
+	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+	dispatch();
+
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 1);
+	ASSERT_NE(select<rlogic::AnimationNode>(sceneContext.logicEngine(), "Animation Name"), nullptr);
+}
+
+TEST_F(AnimationAdaptorTest_FL3, component_type_array_invalid_fl3) {
+	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
+	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
+
+	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
+	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	dispatch();
+
+	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+	dispatch();
+
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::AnimationNode>().size(), 0);
+}

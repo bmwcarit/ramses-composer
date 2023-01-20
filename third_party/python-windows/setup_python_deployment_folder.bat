@@ -15,6 +15,8 @@ powershell expand-archive -Path '%TARGET_FOLDER%\python38.zip' -DestinationPath 
 del "%TARGET_FOLDER%\python38.zip"
 move "%TARGET_FOLDER%\python38dir" "%TARGET_FOLDER%\python38.zip"
 %PYTHON_EXE% -m pip install virtualenv
+REM TODO remove this again: Pillow/PIL only needed for screenshot test; not really needed in deployment installation:
+%PYTHON_EXE% -m pip install Pillow
 REM We also need the DLLs folder - otherwise the creation of a virtualenv fails
 mkdir "%TARGET_FOLDER%\DLLs"
 REM Add a file indicating the build completed successfully

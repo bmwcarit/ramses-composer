@@ -68,14 +68,27 @@ TEST_F(LuaInterfaceAdaptorFixture, defaultConstruction) {
 }
 
 
-TEST_F(LuaInterfaceAdaptorFixture, invalid_text) {
+TEST_F(LuaInterfaceAdaptorFixture, invalid_global) {
 	auto interfaceFile = makeFile("interface.lua",
 		R"___(
 invalid interface definition
 )___");
 
 	auto interface = create_lua_interface("interface", interfaceFile);
+	dispatch();
 
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 0);
+}
+
+TEST_F(LuaInterfaceAdaptorFixture, invalid_in_interface) {
+	auto interfaceFile = makeFile("interface.lua",
+		R"___(
+function interface(INOUT)
+	error()
+end
+)___");
+
+	auto interface = create_lua_interface("interface", interfaceFile);
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 0);

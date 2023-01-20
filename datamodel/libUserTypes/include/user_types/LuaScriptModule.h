@@ -47,6 +47,8 @@ public:
 	void updateFromExternalFile(BaseContext& context) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 
+	void onBeforeDeleteObject(BaseContext& context) const override;
+
 	bool isValid() const;
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua);; All files (*.*)"}, DisplayNameAnnotation("URI")};

@@ -13,19 +13,9 @@ namespace raco::core {
 
 Errors::Errors(DataChangeRecorder* recorder) noexcept :	recorder_{ recorder } {}
 
-bool Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message) {
-	auto const it = errors_.find(handle);
-	if (it != errors_.end()) {
-		if (it->second == ErrorItem{category, level, handle, message}) {
-			return false;
-		}
-		errors_.erase(it);
-	}
-	errors_.emplace(handle, ErrorItem(category, level, handle, message));
-
+void Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message) {
+	errors_[handle.rootObject()][handle] = ErrorItem{category, level, handle, message};
 	recorder_->recordErrorChanged(handle);
-
-	return true;
 }
 
 std::string Errors::formatError(const ErrorItem& error) {
@@ -56,59 +46,103 @@ void Errors::logError(const ErrorItem& error) {
 }
 
 void Errors::logAllErrors() const {
-	for (const auto& [handle, error]: errors_) {
-		logError(error);
+	for (const auto& [objectID, objErrors] : errors_) {
+		for (const auto& [handle, error] : objErrors) {
+			logError(error);
+		}
 	}
 }
 
 bool Errors::removeError(const ValueHandle& handle) {
-	auto const it = errors_.find(handle);
-	if (it != errors_.end()) {
-		errors_.erase(it);
-
-		recorder_->recordErrorChanged(handle);
-		return true;
-	} else {
-		return false;
-	}
-}
-
-bool Errors::hasError(const ValueHandle& handle) const noexcept {
-	return errors_.find(handle) != errors_.end();
-}
-
-bool Errors::hasError(ErrorLevel minLevel) const {
-	for (const auto& [handle, error] : errors_) {
-		if (error.level() >= minLevel) {
+	auto const objIt = errors_.find(handle.rootObject());
+	if (objIt != errors_.end()) {
+		auto& cont = objIt->second;
+		auto const it = cont.find(handle);
+		if (it != cont.end()) {
+			cont.erase(it);
+			if (cont.empty()) {
+				errors_.erase(objIt);
+			}
+			recorder_->recordErrorChanged(handle);
 			return true;
 		}
 	}
 	return false;
 }
 
+bool Errors::hasError(const ValueHandle& handle) const noexcept {
+	auto const objIt = errors_.find(handle.rootObject());
+	if (objIt != errors_.end()) {
+		auto& cont = objIt->second;
+		return cont.find(handle) != cont.end();
+	}
+	return false;
+}
+
+bool Errors::hasError(ErrorLevel minLevel) const {
+	for (const auto& [objectID, objErrors] : errors_) {
+		for (const auto& [handle, error] : objErrors) {
+			if (error.level() >= minLevel) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+ErrorLevel Errors::maxErrorLevel() const {
+	ErrorLevel maxLevel = ErrorLevel::NONE;
+	for (const auto& [objectID, objErrors] : errors_) {
+		for (const auto& [handle, error] : objErrors) {
+			maxLevel = std::max(maxLevel, error.level());
+		}
+	}
+	return maxLevel;
+}
+
 const ErrorItem& Errors::getError(const ValueHandle& handle) const noexcept {
-	return errors_.find(handle)->second;
+	return errors_.find(handle.rootObject())->second.find(handle)->second;
 }
 
 bool Errors::removeAll(const SCEditorObject& object) {
-	auto filter{[object](const ErrorItem& err) { return err.valueHandle().rootObject() == object; }};
-	return removeIf(filter);
-}
-
-bool Errors::removeIf(const std::function<bool(ErrorItem const&)>& predicate) {
-	bool hasChanged{ false };
-	auto wrapper = [&predicate](const std::pair<ValueHandle, ErrorItem>& p) { return predicate(p.second); };
-	auto it = std::find_if(errors_.begin(), errors_.end(), wrapper);
-	while (it != errors_.end()) {
-		recorder_->recordErrorChanged(it->first);
-		it = errors_.erase(it);
-		hasChanged = true;
-		it = std::find_if(it, errors_.end(), wrapper);
+	auto const objIt = errors_.find(object);
+	if (objIt != errors_.end()) {
+		auto& cont = objIt->second;
+		for (const auto& [handle, item] : cont) {
+			recorder_->recordErrorChanged(handle);
+		}
+		errors_.erase(objIt);
+		return true;
 	}
-	return hasChanged;
+	return false;
 }
 
-const std::map<ValueHandle, ErrorItem>& Errors::getAllErrors() const {
+// TODO this is inefficient, don't use
+bool Errors::removeIf(const std::function<bool(ErrorItem const&)>& predicate) {
+	bool changed = true;
+	auto objIt = errors_.begin();
+	while (objIt != errors_.end()) {
+		auto& cont = objIt->second;
+		auto it = cont.begin();
+		while (it != cont.end()) {
+			if (predicate(it->second)) {
+				recorder_->recordErrorChanged(it->first);
+				it = cont.erase(it);
+				changed = true;
+			} else {
+				++it;
+			}
+		}
+		if (cont.empty()) {
+			objIt = errors_.erase(objIt);
+		} else {
+			++objIt;
+		}
+	}
+	return changed;
+}
+
+const std::map<SCEditorObject, std::map<ValueHandle, ErrorItem>>& Errors::getAllErrors() const {
 	return errors_;
 }
 

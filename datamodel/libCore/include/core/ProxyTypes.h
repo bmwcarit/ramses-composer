@@ -132,6 +132,10 @@ extern const char prefabInstanceTypeName[];
 using PrefabInstance = Proxy<prefabInstanceTypeName>;
 using SPrefabInstance = std::shared_ptr<PrefabInstance>;
 
+extern const char skinTypeName[];
+using Skin = Proxy<skinTypeName>;
+using SSkin = std::shared_ptr<Skin>;
+
 extern const char timerTypeName[];
 using Timer = Proxy<timerTypeName>;
 using STimer = std::shared_ptr<Timer>;

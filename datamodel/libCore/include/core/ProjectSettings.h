@@ -14,67 +14,67 @@
 
 namespace raco::core {
 
+class DefaultResourceDirectories : public StructBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"DefaultResourceDirectories", false};
+
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	DefaultResourceDirectories(const DefaultResourceDirectories& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(),
+		  imageSubdirectory_(other.imageSubdirectory_),
+		  meshSubdirectory_(other.meshSubdirectory_),
+		  scriptSubdirectory_(other.scriptSubdirectory_),
+		  interfaceSubdirectory_(other.interfaceSubdirectory_),
+		  shaderSubdirectory_(other.shaderSubdirectory_) {
+		fillPropertyDescription();
+	}
+
+	DefaultResourceDirectories() : StructBase() {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("imageSubdirectory", &imageSubdirectory_);
+		properties_.emplace_back("meshSubdirectory", &meshSubdirectory_);
+		properties_.emplace_back("scriptSubdirectory", &scriptSubdirectory_);
+		properties_.emplace_back("interfaceSubdirectory", &interfaceSubdirectory_);
+		properties_.emplace_back("shaderSubdirectory", &shaderSubdirectory_);
+	}
+
+	DefaultResourceDirectories& operator=(const DefaultResourceDirectories& other) {
+		imageSubdirectory_ = other.imageSubdirectory_;
+		meshSubdirectory_ = other.meshSubdirectory_;
+		scriptSubdirectory_ = other.scriptSubdirectory_;
+		interfaceSubdirectory_ = other.interfaceSubdirectory_;
+		shaderSubdirectory_ = other.shaderSubdirectory_;
+		return *this;
+	}
+
+	void copyAnnotationData(const DefaultResourceDirectories& other) {
+		imageSubdirectory_.copyAnnotationData(other.imageSubdirectory_);
+		meshSubdirectory_.copyAnnotationData(other.meshSubdirectory_);
+		scriptSubdirectory_.copyAnnotationData(other.scriptSubdirectory_);
+		interfaceSubdirectory_.copyAnnotationData(other.interfaceSubdirectory_);
+		shaderSubdirectory_.copyAnnotationData(other.shaderSubdirectory_);
+	}
+
+public:
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> imageSubdirectory_{{"images"}, {"Images"}, {URIAnnotation::projectSubdirectoryFilter}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> meshSubdirectory_{{"meshes"}, {"Meshes"}, {URIAnnotation::projectSubdirectoryFilter}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> scriptSubdirectory_{{"scripts"}, {"Scripts"}, {URIAnnotation::projectSubdirectoryFilter}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> interfaceSubdirectory_{{"interfaces"}, {"Interfaces"}, {URIAnnotation::projectSubdirectoryFilter}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> shaderSubdirectory_{{"shaders"}, {"Shaders"}, {URIAnnotation::projectSubdirectoryFilter}};
+};
+
 class ProjectSettings : public EditorObject {
 public:
-	class DefaultResourceDirectories : public StructBase {
-	public:
-		static inline const TypeDescriptor typeDescription = {"DefaultResourceDirectories", false};
-
-		TypeDescriptor const& getTypeDescription() const override {
-			return typeDescription;
-		}
-
-		bool serializationRequired() const override {
-			return true;
-		}
-
-		DefaultResourceDirectories(const DefaultResourceDirectories& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
-			: StructBase(),
-			  imageSubdirectory_(other.imageSubdirectory_),
-			  meshSubdirectory_(other.meshSubdirectory_),
-			  scriptSubdirectory_(other.scriptSubdirectory_),
-			  interfaceSubdirectory_(other.interfaceSubdirectory_),
-			  shaderSubdirectory_(other.shaderSubdirectory_) {
-			fillPropertyDescription();
-		}
-
-		DefaultResourceDirectories() : StructBase() {
-			fillPropertyDescription();
-		}
-
-		void fillPropertyDescription() {
-			properties_.emplace_back("imageSubdirectory", &imageSubdirectory_);
-			properties_.emplace_back("meshSubdirectory", &meshSubdirectory_);
-			properties_.emplace_back("scriptSubdirectory", &scriptSubdirectory_);
-			properties_.emplace_back("interfaceSubdirectory", &interfaceSubdirectory_);
-			properties_.emplace_back("shaderSubdirectory", &shaderSubdirectory_);
-		}
-
-		DefaultResourceDirectories& operator=(const DefaultResourceDirectories& other) {
-			imageSubdirectory_ = other.imageSubdirectory_;
-			meshSubdirectory_ = other.meshSubdirectory_;
-			scriptSubdirectory_ = other.scriptSubdirectory_;
-			interfaceSubdirectory_ = other.interfaceSubdirectory_;
-			shaderSubdirectory_ = other.shaderSubdirectory_;
-			return *this;
-		}
-
-		void copyAnnotationData(const DefaultResourceDirectories& other) {
-			imageSubdirectory_.copyAnnotationData(other.imageSubdirectory_);
-			meshSubdirectory_.copyAnnotationData(other.meshSubdirectory_);
-			scriptSubdirectory_.copyAnnotationData(other.scriptSubdirectory_);
-			interfaceSubdirectory_.copyAnnotationData(other.interfaceSubdirectory_);
-			shaderSubdirectory_.copyAnnotationData(other.shaderSubdirectory_);
-		}
-
-	public:
-		Property<std::string, DisplayNameAnnotation, URIAnnotation> imageSubdirectory_{{"images"}, {"Images"}, {URIAnnotation::projectSubdirectoryFilter}};
-		Property<std::string, DisplayNameAnnotation, URIAnnotation> meshSubdirectory_{{"meshes"}, {"Meshes"}, {URIAnnotation::projectSubdirectoryFilter}};
-		Property<std::string, DisplayNameAnnotation, URIAnnotation> scriptSubdirectory_{{"scripts"}, {"Scripts"}, {URIAnnotation::projectSubdirectoryFilter}};
-		Property<std::string, DisplayNameAnnotation, URIAnnotation> interfaceSubdirectory_{{"interfaces"}, {"Interfaces"}, {URIAnnotation::projectSubdirectoryFilter}};
-		Property<std::string, DisplayNameAnnotation, URIAnnotation> shaderSubdirectory_{{"shaders"}, {"Shaders"}, {URIAnnotation::projectSubdirectoryFilter}};
-	};
-
 	static inline const TypeDescriptor typeDescription{"ProjectSettings", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;

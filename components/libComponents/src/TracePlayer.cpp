@@ -191,22 +191,19 @@ QJsonArray const* const TracePlayer::loadTrace(const std::string& fileName) {
 		return nullptr;
 	}
 
-	/// valid file loaded
-	filePath_ = fileName;
-	setState(PlayerState::Init);
-	speed_ = 1.0;
-	framesTsList_.clear();
-
-	/// parse root array
+	/// parse root JSON array
 	qjRoot_ = std::make_unique<QJsonArray>(qjDocument.array());
 
+	/// initialize traceplayer
+	setState(PlayerState::Init);
+	filePath_ = fileName;
+	speed_ = 1.0;
+	framesTsList_.clear();
 	clearLog();
+	stop();
 
 	/// match scene Lua objects and latch properties if they are missing in consecutive frames
 	makeFramesConsistent();
-
-	/// initialize traceplayer
-	stop();
 
 	return qjRoot_.get();
 }

@@ -51,8 +51,7 @@ std::array<std::array<double, 3>, 3> tinyglTFtrafoMatrixToXYZTrafos(const std::v
 
 	return trafos;
 }
-}
-
+}  // namespace
 
 namespace raco::mesh_loader {
 
@@ -115,7 +114,7 @@ bool glTFFileLoader::buildglTFScenegraph() {
 		if (tinyNode.mesh >= 0) {
 			auto totalPrimAmountUpToThisPrim = tinyNode.mesh == 0 ? 0 : totalMeshPrimitiveSums[tinyNode.mesh - 1];
 			for (auto currentMeshPrimIndex = 0; currentMeshPrimIndex < scene_->meshes[tinyNode.mesh].primitives.size(); ++currentMeshPrimIndex) {
-				newNode.subMeshIndeces.emplace_back(totalPrimAmountUpToThisPrim + currentMeshPrimIndex);
+				newNode.subMeshIndices.emplace_back(totalPrimAmountUpToThisPrim + currentMeshPrimIndex);
 			}
 		}
 
@@ -145,6 +144,7 @@ bool glTFFileLoader::buildglTFScenegraph() {
 	}
 
 	importAnimations();
+	importSkins();
 
 	return true;
 }
@@ -215,7 +215,24 @@ void glTFFileLoader::importAnimations() {
 	}
 }
 
-raco::core::MeshScenegraph* glTFFileLoader::getScenegraph(const std::string& absPath) {
+void glTFFileLoader::importSkins() {
+	for (auto index = 0; index < scene_->skins.size(); index++) {
+		const auto& skin = scene_->skins[index];
+		std::string name = skin.name.empty() ? fmt::format("skin_{}", index) : skin.name;
+
+		// Find node by searching through all nodes in scene
+		auto it = std::find_if(scene_->nodes.begin(), scene_->nodes.end(), [index](const tinygltf::Node& node) {
+			return index == node.skin;
+		});
+		if (it != scene_->nodes.end()) {
+			int nodeIndex = it - scene_->nodes.begin();
+			sceneGraph_->skins.emplace_back(raco::core::SkinDescription{name, nodeIndex, skin.joints});
+		}
+	}
+}
+
+
+const raco::core::MeshScenegraph* glTFFileLoader::getScenegraph(const std::string& absPath) {
 	if (!importglTFScene(absPath)) {
 		return nullptr;
 	}
@@ -231,7 +248,7 @@ int glTFFileLoader::getTotalMeshCount() {
 	return primitiveCount;
 }
 
-std::shared_ptr<raco::core::MeshAnimationSamplerData> glTFFileLoader::getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) {
+raco::core::SharedAnimationSamplerData glTFFileLoader::getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) {
 	if (!importglTFScene(absPath)) {
 		return {};
 	}
@@ -244,84 +261,43 @@ std::shared_ptr<raco::core::MeshAnimationSamplerData> glTFFileLoader::getAnimati
 		return {};
 	}
 
-	raco::core::MeshAnimationInterpolation interpolation = raco::core::MeshAnimationInterpolation::Linear;
-	std::vector<float> input;
-	std::vector<std::vector<float>> output;
-
 	const auto& tinyAnim = scene_->animations[animIndex];
 	const auto& sampler = tinyAnim.samplers[samplerIndex];
 
-	if (sampler.interpolation == "CUBICSPLINE") {
-		interpolation = raco::core::MeshAnimationInterpolation::CubicSpline;
+	raco::core::MeshAnimationInterpolation interpolation = raco::core::MeshAnimationInterpolation::Linear;
+	if (sampler.interpolation == "LINEAR") {
+		if (scene_->accessors[sampler.output].type == TINYGLTF_TYPE_VEC4) {
+			// VEC4 must be a rotation animation in glTF so this must be a quaternion interpolation type:
+			interpolation = raco::core::MeshAnimationInterpolation::Linear_Quaternion;
+		} else {
+			interpolation = raco::core::MeshAnimationInterpolation::Linear;
+		}
+	} else if (sampler.interpolation == "CUBICSPLINE") {
+		if (scene_->accessors[sampler.output].type == TINYGLTF_TYPE_VEC4) {
+			// VEC4 must be a rotation animation in glTF so this must be a quaternion interpolation type:
+			interpolation = raco::core::MeshAnimationInterpolation::CubicSpline_Quaternion;
+		} else {
+			interpolation = raco::core::MeshAnimationInterpolation::CubicSpline;
+		}
 	} else if (sampler.interpolation == "STEP") {
 		interpolation = raco::core::MeshAnimationInterpolation::Step;
-	} else if (sampler.interpolation != "LINEAR") {
+	} else {
 		LOG_ERROR(log_system::MESH_LOADER, "animation sampler at index {}.{} has no valid interpolation type. Using linear interpolation as a fallback.", animIndex, samplerIndex);
 	}
 
-	auto inputData = glTFBufferData(*scene_, sampler.input, {TINYGLTF_COMPONENT_TYPE_FLOAT});
+	auto inputData = glTFBufferData(*scene_, sampler.input, {TINYGLTF_COMPONENT_TYPE_FLOAT}, {TINYGLTF_TYPE_SCALAR});
+	std::vector<float> input;
 	for (auto count = 0; count < inputData.accessor_.count; ++count) {
 		input.emplace_back(inputData.getDataAt<float>(count).front());
 	}
 
-	auto outputData = glTFBufferData(*scene_, sampler.output, {TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_SHORT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT});
+	auto outputData = glTFBufferData(*scene_, sampler.output, {TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_SHORT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT}, {TINYGLTF_TYPE_SCALAR, TINYGLTF_TYPE_VEC3, TINYGLTF_TYPE_VEC4});
+	std::vector<std::vector<float>> output;
 	for (auto count = 0; count < outputData.accessor_.count; ++count) {
-		switch (outputData.accessor_.componentType) {
-			case TINYGLTF_COMPONENT_TYPE_FLOAT: {
-				auto data = outputData.getDataAt<float>(count);
-
-				output.emplace_back(data);
-				break;
-			}
-			// use int-to-float conversion from glTF spec
-			// https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc#311-animations
-			case TINYGLTF_COMPONENT_TYPE_BYTE: {
-				auto data = outputData.getDataAt<char>(count);
-				std::vector<float> convertedData(data.size());
-				for (auto i = 0; i < data.size(); ++i) {
-					convertedData[i] = std::max(data[i] / 127.0F, -1.0F);
-				}
-
-				output.emplace_back(convertedData);
-				break;
-			}
-			case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
-				auto data = outputData.getDataAt<unsigned char>(count);
-				std::vector<float> convertedData(data.size());
-				for (auto i = 0; i < data.size(); ++i) {
-					convertedData[i] = data[i] / 255.0F;
-				}
-
-				output.emplace_back(convertedData);
-				break;
-			}
-			case TINYGLTF_COMPONENT_TYPE_SHORT: {
-				auto data = outputData.getDataAt<short>(count);
-				std::vector<float> convertedData(data.size());
-				for (auto i = 0; i < data.size(); ++i) {
-					convertedData[i] = std::max(data[i] / 32767.0F, -1.0F);
-				}
-
-				output.emplace_back(convertedData);
-				break;
-			}
-			case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
-				auto data = outputData.getDataAt<unsigned short>(count);
-				std::vector<float> convertedData(data.size());
-				for (auto i = 0; i < data.size(); ++i) {
-					convertedData[i] = data[i] / 65535.0F;
-				}
-
-				output.emplace_back(convertedData);
-				break;
-			}
-			default:
-				LOG_ERROR(log_system::MESH_LOADER, "animation sampler at index {}.{} has invalid component type", animIndex, samplerIndex);
-				continue;
-		}
+		output.emplace_back(outputData.getNormalizedData(count));
 	}
 
-	return std::make_shared<raco::core::MeshAnimationSamplerData>(raco::core::MeshAnimationSamplerData{interpolation, input, output});
+	return std::make_shared<raco::core::AnimationSamplerData>(raco::core::AnimationSamplerData{interpolation, input, output});
 }
 
 raco::core::SharedMeshData glTFFileLoader::loadMesh(const core::MeshDescriptor& descriptor) {
@@ -333,7 +309,7 @@ raco::core::SharedMeshData glTFFileLoader::loadMesh(const core::MeshDescriptor& 
 		error_ = "Mesh file contains no valid submeshes to select";
 		return raco::core::SharedMeshData();
 	} else if (descriptor.bakeAllSubmeshes) {
-		if (std::all_of(sceneGraph_->nodes.begin(), sceneGraph_->nodes.end(), [](const auto& node) { return node->subMeshIndeces.empty(); })) {
+		if (std::all_of(sceneGraph_->nodes.begin(), sceneGraph_->nodes.end(), [](const auto& node) { return node->subMeshIndices.empty(); })) {
 			error_ = "Mesh file contains no bakeable submeshes.\nSubmeshes should be referenced by nodes to be bakeable.";
 			return raco::core::SharedMeshData();
 		}
@@ -346,8 +322,37 @@ raco::core::SharedMeshData glTFFileLoader::loadMesh(const core::MeshDescriptor& 
 	return std::make_shared<glTFMesh>(*scene_, *sceneGraph_, descriptor);
 }
 
+raco::core::SharedSkinData glTFFileLoader::loadSkin(const std::string& absPath, int skinIndex, std::string& outError) {
+	if (!importglTFScene(absPath)) {
+		outError = error_.empty() ? "Invalid GLTF file." : error_;
+		return {};
+	}
+
+	if (scene_->skins.empty()) {
+		outError = "GLTF file contains no skins.";
+		return {};
+	}
+
+	if (skinIndex < 0 || skinIndex >= scene_->skins.size()) {
+		outError = fmt::format("Skin index out of valid range [0,{}].", scene_->skins.size() - 1);
+		return {};
+	}
+
+	auto& skin = scene_->skins[skinIndex];
+	auto matrixData = glTFBufferData(*scene_, skin.inverseBindMatrices, {TINYGLTF_COMPONENT_TYPE_FLOAT}, {TINYGLTF_TYPE_MAT4});
+
+	std::vector<std::array<float, 16>> matrixBuffer;
+
+	for (auto index = 0; index < matrixData.accessor_.count; index++) {
+		auto elementData = matrixData.getDataArray<std::array<float, 16>>(index);
+		matrixBuffer.emplace_back(elementData);
+	}
+
+	return std::make_shared<raco::core::SkinData>(raco::core::SkinData{matrixBuffer, scene_->skins.size()});
+}
+
 std::string glTFFileLoader::getError() {
 	return error_;
 }
 
-} // namespace raco::mesh_loader
+}  // namespace raco::mesh_loader

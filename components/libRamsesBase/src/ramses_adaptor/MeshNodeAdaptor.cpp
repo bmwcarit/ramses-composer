@@ -109,6 +109,10 @@ const raco::ramses_base::RamsesAppearance& MeshNodeAdaptor::privateAppearance() 
 	return privateAppearance_;
 }
 
+const raco::ramses_base::RamsesAppearanceBinding& MeshNodeAdaptor::appearanceBinding() const {
+	return appearanceBinding_;
+}
+
 
 bool MeshNodeAdaptor::sync(core::Errors* errors) {
 	errors->removeIf([this](core::ErrorItem const& error) {

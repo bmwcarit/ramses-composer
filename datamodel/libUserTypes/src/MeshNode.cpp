@@ -14,6 +14,7 @@
 
 #include "core/Context.h"
 #include "core/CoreFormatter.h"
+#include "core/EngineInterface.h"
 #include "core/Errors.h"
 #include "core/Project.h"
 #include "user_types/UserObjectFactory.h"
@@ -21,10 +22,6 @@
 #include <memory>
 
 namespace raco::user_types {
-
-void MeshNode::onBeforeDeleteObject(Errors& errors) const {
-	Node::onBeforeDeleteObject(errors);
-}
 
 std::vector<std::string> MeshNode::getMaterialNames() {
 	SMesh mesh = std::dynamic_pointer_cast<Mesh>(*mesh_);
@@ -123,12 +120,23 @@ ValueHandle MeshNode::getMaterialOptionsHandle(size_t materialSlot) {
 	return ValueHandle();
 }
 
+PropertyInterface MeshNode::makeInterfaceFromProperty(std::string_view name, const ValueBase* property) {
+	auto engineType = property->query<EngineTypeAnnotation>()->type();
+	if (engineType == EnginePrimitive::Array || engineType == EnginePrimitive::Struct) {
+		PropertyInterface container(name, engineType);
+		for (size_t index = 0; index < property->asTable().size(); index++) {
+			container.children.emplace_back(makeInterfaceFromProperty(property->asTable().name(index), property->asTable().get(index)));
+		}
+		return container;
+	}
+	return PropertyInterface(name, engineType);
+}
+
 void MeshNode::updateUniformContainer(BaseContext& context, const std::string& materialName, const Table* src, ValueHandle& destUniforms) {
 	raco::core::PropertyInterfaceList uniformDescription;
 	if (src) {
 		for (size_t i = 0; i < src->size(); i++) {
-			auto srcAnno = src->get(i)->query<EngineTypeAnnotation>();
-			uniformDescription.emplace_back(src->name(i), srcAnno->type());
+			uniformDescription.emplace_back(makeInterfaceFromProperty(src->name(i), src->get(i)));
 		}
 	}
 
@@ -142,7 +150,7 @@ void MeshNode::updateUniformContainer(BaseContext& context, const std::string& m
 		// To get the property name we need to remove the leading '/' from the property path.
 		return src->get(fullPropPath.substr(1));
 	};
-	
+
 	syncTableWithEngineInterface(context, uniformDescription, destUniforms, cache, false, true, lookup);
 }
 

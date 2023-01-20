@@ -30,7 +30,7 @@ namespace raco::core {
 CommandInterface::CommandInterface(BaseContext* context, UndoStack* undoStack) : context_(context), undoStack_(undoStack) {
 }
 
-Project* CommandInterface::project() {
+Project* CommandInterface::project() const {
 	return context_->project();
 }
 
@@ -46,13 +46,39 @@ Errors& CommandInterface::errors() {
 	return context_->errors();
 }
 
-EngineInterface& CommandInterface::engineInterface() {
+EngineInterface& CommandInterface::engineInterface() const {
 	return context_->engineInterface();
 }
 
 UndoStack& CommandInterface::undoStack() {
 	return *undoStack_;
 }
+
+bool CommandInterface::canSetHandle(ValueHandle const& handle) const {
+	if (!handle) {
+		return false;
+	}
+	if (!project()->isInstance(handle.rootObject())) {
+		return false;
+	}
+	if (auto anno = handle.query<FeatureLevel>(); anno && *anno->featureLevel_ > project()->featureLevel()) {
+		return false;
+	}
+
+	if (Queries::isReadOnly(*project(), handle, false)) {
+		return false;
+	}
+	if (Queries::currentLinkState(*project(), handle) != Queries::CurrentLinkState::NOT_LINKED) {
+		return false;
+	}
+
+	return true;
+}
+
+bool CommandInterface::canSetHandle(ValueHandle const& handle, PrimitiveType type) const {
+	return canSetHandle(handle) && handle.type() == type;
+}
+
 
 bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 	if (!handle) {
@@ -92,6 +118,19 @@ void CommandInterface::set(ValueHandle const& handle, bool const& value) {
 		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
 			fmt::format("{}", handle.getPropertyPath(true)));
 	}
+}
+
+bool CommandInterface::canSet(ValueHandle const& handle, int const& value) const {
+	if (canSetHandle(handle, PrimitiveType::Int) && handle.asInt() != value) {
+		if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
+			auto description = engineInterface().enumerationDescription(static_cast<raco::core::EngineEnumeration>(anno->type_.asInt()));
+			if (description.find(value) == description.end()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
 }
 
 void CommandInterface::set(ValueHandle const& handle, int const& value) {
@@ -239,6 +278,25 @@ void CommandInterface::set(ValueHandle const& handle, std::array<int, 4> const& 
 	}
 }
 
+bool CommandInterface::canSetTags(ValueHandle const& handle, std::vector<std::string> const& value) const {
+	if (canSetHandle(handle, PrimitiveType::Table)) {
+		if (!handle.constValueRef()->query<TagContainerAnnotation>()) {
+			return false;
+		}
+
+		std::set<std::string> forbiddenTags;
+		Queries::findForbiddenTags(*project(), handle.rootObject(), forbiddenTags);
+		for (const auto& tag : value) {
+			if (forbiddenTags.find(tag) != forbiddenTags.end()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+
 void CommandInterface::setTags(ValueHandle const& handle, std::vector<std::string> const& value) {
 	if (checkScalarHandleForSet(handle, PrimitiveType::Table)) {
 		if (!handle.constValueRef()->query<TagContainerAnnotation>()) {
@@ -260,6 +318,27 @@ void CommandInterface::setTags(ValueHandle const& handle, std::vector<std::strin
 				fmt::format("{}", handle.getPropertyPath(true)));
 		}
 	}
+}
+
+bool CommandInterface::canSetRenderableTags(ValueHandle const& handle, std::vector<std::pair<std::string, int>> const& renderableTags) const {
+	if (canSetHandle(handle, PrimitiveType::Table)) {
+		if (!handle.constValueRef()->query<RenderableTagContainerAnnotation>()) {
+			return false;
+		}
+
+		// We can end up here for non-RenderLayer objects if called from the tests.
+		if (auto renderLayer = handle.rootObject()->as<user_types::RenderLayer>()) {
+			std::set<std::string> forbiddenTags;
+			Queries::findRenderLayerForbiddenRenderableTags(*project(), renderLayer, forbiddenTags);
+			for (const auto& [name, index] : renderableTags) {
+				if (forbiddenTags.find(name) != forbiddenTags.end()) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	return false;
 }
 
 void CommandInterface::setRenderableTags(ValueHandle const& handle, std::vector<std::pair<std::string, int>> const& renderableTags) {

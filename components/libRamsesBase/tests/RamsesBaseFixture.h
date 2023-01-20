@@ -9,10 +9,11 @@
  */
 #pragma once
 
-#include "ramses_adaptor/ObjectAdaptor.h"
 #include "components/DataChangeDispatcher.h"
+#include "ramses_adaptor/ObjectAdaptor.h"
 #include "testing/RacoBaseTest.h"
 #include "testing/TestEnvironmentCore.h"
+#include "user_types/UserObjectFactory.h"
 #include <ramses-client-api/SceneObjectIterator.h>
 #include <ramses-logic/LogicEngine.h>
 #include <type_traits>
@@ -54,8 +55,10 @@ class RamsesBaseFixture : public TestEnvironmentCoreT<BaseClass> {
 public:
 	using DataChangeDispatcher = raco::components::DataChangeDispatcher;
 
-	RamsesBaseFixture(bool optimizeForExport = false) : dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()},
-						  sceneContext{&this->backend.client(), &this->backend.logicEngine(), ramses::sceneId_t{1u}, &this->project, dataChangeDispatcher, &this->errors, optimizeForExport} {}
+	RamsesBaseFixture(bool optimizeForExport = false, rlogic::EFeatureLevel featureLevel = raco::ramses_base::BaseEngineBackend::maxFeatureLevel)
+		: TestEnvironmentCoreT<BaseClass>(&raco::user_types::UserObjectFactory::getInstance(), featureLevel),
+		  dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()},
+		  sceneContext{&this->backend.client(), &this->backend.logicEngine(), ramses::sceneId_t{1u}, &this->project, dataChangeDispatcher, &this->errors, optimizeForExport} {}
 
 	std::shared_ptr<DataChangeDispatcher> dataChangeDispatcher;
 	raco::ramses_adaptor::SceneAdaptor sceneContext;

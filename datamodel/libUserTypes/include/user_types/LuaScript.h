@@ -56,7 +56,6 @@ public:
 
 private:
 	void syncLuaScript(BaseContext& context, bool syncModules);
-	bool syncLuaModules(BaseContext& context, const std::string& fileContents, std::string& outError);
 
 	OutdatedPropertiesStore cachedLuaInputValues_;
 

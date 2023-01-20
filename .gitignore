@@ -7,3 +7,6 @@ vc140.pdb
 Testing/
 CMakeLists.txt.user
 __pycache__/
+screenshot_tests/actual
+screenshot_tests/diff
+screenshot_tests/exported

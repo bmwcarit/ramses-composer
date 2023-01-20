@@ -14,6 +14,7 @@
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/Skin.h"
 
 #include <QKeyEvent>
 #include <QLabel>
@@ -21,7 +22,7 @@
 
 namespace raco::common_widgets {
 
-MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, QWidget* parent)
+MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QWidget* parent)
 	: sceneGraph_{sceneGraph},
 	  nodeTreeList_{sceneGraph_.nodes.size()},
 	  meshTreeList_{sceneGraph_.meshes.size()},
@@ -102,9 +103,9 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 	for (auto i = 0; i < sceneGraph_.nodes.size(); ++i) {
 		auto& node = sceneGraph_.nodes[i].value();
 
-		auto& item = nodeTreeList_[i] = new QTreeWidgetItem({QString::fromStdString(node.name), QString::fromStdString((node.subMeshIndeces.size() == 1) ? raco::user_types::MeshNode::typeDescription.typeName : raco::user_types::Node::typeDescription.typeName)});
-		widgetItemToSubmeshIndexMap_[item] = &node.subMeshIndeces;
-		item->setIcon(0, node.subMeshIndeces.size() == 1 ? raco::style::Icons::instance().typeMesh : raco::style::Icons::instance().typeNode);
+		auto& item = nodeTreeList_[i] = new QTreeWidgetItem({QString::fromStdString(node.name), QString::fromStdString((node.subMeshIndices.size() == 1) ? raco::user_types::MeshNode::typeDescription.typeName : raco::user_types::Node::typeDescription.typeName)});
+		widgetItemToSubmeshIndexMap_[item] = &node.subMeshIndices;
+		item->setIcon(0, node.subMeshIndices.size() == 1 ? raco::style::Icons::instance().typeMesh : raco::style::Icons::instance().typeNode);
 		item->setCheckState(0, Qt::CheckState::Checked);
 		if (node.parentIndex == raco::core::MeshScenegraphNode::NO_PARENT) {
 			sceneGraphRootItem->addChild(item);
@@ -112,7 +113,7 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 
 		// Handle edge case of a node containing multiple primitives:
 		// We currently split those into separate MeshNodes under a singular, separate Node
-		if (node.subMeshIndeces.size() > 1) {
+		if (node.subMeshIndices.size() > 1) {
 			auto primitiveParent = new QTreeWidgetItem({QString::fromStdString(fmt::format("{}_meshnodes", node.name)), QString::fromStdString(raco::user_types::Node::typeDescription.typeName)});
 			primitiveParent->setIcon(0, raco::style::Icons::instance().typeNode);
 			primitiveParent->setCheckState(0, Qt::CheckState::Checked);
@@ -120,16 +121,16 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 			// first element in primitive tree list is the aforementioned singular Node (primitive parent)
 			nodeToPrimitiveTreeList_[i].emplace_back(primitiveParent);
 
-			for (auto primitiveIndex = 0; primitiveIndex < node.subMeshIndeces.size(); ++primitiveIndex) {
+			for (auto primitiveIndex = 0; primitiveIndex < node.subMeshIndices.size(); ++primitiveIndex) {
 				auto* primitive = new QTreeWidgetItem({QString::fromStdString(fmt::format("{}_meshnode_{}", node.name, primitiveIndex)), QString::fromStdString(raco::user_types::MeshNode::typeDescription.typeName)});
 				primitive->setIcon(0, raco::style::Icons::instance().typeMesh);
 				primitive->setCheckState(0, Qt::CheckState::Checked);
 				nodeToPrimitiveTreeList_[i].emplace_back(primitive);
-				primitiveToMeshIndexMap_[primitive] = *node.subMeshIndeces[primitiveIndex];
+				primitiveToMeshIndexMap_[primitive] = *node.subMeshIndices[primitiveIndex];
 				primitiveParent->addChild(primitive);
 			}
 		}
-		for (auto& index : node.subMeshIndeces) {
+		for (auto& index : node.subMeshIndices) {
 			meshNodeIndexReferencedByNodes_[*index].emplace(i);
 		}
 	}
@@ -167,6 +168,15 @@ MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGr
 		}
 	}
 
+	if (projectFeatureLevel >= user_types::Skin::typeDescription.featureLevel) {
+		for (auto index = 0; index < sceneGraph_.skins.size(); index++) {
+			const auto& skin = sceneGraph_.skins[index].value();
+			auto item = new QTreeWidgetItem({QString::fromStdString(skin.name), QString::fromStdString(raco::user_types::Skin::typeDescription.typeName)});
+			skinTreeList_.emplace_back(item);
+			item->setCheckState(0, Qt::CheckState::Checked);
+			resourcesRootItem->addChild(item);
+		}
+	}
 	sceneGraphRootItem->setExpanded(true);
 	resourcesRootItem->setExpanded(true);
 }
@@ -194,7 +204,7 @@ void MeshAssetImportDialog::applyChangesToScenegraph() {
 		if (meshTreeList_[i]->checkState(0) == Qt::Unchecked) {
 			sceneGraph_.meshes[i].reset();
 			for (const auto& nodeReferencingMesh : meshNodeIndexReferencedByNodes_[i]) {
-				auto& submeshIndices = sceneGraph_.nodes[nodeReferencingMesh]->subMeshIndeces;
+				auto& submeshIndices = sceneGraph_.nodes[nodeReferencingMesh]->subMeshIndices;
 				std::replace(submeshIndices.begin(), submeshIndices.end(), i, -1);
 			}
 		}
@@ -223,15 +233,21 @@ void MeshAssetImportDialog::applyChangesToScenegraph() {
 
 	for (const auto& [nodeIndex, primitiveItems] : nodeToPrimitiveTreeList_) {
 		auto primitiveParent = primitiveItems.front();
-		auto& subMeshIndeces = sceneGraph_.nodes[nodeIndex]->subMeshIndeces;
+		auto& subMeshIndices = sceneGraph_.nodes[nodeIndex]->subMeshIndices;
 		if (primitiveParent->checkState(0) == Qt::Unchecked) {
-			subMeshIndeces.clear();
+			subMeshIndices.clear();
 		} else {
-			for (auto primIndex = 1; primIndex < subMeshIndeces.size() + 1; ++primIndex) {
+			for (auto primIndex = 1; primIndex < subMeshIndices.size() + 1; ++primIndex) {
 				if (primitiveItems[primIndex]->checkState(0) == Qt::Unchecked) {
-					subMeshIndeces[primIndex - 1].reset();
+					subMeshIndices[primIndex - 1].reset();
 				}
 			}
+		}
+	}
+
+	for (auto index = 0; index < skinTreeList_.size(); index++) {
+		if (skinTreeList_[index]->checkState(0) == Qt::Unchecked) {
+			sceneGraph_.skins[index].reset();
 		}
 	}
 }

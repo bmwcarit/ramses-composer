@@ -217,40 +217,42 @@ void ErrorView::regenerateTable() {
 	objIDs_.clear();
 	indexToObjID_.clear();
 
-	const auto& errors = commandInterface_->errors();
-	for (const auto& [errorValueHandle, error] : errors.getAllErrors()) {
-		if (error.level() <= core::ErrorLevel::INFORMATION) {
-			continue;
-		}
-
-		auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
-
-		QList<QStandardItem*> items;
-		items.append(new QStandardItem(errorLevelToString(error.level())));
-		auto *objectItem = new QStandardItem(QString::fromStdString(rootObj ? rootObj->objectName() : "(This Project)"));
-		items.append(objectItem);
-		items.append(new QStandardItem(QString::fromStdString((errorValueHandle && errorValueHandle.isProperty()) ? errorValueHandle.getPropName() : "")));
-
-		auto errorMsg = QString::fromStdString(error.message());
-		auto errorMessageItem = new QStandardItem(errorMsg);
-		errorMessageItem->setToolTip(errorMsg);
-		items.append(errorMessageItem);
-
-		auto extRefAnno = rootObj ? rootObj->query<core::ExternalReferenceAnnotation>() : nullptr;
-		if (extRefAnno) {
-			auto projectId = QString::fromStdString(extRefAnno->projectID_.asString());
-			auto projectName = commandInterface_->project()->lookupExternalProjectName(*extRefAnno->projectID_);
-			objectItem->setToolTip(QString::fromStdString(projectName));
-			for (const auto& item : items){
-				item->setData(projectId, extRefProjectIdUserRole);
+	
+	for (const auto& [object, objErrors] : commandInterface_->errors().getAllErrors()) {
+		for (const auto& [errorValueHandle, error] : objErrors) {
+			if (error.level() <= core::ErrorLevel::INFORMATION) {
+				continue;
 			}
+
+			auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
+
+			QList<QStandardItem*> items;
+			items.append(new QStandardItem(errorLevelToString(error.level())));
+			auto* objectItem = new QStandardItem(QString::fromStdString(rootObj ? rootObj->objectName() : "(This Project)"));
+			items.append(objectItem);
+			items.append(new QStandardItem(QString::fromStdString((errorValueHandle && errorValueHandle.isProperty()) ? errorValueHandle.getPropName() : "")));
+
+			auto errorMsg = QString::fromStdString(error.message());
+			auto errorMessageItem = new QStandardItem(errorMsg);
+			errorMessageItem->setToolTip(errorMsg);
+			items.append(errorMessageItem);
+
+			auto extRefAnno = rootObj ? rootObj->query<core::ExternalReferenceAnnotation>() : nullptr;
+			if (extRefAnno) {
+				auto projectId = QString::fromStdString(extRefAnno->projectID_.asString());
+				auto projectName = commandInterface_->project()->lookupExternalProjectName(*extRefAnno->projectID_);
+				objectItem->setToolTip(QString::fromStdString(projectName));
+				for (const auto& item : items) {
+					item->setData(projectId, extRefProjectIdUserRole);
+				}
+			}
+
+			tableModel_->appendRow(items);
+
+			auto errorID = rootObj ? rootObj->objectID() : commandInterface_->project()->currentPath();
+			indexToObjID_.emplace_back(errorID);
+			objIDs_.insert(errorID);
 		}
-
-		tableModel_->appendRow(items);
-
-		auto errorID = rootObj ? rootObj->objectID() : commandInterface_->project()->currentPath();
-		indexToObjID_.emplace_back(errorID);
-		objIDs_.insert(errorID);
 	}
 
 	if (!cachedSelectedRow.empty()) {
@@ -312,23 +314,24 @@ void ErrorView::updateErrorAmountLabel() {
 	auto displayedErrorAmount = 0;
 	auto totalErrorAmount = 0;
 
-	const auto& errors = commandInterface_->errors();
-	for (const auto& [errorValueHandle, error] : errors.getAllErrors()) {
-		if (error.level() <= core::ErrorLevel::INFORMATION) {
-			continue;
-		}
-
-		auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
-
-		if (error.level() == core::ErrorLevel::WARNING) {
-			++totalWarningAmount;
-			if (showWarningsCheckBox_->isChecked() && (!rootObj || !rootObj->query<core::ExternalReferenceAnnotation>() || showExternalReferencesCheckBox_->isChecked())) {
-				++displayedWarningAmount;
+	for (const auto& [object, objErrors] : commandInterface_->errors().getAllErrors()) {
+		for (const auto& [errorValueHandle, error] : objErrors) {
+			if (error.level() <= core::ErrorLevel::INFORMATION) {
+				continue;
 			}
-		} else if (error.level() == core::ErrorLevel::ERROR) {
-			++totalErrorAmount;
-			if (showErrorsCheckBox_->isChecked() && (!rootObj || !rootObj->query<core::ExternalReferenceAnnotation>() || showExternalReferencesCheckBox_->isChecked())) {
-				++displayedErrorAmount;
+
+			auto rootObj = !errorValueHandle ? nullptr : errorValueHandle.rootObject();
+
+			if (error.level() == core::ErrorLevel::WARNING) {
+				++totalWarningAmount;
+				if (showWarningsCheckBox_->isChecked() && (!rootObj || !rootObj->query<core::ExternalReferenceAnnotation>() || showExternalReferencesCheckBox_->isChecked())) {
+					++displayedWarningAmount;
+				}
+			} else if (error.level() == core::ErrorLevel::ERROR) {
+				++totalErrorAmount;
+				if (showErrorsCheckBox_->isChecked() && (!rootObj || !rootObj->query<core::ExternalReferenceAnnotation>() || showExternalReferencesCheckBox_->isChecked())) {
+					++displayedErrorAmount;
+				}
 			}
 		}
 	}

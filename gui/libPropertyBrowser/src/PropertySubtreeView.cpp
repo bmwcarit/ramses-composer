@@ -45,6 +45,21 @@ EmbeddedPropertyBrowserView::EmbeddedPropertyBrowserView(PropertyBrowserItem* it
 	: QFrame{parent} {
 }
 
+void PropertySubtreeView::registerCopyPasteContextMenu(QWidget* widget) {
+	widget->setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
+	connect(widget, &PropertyEditor::customContextMenuRequested, [this, widget](const QPoint& p) {
+		auto* treeViewMenu = new QMenu(this);
+		treeViewMenu->addAction("Copy", this, [this]() {
+			propertyControl_->copyValue();
+		});
+		treeViewMenu->addAction("Paste", this, [this]() {
+			propertyControl_->pasteValue();
+		});
+
+		treeViewMenu->exec(widget->mapToGlobal(p));
+	});
+}
+
 PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent)
 	: QWidget{parent}, item_{item}, model_{model}, sceneBackend_{sceneBackend}, layout_{this} {
 	layout_.setAlignment(Qt::AlignTop);
@@ -75,6 +90,10 @@ PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* scen
 		auto* linkControl = WidgetFactory::createLinkControl(item, labelContainer);
 
 		propertyControl_ = WidgetFactory::createPropertyEditor(item, labelContainer);
+
+		if (propertyControl_ != nullptr) {
+			registerCopyPasteContextMenu(label_);
+		}
 
 		labelLayout->addWidget(decorationWidget_, 0);
 		labelLayout->addWidget(label_, 0);

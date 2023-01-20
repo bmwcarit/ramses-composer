@@ -26,6 +26,7 @@
 #include "user_types/Texture.h"
 #include "user_types/Animation.h"
 
+#include <QGuiApplication>
 
 class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
    public:
@@ -56,6 +57,10 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 	}
 
    protected:
+	// ObjectTreeViewDefaultModel icons initialization uses QPixmap, which requires existing QGuiApplication.
+	int argc_ = 0;
+	QGuiApplication fakeGuiApp_{argc_, nullptr};
+
 	std::vector<std::string> nodeNames_;
 	raco::application::RaCoApplication application_{backend};
 	raco::core::ExternalProjectsStoreInterface *externalProjectStore_{application_.externalProjects()};

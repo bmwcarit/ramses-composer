@@ -60,11 +60,7 @@ TEST_F(u8pathTest, existsFileTest) {
 	ASSERT_TRUE(test_path().exists());
 
 	for (const auto& testFileName : testFileNames) {
-		auto testFileNameUppercase = testFileName.string();
-		std::transform(testFileNameUppercase.begin(), testFileNameUppercase.end(), testFileNameUppercase.begin(), ::toupper);
-
 		ASSERT_FALSE(testFileName.exists());
-		ASSERT_FALSE(u8path(testFileNameUppercase).exists());
 		ASSERT_FALSE(testFileName.userHasReadAccess());
 		ASSERT_FALSE(testFileName.existsFile());
 		ASSERT_FALSE(testFileName.existsDirectory());
@@ -72,7 +68,6 @@ TEST_F(u8pathTest, existsFileTest) {
 		file::write(testFileName.string(), "");
 
 		ASSERT_TRUE(testFileName.exists());
-		ASSERT_FALSE(u8path(testFileNameUppercase).exists());
 		ASSERT_TRUE(testFileName.userHasReadAccess());
 		ASSERT_TRUE(testFileName.existsFile());
 		ASSERT_FALSE(testFileName.existsDirectory());
@@ -83,18 +78,10 @@ TEST_F(u8pathTest, existsDirTest) {
 	ASSERT_TRUE(test_path().exists());
 
 	for (const auto& testDirName : testFileNames) {
-		auto testDirNameUppercase = testDirName.string();
-		std::transform(testDirNameUppercase.begin(), testDirNameUppercase.end(), testDirNameUppercase.begin(), ::toupper);
-
 		auto testDirSubfileName = testDirName / "test";
 
-		auto testDirSubfileNameUppercase = testDirSubfileName.string();
-		std::transform(testDirSubfileNameUppercase.begin(), testDirSubfileNameUppercase.end(), testDirSubfileNameUppercase.begin(), ::toupper);
-
 		ASSERT_FALSE(testDirName.exists());
-		ASSERT_FALSE(u8path(testDirNameUppercase).exists());
 		ASSERT_FALSE(testDirSubfileName.exists());
-		ASSERT_FALSE(u8path(testDirSubfileNameUppercase).exists());
 		ASSERT_FALSE(testDirSubfileName.userHasReadAccess());
 		ASSERT_FALSE(testDirName.existsFile());
 		ASSERT_FALSE(testDirName.existsDirectory());
@@ -104,9 +91,7 @@ TEST_F(u8pathTest, existsDirTest) {
 		file::write(testDirSubfileName.string(), "");
 
 		ASSERT_TRUE(testDirName.exists());
-		ASSERT_FALSE(u8path(testDirNameUppercase).exists());
 		ASSERT_TRUE(testDirSubfileName.exists());
-		ASSERT_FALSE(u8path(testDirSubfileNameUppercase).exists());
 		ASSERT_TRUE(testDirSubfileName.userHasReadAccess());
 		ASSERT_FALSE(testDirName.existsFile());
 		ASSERT_TRUE(testDirName.existsDirectory());

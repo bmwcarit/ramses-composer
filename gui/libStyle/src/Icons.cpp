@@ -16,6 +16,16 @@ const Icons& Icons::instance() {
 	return icons;
 }
 
+QIcon Icons::makeDisabled(const QString& name) {
+	QIcon normalIcon{name};
+	QIcon disabledIcon{};
+	auto pixmapExtent{256};
+
+	disabledIcon.addPixmap(normalIcon.pixmap(pixmapExtent, QIcon::Disabled), QIcon::Normal);
+
+	return disabledIcon;
+}
+
 Icons::Icons() {
 }
 

@@ -12,6 +12,7 @@
 #include "core/PathManager.h"
 #include "log_system/log.h"
 #include "utils/u8path.h"
+#include <fstream>
 #include <QSettings>
 
 OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open &Recent", parent} {
@@ -43,6 +44,64 @@ void OpenRecentMenu::addRecentFile(const QString& file) {
 	}
 }
 
+bool isOneDriveIniFile(std::filesystem::path path) {
+	auto magicString = "\\OneDrive.exe";
+	std::ifstream in{path, std::ifstream::in | std::ifstream::binary};
+	std::string line;
+
+	if (in.is_open()) {
+		while (std::getline(in, line)) {
+			if (line.find(magicString) != std::string::npos) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+// Check whether specified path is on OneDrive.
+bool isOneDrivePath(raco::utils::u8path path) {
+	auto onedriveIniFilename = "desktop.ini";
+
+	auto fsPath = std::filesystem::path(path.internalPath());
+
+	if (fsPath.is_relative()) {
+		// Can not analyze relative paths.
+		return false;
+	}
+
+	if (fsPath.has_filename()) {
+		fsPath.remove_filename();
+	}
+
+	// Search the directory tree up from current folder until system root folder.
+	while (fsPath != fsPath.parent_path()) {
+		auto directory = std::filesystem::directory_entry(fsPath);
+		if (directory.is_directory()) {
+			auto itBegin = std::filesystem::directory_iterator{fsPath};
+			auto itEnd{std::filesystem::directory_iterator{}};
+
+			// Look for OneDrive's desktop.ini file.
+			auto itFound = std::find_if(itBegin, itEnd, [&](const auto& directoryEntry) {
+				return directoryEntry.path().filename() == onedriveIniFilename;
+				});
+			if (itFound != itEnd) {
+				std::filesystem::path foundPath(*itFound);
+
+				if (isOneDriveIniFile(foundPath)) {
+					LOG_INFO(raco::log_system::COMMON, "OneDrive root found at: {}", foundPath.string());
+					return true;
+				}
+			}
+		}
+
+		fsPath = fsPath.parent_path();
+	}
+
+	return false;
+}
+
 void OpenRecentMenu::refreshRecentFileMenu() {
 	auto recentFilesStore = raco::core::PathManager::recentFilesStoreSettings();
 	QStringList recentFiles{recentFilesStore.value("recent_files").toStringList()};
@@ -60,6 +119,9 @@ void OpenRecentMenu::refreshRecentFileMenu() {
 		if (!raco::utils::u8path(fileString).exists()) {
 			action->setEnabled(false);
 			action->setText(actionText + " (unavailable)");
+		} else if (isOneDrivePath(raco::utils::u8path(fileString))) {
+			// Not touching cloud file to prevent its download.
+			action->setText(actionText + " (OneDrive)");
 		} else if (!raco::utils::u8path(fileString).userHasReadAccess()) {
 			action->setEnabled(false);
 			action->setText(actionText + " (no read access)");

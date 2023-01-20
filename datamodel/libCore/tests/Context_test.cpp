@@ -23,10 +23,13 @@
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
+#include "user_types/PerspectiveCamera.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderBuffer.h"
+#include "user_types/RenderPass.h"
 #include "user_types/RenderTarget.h"
+#include "user_types/Skin.h"
 #include "user_types/Texture.h"
 
 #include "gtest/gtest.h"
@@ -255,10 +258,10 @@ TEST_F(ContextTest, Mesh) {
 
 TEST_F(ContextTest, MeshDeletion) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName);
-	EXPECT_EQ(project.instances().size(), 1);
+	EXPECT_EQ(project.instances().size(), 2);
 
 	context.deleteObjects({mesh});
-	EXPECT_EQ(project.instances().size(), 0);
+	EXPECT_EQ(project.instances().size(), 1);
 }
 
 TEST_F(ContextTest, MeshNode) {
@@ -301,11 +304,12 @@ TEST_F(ContextTest, SpecializedReferenceProperties) {
 
 
 TEST_F(ContextTest, ObjectCreation) {
+	auto settings = project.settings();
 	auto root = context.createObject("Node", "rootnode");
 	auto mnb = context.createObject("MeshNode", "duck_node");
 	auto mnl = context.createObject("MeshNode", "label_node");
 
-	EXPECT_EQ(project.instances(), std::vector<SEditorObject>({root, mnb, mnl}));
+	EXPECT_EQ(project.instances(), std::vector<SEditorObject>({settings, root, mnb, mnl}));
 
 	EXPECT_EQ(recorder.getCreatedObjects(), SEditorObjectSet({root, mnb, mnl}));
 }
@@ -480,10 +484,11 @@ TEST_F(ContextTest, meshnode_set_material_adds_backpointers_for_reftype_uniforms
 
 
 TEST_F(ContextTest, ObjectMovingOnTopLevel) {
+	auto settings = project.settings();
 	auto firstRoot = context.createObject(Node::typeDescription.typeName);
 	auto secondRoot = context.createObject(Node::typeDescription.typeName);
 
-	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({firstRoot, secondRoot}));
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, firstRoot, secondRoot}));
 
 	context.moveScenegraphChildren({secondRoot}, {}, 0);
 
@@ -527,10 +532,10 @@ TEST_F(ContextTest, copyAndPasteObjectSimple) {
 	auto node = context.createObject(Node::typeDescription.typeName);
 	context.pasteObjects(context.copyObjects({ node }));
 
-	// We have 2 instances, on original and one copy
-	ASSERT_EQ(2, project.instances().size());
+	// We have 3 instances, on original and one copy
+	ASSERT_EQ(3, project.instances().size());
 	// They are not equal to each other
-	ASSERT_NE(project.instances().at(0), project.instances().at(1));
+	ASSERT_NE(project.instances().at(1), project.instances().at(2));
 }
 
 TEST_F(ContextTest, copyAndPasteTwoObjectsSimple) {
@@ -539,7 +544,7 @@ TEST_F(ContextTest, copyAndPasteTwoObjectsSimple) {
 	auto copyResult = context.pasteObjects(context.copyObjects({ node, node2 }));
 
 	// node and node2 and copy of node and node2
-	ASSERT_EQ(4, project.instances().size());
+	ASSERT_EQ(5, project.instances().size());
 }
 
 TEST_F(ContextTest, copyAndPasteParentChild) {
@@ -548,18 +553,18 @@ TEST_F(ContextTest, copyAndPasteParentChild) {
 	auto copyResult = context.pasteObjects(context.copyObjects({ parent, child }));
 
 	// parent and child and copy of parent and child
-	ASSERT_EQ(4, project.instances().size());
+	ASSERT_EQ(5, project.instances().size());
 }
 
 TEST_F(ContextTest, cutAndPasteObjectSimple) {
 	auto node = context.createObject(Node::typeDescription.typeName);
 	auto clipboardContent = context.cutObjects({ node });
 
-	ASSERT_EQ(0, project.instances().size());
+	ASSERT_EQ(1, project.instances().size());
 
 	context.pasteObjects(clipboardContent);
 
-	ASSERT_EQ(1, project.instances().size());
+	ASSERT_EQ(2, project.instances().size());
 }
 
 TEST_F(ContextTest, copyAndPasteShallowSetsReferences) {
@@ -571,7 +576,7 @@ TEST_F(ContextTest, copyAndPasteShallowSetsReferences) {
 	auto meshNodeCopy = std::dynamic_pointer_cast<MeshNode>(copyResult.at(0));
 
 	// We have 3 instances: one original, one copy, one mesh
-	ASSERT_EQ(3, project.instances().size());
+	ASSERT_EQ(4, project.instances().size());
 	ASSERT_EQ(mesh, *meshNodeCopy->mesh_);
 }
 
@@ -627,8 +632,8 @@ TEST_F(ContextTest, copyAndPasteHierarchy) {
 	auto copyResult = context.pasteObjects(context.copyObjects({ parent }));
 	auto parentCopy = std::dynamic_pointer_cast<Node>(copyResult.at(0));
 
-	// We have 4 instances: original parent and child and copied parent and child
-	ASSERT_EQ(4, project.instances().size());
+	// We have 5 instances: original parent and child and copied parent and child
+	ASSERT_EQ(5, project.instances().size());
 }
 
 TEST_F(ContextTest, cutAndPasteHierarchy) {
@@ -637,11 +642,11 @@ TEST_F(ContextTest, cutAndPasteHierarchy) {
 	context.moveScenegraphChildren({child}, parent);
 	auto clipboardContent = context.cutObjects({ parent });
 
-	ASSERT_EQ(0, project.instances().size());
+	ASSERT_EQ(1, project.instances().size());
 
 	context.pasteObjects(clipboardContent);
 
-	ASSERT_EQ(2, project.instances().size());
+	ASSERT_EQ(3, project.instances().size());
 }
 
 TEST_F(ContextTest, copyAndPasteDeeperHierarchy) {
@@ -656,7 +661,7 @@ TEST_F(ContextTest, copyAndPasteDeeperHierarchy) {
 	auto parentCopy = std::dynamic_pointer_cast<Node>(pasteResult.at(0));
 
 	// We have 6 instances: original parent and child and copied parent and child
-	ASSERT_EQ(6, project.instances().size());
+	ASSERT_EQ(7, project.instances().size());
 	ASSERT_EQ("parent (1)", parentCopy->objectName());
 	ASSERT_EQ("child", parentCopy->children_->get(0)->asRef()->objectName());
 	ASSERT_EQ("subChild", parentCopy->children_->get(0)->asRef()->children_->get(0)->asRef()->objectName());
@@ -672,11 +677,11 @@ TEST_F(ContextTest, cutAndPasteDeeperHierarchy) {
 
 	auto clipboardContent = context.cutObjects({ parent });
 
-	ASSERT_EQ(0, project.instances().size());
+	ASSERT_EQ(1, project.instances().size());
 
 	auto pasteResult = context.pasteObjects(clipboardContent);
 
-	ASSERT_EQ(3, project.instances().size());
+	ASSERT_EQ(4, project.instances().size());
 	ASSERT_EQ(1, pasteResult.size());
 	ASSERT_EQ("parent", pasteResult.at(0)->objectName());
 }
@@ -761,11 +766,11 @@ TEST_F(ContextTest, cutAndPasteDifferentTypesOnTarget) {
 	auto clipboardContent = context.cutObjects({ node, luaScript, mesh });
 
 	// target is still in the project
-	ASSERT_EQ(1, project.instances().size());
+	ASSERT_EQ(2, project.instances().size());
 
 	auto pasteResult = context.pasteObjects(clipboardContent, target);
 
-	ASSERT_EQ(4, project.instances().size());
+	ASSERT_EQ(5, project.instances().size());
 	ASSERT_EQ(3, pasteResult.size());
 	ASSERT_TRUE(Queries::findByName(pasteResult, "node") != nullptr);
 	ASSERT_TRUE(Queries::findByName(pasteResult, "lua_script") != nullptr);
@@ -783,7 +788,7 @@ TEST_F(ContextTest, deepCut) {
 	context.set({ meshNode, { "mesh" }}, mesh);
 
 	auto serial = context.cutObjects({node}, true);
-	ASSERT_EQ(0, context.project()->instances().size());
+	ASSERT_EQ(1, context.project()->instances().size());
 }
 
 TEST_F(ContextTest, shallowCopyLink) {
@@ -1034,4 +1039,87 @@ end
 	context.set({mock, &ObjectWithTableProperty::renderableTags_}, tags);
 
 	checkLinks({{{lua, {"outputs", "int"}}, {mock, {"renderableTags", "main"}}, true, false}});
+}
+
+TEST_F(ContextTest, move_scenegraph_removes_incoming_ref) {
+	auto prefab = context.createObject(Prefab::typeDescription.typeName, "prefab");
+	auto camera = context.createObject(PerspectiveCamera::typeDescription.typeName, "camera");
+	auto renderpass = context.createObject(RenderPass::typeDescription.typeName, "renderpass");
+	context.set({renderpass, &RenderPass::camera_}, camera);
+	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), camera);
+
+	context.moveScenegraphChildren({camera}, prefab);
+	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), SEditorObject());
+}
+
+TEST_F(ContextTest, move_scenegraph_removes_incoming_ref_to_child) {
+	auto prefab = context.createObject(Prefab::typeDescription.typeName, "prefab");
+	auto node = context.createObject(Node::typeDescription.typeName, "node");
+	auto camera = context.createObject(PerspectiveCamera::typeDescription.typeName, "camera");
+	context.moveScenegraphChildren({camera}, node);
+	auto renderpass = context.createObject(RenderPass::typeDescription.typeName, "renderpass");
+	context.set({renderpass, &RenderPass::camera_}, camera);
+	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), camera);
+
+	context.moveScenegraphChildren({node}, prefab);
+	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), SEditorObject());
+}
+
+TEST_F(ContextTest, move_scenegraph_removes_outgoing_ref) {
+	auto prefab = context.createObject(Prefab::typeDescription.typeName, "prefab");
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
+	auto skin = context.createObject(Skin::typeDescription.typeName, "skin");
+	context.set(ValueHandle(skin, &Skin::targets_)[0], meshNode);
+	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
+
+	context.moveScenegraphChildren({skin}, prefab);
+	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
+}
+
+TEST_F(ContextTest, move_scenegraph_removes_outgoing_ref_from_child) {
+	auto prefab = context.createObject(Prefab::typeDescription.typeName, "prefab");
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
+	auto node = context.createObject(Node::typeDescription.typeName, "node");
+	auto skin = context.createObject(Skin::typeDescription.typeName, "skin");
+	context.moveScenegraphChildren({skin}, node);
+	context.set(ValueHandle(skin, &Skin::targets_)[0], meshNode);
+	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
+
+	context.moveScenegraphChildren({node}, prefab);
+	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
+}
+
+TEST_F(ContextTest, move_scenegraph_keeps_outgoing_ref) {
+	auto prefab = context.createObject(Prefab::typeDescription.typeName, "prefab");
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
+	auto mesh = context.createObject(Mesh::typeDescription.typeName, "mesh");
+	context.set({meshNode, &MeshNode::mesh_}, mesh);
+	ASSERT_EQ(raco::core::ValueHandle(meshNode, &MeshNode::mesh_).asRef(), mesh);
+
+	context.moveScenegraphChildren({meshNode}, prefab);
+	ASSERT_EQ(raco::core::ValueHandle(meshNode, &MeshNode::mesh_).asRef(), mesh);
+}
+
+TEST_F(ContextTest, move_scenegraph_breaks_ref_loop) {
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
+	auto skin = context.createObject(Skin::typeDescription.typeName, "skin");
+	context.set(ValueHandle(skin, &Skin::targets_)[0], meshNode);
+	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
+
+	context.moveScenegraphChildren({skin}, meshNode);
+	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
+}
+
+TEST_F(ContextTest, valid_refs_skin_to_node_loop) {
+	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
+	auto skin_toplevel = context.createObject(Skin::typeDescription.typeName, "skin");
+	context.set(ValueHandle(skin_toplevel, &Skin::targets_)[0], meshNode);
+	
+	auto skin_child = context.createObject(Skin::typeDescription.typeName, "skin");
+	context.moveScenegraphChildren({skin_child}, meshNode);
+	context.set(ValueHandle(skin_child, &Skin::targets_)[0], meshNode);
+
+	ASSERT_TRUE(raco::core::Queries::findAllValidReferenceTargets(project, ValueHandle(skin_child, &Skin::targets_)[0]).empty());
+	ASSERT_EQ(raco::core::Queries::findAllValidReferenceTargets(project, ValueHandle(skin_toplevel, &Skin::targets_)[0]),
+		std::vector<SEditorObject>({meshNode}));
 }

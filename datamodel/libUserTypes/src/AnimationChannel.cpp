@@ -11,6 +11,8 @@
 #include "user_types/AnimationChannel.h"
 
 #include "core/Errors.h"
+#include "core/CoreFormatter.h"
+
 #include "Validation.h"
 
 namespace raco::user_types {
@@ -24,17 +26,10 @@ void AnimationChannel::onAfterValueChanged(BaseContext& context, ValueHandle con
 }
 
 raco::core::PropertyInterface AnimationChannel::getOutputProperty() const {
-	auto type = EnginePrimitive::Vec2f;
-
-	auto firstComponentSize = currentSamplerData_->getOutputComponentSize();
-
-	if (firstComponentSize == 3) {
-		type = EnginePrimitive::Vec3f;
-	} else if (firstComponentSize == 4) {
-		type = EnginePrimitive::Vec4f;
+	if (currentSamplerData_->getOutputComponentType() == EnginePrimitive::Array) {
+		return PropertyInterface::makeArrayOf(objectName(), EnginePrimitive::Double, currentSamplerData_->getOutputComponentSize());
 	}
-
-	return {objectName(), type};
+	return {objectName(), currentSamplerData_->getOutputComponentType()};
 }
 
 void AnimationChannel::updateFromExternalFile(BaseContext& context) {
@@ -51,7 +46,7 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 		return;
 	}
 
-	auto scenegraph = context.meshCache()->getMeshScenegraph({uriAbsPath, 0, false});
+	auto scenegraph = context.meshCache()->getMeshScenegraph(uriAbsPath);
 	if (!scenegraph) {
 		auto fileErrorText = context.meshCache()->getMeshError(uriAbsPath);
 		auto errorText = fileErrorText.empty() ? "Selected Animation Source file is not valid."
@@ -104,21 +99,32 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 		return;
 	}
 
-	createSamplerInfoBox(context, animationAmount, samplerAmount);
+	bool unsupportedArray = currentSamplerData_->getOutputComponentType() == EnginePrimitive::Array && context.project()->featureLevel() < 4;
+
+	createSamplerInfoBox(context, animationAmount, samplerAmount, unsupportedArray);
 }
 
-void AnimationChannel::createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount) {
+void AnimationChannel::createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount, bool unsupportedArray) {
 	std::string samplerInfoText;
+	if (unsupportedArray) {
+		samplerInfoText.append(fmt::format("Can't create RamsesLogic DataArrays for AnimationChannel '{}': array samplers are only supported at feature level >= 4.\n\n", objectName()));
+	}
 	samplerInfoText.append(fmt::format("Current Animation: {} of {}\n", *animationIndex_ + 1, animationAmount));
 	samplerInfoText.append(fmt::format("Current Sampler: {} of {}\n\n", *samplerIndex_ + 1, samplerAmount));
 
 	samplerInfoText.append(fmt::format("Keyframes (non-interpolated): {}\n", currentSamplerData_->input.size()));
-	samplerInfoText.append(fmt::format("Interpolation: {}\n", currentSamplerData_->interpolationToString()));
+	auto type = currentSamplerData_->getOutputComponentType();
+	samplerInfoText.append(fmt::format("Component Type: {}\n", type));
+	if (type == EnginePrimitive::Array) {
+		samplerInfoText.append(fmt::format("Component Size: {}\n", currentSamplerData_->getOutputComponentSize()));
+	}
+	samplerInfoText.append(fmt::format("Interpolation: {}\n", currentSamplerData_->interpolation));
 	samplerInfoText.append(fmt::format("Start: {:.2f} s\n", currentSamplerData_->input.front()));
 	samplerInfoText.append(fmt::format("End: {:.2f} s\n", currentSamplerData_->input.back()));
 	samplerInfoText.append(fmt::format("Duration: {:.2f} s", currentSamplerData_->input.back() - currentSamplerData_->input.front()));
 
-	context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::INFORMATION, {shared_from_this()}, samplerInfoText);
+	context.errors().addError(raco::core::ErrorCategory::GENERAL, unsupportedArray ? raco::core::ErrorLevel::ERROR : raco::core::ErrorLevel::INFORMATION, 
+		{shared_from_this()}, samplerInfoText);
 }
 
 }  // namespace raco::user_types

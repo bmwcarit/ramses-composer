@@ -161,7 +161,10 @@ void init(const raco::utils::u8path& logFileDirectory, const std::string& logFil
 		if (logFiles.size() > MAX_LOG_FILES) {
 			for (size_t i = 0; i < logFiles.size() - MAX_LOG_FILES; i++) {
 				auto& entry = logFiles[i];
-				std::filesystem::remove(entry);
+
+				// Ignore locked file removal failure.
+				std::error_code ec;
+				std::filesystem::remove(entry, ec);
 			}
 		}
 	}

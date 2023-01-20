@@ -13,22 +13,22 @@
 #include <QClipboard>
 #include <QMimeData>
 
-void raco::RaCoClipboard::set(const std::string& content) {
+void raco::RaCoClipboard::set(const std::string& content, const char* mimeType) {
 	QMimeData* mimeData = new QMimeData();
 	mimeData->setData("text/plain", content.c_str());
-	mimeData->setData(MimeTypes::EDITOR_OBJECT_CLIPBOARD, content.c_str());
+	mimeData->setData(mimeType, content.c_str());
 	QApplication::clipboard()->setMimeData(mimeData);
 }
 
 bool raco::RaCoClipboard::hasEditorObject() {
-	return QApplication::clipboard()->mimeData()->formats().contains(MimeTypes::EDITOR_OBJECT_CLIPBOARD);
+	return QApplication::clipboard()->mimeData()->formats().contains(MimeTypes::OBJECTS);
 }
 
-std::string raco::RaCoClipboard::get() {
-	if (hasEditorObject()) {
-		auto byteArray = QApplication::clipboard()->mimeData()->data(MimeTypes::EDITOR_OBJECT_CLIPBOARD);
+std::string raco::RaCoClipboard::get(const char* mimeType) {
+	if (QApplication::clipboard()->mimeData()->formats().contains(mimeType)) {
+		auto byteArray = QApplication::clipboard()->mimeData()->data(mimeType);
 		return byteArray.toStdString();
 	}
 
-	return "";
+	return {};
 }

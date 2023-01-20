@@ -17,6 +17,11 @@ using namespace raco::user_types;
 
 class AnimationChannelAdaptorTest : public RamsesBaseFixture<> {};
 
+class AnimationChannelAdaptorTest_FL3 : public RamsesBaseFixture<> {
+public:
+	AnimationChannelAdaptorTest_FL3() : RamsesBaseFixture(false, static_cast<rlogic::EFeatureLevel>(3)) {}
+};
+
 TEST_F(AnimationChannelAdaptorTest, defaultConstruction) {
 	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
 
@@ -96,29 +101,6 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_noDataArrays) {
 	dispatch();
 
 	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
-}
-
-TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_animAssigned_defaultDataArrays) {
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	dispatch();
-
-	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
-	dispatch();
-
-	context.set({animChannel, &raco::user_types::AnimationChannel::samplerIndex_}, -1);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), raco::ramses_adaptor::defaultAnimationChannelKeyframesName), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), raco::ramses_adaptor::defaultAnimationChannelKeyframesName)->getUserId(), (std::pair<uint64_t, uint64_t>{0, 0}));
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), raco::ramses_adaptor::defaultAnimationChannelTimestampsName), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), raco::ramses_adaptor::defaultAnimationChannelTimestampsName)->getUserId(), (std::pair<uint64_t, uint64_t>{0, 0}));
 }
 
 TEST_F(AnimationChannelAdaptorTest, invalidAnim_invalidSampler_noDataArrays) {
@@ -207,4 +189,32 @@ TEST_F(AnimationChannelAdaptorTest, mesh_baked_flag_true_anim_data_gets_imported
 
 	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
 	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+}
+
+TEST_F(AnimationChannelAdaptorTest, component_type_array_valid) {
+	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
+
+	dispatch();
+
+	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
+	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	dispatch();
+
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
+	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
+	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+}
+
+TEST_F(AnimationChannelAdaptorTest_FL3, component_type_array_invalid_fl3) {
+	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
+
+	dispatch();
+
+	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
+	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	dispatch();
+
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
 }

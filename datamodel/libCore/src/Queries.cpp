@@ -25,6 +25,7 @@
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Skin.h"
 #include "user_types/Timer.h"
 
 #include <algorithm>
@@ -171,85 +172,87 @@ bool Queries::canDuplicateObjects(const std::vector<SEditorObject>& objects, con
 	return true;
 }
 
-bool Queries::isValidReferenceTarget(Project const& project, const ValueHandle& handle, SEditorObject object) {
-	if (!handle.constValueRef()->canSetRef(object)) {
-		return false;
-	}
-	auto handleRoot = handle.rootObject();
-
-	if (object) {
-		// Don't allow referencing any objects inside prefabs from objects not in the same prefab
-		// References from a Prefab to its children are of course allowed.
-		auto objPrefabRoot = PrefabOperations::findContainingPrefab(object->getParent());
-		if (objPrefabRoot && objPrefabRoot != PrefabOperations::findContainingPrefab(handleRoot)) {
-			return false;
-		}
-	}
-
-	if (handle.isRefToProp(&user_types::PrefabInstance::template_)) {
-		auto inst = handleRoot->as<user_types::PrefabInstance>();
-		// We can only create loops if the PrefabInstance is nested inside a Prefab:
-		if (auto prefab = PrefabOperations::findContainingPrefab(inst)) {
-			// Now the actual loop check:
-			// if the candidate prefab object depends via instantiations on the containing prefab
-			// of the instance then we have found a loop and will discard the object from the
-			// valid set.
-			std::vector<user_types::SPrefab> downstreamPrefabs;
-			PrefabOperations::prefabUpdateOrderDepthFirstSearch(prefab, downstreamPrefabs);
-
-			if (std::find(downstreamPrefabs.begin(), downstreamPrefabs.end(), object) != downstreamPrefabs.end()) {
-				return false;
+class ValidReferenceTargetPredicate {
+public:
+	ValidReferenceTargetPredicate(const Project& project, const ValueHandle& handle) : project_(project), handle_(handle) {
+		// Calculate and cache the downstream prefab listS
+		if (handle.isRefToProp(&user_types::PrefabInstance::template_)) {
+			auto inst = handle.rootObject()->as<user_types::PrefabInstance>();
+			// We can only create loops if the PrefabInstance is nested inside a Prefab:
+			if (auto prefab = PrefabOperations::findContainingPrefab(inst)) {
+				PrefabOperations::prefabUpdateOrderDepthFirstSearch(prefab, downstreamPrefabs_);
 			}
 		}
 	}
 
-	return true;
+	bool isValidTarget(SEditorObject object) {
+		if (!handle_.constValueRef()->canSetRef(object)) {
+			return false;
+		}
+		auto handleRoot = handle_.rootObject();
+
+		if (object) {
+			// Don't allow referencing any objects inside prefabs from objects not in the same prefab
+			// References from a Prefab to its children are of course allowed.
+			auto objPrefabRoot = PrefabOperations::findContainingPrefab(object->getParent());
+			if (objPrefabRoot && objPrefabRoot != PrefabOperations::findContainingPrefab(handleRoot)) {
+				return false;
+			}
+
+			// Only allow references leaving a Prefab if the target can be pasted as an external reference:
+			auto handlePrefabRoot = PrefabOperations::findContainingPrefab(handleRoot->getParent());
+			if (handlePrefabRoot && objPrefabRoot != handlePrefabRoot && !Queries::canPasteObjectAsExternalReference(object, object->getParent() == nullptr)) {
+				return false;
+			}
+
+			// Don't allow references to read-only objects if the reference would change the target in the datamodel or the engine
+			// Currently only applies to the Skin::meshNode_ property
+			if (handle_.depth() >= 1 && handle_.parent().isRefToProp(&user_types::Skin::targets_) && Queries::isReadOnly(object)) {
+				return false;
+			}
+
+			// Reference loop check: can't reference objects further up in the scenegraph
+			// Loop could be created via the Skin target and joints node properties.
+			auto parent = handleRoot->getParent();
+			while (parent) {
+				if (parent == object) {
+					return false;
+				}
+				parent = parent->getParent();
+			}
+		}
+
+		// Prefab instantiation loop check:
+		// if the candidate prefab object depends via instantiations on the containing prefab
+		// of the instance then we have found a loop and will discard the object from the
+		// valid set.
+		if (std::find(downstreamPrefabs_.begin(), downstreamPrefabs_.end(), object) != downstreamPrefabs_.end()) {
+			return false;
+		}
+
+		return true;
+	}
+
+private: 
+	const Project &project_;
+	const ValueHandle& handle_;
+	std::vector<user_types::SPrefab> downstreamPrefabs_;
+};
+
+bool Queries::isValidReferenceTarget(Project const& project, const ValueHandle& handle, SEditorObject object) {
+	return ValidReferenceTargetPredicate(project, handle).isValidTarget(object);
 }
 
 std::vector<SEditorObject> Queries::findAllValidReferenceTargets(Project const& project, const ValueHandle& handle) {
-	auto handleRoot = handle.rootObject();
-	auto handlePrefabRoot = PrefabOperations::findContainingPrefab(handleRoot);
+	auto predicate = ValidReferenceTargetPredicate(project, handle);
 
-	std::vector<SEditorObject> valid;
-	for (auto obj : project.instances()) {
-		if (handle.constValueRef()->canSetRef(obj)) {
-			// Don't allow referencing any objects inside prefabs from objects not in the same prefab
-			// References from a Prefab to its children are of course allowed.
-			auto objPrefabRoot = PrefabOperations::findContainingPrefab(obj->getParent());
-			if (!objPrefabRoot || handlePrefabRoot == objPrefabRoot) {
-				valid.push_back(obj);
-			}
-		}
-	}
-
-	// Special case: settings the "template" property of a PrefabInstance
-	// -> filter out prefabs which would create a prefab instantiation loop
-	auto inst = handleRoot->as<user_types::PrefabInstance>();
-	if (inst && handle.getPropName() == "template" && handle.depth() == 1) {
-		// We can only create loops if the PrefabInstance is nested inside a Prefab:
-		if (auto prefab = PrefabOperations::findContainingPrefab(inst)) {
-			// Now the actual loop check:
-			// if the candidate prefab object depends via instantiations on the containing prefab 
-			// of the instance then we have found a loop and will discard the object from the
-			// valid set.
-			std::vector<user_types::SPrefab> downstreamPrefabs;
-			PrefabOperations::prefabUpdateOrderDepthFirstSearch(prefab, downstreamPrefabs);
-
-			auto it = valid.begin();
-			while (it != valid.end()) {
-				auto targetPrefab = (*it)->as<user_types::Prefab>();
-				assert(targetPrefab != nullptr);
-				if (std::find(downstreamPrefabs.begin(), downstreamPrefabs.end(), targetPrefab) != downstreamPrefabs.end()) {
-					it = valid.erase(it);
-				} else {
-					++it;
-				}
-			}
-		}
-	}
-
-	return valid;
+	std::vector<SEditorObject> result;
+	std::copy_if(project.instances().begin(), project.instances().end(), std::back_inserter(result), [&predicate](SEditorObject object) {
+		return predicate.isValidTarget(object);
+	});
+	return result;
 }
+
 
 SEditorObject Queries::findById(const std::vector<SEditorObject>& objects, const std::string& id) {
 	for (const auto obj : objects) {
@@ -325,7 +328,7 @@ bool Queries::canPasteIntoObject(Project const& project, SEditorObject const& ob
 		return false;
 	}
 
-	if (object->as<user_types::LuaScript>() || object->as<user_types::LuaInterface>() || object->as<user_types::Animation>()) {
+	if (object->as<user_types::LuaScript>() || object->as<user_types::LuaInterface>() || object->as<user_types::Animation>() || object->as<user_types::Skin>()) {
 		return false;
 	}
 
@@ -1028,7 +1031,7 @@ std::vector<SEditorObject> Queries::filterForMoveableScenegraphChildren(Project 
 				}
 			}
 
-			return (object->as<Node>() || object->as<LuaScript>() || object->as<LuaInterface>() || object->as<Animation>());
+			return (object->as<Node>() || object->as<LuaScript>() || object->as<LuaInterface>() || object->as<Animation>() || object->as<Skin>());
 		});
 
 	return result;

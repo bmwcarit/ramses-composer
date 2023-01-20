@@ -1,8 +1,8 @@
 {
     "externalProjects": {
     },
-    "featureLevel": 3,
-    "fileVersion": 46,
+    "featureLevel": 5,
+    "fileVersion": 48,
     "instances": [
         {
             "properties": {
@@ -1594,7 +1594,7 @@
                     "scriptSubdirectory": "scripts",
                     "shaderSubdirectory": "shaders"
                 },
-                "featureLevel": 3,
+                "featureLevel": 5,
                 "objectID": "71454add-eb56-4288-9057-825539914bed",
                 "objectName": "test-offscreen-tex-uniform-migration-material",
                 "saveAsZip": false,
@@ -1867,7 +1867,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "515768050963"
+                    "ticker_us": "106445207921"
                 }
             },
             "typeName": "Timer"
@@ -2016,20 +2016,27 @@
         },
         {
             "properties": {
-                "objectID": "b682a50b-f8b8-4fe9-bcc1-d6a2e3e3b348",
-                "objectName": "LuaInterface",
-                "uri": ""
-            },
-            "typeName": "LuaInterface"
-        },
-        {
-            "properties": {
                 "materialFilterMode": 0,
                 "objectID": "b9826309-15d0-425b-8ca7-431dc9b6964e",
                 "objectName": "RenderLayerSceneGraph",
                 "sortOrder": 1
             },
             "typeName": "RenderLayer"
+        },
+        {
+            "properties": {
+                "objectID": "cba9dca1-d412-430e-b278-2d11f08107bf",
+                "objectName": "LuaInterface",
+                "stdModules": {
+                    "base": true,
+                    "debug": true,
+                    "math": true,
+                    "string": true,
+                    "table": true
+                },
+                "uri": ""
+            },
+            "typeName": "LuaInterface"
         },
         {
             "properties": {
@@ -2195,24 +2202,44 @@
                 "target": null
             },
             "typeName": "RenderPass"
+        },
+        {
+            "properties": {
+                "objectID": "fdcbf4ea-3802-484b-be53-4b38ec2d5ac3",
+                "objectName": "Skin",
+                "skinIndex": 0,
+                "targets": {
+                    "order": [
+                        "target_0"
+                    ],
+                    "properties": {
+                        "target_0": {
+                            "typeName": "MeshNode",
+                            "value": null
+                        }
+                    }
+                },
+                "uri": ""
+            },
+            "typeName": "Skin"
         }
     ],
     "links": [
     ],
     "logicEngineVersion": [
         1,
-        2,
-        2
+        4,
+        0
     ],
     "racoVersion": [
         1,
-        4,
+        6,
         0
     ],
     "ramsesVersion": [
         27,
         0,
-        125
+        126
     ],
     "structPropMap": {
         "AnchorPointOutputs": {
@@ -2378,8 +2405,10 @@
         "LuaInterface": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "inputs": "Table::DisplayNameAnnotation::LinkStartAnnotation::LinkEndAnnotation",
+            "luaModules": "Table::DisplayNameAnnotation::FeatureLevel",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
+            "stdModules": "LuaStandardModuleSelection::DisplayNameAnnotation::FeatureLevel",
             "uri": "String::URIAnnotation::DisplayNameAnnotation"
         },
         "LuaScript": {
@@ -2574,6 +2603,15 @@
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation"
+        },
+        "Skin": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "joints": "Table::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
+            "skinIndex": "Int::DisplayNameAnnotation",
+            "targets": "Table::DisplayNameAnnotation",
+            "uri": "String::URIAnnotation::DisplayNameAnnotation"
         },
         "Texture": {
             "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",

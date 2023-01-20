@@ -43,6 +43,7 @@ class ObjectTreeViewDefaultModel : public QAbstractItemModel {
 public:
 	enum ColumnIndex {
 		COLUMNINDEX_NAME,
+		COLUMNINDEX_VISIBILITY,
 		COLUMNINDEX_TYPE,
 		// invisible column that is used for ID-based filtering in the tree views
 		COLUMNINDEX_ID,
@@ -142,6 +143,9 @@ protected:
 	void resetInvisibleRootNode();
 	void updateTreeIndexes();
 
+	QVariant getNodeIcon(ObjectTreeNode* treeNode) const;
+	QVariant getVisibilityIcon(ObjectTreeNode* treeNode) const;
+
 	static inline constexpr const char* OBJECT_EDITOR_ID_MIME_TYPE = "application/editorobject.id";
 
 	const std::map<std::string, QIcon> typeIconMap{
@@ -163,7 +167,14 @@ protected:
 		{"Animation", raco::style::Icons::instance().typeAnimation},
 		{"Timer", raco::style::Icons::instance().typeTimer},
 		{"AnchorPoint", raco::style::Icons::instance().typeAnchorPoint},
-		{"BlitPass", raco::style::Icons::instance().typeBlitPass}
+		{"BlitPass", raco::style::Icons::instance().typeBlitPass},
+		{"Skin", raco::style::Icons::instance().typeSkin}
+	};
+
+	const std::map<VisibilityState, QIcon> visibilityIconMap_{
+		{VisibilityState::Disabled, raco::style::Icons::instance().visibilityDisabled},
+		{VisibilityState::Visible, raco::style::Icons::instance().visibilityOn},
+		{VisibilityState::Invisible, raco::style::Icons::instance().visibilityOff},
 	};
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;

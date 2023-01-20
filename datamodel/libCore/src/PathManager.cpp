@@ -15,6 +15,7 @@
 #include "user_types/LuaScriptModule.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
+#include "user_types/Skin.h"
 #include "user_types/Texture.h"
 
 #include <algorithm>
@@ -140,7 +141,7 @@ PathManager::FolderTypeKeys PathManager::getCachedPathKeyCorrespondingToUserType
 		return raco::core::PathManager::FolderTypeKeys::Image;
 	}
 
-	if (&type == &raco::user_types::Mesh::typeDescription || &type == &raco::user_types::AnimationChannel::typeDescription) {
+	if (&type == &raco::user_types::Mesh::typeDescription || &type == &raco::user_types::AnimationChannel::typeDescription || &type == &raco::user_types::Skin::typeDescription) {
 		return raco::core::PathManager::FolderTypeKeys::Mesh;
 	}
 

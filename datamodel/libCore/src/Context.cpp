@@ -34,6 +34,7 @@
 #include "user_types/Node.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
+#include "user_types/Skin.h"
 
 #include <core/PathManager.h>
 #include <spdlog/fmt/fmt.h>
@@ -857,6 +858,31 @@ void BaseContext::removeReferencesTo(SEditorObjectSet const& objects) {
 	});
 }
 
+void BaseContext::removeReferencesFrom_If(SEditorObjectSet const& objects, std::function<bool(const ValueHandle& handle, SEditorObject object)> pred) {
+	for (auto object : objects) {
+		auto adaptor = ValueTreeIteratorAdaptor(ValueHandle(object));
+		auto it = adaptor.begin();
+		while (it != adaptor.end()) {
+			bool step = true;
+			if (it->type() == PrimitiveType::Ref) {
+				auto refValue = it->asTypedRef<EditorObject>();
+				if (refValue && (objects.find(refValue) == objects.end()) && pred(*it, refValue)) {
+					auto parent = it->parent();
+					if (parent && parent.depth() > 0 && parent.query<ArraySemanticAnnotation>()) {
+						it = erase(it);
+						step = false;
+					} else {
+						set(*it, SEditorObject());
+					}
+				}
+			}
+			if (step) {
+				++it;
+			}
+		}
+	}
+}
+
 bool BaseContext::deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap) {
 	// Pretend to remove references from the deleted into the non-deleted objects:
 	// only call the onBeforeRemoveReferenceToThis handler; needed for removing backpointers
@@ -872,7 +898,7 @@ bool BaseContext::deleteWithVolatileSideEffects(Project* project, const SEditorO
 
 	// Call onBeforeDeleteObject handlers to allow objects to deregister file watcher handlers
 	for (auto obj : objects) {
-		obj->onBeforeDeleteObject(errors);
+		obj->onBeforeDeleteObject(*this);
 	}
 
 	// Remove objects from project instance pool
@@ -958,8 +984,14 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 		}
 	}
 
-	SEditorObjectSet objectSet(objects.begin(), objects.end());
-	removeReferencesTo_If(objectSet, [this](const ValueHandle& handle, SEditorObject object) -> bool {
+	// Remove incoming invalid references
+	SEditorObjectSet movedObjects = Queries::collectAllChildren(objects);
+	removeReferencesTo_If(movedObjects, [this](const ValueHandle& handle, SEditorObject object) -> bool {
+		return !Queries::isValidReferenceTarget(*project_, handle, object);
+	});
+
+	// Remove outgoing invalid references
+	removeReferencesFrom_If(movedObjects, [this](const ValueHandle& handle, SEditorObject object) -> bool {
 		return !Queries::isValidReferenceTarget(*project_, handle, object);
 	});
 }
@@ -978,7 +1010,8 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		if (instance->as<raco::user_types::Mesh>() && !instance->query<raco::core::ExternalReferenceAnnotation>()) {
 			propertiesToMeshMap[{instance->get("bakeMeshes")->asBool(), instance->get("meshIndex")->asInt(), instance->get("uri")->asString()}] = instance;
 		} else if (instance->as<raco::user_types::AnimationChannel>() && !instance->query<raco::core::ExternalReferenceAnnotation>()) {
-			propertiesToChannelMap[{instance->get("uri")->asString(), instance->get("animationIndex")->asInt(), instance->get("samplerIndex")->asInt()}] = instance;
+			auto absPath = core::PathQueries::resolveUriPropertyToAbsolutePath(*project_, ValueHandle(instance, &user_types::AnimationChannel::uri_));
+			propertiesToChannelMap[{absPath, instance->get("animationIndex")->asInt(), instance->get("samplerIndex")->asInt()}] = instance;
 		}
 	}
 
@@ -1029,12 +1062,12 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		auto meshScenegraphNode = scenegraph.nodes[i].value();
 
 		SEditorObject newNode;
-		if (meshScenegraphNode.subMeshIndeces.empty()) {
+		if (meshScenegraphNode.subMeshIndices.empty()) {
 			LOG_DEBUG(log_system::CONTEXT, "Found node {} with no submeshes -> creating Node...", meshScenegraphNode.name);
 			newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
 		} else {
 			SEditorObject submeshRootNode;
-			if (meshScenegraphNode.subMeshIndeces.size() == 1) {
+			if (meshScenegraphNode.subMeshIndices.size() == 1) {
 				LOG_DEBUG(log_system::CONTEXT, "Found node {} with singular submesh -> creating MeshNode...", meshScenegraphNode.name);
 				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name));
 				submeshRootNode = newNode;
@@ -1045,16 +1078,16 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				moveScenegraphChildren({submeshRootNode}, newNode);
 			}
 
-			for (size_t submeshIndex{0}; submeshIndex < meshScenegraphNode.subMeshIndeces.size(); ++submeshIndex) {
-				auto submesh = meshScenegraphNode.subMeshIndeces[submeshIndex];
+			for (size_t submeshIndex{0}; submeshIndex < meshScenegraphNode.subMeshIndices.size(); ++submeshIndex) {
+				auto submesh = meshScenegraphNode.subMeshIndices[submeshIndex];
 				if (!submesh.has_value()) {
 					LOG_DEBUG(log_system::CONTEXT, "Found disabled submesh at index {}.{}, ignoring MeshNode...", meshScenegraphNode.name, submeshIndex);
 					continue;
 				}
-				auto assignedSubmeshIndex = *meshScenegraphNode.subMeshIndeces[submeshIndex];
+				auto assignedSubmeshIndex = *meshScenegraphNode.subMeshIndices[submeshIndex];
 
 				SEditorObject submeshNode;
-				if (meshScenegraphNode.subMeshIndeces.size() == 1) {
+				if (meshScenegraphNode.subMeshIndices.size() == 1) {
 					submeshNode = newNode;
 				} else {
 					submeshNode = createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name + "_meshnode_" + std::to_string(submeshIndex));
@@ -1129,7 +1162,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			if (samplerWithSameProperties == propertiesToChannelMap.end()) {
 				LOG_DEBUG(log_system::CONTEXT, "Did not find existing local AnimationChannel with same properties as asset animation sampler, creating one instead...");
 				auto& sampler = sceneChannels[animIndex].emplace_back(createObject(raco::user_types::AnimationChannel::typeDescription.typeName, fmt::format("{}", *meshAnimSampler)));
-				set({sampler, {"uri"}}, absPath);
+				set({sampler, {"uri"}}, relativeFilePath.string());
 				set({sampler, {"animationIndex"}}, animIndex);
 				set({sampler, {"samplerIndex"}}, samplerIndex);
 			} else {
@@ -1205,6 +1238,43 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		LOG_INFO(log_system::CONTEXT, "Samplers linked.");
 	}
 	LOG_INFO(log_system::CONTEXT, "Animations imported.");
+
+	if (project_->featureLevel() >= user_types::Skin::typeDescription.featureLevel) {
+		for (auto index = 0; index < scenegraph.skins.size(); index++) {
+			const auto& sceneSkin = scenegraph.skins[index];
+			if (!sceneSkin.has_value()) {
+				LOG_DEBUG(log_system::CONTEXT, "Found disabled skin at index {}, ignoring...", index);
+				continue;
+			}
+
+			std::vector<SEditorObject> targetMeshNodes;
+			auto targetMeshNode = meshScenegraphNodes[sceneSkin->meshNodeIndex];
+			if (targetMeshNode->isType<user_types::MeshNode>()) {
+				targetMeshNodes.emplace_back(targetMeshNode);
+			} else {
+				auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
+				for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
+					if (child->isType<user_types::MeshNode>()) {
+						targetMeshNodes.emplace_back(child);
+					} else {
+						LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
+					}
+				}
+			}
+			if (!targetMeshNodes.empty()) {
+				auto skinObj = createObject(user_types::Skin::typeDescription.typeName, sceneSkin->name);
+				set({skinObj, &user_types::Skin::uri_}, relativeFilePath.string());
+				skinObj->as<user_types::Skin>()->setupTargetProperties(targetMeshNodes.size());
+				moveScenegraphChildren({skinObj}, sceneRootNode);
+				for (auto index = 0; index < targetMeshNodes.size(); index++) {
+					set(ValueHandle(skinObj, &user_types::Skin::targets_)[index], targetMeshNodes[index]);
+				}
+				for (auto jointIndex = 0; jointIndex < sceneSkin->jointNodeIndices.size(); jointIndex++) {
+					set(ValueHandle(skinObj, &user_types::Skin::joints_)[jointIndex], meshScenegraphNodes[sceneSkin->jointNodeIndices[jointIndex]]);
+				}
+			}
+		}
+	}
 }
 
 SLink BaseContext::addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak) {

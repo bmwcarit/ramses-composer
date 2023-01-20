@@ -249,11 +249,11 @@ TEST_F(UndoTest, ScenegraphMove_multiple_children) {
 TEST_F(UndoTest, Create_node) {
 	checkUndoRedo([this]() { commandInterface.createObject(Node::typeDescription.typeName, "node"); },
 		[this]() {
-			EXPECT_EQ(project.instances().size(), 0);
+			EXPECT_EQ(project.instances().size(), 1);
 		},
 		[this]() {
-			EXPECT_EQ(project.instances().size(), 1);
-			EXPECT_EQ(project.instances()[0]->objectName(), "node");
+			EXPECT_EQ(project.instances().size(), 2);
+			EXPECT_EQ(project.instances()[1]->objectName(), "node");
 		});
 }
 
@@ -284,10 +284,10 @@ TEST_F(UndoTest, Delete_single) {
 
 	checkUndoRedo([this, root]() { commandInterface.deleteObjects({root}); },
 		[this]() {
-			checkInstances({"rootnode", "duck_node", "label_node"}, {});
+			checkInstances({"ProjectSettings", "rootnode", "duck_node", "label_node"}, {});
 		},
 		[this]() {
-			checkInstances({"duck_node", "label_node"}, {"rootnode"});
+			checkInstances({"ProjectSettings", "duck_node", "label_node"}, {"rootnode"});
 		});
 }
 
@@ -298,10 +298,10 @@ TEST_F(UndoTest, DeleteNodeWithChild) {
 
 	checkUndoRedo([this, node]() { commandInterface.deleteObjects({node}); },
 		[this, node, child]() {
-			checkInstances({"parent", "child"}, {});
+			checkInstances({"ProjectSettings", "parent", "child"}, {});
 		},
 		[this, node, child]() {
-			checkInstances({}, {"parent", "child"});
+			checkInstances({"ProjectSettings"}, {"parent", "child"});
 		});
 }
 
@@ -312,13 +312,13 @@ TEST_F(UndoTest, DeleteNodeInParent) {
 
 	checkUndoRedo([this, child]() { commandInterface.deleteObjects({child}); },
 		[this, node]() {
-			checkInstances({"parent", "child"}, {});
+			checkInstances({"ProjectSettings", "parent", "child"}, {});
 			auto child = getInstance<Node>("child");
 			EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({child}));
 			EXPECT_EQ(child->getParent(), node);
 		},
 		[this, node]() {
-			checkInstances({"parent"}, {"child"});
+			checkInstances({"ProjectSettings", "parent"}, {"child"});
 			EXPECT_EQ(node->children_->size(), 0);
 		});
 }
@@ -399,14 +399,14 @@ TEST_F(UndoTest, copyAndPasteObjectSimple) {
 
 	checkUndoRedo([this, node]() { commandInterface.pasteObjects(context.copyObjects({node})); },
 		[this, node]() {
-			EXPECT_EQ(project.instances().size(), 1);
-			EXPECT_EQ(project.instances()[0], node);
+			EXPECT_EQ(project.instances().size(), 2);
+			EXPECT_EQ(project.instances()[1], node);
 		},
 		[this]() {
-			// We have 2 instances, on original and one copy
-			ASSERT_EQ(2, project.instances().size());
+			// We have 3 instances, on original and one copy
+			ASSERT_EQ(project.instances().size(), 3);
 			// They are not equal to each other
-			ASSERT_NE(project.instances().at(0), project.instances().at(1));
+			ASSERT_NE(project.instances().at(1), project.instances().at(2));
 		});
 }
 
@@ -418,12 +418,12 @@ TEST_F(UndoTest, copyAndPasteShallowSetsReferences) {
 
 	checkUndoRedo([this, meshNode]() { commandInterface.pasteObjects(context.copyObjects({meshNode})); },
 		[this, meshNode, mesh]() {
-			EXPECT_EQ(project.instances().size(), 2);
+			EXPECT_EQ(project.instances().size(), 3);
 			EXPECT_EQ(getInstance<Mesh>("mesh"), mesh);
 			EXPECT_EQ(getInstance<MeshNode>("meshnode"), meshNode);
 		},
 		[this, mesh]() {
-			EXPECT_EQ(3, project.instances().size());
+			EXPECT_EQ(project.instances().size(), 4);
 			for (auto obj : project.instances()) {
 				if (auto meshnode = std::dynamic_pointer_cast<MeshNode>(obj)) {
 					EXPECT_EQ(mesh, *meshnode->mesh_);
@@ -441,10 +441,10 @@ TEST_F(UndoTest, deepCut) {
 
 	checkUndoRedo([this, node]() { commandInterface.cutObjects({node}, true); },
 		[this]() {
-			ASSERT_EQ(3, context.project()->instances().size());
+			ASSERT_EQ(context.project()->instances().size(), 4);
 		},
 		[this]() {
-			ASSERT_EQ(0, context.project()->instances().size());
+			ASSERT_EQ(context.project()->instances().size(), 1);
 		});
 }
 
@@ -739,9 +739,9 @@ TEST_F(UndoTest, mesh_asset_with_anims_import_multiple_undo_redo) {
 	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-	auto scenegraph = commandInterface.meshCache()->getMeshScenegraph(desc);
-
-	commandInterface.insertAssetScenegraph(*scenegraph, desc.absPath, nullptr);
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface.meshCache(), desc);
+	
+	commandInterface.insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	for (auto i = 0; i < 10; ++i) {
 		commandInterface.undoStack().undo();

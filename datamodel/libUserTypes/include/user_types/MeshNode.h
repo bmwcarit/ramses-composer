@@ -42,8 +42,6 @@ public:
 		properties_.emplace_back("instanceCount", &instanceCount_);
 	}
 
-	void onBeforeDeleteObject(Errors& errors) const override;
-
 	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterReferencedObjectChanged(BaseContext& context, ValueHandle const& changedObject) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
@@ -71,7 +69,7 @@ private:
 	void createMaterialSlot(BaseContext& context, std::string const& name);
 	void updateMaterialSlots(BaseContext& context, std::vector<std::string> const& materialNames);
 
-	void updatePrivateMaterialOptions(BaseContext& context, const raco::user_types::BlendOptions* src, ValueHandle& destOptions);
+	PropertyInterface makeInterfaceFromProperty(std::string_view name, const ValueBase* property);
 	void updateUniformContainer(BaseContext& context, const std::string& materialName, const Table* src, ValueHandle& destUniforms);
 
 	void checkMeshMaterialAttributMatch(BaseContext& context);
@@ -83,4 +81,4 @@ private:
 
 using SMeshNode = std::shared_ptr<MeshNode>;
 
-}
+}  // namespace raco::user_types

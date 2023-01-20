@@ -115,6 +115,45 @@ TEST_F(LuaScriptTest, inputs_are_correctly_built) {
 	EXPECT_EQ(PrimitiveType::Double, structInput[1].type());
 }
 
+TEST_F(LuaScriptTest, error_global) {
+	TextFile scriptFile = makeFile("script1.lua", R"(
+nonsense
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+end
+)");
+	auto script = create_lua("script", scriptFile);
+
+	EXPECT_TRUE(commandInterface.errors().hasError({script}));
+}
+
+TEST_F(LuaScriptTest, error_in_interface) {
+	TextFile scriptFile = makeFile("script1.lua", R"(
+function interface(IN, OUT)
+	error()
+end
+function run(IN,OUT)
+end
+)");
+	auto script = create_lua("script", scriptFile);
+
+	EXPECT_TRUE(commandInterface.errors().hasError({script}));
+}
+
+TEST_F(LuaScriptTest, error_in_run) {
+	TextFile scriptFile = makeFile("script1.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto script = create_lua("script", scriptFile);
+
+	// this is a runtime error which we can't detect here:
+	EXPECT_FALSE(commandInterface.errors().hasError({script}));
+}
 TEST_F(LuaScriptTest, errorInterfaceMissing) {
 	auto script{commandInterface.createObject(LuaScript::typeDescription.typeName, "myScript")};
 	TextFile scriptRunOnlyFile = makeFile("script1.lua", R"(
@@ -829,7 +868,7 @@ end
 	ASSERT_EQ(script->luaModules_->size(), 0);
 }
 
-TEST_F(LuaScriptTest, error_script_stdmodule_missing) {
+TEST_F(LuaScriptTest, error_stdmodule_missing) {
 	auto script = create_lua("lua", "scripts/using-math.lua");
 
 	ASSERT_FALSE(commandInterface.errors().hasError({script}));
@@ -840,19 +879,6 @@ TEST_F(LuaScriptTest, error_script_stdmodule_missing) {
 	commandInterface.set({script, {"stdModules", "math"}}, true);
 	commandInterface.set({script, {"stdModules", "debug"}}, false);
 	ASSERT_FALSE(commandInterface.errors().hasError({script}));
-}
-
-TEST_F(LuaScriptTest, error_module_stdmodule_missing) {
-	auto module = create_lua_module("lua", "scripts/module-using-math.lua");
-
-	ASSERT_FALSE(commandInterface.errors().hasError({module}));
-
-	commandInterface.set({module, {"stdModules", "math"}}, false);
-	ASSERT_TRUE(commandInterface.errors().hasError({module}));
-
-	commandInterface.set({module, {"stdModules", "math"}}, true);
-	commandInterface.set({module, {"stdModules", "debug"}}, false);
-	ASSERT_FALSE(commandInterface.errors().hasError({module}));
 }
 
 TEST_F(LuaScriptTest, error_script_using_module_stdmodule_missing) {

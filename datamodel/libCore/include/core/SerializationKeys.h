@@ -15,6 +15,7 @@ constexpr const char* TYPENAME{"typeName"};
 constexpr const char* OBJECTS{"objects"};
 constexpr const char* LINKS{"links"};
 constexpr const char* ORDER{"order"};
+constexpr const char* PROPERTY{"property"};
 constexpr const char* PROPERTIES{"properties"};
 constexpr const char* VALUE{"value"};
 constexpr const char* ANNOTATIONS{"annotations"};

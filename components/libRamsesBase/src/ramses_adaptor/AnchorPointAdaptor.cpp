@@ -49,17 +49,7 @@ bool AnchorPointAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 	anchorPoint_.reset();
 	
-	raco::ramses_base::RamsesNodeBinding nodeBinding = nullptr;
-	auto node = *editorObject_->node_;
-	if (auto nodeAdaptor = sceneAdaptor_->lookup<NodeAdaptor>(node)) {
-		nodeBinding = nodeAdaptor->nodeBinding();
-	} else if (auto nodeAdaptor = sceneAdaptor_->lookup<MeshNodeAdaptor>(node)) {
-		nodeBinding = nodeAdaptor->nodeBinding();
-	} else if (auto nodeAdaptor = sceneAdaptor_->lookup<PerspectiveCameraAdaptor>(node)) {
-		nodeBinding = nodeAdaptor->nodeBinding();
-	} else if (auto nodeAdaptor = sceneAdaptor_->lookup<OrthographicCameraAdaptor>(node)) {
-		nodeBinding = nodeAdaptor->nodeBinding();
-	}
+	raco::ramses_base::RamsesNodeBinding nodeBinding = lookupNodeBinding(sceneAdaptor_, *editorObject_->node_);
 
 	raco::ramses_base::RamsesCameraBinding cameraBinding = nullptr;
 	auto camera = *editorObject_->camera_;

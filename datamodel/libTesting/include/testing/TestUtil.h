@@ -129,4 +129,11 @@ inline void createGitLfsPlaceholderFile(const std::string& path) {
 	file.close();
 }
 
+inline std::pair<raco::core::MeshScenegraph, raco::core::FileChangeMonitor::UniqueListener> getMeshSceneGraphWithHandler(raco::core::MeshCache* meshCache, const raco::core::MeshDescriptor& descriptor) {
+	auto dummyCacheEntry = meshCache->registerFileChangedHandler(descriptor.absPath, {nullptr, nullptr, []() {}});
+	raco::core::MeshScenegraph scenegraph{*meshCache->getMeshScenegraph(descriptor.absPath)};
+	return {scenegraph, std::move(dummyCacheEntry)};
+}
+
+
 }  // namespace raco

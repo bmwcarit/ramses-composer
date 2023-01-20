@@ -185,12 +185,13 @@ private:
 	static void restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization);
 
 	// Should only be used from the Undo system
-	static bool deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap = true);
+	bool deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap = true);
 
 	void callReferencedObjectChangedHandlers(SEditorObject const& changedObject);
 
 	void removeReferencesTo_If(SEditorObjectSet const& objects, std::function<bool(const ValueHandle& handle, SEditorObject object)> pred);
 	void removeReferencesTo(SEditorObjectSet const& objects);
+	void removeReferencesFrom_If(SEditorObjectSet const& objects, std::function<bool(const ValueHandle& handle, SEditorObject object)> pred);
 
 	template <void (EditorObject::*Handler)(ValueHandle const&) const>
 	static void callReferenceToThisHandler(ValueHandle const& vh);

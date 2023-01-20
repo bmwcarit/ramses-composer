@@ -38,9 +38,9 @@ raco::core::SharedMeshData MeshCacheImpl::loadMesh(const raco::core::MeshDescrip
 	return loader->loadMesh(descriptor);
 }
 
-raco::core::MeshScenegraph* raco::components::MeshCacheImpl::getMeshScenegraph(const raco::core::MeshDescriptor &descriptor) {
-	auto *loader = getLoader(descriptor.absPath);
-	return loader->getScenegraph(descriptor.absPath);
+const raco::core::MeshScenegraph *raco::components::MeshCacheImpl::getMeshScenegraph(const std::string &absPath) {
+	auto *loader = getLoader(absPath);
+	return loader->getScenegraph(absPath);
 }
 
 std::string raco::components::MeshCacheImpl::getMeshError(const std::string &absPath) {
@@ -53,9 +53,14 @@ int raco::components::MeshCacheImpl::getTotalMeshCount(const std::string &absPat
 	return loader->getTotalMeshCount();
 }
 
-std::shared_ptr<raco::core::MeshAnimationSamplerData> MeshCacheImpl::getAnimationSamplerData(const std::string &absPath, int animIndex, int samplerIndex) {
+raco::core::SharedAnimationSamplerData MeshCacheImpl::getAnimationSamplerData(const std::string &absPath, int animIndex, int samplerIndex) {
 	auto *loader = getLoader(absPath);
 	return loader->getAnimationSamplerData(absPath, animIndex, samplerIndex);
+}
+
+core::SharedSkinData MeshCacheImpl::loadSkin(const std::string &absPath, int skinIndex, std::string &outError) {
+	auto *loader = getLoader(absPath);
+	return loader->loadSkin(absPath, skinIndex, outError);
 }
 
 void MeshCacheImpl::forceReloadCachedMesh(const std::string &absPath) {
@@ -80,6 +85,9 @@ bool endsWith(std::string const &text, std::string const &ending) {
 }
 
 raco::core::MeshCacheEntry *MeshCacheImpl::getLoader(std::string absPath) {
+	// To prevent cache corpses which are not updated by file change listeners we require to call registerFileChangeHandler
+	// before attempting to load a file:
+	assert(listeners_.find(absPath) != listeners_.end());
 	if (meshCacheEntries_.count(absPath) == 0) {
 		if (endsWith(absPath, ".gltf") || endsWith(absPath, ".glb")) {
 			meshCacheEntries_[absPath] = std::unique_ptr<raco::core::MeshCacheEntry>(new mesh_loader::glTFFileLoader(absPath));

@@ -54,8 +54,19 @@ private:
 		std::vector<float> data;
 	};
 
-	void loadPrimitiveData(const tinygltf::Primitive& primitive, const tinygltf::Model& scene, std::vector<float>& vertexBuffer, std::vector<float>& normalBuffer, std::vector<float>& tangentBuffer, std::vector<float>& bitangentBuffer,
-		std::vector<std::vector<float>>& uvBuffers, std::vector<std::vector<float>>& colorBuffers, glm::dmat4* rootTrafoMatrix = nullptr);
+	void loadPrimitiveData(const tinygltf::Primitive& primitive, const tinygltf::Model& scene,
+		std::vector<float>& vertexBuffer,
+		std::vector<std::vector<float>>& morphVertexBuffers,
+		std::vector<float>& normalBuffer,
+		std::vector<std::vector<float>>& morphNormalBuffers,
+		std::vector<float>& tangentBuffer,
+		std::vector<float>& bitangentBuffer,
+		std::vector<std::vector<float>>& uvBuffers,
+		std::vector<std::vector<float>>& colorBuffers,
+		std::vector<std::vector<float>>& weightBuffers,
+		std::vector<std::vector<float>>& jointBuffers,
+		glm::dmat4* globalModelMatrix = nullptr,
+		glm::dmat4* globalNormalMatrix = nullptr);
 
 	uint32_t numTriangles_;
 	uint32_t numVertices_;

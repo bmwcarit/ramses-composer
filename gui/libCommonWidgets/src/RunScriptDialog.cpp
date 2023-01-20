@@ -19,6 +19,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QPushButton>
+#include <QScrollBar>
 
 
 namespace raco::common_widgets {
@@ -83,9 +84,18 @@ RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::
 
 void RunScriptDialog::addPythonOutput(const std::string& outBuffer, const std::string& errorBuffer) {
 	auto launchTime = QDateTime::currentDateTime();
-	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 =====</font></b>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
+	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 =====</font></b><br>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
 
-	statusTextBlock_->appendPlainText(QString::fromStdString(outBuffer));
+	auto vbar = statusTextBlock_->verticalScrollBar();
+	auto atBottom = vbar->value() == vbar->maximum();
+
+	QTextCursor tc(statusTextBlock_->document());
+	tc.movePosition(QTextCursor::End);
+	tc.insertText(QString::fromStdString(outBuffer));
+
+	if (atBottom) {
+		vbar->setValue(vbar->maximum());
+	}
 
 	if (!errorBuffer.empty()) {
 		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(raco::style::Colors::color(raco::style::Colormap::errorColorLight).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));

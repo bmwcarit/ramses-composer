@@ -9,6 +9,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <gtest/gtest-spi.h>
 
 #include "ramses_base/Utils.h"
 #include <ramses-logic/LogicEngine.h>
@@ -481,4 +482,192 @@ end
 		ASSERT_TRUE(script != nullptr);
 		ASSERT_TRUE(logicEngine.destroy(*script));
 	}
+}
+
+TEST(ramses_logic, node_binding_quaternion_rotation) {
+	rlogic::LogicEngine logicEngine;
+	ramses::RamsesFramework ramsesFramework;
+	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
+	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
+
+	ramses::Node* node = scene->createNode("some node");
+	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Quaternion, "some node binding");
+		
+	float delta = 1e-4;
+
+	float one_over_sqrt_6 = 1.0f / sqrt(6.0f);
+	float one_over_sqrt_2 = 1.0f / sqrt(2.0f);
+	std::array<float, 4> q{one_over_sqrt_6, one_over_sqrt_6, one_over_sqrt_6, one_over_sqrt_2};
+	float norm2 = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
+	ASSERT_TRUE(std::abs(norm2 - 1.0f) < delta);
+	
+	rlogic::Property* nodeRotation{binding->getInputs()->getChild("rotation")};
+	nodeRotation->set(q);
+
+	logicEngine.update();
+
+	float ramsesModelMatrix[16];
+	node->getModelMatrix(ramsesModelMatrix);
+
+	float refModelMatrix[16];
+
+	// m11
+	refModelMatrix[0] = 1.0f - 2.0f * (q[1] * q[1] + q[2] * q[2]);
+	// m21
+	refModelMatrix[1] = 2.0f * (q[0] * q[1] + q[2] * q[3]);
+	// m31
+	refModelMatrix[2] = 2.0f * (q[0] * q[2] - q[1] * q[3]);
+	// m41
+	refModelMatrix[3] = 0.0;
+
+	// m12
+	refModelMatrix[4] = 2.0f * (q[0] * q[1] - q[2] * q[3]);
+	// m22
+	refModelMatrix[5] = 1.0f - 2.0f * (q[0] * q[0] + q[2] * q[2]);
+	// m32
+	refModelMatrix[6] = 2.0f * (q[1] * q[2] + q[0] * q[3]);
+	// m42
+	refModelMatrix[7] = 0.0;
+
+	// m13
+	refModelMatrix[8] = 2.0f * (q[0] * q[2] + q[1] * q[3]);
+	// m23
+	refModelMatrix[9] = 2.0f * (q[1] * q[2] - q[0] * q[3]);
+	// m33
+	refModelMatrix[10] = 1.0f - 2.0f * (q[0] * q[0] + q[1] * q[1]);
+	// m43
+	refModelMatrix[11] = 0.0;
+
+	// m14 .. m44
+	refModelMatrix[12] = 0.0;
+	refModelMatrix[13] = 0.0;
+	refModelMatrix[14] = 0.0;
+	refModelMatrix[15] = 1.0;
+
+// Remove the EXPECT_NONFATAL_FAILURE once the logic engine has been fixed
+	EXPECT_NONFATAL_FAILURE(
+		bool comp = true;
+		for (int i = 0; i < 16; i++) {
+			if (std::abs(refModelMatrix[i] - ramsesModelMatrix[i]) > delta) {
+				comp = false;
+			}
+		} EXPECT_TRUE(comp);
+		,
+		"Value of: comp");
+}
+
+TEST(ramses_logic, interface_using_modules_invalid_arg_FL4_deprecated_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
+
+	auto text{
+		R"(
+modules(42)
+function interface(IN,OUT)
+end
+)"};
+
+	auto* interface = logicEngine.createLuaInterface(text, "interface");
+	ASSERT_TRUE(interface != nullptr);
+}
+
+TEST(ramses_logic, interface_using_valid_arg_modules_FL4_deprecated_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
+
+	auto text{
+		R"(
+modules("mymodule")
+function interface(IN,OUT)
+end
+)"};
+
+	auto* interface = logicEngine.createLuaInterface(text, "interface");
+	ASSERT_TRUE(interface != nullptr);
+}
+
+TEST(ramses_logic, interface_using_modules_invalid_arg_FL5_deprecated_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
+
+	auto text{
+		R"(
+modules(42)
+function interface(IN,OUT)
+end
+)"};
+
+	auto* interface = logicEngine.createLuaInterface(text, "interface");
+	ASSERT_TRUE(interface != nullptr);
+}
+
+TEST(ramses_logic, interface_using_valid_arg_modules_FL5_deprecated_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
+
+	auto text{
+		R"(
+modules("mymodule")
+function interface(IN,OUT)
+end
+)"};
+
+	auto* interface = logicEngine.createLuaInterface(text, "interface");
+	ASSERT_TRUE(interface != nullptr);
+}
+
+TEST(ramses_logic, interface_using_modules_invalid_arg_FL4_new_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
+
+	auto text{
+		R"(
+modules(42)
+function interface(IN,OUT)
+end
+)"};
+
+	rlogic::LuaConfig config;
+	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
+	ASSERT_TRUE(interface == nullptr);
+}
+
+TEST(ramses_logic, interface_using_valid_arg_modules_FL4_new_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
+
+	auto text{
+		R"(
+modules("mymodule")
+function interface(IN,OUT)
+end
+)"};
+
+	rlogic::LuaConfig config;
+	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
+	ASSERT_TRUE(interface == nullptr);
+}
+
+TEST(ramses_logic, interface_using_modules_invalid_arg_FL5_new_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
+
+	auto text{
+		R"(
+modules(42)
+function interface(IN,OUT)
+end
+)"};
+
+	rlogic::LuaConfig config;
+	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
+	ASSERT_TRUE(interface == nullptr);
+}
+
+TEST(ramses_logic, interface_using_valid_arg_modules_FL5_new_create_function) {
+	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
+
+	auto text{
+		R"(
+modules("mymodule")
+function interface(IN,OUT)
+end
+)"};
+
+	rlogic::LuaConfig config;
+	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
+	ASSERT_TRUE(interface == nullptr);
 }

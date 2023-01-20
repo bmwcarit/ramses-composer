@@ -1154,3 +1154,67 @@ TEST_F(TracePlayerTest, TF106_ConsistentWithUndo) {
 
 	EXPECT_EQ(true, areLuaObjsRestored(luaObjsBackup));
 }
+
+TEST_F(TracePlayerTest, TF107_ReloadResets) {
+	deleteLuaObj(findLua("saInfo"));
+
+	const auto lua{createLua("Interface_ChargingSlider", LuaType::LuaScript)};
+
+	loadTrace("raco_traces/ChargingSlider_Colors_Test.rctrace");
+	isStopped();
+
+	const auto C1 = raco::core::ValueHandle{lua, {"inputs", "SystemColors", "C1"}};
+	const auto C2 = raco::core::ValueHandle{lua, {"inputs", "SystemColors", "C2"}};
+	const auto C3 = raco::core::ValueHandle{lua, {"inputs", "SystemColors", "C3"}};
+
+	EXPECT_EQ(0.0, C1.asVec3f().x.asDouble());
+	EXPECT_EQ(0.0, C1.asVec3f().y.asDouble());
+	EXPECT_EQ(0.0, C1.asVec3f().z.asDouble());
+
+	EXPECT_EQ(0.0, C2.asVec3f().x.asDouble());
+	EXPECT_EQ(0.0, C2.asVec3f().y.asDouble());
+	EXPECT_EQ(0.0, C2.asVec3f().z.asDouble());
+
+	EXPECT_EQ(0.0, C3.asVec3f().x.asDouble());
+	EXPECT_EQ(0.0, C3.asVec3f().y.asDouble());
+	EXPECT_EQ(0.0, C3.asVec3f().z.asDouble());
+
+	/// play first 4 frames
+	for (size_t i = 0; i < 4; i++) {
+		player_->step(1);
+		increaseTimeAndDoOneLoop();
+	}
+
+	EXPECT_EQ(0.71373, C1.asVec3f().x.asDouble());
+	EXPECT_EQ(0.96863, C1.asVec3f().y.asDouble());
+	EXPECT_EQ(1.0, C1.asVec3f().z.asDouble());
+
+	EXPECT_EQ(0.27843, C2.asVec3f().x.asDouble());
+	EXPECT_EQ(0.92549, C2.asVec3f().y.asDouble());
+	EXPECT_EQ(1.0, C2.asVec3f().z.asDouble());
+
+	EXPECT_EQ(1.0, C3.asVec3f().x.asDouble());
+	EXPECT_EQ(0.0, C3.asVec3f().y.asDouble());
+	EXPECT_EQ(0.0, C3.asVec3f().z.asDouble());
+
+	/// load some different trace but with same Lua interface
+	loadTrace("raco_traces/ChargingSlider_Functions_Test.rctrace");
+	isStopped();
+
+	// validate reset of C1, C2, and C3 vectors, as a new trace is loaded, which doesn't modify them
+	player_->play();
+	while (player_->getIndex() < player_->getTraceLen() - 1) {
+		increaseTimeAndDoOneLoop();
+		EXPECT_EQ(0.0, C1.asVec3f().x.asDouble());
+		EXPECT_EQ(0.0, C1.asVec3f().y.asDouble());
+		EXPECT_EQ(0.0, C1.asVec3f().z.asDouble());
+
+		EXPECT_EQ(0.0, C2.asVec3f().x.asDouble());
+		EXPECT_EQ(0.0, C2.asVec3f().y.asDouble());
+		EXPECT_EQ(0.0, C2.asVec3f().z.asDouble());
+
+		EXPECT_EQ(0.0, C3.asVec3f().x.asDouble());
+		EXPECT_EQ(0.0, C3.asVec3f().y.asDouble());
+		EXPECT_EQ(0.0, C3.asVec3f().z.asDouble());
+	}
+}

@@ -12,6 +12,7 @@
 
 #include "data_storage/Table.h"
 
+#include "core/EditorObject.h"
 #include "core/EngineInterface.h"
 
 #include "log_system/log.h"
@@ -60,39 +61,46 @@ void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface>& interfac
 }
 }  // namespace
 
-CoreInterfaceImpl::CoreInterfaceImpl(BaseEngineBackend* backend) : backend_{backend} {}
+CoreInterfaceImpl::CoreInterfaceImpl(BaseEngineBackend* backend) : backend_{backend}, logicEngine_(std::make_unique<rlogic::LogicEngine>()) {}
 
 bool CoreInterfaceImpl::parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, raco::core::PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& outError) {
 	return raco::ramses_base::parseShaderText(backend_->internalScene(), vertexShader, geometryShader, fragmentShader, shaderDefines, outUniforms, outAttributes, outError);
 }
 
-bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
+std::tuple<rlogic::LuaConfig, bool> CoreInterfaceImpl::createFullLuaConfig(const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules) {
 	rlogic::LuaConfig luaConfig = createLuaConfig(stdModules);
-	std::vector<RamsesLuaModule> tempModules;
 
 	for (auto i = 0; i < modules.size(); ++i) {
 		if (auto moduleRef = modules.get(i)->asRef()) {
 			const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
 			if (module->isValid()) {
-				auto moduleConfig = raco::ramses_base::createLuaConfig(module->stdModules_->activeModules());
-				const auto tempModule = tempModules.emplace_back(ramsesLuaModule(module->currentScriptContents(), &backend_->logicEngine(), moduleConfig, moduleRef->objectName(), moduleRef->objectIDAsRamsesLogicID()));
-				assert(tempModule != nullptr);
-				luaConfig.addDependency(modules.name(i), *tempModule);
+				auto it = cachedModules_.find(module);
+				assert(it != cachedModules_.end());
+				luaConfig.addDependency(modules.name(i), *it->second);
 			} else {
 				// We already checked the module validity before parsing
 				assert(false);
-				return false;
+				return {{}, false};
 			}
 		} else {
 			// We already checked for non-empty module references before parsing
 			assert(false);
-			return false;
+			return {{}, false};
 		}
 	}
 
-	const auto script = backend_->logicEngine().createLuaScript(luaScript, luaConfig, scriptName);
+	return {luaConfig, true};
+}
+
+bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
+	auto [luaConfig, valid] = createFullLuaConfig(stdModules, modules);
+	if (!valid) {
+		return false;
+	}
+
+	const auto script = logicEngine_->createLuaScript(luaScript, luaConfig, scriptName);
 	if (!script) {
-		outError = backend_->logicEngine().getErrors().at(0).message;
+		outError = logicEngine_->getErrors().at(0).message;
 		return false;
 	}
 
@@ -102,17 +110,32 @@ bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::
 	if (const auto outputs = script->getOutputs()) {
 		fillLuaScriptInterface(outOutputs, outputs);
 	}
-	auto status = backend_->logicEngine().destroy(*script);
+	auto status = logicEngine_->destroy(*script);
 	if (!status) {
-		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{backend_->logicEngine()});
+		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{*logicEngine_});
 	}
 	return true;
 }
 
-bool CoreInterfaceImpl::parseLuaInterface(const std::string& interfaceText, PropertyInterfaceList& outInputs, std::string& outError) {
-	auto interface = backend_->logicEngine().createLuaInterface(interfaceText, "Stage::Preprocess");
+bool CoreInterfaceImpl::parseLuaInterface(const std::string& interfaceText, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, bool useModules, PropertyInterfaceList& outInputs, std::string& outError) {
+	rlogic::LuaInterface* interface = nullptr;
+	if (useModules) {
+		// New style creation function: must supply modules if interface text contains modules() statement
+		// used at feature level >= 5
+		auto [luaConfig, valid] = createFullLuaConfig(stdModules, modules);
+		if (!valid) {
+			return false;
+		}
+
+		interface =logicEngine_->createLuaInterface(interfaceText, "Stage::Preprocess", luaConfig);
+	} else {
+		// Old style creation function: doesn't generate error if interface text contains modules() statement
+		// used at feature level < 5
+		interface =logicEngine_->createLuaInterface(interfaceText, "Stage::Preprocess");
+	}
+
 	if (!interface) {
-		outError = backend_->logicEngine().getErrors().at(0).message;
+		outError =logicEngine_->getErrors().at(0).message;
 		return false;
 	}
 
@@ -120,26 +143,32 @@ bool CoreInterfaceImpl::parseLuaInterface(const std::string& interfaceText, Prop
 		fillLuaScriptInterface(outInputs, inputs);
 	}
 
-	auto status = backend_->logicEngine().destroy(*interface);
+	auto status =logicEngine_->destroy(*interface);
 	if (!status) {
 		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{backend_->logicEngine()});
 	}
 	return true;
 }
 
-
-bool CoreInterfaceImpl::parseLuaScriptModule(const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) {
+bool CoreInterfaceImpl::parseLuaScriptModule(raco::core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) {
 	rlogic::LuaConfig tempConfig = createLuaConfig(stdModules);
-	if (auto tempModule = backend_->logicEngine().createLuaModule(luaScriptModule, tempConfig, moduleName)) {
-		auto status = backend_->logicEngine().destroy(*tempModule);
-		if (!status) {
-			LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{backend_->logicEngine()});
-		}
+
+	if (auto tempModule = raco::ramses_base::ramsesLuaModule(luaScriptModule, logicEngine_.get(), tempConfig, moduleName, object->objectIDAsRamsesLogicID())) {
+		cachedModules_[object] = tempModule;
 		return true;
 	} else {
-		outError = backend_->logicEngine().getErrors().at(0).message;
+		outError = logicEngine_->getErrors().at(0).message;
+		cachedModules_.erase(object);
 		return false;
 	}
+}
+
+void CoreInterfaceImpl::removeModuleFromCache(raco::core::SCEditorObject object) {
+	cachedModules_.erase(object);
+}
+
+void CoreInterfaceImpl::clearModuleCache() {
+	cachedModules_.clear();
 }
 
 bool CoreInterfaceImpl::extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) {

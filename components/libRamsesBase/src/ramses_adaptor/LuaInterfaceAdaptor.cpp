@@ -9,6 +9,7 @@
  */
 #include "ramses_adaptor/LuaInterfaceAdaptor.h"
 
+#include "ramses_adaptor/LuaScriptModuleAdaptor.h"
 #include "utils/FileUtils.h"
 #include "core/PrefabOperations.h"
 #include "core/Queries.h"
@@ -38,6 +39,14 @@ LuaInterfaceAdaptor::LuaInterfaceAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 			  recreateStatus_ = true;
 		  }
 	  })),
+	  stdModuleSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaInterface::stdModules_}, [this](auto) {
+		  tagDirty();
+		  recreateStatus_ = true;
+	  })},
+	  moduleSubscription_{sceneAdaptor_->dispatcher()->registerOnChildren({editorObject_, &user_types::LuaInterface::luaModules_}, [this](auto) {
+		  tagDirty();
+		  recreateStatus_ = true;
+	  })},
 	  linksLifecycleSubscription_{sceneAdaptor_->dispatcher()->registerOnLinksLifeCycle(
 		  [this](const core::LinkDescriptor& link) {
 			  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
@@ -119,7 +128,25 @@ bool LuaInterfaceAdaptor::sync(core::Errors* errors) {
 			(!sceneAdaptor_->optimizeForExport() || 
 				!raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false).empty() &&
 				raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true).empty())) {
-			ramsesInterface_ = raco::ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
+
+			if (sceneAdaptor_->featureLevel() >= 5) {
+				std::vector<raco::ramses_base::RamsesLuaModule> modules;
+				auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+				const auto& moduleDeps = editorObject_->luaModules_.asTable();
+				for (auto i = 0; i < moduleDeps.size(); ++i) {
+					if (auto moduleRef = moduleDeps.get(i)->asRef()) {
+						auto moduleAdaptor = sceneAdaptor_->lookup<LuaScriptModuleAdaptor>(moduleRef);
+						if (auto module = moduleAdaptor->module()) {
+							modules.emplace_back(module);
+							luaConfig.addDependency(moduleDeps.name(i), *module);
+						}
+					}
+				}
+
+				ramsesInterface_ = raco::ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, luaConfig, modules, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
+			} else {
+				ramsesInterface_ = raco::ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
+			}
 		}
 	}
 

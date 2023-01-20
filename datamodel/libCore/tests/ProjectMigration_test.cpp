@@ -363,7 +363,7 @@ TEST_F(MigrationTest, migrate_from_V21) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V21.rca").string()));
 
 	auto resourceFolders = racoproject->project()->settings()->defaultResourceDirectories_;
-	ASSERT_EQ(resourceFolders->typeDescription.typeName, ProjectSettings::DefaultResourceDirectories::typeDescription.typeName);
+	ASSERT_EQ(resourceFolders->typeDescription.typeName, DefaultResourceDirectories::typeDescription.typeName);
 
 	ASSERT_EQ(resourceFolders->imageSubdirectory_.asString(), "images");
 	ASSERT_EQ(resourceFolders->meshSubdirectory_.asString(), "meshes");
@@ -394,7 +394,7 @@ TEST_F(MigrationTest, migrate_from_V21_custom_paths) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V21.rca").string()));
 
 	auto resourceFolders = racoproject->project()->settings()->defaultResourceDirectories_;
-	ASSERT_EQ(resourceFolders->typeDescription.typeName, ProjectSettings::DefaultResourceDirectories::typeDescription.typeName);
+	ASSERT_EQ(resourceFolders->typeDescription.typeName, DefaultResourceDirectories::typeDescription.typeName);
 
 	ASSERT_EQ(resourceFolders->imageSubdirectory_.asString(), imageSubdirectory);
 	ASSERT_EQ(resourceFolders->meshSubdirectory_.asString(), meshSubdirectory);
@@ -801,6 +801,37 @@ TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
 			auto proxyProperty = proxyFactory.createValue(propTypeName);
 			ASSERT_TRUE(proxyProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);
 			ASSERT_EQ(proxyProperty->typeName(), propTypeName) << fmt::format("property type name: '{}'", propTypeName);
+		}
+	}
+}
+
+TEST_F(MigrationTest, check_user_factory_can_create_all_static_properties) {
+	// Check that the UserObjectFactory can create all statically known properties.
+	// If this fails add the failing property to the UserObjectFactory::PropertyTypeMapType.
+
+	auto& userFactory{UserObjectFactory::getInstance()};
+
+	for (auto& item : userFactory.getTypes()) {
+		auto name = item.first;
+		auto object = objectFactory()->createObject(name);
+		ASSERT_TRUE(object != nullptr);
+		for (size_t index = 0; index < object->size(); index++) {
+			auto propTypeName = object->get(index)->typeName();
+			auto userProperty = userFactory.createValue(propTypeName);
+			ASSERT_TRUE(userProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);
+			ASSERT_EQ(userProperty->typeName(), propTypeName) << fmt::format("property type name: '{}'", propTypeName);
+		}
+	}
+
+	for (auto& item : userFactory.getStructTypes()) {
+		auto name = item.first;
+		auto object = userFactory.createStruct(name);
+		ASSERT_TRUE(object != nullptr);
+		for (size_t index = 0; index < object->size(); index++) {
+			auto propTypeName = object->get(index)->typeName();
+			auto userProperty = userFactory.createValue(propTypeName);
+			ASSERT_TRUE(userProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);
+			ASSERT_EQ(userProperty->typeName(), propTypeName) << fmt::format("property type name: '{}'", propTypeName);
 		}
 	}
 }

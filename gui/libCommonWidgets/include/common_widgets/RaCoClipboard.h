@@ -14,13 +14,14 @@
 namespace raco::MimeTypes {
 constexpr const char* EDITOR_OBJECT_ID = "raco/editor-object-id";
 constexpr const char* VALUE_HANDLE_PATH = "raco/value-handle-path";
-constexpr const char* EDITOR_OBJECT_CLIPBOARD = "application/raco-json";
+constexpr const char* OBJECTS = "application/raco-json-objects";
+constexpr const char* PROPERTY = "application/raco-json-property";
 }  // namespace raco::MimeTypes
 
 namespace raco::RaCoClipboard {
 
-void set(const std::string& content);
+void set(const std::string& content, const char* mimeType = MimeTypes::OBJECTS);
 bool hasEditorObject();
-std::string get();
+std::string get(const char* mimeType = MimeTypes::OBJECTS);
 
 }  // namespace raco::RaCoClipboard

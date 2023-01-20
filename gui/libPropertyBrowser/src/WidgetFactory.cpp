@@ -73,7 +73,7 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 			} else if (typeDesc == &core::Vec4i::typeDescription) {
 				return new Vec4iEditor{item, parent};
 			}
-			return nullptr;
+			return new PropertyEditor{ item, parent };
 		}
 		case PrimitiveType::Table:
 			if (item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {

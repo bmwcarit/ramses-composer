@@ -52,10 +52,11 @@ add_library(libRamsesBase
     include/ramses_adaptor/RenderPassAdaptor.h src/ramses_adaptor/RenderPassAdaptor.cpp
     include/ramses_adaptor/RenderTargetAdaptor.h src/ramses_adaptor/RenderTargetAdaptor.cpp
     include/ramses_adaptor/SceneAdaptor.h src/ramses_adaptor/SceneAdaptor.cpp
+    include/ramses_adaptor/SkinAdaptor.h src/ramses_adaptor/SkinAdaptor.cpp
     include/ramses_adaptor/SceneBackend.h src/ramses_adaptor/SceneBackend.cpp
     include/ramses_adaptor/TextureSamplerAdaptor.h src/ramses_adaptor/TextureSamplerAdaptor.cpp
     include/ramses_adaptor/TimerAdaptor.h src/ramses_adaptor/TimerAdaptor.cpp
-    include/ramses_adaptor/utilities.h
+    include/ramses_adaptor/utilities.h src/ramses_adaptor/utilities.cpp
 )
 
 target_include_directories(libRamsesBase

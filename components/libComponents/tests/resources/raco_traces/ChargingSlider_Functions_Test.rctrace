@@ -1,0 +1,288 @@
+[
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "DisableWarningArea": false,
+                "SliderValue": 0.0,
+                "StateOfChargeValue": 0.0
+            },
+            "DEBUG_AP_isEnabled": {
+                "DEBUG_IsEnabled": false
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.2
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 1001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.5
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 2001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.8
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 3001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 1.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 4001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.2
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 5001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.5
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 6001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.8
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 7001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 1.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 8001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.8
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 9001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.5
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 10001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.8,
+                "SliderValue": 0.2
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 11001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.5,
+                "SliderValue": 0.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 12001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.2
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 13001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 14001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 1.0,
+                "SliderValue": 1.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 15001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "DisableWarningArea": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 15501
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "DisableWarningArea": false
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 16001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "DisableWarningArea": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 16501
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "DisableWarningArea": false
+            },
+            "DEBUG_AP_isEnabled": {
+                "DEBUG_IsEnabled": true
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 17001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.8
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 18001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.5
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 19001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "StateOfChargeValue": 0.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 20001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.8
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 21001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.5
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 22001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "SliderValue": 0.0
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 23001
+        }
+    },
+    {
+        "SceneData": {
+            "Interface_ChargingSlider": {
+                "DisableWarningArea": false,
+                "SliderValue": 0.0,
+                "StateOfChargeValue": 0.0
+            },
+            "DEBUG_AP_isEnabled": {
+                "DEBUG_IsEnabled": false
+            }
+        },
+        "TracePlayerData": {
+            "timestamp(ms)": 24001
+        }
+    }
+]

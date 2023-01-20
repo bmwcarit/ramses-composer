@@ -41,6 +41,8 @@ private:
 	components::Subscription nameSubscription_;
 	components::Subscription inputSubscription_;
 	components::Subscription childrenSubscription_;
+	components::Subscription stdModuleSubscription_;
+	components::Subscription moduleSubscription_;
 	components::Subscription parentNameSubscription_;
 	components::Subscription linksLifecycleSubscription_;
 	components::Subscription linkValidityChangeSubscription_;
