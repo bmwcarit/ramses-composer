@@ -79,6 +79,7 @@ namespace raco::serialization::proxy {
 			LuaInterface,
 			LuaScriptModule,
 			Texture,
+			TextureExternal,
 			RenderBuffer,
 			RenderBufferMS,
 			RenderLayer,

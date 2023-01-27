@@ -69,6 +69,7 @@
 #include "user_types/RenderTarget.h"
 #include "user_types/Skin.h"
 #include "user_types/Texture.h"
+#include "user_types/TextureExternal.h"
 #include "user_types/Timer.h"
 
 #include "utils/u8path.h"
@@ -219,6 +220,7 @@ ads::CDockAreaWidget* createAndAddResourceTree(MainWindow* mainWindow, const cha
 		Material::typeDescription.typeName,
 		Mesh::typeDescription.typeName,
 		Texture::typeDescription.typeName,
+		TextureExternal::typeDescription.typeName,
 		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
 		RenderBufferMS::typeDescription.typeName,

@@ -152,6 +152,7 @@ protected:
 		{"PerspectiveCamera", raco::style::Icons::instance().typeCamera},
 		{"OrthographicCamera", raco::style::Icons::instance().typeCamera},
 		{"Texture", raco::style::Icons::instance().typeTexture},
+		{"TextureExternal", raco::style::Icons::instance().typeTexture},
 		{"CubeMap", raco::style::Icons::instance().typeCubemap},
 		{"LuaScript", raco::style::Icons::instance().typeLuaScript},
 		{"LuaInterface", raco::style::Icons::instance().typeLuaInterface},

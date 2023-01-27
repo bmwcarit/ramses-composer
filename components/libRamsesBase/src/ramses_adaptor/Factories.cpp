@@ -32,6 +32,7 @@
 #include "ramses_adaptor/SkinAdaptor.h"
 #include "ramses_adaptor/TimerAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
+#include "ramses_adaptor/TextureExternalAdaptor.h"
 #include "user_types/CubeMap.h"
 #include "user_types/Texture.h"
 #include "user_types/PrefabInstance.h"
@@ -61,6 +62,7 @@ UniqueObjectAdaptor Factories::createAdaptor(SceneAdaptor* sceneAdaptor, core::S
 		{user_types::Material::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<MaterialAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Material>(obj)); }},
 		{user_types::Mesh::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<MeshAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Mesh>(obj)); }},
 		{user_types::Texture::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TextureSamplerAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::Texture>(obj)); }},
+		{user_types::TextureExternal::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<TextureExternalAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::TextureExternal>(obj)); }},
 		{user_types::CubeMap::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<CubeMapAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::CubeMap>(obj)); }},
 		{user_types::LuaScriptModule::typeDescription.typeName, [](SceneAdaptor* sceneAdaptor, core::SEditorObject obj) { return std::make_unique<LuaScriptModuleAdaptor>(sceneAdaptor, std::dynamic_pointer_cast<user_types::LuaScriptModule>(obj)); }},
 

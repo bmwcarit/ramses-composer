@@ -16,6 +16,7 @@
 
 #include "user_types/CubeMap.h"
 #include "user_types/Texture.h"
+#include "user_types/TextureExternal.h"
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/RenderBufferMS.h"
@@ -83,6 +84,9 @@ raco::data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
 
 		case EnginePrimitive::TextureSamplerCube:
 			return UserObjectFactory::staticCreateProperty<SCubeMap, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::TextureSamplerExternal:
+			return UserObjectFactory::staticCreateProperty<STextureExternal, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
 			break;
 	}
 	return nullptr;

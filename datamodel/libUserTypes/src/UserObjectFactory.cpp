@@ -38,6 +38,7 @@
 #include "user_types/RenderPass.h"
 #include "user_types/Skin.h"
 #include "user_types/Texture.h"
+#include "user_types/TextureExternal.h"
 #include "user_types/Timer.h"
 
 namespace raco::user_types {
@@ -103,6 +104,7 @@ UserObjectFactory::UserObjectFactory() {
 		LuaScript,
 		LuaScriptModule,
 		Texture,
+		TextureExternal,
 		Timer,
 		RenderBuffer,
 		RenderBufferMS,

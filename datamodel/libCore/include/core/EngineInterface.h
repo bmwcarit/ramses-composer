@@ -61,7 +61,8 @@ enum class EnginePrimitive {
 	TextureSamplerCube,
 	// Types added later, in the bottom of the enum to avoid file format changing
 	Int64,
-	TextureSampler2DMS
+	TextureSampler2DMS,
+	TextureSamplerExternal
 };
 
 struct PropertyInterface;
@@ -101,7 +102,9 @@ struct PropertyInterface {
 			{EnginePrimitive::TextureSampler2D, data_storage::PrimitiveType::Ref},
 			{EnginePrimitive::TextureSampler2DMS, data_storage::PrimitiveType::Ref},
 			{EnginePrimitive::TextureSampler3D, data_storage::PrimitiveType::Ref},
-			{EnginePrimitive::TextureSamplerCube, data_storage::PrimitiveType::Ref}};
+			{EnginePrimitive::TextureSamplerCube, data_storage::PrimitiveType::Ref},
+			{EnginePrimitive::TextureSamplerExternal, data_storage::PrimitiveType::Ref}
+		};
 
 		auto it = typeMap.find(type);
 		assert(it != typeMap.end());

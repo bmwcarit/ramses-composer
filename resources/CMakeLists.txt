@@ -49,10 +49,18 @@ set(RESOURCE_FILES
 	shaders/cubemap.vert
 	shaders/default.frag
 	shaders/default.vert
+	shaders/morphing-template.vert
+	shaders/morphing-template.frag
 	shaders/multisampler.frag
 	shaders/multisampler.vert
 	shaders/simple_texture.frag
 	shaders/simple_texture.vert
+	shaders/skinning-template.vert
+	shaders/skinning-template.frag
+	shaders/tangent.vert
+	shaders/tangent.frag
+	shaders/uniform-array.vert
+	shaders/uniform-array.frag
 	example_scene.rca
 )
 

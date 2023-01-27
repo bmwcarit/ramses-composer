@@ -84,6 +84,11 @@ using STexture = std::shared_ptr<Texture>;
 // BaseTexture -> TextureSampler2DBase -> Texture
 //                                     -> RenderBuffer
 
+extern const char textureExternalTypeName[];
+using TextureExternal = Proxy<textureExternalTypeName>;
+using STextureExternal = std::shared_ptr<TextureExternal>;
+
+
 extern const char blitPassTypeName[];
 using BlitPass = Proxy<blitPassTypeName>;
 using SBlitPass = std::shared_ptr<BlitPass>;

@@ -24,6 +24,7 @@ const char animationTypeName[] = "Animation";
 const char animationChannelTypeName[] = "AnimationChannel";
 const char textureSampler2DBaseTypeName[] = "TextureSampler2DBase";
 const char textureTypeName[] = "Texture";
+const char textureExternalTypeName[] = "TextureExternal";
 const char blitPassTypeName[] = "BlitPass";
 const char cubeMapTypeName[] = "CubeMap";
 const char baseCameraTypeName[] = "BaseCamera";

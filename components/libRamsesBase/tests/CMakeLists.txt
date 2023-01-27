@@ -36,6 +36,7 @@ set(TEST_SOURCES
     SkinAdaptor_test.cpp
     TimerAdaptor_test.cpp
     TextureAdaptor_test.cpp
+    TextureExternalAdaptor_test.cpp
     utilities_test.cpp
 )
 set(TEST_LIBRARIES

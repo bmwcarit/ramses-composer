@@ -22,6 +22,7 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/RenderTarget.h"
 #include "user_types/RenderPass.h"
+#include "user_types/TextureExternal.h"
 #include "user_types/Timer.h"
 
 using namespace raco::user_types;
@@ -39,6 +40,7 @@ public:
 				Mesh::typeDescription.typeName,
 				LuaScriptModule::typeDescription.typeName,
 				Texture::typeDescription.typeName,
+				TextureExternal::typeDescription.typeName,
 				Timer::typeDescription.typeName,
 				RenderBuffer::typeDescription.typeName,
 				RenderBufferMS::typeDescription.typeName,
@@ -59,6 +61,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 		Mesh::typeDescription.typeName,
 		LuaScriptModule::typeDescription.typeName,
 		Texture::typeDescription.typeName,
+		TextureExternal::typeDescription.typeName,
 		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
 		RenderBufferMS::typeDescription.typeName,

@@ -176,7 +176,9 @@ static std::map<ramses::EEffectInputDataType, raco::core::EnginePrimitive> shade
 	{ramses::EEffectInputDataType_TextureSampler2D, raco::core::EnginePrimitive::TextureSampler2D},
 	{ramses::EEffectInputDataType_TextureSampler2DMS, raco::core::EnginePrimitive::TextureSampler2DMS},
 	{ramses::EEffectInputDataType_TextureSampler3D, raco::core::EnginePrimitive::TextureSampler3D},
-	{ramses::EEffectInputDataType_TextureSamplerCube, raco::core::EnginePrimitive::TextureSamplerCube}};
+	{ramses::EEffectInputDataType_TextureSamplerCube, raco::core::EnginePrimitive::TextureSamplerCube},
+	{ramses::EEffectInputDataType_TextureSamplerExternal, raco::core::EnginePrimitive::TextureSamplerExternal}
+};
 
 std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, const std::string &shaderDefines) {
 	std::unique_ptr<ramses::EffectDescription> description{new ramses::EffectDescription};

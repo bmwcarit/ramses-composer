@@ -94,9 +94,10 @@ namespace raco::serialization {
  *     Added ExpectEmptyReference annotation to RenderTarget::buffer0 property.
  * 47: Added Skin user type.
  * 48: Added LuaInterface "stdModules" and "luaModules" properties.
+ * 49: Added TextureExternal user type.
 */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 48;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 49;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

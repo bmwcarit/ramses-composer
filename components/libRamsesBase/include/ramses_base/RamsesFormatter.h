@@ -248,6 +248,8 @@ struct fmt::formatter<ramses::ERamsesObjectType> : formatter<string_view> {
 				return format_to(ctx.out(), "StreamTexture");
 			case ramses::ERamsesObjectType::ERamsesObjectType_SceneReference:
 				return format_to(ctx.out(), "SceneReference");
+			case ramses::ERamsesObjectType::ERamsesObjectType_TextureSamplerExternal:
+				return format_to(ctx.out(), "TextureSamplerExternal");
 			default:
 				return format_to(ctx.out(), "Unknown");
 		}

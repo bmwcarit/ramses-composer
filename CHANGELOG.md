@@ -24,6 +24,18 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.7.0] External Textures
+* **File version number has changed. Files saved with RaCo 1.7.0 cannot be opened by previous versions.**
+
+### Added
+* Added new TextureExternal type and support for the corresponding `samplerExternalOES` uniform type.
+    * To use `samplerExternalOES` uniforms the shader needs to enable the extension for it with `#extension GL_OES_EGL_image_external_essl3 : require`.
+    * This can be used to create textures which may be connected at runtime to external buffers also created at runtime. Since no external buffers can be set up in RamsesComposer these will be rendered in black in the preview.
+
+### Changes
+* Update ramses-logic from 1.4.1 to 1.4.2.
+* Update ramses from 27.0.128 to 27.0.130.
+
 ## [1.6.0] Skinning, Morphing, property copy/paste, modules for Lua interfaces, misc bugfixes
 
 * **File version number has changed. Files saved with RaCo 1.6.0 cannot be opened by previous versions.**

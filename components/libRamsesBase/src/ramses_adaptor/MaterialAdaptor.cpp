@@ -17,6 +17,7 @@
 #include "ramses_adaptor/RenderBufferMSAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
+#include "ramses_adaptor/TextureExternalAdaptor.h"
 #include "ramses_base/Utils.h"
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/Material.h"
@@ -161,6 +162,7 @@ void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ra
 
 	std::vector<raco::ramses_base::RamsesTextureSampler> newSamplers;
 	std::vector<raco::ramses_base::RamsesTextureSamplerMS> newSamplersMS;
+	std::vector<raco::ramses_base::RamsesTextureSamplerExternal> newSamplersExternal;
 
 	for (size_t i{0}; i < uniformsHandle.size(); i++) {
 		setUniform(appearance->get(), uniformsHandle[i]);
@@ -183,6 +185,21 @@ void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ra
 					}
 				} else {
 					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "RenderBufferMS needed for this uniform.");
+				}
+			} else if (engineType == raco::core::EnginePrimitive::TextureSamplerExternal) {
+				if (auto texture = uniformsHandle[i].asTypedRef<user_types::TextureExternal>()) {
+					if (auto adaptor = sceneAdaptor->lookup<TextureExternalAdaptor>(texture)) {
+						if (auto sampler = adaptor->getRamsesObjectPointer()) {
+							ramses::UniformInput input;
+							(*appearance)->getEffect().findUniformInput(uniformsHandle[i].getPropName().c_str(), input);
+							(*appearance)->setInputTexture(input, *sampler);
+							newSamplersExternal.emplace_back(sampler);
+						} else {
+							errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "Sampler for this TextureExternal not available.");
+						}
+					}
+				} else {
+					errors->addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, uniformsHandle[i], "TextureExternal needed for this uniform.");
 				}
 			} else {
 				raco::ramses_base::RamsesTextureSampler sampler = nullptr;
@@ -220,7 +237,7 @@ void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ra
 			}
 		}
 	}
-	appearance->replaceTrackedSamplers(newSamplers, newSamplersMS);
+	appearance->replaceTrackedSamplers(newSamplers, newSamplersMS, newSamplersExternal);
 }
 
 };	// namespace raco::ramses_adaptor

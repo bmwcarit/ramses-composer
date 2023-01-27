@@ -24,6 +24,7 @@ add_library(libRamsesBase
     include/ramses_base/HeadlessEngineBackend.h src/ramses_base/HeadlessEngineBackend.cpp
     include/ramses_base/LogicEngine.h
     include/ramses_base/RamsesHandles.h
+    include/ramses_base/RamsesFormatter.h
     include/ramses_base/Utils.h src/ramses_base/Utils.cpp
     src/ramses_base/EnumerationDescriptions.h
 
@@ -54,6 +55,7 @@ add_library(libRamsesBase
     include/ramses_adaptor/SceneAdaptor.h src/ramses_adaptor/SceneAdaptor.cpp
     include/ramses_adaptor/SkinAdaptor.h src/ramses_adaptor/SkinAdaptor.cpp
     include/ramses_adaptor/SceneBackend.h src/ramses_adaptor/SceneBackend.cpp
+    include/ramses_adaptor/TextureExternalAdaptor.h src/ramses_adaptor/TextureExternalAdaptor.cpp
     include/ramses_adaptor/TextureSamplerAdaptor.h src/ramses_adaptor/TextureSamplerAdaptor.cpp
     include/ramses_adaptor/TimerAdaptor.h src/ramses_adaptor/TimerAdaptor.cpp
     include/ramses_adaptor/utilities.h src/ramses_adaptor/utilities.cpp

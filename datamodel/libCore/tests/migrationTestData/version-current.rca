@@ -2,7 +2,7 @@
     "externalProjects": {
     },
     "featureLevel": 5,
-    "fileVersion": 48,
+    "fileVersion": 49,
     "instances": [
         {
             "properties": {
@@ -1867,7 +1867,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "106445207921"
+                    "ticker_us": "675091740822"
                 }
             },
             "typeName": "Timer"
@@ -2037,6 +2037,15 @@
                 "uri": ""
             },
             "typeName": "LuaInterface"
+        },
+        {
+            "properties": {
+                "magSamplingMethod": 0,
+                "minSamplingMethod": 0,
+                "objectID": "d14f0900-fcb0-4222-bda6-e475629d30fe",
+                "objectName": "TextureExternal"
+            },
+            "typeName": "TextureExternal"
         },
         {
             "properties": {
@@ -2229,7 +2238,7 @@
     "logicEngineVersion": [
         1,
         4,
-        0
+        1
     ],
     "racoVersion": [
         1,
@@ -2239,7 +2248,7 @@
     "ramsesVersion": [
         27,
         0,
-        126
+        129
     ],
     "structPropMap": {
         "AnchorPointOutputs": {
@@ -2630,6 +2639,13 @@
             "uri": "String::URIAnnotation::DisplayNameAnnotation",
             "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
+        },
+        "TextureExternal": {
+            "children": "Table::ArraySemanticAnnotation::HiddenProperty",
+            "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation"
         },
         "Timer": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",

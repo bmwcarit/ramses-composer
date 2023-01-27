@@ -40,6 +40,7 @@
 #include <ramses-client-api/TextureCube.h>
 #include <ramses-client-api/TextureSampler.h>
 #include <ramses-client-api/TextureSamplerMS.h>
+#include <ramses-client-api/TextureSamplerExternal.h>
 #include <ramses-client-api/UniformInput.h>
 
 #include <ramses-logic/AnchorPoint.h>
@@ -74,6 +75,7 @@ using RamsesRenderBuffer = RamsesHandle<ramses::RenderBuffer>;
 using RamsesRenderTarget = RamsesHandle<ramses::RenderTarget>;
 using RamsesTextureSampler = RamsesHandle<ramses::TextureSampler>;
 using RamsesTextureSamplerMS = RamsesHandle<ramses::TextureSamplerMS>;
+using RamsesTextureSamplerExternal = RamsesHandle<ramses::TextureSamplerExternal>;
 using RamsesTimerNode = RamsesHandle<rlogic::TimerNode>;
 using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
 using RamsesLuaScript = RamsesHandle<rlogic::LuaScript>;
@@ -140,9 +142,10 @@ struct RamsesAppearanceHandle {
 		return appearance_;
 	}
 
-	void replaceTrackedSamplers(std::vector<raco::ramses_base::RamsesTextureSampler>& newSamplers, std::vector<raco::ramses_base::RamsesTextureSamplerMS>& newSamplersMS) {
+	void replaceTrackedSamplers(std::vector<raco::ramses_base::RamsesTextureSampler>& newSamplers, std::vector<raco::ramses_base::RamsesTextureSamplerMS>& newSamplersMS, std::vector<raco::ramses_base::RamsesTextureSamplerExternal>& newSamplersExternal) {
 		trackedSamplers_ = newSamplers;
 		trackedSamplersMS_ = newSamplersMS;
+		trackedSamplersExternal_ = newSamplersExternal;
 	}
 
 	RamsesEffect effect() {
@@ -162,6 +165,7 @@ private:
 	// Samplers currently in use by the appearance_. Needed to keep the samplers alive in ramses.
 	std::vector<raco::ramses_base::RamsesTextureSampler> trackedSamplers_;
 	std::vector<raco::ramses_base::RamsesTextureSamplerMS> trackedSamplersMS_;
+	std::vector<raco::ramses_base::RamsesTextureSamplerExternal> trackedSamplersExternal_;
 };
 
 using RamsesAppearance = std::shared_ptr<RamsesAppearanceHandle>;
@@ -550,6 +554,13 @@ inline RamsesTextureSamplerMS ramsesTextureSamplerMS(ramses::Scene* scene, Ramse
 		[scene, forceCopy = buffer](ramses::RamsesObject* buffer) {
 			destroyRamsesObject(scene, static_cast<ramses::RenderBuffer*>(buffer));
 		}};
+}
+
+inline RamsesTextureSamplerExternal ramsesTextureSamplerExternal(ramses::Scene* scene, ramses::ETextureSamplingMethod minSamplingMethod, ramses::ETextureSamplingMethod magSamplingMethod, const char* name = nullptr) {
+	return {
+		scene->createTextureSamplerExternal(minSamplingMethod, magSamplingMethod, name),
+		createRamsesObjectDeleter<ramses::TextureSamplerExternal>(scene)
+	};
 }
 
 /** RESOURCE FACTORIES */
