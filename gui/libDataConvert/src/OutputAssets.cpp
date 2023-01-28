@@ -242,8 +242,8 @@ bool uniformCompare(Uniform data, Uniform myUni) {
 }
 
 bool Vec4Equal(Vec4 left, Vec4 right) {
-	if (std::abs(left.x - right.x) < 0.00001 && std::abs(left.y - right.y) < 0.00001
-		&& std::abs(left.z - right.z) < 0.00001 &&  std::abs(left.w - right.w) < 0.00001) {
+	if (std::abs(left.x - right.x) < 0.001 && std::abs(left.y - right.y) < 0.001
+		&& std::abs(left.z - right.z) < 0.001 &&  std::abs(left.w - right.w) < 0.001) {
 		return true;
 	}
 	return false;
@@ -1345,7 +1345,7 @@ bool OutputPtx::writeProgram2Ptx(std::string filePathStr, QString oldPath) {
 	hasSysOpacity_ = false;
 	hasSysDotOpacity_ = false;
 	hasSysDotSize_ = false;
-//	changeExNamePrefixInit();
+	changeExNamePrefixInit();
 
 	// root
 	NodeData* rootNode = &(raco::guiData::NodeDataManager::GetInstance().root());
@@ -1604,37 +1604,34 @@ void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefiniti
 		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
 		lefttangentVector->set_domain(domainL);
 		TNumericValue* leftValue = new TNumericValue;
-		double valueTest = std::tan(std::any_cast<double>(pointData->getLeftTagent()) / 180.0f * PI);
+		double valueTest = std::any_cast<double>(pointData->getLeftData()) - std::any_cast<double>(pointData->getDataValue());
 		leftValue->set_float_(std::any_cast<double>(valueTest));
 		lefttangentVector->set_allocated_value(leftValue);
 		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
 		point->set_allocated_incomminginterpolation(incommingInterpolation);
 
-
-
 		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Linear);
 		point->set_allocated_outgoinginterpolation(outgoingInterpolation);
 	} else if (pointData->getInterPolationType() == raco::guiData::HERMIT_SPLINE) {	 // HERMIT_SPLINE
-		float domainR;
-		double rightTest;
 		float domainL;
-		double valueRight;
+		double valueL;
+
 		TCurvePointInterpolation* incommingInterpolation = new TCurvePointInterpolation;
 		incommingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
 		domainL = pointData->getKeyFrame() - pointData->getLeftKeyFrame();
 		TMultidimensionalPoint* lefttangentVector = new TMultidimensionalPoint;
 		lefttangentVector->set_domain(domainL);
 		TNumericValue* leftValue = new TNumericValue;
-		// debug
-		//float valueTest = std::any_cast<double>(pointData->getLeftData());	// test
-		valueRight = std::tan(std::any_cast<double>(pointData->getLeftTagent()) / 180.0f * PI);
-		leftValue->set_float_(std::any_cast<double>(valueRight));
+		valueL = std::any_cast<double>(pointData->getLeftData()) - std::any_cast<double>(pointData->getDataValue());
+		leftValue->set_float_(std::any_cast<double>(valueL));
 		lefttangentVector->set_allocated_value(leftValue);
 		incommingInterpolation->set_allocated_tangentvector(lefttangentVector);
 		point->set_allocated_incomminginterpolation(incommingInterpolation);
 
 		///////////////////////
+		float domainR;
+		double rightTest;
 
 		TCurvePointInterpolation* outgoingInterpolation = new TCurvePointInterpolation;
 		outgoingInterpolation->set_interpolation(TCurvePointInterpolationType_Hermite);
@@ -1643,7 +1640,7 @@ void OutputPtw::addPoint2Curve(Point* pointData, TCurveDefinition* curveDefiniti
 		domainR = pointData->getRightKeyFrame() - pointData->getKeyFrame();
 		RighttangentVector->set_domain(domainR);
 		TNumericValue* RightValue = new TNumericValue;
-		rightTest = std::tan(std::any_cast<double>(pointData->getRightTagent())/ 180.0f * PI);
+		rightTest = std::any_cast<double>(pointData->getRightData()) - std::any_cast<double>(pointData->getDataValue());
 		RightValue->set_float_(rightTest);
 		RighttangentVector->set_allocated_value(RightValue);
 		outgoingInterpolation->set_allocated_tangentvector(RighttangentVector);
