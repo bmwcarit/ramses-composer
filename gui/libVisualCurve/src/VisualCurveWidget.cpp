@@ -1831,16 +1831,10 @@ void VisualCurveWidget::pointMove(QMouseEvent *event) {
 
         switch (VisualCurvePosManager::GetInstance().getPressAction()) {
         case MOUSE_PRESS_LEFT_WORKER_KEY: {
-            if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
+            if (keyPoint.type == EInterPolationType::HERMIT_SPLINE || keyPoint.type == EInterPolationType::LINER) {
                 vectorLeftWorkerPointMove(event);
             } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
                 leftWorkerPointMove(event);
-            } else if (keyPoint.type == EInterPolationType::LINER) {
-                SKeyPoint lastPoint;
-                QPair<std::string, int> pair = VisualCurvePosManager::GetInstance().getCurrentPointInfo();
-                if (VisualCurvePosManager::GetInstance().getKeyPoint(pair.first, pair.second - 1, lastPoint)) {
-                    vectorLeftWorkerPointMove(event);
-                }
             }
             break;
         }
