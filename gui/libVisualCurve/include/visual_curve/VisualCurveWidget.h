@@ -109,6 +109,10 @@ private:
     void leftWorkerPointMove(QMouseEvent *event);
     // right worker point move
     void rightWorkerPointMove(QMouseEvent *event);
+    // vector left worker point move
+    void vectorLeftWorkerPointMove(QMouseEvent *event);
+    // vector right worker point move
+    void vectorRightWorkerPointMove(QMouseEvent *event);
     // curve move
     void curveMoveX(QMouseEvent *event);
     // curve move
