@@ -1049,10 +1049,10 @@ void VisualCurveWidget::drawKeyFrame(QPainter &painter) {
                 }
             }
             if (i == 0) {
-                SKeyPoint nextPoint = firstPoint;
-                firstPoint.setX(0);
+                SKeyPoint tempPoint = firstPoint;
+                tempPoint.setX(0);
                 if (firstPoint.y >= *numHeight) {
-                    drawLiner(painter, it.first, firstPoint, nextPoint);
+                    drawLiner(painter, it.first, tempPoint, firstPoint);
                 }
             }
             if (i == it.second.size() - 1) {
@@ -1324,7 +1324,7 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
         return;
     }
 
-    if (point.type == EInterPolationType::HERMIT_SPLINE || point.type == EInterPolationType::BESIER_SPLINE) {
+    if (point.type == EInterPolationType::BESIER_SPLINE) {
         QPainterPath path;
         MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
 
@@ -1384,6 +1384,72 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
             pen.setWidth(1);
             painter.setPen(pen);
             painter.drawPath(path);
+            painter.restore();
+        }
+    } else if (point.type == EInterPolationType::HERMIT_SPLINE) {
+        MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
+
+        if (pressAction == MOUSE_PRESS_NONE) {
+            return;
+        }
+
+        if (VisualCurvePosManager::GetInstance().getCurrentPointInfo().first == curve && VisualCurvePosManager::GetInstance().getCurrentPointInfo().second == index) {
+            if (pressAction == MOUSE_PRESS_LEFT_WORKER_KEY) {
+                if (rightY >= *numHeight) {
+                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+                }
+                if (leftY >= *numHeight) {
+                    auto brush = painter.brush();
+                    brush.setColor(QColor(255, 255, 255, 255));
+                    painter.setBrush(brush);
+                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                }
+            } else if (pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) {
+                if (leftY >= *numHeight) {
+                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                }
+                if (rightY >= *numHeight) {
+                    auto brush = painter.brush();
+                    brush.setColor(QColor(255, 255, 255, 255));
+                    painter.setBrush(brush);
+                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+                }
+            } else if (pressAction == MOUSE_PRESS_KEY) {
+                if (leftY >= *numHeight) {
+                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                }
+                if (rightY >= *numHeight) {
+                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+                }
+            }
+
+            QPointF tempPoint;
+            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, point.keyFrame, 0, tempPoint);
+            // caculate the right and left workerpoint beyond border
+            if (leftY < *numHeight) {
+                double ratio = (double)(point.y - *numHeight) / (double)(point.y - leftY);
+                leftX += qRound((1 - ratio) * (tempPoint.x() - leftX));
+                leftY = *numHeight;
+            }
+            if (rightY < *numHeight) {
+                double ratio = (double)(point.y - *numHeight) / (double)(point.y - rightY);
+                rightX -= qRound((1 - ratio) * (rightX - tempPoint.x()));
+                rightY = *numHeight;
+            }
+
+            // first point worker path
+            QPainterPath leftPath;
+            leftPath.moveTo(QPointF(leftX, leftY));
+            leftPath.lineTo(QPointF(point.x, point.y));
+            QPainterPath rightPath;
+            rightPath.moveTo(QPointF(point.x, point.y));
+            rightPath.lineTo(QPointF(rightX, rightY));
+            auto pen = painter.pen();
+            pen.setColor(QColor(255, 255, 204, 255));
+            pen.setWidth(1);
+            painter.setPen(pen);
+            painter.drawPath(leftPath);
+            painter.drawPath(rightPath);
             painter.restore();
         }
     } else {
@@ -1760,13 +1826,30 @@ void VisualCurveWidget::pointMove(QMouseEvent *event) {
         pressDragBtnMutex_.unlock();
         QPair<QPointF, QPointF> workerPoint;
 
+        SKeyPoint keyPoint;
+        VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint);
+
         switch (VisualCurvePosManager::GetInstance().getPressAction()) {
         case MOUSE_PRESS_LEFT_WORKER_KEY: {
-            leftWorkerPointMove(event);
+            if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
+                vectorLeftWorkerPointMove(event);
+            } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
+                leftWorkerPointMove(event);
+            } else if (keyPoint.type == EInterPolationType::LINER) {
+                SKeyPoint lastPoint;
+                QPair<std::string, int> pair = VisualCurvePosManager::GetInstance().getCurrentPointInfo();
+                if (VisualCurvePosManager::GetInstance().getKeyPoint(pair.first, pair.second - 1, lastPoint)) {
+                    vectorLeftWorkerPointMove(event);
+                }
+            }
             break;
         }
         case MOUSE_PRESS_RIGHT_WORKER_KEY: {
-            rightWorkerPointMove(event);
+            if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
+                vectorRightWorkerPointMove(event);
+            } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
+                rightWorkerPointMove(event);
+            }
             break;
         }
         case MOUSE_PRESS_KEY: {
@@ -2078,6 +2161,118 @@ void VisualCurveWidget::rightWorkerPointMove(QMouseEvent *event) {
 
         // fill worker point list
         keyPoint.setLeftPoint(pointFLeft);
+        keyPoint.setRightPoint(pointFRight);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+        update();
+    }
+}
+
+void VisualCurveWidget::vectorLeftWorkerPointMove(QMouseEvent *event) {
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
+    double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
+
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPointF pointFLeft;
+        pointFLeft.setX(event->pos().x());
+        pointFLeft.setY(event->pos().y());
+
+        std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+        QPointF keyPointF(keyPoint.x, keyPoint.y);
+
+        // caculate offset x,y by trigle
+        double leftLength = calculateTrigLen(abs(keyPointF.x() - pointFLeft.x()), abs(keyPointF.y() - pointFLeft.y()));
+        double offsetY = pointFLeft.y() - keyPointF.y();
+        double offsetX = pointFLeft.x() - keyPointF.x();
+        double sinValue = abs(offsetY) / leftLength;
+        sinValue = (offsetY == 0) ? 0 : sinValue;
+
+        // get tangent
+        double tangAngle{0.0};
+        if (offsetX != 0) {
+            double tangValue = offsetY / offsetX;
+            tangAngle = -atan(tangValue) * 180 / PI;
+        } else {
+            tangAngle = (offsetY >= 0) ? 90 : (-90);
+        }
+
+        double leftKeyFrame{0.0};
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, pointFLeft, leftKeyFrame);
+
+        double leftKeyValue{0.0};
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, pointFLeft, leftKeyValue);
+
+        // fill point tangent
+        if (CurveManager::GetInstance().getCurve(curCurve)) {
+            Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
+            Point *point = curve->getPoint(keyPoint.keyFrame);
+            if (point) {
+                point->setLeftTagent(tangAngle);
+                point->setRightTagent(tangAngle);
+                point->setLeftData(leftKeyValue);
+                point->setLeftKeyFrame(leftKeyFrame);
+            }
+        }
+
+        // fill worker point list
+        keyPoint.setLeftPoint(pointFLeft);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+        update();
+    }
+}
+
+void VisualCurveWidget::vectorRightWorkerPointMove(QMouseEvent *event) {
+    int curX = VisualCurvePosManager::GetInstance().getCurX();
+    int curY = VisualCurvePosManager::GetInstance().getCurY();
+    double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
+    double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
+
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPointF pointFRight;
+        pointFRight.setX(event->pos().x());
+        pointFRight.setY(event->pos().y());
+
+        std::string curCurve = VisualCurvePosManager::GetInstance().getCurrentPointInfo().first;
+        QPointF keyPointF(keyPoint.x, keyPoint.y);
+
+        // caculate offset x,y by trigle
+        double rightLength = calculateTrigLen(abs(keyPointF.x() - pointFRight.x()), abs(keyPointF.y() - pointFRight.y()));
+        double offsetY = keyPointF.y() - pointFRight.y();
+        double offsetX = keyPointF.x() - pointFRight.x();
+        double sinValue = abs(offsetY) / rightLength;
+        sinValue = (offsetY == 0) ? 0 : sinValue;
+
+        // get tangent
+        double tangAngle{0.0};
+        if (offsetX != 0) {
+            double tangValue = offsetY / offsetX;
+            tangAngle = -(atan(tangValue) * 180 / PI);
+        } else {
+            tangAngle = (offsetY >= 0) ? 90 : (-90);
+        }
+
+        double rightKeyFrame{0.0};
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, pointFRight, rightKeyFrame);
+
+        double rightKeyValue{0.0};
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, pointFRight, rightKeyValue);
+
+        // fill point tangent
+        if (CurveManager::GetInstance().getCurve(curCurve)) {
+            Curve *curve = CurveManager::GetInstance().getCurve(curCurve);
+            Point *point = curve->getPoint(keyPoint.keyFrame);
+            if (point) {
+                point->setRightTagent(tangAngle);
+                point->setLeftTagent(tangAngle);
+                point->setRightData(rightKeyValue);
+                point->setRightKeyFrame(rightKeyFrame);
+            }
+        }
+
+        // fill worker point list
         keyPoint.setRightPoint(pointFRight);
         VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         update();
