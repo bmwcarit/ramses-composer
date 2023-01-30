@@ -267,67 +267,85 @@ void VisualCurveInfoWidget::slotLeftKeyFrameChanged(double value) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
+    auto updateHermitePoint = [&, this](SKeyPoint keyPoint, QPair<QPointF, QPointF> workerPoint)->void {
+        double leftWorkerFrame{0.0};
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
+
+        QPointF point;
+        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, value, 0, point);
+        workerPoint.first.setX(point.x());
+
+        double offsetY = workerPoint.first.y() - keyPoint.y;
+        double offsetX = workerPoint.first.x() - keyPoint.x;
+
+        // get tangent
+        double tangAngle{0};
+        if (offsetX != 0) {
+            double tangValue = offsetY / offsetX;
+            tangAngle = -atan(tangValue) * 180 / PI;
+        } else {
+            tangAngle = (offsetY >= 0) ? 90 : (-90);
+        }
+
+        double leftKeyFrame{0.0};
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
+
+        if (CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first)) {
+            Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
+            Point *point = curve->getPoint(keyPoint.keyFrame);
+            if (point) {
+                point->setLeftKeyFrame(leftKeyFrame);
+                point->setLeftTagent(tangAngle);
+            }
+        }
+
+        keyPoint.setLeftPoint(workerPoint.first);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+    };
+
+    auto updateBezierPoint = [&, this](SKeyPoint keyPoint, QPair<QPointF, QPointF> workerPoint)->void {
+        double leftWorkerFrame{0.0};
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
+
+        if (value > keyPoint.keyFrame) {
+            if (workerPoint.first.y() != workerPoint.second.y()) {
+                slotRightKeyFrameChanged(keyPoint.keyFrame);
+            }
+            return slotLeftKeyFrameChanged(keyPoint.keyFrame);
+        }
+        if (value == leftWorkerFrame) {
+            return;
+        }
+
+        QPointF point;
+        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, value, 0, point);
+        workerPoint.first.setX(point.x());
+
+        recaculateWorkerLeftPoint(workerPoint, keyPoint);
+
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+    };
+
     SKeyPoint keyPoint;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
 
-        if (keyPoint.type == EInterPolationType::HERMIT_SPLINE || keyPoint.type == EInterPolationType::LINER) {
-            double leftWorkerFrame{0.0};
-            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
-
-            QPointF point;
-            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, value, 0, point);
-            workerPoint.first.setX(point.x());
-
-            double offsetY = workerPoint.first.y() - keyPoint.y;
-            double offsetX = workerPoint.first.x() - keyPoint.x;
-
-            // get tangent
-            double tangAngle{0};
-            if (offsetX != 0) {
-                double tangValue = offsetY / offsetX;
-                tangAngle = -atan(tangValue) * 180 / PI;
-            } else {
-                tangAngle = (offsetY >= 0) ? 90 : (-90);
-            }
-
-            double leftKeyFrame{0.0};
-            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyFrame);
-
-            if (CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first)) {
-                Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
-                Point *point = curve->getPoint(keyPoint.keyFrame);
-                if (point) {
-                    point->setLeftKeyFrame(leftKeyFrame);
-                    point->setLeftTagent(tangAngle);
+        if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
+            updateHermitePoint(keyPoint, workerPoint);
+        } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
+            updateBezierPoint(keyPoint, workerPoint);
+        } else if (keyPoint.type == EInterPolationType::LINER) {
+            QPair<std::string, int> pair = VisualCurvePosManager::GetInstance().getCurrentPointInfo();
+            SKeyPoint lastPoint;
+            if (VisualCurvePosManager::GetInstance().getKeyPoint(pair.first, pair.second - 1, lastPoint)) {
+                if (lastPoint.type == EInterPolationType::HERMIT_SPLINE) {
+                    updateHermitePoint(keyPoint, workerPoint);
+                } else if (lastPoint.type == EInterPolationType::BESIER_SPLINE) {
+                    updateBezierPoint(keyPoint, workerPoint);
                 }
             }
-
-            keyPoint.setLeftPoint(workerPoint.first);
-            VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
-        } else {
-            double leftWorkerFrame{0.0};
-            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
-
-            if (value > keyPoint.keyFrame) {
-                if (workerPoint.first.y() != workerPoint.second.y()) {
-                    slotRightKeyFrameChanged(keyPoint.keyFrame);
-                }
-                return slotLeftKeyFrameChanged(keyPoint.keyFrame);
-            }
-            if (value == leftWorkerFrame) {
-                return;
-            }
-
-            QPointF point;
-            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, value, 0, point);
-            workerPoint.first.setX(point.x());
-
-            recaculateWorkerLeftPoint(workerPoint, keyPoint);
-
-            keyPoint.setLeftPoint(workerPoint.first);
-            keyPoint.setRightPoint(workerPoint.second);
-            VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         }
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
@@ -340,54 +358,72 @@ void VisualCurveInfoWidget::slotLeftKeyValueChanged(double value) {
     double eachFrameWidth = VisualCurvePosManager::GetInstance().getEachFrameWidth();
     double eachValueWidth = VisualCurvePosManager::GetInstance().getEachValueWidth();
 
+    auto updateHermitePoint = [&, this](SKeyPoint keyPoint, QPair<QPointF, QPointF> workerPoint)->void {
+        double leftWorkerFrame{0.0};
+        pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
+
+        QPointF point;
+        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, 0, value, point);
+        workerPoint.first.setY(point.y());
+
+        double offsetY = workerPoint.first.y() - keyPoint.y;
+        double offsetX = workerPoint.first.x() - keyPoint.x;
+
+        // get tangent
+        double tangAngle{0};
+        if (offsetX != 0) {
+            double tangValue = offsetY / offsetX;
+            tangAngle = -atan(tangValue) * 180 / PI;
+        } else {
+            tangAngle = (offsetY >= 0) ? 90 : (-90);
+        }
+
+        double leftKeyValue{0.0};
+        pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
+
+        if (CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first)) {
+            Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
+            Point *point = curve->getPoint(keyPoint.keyFrame);
+            if (point) {
+                point->setLeftData(leftKeyValue);
+                point->setLeftTagent(tangAngle);
+            }
+        }
+
+        keyPoint.setLeftPoint(workerPoint.first);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+    };
+
+    auto updateBezierPoint = [&, this](SKeyPoint keyPoint, QPair<QPointF, QPointF> workerPoint)->void {
+        QPointF point;
+        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, 0, value, point);
+        workerPoint.first.setY(point.y());
+
+        recaculateWorkerLeftPoint(workerPoint, keyPoint);
+
+        keyPoint.setLeftPoint(workerPoint.first);
+        keyPoint.setRightPoint(workerPoint.second);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+    };
+
     SKeyPoint keyPoint;
     if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
         QPair<QPointF, QPointF> workerPoint(keyPoint.leftPoint, keyPoint.rightPoint);
 
-        if (keyPoint.type == EInterPolationType::HERMIT_SPLINE || keyPoint.type == EInterPolationType::LINER) {
-            double leftWorkerFrame{0.0};
-            pointF2KeyFrame(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftWorkerFrame);
-
-            QPointF point;
-            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, 0, value, point);
-            workerPoint.first.setY(point.y());
-
-            double offsetY = workerPoint.first.y() - keyPoint.y;
-            double offsetX = workerPoint.first.x() - keyPoint.x;
-
-            // get tangent
-            double tangAngle{0};
-            if (offsetX != 0) {
-                double tangValue = offsetY / offsetX;
-                tangAngle = -atan(tangValue) * 180 / PI;
-            } else {
-                tangAngle = (offsetY >= 0) ? 90 : (-90);
-            }
-
-            double leftKeyValue{0.0};
-            pointF2Value(curX, curY, eachFrameWidth, eachValueWidth, workerPoint.first, leftKeyValue);
-
-            if (CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first)) {
-                Curve *curve = CurveManager::GetInstance().getCurve(VisualCurvePosManager::GetInstance().getCurrentPointInfo().first);
-                Point *point = curve->getPoint(keyPoint.keyFrame);
-                if (point) {
-                    point->setLeftData(leftKeyValue);
-                    point->setLeftTagent(tangAngle);
+        if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
+            updateHermitePoint(keyPoint, workerPoint);
+        } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
+            updateBezierPoint(keyPoint, workerPoint);
+        } else if (keyPoint.type == EInterPolationType::LINER) {
+            QPair<std::string, int> pair = VisualCurvePosManager::GetInstance().getCurrentPointInfo();
+            SKeyPoint lastPoint;
+            if (VisualCurvePosManager::GetInstance().getKeyPoint(pair.first, pair.second - 1, lastPoint)) {
+                if (lastPoint.type == EInterPolationType::HERMIT_SPLINE) {
+                    updateHermitePoint(keyPoint, workerPoint);
+                } else if (lastPoint.type == EInterPolationType::BESIER_SPLINE) {
+                    updateBezierPoint(keyPoint, workerPoint);
                 }
             }
-
-            keyPoint.setLeftPoint(workerPoint.first);
-            VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
-        } else {
-            QPointF point;
-            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, 0, value, point);
-            workerPoint.first.setY(point.y());
-
-            recaculateWorkerLeftPoint(workerPoint, keyPoint);
-
-            keyPoint.setLeftPoint(workerPoint.first);
-            keyPoint.setRightPoint(workerPoint.second);
-            VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
         }
         updateSelKey();
         Q_EMIT sigRefreshVisualCurve();
@@ -875,8 +911,8 @@ void VisualCurveInfoWidget::switchCurveType(int type, bool isShowLeftPoint) {
         leftValueSpinBox_->setVisible(isShowLeftPoint);
         leftValueLabel_->setVisible(isShowLeftPoint);
         leftFrameLabel_->setVisible(isShowLeftPoint);
-        leftTangentLabel_->setVisible(isShowLeftPoint);
-        leftTangentSpinBox_->setVisible(isShowLeftPoint);
+//        leftTangentLabel_->setVisible(isShowLeftPoint);
+//        leftTangentSpinBox_->setVisible(isShowLeftPoint);
         break;
     }
     case EInterPolationType::HERMIT_SPLINE: {
