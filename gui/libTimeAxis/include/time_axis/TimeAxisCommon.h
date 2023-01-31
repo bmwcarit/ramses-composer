@@ -67,6 +67,11 @@ enum KEY_PRESS_ACT {
     KEY_PRESS_CTRL
 };
 
+enum HANDLE_TYPE {
+    HANDLE_ALIGNED,
+    HANDLE_VECTOR
+};
+
 struct SSelPoint {
     std::string curve;
     std::string property;
@@ -81,6 +86,7 @@ struct SKeyPoint {
     int type{0};
     QPointF leftPoint;
     QPointF rightPoint;
+    int handleType_{HANDLE_TYPE::HANDLE_ALIGNED};
 
     SKeyPoint(double v1 = 0, double v2 = 0, int t = 0, int key = 0) {
         x = v1;
@@ -107,6 +113,9 @@ struct SKeyPoint {
     void setRightPoint(QPointF point) {
         rightPoint.setX(point.x());
         rightPoint.setY(point.y());
+    }
+    void setHandleType(int type) {
+        handleType_ = type;
     }
 };
 
