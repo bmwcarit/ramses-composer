@@ -38,6 +38,7 @@ public Q_SLOTS:
     void slotRightKeyValueChanged(double value);
     void slotLeftTangentChanged(double value);
     void slotRightTangentChanged(double value);
+    void slotSwitchHandleType(int index);
 
     void slotKeyFrameFinished();
     void slotKeyValueFinished();
@@ -88,6 +89,7 @@ private:
     QLabel *rightFrameLabel_{nullptr};
     QLabel *leftTangentLabel_{nullptr};
     QLabel *rightTangentLabel_{nullptr};
+    QLabel *handleTypeLabel_{nullptr};
     DoubleEditor *leftFrameSpinBox_{nullptr};
     DoubleEditor *leftTangentSpinBox_{nullptr};
     DoubleEditor *leftValueSpinBox_{nullptr};
@@ -100,6 +102,7 @@ private:
     Int64Editor *cursorXSpinBox_{nullptr};
     DoubleEditor *cursorYSpinBox_{nullptr};
     DoubleEditor *curveScaleSpinBox_{nullptr};
+    QComboBox *handleTypeComboBox_{nullptr};
     raco::core::CommandInterface *commandInterface_;
 };
 }

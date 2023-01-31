@@ -84,6 +84,8 @@ Q_SIGNALS:
     void sigSwitchObjectNode(const QString& id);
     //
     void sigUpdateMeshModelMatrix(const std::string &objectID);
+    //
+    void sigSwitchHandleType(const int &type);
 };
 
 }

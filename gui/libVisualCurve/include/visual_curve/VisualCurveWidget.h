@@ -57,6 +57,8 @@ public Q_SLOTS:
     void slotSwitchPoint2Bezier();
     void slotSwitchPoint2Step();
     void slotDeleteKeyFrame();
+    void slotSwitchAligned();
+    void slotSwitchVector();
     void slotRefreshVisualCurve();
     void slotRefreshVisualCurveAfterUndo();
     void slotRefreshCursorX();
@@ -64,6 +66,7 @@ public Q_SLOTS:
     void slotSwitchCurveType(int type);
     void slotUpdateCursorX(int cursorX);
     void slotUpdatePoints();
+    void slotSwitchHandleType(int type);
 
 Q_SIGNALS:
     void sigAnimationStop();
@@ -169,7 +172,10 @@ private:
 private:
     KEY_PRESS_ACT pressAction_{KEY_PRESS_NONE};
     QMenu *menu_{nullptr};
-    QMenu *interpolationMenu{nullptr};
+    QMenu *interpolationMenu_{nullptr};
+    QMenu *handleTypeMenu_{nullptr};
+    QAction *alignedAct_{nullptr};
+    QAction *vectorAct_{nullptr};
     QAction *deleteKeyFrameAct_{nullptr};
     QAction *linerAct_{nullptr};
     QAction *hermiteAct_{nullptr};

@@ -44,11 +44,20 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     setFocusPolicy(Qt::StrongFocus);
 
     menu_ = new QMenu(this);
-    deleteKeyFrameAct_ = new QAction("Delete Keyframe",this);
+    handleTypeMenu_ = new QMenu("Handle Type", this);
+    alignedAct_ = new QAction("Aligned", this);
+    vectorAct_ = new QAction("Vector", this);
+    handleTypeMenu_->addAction(alignedAct_);
+    handleTypeMenu_->addAction(vectorAct_);
+    menu_->addMenu(handleTypeMenu_);
+    connect(alignedAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchAligned);
+    connect(vectorAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchVector);
+
+    deleteKeyFrameAct_ = new QAction("Delete Keyframe", this);
     connect(deleteKeyFrameAct_, &QAction::triggered, this, &VisualCurveWidget::slotDeleteKeyFrame);
 
-    interpolationMenu = new QMenu("Interpolation Mode", this);
-    menu_->addMenu(interpolationMenu);
+    interpolationMenu_ = new QMenu("Interpolation Mode", this);
+    menu_->addMenu(interpolationMenu_);
     linerAct_ = new QAction("Liner", this);
     hermiteAct_ = new QAction("Hermite", this);
     bezierAct_ = new QAction("Bezier", this);
@@ -59,14 +68,15 @@ VisualCurveWidget::VisualCurveWidget(QWidget *parent, raco::core::CommandInterfa
     connect(stepAct_, &QAction::triggered, this, &VisualCurveWidget::slotSwitchPoint2Step);
 
     menu_->addAction(deleteKeyFrameAct_);
-    interpolationMenu->addAction(linerAct_);
-    interpolationMenu->addAction(hermiteAct_);
-    interpolationMenu->addAction(bezierAct_);
-    interpolationMenu->addAction(stepAct_);
+    interpolationMenu_->addAction(linerAct_);
+    interpolationMenu_->addAction(hermiteAct_);
+    interpolationMenu_->addAction(bezierAct_);
+    interpolationMenu_->addAction(stepAct_);
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &VisualCurveWidget::customContextMenuRequested, this, &VisualCurveWidget::slotShowContextMenu);
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigInsertCurve_To_VisualCurve, this, &VisualCurveWidget::slotInsertCurve);
     QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigRepaintAfterUndoOpreation, this, &VisualCurveWidget::slotRefreshVisualCurveAfterUndo);
+    QObject::connect(&raco::signal::signalProxy::GetInstance(), &raco::signal::signalProxy::sigSwitchHandleType, this, &VisualCurveWidget::slotSwitchHandleType);
 
     initVisualCurvePos();
 }
@@ -855,6 +865,39 @@ void VisualCurveWidget::slotDeleteKeyFrame() {
     Q_EMIT sigPressKey();
 }
 
+void VisualCurveWidget::slotSwitchAligned() {
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        QPointF leftPoint = keyPoint.leftPoint;
+        QPointF rightPoint = keyPoint.rightPoint;
+
+        double leftLength = calculateTrigLen(abs(keyPoint.x - leftPoint.x()), abs(keyPoint.y - leftPoint.y()));
+        double rightLength = calculateTrigLen(abs(keyPoint.x - rightPoint.x()), abs(keyPoint.y - rightPoint.y()));
+        double offsetY = keyPoint.y - rightPoint.y();
+        double sinValue = offsetY / rightLength;
+        sinValue = (offsetY == 0) ? 0 : sinValue;
+
+        double letfY = leftLength * sinValue;
+        double letfX = sqrt(leftLength * leftLength - letfY * letfY);
+        leftPoint.setX(keyPoint.x - letfX);
+        leftPoint.setY(keyPoint.y + letfY);
+        keyPoint.setLeftPoint(leftPoint);
+
+        keyPoint.setHandleType(HANDLE_TYPE::HANDLE_ALIGNED);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+    }
+    Q_EMIT sigPressKey();
+}
+
+void VisualCurveWidget::slotSwitchVector() {
+    SKeyPoint keyPoint;
+    if (VisualCurvePosManager::GetInstance().getCurKeyPoint(keyPoint)) {
+        keyPoint.setHandleType(HANDLE_TYPE::HANDLE_VECTOR);
+        VisualCurvePosManager::GetInstance().replaceCurKeyPoint(keyPoint);
+    }
+    Q_EMIT sigPressKey();
+}
+
 void VisualCurveWidget::slotRefreshVisualCurve() {
     update();
     Q_EMIT signalProxy::GetInstance().sigUpdateKeyFram_From_AnimationLogic(VisualCurvePosManager::GetInstance().getCurFrame());
@@ -974,6 +1017,14 @@ void VisualCurveWidget::slotUpdateCursorX(int cursorX) {
 
 void VisualCurveWidget::slotUpdatePoints() {
     updateCurvePoint();
+}
+
+void VisualCurveWidget::slotSwitchHandleType(int type) {
+    if (type == HANDLE_TYPE::HANDLE_ALIGNED) {
+        slotSwitchAligned();
+    } else {
+        slotSwitchVector();
+    }
 }
 
 void VisualCurveWidget::initVisualCurvePos() {
@@ -1330,9 +1381,70 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
     int rightX = workerPoint.second.x();
     int leftX = workerPoint.first.x();
 
-    if (leftY < *numHeight && rightY < *numHeight) {
-        return;
-    }
+//    if (leftY < *numHeight && rightY < *numHeight) {
+//        return;
+//    }
+
+    auto drawVectorWorker = [&, this]()->void {
+        MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
+        if (pressAction == MOUSE_PRESS_LEFT_WORKER_KEY) {
+            if (rightY >= *numHeight) {
+                painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+            }
+            if (leftY >= *numHeight) {
+                auto brush = painter.brush();
+                brush.setColor(QColor(255, 255, 255, 255));
+                painter.setBrush(brush);
+                painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+            }
+        } else if (pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) {
+            if (leftY >= *numHeight) {
+                painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+            }
+            if (rightY >= *numHeight) {
+                auto brush = painter.brush();
+                brush.setColor(QColor(255, 255, 255, 255));
+                painter.setBrush(brush);
+                painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+            }
+        } else if (pressAction == MOUSE_PRESS_KEY) {
+            if (leftY >= *numHeight) {
+                painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+            }
+            if (rightY >= *numHeight) {
+                painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+            }
+        }
+
+        QPointF tempPoint;
+        keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, point.keyFrame, 0, tempPoint);
+        // caculate the right and left workerpoint beyond border
+        if (leftY < *numHeight) {
+            double ratio = (double)(point.y - *numHeight) / (double)(point.y - leftY);
+            leftX += qRound((1 - ratio) * (tempPoint.x() - leftX));
+            leftY = *numHeight;
+        }
+        if (rightY < *numHeight) {
+            double ratio = (double)(point.y - *numHeight) / (double)(point.y - rightY);
+            rightX -= qRound((1 - ratio) * (rightX - tempPoint.x()));
+            rightY = *numHeight;
+        }
+
+        // first point worker path
+        QPainterPath leftPath;
+        leftPath.moveTo(QPointF(leftX, leftY));
+        leftPath.lineTo(QPointF(point.x, point.y));
+        QPainterPath rightPath;
+        rightPath.moveTo(QPointF(point.x, point.y));
+        rightPath.lineTo(QPointF(rightX, rightY));
+        auto pen = painter.pen();
+        pen.setColor(QColor(255, 255, 204, 255));
+        pen.setWidth(1);
+        painter.setPen(pen);
+        painter.drawPath(leftPath);
+        painter.drawPath(rightPath);
+        painter.restore();
+    };
 
     if (point.type == EInterPolationType::BESIER_SPLINE) {
         QPainterPath path;
@@ -1343,58 +1455,62 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
         }
 
         if (VisualCurvePosManager::GetInstance().getCurrentPointInfo().first == curve && VisualCurvePosManager::GetInstance().getCurrentPointInfo().second == index) {
-            if (pressAction == MOUSE_PRESS_LEFT_WORKER_KEY) {
-                if (rightY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+            if (point.handleType_ == HANDLE_TYPE::HANDLE_ALIGNED) {
+                if (pressAction == MOUSE_PRESS_LEFT_WORKER_KEY) {
+                    if (rightY >= *numHeight) {
+                        painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+                    }
+                    if (leftY >= *numHeight) {
+                        auto brush = painter.brush();
+                        brush.setColor(QColor(255, 255, 255, 255));
+                        painter.setBrush(brush);
+                        painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                    }
+                } else if (pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) {
+                    if (leftY >= *numHeight) {
+                        painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                    }
+                    if (rightY >= *numHeight) {
+                        auto brush = painter.brush();
+                        brush.setColor(QColor(255, 255, 255, 255));
+                        painter.setBrush(brush);
+                        painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+                    }
+                } else if (pressAction == MOUSE_PRESS_KEY) {
+                    if (leftY >= *numHeight) {
+                        painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
+                    }
+                    if (rightY >= *numHeight) {
+                        painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
+                    }
                 }
-                if (leftY >= *numHeight) {
-                    auto brush = painter.brush();
-                    brush.setColor(QColor(255, 255, 255, 255));
-                    painter.setBrush(brush);
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
-                }
-            } else if (pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) {
-                if (leftY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
-                }
-                if (rightY >= *numHeight) {
-                    auto brush = painter.brush();
-                    brush.setColor(QColor(255, 255, 255, 255));
-                    painter.setBrush(brush);
-                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
-                }
-            } else if (pressAction == MOUSE_PRESS_KEY) {
-                if (leftY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
-                }
-                if (rightY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
-                }
-            }
 
-            QPointF tempPoint;
-            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, point.keyFrame, 0, tempPoint);
-            // caculate the right and left workerpoint beyond border
-            if (leftY < *numHeight) {
-                double ratio = (double)(point.y - *numHeight) / (double)(point.y - leftY);
-                leftX += qRound((1 - ratio) * (tempPoint.x() - leftX));
-                leftY = *numHeight;
-            }
-            if (rightY < *numHeight) {
-                double ratio = (double)(point.y - *numHeight) / (double)(point.y - rightY);
-                rightX -= qRound((1 - ratio) * (rightX - tempPoint.x()));
-                rightY = *numHeight;
-            }
+                QPointF tempPoint;
+                keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, point.keyFrame, 0, tempPoint);
+                // caculate the right and left workerpoint beyond border
+                if (leftY < *numHeight) {
+                    double ratio = (double)(point.y - *numHeight) / (double)(point.y - leftY);
+                    leftX += qRound((1 - ratio) * (tempPoint.x() - leftX));
+                    leftY = *numHeight;
+                }
+                if (rightY < *numHeight) {
+                    double ratio = (double)(point.y - *numHeight) / (double)(point.y - rightY);
+                    rightX -= qRound((1 - ratio) * (rightX - tempPoint.x()));
+                    rightY = *numHeight;
+                }
 
-            // first point worker path
-            path.moveTo(QPointF(leftX, leftY));
-            path.lineTo(QPointF(rightX, rightY));
-            auto pen = painter.pen();
-            pen.setColor(QColor(255, 255, 204, 255));
-            pen.setWidth(1);
-            painter.setPen(pen);
-            painter.drawPath(path);
-            painter.restore();
+                // first point worker path
+                path.moveTo(QPointF(leftX, leftY));
+                path.lineTo(QPointF(rightX, rightY));
+                auto pen = painter.pen();
+                pen.setColor(QColor(255, 255, 204, 255));
+                pen.setWidth(1);
+                painter.setPen(pen);
+                painter.drawPath(path);
+                painter.restore();
+            } else {
+                drawVectorWorker();
+            }
         }
     } else if (point.type == EInterPolationType::HERMIT_SPLINE) {
         MOUSE_PRESS_ACTION pressAction = VisualCurvePosManager::GetInstance().getPressAction();
@@ -1402,65 +1518,8 @@ void VisualCurveWidget::drawWorkerPoint(QPainter &painter, SKeyPoint point, QPai
         if (pressAction == MOUSE_PRESS_NONE) {
             return;
         }
-
         if (VisualCurvePosManager::GetInstance().getCurrentPointInfo().first == curve && VisualCurvePosManager::GetInstance().getCurrentPointInfo().second == index) {
-            if (pressAction == MOUSE_PRESS_LEFT_WORKER_KEY) {
-                if (rightY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
-                }
-                if (leftY >= *numHeight) {
-                    auto brush = painter.brush();
-                    brush.setColor(QColor(255, 255, 255, 255));
-                    painter.setBrush(brush);
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
-                }
-            } else if (pressAction == MOUSE_PRESS_RIGHT_WORKER_KEY) {
-                if (leftY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
-                }
-                if (rightY >= *numHeight) {
-                    auto brush = painter.brush();
-                    brush.setColor(QColor(255, 255, 255, 255));
-                    painter.setBrush(brush);
-                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
-                }
-            } else if (pressAction == MOUSE_PRESS_KEY) {
-                if (leftY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.first.x(), workerPoint.first.y()) , 3, 3);
-                }
-                if (rightY >= *numHeight) {
-                    painter.drawEllipse(QPointF(workerPoint.second.x(), workerPoint.second.y()) , 3, 3);
-                }
-            }
-
-            QPointF tempPoint;
-            keyFrame2PointF(curX, curY, eachFrameWidth, eachValueWidth, point.keyFrame, 0, tempPoint);
-            // caculate the right and left workerpoint beyond border
-            if (leftY < *numHeight) {
-                double ratio = (double)(point.y - *numHeight) / (double)(point.y - leftY);
-                leftX += qRound((1 - ratio) * (tempPoint.x() - leftX));
-                leftY = *numHeight;
-            }
-            if (rightY < *numHeight) {
-                double ratio = (double)(point.y - *numHeight) / (double)(point.y - rightY);
-                rightX -= qRound((1 - ratio) * (rightX - tempPoint.x()));
-                rightY = *numHeight;
-            }
-
-            // first point worker path
-            QPainterPath leftPath;
-            leftPath.moveTo(QPointF(leftX, leftY));
-            leftPath.lineTo(QPointF(point.x, point.y));
-            QPainterPath rightPath;
-            rightPath.moveTo(QPointF(point.x, point.y));
-            rightPath.lineTo(QPointF(rightX, rightY));
-            auto pen = painter.pen();
-            pen.setColor(QColor(255, 255, 204, 255));
-            pen.setWidth(1);
-            painter.setPen(pen);
-            painter.drawPath(leftPath);
-            painter.drawPath(rightPath);
-            painter.restore();
+            drawVectorWorker();
         }
     } else {
         if (point.type == EInterPolationType::LINER && (lastPoint.type == EInterPolationType::HERMIT_SPLINE || lastPoint.type == EInterPolationType::BESIER_SPLINE)) {
@@ -1535,6 +1594,8 @@ void VisualCurveWidget::updateCurvePoint() {
                 SKeyPoint keyPoint(pointF.x(), pointF.y(), (*it)->getInterPolationType(), keyFrame);
 
                 if ((*it)->getInterPolationType() == EInterPolationType::HERMIT_SPLINE || (*it)->getInterPolationType() == EInterPolationType::BESIER_SPLINE) {
+                    keyPoint.setHandleType(HANDLE_TYPE::HANDLE_VECTOR);
+
                     double leftKeyFrame = (*it)->getLeftKeyFrame() + offsetFrame;
                     double rightKeyFrame = (*it)->getRightKeyFrame() + offsetFrame;
 
@@ -1665,6 +1726,7 @@ void VisualCurveWidget::reCaculateCurvePoint(int x, int y, double frameWidth, do
                         newKeyPoint.setLeftPoint(QPointF(oldKeyPoint.leftPoint.x() + offsetX, oldKeyPoint.leftPoint.y() + offsetY));
                         newKeyPoint.setRightPoint(QPointF(oldKeyPoint.rightPoint.x() + offsetX, oldKeyPoint.rightPoint.y() + offsetY));
                     }
+                    newKeyPoint.setHandleType(oldKeyPoint.handleType_);
                 }
                 srcPoints.append(newKeyPoint);
                 index++;
@@ -1765,6 +1827,8 @@ void VisualCurveWidget::bezierSwitchToHermite() {
         nextPoint.setLeftPoint(nextWorkerPoint.first);
         nextPoint.setRightPoint(nextWorkerPoint.second);
 
+        nextPoint.setHandleType(HANDLE_TYPE::HANDLE_VECTOR);
+
         keyPoints.replace(index, lastPoint);
         keyPoints.replace(index + 1, nextPoint);
         VisualCurvePosManager::GetInstance().swapCurKeyPointList(keyPoints);
@@ -1795,8 +1859,8 @@ void VisualCurveWidget::hermiteSwitchToBezier() {
         endWorkerPoint.setX(lastWorkerPointX);
         endWorkerPoint.setY(lastWorkerPointY);
         qSwap(lastWorkerPoint.second, endWorkerPoint);
-        QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
-        qSwap(lastWorkerPoint.first, leftPoint);
+//        QPointF leftPoint = reCaculateLeftWorkerPoint(lastPoint, lastWorkerPoint.first, lastWorkerPoint.second);
+//        qSwap(lastWorkerPoint.first, leftPoint);
 
 //        double nextWorkerPointX = (2 * nextPoint.x + startWorkerPoint.x()) / 3.0;
 //        double nextWorkerPointY = (2 * nextPoint.y + startWorkerPoint.y()) / 3.0;
@@ -1805,13 +1869,15 @@ void VisualCurveWidget::hermiteSwitchToBezier() {
         startWorkerPoint.setX(nextWorkerPointX);
         startWorkerPoint.setY(nextWorkerPointY);
         qSwap(nextWorkerPoint.first, startWorkerPoint);
-        QPointF rightPoint = reCaculateRightWorkerPoint(nextPoint, nextWorkerPoint.first, nextWorkerPoint.second);
-        qSwap(nextWorkerPoint.second, rightPoint);
+//        QPointF rightPoint = reCaculateRightWorkerPoint(nextPoint, nextWorkerPoint.first, nextWorkerPoint.second);
+//        qSwap(nextWorkerPoint.second, rightPoint);
 
         lastPoint.setLeftPoint(lastWorkerPoint.first);
         lastPoint.setRightPoint(lastWorkerPoint.second);
         nextPoint.setLeftPoint(nextWorkerPoint.first);
         nextPoint.setRightPoint(nextWorkerPoint.second);
+
+        lastPoint.setHandleType(HANDLE_TYPE::HANDLE_VECTOR);
 
         keyPoints.replace(index, lastPoint);
         keyPoints.replace(index + 1, nextPoint);
@@ -1850,7 +1916,11 @@ void VisualCurveWidget::pointMove(QMouseEvent *event) {
             if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
                 vectorLeftWorkerPointMove(event);
             } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
-                leftWorkerPointMove(event);
+                if (keyPoint.handleType_ == HANDLE_TYPE::HANDLE_ALIGNED) {
+                    leftWorkerPointMove(event);
+                } else {
+                    vectorLeftWorkerPointMove(event);
+                }
             } else if (keyPoint.type == EInterPolationType::LINER) {
                 QPair<std::string, int> pair = VisualCurvePosManager::GetInstance().getCurrentPointInfo();
                 SKeyPoint lastPoint;
@@ -1868,7 +1938,11 @@ void VisualCurveWidget::pointMove(QMouseEvent *event) {
             if (keyPoint.type == EInterPolationType::HERMIT_SPLINE) {
                 vectorRightWorkerPointMove(event);
             } else if (keyPoint.type == EInterPolationType::BESIER_SPLINE) {
-                rightWorkerPointMove(event);
+                if (keyPoint.handleType_ == HANDLE_TYPE::HANDLE_ALIGNED) {
+                    rightWorkerPointMove(event);
+                } else {
+                    vectorRightWorkerPointMove(event);
+                }
             }
             break;
         }
