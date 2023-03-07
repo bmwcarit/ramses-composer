@@ -413,16 +413,6 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, raco
 			EditMenu::globalRedoCallback(racoApplication_);
 		});
 
-		auto copyShortcut = new QShortcut(QKeySequence::Copy, this, nullptr, nullptr, Qt::ApplicationShortcut);
-		QObject::connect(copyShortcut, &QShortcut::activated, this, [this]() {
-			EditMenu::globalCopyCallback(racoApplication_, &treeDockManager_);
-		});
-
-		auto pasteShortcut = new QShortcut(QKeySequence::Paste, this, nullptr, nullptr, Qt::ApplicationShortcut);
-		QObject::connect(pasteShortcut, &QShortcut::activated, this, [this]() {
-			EditMenu::globalPasteCallback(racoApplication_, &treeDockManager_);
-		});
-
 		ui->actionSave->setShortcut(QKeySequence::Save);
 		ui->actionSave->setShortcutContext(Qt::ApplicationShortcut);
 		QObject::connect(ui->actionSave, &QAction::triggered, this, &MainWindow::saveActiveProject);
@@ -585,7 +575,7 @@ void MainWindow::restoreSettings() {
 	}
 }
 
-void MainWindow::openProject(const QString& file, int featureLevel) {
+void MainWindow::openProject(const QString& file, int featureLevel, bool generateNewObjectIDs) {
 	auto fileString = file.toStdString();
 	if (!fileString.empty() && (!raco::utils::u8path(fileString).exists() || !raco::utils::u8path(fileString).userHasReadAccess())) {
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file {} is not available for loading.\n\nCheck whether the file at the specified path still exists and that you have read access to that file.", fileString).c_str(), QMessageBox::Close);
@@ -637,7 +627,7 @@ void MainWindow::openProject(const QString& file, int featureLevel) {
 		int loadFeatureLevel = featureLevel;
 		while (true) {
 			try {
-				racoApplication_->switchActiveRaCoProject(file, relinkCallback, true, loadFeatureLevel);
+				racoApplication_->switchActiveRaCoProject(file, relinkCallback, true, loadFeatureLevel, generateNewObjectIDs);
 				break;
 			} catch (const ExtrefError& error) {
 				if (auto flError = racoApplication_->getFlError()) {
@@ -751,14 +741,32 @@ bool MainWindow::saveAsActiveProject(bool newID) {
 		}
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		std::string errorMsg;
-		if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName, newID)) {
-			updateActiveProjectConnection();
-			updateProjectSavedConnection();
-			updateUpgradeMenu();
-			return true;
+		if (newID) {
+			if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
+				openProject(QString::fromStdString(racoApplication_->activeProjectPath()), -1, true);
+				if (racoApplication_->activeRaCoProject().save(errorMsg)) {
+					updateActiveProjectConnection();
+					updateProjectSavedConnection();
+					updateUpgradeMenu();
+					return true;
+				} else {
+					updateApplicationTitle();
+					QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+				}
+			} else {
+				updateApplicationTitle();
+				QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+			}
 		} else {
-			updateApplicationTitle();
-			QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+			if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
+				updateActiveProjectConnection();
+				updateProjectSavedConnection();
+				updateUpgradeMenu();
+				return true;
+			} else {
+				updateApplicationTitle();
+				QMessageBox::critical(this, "Save Error", fmt::format("Can not save project: Writing the project file '{}' failed with error '{}'", racoApplication_->activeProjectPath(), errorMsg).c_str(), QMessageBox::Ok);
+			}
 		}
 	} else {
 		QMessageBox::warning(this, "Save Error", fmt::format("Can not save project: externally referenced projects not clean.").c_str(), QMessageBox::Ok);

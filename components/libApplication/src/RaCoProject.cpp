@@ -301,7 +301,7 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	return result;
 }
 
-std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, LoadContext& loadContext, bool logErrors, int featureLevel) {
+std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, LoadContext& loadContext, bool logErrors, int featureLevel, bool generateNewObjectIDs) {
 	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
 	QFileInfo path(filename);
@@ -355,11 +355,17 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 
 	auto result{raco::serialization::deserializeProject(document, absPath.toStdString())};
 
-	Project p{result.objects};
-	p.setCurrentPath(absPath.toStdString());
 	for (const auto& instance : result.objects) {
 		instance->onAfterDeserialization();
 	}
+
+	// Ordering constraint: generateNewObjectIDs needs the pointers created by the onAfterDeserialization handlers above.
+	if (generateNewObjectIDs) {
+		BaseContext::generateNewObjectIDs(result.objects);
+	}
+
+	Project p{result.objects};
+	p.setCurrentPath(absPath.toStdString());
 	for (const auto& link : result.links) {
 		p.addLink(link);
 	}
@@ -687,38 +693,19 @@ bool RaCoProject::save(std::string& outError) {
 	return true;
 }
 
-bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool setProjectName, bool setNewID) {
+bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool setProjectName) {
 	auto oldPath = project_.currentPath();
 	auto oldProjectFolder = project_.currentFolder();
 	QString absPath = QFileInfo(fileName).absoluteFilePath();
 	auto newPath = absPath.toStdString();
-	if ((newPath == oldPath) && (!setNewID)) {
+	if (newPath == oldPath) {
 		return save(outError);
 	} else {
 		// Note on the undo stack:
-		// both the creation of a new ProjectSettings object and the project name change will be recorded in the change recorder
-		// by the context operations, but no undo stack entry will be created.
-		// But we need an undo stack entry since the save below wil performa a restore from the undo stack.
+		// The project name change will be recorded in the change recorder by the context operations, but no undo stack entry will be created.
+		// But we need an undo stack entry since the save below wil perform a restore from the undo stack.
 		// However the onAfterProjectPathChange will perform an unconditional undo stack push.
 		// This means that using the context in the operations below is OK as long as we perform the onAfterProjectPathChange afterwards.
-		if (setNewID) {
-			// We can't change the id of an object so we need some trickery here:
-			// Create a new ProjectSettings object, copy the properties from the old one (except objectID) and then delete the old object
-			auto newProjectSettingsObject = context_->createObject(ProjectSettings::typeDescription.typeName, project_.settings()->objectName());
-			auto translateRef = [this](SEditorObject srcObj) -> SEditorObject {
-				return srcObj;
-			};
-			DataChangeRecorder localChanges;
-			UndoHelpers::updateEditorObject(
-				project_.settings().get(), newProjectSettingsObject, translateRef,
-				[](const std::string& propName) {
-					return propName == "objectID";
-				},
-				*context_->objectFactory(),
-				&localChanges, true, false);
-
-			context_->deleteObjects(std::vector<SEditorObject>{project_.settings()});
-		}
 		if (setProjectName) {
 			auto projName = raco::utils::u8path(newPath).stem().string();
 			auto settings = project_.settings();

@@ -457,7 +457,7 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 
 
 bool Queries::isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle) {
-	if (handle.query<TagContainerAnnotation>() || handle.query<RenderableTagContainerAnnotation>()) {
+	if (handle.query<UserTagContainerAnnotation>() || handle.query<TagContainerAnnotation>() || handle.query<RenderableTagContainerAnnotation>()) {
 		return false;
 	}
 

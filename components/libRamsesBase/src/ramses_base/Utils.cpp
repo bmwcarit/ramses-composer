@@ -13,19 +13,22 @@
 #include "lodepng.h"
 #include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
+#include "ramses_base/EnumerationTranslations.h"
 #include "user_types/CubeMap.h"
+#include "user_types/EngineTypeAnnotation.h"
 #include "user_types/LuaScriptModule.h"
 #include "utils/FileUtils.h"
 #include "utils/MathUtils.h"
 #include "core/CoreFormatter.h"
-
 #include <ramses-client-api/TextureEnums.h>
 #include <ramses-logic/Logger.h>
 #include <ramses-logic/LogicEngine.h>
 #include <ramses-logic/LuaModule.h>
 #include <ramses-logic/LuaScript.h>
 #include <ramses-logic/Property.h>
+
 #include <sstream>
+#include <string>
 
 namespace {
 
@@ -207,6 +210,108 @@ std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::st
 	return description;
 }
 
+
+std::vector<std::string> getRamsesUniformPropertyNames(core::ValueHandle uniformContainerHandle, const std::vector<std::string> &propertyNames, size_t startIndex) {
+	std::string propName;
+	core::ValueHandle handle = uniformContainerHandle;
+	for (size_t index = startIndex; index < propertyNames.size(); index++) {
+		auto currentName = propertyNames[index];
+		handle = handle.get(currentName);
+		auto engineTypeAnno = handle.query<user_types::EngineTypeAnnotation>();
+		switch (engineTypeAnno->type()) {
+			case core::EnginePrimitive::Struct:
+				// ramses uniform name: struct.member
+				propName += fmt::format("{}.", currentName);
+				break;
+
+			case core::EnginePrimitive::Array: {
+				auto elementAnno = handle[0].query<user_types::EngineTypeAnnotation>();
+				if (elementAnno->type() == core::EnginePrimitive::Struct) {
+					// array of struct:
+					// ramses uniform name: array[index].member
+					++index;
+					assert(index < propertyNames.size());
+					auto arrayIndex = std::stoi(propertyNames[index]) - 1;
+					handle = handle[arrayIndex];
+					propName += fmt::format("{}[{}].", currentName, arrayIndex);
+				} else {
+					// note: array of array is not possible so this must be a primitive type
+					// propertyNames may or may not include the index into the array as final element,
+					// so we need to handle both cases here:
+					propName += currentName;
+					if (index == propertyNames.size() - 1) {
+						return {propName};
+					} else {
+						assert(index == propertyNames.size() - 2);
+						return {propName, propertyNames[index + 1]};
+					}
+				}
+			} break;
+			default:
+				propName += currentName;
+		}
+	}
+	return {propName};
+}
+
+std::string getRamsesUniformPropertyName(core::ValueHandle uniformContainerHandle, core::ValueHandle uniformHandle) {
+	return getRamsesUniformPropertyNames(uniformContainerHandle, uniformHandle.getPropertyNamesVector(), uniformContainerHandle.depth())[0];
+}
+
+void buildUniformRecursive(std::string uniformName, raco::core::PropertyInterfaceList &uniforms, raco::core::EnginePrimitive type, uint32_t elementCount, std::string& outError) {
+	auto dotPos = uniformName.find('.');
+	auto bracketPos = uniformName.find('[');
+
+	if (dotPos != std::string::npos && dotPos < bracketPos) {
+		// struct
+		// notation: struct.member
+		auto structName = uniformName.substr(0, dotPos);
+		std::string memberName = uniformName.substr(dotPos + 1);
+
+		auto it = std::find_if(uniforms.begin(), uniforms.end(), [structName](auto item) {
+			return structName == item.name;
+		});
+		raco::core::PropertyInterface &interface = it == uniforms.end() ? uniforms.emplace_back(structName, raco::core::EnginePrimitive::Struct) : *it;
+
+		buildUniformRecursive(memberName, interface.children, type, elementCount, outError);
+
+	} else if (bracketPos != std::string::npos && bracketPos < dotPos) {
+		// array of struct
+		// notation: array[index].member
+		auto closeBracketPos = uniformName.find(']');
+		if (closeBracketPos != std::string::npos) {
+			auto arrayName = uniformName.substr(0, bracketPos);
+			auto indexStr = uniformName.substr(bracketPos + 1, closeBracketPos - bracketPos - 1);
+			auto rest = uniformName.substr(closeBracketPos + 2);
+
+			auto it = std::find_if(uniforms.begin(), uniforms.end(), [arrayName](auto item) {
+				return arrayName == item.name;
+			});
+			raco::core::PropertyInterface &interface = it == uniforms.end() ? uniforms.emplace_back(arrayName, raco::core::EnginePrimitive::Array) : *it;
+
+			// The index in the uniform name starts at 0
+			int index = stoi(indexStr);
+			assert(index <= interface.children.size());
+			if (index == interface.children.size()) {
+				interface.children.emplace_back(std::string(), raco::core::EnginePrimitive::Struct);
+			}
+			raco::core::PropertyInterface &element = interface.children[index];
+			buildUniformRecursive(rest, element.children, type, elementCount, outError);
+		}
+	} else {
+		// scalar
+		if (elementCount > 1) {
+			if (type >= core::EnginePrimitive::Int32 && type <= core::EnginePrimitive::Vec4i) {
+				uniforms.emplace_back(raco::core::PropertyInterface::makeArrayOf(uniformName, type, elementCount));
+			} else {
+				outError += fmt::format("Uniform '{}' has unsupported array element type '{}'", uniformName, type);
+			}
+		} else {
+			uniforms.emplace_back(uniformName, type);
+		}
+	}
+}
+
 bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, const std::string &shaderDefines, raco::core::PropertyInterfaceList &outUniforms, raco::core::PropertyInterfaceList &outAttributes, std::string &outError) {
 	outUniforms.clear();
 	outAttributes.clear();
@@ -221,15 +326,7 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 			if (uniform.getSemantics() == ramses::EEffectUniformSemantic::Invalid) {
 				if (shaderTypeMap.find(uniform.getDataType()) != shaderTypeMap.end()) {
 					auto engineType = shaderTypeMap[uniform.getDataType()];
-					if (uniform.getElementCount() > 1) {
-						if (engineType >= core::EnginePrimitive::Int32 && engineType <= core::EnginePrimitive::Vec4i) {
-							outUniforms.emplace_back(raco::core::PropertyInterface::makeArrayOf(uniform.getName(), engineType, uniform.getElementCount()));
-						} else {
-							outError += fmt::format("Uniform '{}' has unsupported array element type '{}'", uniform.getName(), engineType);
-						}
-					} else {
-						outUniforms.emplace_back(std::string{uniform.getName()}, engineType);
-					}
+					buildUniformRecursive(std::string(uniform.getName()), outUniforms, engineType, uniform.getElementCount(), outError);
 				} else {
 					// mat4 uniforms are needed for skinning: they will be set directly by the LogicEngine 
 					// so we don't need to expose but they shouldn't generate errors either:
@@ -529,8 +626,9 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 		return {};
 	}
 
-	auto selectedTextureFormat = static_cast<ramses::ETextureFormat>(obj->get("textureFormat")->asInt());
-	decodingInfo.convertedPngFormat = selectedTextureFormat;
+	auto format = static_cast<user_types::ETextureFormat>(obj->get("textureFormat")->asInt());
+	auto ramsesFormat = ramses_base::enumerationTranslationTextureFormat.at(format);
+	decodingInfo.convertedPngFormat = ramsesFormat;
 
 	std::vector<unsigned char> data;
 	unsigned int curWidth;
@@ -549,10 +647,10 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 	decodingInfo.pngColorChannels = pngColorTypeToColorInfo(decodingInfo.originalPngFormat);
 	decodingInfo.ramsesColorChannels = ramsesTextureFormatToRamsesColorInfo(decodingInfo.originalPngFormat, decodingInfo.convertedPngFormat);
 	decodingInfo.shaderColorChannels = ramsesColorInfoToShaderColorInfo(decodingInfo.ramsesColorChannels);
-	auto textureFormatCompatInfo = raco::ramses_base::validateTextureColorTypeAndBitDepth(selectedTextureFormat, pngColorType, (pngColorType == LCT_PALETTE) ? 8 : lodePngColorInfo.bitdepth);
+	auto textureFormatCompatInfo = raco::ramses_base::validateTextureColorTypeAndBitDepth(ramsesFormat, pngColorType, (pngColorType == LCT_PALETTE) ? 8 : lodePngColorInfo.bitdepth);
 
 	auto ret = textureFormatCompatInfo.conversionNeeded
-				   ? lodepng::decode(data, curWidth, curHeight, rawBinaryData, ramsesTextureFormatToPngFormat(selectedTextureFormat), (pngColorType == LCT_PALETTE) ? 8 : lodePngColorInfo.bitdepth)
+				   ? lodepng::decode(data, curWidth, curHeight, rawBinaryData, ramsesTextureFormatToPngFormat(ramsesFormat), (pngColorType == LCT_PALETTE) ? 8 : lodePngColorInfo.bitdepth)
 				   : lodepng::decode(data, curWidth, curHeight, pngImportState, rawBinaryData);
 
 	if (ret != 0) {
@@ -610,7 +708,7 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 
 		if (decodingInfo.bitdepth == 16) {
 			raco::ramses_base::normalize16BitColorData(data);
-		} else if (pngColorType != LCT_GREY_ALPHA && selectedTextureFormat == ramses::ETextureFormat::RG8) {
+		} else if (pngColorType != LCT_GREY_ALPHA && ramsesFormat == ramses::ETextureFormat::RG8) {
 			data = raco::ramses_base::generateColorDataWithoutBlueChannel(data);
 		}
 	}

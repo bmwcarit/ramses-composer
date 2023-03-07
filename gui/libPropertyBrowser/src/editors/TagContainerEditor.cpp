@@ -34,7 +34,9 @@ namespace raco::property_browser {
 TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* parent) : PropertyEditor(item, parent) {
 	auto* layout{new PropertyBrowserGridLayout{this}};
 
-	if (item->valueHandle().rootObject()->isType<user_types::Material>()) {
+	if (item->valueHandle().isRefToProp(&user_types::EditorObject::userTags_)) {
+		tagType_ = raco::core::TagType::UserTags;
+	} else if (item->valueHandle().rootObject()->isType<user_types::Material>()) {
 		tagType_ = raco::core::TagType::MaterialTags;
 	} else if (item->valueHandle().rootObject()->isType<user_types::RenderLayer>()) {
 		if (item->valueHandle().isRefToProp(&user_types::RenderLayer::materialFilterTags_)) {

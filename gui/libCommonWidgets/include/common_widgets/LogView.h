@@ -12,9 +12,6 @@
 #include "common_widgets/log_model/LogViewSink.h"
 #include "common_widgets/log_model/LogViewSortFilterProxyModel.h"
 
-#include <chrono>
-#include <memory>
-#include <QKeyEvent>
 #include <QLabel>
 #include <QTableView>
 #include <QWidget>
@@ -31,19 +28,13 @@ public Q_SLOTS:
 	void updateWarningErrorLabel();
 	void customMenuRequested(QPoint pos);
 
-protected:
-	QTableView* tableView_;
-
-	bool event(QEvent* event) override;
-	void copySelectedRows();
-	void keyPressEvent(QKeyEvent* event) override;
-
-
 private:
+	void copySelectedRows();
+
+	QTableView* tableView_;
 	LogViewModel* model_;
 	LogViewSortFilterProxyModel* proxyModel_;
 	QLabel* warningErrorLabel_;
-
 };
 
 }  // namespace raco::common_widgets

@@ -193,12 +193,15 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("objectID", &objectID_);
 		properties_.emplace_back("objectName", &objectName_);
+		properties_.emplace_back("userTags", &userTags_);
 		properties_.emplace_back("children", &children_);
 	}
 
 
 	Property<std::string, HiddenProperty> objectID_{ std::string(), HiddenProperty() };
 	Property<std::string, DisplayNameAnnotation> objectName_;
+
+	Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation> userTags_{{}, {}, {}, {}, {"User Tags"}};
 
 	// Used to check back pointers in the unit tests.
 	const std::set<WEditorObject, std::owner_less<WEditorObject>>& referencesToThis() const;

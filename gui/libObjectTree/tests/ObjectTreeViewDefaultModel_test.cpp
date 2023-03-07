@@ -77,6 +77,12 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 				treeValue = objTreeNode->getRepresentedObject()->objectID();
 				objValue = obj->objectID();
 			}
+		    break;
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_USERTAGS: {
+				auto treeValue = objTreeNode->getUserTags();
+				auto objValue = obj->userTags_->asVector<std::string>();
+				ASSERT_EQ(treeValue, objValue);
+			} 
 			break;
 			default: {
 				FAIL() << "Need to check value equivalence for new ObjectTreeViewDefaultModel column enum value";

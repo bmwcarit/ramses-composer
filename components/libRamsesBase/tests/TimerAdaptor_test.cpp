@@ -14,16 +14,7 @@
 
 using namespace raco::user_types;
 
-class TimerAdaptorTest : public RamsesBaseFixture<> {
-public:
-	void dispatch() {
-		auto dataChanges = this->recorder.release();
-
-		sceneContext.readDataFromEngine(dataChanges);
-		dataChangeDispatcher->dispatch(dataChanges);
-		sceneContext.logicEngine().update();
-	}
-};
+class TimerAdaptorTest : public RamsesBaseFixture<> {};
 
 TEST_F(TimerAdaptorTest, defaultConstruction) {
 	auto timer = context.createObject(Timer::typeDescription.typeName, "Timer");
@@ -88,7 +79,6 @@ TEST_F(TimerAdaptorTest, InputNotZeroGetsPropagated) {
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, val);
 	dispatch();
-	dispatch();
 
 	ASSERT_EQ((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), val);
 }
@@ -98,10 +88,8 @@ TEST_F(TimerAdaptorTest, InputNotZeroBackToZeroOutputNotZero) {
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{233212});
 	dispatch();
-	dispatch();
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{0});
-	dispatch();
 	dispatch();
 
 	ASSERT_NE((ValueHandle{timer, {"outputs", "ticker_us"}}.asInt64()), int64_t{0});
@@ -111,7 +99,6 @@ TEST_F(TimerAdaptorTest, InputBelowZeroNoError) {
 	auto timer{commandInterface.createObject(Timer::typeDescription.typeName)};
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{-1});
-	dispatch();
 	dispatch();
 
 	ASSERT_FALSE(commandInterface.errors().hasError(timer));
@@ -123,16 +110,13 @@ TEST_F(TimerAdaptorTest, InputNotIncreasingNoError) {
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{2});
 	dispatch();
-	dispatch();
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{1});
-	dispatch();
 	dispatch();
 
 	ASSERT_FALSE(commandInterface.errors().hasError(timer));
 
 	commandInterface.set({timer, {"inputs", "ticker_us"}}, int64_t{0});
-	dispatch();
 	dispatch();
 	ASSERT_FALSE(commandInterface.errors().hasError(timer));
 }

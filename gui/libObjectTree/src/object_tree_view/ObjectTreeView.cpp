@@ -64,6 +64,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	// hidden column for data only used for filtering, enable to reveal object IDs
 	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_ID, true);
+	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_USERTAGS, true);
 
 	connect(this, &QTreeView::customContextMenuRequested, this, &ObjectTreeView::showContextMenu);
 	connect(this, &QTreeView::expanded, this, &ObjectTreeView::expanded);
@@ -93,10 +94,18 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	setColumnWidth(ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, width() / 3);
 
+	auto copyShortcut = new QShortcut(QKeySequence::Copy, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(copyShortcut, &QShortcut::activated, this, &ObjectTreeView::copyObjects);
+
+	auto pasteShortcut = new QShortcut(QKeySequence::Paste, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(pasteShortcut, &QShortcut::activated, this, [this]() {
+		pasteObjects(getSelectedInsertionTargetIndex());
+	});
+
 	auto cutShortcut = new QShortcut(QKeySequence::Cut, this, nullptr, nullptr, Qt::WidgetShortcut);
-	QObject::connect(cutShortcut, &QShortcut::activated, this, &ObjectTreeView::cut);
+	QObject::connect(cutShortcut, &QShortcut::activated, this, &ObjectTreeView::cutObjects);
 	auto deleteShortcut = new QShortcut({"Del"}, this, nullptr, nullptr, Qt::WidgetShortcut);
-	QObject::connect(deleteShortcut, &QShortcut::activated, this, &ObjectTreeView::shortcutDelete);
+	QObject::connect(deleteShortcut, &QShortcut::activated, this, &ObjectTreeView::deleteObjects);
 
 	auto duplicateShortcut = new QShortcut({"Ctrl+D"}, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
@@ -169,7 +178,7 @@ std::vector<core::SEditorObject> ObjectTreeView::getSortedSelectedEditorObjects(
 	return result;
 }
 
-void ObjectTreeView::globalCopyCallback() {
+void ObjectTreeView::copyObjects() {
 	auto selectedIndices = getSelectedIndices(true);
 	if (!selectedIndices.empty()) {
 		if (canCopyAtIndices(selectedIndices)) {
@@ -178,7 +187,22 @@ void ObjectTreeView::globalCopyCallback() {
 	}
 }
 
-void ObjectTreeView::shortcutDelete() {
+void ObjectTreeView::pasteObjects(const QModelIndex &index, bool asExtRef) {
+	if (canPasteIntoIndex(index, asExtRef)) {
+		treeModel_->pasteObjectAtIndex(index, asExtRef);
+	} else if (canPasteIntoIndex({}, asExtRef)) {
+		treeModel_->pasteObjectAtIndex({}, asExtRef);
+	}
+}
+
+void ObjectTreeView::cutObjects() {
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.isEmpty()) {
+		treeModel_->cutObjectsAtIndices(selectedIndices, false);
+	}
+}
+
+void ObjectTreeView::deleteObjects() {
 	auto selectedIndices = getSelectedIndices();
 	if (!selectedIndices.empty()) {
 		auto delObjAmount = treeModel_->deleteObjectsAtIndices(selectedIndices);
@@ -186,6 +210,13 @@ void ObjectTreeView::shortcutDelete() {
 		if (delObjAmount > 0) {
 			selectionModel()->Q_EMIT selectionChanged({}, {});
 		}
+	}
+}
+
+void raco::object_tree::view::ObjectTreeView::duplicateObjects() {
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.isEmpty() && treeModel_->canDuplicateAtIndices(selectedIndices)) {
+		treeModel_->duplicateObjectsAtIndices(selectedIndices);
 	}
 }
 
@@ -231,28 +262,6 @@ void ObjectTreeView::collapseRecusively(const QModelIndex& index) {
 	
 	for (int i = 0; i < index.model()->rowCount(index); ++i) {
 		collapseRecusively(index.model()->index(i, 0, index));
-	}
-}
-
-void ObjectTreeView::cut() {
-	auto selectedIndices = getSelectedIndices(true);
-	if (!selectedIndices.isEmpty()) {
-		treeModel_->cutObjectsAtIndices(selectedIndices, false);
-	}
-}
-
-void raco::object_tree::view::ObjectTreeView::duplicateObjects() {
-	auto selectedIndices = getSelectedIndices(true);
-	if (!selectedIndices.isEmpty() && treeModel_->canDuplicateAtIndices(selectedIndices)) {
-		treeModel_->duplicateObjectsAtIndices(selectedIndices);
-	}
-}
-
-void ObjectTreeView::globalPasteCallback(const QModelIndex &index, bool asExtRef) {
-	if (canPasteIntoIndex(index, asExtRef)) {
-		treeModel_->pasteObjectAtIndex(index, asExtRef);
-	} else if (canPasteIntoIndex({}, asExtRef)) {
-		treeModel_->pasteObjectAtIndex({}, asExtRef);
 	}
 }
 

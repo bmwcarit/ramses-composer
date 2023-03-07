@@ -48,7 +48,7 @@ public:
 
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {1, 7680}, {"Width"}};
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {1, 7680}, {"Height"}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> format_{DEFAULT_VALUE_RENDER_BUFFER_FORMAT, DisplayNameAnnotation("Format"), EnumerationAnnotation{EngineEnumeration::RenderBufferFormat}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> format_{DEFAULT_VALUE_RENDER_BUFFER_FORMAT, DisplayNameAnnotation("Format"), EnumerationAnnotation{EUserTypeEnumerations::RenderBufferFormat}};
 
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> sampleCount_{SAMPLE_COUNT_MIN, {SAMPLE_COUNT_MIN, SAMPLE_COUNT_MAX}, {"Sample Count"}};
 

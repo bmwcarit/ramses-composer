@@ -30,6 +30,7 @@ using raco::core::EnumerationAnnotation;
 using raco::core::ArraySemanticAnnotation;
 using raco::core::HiddenProperty;
 using raco::core::TagContainerAnnotation;
+using raco::core::UserTagContainerAnnotation;
 using raco::core::ExpectEmptyReference;
 using raco::core::RenderableTagContainerAnnotation;
 using raco::core::FeatureLevel;
@@ -148,6 +149,7 @@ public:
 
 		// EditorObject
 		Property<Table, ArraySemanticAnnotation, HiddenProperty>,
+		Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation>,
 		Property<std::string, HiddenProperty>,
 		Property<std::string, DisplayNameAnnotation>,
 

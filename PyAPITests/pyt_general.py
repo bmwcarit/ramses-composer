@@ -443,12 +443,12 @@ class GeneralTests(unittest.TestCase):
     def test_set_int_enum_fail(self):
         material = raco.create("Material", "my_mat")
 
-        self.assertEqual(material.options.cullmode.value(), 2)
+        self.assertEqual(material.options.cullmode.value(), raco.ECullMode.Back)
         material.options.cullmode = 1
-        self.assertEqual(material.options.cullmode.value(), 1)
+        self.assertEqual(material.options.cullmode.value(), raco.ECullMode.Front)
         with self.assertRaises(RuntimeError):
             material.options.cullmode = 42
-        self.assertEqual(material.options.cullmode.value(), 1)
+        self.assertEqual(material.options.cullmode.value(), raco.ECullMode.Front)
 
     def test_set_int_enum(self):
         material = raco.create("Material", "my_mat")
@@ -1073,6 +1073,17 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(layer.renderableTags.red.value(), 1)
         self.assertEqual(layer.renderableTags.blue.value(), 3)
 
+    def test_setUserTags(self):
+        # Check type that also has 'tags' property
+        node = raco.create("Node", "node")
+        node.setUserTags(['foo', 'bar'])
+        self.assertEqual(node.getUserTags(), ['foo', 'bar'])
+
+        # Check type that does not have 'tags' property, only 'userTags'
+        texture = raco.create("Texture", "texture")
+        texture.setUserTags(['foo', 'bar'])
+        self.assertEqual(texture.getUserTags(), ['foo', 'bar'])
+
     def test_feature_level_3_render_order(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
@@ -1141,3 +1152,51 @@ class GeneralTests(unittest.TestCase):
         raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Texture")
         second_result = raco.addExternalReferences(self.cwd() + R"/../resources/example_scene.rca", "Texture")
         self.assertEqual(0, len(second_result))
+
+    # Export with specified lua save mode, assert success and cleanup
+    def export(self, name, save_mode):
+        out_dir = self.cwd()
+        logic_file = os.path.join(out_dir, f'{name}.rlogic')
+        ramses_file = os.path.join(out_dir, f'{name}.ramses')
+        if os.path.exists(logic_file):
+            os.remove(logic_file)
+        try:
+            raco.export(
+                ramses_file,
+                logic_file,
+                False,
+                save_mode)
+            self.assertEqual(os.path.exists(logic_file), True)
+        except RuntimeError:
+            raise
+        finally:
+            if os.path.exists(logic_file):
+                os.remove(logic_file)
+            if os.path.exists(ramses_file):
+                os.remove(ramses_file)
+
+    def test_feature_level_2_export_lua_save_mode(self):
+        # Add a lua script to project
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        # All available modes are supported starting from Feature Level 2
+        self.export("lua_SourceCodeOnly", raco.ELuaSavingMode.SourceCodeOnly)
+        self.export("lua_ByteCodeOnly", raco.ELuaSavingMode.ByteCodeOnly)
+        self.export("lua_SourceAndByteCode", raco.ELuaSavingMode.SourceAndByteCode)
+
+    def test_feature_level_1_export_lua_save_mode(self):
+        raco.reset(1)
+
+        # Add a lua script to project
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        # In Feature Level 1 only Source Code lua saving mode is supported
+        self.export("lua_SourceCodeOnly_FL1", raco.ELuaSavingMode.SourceCodeOnly)
+        # Ramses Logic treats SourceAndByteCode as SourceCodeOnly and exports successfully
+        self.export("lua_SourceAndByteCode_FL1", raco.ELuaSavingMode.SourceAndByteCode)
+
+        # Ramses Logic rejects ByteCodeOnly
+        with self.assertRaises(RuntimeError):
+            self.export("lua_ByteCodeOnly_FL1", raco.ELuaSavingMode.ByteCodeOnly)

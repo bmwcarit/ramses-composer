@@ -46,7 +46,7 @@ public:
 	void updateFromExternalFile(BaseContext& context) override;
 
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> textureFormat_{DEFAULT_VALUE_TEXTURE_FORMAT_RGBA8, {"Format"}, {EngineEnumeration::TextureFormat}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> textureFormat_{DEFAULT_VALUE_TEXTURE_FORMAT_RGBA8, {"Format"}, {EUserTypeEnumerations::TextureFormat}};
 	Property<bool, DisplayNameAnnotation> flipTexture_{false, DisplayNameAnnotation("Flip Vertically")};
 	Property<bool, DisplayNameAnnotation> generateMipmaps_{false, DisplayNameAnnotation("Generate Mipmaps")};
 

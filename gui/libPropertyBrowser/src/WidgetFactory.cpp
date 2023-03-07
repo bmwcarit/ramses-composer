@@ -76,7 +76,7 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 			return new PropertyEditor{ item, parent };
 		}
 		case PrimitiveType::Table:
-			if (item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {
+			if (item->query<core::UserTagContainerAnnotation>() || item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {
 				return new TagContainerEditor{ item, parent };
 			}
 			return new PropertyEditor{ item, parent };

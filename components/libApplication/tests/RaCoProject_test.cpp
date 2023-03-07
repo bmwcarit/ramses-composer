@@ -35,6 +35,9 @@ using raco::application::RaCoApplication;
 using raco::application::RaCoApplicationLaunchSettings;
 using raco::names::PROJECT_FILE_EXTENSION;
 
+using namespace raco::core;
+using namespace raco::user_types;
+
 TEST_F(RaCoProjectFixture, saveLoadWithLink) {
 	{
 		RaCoApplication app{backend};
@@ -421,7 +424,7 @@ TEST_F(RaCoProjectFixture, saveAsWithNewID) {
 	RaCoApplication app{backend};
 	std::string msg;
 	const auto objectInitID = app.activeRaCoProject().project()->settings()->objectID();
-	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, true));
+	ASSERT_TRUE(app.saveAsWithNewIDs((test_path() / "project.rca").string().c_str(), msg, false));
 	const auto objectNewID = app.activeRaCoProject().project()->settings()->objectID();
 	ASSERT_NE(objectInitID, objectNewID);
 
@@ -434,19 +437,97 @@ TEST_F(RaCoProjectFixture, saveAsWithNewIDSamePath) {
 	RaCoApplication app{backend};
 	std::string msg;
 	const auto objectInitID = app.activeRaCoProject().project()->settings()->objectID();
-	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, true));
+	ASSERT_TRUE(app.saveAsWithNewIDs((test_path() / "project.rca").string().c_str(), msg, false));
 	const auto objectNewID1 = app.activeRaCoProject().project()->settings()->objectID();
 	ASSERT_NE(objectNewID1, objectInitID);
-	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, true));
+	ASSERT_TRUE(app.saveAsWithNewIDs((test_path() / "project.rca").string().c_str(), msg, false));
 	const auto objectNewID2 = app.activeRaCoProject().project()->settings()->objectID();
 	ASSERT_NE(objectNewID1, objectNewID2);
+}
+
+
+TEST_F(RaCoProjectFixture, save_as_with_new_id_preserves_prefab_id_structure_nested) {
+	RaCoApplication app{backend};
+	auto& cmd = *app.activeRaCoProject().commandInterface();
+	
+	//           prefab_2  inst_2
+	//  prefab   inst_1    inst_3
+	//  lua      lua_1     lua_2
+
+	app.activeRaCoProject().project()->setCurrentPath((test_path() / "project.rca").string());
+
+	auto prefab = cmd.createObject(raco::user_types::Prefab::typeDescription.typeName, "prefab");
+	auto lua = cmd.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua");
+	cmd.moveScenegraphChildren({lua}, prefab);
+
+	auto prefab_2 = cmd.createObject(raco::user_types::Prefab::typeDescription.typeName, "prefab2");
+	auto inst_1 = cmd.createObject(raco::user_types::PrefabInstance::typeDescription.typeName, "inst");
+	cmd.moveScenegraphChildren({inst_1}, prefab_2);
+	cmd.set({inst_1, &raco::user_types::PrefabInstance::template_}, prefab);
+
+	EXPECT_EQ(inst_1->children_->size(), 1);
+	auto lua_1 = inst_1->children_->asVector<SEditorObject>()[0];
+
+	auto inst_2 = cmd.createObject(raco::user_types::PrefabInstance::typeDescription.typeName, "inst2");
+	cmd.set({inst_2, &raco::user_types::PrefabInstance::template_}, prefab_2);
+	EXPECT_EQ(inst_2->children_->size(), 1);
+	auto inst_3 = inst_2->children_->asVector<SEditorObject>()[0];
+	EXPECT_EQ(inst_3->children_->size(), 1);
+	auto lua_2 = inst_3->children_->asVector<SEditorObject>()[0];
+
+	EXPECT_EQ(lua_1->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_1->objectID()));
+	EXPECT_EQ(inst_3->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2->objectID()));
+	EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua_1->objectID(), inst_2->objectID()));
+	EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_3->objectID()));
+
+	std::string prefab_id = prefab->objectID();
+	std::string prefab_2_id = prefab_2->objectID();
+	std::string inst_1_id = inst_1->objectID();
+	std::string inst_2_id = inst_2->objectID();
+	std::string inst_3_id = inst_3->objectID();
+	std::string lua_id = lua->objectID();
+	std::string lua_1_id = lua_1->objectID();
+	std::string lua_2_id = lua_2->objectID();
+	
+	std::string msg;
+	ASSERT_TRUE(app.saveAsWithNewIDs((test_path() / "project.rca").string().c_str(), msg, false));
+	auto& instances = app.activeRaCoProject().project()->instances();
+
+	{
+		auto prefab = raco::select<Prefab>(instances, "prefab");
+		auto lua = prefab->children_->asVector<SEditorObject>()[0];
+
+		auto prefab_2 = raco::select<Prefab>(instances, "prefab2");
+		auto inst_1 = prefab_2->children_->asVector<SEditorObject>()[0];
+		auto lua_1 = inst_1->children_->asVector<SEditorObject>()[0];
+
+		auto inst_2 = raco::select<PrefabInstance>(instances, "inst2");
+		auto inst_3 = inst_2->children_->asVector<SEditorObject>()[0];
+		auto lua_2 = inst_3->children_->asVector<SEditorObject>()[0];
+
+		EXPECT_NE(prefab_id, prefab->objectID());
+		EXPECT_NE(prefab_2_id, prefab_2->objectID());
+
+		EXPECT_NE(inst_1_id, inst_1->objectID());
+		EXPECT_NE(inst_2_id, inst_2->objectID());
+		EXPECT_NE(inst_3_id, inst_3->objectID());
+
+		EXPECT_NE(lua_id, lua->objectID());
+		EXPECT_NE(lua_1_id, lua_1->objectID());
+		EXPECT_NE(lua_2_id, lua_2->objectID());
+
+		EXPECT_EQ(lua_1->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_1->objectID()));
+		EXPECT_EQ(inst_3->objectID(), EditorObject::XorObjectIDs(inst_1->objectID(), inst_2->objectID()));
+		EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua_1->objectID(), inst_2->objectID()));
+		EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_3->objectID()));
+	}
 }
 
 TEST_F(RaCoProjectFixture, saveAsSetProjectName) {
 	RaCoApplication app{backend};
 	std::string msg;
 	ASSERT_TRUE(app.activeRaCoProject().project()->settings()->objectName().empty());
-	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, true, false));
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, true));
 	ASSERT_EQ("project", app.activeRaCoProject().project()->settings()->objectName());
 
 	raco::core::LoadContext loadContext;
@@ -576,7 +657,7 @@ TEST_F(RaCoProjectFixture, saveAs_set_path_updates_cached_path) {
 
 	RaCoApplication app{backend};
 	std::string msg;
-	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false, false));
+	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false));
 
 	const auto& settings = app.activeRaCoProject().project()->settings();
 	const auto& commandInterface = app.activeRaCoProject().commandInterface();
@@ -608,7 +689,7 @@ TEST_F(RaCoProjectFixture, saveAs_with_new_id_set_path_updates_cached_path) {
 
 	RaCoApplication app{backend};
 	std::string msg;
-	ASSERT_TRUE(app.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg,  false, true));
+	ASSERT_TRUE(app.saveAsWithNewIDs((test_path() / "project.rca").string().c_str(), msg,  false));
 
 	const auto& settings = app.activeRaCoProject().project()->settings();
 	const auto& commandInterface = app.activeRaCoProject().commandInterface();

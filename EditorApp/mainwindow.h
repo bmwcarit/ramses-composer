@@ -83,7 +83,7 @@ protected:
 	void saveDockManagerCustomLayouts();
 
 protected Q_SLOTS:
-	void openProject(const QString& file = {}, int featureLevel = -1);
+	void openProject(const QString& file = {}, int featureLevel = -1, bool generateNewObjectIDs = false);
 	bool saveActiveProject();
 	bool upgradeActiveProject(int newFeatureLevel);
 	bool saveAsActiveProject(bool newID = false);

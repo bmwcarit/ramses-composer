@@ -100,7 +100,7 @@ void print_recursive(ValueHandle& handle, unsigned level = 0) {
 TEST_F(ContextTest, Complex) {
 	std::shared_ptr<MockLuaScript> script{new MockLuaScript("foo")};
 
-	EXPECT_EQ(script->size(), 5);
+	EXPECT_EQ(script->size(), 6);
 
 	double val = *ValueHandle(script, &MockLuaScript::inputs_).get("in_array_struct")[1].get("bar").asVec3f().y;
 	EXPECT_EQ(val, 0);

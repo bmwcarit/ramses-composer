@@ -156,6 +156,73 @@ raco::data_storage::ValueBase* createDynamicProperty_V36(raco::core::EnginePrimi
 	return nullptr;
 }
 
+template <class... Args>
+raco::data_storage::ValueBase* createDynamicProperty_V51(core::EnginePrimitive type) {
+	using namespace raco::serialization::proxy;
+	using namespace raco::data_storage;
+	using namespace raco::core;
+
+	switch (type) {
+		case EnginePrimitive::Bool:
+			return ProxyObjectFactory::staticCreateProperty<bool, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Int32:
+		case EnginePrimitive::UInt16:
+		case EnginePrimitive::UInt32:
+			return ProxyObjectFactory::staticCreateProperty<int, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Int64:
+			return ProxyObjectFactory::staticCreateProperty<int64_t, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Double:
+			return ProxyObjectFactory::staticCreateProperty<double, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::String:
+			return ProxyObjectFactory::staticCreateProperty<std::string, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::Vec2f:
+			return ProxyObjectFactory::staticCreateProperty<Vec2f, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec3f:
+			return ProxyObjectFactory::staticCreateProperty<Vec3f, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec4f:
+			return ProxyObjectFactory::staticCreateProperty<Vec4f, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::Vec2i:
+			return ProxyObjectFactory::staticCreateProperty<Vec2i, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec3i:
+			return ProxyObjectFactory::staticCreateProperty<Vec3i, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::Vec4i:
+			return ProxyObjectFactory::staticCreateProperty<Vec4i, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::Array:
+		case EnginePrimitive::Struct:
+			return ProxyObjectFactory::staticCreateProperty<Table, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::TextureSampler2D:
+			return ProxyObjectFactory::staticCreateProperty<STextureSampler2DBase, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::TextureSampler2DMS:
+			return ProxyObjectFactory::staticCreateProperty<SRenderBufferMS, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+
+		case EnginePrimitive::TextureSamplerCube:
+			return ProxyObjectFactory::staticCreateProperty<SCubeMap, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+		case EnginePrimitive::TextureSamplerExternal:
+			return ProxyObjectFactory::staticCreateProperty<STextureExternal, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
+			break;
+	}
+	return nullptr;
+}
 
 raco::data_storage::Table* findItemByValue(raco::data_storage::Table& table, raco::core::SEditorObject obj) {
 	for (size_t i{0}; i < table.size(); i++) {
@@ -316,6 +383,85 @@ raco::serialization::proxy::SDynamicEditorObject createInterfaceObjectV36(raco::
 
 	return interfaceObj;
 }
+
+void splitUniformName(std::string uniformName, raco::core::EnginePrimitive componentType,
+	std::vector<std::string>& names,
+	std::vector<core::EnginePrimitive>& types) {
+	auto dotPos = uniformName.find('.');
+	auto bracketPos = uniformName.find('[');
+
+	if (dotPos != std::string::npos && dotPos < bracketPos) {
+		// struct
+		// notation: struct.member
+		auto structName = uniformName.substr(0, dotPos);
+		std::string memberName = uniformName.substr(dotPos + 1);
+
+		names.emplace_back(structName);
+		types.emplace_back(core::EnginePrimitive::Struct);
+
+		splitUniformName(memberName, componentType, names, types);
+
+	} else if (bracketPos != std::string::npos && bracketPos < dotPos) {
+		// array of struct
+		// notation: array[index].member
+		auto closeBracketPos = uniformName.find(']');
+		if (closeBracketPos != std::string::npos) {
+			auto arrayName = uniformName.substr(0, bracketPos);
+			auto indexStr = uniformName.substr(bracketPos + 1, closeBracketPos - bracketPos - 1);
+			auto index = stoi(indexStr);
+			auto rest = uniformName.substr(closeBracketPos + 2);
+
+			names.emplace_back(arrayName);
+			types.emplace_back(core::EnginePrimitive::Array);
+
+			names.emplace_back(std::to_string(index + 1));
+			types.emplace_back(core::EnginePrimitive::Struct);
+
+			splitUniformName(rest, componentType, names, types);
+		}
+	} else {
+		// scalar
+		names.emplace_back(uniformName);
+		types.emplace_back(componentType);
+	}
+}
+
+void replaceUniforms_V51(core::Table& uniforms) {
+	std::vector<std::string> uniformNames;
+	for (size_t i = 0; i < uniforms.size(); i++) {
+		uniformNames.emplace_back(uniforms.name(i));
+	}
+
+	for (auto name : uniformNames) {
+		std::vector<std::string> names;
+		std::vector<core::EnginePrimitive> types;
+		auto type = uniforms.get(name)->query<user_types::EngineTypeAnnotation>()->type();
+		splitUniformName(name, type, names, types);
+
+		if (names.size() > 1) {
+			core::Table* container = &uniforms;
+			for (int depth = 0; depth < names.size(); depth++) {
+				core::ValueBase* newProp;
+				if (!container->hasProperty(names[depth])) {
+					newProp = container->addProperty(names[depth], createDynamicProperty_V51<raco::core::LinkEndAnnotation>(types[depth]), -1);
+				} else {
+					newProp = container->get(names[depth]);
+				}
+
+				if (depth < names.size() - 1) {
+					container = &newProp->asTable();
+				} else {
+					// tranfer value
+					auto oldProp = uniforms.get(name);
+					*newProp = *oldProp;
+				}
+			}
+
+			uniforms.removeProperty(name);
+		}
+	}
+}
+
 
 // Limitations
 // - Annotations and links are handled as static classes:
@@ -578,7 +724,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		auto renderableTagsProp = new Property<Table, raco::core::RenderableTagContainerAnnotation, DisplayNameAnnotation>{{}, {}, {"Renderable Tags"}};
 		(*renderableTagsProp)->addProperty("render_main", std::make_unique<data_storage::Value<int>>(0));
 		mainLayer->addProperty("renderableTags", renderableTagsProp, -1);
-		mainLayer->addProperty("sortOrder", new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{2, {"Render Order"}, raco::core::EngineEnumeration::RenderLayerOrder}, -1);
+		mainLayer->addProperty("sortOrder", new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{2, {"Render Order"}, raco::core::EUserTypeEnumerations::RenderLayerOrder}, -1);
 
 		auto passID = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
 		auto mainPass = std::make_shared<raco::serialization::proxy::RenderPass>("MainRenderPass", passID);
@@ -872,7 +1018,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 					auto oldProp = dynObj->extractProperty("invertMaterialFilter");
 					// 1 -> Exclusive, 0 -> Inclusive
 					int newValue = oldProp->asBool() ? 1 : 0;
-					auto newProp = new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{newValue, {"Material Filter Mode"}, raco::core::EngineEnumeration::RenderLayerMaterialFilterMode};
+					auto newProp = new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{newValue, {"Material Filter Mode"}, raco::core::EUserTypeEnumerations::RenderLayerMaterialFilterMode};
 					dynObj->addProperty("materialFilterMode", newProp, -1);
 				}
 			}
@@ -1179,6 +1325,59 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 					auto oldProp = dynObj->extractProperty("buffer0");
 					auto newProp = dynObj->addProperty("buffer0", new Property<SRenderBuffer, DisplayNameAnnotation, ExpectEmptyReference>({}, {"Buffer 0"}, {}), -1);
 					*newProp = oldProp->asRef();
+				}
+			}
+		}
+	}
+
+	// File version 51: Added support for struct uniforms
+	if (deserializedIR.fileVersion < 51) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			if (instanceType == "Material" && dynObj->hasProperty("uniforms")) {
+				auto& uniforms = dynObj->get("uniforms")->asTable();
+				replaceUniforms_V51(uniforms);
+			}
+			
+			if (instanceType == "MeshNode" && dynObj->hasProperty("materials")) {
+				auto* materials = &dynObj->get("materials")->asTable();
+				for (size_t i = 0; i < materials->size(); i++) {
+					Table& matCont = materials->get(i)->asTable();
+					Table& uniformsCont = matCont.get("uniforms")->asTable();
+					replaceUniforms_V51(uniformsCont);
+				}
+			}
+		}
+
+		auto migrateLink = [](core::SLink link, int numPrefixComponents) {
+			auto linkEndProps = link->endPropertyNamesVector();
+
+			std::vector<std::string> names;
+			std::vector<core::EnginePrimitive> types;
+			splitUniformName(linkEndProps[numPrefixComponents], core::EnginePrimitive::Undefined, names, types);
+
+			if (names.size() > 1) {
+				std::vector<std::string> newLinkEndProps;
+				newLinkEndProps.insert(newLinkEndProps.end(), linkEndProps.begin(), linkEndProps.begin() + numPrefixComponents);
+				newLinkEndProps.insert(newLinkEndProps.end(), names.begin(), names.end());
+				newLinkEndProps.insert(newLinkEndProps.end(), linkEndProps.begin() + numPrefixComponents + 1, linkEndProps.end());
+
+				link->endProp_->set<std::string>(newLinkEndProps);
+			}
+		};
+
+		for (auto& link : deserializedIR.links) {
+			auto endType = (*link->endObject_)->serializationTypeName();
+			if (endType == "Material") {
+				auto linkEndProps = link->endPropertyNamesVector();
+				if (linkEndProps[0] == "uniforms") {
+					migrateLink(link, 1);
+				}
+			} else if (endType == "MeshNode") {
+				auto linkEndProps = link->endPropertyNamesVector();
+				if (linkEndProps.size() >= 3 && linkEndProps[2] == "uniforms") {
+					migrateLink(link, 3);
 				}
 			}
 		}

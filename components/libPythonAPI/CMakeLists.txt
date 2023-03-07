@@ -19,7 +19,6 @@ target_link_libraries(libPythonAPI
 PUBLIC
 	raco::ApplicationLib
 PRIVATE
-    raco::RamsesBase
     raco::pybind11
 )
 

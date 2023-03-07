@@ -21,6 +21,7 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
+#include <QShortcut>
 #include <QStandardItemModel>
 #include <QTableView>
 #include <QVBoxLayout>
@@ -120,26 +121,11 @@ LogView::LogView(LogViewModel* model, QWidget* parent) : model_(model) {
 		
 	logViewLayout->addWidget(tableView_);
 	logViewLayout->addWidget(filterLayoutWidget);
-}
 
-bool LogView::event(QEvent* event) {
-	// We want to override the application wide Ctrl+C handling if this widget is focussed.
-	if (event->type() == QEvent::ShortcutOverride) {
-		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-
-		if (keyEvent->matches(QKeySequence::Copy)) {
-			keyEvent->setAccepted(true);
-			return true;
-		}
-	}
-	return QWidget::event(event);
-}
-
-void LogView::keyPressEvent(QKeyEvent* event) {
-	if (event->matches(QKeySequence::Copy)) {
+	auto copyShortcut = new QShortcut(QKeySequence::Copy, this, nullptr, nullptr, Qt::WidgetWithChildrenShortcut);
+	QObject::connect(copyShortcut, &QShortcut::activated, this, [this]() {
 		copySelectedRows();
-		event->setAccepted(true);
-	}
+	});
 }
 
 void LogView::customMenuRequested(QPoint pos) {

@@ -99,7 +99,9 @@ ObjectTreeNodeType ObjectTreeNode::getType() const {
 namespace {
 	std::map<std::string, std::string> irregularObjectTypePluralNames{
 		{raco::serialization::proxy::meshTypeName, "Meshes"},
-		{raco::serialization::proxy::renderPassTypeName, "RenderPasses"}};
+		{raco::serialization::proxy::renderPassTypeName, "RenderPasses"},
+		{raco::serialization::proxy::blitPassTypeName, "BlitPasses"},
+		{raco::serialization::proxy::renderBufferMSTypeName, "RenderBufferMS"}};
 }
 
 std::string ObjectTreeNode::getDisplayName() const {
@@ -181,6 +183,13 @@ std::string ObjectTreeNode::getID() const {
 		default:
 			return "INVALID";
 	}
+}
+
+std::vector<std::string> ObjectTreeNode::getUserTags() const {
+	if (type_ == ObjectTreeNodeType::EditorObject) {
+		return representedObject_->userTags_->asVector<std::string>();
+	}
+	return {};
 }
 
 SEditorObject ObjectTreeNode::getRepresentedObject() const {

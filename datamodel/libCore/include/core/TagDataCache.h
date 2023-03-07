@@ -30,7 +30,7 @@ namespace raco::core {
 
 class Project;
 
-enum class TagType { MaterialTags, NodeTags_Referenced,	NodeTags_Referencing };
+enum class TagType { MaterialTags, NodeTags_Referenced,	NodeTags_Referencing, UserTags };
 
 class TagDataCache {
 	public:
@@ -84,7 +84,7 @@ class TagDataCache {
 		TagDataCache& operator=(TagDataCache const&) = delete;
 	
 		template <typename TaggedObjectTypeList>
-		void initCache(std::string_view referencingProperty);
+		void initCache(std::string_view referencingProperty, std::string_view tagProperty, TagType tagType);
 
 		template <class UserType, bool referencingObjects>
 		std::set<std::shared_ptr<UserType>> allObjectsWithTag(std::string const& tag) const;

@@ -38,3 +38,10 @@ add_racocommand_test(RaCoHeadless_load_multi_file_zip "${CMAKE_CURRENT_BINARY_DI
 set_tests_properties(RaCoHeadless_load_multi_file_zip PROPERTIES WILL_FAIL True)
 
 add_racocommand_test(RaCoHeadless_load_success "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/example_scene.rca")
+
+add_racocommand_test(RaCoHeadless_export_lua_saving_mode_source_code_success "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/example_scene.rca" "-e" "lua_saving_mode_source" "-s" "source_code")
+add_racocommand_test(RaCoHeadless_export_lua_saving_mode_byte_code_fl2_success "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/example_scene.rca" "-e" "lua_saving_mode_byte_fl2" "-s" "byte_code" "-f" "2")
+add_racocommand_test(RaCoHeadless_export_lua_saving_mode_source_and_byte_code_fl2_success "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/example_scene.rca" "-e" "lua_saving_mode_source_byte_fl2" "-s" "source_and_byte_code" "-f" "2")
+add_racocommand_test(RaCoHeadless_export_lua_saving_mode_long_option "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/example_scene.rca" "-e" "lua_saving_mode_long_option_source" "--luasavingmode" "source_code")
+add_racocommand_test(RaCoHeadless_export_lua_saving_mode_fail "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/example_scene.rca" "-e" "lua_saving_mode_fail" "-s" "invalid_setting")
+set_tests_properties(RaCoHeadless_export_lua_saving_mode_fail PROPERTIES WILL_FAIL True)

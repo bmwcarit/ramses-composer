@@ -19,8 +19,10 @@
 #include "data_storage/Value.h"
 #include "ramses_adaptor/BuildOptions.h"
 #include "ramses_adaptor/SceneAdaptor.h"
+#include "ramses_base/EnumerationTranslations.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/EngineTypeAnnotation.h"
+#include "user_types/Enumerations.h"
 #include "user_types/Material.h"
 #include "user_types/Node.h"
 #include "utils/MathUtils.h"
@@ -91,6 +93,9 @@ struct Vec3f {
 	bool operator==(const Vec3f& other) const {
 		return x == other.x && y == other.y && z == other.z;
 	}
+	bool operator==(const std::array<float, 3>& other) const {
+		return x == other[0] && y == other[1] && z == other[2];
+	}
 	bool operator!=(const Vec3f& other) const {
 		return x != other.x || y != other.y || z != other.z;
 	}
@@ -126,7 +131,7 @@ struct Translation final : public Vec3f {
 		auto status = target.setTranslation(value.x, value.y, value.z);
 		assert(status == ramses::StatusOK);
 	}
-	static Translation from(ramses::Node& node) {
+	static Translation from(const ramses::Node& node) {
 		Translation result;
 		auto status = node.getTranslation(result.x, result.y, result.z);
 		assert(status == ramses::StatusOK);
@@ -241,7 +246,6 @@ inline bool setLuaInputInEngine(rlogic::Property* property, const core::ValueHan
 	return success;
 }
 
-
 void getOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
 
 inline void getComplexLuaOutputFromEngine(const rlogic::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
@@ -307,136 +311,14 @@ inline void getOutputFromEngine(const rlogic::Property& property, const core::Va
 				auto [i1, i2, i3, i4] = property.get<rlogic::vec4i>().value();
 				core::CodeControlledPropertyModifier::setVec4i(valueHandle, i1, i2, i3, i4, recorder);
 			} else {
-				getComplexLuaOutputFromEngine(property, valueHandle, recorder);	
+				getComplexLuaOutputFromEngine(property, valueHandle, recorder);
 			}
 			break;
 		}
 		case PrimitiveType::Table: {
 			getComplexLuaOutputFromEngine(property, valueHandle, recorder);
-			break;		
+			break;
 		}
-	}
-}
-
-template<typename PropertyType, typename RamsesType>
-std::vector<RamsesType> flattenUniformArrayOfVector(const core::ValueHandle& handle, int numComponents) {
-	std::vector<RamsesType> values;
-	for (size_t index = 0; index < handle.size(); index++) {
-		for (size_t component = 0; component < numComponents; component++) {
-			values.emplace_back(handle[index][component].as<PropertyType>());
-		}
-	}
-	return values;
-}
-
-inline void setUniform(ramses::Appearance* appearance, const core::ValueHandle& valueHandle) {
-	using core::PrimitiveType;
-	ramses::UniformInput input;
-	appearance->getEffect().findUniformInput(valueHandle.getPropName().c_str(), input);
-
-	auto engineTypeAnno = valueHandle.query<raco::user_types::EngineTypeAnnotation>();
-	switch (engineTypeAnno->type()) {
-		case core::EnginePrimitive::Double:
-			appearance->setInputValueFloat(input, valueHandle.as<float>());
-			break;
-		case core::EnginePrimitive::Int32:
-		case core::EnginePrimitive::UInt16:
-		case core::EnginePrimitive::UInt32:
-			appearance->setInputValueInt32(input, static_cast<int32_t>(valueHandle.as<int>()));
-			break;
-
-		case core::EnginePrimitive::Vec2f:
-			appearance->setInputValueVector2f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>());
-			break;
-
-		case core::EnginePrimitive::Vec3f:
-			appearance->setInputValueVector3f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>());
-			break;
-
-		case core::EnginePrimitive::Vec4f:
-			appearance->setInputValueVector4f(input, valueHandle[0].as<float>(), valueHandle[1].as<float>(), valueHandle[2].as<float>(), valueHandle[3].as<float>());
-			break;
-
-		case core::EnginePrimitive::Vec2i:
-			appearance->setInputValueVector2i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()));
-			break;
-
-		case core::EnginePrimitive::Vec3i:
-			appearance->setInputValueVector3i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()));
-			break;
-
-		case core::EnginePrimitive::Vec4i:
-			appearance->setInputValueVector4i(input, static_cast<int32_t>(valueHandle[0].as<int>()), static_cast<int32_t>(valueHandle[1].as<int>()), static_cast<int32_t>(valueHandle[2].as<int>()), static_cast<int32_t>(valueHandle[3].as<int>()));
-			break;
-
-		case core::EnginePrimitive::Array: {
-			assert(valueHandle.size() >= 1);
-
-			auto elementAnno = valueHandle[0].query<user_types::EngineTypeAnnotation>();
-			switch (elementAnno->type()) {
-				case core::EnginePrimitive::Double: {
-					std::vector<float> values;
-					for (size_t index = 0; index < valueHandle.size(); index++) {
-						values.emplace_back(valueHandle[index].as<float>());
-					}
-					appearance->setInputValueFloat(input, values.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Int32:
-				case core::EnginePrimitive::UInt16:
-				case core::EnginePrimitive::UInt32: {
-					std::vector<int32_t> values;
-					for (size_t index = 0; index < valueHandle.size(); index++) {
-						values.emplace_back(valueHandle[index].as<int>());
-					}
-					appearance->setInputValueInt32(input, values.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Vec2f: {
-					auto values{flattenUniformArrayOfVector<double, float>(valueHandle, 2)};
-					appearance->setInputValueVector2f(input, valueHandle.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Vec3f: {
-					auto values{flattenUniformArrayOfVector<double, float>(valueHandle, 3)};
-					appearance->setInputValueVector3f(input, valueHandle.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Vec4f: {
-					auto values{flattenUniformArrayOfVector<double, float>(valueHandle, 4)};
-					appearance->setInputValueVector4f(input, valueHandle.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Vec2i: {
-					auto values{flattenUniformArrayOfVector<int, int32_t>(valueHandle, 2)};
-					appearance->setInputValueVector2i(input, valueHandle.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Vec3i: {
-					auto values{flattenUniformArrayOfVector<int, int32_t>(valueHandle, 3)};
-					appearance->setInputValueVector3i(input, valueHandle.size(), values.data());
-					break;
-				}
-
-				case core::EnginePrimitive::Vec4i: {
-					auto values{flattenUniformArrayOfVector<int, int32_t>(valueHandle, 4)};
-					appearance->setInputValueVector4i(input, valueHandle.size(), values.data());
-					break;
-				}
-
-				default:
-					break;
-			}
-		}
-
-		default:
-			break;
 	}
 }
 
@@ -445,9 +327,8 @@ inline void setDepthWrite(ramses::Appearance* appearance, const core::ValueHandl
 }
 
 inline void setDepthFunction(ramses::Appearance* appearance, const core::ValueHandle& valueHandle) {
-	assert(valueHandle.type() == raco::core::PrimitiveType::Int);
-	assert(valueHandle.asInt() >= 0 && valueHandle.asInt() < ramses::EDepthFunc_NUMBER_OF_ELEMENTS);
-	appearance->setDepthFunction(static_cast<ramses::EDepthFunc>(valueHandle.asInt()));
+	auto ramsesDepthFunc = ramses_base::enumerationTranslationsDepthFunc.at(static_cast<user_types::EDepthFunc>(valueHandle.asInt()));
+	appearance->setDepthFunction(ramsesDepthFunc);
 }
 
 inline ramses::EDepthWrite getDepthWriteMode(const ramses::Appearance* appearance) {
@@ -458,24 +339,24 @@ inline ramses::EDepthWrite getDepthWriteMode(const ramses::Appearance* appearanc
 
 inline void setBlendMode(ramses::Appearance* appearance, const core::ValueHandle& options) {
 	int colorOp = options.get("blendOperationColor").as<int>();
-	assert(colorOp >= 0 && colorOp < ramses::EBlendOperation_NUMBER_OF_ELEMENTS);
+	auto ramsesColorOp = ramses_base::enumerationTranslationsBlendOperation.at(static_cast<user_types::EBlendOperation>(colorOp));
 	int alphaOp = options.get("blendOperationAlpha").as<int>();
-	assert(alphaOp >= 0 && alphaOp < ramses::EBlendOperation_NUMBER_OF_ELEMENTS);
-	appearance->setBlendingOperations(static_cast<ramses::EBlendOperation>(colorOp), static_cast<ramses::EBlendOperation>(alphaOp));
+	auto ramsesAlphaOp = ramses_base::enumerationTranslationsBlendOperation.at(static_cast<user_types::EBlendOperation>(alphaOp));
+	appearance->setBlendingOperations(ramsesColorOp, ramsesAlphaOp);
 
 	int srcColor = options.get("blendFactorSrcColor").as<int>();
-	assert(srcColor >= 0 && srcColor < ramses::EBlendFactor_NUMBER_OF_ELEMENTS);
+	auto ramsesSrcColor = ramses_base::enumerationTranslationsBlendFactor.at(static_cast<user_types::EBlendFactor>(srcColor));
+
 	int destColor = options.get("blendFactorDestColor").as<int>();
-	assert(destColor >= 0 && destColor < ramses::EBlendFactor_NUMBER_OF_ELEMENTS);
+	auto ramsesDestColor = ramses_base::enumerationTranslationsBlendFactor.at(static_cast<user_types::EBlendFactor>(destColor));
+	
 	int srcAlpha = options.get("blendFactorSrcAlpha").as<int>();
-	assert(srcAlpha >= 0 && srcAlpha < ramses::EBlendFactor_NUMBER_OF_ELEMENTS);
+	auto ramsesSrcAlpha = ramses_base::enumerationTranslationsBlendFactor.at(static_cast<user_types::EBlendFactor>(srcAlpha));
+	
 	int destAlpha = options.get("blendFactorDestAlpha").as<int>();
-	assert(destAlpha >= 0 && destAlpha < ramses::EBlendFactor_NUMBER_OF_ELEMENTS);
-	appearance->setBlendingFactors(
-		static_cast<ramses::EBlendFactor>(srcColor),
-		static_cast<ramses::EBlendFactor>(destColor),
-		static_cast<ramses::EBlendFactor>(srcAlpha),
-		static_cast<ramses::EBlendFactor>(destAlpha));
+	auto ramsesDestAlpha = ramses_base::enumerationTranslationsBlendFactor.at(static_cast<user_types::EBlendFactor>(destAlpha));
+	
+	appearance->setBlendingFactors(ramsesSrcColor, ramsesDestColor, ramsesSrcAlpha, ramsesDestAlpha);
 }
 
 inline void setBlendColor(ramses::Appearance* appearance, const core::ValueHandle& color) {
@@ -487,9 +368,8 @@ inline void setBlendColor(ramses::Appearance* appearance, const core::ValueHandl
 }
 
 inline void setCullMode(ramses::Appearance* appearance, const core::ValueHandle& valueHandle) {
-	assert(valueHandle.type() == raco::core::PrimitiveType::Int);
-	assert(valueHandle.asInt() >= 0 && valueHandle.asInt() < ramses::ECullMode::ECullMode_NUMBER_OF_ELEMENTS);
-	appearance->setCullingMode(static_cast<ramses::ECullMode>(valueHandle.asInt()));
+	auto ramsesCullMode = ramses_base::enumerationTranslationsCullMode.at(static_cast<user_types::ECullMode>(valueHandle.asInt()));
+	appearance->setCullingMode(ramsesCullMode);
 }
 
 inline bool isArrayOfStructs(const rlogic::Property& property) {

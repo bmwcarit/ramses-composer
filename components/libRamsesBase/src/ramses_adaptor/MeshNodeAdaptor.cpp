@@ -222,7 +222,9 @@ const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::stri
 	if (names.size() > 1) {
 		if (appearanceBinding_) {
 			// Remove the first 3 nesting levels of the handle: materials/slot #/uniforms container:
-			return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), names, 3);
+			core::ValueHandle uniformContainerHandle = editorObject()->getUniformContainerHandle(0);
+			auto ramsesPropNames = ramses_base::getRamsesUniformPropertyNames(uniformContainerHandle, names, 3);
+			return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), ramsesPropNames, 0);
 		}
 		return nullptr;
 	}

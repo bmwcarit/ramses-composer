@@ -77,4 +77,9 @@ int clipAndCheckIntProperty(const raco::core::ValueHandle value, core::Errors* e
 
 ramses::ERenderBufferType ramsesRenderBufferTypeFromFormat(ramses::ERenderBufferFormat format);
 
+
+std::vector<std::string> getRamsesUniformPropertyNames(core::ValueHandle uniformContainerHandle, const std::vector<std::string>& propertyNames, size_t startIndex = 0);
+
+std::string getRamsesUniformPropertyName(core::ValueHandle uniformContainerHandle, core::ValueHandle uniformHandle);
+
 };	// namespace raco::ramses_base

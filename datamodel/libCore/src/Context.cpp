@@ -584,6 +584,33 @@ void BaseContext::restoreReferences(const Project& project, std::vector<SEditorO
 	}
 }
 
+void BaseContext::generateNewObjectIDs(std::vector<raco::core::SEditorObject>& newObjects) {
+	// Generate new ids:
+	// Pass 1: everything except PrefabInstance children
+	std::map<std::string, std::string> prefabInstanceIDMap;
+	for (auto& editorObject : newObjects) {
+		if (!editorObject->query<ExternalReferenceAnnotation>()) {
+			if (!PrefabOperations::findOuterContainingPrefabInstance(editorObject->getParent())) {
+				auto newId{EditorObject::normalizedObjectID(std::string())};
+				prefabInstanceIDMap[newId] = editorObject->objectID();
+				editorObject->setObjectID(newId);
+			}
+		}
+	}
+	// Pass 2: PrefabInstance children
+	// these are calculated from the containing PrefabInstance object id and need to know the old and new PrefabInstance ID
+	for (auto& editorObject : newObjects) {
+		if (!editorObject->query<ExternalReferenceAnnotation>()) {
+			if (auto inst = PrefabOperations::findOuterContainingPrefabInstance(editorObject->getParent())) {
+				auto newInstID = inst->objectID();
+				auto oldInstID = prefabInstanceIDMap[newInstID];
+				auto newID = EditorObject::XorObjectIDs(EditorObject::XorObjectIDs(editorObject->objectID(), oldInstID), newInstID);
+				editorObject->setObjectID(newID);
+			}
+		}
+	}
+}
+
 std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralizedObjects, const SEditorObject& target, bool pasteAsExtref) {
 	auto deserialization_opt{raco::serialization::deserializeObjects(seralizedObjects)};
 	if (!deserialization_opt) {
@@ -643,31 +670,8 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 	if (!pasteAsExtref) {
 		rerootRelativePaths(newObjects, deserialization);
 	}
-	
-	// Generate new ids:
-	// Pass 1: everything except PrefabInstance children
-	std::map<std::string, std::string> prefabInstanceIDMap;
-	for (auto& editorObject : newObjects) {
-		if (!editorObject->query<ExternalReferenceAnnotation>()) {
-			if (!PrefabOperations::findOuterContainingPrefabInstance(editorObject->getParent())) {
-				auto newId{EditorObject::normalizedObjectID(std::string())};
-				prefabInstanceIDMap[newId] = editorObject->objectID();
-				editorObject->setObjectID(newId);
-			}
-		}
-	}
-	// Pass 2: PrefabInstance children
-	// these are calculated from the containing PrefabInstance object id and need to know the old and new PrefabInstance ID
-	for (auto& editorObject : newObjects) {
-		if (!editorObject->query<ExternalReferenceAnnotation>()) {
-			if (auto inst = PrefabOperations::findOuterContainingPrefabInstance(editorObject->getParent())) {
-				auto newInstID = inst->objectID();
-				auto oldInstID = prefabInstanceIDMap[newInstID];
-				auto newID = EditorObject::XorObjectIDs(EditorObject::XorObjectIDs(editorObject->objectID(), oldInstID), newInstID);
-				editorObject->setObjectID(newID);
-			}
-		}
-	}
+		
+	BaseContext::generateNewObjectIDs(newObjects);
 
 	for (auto& editorObject : newObjects) {
 		project_->addInstance(editorObject);

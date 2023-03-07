@@ -27,7 +27,6 @@ public:
 	bool parseLuaInterface(const std::string& interfaceText, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, bool useModules, PropertyInterfaceList& outInputs, std::string& outError) override;
 	bool parseLuaScriptModule(raco::core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) override;
 	bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) override;
-	const std::map<int, std::string>& enumerationDescription(raco::core::EngineEnumeration type) const override;
 	std::string luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const override;
 
 	void removeModuleFromCache(raco::core::SCEditorObject object) override;

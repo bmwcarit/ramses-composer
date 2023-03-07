@@ -11,7 +11,7 @@
 
 #include "user_types/BaseObject.h"
 #include "user_types/DefaultValues.h"
-#include "core/EngineInterface.h"
+#include "core/CoreAnnotations.h"
 
 namespace raco::user_types {
 
@@ -45,10 +45,10 @@ public:
 		properties_.emplace_back("anisotropy", &anisotropy_);
 	}
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> wrapUMode_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_ADDRESS_MODE_CLAMP, DisplayNameAnnotation("Wrap U Mode"), EnumerationAnnotation{TextureAddressMode}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> wrapVMode_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_ADDRESS_MODE_CLAMP, DisplayNameAnnotation("Wrap V Mode"), EnumerationAnnotation{TextureAddressMode}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> minSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MIN_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Min Sampling Method"), EnumerationAnnotation{TextureMinSamplingMethod}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> magSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MAG_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Mag Sampling Method"), EnumerationAnnotation{TextureMagSamplingMethod}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> wrapUMode_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_ADDRESS_MODE_CLAMP, DisplayNameAnnotation("Wrap U Mode"), EnumerationAnnotation{EUserTypeEnumerations::TextureAddressMode}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> wrapVMode_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_ADDRESS_MODE_CLAMP, DisplayNameAnnotation("Wrap V Mode"), EnumerationAnnotation{EUserTypeEnumerations::TextureAddressMode}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> minSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MIN_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Min Sampling Method"), EnumerationAnnotation{EUserTypeEnumerations::TextureMinSamplingMethod}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> magSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MAG_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Mag Sampling Method"), EnumerationAnnotation{EUserTypeEnumerations::TextureMagSamplingMethod}};
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> anisotropy_{1, DisplayNameAnnotation{"Anisotropy Level"}, RangeAnnotation<int>(1, 32000) };
 };
 

@@ -10,6 +10,7 @@
 
 #include "ramses_adaptor/RenderBufferMSAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
+#include "ramses_base/EnumerationTranslations.h"
 #include "core/BasicAnnotations.h"
 
 namespace raco::ramses_adaptor {
@@ -41,8 +42,9 @@ bool RenderBufferMSAdaptor::sync(core::Errors* errors) {
 		return true;
 	}
 
-	ramses::ERenderBufferFormat format = static_cast<ramses::ERenderBufferFormat>(*editorObject()->format_);
-	ramses::ERenderBufferType type = raco::ramses_base::ramsesRenderBufferTypeFromFormat(format);
+	auto format = static_cast<user_types::ERenderBufferFormat>(*editorObject()->format_);
+	ramses::ERenderBufferFormat ramsesFormat = ramses_base::enumerationTranslationRenderBufferFormat.at(format);
+	ramses::ERenderBufferType type = raco::ramses_base::ramsesRenderBufferTypeFromFormat(ramsesFormat);
 
 	bool allValid = true;
 	uint32_t clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBufferMS::width_}, errors, &allValid);
@@ -52,7 +54,7 @@ bool RenderBufferMSAdaptor::sync(core::Errors* errors) {
 		buffer_ = raco::ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
 			clippedWidth, clippedHeight,
 			type,
-			format,
+			ramsesFormat,
 			ramses::ERenderBufferAccessMode_ReadWrite,
 			sampleCount,
 			(editorObject()->objectName() + "_BufferMS").c_str());

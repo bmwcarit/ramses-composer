@@ -116,7 +116,7 @@ void RaCoApplication::setupScene(bool optimizeForExport) {
 	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), optimizeForExport);
 }
 
-void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene, int featureLevel) {
+void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene, int featureLevel, bool generateNewObjectIDs) {
 	externalProjectsStore_.clear();
 	WithRelinkCallback withRelinkCallback(externalProjectsStore_, relinkCallback);
 
@@ -137,7 +137,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 	if (file.isEmpty()) {
 		activeProject_ = RaCoProject::createNew(this, createDefaultScene, static_cast<int>(featureLevel == -1 ? applicationFeatureLevel_ : featureLevel));
 	} else {
-		activeProject_ = RaCoProject::loadFromFile(file, this, loadContext, false, featureLevel);
+		activeProject_ = RaCoProject::loadFromFile(file, this, loadContext, false, featureLevel, generateNewObjectIDs);
 	}
 
 	externalProjectsStore_.setActiveProject(activeProject_.get());
@@ -153,6 +153,16 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 
 	// Log all errors after the engine update to make sure that errors created by the adaptor classes are logged.
 	activeProject_->errors()->logAllErrors();
+}
+
+bool RaCoApplication::saveAsWithNewIDs(const QString& newPath, std::string& outError, bool setProjectName) {
+	if (activeRaCoProject().saveAs(newPath, outError, setProjectName)) {
+		switchActiveRaCoProject(QString::fromStdString(activeProjectPath()), {}, true, -1, true);
+		if (activeRaCoProject().save(outError)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector<core::SceneBackendInterface::SceneItemDesc>& outDescription, std::string& outMessage) {
@@ -176,12 +186,12 @@ core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector
 	return errorLevel;
 }
 
-bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) {
+bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) {
 	setupScene(true);
 	logicEngineNeedsUpdate_ = true;
 	doOneLoop();
 
-	bool status = exportProjectImpl(ramsesExport, logicExport, compress, outError, forceExportWithErrors);
+	bool status = exportProjectImpl(ramsesExport, logicExport, compress, outError, forceExportWithErrors, luaSavingMode);
 
 	setupScene(false);
 	logicEngineNeedsUpdate_ = true;
@@ -190,7 +200,7 @@ bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::
 	return status;
 }
 
-bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors) const {
+bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const {
 	// Flushing the scene prevents inconsistent states being saved which could lead to unexpected bevahiour after loading the scene:
 	scenesBackend_->flush();
 
@@ -228,6 +238,8 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const s
 }})___",
 		QCoreApplication::applicationName().toStdString()));
 	metadata.setExporterVersion(RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+
+	metadata.setLuaSavingMode(static_cast<rlogic::ELuaSavingMode>(luaSavingMode));
 
 	if (!engine_->logicEngine().saveToFile(logicExport.c_str(), metadata)) {
 		if (engine_->logicEngine().getErrors().size() > 0) {

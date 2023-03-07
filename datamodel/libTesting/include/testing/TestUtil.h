@@ -136,4 +136,40 @@ inline std::pair<raco::core::MeshScenegraph, raco::core::FileChangeMonitor::Uniq
 }
 
 
+inline void checkVec2fValue(raco::core::ValueHandle handle, const std::array<float, 2>& value) {
+	EXPECT_EQ(handle[0].asDouble(), value[0]);
+	EXPECT_EQ(handle[1].asDouble(), value[1]);
+}
+
+inline void checkVec3fValue(raco::core::ValueHandle handle, const std::array<float, 3>& value) {
+	EXPECT_EQ(handle[0].asDouble(), value[0]);
+	EXPECT_EQ(handle[1].asDouble(), value[1]);
+	EXPECT_EQ(handle[2].asDouble(), value[2]);
+}
+
+inline void checkVec4fValue(raco::core::ValueHandle handle, const std::array<float, 4>& value) {
+	EXPECT_EQ(handle[0].asDouble(), value[0]);
+	EXPECT_EQ(handle[1].asDouble(), value[1]);
+	EXPECT_EQ(handle[2].asDouble(), value[2]);
+	EXPECT_EQ(handle[3].asDouble(), value[3]);
+}
+
+inline void checkVec2iValue(raco::core::ValueHandle handle, const std::array<int32_t, 2>& value) {
+	EXPECT_EQ(handle[0].asInt(), value[0]);
+	EXPECT_EQ(handle[1].asInt(), value[1]);
+}
+
+inline void checkVec3iValue(raco::core::ValueHandle handle, const std::array<int32_t, 3>& value) {
+	EXPECT_EQ(handle[0].asInt(), value[0]);
+	EXPECT_EQ(handle[1].asInt(), value[1]);
+	EXPECT_EQ(handle[2].asInt(), value[2]);
+}
+
+inline void checkVec4iValue(raco::core::ValueHandle handle, const std::array<int32_t, 4>& value) {
+	EXPECT_EQ(handle[0].asInt(), value[0]);
+	EXPECT_EQ(handle[1].asInt(), value[1]);
+	EXPECT_EQ(handle[2].asInt(), value[2]);
+	EXPECT_EQ(handle[3].asInt(), value[3]);
+}
+
 }  // namespace raco

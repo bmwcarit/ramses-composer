@@ -303,6 +303,14 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 	auto changedObjects = localChanges.getAllChangedObjects();
 	context.performExternalFileReload({changedObjects.begin(), changedObjects.end()});
 
+	// Update validity of links starting on external but ending on local objects
+	std::map<std::string, std::set<SLink>> extrefToLocalLinks = Queries::getLinksConnectedToObjects(*project, localObjects, true, false);
+	for (const auto& linkCont: extrefToLocalLinks) {
+		for (const auto& link : linkCont.second) {
+			context.updateLinkValidity(link);
+		}
+	}
+
 	project->setExternalReferenceUpdateFailed(false);
 }
 

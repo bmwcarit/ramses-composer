@@ -63,6 +63,7 @@ public:
 	rlogic::EFeatureLevel featureLevel() const;
 
 private:
+	bool needAdaptor(SEditorObject object);
 	void createLink(const core::LinkDescriptor& link);
 	void changeLinkValidity(const core::LinkDescriptor& link, bool isValid);
 	void removeLink(const core::LinkDescriptor& link);
@@ -110,7 +111,7 @@ private:
 	};
 
 	LinkAdaptorContainer links_;
-	std::vector<core::LinkDescriptor> newLinks_{};
+	std::set<core::LinkDescriptor> newLinks_{};
 
 	components::Subscription subscription_;
 	components::Subscription childrenSubscription_;

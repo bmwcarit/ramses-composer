@@ -137,6 +137,52 @@ TEST_F(RaCoApplicationFixture, export_interface_link_opt_4) {
 	EXPECT_FALSE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
 }
 
+TEST_F(RaCoApplicationFixture, export_with_lua_save_mode_for_feature_level_1) {
+	// Feature Level 1 only supports ELuaSavingMode::SourceCodeOnly.
+	application.switchActiveRaCoProject({}, {}, true, 1);
+	application.doOneLoop();
+
+	std::string error;
+	EXPECT_TRUE(application.exportProject(
+		(test_path() / "SourceCodeOnly.ramses").string(),
+		(test_path() / "SourceCodeOnly.logic").string(),
+		false,
+		error,
+		false,
+		raco::application::ELuaSavingMode::SourceCodeOnly));
+}
+
+TEST_F(RaCoApplicationFixture, export_with_lua_save_modes) {
+	// Feature Level 2 is required for all lua save modes.
+	application.switchActiveRaCoProject({}, {}, true, 2);
+	application.doOneLoop();
+
+	std::string error;
+	EXPECT_TRUE(application.exportProject(
+		(test_path() / "ByteCodeOnly.ramses").string(),
+		(test_path() / "ByteCodeOnly.logic").string(),
+		false,
+		error,
+		false,
+		raco::application::ELuaSavingMode::ByteCodeOnly));
+
+	EXPECT_TRUE(application.exportProject(
+		(test_path() / "SourceCodeOnly.ramses").string(),
+		(test_path() / "SourceCodeOnly.logic").string(),
+		false,
+		error,
+		false,
+		raco::application::ELuaSavingMode::SourceCodeOnly));
+
+	EXPECT_TRUE(application.exportProject(
+		(test_path() / "SourceAndByteCode.ramses").string(),
+		(test_path() / "SourceAndByteCode.logic").string(),
+		false,
+		error,
+		false,
+		raco::application::ELuaSavingMode::SourceAndByteCode));
+}
+
 TEST_F(RaCoApplicationFixture, cant_delete_ProjectSettings) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());

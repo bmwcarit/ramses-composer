@@ -85,15 +85,15 @@ public:
 	}
 
 	Property<bool, DisplayNameAnnotation> depthwrite_{true, DisplayNameAnnotation("Depth Write")};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> depthFunction_{DEFAULT_VALUE_MATERIAL_DEPTH_FUNCTION, DisplayNameAnnotation("Depth Function"), EnumerationAnnotation{EngineEnumeration::DepthFunction}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> depthFunction_{DEFAULT_VALUE_MATERIAL_DEPTH_FUNCTION, DisplayNameAnnotation("Depth Function"), EnumerationAnnotation{EUserTypeEnumerations::DepthFunction}};
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> cullmode_{DEFAULT_VALUE_MATERIAL_CULL_MODE, DisplayNameAnnotation("Cull Mode"), EnumerationAnnotation{EngineEnumeration::CullMode}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendOperationColor_{DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_COLOR, {"Blend Operation Color"}, {EngineEnumeration::BlendOperation}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendOperationAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_ALPHA, {"Blend Operation Alpha"}, {EngineEnumeration::BlendOperation}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcColor_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_COLOR, {"Blend Factor Src Color"}, {EngineEnumeration::BlendFactor}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestColor_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_COLOR, {"Blend Factor Dest Color"}, {EngineEnumeration::BlendFactor}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_ALPHA, {"Blend Factor Src Alpha"}, {EngineEnumeration::BlendFactor}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_ALPHA, {"Blend Factor Dest Alpha"}, {EngineEnumeration::BlendFactor}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> cullmode_{DEFAULT_VALUE_MATERIAL_CULL_MODE, DisplayNameAnnotation("Cull Mode"), EnumerationAnnotation{EUserTypeEnumerations::CullMode}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendOperationColor_{DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_COLOR, {"Blend Operation Color"}, {EUserTypeEnumerations::BlendOperation}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendOperationAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_OPERATION_ALPHA, {"Blend Operation Alpha"}, {EUserTypeEnumerations::BlendOperation}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcColor_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_COLOR, {"Blend Factor Src Color"}, {EUserTypeEnumerations::BlendFactor}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestColor_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_COLOR, {"Blend Factor Dest Color"}, {EUserTypeEnumerations::BlendFactor}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_ALPHA, {"Blend Factor Src Alpha"}, {EUserTypeEnumerations::BlendFactor}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_ALPHA, {"Blend Factor Dest Alpha"}, {EUserTypeEnumerations::BlendFactor}};
 	Property<Vec4f, DisplayNameAnnotation> blendColor_{{}, {"Blend Color"}};
 };
 

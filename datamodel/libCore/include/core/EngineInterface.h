@@ -17,9 +17,9 @@
 namespace raco::core {
 
 // !!! Careful: !!!
-// We can't change the numeric value of the EngineEnumeration members since these 
+// We can't change the numeric value of the EUserTypeEnumerations members since these 
 // are serialized via the EnumerationAnnotation::type_ property.
-enum EngineEnumeration {
+enum class EUserTypeEnumerations {
 	Undefined = 0,
 	CullMode = 1,
 	BlendOperation = 2,
@@ -147,8 +147,6 @@ public:
 	// @param outError will be set to the error message if parsing was not succesful. is not cleared on success.
 	// @return True indicates success at parsing and extracting the dependencies. If false outError will contain the error message.
 	virtual bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string &outError) = 0;
-
-	virtual const std::map<int, std::string>& enumerationDescription(EngineEnumeration type) const = 0;
 
 	virtual std::string luaNameForPrimitiveType(EnginePrimitive engineType) const = 0;
 };

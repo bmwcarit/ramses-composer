@@ -50,6 +50,13 @@ struct RaCoApplicationLaunchSettings {
 	bool runningInUI;
 };
 
+// Lua script saving mode. Wraps rlogic::ELuaSavingMode.
+enum class ELuaSavingMode {
+	SourceCodeOnly = 0,
+	ByteCodeOnly,
+	SourceAndByteCode
+};
+
 class RaCoApplication {
 public:
 	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings = {});
@@ -65,7 +72,19 @@ public:
 	// featureLevel
 	// - new scene: setup scene with given feature level; -1 = application feature level
 	// - loading scene: -1 = load with feature level in project file; >0 migrate scene to specified feature level
-	void switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene = true, int featureLevel = -1);
+	void switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene = true, int featureLevel = -1, bool generateNewObjectIDs = false);
+
+	/**
+	 * @brief Save project in new file while changing project ID and all object IDs.
+	 * 
+	 * This will perform a saveAs, load, save sequence. 
+	 * 
+	 * @param fileName New filename.
+	 * @param outError Returns error message in case of failure.
+	 * @param setProjectName Will set project name from filename if current project name is empty and flag is set.
+	 * @return True is successful, otherwise outError will contain the error message.
+	*/
+	bool saveAsWithNewIDs(const QString& fileName, std::string& outError, bool setProjectName = false);
 
 	// Get scene description and Ramses/RamsesLogic validation status and error message with the scene
 	// being setup as if exported.
@@ -77,8 +96,9 @@ public:
 		const std::string& ramsesExport,
 		const std::string& logicExport,
 		bool compress,
-		std::string& outError, 
-		bool forceExportWithErrors = false);
+		std::string& outError,
+		bool forceExportWithErrors = false,
+		ELuaSavingMode luaSavingMode = ELuaSavingMode::SourceCodeOnly);
 
 	void doOneLoop();
 
@@ -121,7 +141,7 @@ private:
 	// Needs to access externalProjectsStore_ directly:
 	friend class ::ObjectTreeViewExternalProjectModelTest;
 
-	bool exportProjectImpl(const std::string& ramsesExport,	const std::string& logicExport,	bool compress, std::string& outError, bool forceExportWithErrors) const;
+	bool exportProjectImpl(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const;
 
 	void setupScene(bool optimizedForExport);
 

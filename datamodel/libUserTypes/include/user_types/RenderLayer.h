@@ -69,9 +69,9 @@ public:
 	Property<Table, RenderableTagContainerAnnotation, DisplayNameAnnotation> renderableTags_{{}, {}, {"Renderable Tags"}};
 
 	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> materialFilterTags_{{}, {}, {}, {}, {"Material Filter Tags"}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> materialFilterMode_{static_cast<int>(ERenderLayerMaterialFilterMode::Exclusive), {"Material Filter Mode"}, EngineEnumeration::RenderLayerMaterialFilterMode};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> materialFilterMode_{static_cast<int>(ERenderLayerMaterialFilterMode::Exclusive), {"Material Filter Mode"}, EUserTypeEnumerations::RenderLayerMaterialFilterMode};
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> sortOrder_{static_cast<int>(ERenderLayerOrder::Manual), {"Render Order"}, EngineEnumeration::RenderLayerOrder};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> sortOrder_{static_cast<int>(ERenderLayerOrder::Manual), {"Render Order"}, EUserTypeEnumerations::RenderLayerOrder};
 };
 
 using SRenderLayer = std::shared_ptr<RenderLayer>;

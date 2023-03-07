@@ -9,15 +9,10 @@
  */
 #include "EditMenu.h"
 
-#include "common_widgets/RaCoClipboard.h"
 #include "object_tree_view/ObjectTreeDock.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
-#include "object_tree_view/ObjectTreeView.h"
 
-#include <QApplication>
 #include <QShortcut>
-#include <QSortFilterProxyModel>
-#include <QMessageBox>
 
 EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager, QMenu* menu) : QObject{menu} {
 	QObject::connect(menu, &QMenu::aboutToShow, this, [this, racoApplication, objectTreeDockManager, menu]() {
@@ -39,32 +34,6 @@ EditMenu::EditMenu(raco::application::RaCoApplication* racoApplication, raco::ob
 			redoAction->setEnabled(racoApplication->activeRaCoProject().undoStack()->canRedo());
 			undoAction->setEnabled(racoApplication->activeRaCoProject().undoStack()->canUndo());
 		});
-
-		menu->addSeparator();
-
-		auto* copyAction = menu->addAction("Copy");
-		copyAction->setShortcut(QKeySequence::Copy);
-		auto* pasteAction = menu->addAction("Paste");
-		pasteAction->setShortcut(QKeySequence::Paste);
-		auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection();
-		if (!activeObjectTreeDockWithSelection) {
-			copyAction->setEnabled(false);
-			pasteAction->setEnabled(raco::RaCoClipboard::hasEditorObject());
-		} else {
-			auto focusedTreeView = activeObjectTreeDockWithSelection->getActiveTreeView();
-			auto selectedIndices = focusedTreeView->getSelectedIndices();
-			auto pasteIndex = focusedTreeView->getSelectedInsertionTargetIndex();
-			copyAction->setEnabled(focusedTreeView->canCopyAtIndices(selectedIndices));
-			pasteAction->setEnabled(focusedTreeView->canPasteIntoIndex(pasteIndex, false) || focusedTreeView->canPasteIntoIndex({}, false));
-		}
-
-		QObject::connect(copyAction, &QAction::triggered, [racoApplication, objectTreeDockManager]() {
-			globalCopyCallback(racoApplication, objectTreeDockManager);
-		});
-
-		QObject::connect(pasteAction, &QAction::triggered, [racoApplication, objectTreeDockManager]() {
-			globalPasteCallback(racoApplication, objectTreeDockManager);
-		});
 	});
 	QObject::connect(menu, &QMenu::aboutToHide, this, [this, menu]() {
 		while (menu->actions().size() > 0) {
@@ -83,28 +52,5 @@ void EditMenu::globalUndoCallback(raco::application::RaCoApplication* racoApplic
 void EditMenu::globalRedoCallback(raco::application::RaCoApplication* racoApplication) {
 	if (racoApplication->activeRaCoProject().undoStack()->canRedo()) {
 		racoApplication->activeRaCoProject().undoStack()->redo();
-	}
-}
-
-void EditMenu::globalCopyCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager) {
-	if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
-		auto focusedTreeView = activeObjectTreeDockWithSelection->getActiveTreeView();
-		focusedTreeView->globalCopyCallback();
-	}
-}
-
-void EditMenu::globalPasteCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager) {
-	if (auto activeObjectTreeDockWithSelection = objectTreeDockManager->getActiveDockWithSelection()) {
-		auto focusedTreeView = activeObjectTreeDockWithSelection->getActiveTreeView();
-
-		focusedTreeView->globalPasteCallback(focusedTreeView->getSelectedInsertionTargetIndex());
-	} else {
-		auto copiedObjs = raco::RaCoClipboard::get();
-		try {
-			racoApplication->activeRaCoProject().commandInterface()->pasteObjects(copiedObjs);
-		}
-		catch (std::exception& error) {
-			// Just ignore a failed paste
-		}
 	}
 }

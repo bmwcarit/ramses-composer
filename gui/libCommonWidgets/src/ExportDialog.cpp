@@ -116,6 +116,19 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 	contentLayout->addWidget(compressEdit_, 2, 1);
 	compressEdit_->setChecked(true);
 
+	contentLayout->addWidget(new QLabel{"Lua saving mode:", content}, 3, 0);
+	luaSavingModeCombo_ = new QComboBox(content);
+	luaSavingModeCombo_->addItem("SourceCodeOnly", static_cast<int>(raco::application::ELuaSavingMode::SourceCodeOnly));
+	luaSavingModeCombo_->addItem("ByteCodeOnly", static_cast<int>(raco::application::ELuaSavingMode::ByteCodeOnly));
+	luaSavingModeCombo_->addItem("SourceAndByteCode", static_cast<int>(raco::application::ELuaSavingMode::SourceAndByteCode));
+	// SourceCodeOnly is default setting
+	luaSavingModeCombo_->setCurrentIndex(0);
+	contentLayout->addWidget(luaSavingModeCombo_, 3, 1);
+
+	if (application->activeRaCoProject().project()->featureLevel() < 2) {
+		luaSavingModeCombo_->setEnabled(false);
+	}
+
 	if (!application_->activeProjectPath().empty()) {
 		ramsesEdit_->setText(application_->activeRaCoProject().name() + "." + raco::names::FILE_EXTENSION_RAMSES_EXPORT);
 		logicEdit_->setText(application_->activeRaCoProject().name() + "." + raco::names::FILE_EXTENSION_LOGIC_EXPORT);
@@ -195,7 +208,10 @@ void ExportDialog::exportProject() {
 	if (application_->exportProject(
 			ramsesFilePath.string(),
 			logicFilePath.string(),
-			compressEdit_->isChecked(), error, true)) {
+			compressEdit_->isChecked(),
+			error,
+			true,
+			static_cast<raco::application::ELuaSavingMode>(luaSavingModeCombo_->currentData().toInt()))) {
 		accept();
 	} else {
 		QMessageBox::critical(

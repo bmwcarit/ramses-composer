@@ -21,12 +21,12 @@ add_library(libRamsesBase
     include/ramses_base/BaseEngineBackend.h src/ramses_base/BaseEngineBackend.cpp
     include/ramses_base/BuildOptions.h
     include/ramses_base/CoreInterfaceImpl.h src/ramses_base/CoreInterfaceImpl.cpp
+    include/ramses_base/EnumerationTranslations.h src/ramses_base/EnumerationTranslations.cpp
     include/ramses_base/HeadlessEngineBackend.h src/ramses_base/HeadlessEngineBackend.cpp
     include/ramses_base/LogicEngine.h
     include/ramses_base/RamsesHandles.h
     include/ramses_base/RamsesFormatter.h
     include/ramses_base/Utils.h src/ramses_base/Utils.cpp
-    src/ramses_base/EnumerationDescriptions.h
 
     include/ramses_adaptor/AnchorPointAdaptor.h src/ramses_adaptor/AnchorPointAdaptor.cpp
     include/ramses_adaptor/AnimationAdaptor.h src/ramses_adaptor/AnimationAdaptor.cpp

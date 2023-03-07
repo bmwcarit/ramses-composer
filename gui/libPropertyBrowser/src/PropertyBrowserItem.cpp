@@ -253,8 +253,8 @@ bool PropertyBrowserItem::editable() noexcept {
 }
 
 bool PropertyBrowserItem::expandable() const noexcept {
-	return valueHandle_.isObject() || 
-		valueHandle_.hasSubstructure() && !query<core::TagContainerAnnotation>();
+	return valueHandle_.isObject() ||
+		   valueHandle_.hasSubstructure() && !query<core::TagContainerAnnotation>() && !query<core::UserTagContainerAnnotation>();
 }
 
 bool PropertyBrowserItem::showChildren() const {

@@ -40,7 +40,8 @@ public:
 	void readDataFromEngine(core::DataChangeRecorder &recorder);
 
 protected:
-	void connectHelper(const core::PropertyDescriptor& start, const rlogic::Property& endEngineProp, bool isWeak);
+	void connectHelper(const core::ValueHandle& start, const core::ValueHandle& end, bool isWeak);
+	void readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property);
 
 	SceneAdaptor* sceneAdaptor_;
 	core::LinkDescriptor editorLink_;

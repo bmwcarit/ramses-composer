@@ -36,6 +36,9 @@ bool LuaScriptModuleAdaptor::sync(core::Errors* errors) {
 	if (editorObject_->isValid()) {
 		const auto& scriptContents = editorObject_->currentScriptContents();
 		auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+		if (!sceneAdaptor_->optimizeForExport()) {
+			luaConfig.enableDebugLogFunctions();
+		}
 		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), luaConfig, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 		assert(module_ != nullptr);
 	} else {

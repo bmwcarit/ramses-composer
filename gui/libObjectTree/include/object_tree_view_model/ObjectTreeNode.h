@@ -50,6 +50,7 @@ public:
 
 	ObjectTreeNodeType getType() const;
 	std::string getID() const;
+	std::vector<std::string> getUserTags() const;
 	std::string getDisplayName() const;
 	std::string getDisplayType() const;
 	std::string getTypeName() const;

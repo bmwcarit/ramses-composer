@@ -14,17 +14,29 @@
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
 #include "testing/TestUtil.h"
+#include "user_types/Node.h"
+#include "user_types/Prefab.h"
 #include "user_types/LuaScript.h"
+
 #include "utils/FileUtils.h"
 #include "core/PropertyDescriptor.h"
 
 using namespace raco;
-using raco::ramses_adaptor::LuaScriptAdaptor;
-using raco::ramses_adaptor::propertyByNames;
-using raco::user_types::LuaScript;
-using raco::user_types::SLuaScript;
+using namespace raco::ramses_adaptor;
+using namespace raco::user_types;
 
-class LinkAdaptorFixture : public RamsesBaseFixture<> {};
+class LinkAdaptorFixture : public RamsesBaseFixture<> {
+public:
+	void checkRamsesTranslation(const ramses::Node& node, const std::array<float, 3>& value) {
+		EXPECT_EQ(Translation::from(node), value);
+	}
+
+	void checkRamsesNodeTranslation(const std::string& name, const std::array<float, 3>& value) {
+		auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), name.c_str());
+		EXPECT_TRUE(ramsesNode != nullptr);
+		checkRamsesTranslation(*ramsesNode, value);
+	}
+};
 
 TEST_F(LinkAdaptorFixture, linkCreationOneLink) {
 	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
@@ -42,19 +54,14 @@ end
 	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
+	checkRamsesNodeTranslation("node", {0.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 
 	context.set({luaScript, {"inputs", "x"}}, 5.0);
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
-
-	auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), "node");
-	float x, y, z;
-	ramsesNode->getTranslation(x, y, z);
-	ASSERT_EQ(5.0f, x);
-	ASSERT_EQ(0.0f, y);
-	ASSERT_EQ(0.0f, z);
+	checkRamsesNodeTranslation("node", {5.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 }
 
 #if (!defined (__linux__))
@@ -76,12 +83,14 @@ end
 	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
+	checkRamsesNodeTranslation("node", {0.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 
 	context.set({luaScript, {"inputs", "x"}}, 5.0);
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
+	checkRamsesNodeTranslation("node", {5.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 
 	raco::utils::file::write((test_path() / "lua_script.lua").string(), R"(
 function interface(IN,OUT)
@@ -96,14 +105,8 @@ end
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, luaScript));
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
-
-	auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), "node");
-	float x, y, z;
-	ramsesNode->getTranslation(x, y, z);
-	ASSERT_EQ(5.0f, x);
-	ASSERT_EQ(5.0f, y);
-	ASSERT_EQ(0.0f, z);
+	checkRamsesNodeTranslation("node", {5.0, 5.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 }
 #endif
 
@@ -121,52 +124,30 @@ end
 	)");
 	context.set({luaScript, {"uri"}}, (test_path() / "lua_script.lua").string());
 	ASSERT_NO_FATAL_FAILURE(dispatch());
+
 	context.set({luaScript, {"inputs", "x"}}, 5.0);
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
+	checkRamsesNodeTranslation("node", {0.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 0);
 
 	auto link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
-
-	{
-		auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), "node");
-		float x, y, z;
-		ramsesNode->getTranslation(x, y, z);
-		ASSERT_EQ(5.0f, x);
-		ASSERT_EQ(0.0f, y);
-		ASSERT_EQ(0.0f, z);
-	}
+	checkRamsesNodeTranslation("node", {5.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 
 	context.removeLink(link->endProp());
 	context.set({luaScript, {"inputs", "x"}}, 10.0);
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
-
-	{
-		auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), "node");
-		float x, y, z;
-		ramsesNode->getTranslation(x, y, z);
-		ASSERT_EQ(0.0f, x);
-		ASSERT_EQ(0.0f, y);
-		ASSERT_EQ(0.0f, z);
-	}
+	checkRamsesNodeTranslation("node", {5.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 0);
 
 	link = context.addLink({luaScript, {"outputs", "translation"}}, {node, {"translation"}});
 
 	ASSERT_NO_FATAL_FAILURE(dispatch());
-	ASSERT_TRUE(backend.logicEngine().update());
-
-	{
-		auto ramsesNode = select<ramses::Node>(*sceneContext.scene(), "node");
-		float x, y, z;
-		ramsesNode->getTranslation(x, y, z);
-		ASSERT_EQ(10.0f, x);
-		ASSERT_EQ(0.0f, y);
-		ASSERT_EQ(0.0f, z);
-	}
+	checkRamsesNodeTranslation("node", {10.0, 0.0, 0.0});
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 }
 
 TEST_F(LinkAdaptorFixture, linkStruct) {
@@ -603,4 +584,30 @@ end
 	ASSERT_EQ(startEngineObj->getInputs()->getChild("y")->get<float>(), 4.0);
 	ASSERT_EQ(startEngineObj->getOutputs()->getChild("x")->get<float>(), 3.0);
 	ASSERT_EQ(startEngineObj->getOutputs()->getChild("y")->get<float>(), 4.0);
+}
+
+TEST_F(LinkAdaptorFixture, prefab_move_in_out) {
+	auto scriptFile = makeFile("lua_script.lua", R"(
+function interface(IN,OUT)
+	OUT.v = Type:Vec3f()
+end
+function run(IN,OUT)
+end
+	)");
+	auto prefab = create<Prefab>("prefab");
+	auto node = create<Node>("node");
+	auto child = create<Node>("child", node);
+	auto lua = create_lua("lua", scriptFile, node);
+
+	commandInterface.addLink({lua, {"outputs", "v"}}, {child, {"translation"}});
+	ASSERT_TRUE(dispatch());
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
+
+	commandInterface.moveScenegraphChildren({node}, prefab);
+	ASSERT_TRUE(dispatch());
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 0);
+
+	commandInterface.moveScenegraphChildren({node}, nullptr);
+	ASSERT_TRUE(dispatch());
+	EXPECT_EQ(backend.logicEngine().getPropertyLinks().size(), 1);
 }

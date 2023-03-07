@@ -12,6 +12,11 @@
 #include "data_storage/AnnotationBase.h"
 #include "data_storage/Value.h"
 
+#include "core/EngineInterface.h"
+
+#include <map>
+
+
 namespace raco::core {
 
 class URIAnnotation : public raco::data_storage::AnnotationBase {
@@ -104,6 +109,11 @@ public:
 	}
 };
 
+/**
+ * @brief Marks a Table containing tags used by the rendering system.
+ * 
+ * Not to be mixed up with UserTagContainerAnnotation
+*/
 class TagContainerAnnotation : public raco::data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"TagContainerAnnotation", false};
@@ -120,6 +130,9 @@ public:
 	}
 };
 
+/**
+ * @brief Marks a Table containing the tags to be rendered by a RenderLayer
+*/
 class RenderableTagContainerAnnotation : public raco::data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"RenderableTagContainerAnnotation", false};
@@ -136,6 +149,27 @@ public:
 	}
 };
 
+/**
+ * @brief Marks a Table property containing user-defined tags.
+ * 
+ * The user-defined Tags have no special semantics within RamsesComposer
+*/
+class UserTagContainerAnnotation : public raco::data_storage::AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"UserTagContainerAnnotation", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	UserTagContainerAnnotation(const UserTagContainerAnnotation& other) : AnnotationBase({}) {}
+	UserTagContainerAnnotation() : AnnotationBase({}) {}
+	UserTagContainerAnnotation& operator=(const UserTagContainerAnnotation& other) {
+		return *this;
+	}
+};
+
 class EnumerationAnnotation : public raco::data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "EnumerationAnnotation", false };
@@ -148,8 +182,8 @@ public:
 	EnumerationAnnotation(EnumerationAnnotation const& other) : AnnotationBase({{"type", &type_}}),
 																type_(other.type_) {}
 
-	EnumerationAnnotation(const int type = 0) : AnnotationBase({{"type", &type_}}),
-															  type_(type) {
+	EnumerationAnnotation(EUserTypeEnumerations type = EUserTypeEnumerations::Undefined) : AnnotationBase({{"type", &type_}}),
+															  type_(static_cast<int>(type)) {
 	}
 
 	EnumerationAnnotation& operator=(const EnumerationAnnotation& other) {
@@ -157,7 +191,7 @@ public:
 		return *this;
 	}
 
-	// This is really a raco::core::EngineEnumeration
+	// This is really a raco::core::EUserTypeEnumerations
 	raco::data_storage::Value<int> type_;
 };
 

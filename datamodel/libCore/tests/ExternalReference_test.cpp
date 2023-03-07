@@ -50,14 +50,7 @@ using raco::application::RaCoApplicationLaunchSettings;
 class ExtrefTest : public RacoBaseTest<> {
 public:
 	void checkLinks(const std::vector<raco::core::Link> &refLinks) {
-		EXPECT_EQ(refLinks.size(), project->links().size());
-		for (const auto &refLink : refLinks) {
-			auto projectLink = raco::core::Queries::getLink(*project, refLink.endProp());
-			EXPECT_TRUE(projectLink);
-			EXPECT_TRUE(projectLink->startProp() == refLink.startProp());
-			EXPECT_TRUE(projectLink->isValid() == refLink.isValid());
-			EXPECT_TRUE(*projectLink->isWeak_ == *refLink.isWeak_);
-		}
+		RacoBaseTest::checkLinks(*project, refLinks);
 	}
 
 	template <class C>
@@ -2316,6 +2309,51 @@ end
 	});
 }
 
+TEST_F(ExtrefTest, link_extref_to_local_update_invalidate) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN,OUT)
+	IN.v = Type:Vec3f()
+	OUT.v = Type:Vec3f()
+end
+function run(IN,OUT)
+end
+)");
+
+	TextFile scriptFile_alt = makeFile("script-alt.lua", R"(
+function interface(IN,OUT)
+	IN.v = Type:float()
+	OUT.v = Type:float()
+end
+function run(IN,OUT)
+end
+)");
+
+	setupBase(basePathName, [this, &scriptFile]() {
+		auto luaSource = create_lua("luaSource", scriptFile);
+	});
+
+	setupComposite(basePathName, compositePathName, {"luaSource"}, [this, &scriptFile]() {
+		auto luaSource = findExt("luaSource");
+		auto luaSink = create_lua("luaSink", scriptFile);
+		cmd->addLink({luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}});
+		checkLinks({{{luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}}, true, false}});
+	});
+
+	updateBase(basePathName, [this, &scriptFile_alt]() {
+		auto luaSource = find("luaSource");
+		cmd->set({luaSource, {"uri"}}, (test_path() / std::string(scriptFile_alt)).string());
+	});
+
+	updateComposite(compositePathName, [this]() {
+		auto luaSource = findExt("luaSource");
+		auto luaSink = findLocal("luaSink");
+		checkLinks({{{luaSource, {"outputs", "v"}}, {luaSink, {"inputs", "v"}}, false, false}});
+	});
+}
+
 TEST_F(ExtrefTest, timer_in_extref) {
 	auto basePathName1{(test_path() / "base.rca").string()};
 	auto basePathName2{(test_path() / "base2.rca").string()};
@@ -2492,7 +2530,7 @@ TEST_F(ExtrefTest, link_strong_valid_to_weak_invalid_transition) {
 
 		checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, false, true},
 			{{start, {"outputs", "ofloat"}}, {local_start, {"inputs", "float"}}, true, false},
-			{{end, {"outputs", "ofloat"}}, {local_end, {"inputs", "float"}}, true, false}});
+			{{end, {"outputs", "ofloat"}}, {local_end, {"inputs", "float"}}, false, false}});
 		EXPECT_FALSE(project->createsLoop({end, {"outputs", "ofloat"}}, {start, {"inputs", "float"}}));
 	});
 }
@@ -2577,4 +2615,150 @@ TEST_F(ExtrefTest, feature_level_upgrade_base) {
 			EXPECT_EQ(project->featureLevel(), 2);
 		},
 		2);
+}
+
+TEST_F(ExtrefTest, extref_paste_from_orig_and_save_as_with_new_id_copy) {
+	auto basePathName1{(test_path() / "base1.rca").string()};
+	auto basePathName2{(test_path() / "base2.rca").string()};
+
+	setupBase(
+		basePathName1, [this]() {
+			auto mesh = create<Mesh>("mesh");
+		},
+		std::string("base"));
+
+	updateComposite(basePathName1, [this, basePathName2]() {
+		std::string error;
+		app->saveAsWithNewIDs(QString::fromStdString(basePathName2), error);
+	});
+
+	setupGeneric([this, basePathName1, basePathName2]() {
+		ASSERT_TRUE(pasteFromExt(basePathName1, {"mesh"}, true));
+		ASSERT_TRUE(pasteFromExt(basePathName2, {"mesh"}, true));
+	});
+}
+
+TEST_F(ExtrefTest, save_as_with_new_id_preserves_extref_id) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+	auto compositePathName2{(test_path() / "composite2.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+	});
+
+	std::string prefabID;
+	std::string instID;
+	setupComposite(basePathName, compositePathName, {"prefab"}, [this, &prefabID, &instID]() {
+		auto prefab = findExt<Prefab>("prefab");
+		auto inst = create_prefabInstance("inst", prefab);
+		prefabID = prefab->objectID();
+		instID = prefab->objectID();
+	});
+
+	updateComposite(compositePathName, [this, compositePathName2, prefabID, instID]() {
+		std::string error;
+		app->saveAsWithNewIDs(QString::fromStdString(compositePathName2), error);
+		project = app->activeRaCoProject().project();
+		cmd = app->activeRaCoProject().commandInterface();
+
+		auto prefab = findExt<Prefab>("prefab");
+		auto inst = find("inst");
+		EXPECT_EQ(prefabID, prefab->objectID());
+		EXPECT_NE(instID, inst->objectID());
+	});
+}
+
+TEST_F(ExtrefTest, save_as_with_new_id_preserves_prefabinst_local_properties) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+	auto compositePathName2{(test_path() / "composite2.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+		TextFile scriptFile = makeFile("interface.lua", R"(
+function interface(INOUT)
+	INOUT.u = Type:Float()
+	INOUT.v = Type:Float()
+end
+)");
+		auto interface = create<LuaInterface>("interface", prefab);
+		cmd->set({interface, {"uri"}}, scriptFile);
+		cmd->set({interface, {"inputs", "u"}}, 1.0);
+	});
+
+	setupComposite(basePathName, compositePathName, {"prefab"}, [this]() {
+		auto prefab = findExt<Prefab>("prefab");
+		auto inst = create_prefabInstance("inst", prefab);
+
+		auto prefab_intf  = prefab->children_->asVector<SEditorObject>()[0]->as<LuaInterface>();
+		auto inst_intf = inst->children_->asVector<SEditorObject>()[0]->as<LuaInterface>();
+		cmd->set({inst_intf, {"inputs", "u"}}, 0.0);
+		cmd->set({inst_intf, {"inputs", "v"}}, 2.0);
+
+		EXPECT_EQ(prefab_intf->inputs_->get("u")->asDouble(), 1.0);
+		EXPECT_EQ(prefab_intf->inputs_->get("v")->asDouble(), 0.0);
+		EXPECT_EQ(inst_intf->inputs_->get("u")->asDouble(), 0.0);
+		EXPECT_EQ(inst_intf->inputs_->get("v")->asDouble(), 2.0);
+	});
+
+	updateComposite(compositePathName, [this, compositePathName2]() {
+		std::string error;
+		app->saveAsWithNewIDs(QString::fromStdString(compositePathName2), error);
+		project = app->activeRaCoProject().project();
+		cmd = app->activeRaCoProject().commandInterface();
+
+		auto prefab = findExt<Prefab>("prefab");
+		auto inst = find("inst");
+
+		auto prefab_intf = prefab->children_->asVector<SEditorObject>()[0]->as<LuaInterface>();
+		auto inst_intf = inst->children_->asVector<SEditorObject>()[0]->as<LuaInterface>();
+		EXPECT_EQ(prefab_intf->inputs_->get("u")->asDouble(), 1.0);
+		EXPECT_EQ(prefab_intf->inputs_->get("v")->asDouble(), 0.0);
+		EXPECT_EQ(inst_intf->inputs_->get("u")->asDouble(), 0.0);
+		EXPECT_EQ(inst_intf->inputs_->get("v")->asDouble(), 2.0);
+	});
+}
+
+TEST_F(ExtrefTest, save_as_with_new_id_preserves_prefabinst_local_links) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+	auto compositePathName2{(test_path() / "composite2.rca").string()};
+
+	TextFile scriptFile = makeFile("interface.lua", R"(
+function interface(INOUT)
+	INOUT.u = Type:Float()
+end
+)");
+
+	setupBase(basePathName, [this, &scriptFile]() {
+		auto prefab = create<Prefab>("prefab");
+		auto interface = create<LuaInterface>("interface", prefab);
+		cmd->set({interface, {"uri"}}, scriptFile);
+	});
+
+	setupComposite(basePathName, compositePathName, {"prefab"}, [this, &scriptFile]() {
+		auto prefab = findExt<Prefab>("prefab");
+		auto inst = create_prefabInstance("inst", prefab);
+		auto global_interface = create<LuaInterface>("global_interface", prefab);
+		cmd->set({global_interface, {"uri"}}, scriptFile);
+
+		auto inst_intf = inst->children_->asVector<SEditorObject>()[0]->as<LuaInterface>();
+		cmd->addLink({global_interface, {"inputs", "u"}}, {inst_intf, {"inputs", "u"}});
+
+		checkLinks({{{global_interface, {"inputs", "u"}}, {inst_intf, {"inputs", "u"}}}});
+	});
+
+	updateComposite(compositePathName, [this, compositePathName2]() {
+		std::string error;
+		app->saveAsWithNewIDs(QString::fromStdString(compositePathName2), error);
+		project = app->activeRaCoProject().project();
+		cmd = app->activeRaCoProject().commandInterface();
+
+		auto inst = find("inst");
+		auto global_interface = find("global_interface");
+		auto inst_intf = inst->children_->asVector<SEditorObject>()[0]->as<LuaInterface>();
+
+		checkLinks({{{global_interface, {"inputs", "u"}}, {inst_intf, {"inputs", "u"}}}});
+	});
 }

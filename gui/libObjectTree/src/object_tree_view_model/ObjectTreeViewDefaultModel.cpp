@@ -167,6 +167,13 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 					return QVariant(QString::fromStdString(treeNode->getDisplayType()));
 				case COLUMNINDEX_ID:
 					return QVariant(QString::fromStdString(treeNode->getID()));
+				case COLUMNINDEX_USERTAGS: {
+					QStringList qtags;
+					for (const auto& tag : treeNode->getUserTags()) {
+						qtags.append(QString::fromStdString(tag));
+					}
+					return QVariant(qtags.join(", "));
+				}
 				case COLUMNINDEX_PROJECT:
 					return QVariant(QString::fromStdString(treeNode->getExternalProjectName()));
 				case COLUMNINDEX_VISIBILITY:
@@ -191,6 +198,8 @@ QVariant ObjectTreeViewDefaultModel::headerData(int section, Qt::Orientation ori
 					return QVariant("Type");
 				case COLUMNINDEX_ID:
 					return QVariant("ID");
+				case COLUMNINDEX_USERTAGS:
+					return QVariant("User Tags");
 				case COLUMNINDEX_PROJECT:
 					return QVariant("Project Name");
 			}

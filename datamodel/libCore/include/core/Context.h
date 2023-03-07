@@ -171,6 +171,9 @@ public:
 	// generated change recorder entries. Use only during load to fix corrupt files.
 	void initLinkValidity();
 
+
+	static void generateNewObjectIDs(std::vector<raco::core::SEditorObject>& newObjects);
+
 private:
 	friend class UndoStack;
 	friend class UndoHelpers;

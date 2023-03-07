@@ -9,15 +9,15 @@
  */
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "core/ErrorItem.h"
-#include <ramses-client-api/MipLevelData.h>
+#include "lodepng.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
-#include "user_types/Texture.h"
 #include "user_types/Enumerations.h"
+#include "user_types/Texture.h"
+#include "utils/FileUtils.h"
 #include <QDataStream>
 #include <QFile>
-#include "lodepng.h"
-#include "utils/FileUtils.h"
+#include <ramses-client-api/MipLevelData.h>
 
 namespace raco::ramses_adaptor {
 
@@ -25,7 +25,7 @@ using namespace raco::ramses_base;
 
 TextureSamplerAdaptor::TextureSamplerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::Texture> editorObject)
 	: TypedObjectAdaptor(sceneAdaptor, editorObject, {}),
-	  subscriptions_ {sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::wrapUMode_}, [this]() {
+	  subscriptions_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::wrapUMode_}, [this]() {
 						 tagDirty();
 					 }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::Texture::wrapVMode_}, [this]() {
@@ -75,7 +75,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	if (!textureData_) {
 		textureData_ = getFallbackTexture();
 	} else {
-		auto selectedTextureFormat = static_cast<ramses::ETextureFormat>((*editorObject()->textureFormat_));
+		auto selectedTextureFormat = static_cast<user_types::ETextureFormat>((*editorObject()->textureFormat_));
 
 		std::string infoText = "Texture information\n\n";
 		infoText.append(fmt::format("Width: {} px\n", textureData_->getWidth()));
@@ -90,11 +90,24 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 
 	if (textureData_) {
 		textureData_->setName(createDefaultTextureDataName().c_str());
+
+		auto wrapUMode = static_cast<user_types::ETextureAddressMode>(*editorObject()->wrapUMode_);
+		auto ramsesWrapUMode = ramses_base::enumerationTranslationTextureAddressMode.at(wrapUMode);
+
+		auto wrapVMode = static_cast<user_types::ETextureAddressMode>(*editorObject()->wrapVMode_);
+		auto ramsesWrapVMode = ramses_base::enumerationTranslationTextureAddressMode.at(wrapVMode);
+
+		auto minSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_);
+		auto ramsesMinSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(minSamplMethod);
+
+		auto magSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_);
+		auto ramsesMagSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(magSamplMethod);
+
 		auto textureSampler = ramsesTextureSampler(sceneAdaptor_->scene(),
-			static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapUMode_),
-			static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapVMode_),
-			static_cast<ramses::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_),
-			static_cast<ramses::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_),
+			ramsesWrapUMode,
+			ramsesWrapVMode,
+			ramsesMinSamplMethod,
+			ramsesMagSamplMethod,
 			textureData_,
 			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));
 		reset(std::move(textureSampler));
@@ -114,7 +127,8 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, raco:
 	std::vector<std::vector<unsigned char>> rawMipDatas;
 	std::vector<ramses::MipLevelData> mipDatas;
 	auto mipMapsOk = true;
-	auto selectedTextureFormat = static_cast<ramses::ETextureFormat>((*editorObject()->textureFormat_));
+	auto format = static_cast<user_types::ETextureFormat>((*editorObject()->textureFormat_));
+	auto ramsesFormat = ramses_base::enumerationTranslationTextureFormat.at(format);
 
 	for (auto level = 1; level <= *editorObject()->mipmapLevel_; ++level) {
 		auto uriPropName = (level > 1) ? fmt::format("level{}{}", level, "uri") : "uri";
@@ -136,12 +150,12 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, raco:
 
 		// PNG has top left origin. Flip it vertically if required to match U/V origin
 		if (*editorObject()->flipTexture_) {
-			flipDecodedPicture(rawMipData, raco::ramses_base::ramsesTextureFormatToChannelAmount(selectedTextureFormat), decodingInfo.width * std::pow(0.5, i), decodingInfo.height * std::pow(0.5, i), decodingInfo.bitdepth);
+			flipDecodedPicture(rawMipData, raco::ramses_base::ramsesTextureFormatToChannelAmount(ramsesFormat), decodingInfo.width * std::pow(0.5, i), decodingInfo.height * std::pow(0.5, i), decodingInfo.bitdepth);
 		}
 		mipDatas.emplace_back(static_cast<uint32_t>(rawMipData.size()), rawMipData.data());
 	}
 
-	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), selectedTextureFormat, decodingInfo.width, decodingInfo.height, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), ramsesFormat, decodingInfo.width, decodingInfo.height, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {

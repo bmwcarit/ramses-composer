@@ -34,8 +34,8 @@ class Worker : public QObject {
 	Q_OBJECT
 
 public:
-	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, QStringList& pythonSearchPaths, bool compressExport, QStringList positionalArguments, int featureLevel)
-		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), pythonSearchPaths_(pythonSearchPaths), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel) {
+	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, QStringList& pythonSearchPaths, bool compressExport, QStringList positionalArguments, int featureLevel, raco::application::ELuaSavingMode luaSavingMode)
+		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), pythonSearchPaths_(pythonSearchPaths), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel), luaSavingMode_(luaSavingMode) {
 	}
 
 public Q_SLOTS:
@@ -89,7 +89,7 @@ public Q_SLOTS:
 				QString logicPath = exportPath_ + "." + raco::names::FILE_EXTENSION_LOGIC_EXPORT;
 
 				std::string error;
-				if (!app->exportProject(ramsesPath.toStdString(), logicPath.toStdString(), compressExport_, error)) {
+				if (!app->exportProject(ramsesPath.toStdString(), logicPath.toStdString(), compressExport_, error, false, luaSavingMode_)) {
 					LOG_ERROR(raco::log_system::COMMON, "error exporting to {}\n{}", ramsesPath.toStdString(), error.c_str());
 					exitCode_ = 1;
 				}
@@ -110,6 +110,7 @@ private:
 	bool compressExport_;
 	QStringList positionalArguments_;
 	int featureLevel_;
+	raco::application::ELuaSavingMode luaSavingMode_;
 	int exitCode_ = 0;
 };
 
@@ -196,6 +197,11 @@ int main(int argc, char* argv[]) {
 		"Directory to add to python module search path.",
 		"python-path"
 	);
+	QCommandLineOption luaSavingModeOption(
+		QStringList() << "s"
+					  << "luasavingmode",
+		"Lua script saving mode. Possible options: source_code, byte_code, source_and_byte_code.",
+		"lua-saving-mode");
 
 	parser.addOption(loadProjectAction);
 	parser.addOption(exportProjectAction);
@@ -206,6 +212,7 @@ int main(int argc, char* argv[]) {
 	parser.addOption(logFileOutputOption);
 	parser.addOption(ramsesLogicFeatureLevel);
 	parser.addOption(pythonPathOption);
+	parser.addOption(luaSavingModeOption);
 
 	// application must be instantiated before parsing command line
 	QCoreApplication a(argc, argv);
@@ -303,7 +310,22 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, pythonSearchPaths, compressExport, parser.positionalArguments(), featureLevel);
+	auto luaSavingMode = raco::application::ELuaSavingMode::SourceCodeOnly;
+	if (parser.isSet(luaSavingModeOption)) {
+		auto option = parser.value(luaSavingModeOption);
+		if (option == "byte_code") {
+			luaSavingMode = raco::application::ELuaSavingMode::ByteCodeOnly;
+		} else if (option == "source_code") {
+			luaSavingMode = raco::application::ELuaSavingMode::SourceCodeOnly;
+		} else if (option == "source_and_byte_code") {
+			luaSavingMode = raco::application::ELuaSavingMode::SourceAndByteCode;
+		} else {
+			LOG_ERROR(raco::log_system::COMMON, fmt::format("Invalid lua saving mode: {}. Possible values are: source_code (default), byte_code, source_and_byte_code.", option.toStdString()));
+			exit(1);
+		}
+	}
+
+	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, pythonSearchPaths, compressExport, parser.positionalArguments(), featureLevel, luaSavingMode);
 	QObject::connect(task, &Worker::finished, &QCoreApplication::exit);
 	QTimer::singleShot(0, task, &Worker::run);
 

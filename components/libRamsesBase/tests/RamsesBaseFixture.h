@@ -64,8 +64,11 @@ public:
 	raco::ramses_adaptor::SceneAdaptor sceneContext;
 
 	bool dispatch() {
-		dataChangeDispatcher->dispatch(this->recorder.release());
-		return sceneContext.logicEngine().update();
+		auto dataChanges = this->recorder.release();
+		dataChangeDispatcher->dispatch(dataChanges);
+		auto status = sceneContext.logicEngine().update();
+		sceneContext.readDataFromEngine(dataChanges);
+		return status;
 	}
 
 protected:

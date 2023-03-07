@@ -10,9 +10,20 @@
 #include <gtest/gtest.h>
 
 #include "RamsesBaseFixture.h"
+
+#include "AdaptorTestUtils.h"
+#include "MaterialAdaptorTestBase.h"
+
 #include "ramses_adaptor/MaterialAdaptor.h"
 
-class MaterialAdaptorTest : public RamsesBaseFixture<> {};
+#include "user_types/CubeMap.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderBufferMS.h"
+#include "user_types/TextureExternal.h"
+
+using namespace raco::user_types;
+
+class MaterialAdaptorTest : public MaterialAdaptorTestBase {};
 
 TEST_F(MaterialAdaptorTest, context_scene_effect_name_change) {
 	auto node = context.createObject(raco::user_types::Material::typeDescription.typeName, "Material Name");
@@ -42,203 +53,70 @@ TEST_F(MaterialAdaptorTest, context_scene_effect_name_change) {
 TEST_F(MaterialAdaptorTest, set_get_scalar_uniforms) {
 	auto material = create_material("mat", "shaders/uniform-scalar.vert", "shaders/uniform-scalar.frag");
 
-	commandInterface.set({material, {"uniforms", "i"}}, 2);
-	commandInterface.set({material, {"uniforms", "f"}}, 3.0);
-
-	commandInterface.set({material, {"uniforms", "v2", "y"}}, 4.0);
-	commandInterface.set({material, {"uniforms", "v3", "z"}}, 5.0);
-	commandInterface.set({material, {"uniforms", "v4", "w"}}, 6.0);
-
-	commandInterface.set({material, {"uniforms", "iv2", "i1"}}, 7);
-	commandInterface.set({material, {"uniforms", "iv3", "i2"}}, 8);
-	commandInterface.set({material, {"uniforms", "iv4", "i3"}}, 9);
+	setStructComponents({material, {"uniforms"}}, default_struct_prim_values);
 
 	dispatch();
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
-	ramses::UniformInput input;
-
-	int32_t ivalue;
-	appearance->getEffect().findUniformInput("i", input);
-	appearance->getInputValueInt32(input, ivalue);
-	EXPECT_EQ(ivalue, 2);
-
-	float fvalue;
-	appearance->getEffect().findUniformInput("f", input);
-	appearance->getInputValueFloat(input, fvalue);
-	EXPECT_EQ(fvalue, 3.0);
-
-	std::array<float, 2> value2f;
-	appearance->getEffect().findUniformInput("v2", input);
-	appearance->getInputValueVector2f(input, value2f[0], value2f[1]);
-	EXPECT_EQ(value2f[1], 4.0);
-
-	std::array<float, 3> value3f;
-	appearance->getEffect().findUniformInput("v3", input);
-	appearance->getInputValueVector3f(input, value3f[0], value3f[1], value3f[2]);
-	EXPECT_EQ(value3f[2], 5.0);
-
-	std::array<float, 4> value4f;
-	appearance->getEffect().findUniformInput("v4", input);
-	appearance->getInputValueVector4f(input, value4f[0], value4f[1], value4f[2], value4f[3]);
-	EXPECT_EQ(value4f[3], 6.0);
-
-	std::array<int32_t, 2> value2i;
-	appearance->getEffect().findUniformInput("iv2", input);
-	appearance->getInputValueVector2i(input, value2i[0], value2i[1]);
-	EXPECT_EQ(value2i[0], 7);
-
-	std::array<int32_t, 3> value3i;
-	appearance->getEffect().findUniformInput("iv3", input);
-	appearance->getInputValueVector3i(input, value3i[0], value3i[1], value3i[2]);
-	EXPECT_EQ(value3i[1], 8);
-
-	std::array<int32_t, 4> value4i;
-	appearance->getEffect().findUniformInput("iv4", input);
-	appearance->getInputValueVector4i(input, value4i[0], value4i[1], value4i[2], value4i[3]);
-	EXPECT_EQ(value4i[2], 9);
+	checkStructComponents(appearance, {}, default_struct_prim_values);
 }
 
 TEST_F(MaterialAdaptorTest, link_get_scalar_uniforms) {
 	auto material = create_material("mat", "shaders/uniform-scalar.vert", "shaders/uniform-scalar.frag");
-	auto lua = create_lua("lua", "scripts/types-scalar.lua");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
 
-	link(lua, {"outputs", "ointeger"}, material, {"uniforms", "i"});
-	link(lua, {"outputs", "ofloat"}, material, {"uniforms", "f"});
-
-	link(lua, {"outputs", "ovector2f"}, material, {"uniforms", "v2"});
-	link(lua, {"outputs", "ovector3f"}, material, {"uniforms", "v3"});
-	link(lua, {"outputs", "ovector4f"}, material, {"uniforms", "v4"});
-
-	link(lua, {"outputs", "ovector2i"}, material, {"uniforms", "iv2"});
-	link(lua, {"outputs", "ovector3i"}, material, {"uniforms", "iv3"});
-	link(lua, {"outputs", "ovector4i"}, material, {"uniforms", "iv4"});
-
-	dispatch();
-
-	commandInterface.set({lua, {"inputs", "integer"}}, 7);
-	commandInterface.set({lua, {"inputs", "float"}}, 9.0);
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
 
 	dispatch();
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
-	ramses::UniformInput input;
-
-	int32_t ivalue;
-	appearance->getEffect().findUniformInput("i", input);
-	appearance->getInputValueInt32(input, ivalue);
-	EXPECT_EQ(ivalue, 14);
-
-	float fvalue;
-	appearance->getEffect().findUniformInput("f", input);
-	appearance->getInputValueFloat(input, fvalue);
-	EXPECT_EQ(fvalue, 9.0);
-
-	std::array<float, 2> value2f;
-	appearance->getEffect().findUniformInput("v2", input);
-	appearance->getInputValueVector2f(input, value2f[0], value2f[1]);
-	EXPECT_EQ(value2f[1], 18.0);
-
-	std::array<float, 3> value3f;
-	appearance->getEffect().findUniformInput("v3", input);
-	appearance->getInputValueVector3f(input, value3f[0], value3f[1], value3f[2]);
-	EXPECT_EQ(value3f[2], 27.0);
-
-	std::array<float, 4> value4f;
-	appearance->getEffect().findUniformInput("v4", input);
-	appearance->getInputValueVector4f(input, value4f[0], value4f[1], value4f[2], value4f[3]);
-	EXPECT_EQ(value4f[3], 36.0);
-
-	std::array<int32_t, 2> value2i;
-	appearance->getEffect().findUniformInput("iv2", input);
-	appearance->getInputValueVector2i(input, value2i[0], value2i[1]);
-	EXPECT_EQ(value2i[0], 7);
-
-	std::array<int32_t, 3> value3i;
-	appearance->getEffect().findUniformInput("iv3", input);
-	appearance->getInputValueVector3i(input, value3i[0], value3i[1], value3i[2]);
-	EXPECT_EQ(value3i[1], 14);
-
-	std::array<int32_t, 4> value4i;
-	appearance->getEffect().findUniformInput("iv4", input);
-	appearance->getInputValueVector4i(input, value4i[0], value4i[1], value4i[2], value4i[3]);
-	EXPECT_EQ(value4i[2], 21);
+	checkStructComponents({material, {"uniforms"}}, appearance, {}, default_struct_prim_values);
 }
 
 TEST_F(MaterialAdaptorTest, set_get_array_uniforms) {
 	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
-	
+
 	commandInterface.set({material, {"uniforms", "ivec", "2"}}, 2);
 	commandInterface.set({material, {"uniforms", "fvec", "3"}}, 3.0);
 
-	commandInterface.set({material, {"uniforms", "avec2", "3", "y"}}, 4.0);
-	commandInterface.set({material, {"uniforms", "avec3", "3", "y"}}, 5.0);
-	commandInterface.set({material, {"uniforms", "avec4", "3", "y"}}, 6.0);
+	commandInterface.set({material, {"uniforms", "avec2", "4", "y"}}, 4.0);
+	commandInterface.set({material, {"uniforms", "avec3", "5", "z"}}, 5.0);
+	commandInterface.set({material, {"uniforms", "avec4", "6", "w"}}, 6.0);
 
-	commandInterface.set({material, {"uniforms", "aivec2", "3", "i1"}}, 7);
-	commandInterface.set({material, {"uniforms", "aivec3", "3", "i1"}}, 8);
-	commandInterface.set({material, {"uniforms", "aivec4", "3", "i1"}}, 9);
+	commandInterface.set({material, {"uniforms", "aivec2", "4", "i2"}}, 7);
+	commandInterface.set({material, {"uniforms", "aivec3", "5", "i3"}}, 8);
+	commandInterface.set({material, {"uniforms", "aivec4", "6", "i4"}}, 9);
 
 	dispatch();
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
-	ramses::UniformInput input;
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
 
-	std::array<int32_t, 2> ivalues;
-	appearance->getEffect().findUniformInput("ivec", input);
-	appearance->getInputValueInt32(input, 2, ivalues.data());
-	EXPECT_EQ(ivalues[1], 2);
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 3, {0.0, 4.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 4, {0.0, 0.0, 5.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 5, {0.0, 0.0, 0.0, 6.0});
 
-	std::array<float, 5> fvalues;
-	appearance->getEffect().findUniformInput("fvec", input);
-	appearance->getInputValueFloat(input, 5, fvalues.data());
-	EXPECT_EQ(fvalues[2], 3.0);
-
-	std::array<float, 8> a2fvalues;
-	appearance->getEffect().findUniformInput("avec2", input);
-	appearance->getInputValueVector2f(input, 4, a2fvalues.data());
-	EXPECT_EQ(a2fvalues[5], 4.0);
-
-	std::array<float, 15> a3fvalues;
-	appearance->getEffect().findUniformInput("avec3", input);
-	appearance->getInputValueVector3f(input, 5, a3fvalues.data());
-	EXPECT_EQ(a3fvalues[7], 5.0);
-
-	std::array<float, 24> a4fvalues;
-	appearance->getEffect().findUniformInput("avec4", input);
-	appearance->getInputValueVector4f(input, 6, a4fvalues.data());
-	EXPECT_EQ(a4fvalues[9], 6.0);
-
-	std::array<int32_t, 8> a2ivalues;
-	appearance->getEffect().findUniformInput("aivec2", input);
-	appearance->getInputValueVector2i(input, 4, a2ivalues.data());
-	EXPECT_EQ(a2ivalues[4], 7);
-
-	std::array<int32_t, 15> a3ivalues;
-	appearance->getEffect().findUniformInput("aivec3", input);
-	appearance->getInputValueVector3i(input, 5, a3ivalues.data());
-	EXPECT_EQ(a3ivalues[6], 8);
-
-	std::array<int32_t, 24> a4ivalues;
-	appearance->getEffect().findUniformInput("aivec4", input);
-	appearance->getInputValueVector4i(input, 6, a4ivalues.data());
-	EXPECT_EQ(a4ivalues[8], 9);
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 3, {0, 7});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 4, {0, 0, 8});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 5, {0, 0, 0, 9});
 }
 
-TEST_F(MaterialAdaptorTest, link_get_array_uniforms) {
+TEST_F(MaterialAdaptorTest, link_get_array_uniforms_components) {
 	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
 	link(lua, {"outputs", "ointeger"}, material, {"uniforms", "ivec", "2"});
 	link(lua, {"outputs", "ofloat"}, material, {"uniforms", "fvec", "3"});
-	
+
 	link(lua, {"outputs", "ovector2f"}, material, {"uniforms", "avec2", "3"});
 	link(lua, {"outputs", "ovector3f"}, material, {"uniforms", "avec3", "3"});
 	link(lua, {"outputs", "ovector4f"}, material, {"uniforms", "avec4", "3"});
-	
+
 	link(lua, {"outputs", "ovector2i"}, material, {"uniforms", "aivec2", "3"});
 	link(lua, {"outputs", "ovector3i"}, material, {"uniforms", "aivec3", "3"});
 	link(lua, {"outputs", "ovector4i"}, material, {"uniforms", "aivec4", "3"});
@@ -252,45 +130,476 @@ TEST_F(MaterialAdaptorTest, link_get_array_uniforms) {
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 2, 1.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 2, {1.0, 2.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 2, {1.0, 2.0, 3.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 2, {1.0, 2.0, 3.0, 4.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 2, {1, 2});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 2, {1, 2, 3});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 2, {1, 2, 3, 4});
+}
+
+TEST_F(MaterialAdaptorTest, link_get_array_uniforms_array) {
+	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-array.lua");
+
+	link(interface, {"inputs", "ivec"}, material, {"uniforms", "ivec"});
+	link(interface, {"inputs", "fvec"}, material, {"uniforms", "fvec"});
+
+	link(interface, {"inputs", "avec2"}, material, {"uniforms", "avec2"});
+	link(interface, {"inputs", "avec3"}, material, {"uniforms", "avec3"});
+	link(interface, {"inputs", "avec4"}, material, {"uniforms", "avec4"});
+
+	link(interface, {"inputs", "aivec2"}, material, {"uniforms", "aivec2"});
+	link(interface, {"inputs", "aivec3"}, material, {"uniforms", "aivec3"});
+	link(interface, {"inputs", "aivec4"}, material, {"uniforms", "aivec4"});
+
+	commandInterface.set({interface, {"inputs", "ivec", "2"}}, 2);
+	commandInterface.set({interface, {"inputs", "fvec", "3"}}, 3.0);
+
+	commandInterface.set({interface, {"inputs", "avec2", "4", "y"}}, 4.0);
+	commandInterface.set({interface, {"inputs", "avec3", "5", "z"}}, 5.0);
+	commandInterface.set({interface, {"inputs", "avec4", "6", "w"}}, 6.0);
+
+	commandInterface.set({interface, {"inputs", "aivec2", "4", "i2"}}, 7);
+	commandInterface.set({interface, {"inputs", "aivec3", "5", "i3"}}, 8);
+	commandInterface.set({interface, {"inputs", "aivec4", "6", "i4"}}, 9);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 3, {0.0, 4.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 4, {0.0, 0.0, 5.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 5, {0.0, 0.0, 0.0, 6.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 3, {0, 7});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 4, {0, 0, 8});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 5, {0, 0, 0, 9});
+}
+
+TEST_F(MaterialAdaptorTest, set_get_sampler_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-samplers.vert", "shaders/uniform-samplers.frag");
+	auto texture = create_texture("texture", "images/DuckCM.png");
+	auto buffer = create<RenderBuffer>("buffer");
+	auto buffer_ms = create<RenderBufferMS>("buffer_ms");
+	auto cubeMap = create_cubemap("cubemap", "images/blue_1024.png");
+
+	commandInterface.set({material, {"uniforms", "s_texture"}}, texture);
+	commandInterface.set({material, {"uniforms", "s_cubemap"}}, cubeMap);
+	commandInterface.set({material, {"uniforms", "s_buffer"}}, buffer);
+	commandInterface.set({material, {"uniforms", "s_buffer_ms"}}, buffer_ms);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSampler>(*sceneContext.scene(), "texture");
+	auto engine_cubeMap = select<ramses::TextureSampler>(*sceneContext.scene(), "cubemap");
+	auto engine_buffer = select<ramses::TextureSampler>(*sceneContext.scene(), "buffer");
+	auto engine_buffer_ms = select<ramses::TextureSamplerMS>(*sceneContext.scene(), "buffer_ms");
+
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_texture", engineTexture);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_cubemap", engine_cubeMap);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_buffer", engine_buffer);
+	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "s_buffer_ms", engine_buffer_ms);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_sampler_external_uniforms) {
+	auto material = create_material("mat", "shaders/texture-external.vert", "shaders/texture-external.frag");
+	auto texture = create<TextureExternal>("texture");
+
+	commandInterface.set({material, {"uniforms", "utex"}}, texture);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSamplerExternal>(*sceneContext.scene(), "texture");
+
 	ramses::UniformInput input;
 
-	std::array<int32_t, 2> ivalues;
-	appearance->getEffect().findUniformInput("ivec", input);
-	appearance->getInputValueInt32(input, 2, ivalues.data());
-	EXPECT_EQ(ivalues[1], 2);
+	const ramses::TextureSamplerExternal* u_sampler_texture;
+	EXPECT_EQ(ramses::StatusOK, appearance->getEffect().findUniformInput("utex", input));
+	EXPECT_EQ(ramses::StatusOK, appearance->getInputTextureExternal(input, u_sampler_texture));
+	EXPECT_EQ(u_sampler_texture, engineTexture);
+}
 
-	std::array<float, 5> fvalues;
-	appearance->getEffect().findUniformInput("fvec", input);
-	appearance->getInputValueFloat(input, 5, fvalues.data());
-	EXPECT_EQ(fvalues[2], 1.0);
+TEST_F(MaterialAdaptorTest, set_get_struct_prim_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
 
-	std::array<float, 8> a2fvalues;
-	appearance->getEffect().findUniformInput("avec2", input);
-	appearance->getInputValueVector2f(input, 4, a2fvalues.data());
-	EXPECT_EQ(a2fvalues[5], 2.0);
+	setStructComponents({material, {"uniforms", "s_prims"}}, default_struct_prim_values);
 
-	std::array<float, 15> a3fvalues;
-	appearance->getEffect().findUniformInput("avec3", input);
-	appearance->getInputValueVector3f(input, 5, a3fvalues.data());
-	EXPECT_EQ(a3fvalues[7], 2.0);
+	dispatch();
 
-	std::array<float, 24> a4fvalues;
-	appearance->getEffect().findUniformInput("avec4", input);
-	appearance->getInputValueVector4f(input, 6, a4fvalues.data());
-	EXPECT_EQ(a4fvalues[9], 2.0);
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
-	std::array<int32_t, 8> a2ivalues;
-	appearance->getEffect().findUniformInput("aivec2", input);
-	appearance->getInputValueVector2i(input, 4, a2ivalues.data());
-	EXPECT_EQ(a2ivalues[4], 1);
+	checkStructComponents(appearance, "s_prims.", default_struct_prim_values);
+}
 
-	std::array<int32_t, 15> a3ivalues;
-	appearance->getEffect().findUniformInput("aivec3", input);
-	appearance->getInputValueVector3i(input, 5, a3ivalues.data());
-	EXPECT_EQ(a3ivalues[6], 1);
+TEST_F(MaterialAdaptorTest, link_get_struct_prim_uniforms_link_struct) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
 
-	std::array<int32_t, 24> a4ivalues;
-	appearance->getEffect().findUniformInput("aivec4", input);
-	appearance->getInputValueVector4i(input, 6, a4ivalues.data());
-	EXPECT_EQ(a4ivalues[8], 1);
+	link(interface, {"inputs", "s_prims"}, material, {"uniforms", "s_prims"});
+
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_prims"}}, appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_struct_prim_uniforms_link_members) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms", "s_prims"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_prims"}}, appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_struct_sampler_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto texture = create_texture("texture", "images/DuckCM.png");
+	auto buffer = create<RenderBuffer>("buffer");
+	auto buffer_ms = create<RenderBufferMS>("buffer_ms");
+	auto cubeMap = create_cubemap("cubemap", "images/blue_1024.png");
+
+	commandInterface.set({material, {"uniforms", "s_samplers", "s_texture"}}, texture);
+	commandInterface.set({material, {"uniforms", "s_samplers", "s_cubemap"}}, cubeMap);
+	commandInterface.set({material, {"uniforms", "s_samplers", "s_buffer"}}, buffer);
+	commandInterface.set({material, {"uniforms", "s_samplers", "s_buffer_ms"}}, buffer_ms);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSampler>(*sceneContext.scene(), "texture");
+	auto engine_cubeMap = select<ramses::TextureSampler>(*sceneContext.scene(), "cubemap");
+	auto engine_buffer = select<ramses::TextureSampler>(*sceneContext.scene(), "buffer");
+	auto engine_buffer_ms = select<ramses::TextureSamplerMS>(*sceneContext.scene(), "buffer_ms");
+
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_samplers.s_texture", engineTexture);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_samplers.s_cubemap", engine_cubeMap);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_samplers.s_buffer", engine_buffer);
+	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "s_samplers.s_buffer_ms", engine_buffer_ms);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_nested_struct_prim_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+
+	setStructComponents({material, {"uniforms", "nested", "prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents(appearance, "nested.prims.", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_nested_struct_prim_uniforms_link_struct) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	link(interface, {"inputs", "s_prims"}, material, {"uniforms", "nested", "prims"});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "nested", "prims"}}, appearance, "nested.prims.", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_nested_struct_prim_uniforms_link_members) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms", "nested", "prims"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "nested", "prims"}}, appearance, "nested.prims.", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_nested_struct_sampler_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto texture = create_texture("texture", "images/DuckCM.png");
+	auto buffer = create<RenderBuffer>("buffer");
+	auto buffer_ms = create<RenderBufferMS>("buffer_ms");
+	auto cubeMap = create_cubemap("cubemap", "images/blue_1024.png");
+
+	commandInterface.set({material, {"uniforms", "nested", "samplers", "s_texture"}}, texture);
+	commandInterface.set({material, {"uniforms", "nested", "samplers", "s_cubemap"}}, cubeMap);
+	commandInterface.set({material, {"uniforms", "nested", "samplers", "s_buffer"}}, buffer);
+	commandInterface.set({material, {"uniforms", "nested", "samplers", "s_buffer_ms"}}, buffer_ms);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSampler>(*sceneContext.scene(), "texture");
+	auto engine_cubeMap = select<ramses::TextureSampler>(*sceneContext.scene(), "cubemap");
+	auto engine_buffer = select<ramses::TextureSampler>(*sceneContext.scene(), "buffer");
+	auto engine_buffer_ms = select<ramses::TextureSamplerMS>(*sceneContext.scene(), "buffer_ms");
+
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "nested.samplers.s_texture", engineTexture);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "nested.samplers.s_cubemap", engine_cubeMap);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "nested.samplers.s_buffer", engine_buffer);
+	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "nested.samplers.s_buffer_ms", engine_buffer_ms);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_array_struct_prim_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+
+	setStructComponents({material, {"uniforms", "a_s_prims", "2"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents(appearance, "a_s_prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_array_struct_prim_uniforms_link_array) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	link(interface, {"inputs", "a_s_prims"}, material, {"uniforms", "a_s_prims"});
+	setStructComponents({interface, {"inputs", "a_s_prims", "2"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "a_s_prims", "2"}}, appearance, "a_s_prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_array_struct_prim_uniforms_link_struct) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	link(interface, {"inputs", "s_prims"}, material, {"uniforms", "a_s_prims", "2"});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "a_s_prims", "2"}}, appearance, "a_s_prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_array_struct_prim_uniforms_link_members) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms", "a_s_prims", "2"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "a_s_prims", "2"}}, appearance, "a_s_prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_array_struct_sampler_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto texture = create_texture("texture", "images/DuckCM.png");
+	auto buffer = create<RenderBuffer>("buffer");
+	auto buffer_ms = create<RenderBufferMS>("buffer_ms");
+	auto cubeMap = create_cubemap("cubemap", "images/blue_1024.png");
+
+	commandInterface.set({material, {"uniforms", "a_s_samplers", "2", "s_texture"}}, texture);
+	commandInterface.set({material, {"uniforms", "a_s_samplers", "2", "s_cubemap"}}, cubeMap);
+	commandInterface.set({material, {"uniforms", "a_s_samplers", "2", "s_buffer"}}, buffer);
+	commandInterface.set({material, {"uniforms", "a_s_samplers", "2", "s_buffer_ms"}}, buffer_ms);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSampler>(*sceneContext.scene(), "texture");
+	auto engine_cubeMap = select<ramses::TextureSampler>(*sceneContext.scene(), "cubemap");
+	auto engine_buffer = select<ramses::TextureSampler>(*sceneContext.scene(), "buffer");
+	auto engine_buffer_ms = select<ramses::TextureSamplerMS>(*sceneContext.scene(), "buffer_ms");
+
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_samplers[1].s_texture", engineTexture);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_samplers[1].s_cubemap", engine_cubeMap);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_samplers[1].s_buffer", engine_buffer);
+	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "a_s_samplers[1].s_buffer_ms", engine_buffer_ms);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_struct_of_array_of_prim_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+
+	commandInterface.set({material, {"uniforms", "s_a_prims", "ivec", "2"}}, 2);
+	commandInterface.set({material, {"uniforms", "s_a_prims", "fvec", "3"}}, 3.0);
+
+	commandInterface.set({material, {"uniforms", "s_a_prims", "avec2", "4", "y"}}, 4.0);
+	commandInterface.set({material, {"uniforms", "s_a_prims", "avec3", "5", "z"}}, 5.0);
+	commandInterface.set({material, {"uniforms", "s_a_prims", "avec4", "6", "w"}}, 6.0);
+
+	commandInterface.set({material, {"uniforms", "s_a_prims", "aivec2", "4", "i2"}}, 7);
+	commandInterface.set({material, {"uniforms", "s_a_prims", "aivec3", "5", "i3"}}, 8);
+	commandInterface.set({material, {"uniforms", "s_a_prims", "aivec4", "6", "i4"}}, 9);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkUniformVector<int32_t, 2>(appearance, "s_a_prims.ivec", 1, 2);
+	checkUniformVector<float, 5>(appearance, "s_a_prims.fvec", 2, 3.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "s_a_prims.avec2", 3, {0.0, 4.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "s_a_prims.avec3", 4, {0.0, 0.0, 5.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "s_a_prims.avec4", 5, {0.0, 0.0, 0.0, 6.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "s_a_prims.aivec2", 3, {0, 7});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "s_a_prims.aivec3", 4, {0, 0, 8});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "s_a_prims.aivec4", 5, {0, 0, 0, 9});
+}
+
+TEST_F(MaterialAdaptorTest, set_get_struct_of_array_of_struct_prims_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+
+	setStructComponents({material, {"uniforms", "s_a_struct_prim", "prims", "2"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents(appearance, "s_a_struct_prim.prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_struct_of_array_of_struct_prims_uniforms_link_struct_outer) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	link(interface, {"inputs", "s_a_struct_prim"}, material, {"uniforms", "s_a_struct_prim"});
+	setStructComponents({interface, {"inputs", "s_a_struct_prim", "prims", "2"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_a_struct_prim", "prims", "2"}}, appearance, "s_a_struct_prim.prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_struct_of_array_of_struct_prims_uniforms_link_array) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	link(interface, {"inputs", "s_a_struct_prim", "prims"}, material, {"uniforms", "s_a_struct_prim", "prims"});
+	setStructComponents({interface, {"inputs", "s_a_struct_prim", "prims", "2"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_a_struct_prim", "prims", "2"}}, appearance, "s_a_struct_prim.prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_struct_of_array_of_struct_prims_uniforms_link_struct_inner) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	link(interface, {"inputs", "s_prims"}, material, {"uniforms", "s_a_struct_prim", "prims", "2"});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_a_struct_prim", "prims", "2"}}, appearance, "s_a_struct_prim.prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_get_struct_of_array_of_struct_prims_uniforms_link_members) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms", "s_a_struct_prim", "prims", "2"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_a_struct_prim", "prims", "2"}}, appearance, "s_a_struct_prim.prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_struct_of_array_of_struct_sampler_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto texture = create_texture("texture", "images/DuckCM.png");
+	auto buffer = create<RenderBuffer>("buffer");
+	auto buffer_ms = create<RenderBufferMS>("buffer_ms");
+	auto cubeMap = create_cubemap("cubemap", "images/blue_1024.png");
+
+	commandInterface.set({material, {"uniforms", "s_a_struct_samplers", "samplers", "2", "s_texture"}}, texture);
+	commandInterface.set({material, {"uniforms", "s_a_struct_samplers", "samplers", "2", "s_cubemap"}}, cubeMap);
+	commandInterface.set({material, {"uniforms", "s_a_struct_samplers", "samplers", "2", "s_buffer"}}, buffer);
+	commandInterface.set({material, {"uniforms", "s_a_struct_samplers", "samplers", "2", "s_buffer_ms"}}, buffer_ms);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSampler>(*sceneContext.scene(), "texture");
+	auto engine_cubeMap = select<ramses::TextureSampler>(*sceneContext.scene(), "cubemap");
+	auto engine_buffer = select<ramses::TextureSampler>(*sceneContext.scene(), "buffer");
+	auto engine_buffer_ms = select<ramses::TextureSamplerMS>(*sceneContext.scene(), "buffer_ms");
+
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_a_struct_samplers.samplers[1].s_texture", engineTexture);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_a_struct_samplers.samplers[1].s_cubemap", engine_cubeMap);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "s_a_struct_samplers.samplers[1].s_buffer", engine_buffer);
+	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "s_a_struct_samplers.samplers[1].s_buffer_ms", engine_buffer_ms);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_array_of_struct_of_array_of_struct_prims_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+
+	setStructComponents({material, {"uniforms", "a_s_a_struct_prim", "2", "prims", "2"}}, default_struct_prim_values);
+	
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents(appearance, "a_s_a_struct_prim[1].prims[1].", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, set_get_array_of_struct_of_array_of_struct_sampler_uniforms) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto texture = create_texture("texture", "images/DuckCM.png");
+	auto buffer = create<RenderBuffer>("buffer");
+	auto buffer_ms = create<RenderBufferMS>("buffer_ms");
+	auto cubeMap = create_cubemap("cubemap", "images/blue_1024.png");
+
+	commandInterface.set({material, {"uniforms", "a_s_a_struct_samplers", "2", "samplers", "2", "s_texture"}}, texture);
+	commandInterface.set({material, {"uniforms", "a_s_a_struct_samplers", "2", "samplers", "2", "s_cubemap"}}, cubeMap);
+	commandInterface.set({material, {"uniforms", "a_s_a_struct_samplers", "2", "samplers", "2", "s_buffer"}}, buffer);
+	commandInterface.set({material, {"uniforms", "a_s_a_struct_samplers", "2", "samplers", "2", "s_buffer_ms"}}, buffer_ms);
+
+	dispatch();
+
+	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
+	auto engineTexture = select<ramses::TextureSampler>(*sceneContext.scene(), "texture");
+	auto engine_cubeMap = select<ramses::TextureSampler>(*sceneContext.scene(), "cubemap");
+	auto engine_buffer = select<ramses::TextureSampler>(*sceneContext.scene(), "buffer");
+	auto engine_buffer_ms = select<ramses::TextureSamplerMS>(*sceneContext.scene(), "buffer_ms");
+
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_texture", engineTexture);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_cubemap", engine_cubeMap);
+	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_buffer", engine_buffer);
+	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_buffer_ms", engine_buffer_ms);
 }

@@ -28,8 +28,6 @@ public:
 
 	static void globalUndoCallback(raco::application::RaCoApplication* racoApplication);
 	static void globalRedoCallback(raco::application::RaCoApplication* racoApplication);
-	static void globalCopyCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager);
-	static void globalPasteCallback(raco::application::RaCoApplication* racoApplication, raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager);
 
 private:
 	raco::components::Subscription sub_;

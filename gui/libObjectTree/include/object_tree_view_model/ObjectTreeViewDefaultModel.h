@@ -47,6 +47,8 @@ public:
 		COLUMNINDEX_TYPE,
 		// invisible column that is used for ID-based filtering in the tree views
 		COLUMNINDEX_ID,
+		// invisible column used for tag based filtering
+		COLUMNINDEX_USERTAGS,
 		COLUMNINDEX_PROJECT,
 		COLUMNINDEX_COLUMN_COUNT
 	};

@@ -381,7 +381,7 @@ TEST_F(MigrationTest, migrate_from_V21_custom_paths) {
 	if (preferencesFile.exists()) {
 		std::filesystem::remove(preferencesFile);
 	}
-	
+
 	{
 		// use scope to force saving QSettings when leaving the scope
 		QSettings settings(preferencesFile.string().c_str(), QSettings::IniFormat);
@@ -465,7 +465,6 @@ TEST_F(MigrationTest, migrate_V30_to_V34) {
 	EXPECT_EQ(*layer_incl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Inclusive));
 }
 
-
 TEST_F(MigrationTest, migrate_from_V35) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V35.rca").string()));
 
@@ -496,7 +495,7 @@ TEST_F(MigrationTest, migrate_from_V35) {
 	}
 
 	EXPECT_EQ(nullptr, Queries::getLink(*racoproject->project(), {prefab_int_array, {"inputs", "float_array", "1"}}));
-	
+
 	auto inst_link = Queries::getLink(*racoproject->project(), {inst_int_array, {"inputs", "float_array", "1"}});
 	EXPECT_TRUE(inst_link != nullptr);
 	EXPECT_EQ(inst_link->startProp(), PropertyDescriptor(inst_lua_types, {"outputs", "bar"}));
@@ -646,7 +645,7 @@ TEST_F(MigrationTest, migrate_from_V43) {
 	auto pcam = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
 
 	ASSERT_EQ(pcam->frustum_->get("nearPlane")->asDouble(), 0.2);
-	ASSERT_EQ(pcam->frustum_->get("farPlane")->asDouble(), 42.0); // linked
+	ASSERT_EQ(pcam->frustum_->get("farPlane")->asDouble(), 42.0);  // linked
 	ASSERT_EQ(pcam->frustum_->get("fieldOfView")->asDouble(), 4.0);
 	ASSERT_EQ(pcam->frustum_->get("aspectRatio")->asDouble(), 5.0);
 
@@ -694,6 +693,141 @@ TEST_F(MigrationTest, migrate_from_V45) {
 	EXPECT_TRUE(renderTarget->buffer0_.query<ExpectEmptyReference>() != nullptr);
 }
 
+TEST_F(MigrationTest, migrate_from_V50) {
+	using namespace raco;
+
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V50.rca").string()));
+
+	auto intf_scalar = raco::core::Queries::findByName(racoproject->project()->instances(), "intf-scalar")->as<raco::user_types::LuaInterface>();
+	auto intf_array = raco::core::Queries::findByName(racoproject->project()->instances(), "intf-array")->as<raco::user_types::LuaInterface>();
+	auto intf_struct = raco::core::Queries::findByName(racoproject->project()->instances(), "intf-struct")->as<raco::user_types::LuaInterface>();
+
+	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "texture");
+
+	auto node = raco::core::Queries::findByName(racoproject->project()->instances(), "Node");
+	auto meshnode_no_mat = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mat");
+
+	auto mat_scalar = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_scalar")->as<raco::user_types::Material>();
+	EXPECT_EQ(ValueHandle(mat_scalar, {"uniforms", "i"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(mat_scalar, {"uniforms", "iv2"}), {1, 2});
+
+	auto mat_array_link_array = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_array")->as<raco::user_types::Material>();
+	EXPECT_EQ(ValueHandle(mat_array_link_array, {"uniforms", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(mat_array_link_array, {"uniforms", "ivec", "2"}).asInt(), 2);
+
+	auto mat_array_link_member = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_member")->as<raco::user_types::Material>();
+
+	auto mat_struct = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_struct")->as<raco::user_types::Material>();
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_samplers", "s_texture"}).asRef(), texture);
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "nested", "prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "nested", "prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "a_s_prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "a_s_prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "ivec", "2"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "aivec2", "1"}), {1, 2});
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "aivec2", "2"}), {3, 4});
+
+
+	auto meshnode_mat_scalar = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_scalar");
+	EXPECT_EQ(ValueHandle(meshnode_mat_scalar, {"materials", "material", "uniforms", "i"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(meshnode_mat_scalar, {"materials", "material", "uniforms", "iv2"}), {1, 2});
+
+	auto meshnode_mat_array_link_array = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_array");
+	EXPECT_EQ(ValueHandle(meshnode_mat_array_link_array, {"materials", "material", "uniforms", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(meshnode_mat_array_link_array, {"materials", "material", "uniforms", "ivec", "2"}).asInt(), 2);
+
+	auto meshnode_mat_array_link_member = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_member");
+
+	auto meshnode_mat_struct = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_struct");
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_samplers", "s_texture"}).asRef(), texture);
+	
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "ivec", "2"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "aivec2", "1"}), {1, 2});
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "aivec2", "2"}), {3, 4});
+
+	checkLinks(*racoproject->project(),
+		{
+			{{intf_scalar, {"inputs", "bool"}}, {node, {"visibility"}}, true, false},
+			{{intf_scalar, {"inputs", "bool"}}, {meshnode_no_mat, {"visibility"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_scalar, {"uniforms", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector2f"}}, {mat_scalar, {"uniforms", "v2"}}, true, false},
+			{{intf_array, {"inputs", "fvec"}}, {mat_array_link_array, {"uniforms", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "float"}}, {mat_array_link_member, {"uniforms", "fvec", "5"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_array_link_member, {"uniforms", "avec3", "2"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "s_prims", "f"}}, true, false},
+
+			{{intf_array, {"inputs", "fvec"}}, {mat_struct, {"uniforms", "s_a_prims", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "s_a_prims", "avec3", "1"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "nested", "prims", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "nested", "prims", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "v3"}}, true, false},
+		
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "a_s_prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "a_s_prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "v3"}}, true, false},
+
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_scalar, {"materials", "material", "uniforms", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector2f"}}, {meshnode_mat_scalar, {"materials", "material", "uniforms", "v2"}}, true, false},
+			{{intf_array, {"inputs", "fvec"}}, {meshnode_mat_array_link_array, {"materials", "material", "uniforms", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_array_link_member, {"materials", "material", "uniforms", "fvec", "5"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_array_link_member, {"materials", "material", "uniforms", "avec3", "2"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "f"}}, true, false},
+
+			{{intf_array, {"inputs", "fvec"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "avec3", "1"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "v3"}}, true, false}
+		
+		});
+}
 
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.
@@ -780,7 +914,7 @@ TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
 	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
 	auto& userFactory{UserObjectFactory::getInstance()};
 
-	for (auto& item :userFactory.getTypes()) {
+	for (auto& item : userFactory.getTypes()) {
 		auto name = item.first;
 		auto object = objectFactory()->createObject(name);
 		ASSERT_TRUE(object != nullptr);

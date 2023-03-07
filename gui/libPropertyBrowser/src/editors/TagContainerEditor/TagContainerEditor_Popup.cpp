@@ -135,6 +135,9 @@ namespace raco::property_browser {
 			availableTagsItemModel_->addTag(tag, listOfRenderLayerNames, forbiddenTags_.find(tag.toStdString()) == forbiddenTags_.end());
 		}
 		listOfAvailableTags_.setModel(availableTagsItemModel_);
+		if (tagType_ == raco::core::TagType::UserTags) {
+			listOfAvailableTags_.header()->hideSection(1);
+		}
 
 		if (showRenderedBy()) {
 			referencedBy_.setWordWrap(true);
@@ -211,6 +214,9 @@ namespace raco::property_browser {
 			}
 			case raco::core::TagType::NodeTags_Referencing: {
 				raco::core::Queries::findRenderLayerForbiddenRenderableTags(*tagDataCache_, item_->valueHandle().rootObject()->as<user_types::RenderLayer>(), forbiddenTags_);
+				break;
+			}
+			case raco::core::TagType::UserTags: {
 				break;
 			}
 		}

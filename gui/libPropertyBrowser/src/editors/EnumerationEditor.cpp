@@ -17,6 +17,8 @@
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/controls/MouseWheelGuard.h"
 #include "style/Colors.h"
+#include "user_types/Enumerations.h"
+#include "core/EngineInterface.h"
 
 #include <QComboBox>
 
@@ -29,7 +31,7 @@ EnumerationEditor::EnumerationEditor(PropertyBrowserItem* item, QWidget* parent)
 	comboBox_->installEventFilter(new MouseWheelGuard());
 	layout->addWidget(comboBox_);
 
-	auto& values = item->engineInterface().enumerationDescription(static_cast<raco::core::EngineEnumeration>(item->query<raco::core::EnumerationAnnotation>()->type_.asInt()));
+	auto& values = raco::user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(item->query<raco::core::EnumerationAnnotation>()->type_.asInt()));
 	for (const auto& [entryEnumValue, entryEnumString] : values) {
 		comboBox_->addItem(entryEnumString.c_str());
 		ramsesEnumIndexToComboBoxIndex_[entryEnumValue] = comboBoxIndexToRamsesEnumIndex_.size();

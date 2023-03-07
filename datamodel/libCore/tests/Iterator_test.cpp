@@ -76,6 +76,7 @@ TEST(IteratorTest, Property) {
 	std::vector<ValueHandle> refHandles{
 		{node, {"objectID"}},
 		{node, {"objectName"}},
+		{node, {"userTags"}},
 		{node, {"children"}},
 		{node, {"tags"}},
 		{node, {"visibility"}},

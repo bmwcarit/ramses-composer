@@ -28,6 +28,7 @@
 #include "user_types/BlitPass.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Prefab.h"
+#include "core/ProjectSettings.h"
 #include "user_types/RenderPass.h"
 
 #include <spdlog/fmt/fmt.h>
@@ -137,8 +138,13 @@ ramses::sceneId_t SceneAdaptor::sceneId() {
 	return scene_->getSceneId();
 }
 
+bool SceneAdaptor::needAdaptor(SEditorObject object) {
+	return !core::PrefabOperations::findContainingPrefab(object) && !object->isType<core::ProjectSettings>();
+}
+
+
 void SceneAdaptor::createAdaptor(SEditorObject obj) {
-	if (!core::PrefabOperations::findContainingPrefab(obj)) {
+	if (needAdaptor(obj)) {
 		auto adaptor = Factories::createAdaptor(this, obj);
 		if (adaptor) {
 			adaptor->tagDirty();
@@ -276,8 +282,8 @@ void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	}
 }
 
-void SceneAdaptor::createLink(const core::LinkDescriptor& link) {	
-	newLinks_.emplace_back(link);	
+void SceneAdaptor::createLink(const core::LinkDescriptor& link) {
+	newLinks_.insert(link);	
 }
 
 void SceneAdaptor::changeLinkValidity(const core::LinkDescriptor& link, bool isValid) {
@@ -412,12 +418,17 @@ void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changed
 			auto adaptor = lookupAdaptor(object);
 
 			bool haveAdaptor = adaptor != nullptr;
-			bool needAdaptor = !core::PrefabOperations::findContainingPrefab(object);
-			if (haveAdaptor != needAdaptor) {
+			if (haveAdaptor != needAdaptor(object)) {
 				if (haveAdaptor) {
+					for (auto link : core::Queries::getLinksConnectedToObject(*project_, object, true, true)) {
+						removeLink(link->descriptor());
+					}
 					removeAdaptor(object);
 				} else {
 					createAdaptor(object);
+					for (auto link : core::Queries::getLinksConnectedToObject(*project_, object, true, true)) {
+						createLink(link->descriptor());
+					}
 				}
 			}
 		}

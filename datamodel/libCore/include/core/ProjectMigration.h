@@ -95,9 +95,11 @@ namespace raco::serialization {
  * 47: Added Skin user type.
  * 48: Added LuaInterface "stdModules" and "luaModules" properties.
  * 49: Added TextureExternal user type.
+ * 50: Added "userTags" property to EditorObject.
+ * 51: Added support for struct uniforms.
 */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 49;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 51;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

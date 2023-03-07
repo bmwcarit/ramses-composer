@@ -207,6 +207,16 @@ TEST_F(CommandInterfaceTest, set_tags_fail_loop) {
 	EXPECT_THROW(commandInterface.setTags({layer, &RenderLayer::tags_}, tags), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_usertags_renderlayer_no_loop) {
+	auto layer = create<RenderLayer>("layer");
+	std::vector<std::string> tags{"abc"};
+	std::vector<std::pair<std::string, int>> renderables{{"abc", 5}, {"def", 3}};
+
+	commandInterface.setRenderableTags({layer, &RenderLayer::renderableTags_}, renderables);
+	commandInterface.setTags({layer, &RenderLayer::userTags_}, tags);
+	EXPECT_EQ(layer->userTags_->asVector<std::string>(), tags);
+}
+
 TEST_F(CommandInterfaceTest, set_tags_fail_loop_multi_hop) {
 	auto layer_1 = create<RenderLayer>("layer1");
 	auto layer_2 = create<RenderLayer>("layer2");

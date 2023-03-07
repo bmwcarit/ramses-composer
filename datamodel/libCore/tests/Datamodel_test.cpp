@@ -48,6 +48,10 @@ TEST_F(DataModelTest, check_user_type_property_annotations) {
 				EXPECT_TRUE(value->type() == PrimitiveType::Table) << fmt::format("{}:{} has TagContainerAnnotation but is not of type Table", name, object->name(index));
 			}
 
+			if (value->query<UserTagContainerAnnotation>()) {
+				EXPECT_TRUE(value->type() == PrimitiveType::Table) << fmt::format("{}:{} has UserTagContainerAnnotation but is not of type Table", name, object->name(index));
+			}
+
 			if (value->query<RenderableTagContainerAnnotation>()) {
 				EXPECT_TRUE(value->type() == PrimitiveType::Table) << fmt::format("{}:{} has RenderableTagContainerAnnotation but is not of type Table", name, object->name(index));
 			}

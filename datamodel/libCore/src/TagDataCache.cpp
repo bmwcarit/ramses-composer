@@ -27,10 +27,13 @@ std::unique_ptr<TagDataCache> TagDataCache::createTagDataCache(core::Project con
 	switch (whichTags) {
 		case TagType::NodeTags_Referenced:
 		case TagType::NodeTags_Referencing:
-			cache->initCache<core::Queries::UserTypesWithRenderableTags>("renderableTags");
+			cache->initCache<core::Queries::UserTypesWithRenderableTags>("renderableTags", "tags", whichTags);
 			break;
 		case TagType::MaterialTags:
-			cache->initCache<core::Queries::UserTypesWithMaterialTags>("materialFilterTags");
+			cache->initCache<core::Queries::UserTypesWithMaterialTags>("materialFilterTags", "tags", whichTags);
+			break;
+		case TagType::UserTags:
+			cache->initCache<std::tuple<>>(std::string(), "userTags", whichTags);
 			break;
 		default:
 			assert(false);
@@ -45,10 +48,10 @@ TagDataCache::TagDataCache(core::Project const* project, TagType whichTags) : pr
 }
 
 template <typename TaggedObjectTypeList>
-void TagDataCache::initCache(std::string_view referencingProperty) {
+void TagDataCache::initCache(std::string_view referencingProperty, std::string_view tagProperty, TagType tagType) {
 	assert(tagData_.empty());
 	for (auto const& instance : project_->instances()) {
-		if (auto referencingObject = instance->as<user_types::RenderLayer>(); referencingObject != nullptr) {
+		if (auto referencingObject = instance->as<user_types::RenderLayer>(); referencingObject != nullptr && !referencingProperty.empty()) {
 			core::Table const& tagContainer = instance->get(std::string(referencingProperty))->asTable();
 			for (auto tagIndex = 0; tagIndex < tagContainer.size(); ++tagIndex) {
 				if (referencingProperty == "renderableTags") {
@@ -61,8 +64,8 @@ void TagDataCache::initCache(std::string_view referencingProperty) {
 			}
 			core::ValueHandle referencingPropHandle{referencingObject, {std::string(referencingProperty)}};
 		}
-		if (core::Queries::isUserTypeInTypeList(instance, TaggedObjectTypeList{})) {
-			core::Table const& tagContainer = instance->get(std::string("tags"))->asTable();
+		if (tagType == TagType::UserTags || core::Queries::isUserTypeInTypeList(instance, TaggedObjectTypeList{})) {
+			core::Table const& tagContainer = instance->get(std::string(tagProperty))->asTable();
 			for (auto tagIndex = 0; tagIndex < tagContainer.size(); ++tagIndex) {
 				std::string const& tag = tagContainer.get(tagIndex)->asString();
 				addTaggedObject(tag, instance);

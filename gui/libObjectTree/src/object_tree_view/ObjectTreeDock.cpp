@@ -35,7 +35,10 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 	filterLineEdit_ = new QLineEdit(this);
 	filterLineEdit_->setPlaceholderText("Filter Objects...");
 	filterByComboBox_ = new QComboBox(this);
-	filterByComboBox_->addItems({"Filter by Name", "Filter by Type", "Filter by Object ID"});
+	filterByComboBox_->addItem("Filter by Name", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_NAME));
+	filterByComboBox_->addItem("Filter by Type", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_TYPE));
+	filterByComboBox_->addItem("Filter by Object ID", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_ID));
+	filterByComboBox_->addItem("Filter by User Tag", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_USERTAGS));
 
 	auto treeDockSettingsWidget = new QWidget(treeDockContent_);
 	treeDockSettingsLayout_ = new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(treeDockSettingsWidget);
@@ -54,7 +57,7 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 	});
 
 	connect(filterByComboBox_, &QComboBox::currentTextChanged, [this]() {
-		auto currentIndex = filterByComboBox_->currentIndex();
+		auto currentIndex = filterByComboBox_->currentData().toInt();
 
 		getActiveTreeView()->setFilterKeyColumn(currentIndex);
 

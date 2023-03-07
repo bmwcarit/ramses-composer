@@ -123,7 +123,7 @@ void CommandInterface::set(ValueHandle const& handle, bool const& value) {
 bool CommandInterface::canSet(ValueHandle const& handle, int const& value) const {
 	if (canSetHandle(handle, PrimitiveType::Int) && handle.asInt() != value) {
 		if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
-			auto description = engineInterface().enumerationDescription(static_cast<raco::core::EngineEnumeration>(anno->type_.asInt()));
+			auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
 			if (description.find(value) == description.end()) {
 				return false;
 			}
@@ -136,7 +136,7 @@ bool CommandInterface::canSet(ValueHandle const& handle, int const& value) const
 void CommandInterface::set(ValueHandle const& handle, int const& value) {
 	if (checkScalarHandleForSet(handle, PrimitiveType::Int) && handle.asInt() != value) {
 		if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
-			auto description = engineInterface().enumerationDescription(static_cast<raco::core::EngineEnumeration>(anno->type_.asInt()));
+			auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
 			if (description.find(value) == description.end()) {
 				throw std::runtime_error(fmt::format("Value '{}' not in enumeration type", value));
 			}
@@ -278,20 +278,28 @@ void CommandInterface::set(ValueHandle const& handle, std::array<int, 4> const& 
 	}
 }
 
-bool CommandInterface::canSetTags(ValueHandle const& handle, std::vector<std::string> const& value) const {
+bool CommandInterface::canSetTags(ValueHandle const& handle, std::vector<std::string> const& value, std::string* outError) const {
 	if (canSetHandle(handle, PrimitiveType::Table)) {
-		if (!handle.constValueRef()->query<TagContainerAnnotation>()) {
+		if (handle.constValueRef()->query<TagContainerAnnotation>()) {
+			std::set<std::string> forbiddenTags;
+			Queries::findForbiddenTags(*project(), handle.rootObject(), forbiddenTags);
+			for (const auto& tag : value) {
+				if (forbiddenTags.find(tag) != forbiddenTags.end()) {
+					if (outError) {
+						*outError = fmt::format("Tag '{}' in object '{}' not allowed: would create renderable loop", tag, handle.rootObject()->objectName());
+					}
+					return false;
+				}
+			}
+			return true;
+		} else if (handle.constValueRef()->query<UserTagContainerAnnotation>()) {
+			return true;
+		} else {
+			if (outError) {
+				*outError = fmt::format("Property is not a TagContainer property '{}'", handle.getPropertyPath());
+			}
 			return false;
 		}
-
-		std::set<std::string> forbiddenTags;
-		Queries::findForbiddenTags(*project(), handle.rootObject(), forbiddenTags);
-		for (const auto& tag : value) {
-			if (forbiddenTags.find(tag) != forbiddenTags.end()) {
-				return false;
-			}
-		}
-		return true;
 	}
 	return false;
 }
@@ -299,16 +307,9 @@ bool CommandInterface::canSetTags(ValueHandle const& handle, std::vector<std::st
 
 void CommandInterface::setTags(ValueHandle const& handle, std::vector<std::string> const& value) {
 	if (checkScalarHandleForSet(handle, PrimitiveType::Table)) {
-		if (!handle.constValueRef()->query<TagContainerAnnotation>()) {
-			throw std::runtime_error(fmt::format("Property is not a TagContainer property '{}'", handle.getPropertyPath()));
-		}
-
-		std::set<std::string> forbiddenTags;
-		Queries::findForbiddenTags(*project(), handle.rootObject(), forbiddenTags);
-		for (const auto& tag : value) {
-			if (forbiddenTags.find(tag) != forbiddenTags.end()) {
-				throw std::runtime_error(fmt::format("Tag '{}' in object '{}' not allowed: would create renderable loop", tag, handle.rootObject()->objectName()));
-			}
+		std::string errorMsg;
+		if (!canSetTags(handle, value, &errorMsg)) {
+			throw std::runtime_error(errorMsg);
 		}
 
 		if (handle.constValueRef()->asTable().asVector<std::string>() != value) {

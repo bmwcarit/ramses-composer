@@ -2,7 +2,7 @@
     "externalProjects": {
     },
     "featureLevel": 5,
-    "fileVersion": 49,
+    "fileVersion": 51,
     "instances": [
         {
             "properties": {
@@ -1867,7 +1867,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "675091740822"
+                    "ticker_us": "1467063033252"
                 }
             },
             "typeName": "Timer"
@@ -2238,17 +2238,17 @@
     "logicEngineVersion": [
         1,
         4,
-        1
+        2
     ],
     "racoVersion": [
         1,
-        6,
+        7,
         0
     ],
     "ramsesVersion": [
         27,
         0,
-        129
+        130
     ],
     "structPropMap": {
         "AnchorPointOutputs": {
@@ -2339,7 +2339,8 @@
             "node": "Node::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "outputs": "AnchorPointOutputs::DisplayNameAnnotation"
+            "outputs": "AnchorPointOutputs::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Animation": {
             "animationChannels": "Table::DisplayNameAnnotation",
@@ -2347,7 +2348,8 @@
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "outputs": "Table::DisplayNameAnnotation",
-            "progress": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
+            "progress": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "AnimationChannel": {
             "animationIndex": "Int::DisplayNameAnnotation",
@@ -2355,7 +2357,8 @@
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "samplerIndex": "Int::DisplayNameAnnotation",
-            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "BlitPass": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
@@ -2372,6 +2375,7 @@
             "sourceY": "Int::RangeAnnotationInt::DisplayNameAnnotation",
             "targetRenderBuffer": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
             "targetRenderBufferMS": "RenderBufferMS::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "width": "Int::RangeAnnotationInt::DisplayNameAnnotation"
         },
         "CubeMap": {
@@ -2408,6 +2412,7 @@
             "uriLeft": "String::URIAnnotation::DisplayNameAnnotation",
             "uriRight": "String::URIAnnotation::DisplayNameAnnotation",
             "uriTop": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
         },
@@ -2418,7 +2423,8 @@
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "stdModules": "LuaStandardModuleSelection::DisplayNameAnnotation::FeatureLevel",
-            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "LuaScript": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
@@ -2428,14 +2434,16 @@
             "objectName": "String::DisplayNameAnnotation",
             "outputs": "Table::DisplayNameAnnotation",
             "stdModules": "LuaStandardModuleSelection::DisplayNameAnnotation",
-            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "LuaScriptModule": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "stdModules": "LuaStandardModuleSelection::DisplayNameAnnotation",
-            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Material": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
@@ -2447,7 +2455,8 @@
             "uriDefines": "String::URIAnnotation::DisplayNameAnnotation",
             "uriFragment": "String::URIAnnotation::DisplayNameAnnotation",
             "uriGeometry": "String::URIAnnotation::DisplayNameAnnotation",
-            "uriVertex": "String::URIAnnotation::DisplayNameAnnotation"
+            "uriVertex": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Mesh": {
             "bakeMeshes": "Bool::DisplayNameAnnotation",
@@ -2456,7 +2465,8 @@
             "meshIndex": "Int::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "MeshNode": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
@@ -2470,6 +2480,7 @@
             "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
         "Node": {
@@ -2481,6 +2492,7 @@
             "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
         "OrthographicCamera": {
@@ -2493,6 +2505,7 @@
             "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "viewport": "CameraViewport::DisplayNameAnnotation::LinkEndAnnotation",
             "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
@@ -2507,13 +2520,15 @@
             "scaling": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
             "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "viewport": "CameraViewport::DisplayNameAnnotation::LinkEndAnnotation",
             "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
         "Prefab": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "objectID": "String::HiddenProperty",
-            "objectName": "String::DisplayNameAnnotation"
+            "objectName": "String::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "PrefabInstance": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
@@ -2525,6 +2540,7 @@
             "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
             "template": "Prefab::DisplayNameAnnotation",
             "translation": "Vec3f::DisplayNameAnnotation::LinkEndAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "visibility": "Bool::DisplayNameAnnotation::LinkEndAnnotation"
         },
         "ProjectSettings": {
@@ -2536,6 +2552,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "saveAsZip": "Bool::DisplayNameAnnotation",
             "sceneId": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "viewport": "Vec2i::DisplayNameAnnotation"
         },
         "RenderBuffer": {
@@ -2547,6 +2564,7 @@
             "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "width": "Int::RangeAnnotationInt::DisplayNameAnnotation",
             "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
@@ -2558,6 +2576,7 @@
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "sampleCount": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "width": "Int::RangeAnnotationInt::DisplayNameAnnotation"
         },
         "RenderLayer": {
@@ -2568,7 +2587,8 @@
             "objectName": "String::DisplayNameAnnotation",
             "renderableTags": "Table::RenderableTagContainerAnnotation::DisplayNameAnnotation",
             "sortOrder": "Int::DisplayNameAnnotation::EnumerationAnnotation",
-            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation"
+            "tags": "Table::ArraySemanticAnnotation::HiddenProperty::TagContainerAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "RenderPass": {
             "camera": "BaseCamera::DisplayNameAnnotation",
@@ -2590,7 +2610,8 @@
             "objectName": "String::DisplayNameAnnotation",
             "renderOnce": "Bool::DisplayNameAnnotation::LinkEndAnnotation::FeatureLevel",
             "renderOrder": "Int::DisplayNameAnnotation::LinkEndAnnotation",
-            "target": "RenderTarget::DisplayNameAnnotation::EmptyReferenceAllowable"
+            "target": "RenderTarget::DisplayNameAnnotation::EmptyReferenceAllowable",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "RenderTarget": {
             "buffer0": "RenderBuffer::DisplayNameAnnotation::EmptyReferenceAllowable",
@@ -2611,7 +2632,8 @@
             "bufferMS7": "RenderBufferMS::DisplayNameAnnotation::EmptyReferenceAllowable",
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "objectID": "String::HiddenProperty",
-            "objectName": "String::DisplayNameAnnotation"
+            "objectName": "String::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Skin": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
@@ -2620,7 +2642,8 @@
             "objectName": "String::DisplayNameAnnotation",
             "skinIndex": "Int::DisplayNameAnnotation",
             "targets": "Table::DisplayNameAnnotation",
-            "uri": "String::URIAnnotation::DisplayNameAnnotation"
+            "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Texture": {
             "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",
@@ -2637,6 +2660,7 @@
             "objectName": "String::DisplayNameAnnotation",
             "textureFormat": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
             "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
         },
@@ -2645,14 +2669,16 @@
             "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "objectID": "String::HiddenProperty",
-            "objectName": "String::DisplayNameAnnotation"
+            "objectName": "String::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Timer": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "inputs": "TimerInput::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "outputs": "TimerOutput::DisplayNameAnnotation"
+            "outputs": "TimerOutput::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         }
     }
 }

@@ -200,17 +200,10 @@ void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
 		restorableObjectId_ = valueHandle.rootObject()->objectID();
 		subscription_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this, valueHandle](core::SEditorObject obj) {
 			if (valueHandle.rootObject() == obj) {
-				// SaveAs with new project ID will delete the ProjecSettings object and create a new one in order to change the object ID.
-				// We want to move a ProjectSettings property browser to the new ProjectSettings object automatically,
-				// so we detect this case and instead of clearing we find the new settings object and set a new ValueHandle with it.
-				if (obj->isType<raco::core::ProjectSettings>()) {
-					setValueHandle({commandInterface_->project()->settings()});
-				} else {
-					if (locked_) {
-						setLocked(false);
-					}
-					clearValueHandle(true);
+				if (locked_) {
+					setLocked(false);
 				}
+				clearValueHandle(true);
 			}
 		});
 		propertyBrowser_.reset(new PropertyBrowserView{sceneBackend_, new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, sceneBackend_, model_}, model_, this});

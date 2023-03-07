@@ -94,6 +94,9 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 		if (!scriptContent.empty()) {
 			std::vector<raco::ramses_base::RamsesLuaModule> modules;
 			auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+			if (!sceneAdaptor_->optimizeForExport()) {
+				luaConfig.enableDebugLogFunctions();
+			}
 			const auto& moduleDeps = editorObject_->luaModules_.asTable();
 			for (auto i = 0; i < moduleDeps.size(); ++i) {
 				if (auto moduleRef = moduleDeps.get(i)->asRef()) {

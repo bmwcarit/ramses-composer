@@ -80,6 +80,8 @@ public:
 			EXPECT_TRUE(projectLink->startProp() == refLink.startProp());
 			EXPECT_TRUE(projectLink->isValid() == refLink.isValid());
 			EXPECT_TRUE(*projectLink->isWeak_ == *refLink.isWeak_);
+			auto refValid = raco::core::Queries::linkWouldBeValid(project, projectLink->startProp(), projectLink->endProp());
+			EXPECT_TRUE(projectLink->isValid() == refValid);
 		}
 	}
 

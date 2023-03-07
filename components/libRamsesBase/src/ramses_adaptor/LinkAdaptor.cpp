@@ -14,8 +14,9 @@
 #include "core/Queries.h"
 #include "log_system/log.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
-#include "user_types/SyncTableWithEngineInterface.h"
+#include "user_types/EngineTypeAnnotation.h"
 #include "user_types/LuaInterface.h"
+#include "user_types/SyncTableWithEngineInterface.h"
 
 namespace raco::ramses_adaptor {
 
@@ -67,7 +68,15 @@ std::optional<core::PropertyDescriptor> followLinkChain(const core::Project& pro
 	return prop;
 }
 
-}// namespace
+// Figure out if a data model property corresponds to a primitive type in the LogicEngine
+bool isEnginePrimitive(const core::ValueHandle& prop) {
+	auto type = prop.type();
+	return type != core::PrimitiveType::Table &&
+		   (type != core::PrimitiveType::Struct ||
+			   prop.isVec2f() || prop.isVec3f() || prop.isVec4f() || prop.isVec2i() || prop.isVec3i() || prop.isVec4i());
+}
+
+}  // namespace
 
 LinkAdaptor::LinkAdaptor(const core::LinkDescriptor& link, SceneAdaptor* sceneAdaptor) : editorLink_{link}, sceneAdaptor_{sceneAdaptor} {
 	connect();
@@ -78,35 +87,32 @@ void LinkAdaptor::lift() {
 	engineLinks_.clear();
 }
 
-void LinkAdaptor::connectHelper(const core::PropertyDescriptor& start, const rlogic::Property& endEngineProp, bool isWeak) {
-	core::ValueHandle startHandle(start);
-
-	auto engineType = endEngineProp.getType();
-	if (engineType == rlogic::EPropertyType::Struct || engineType == rlogic::EPropertyType::Array) {
-		for (size_t index = 0; index < endEngineProp.getChildCount(); index++) {
-			auto endChild = endEngineProp.getChild(index);
-			std::string propName = user_types::dataModelPropNameForLogicEnginePropName(std::string(endChild->getName()), index);
-			connectHelper(start.child(propName), *endChild, isWeak);
+void LinkAdaptor::connectHelper(const core::ValueHandle& start, const core::ValueHandle& end, bool isWeak) {
+	if (!isEnginePrimitive(end)) {
+		for (size_t index = 0; index < end.size(); index++) {
+			auto endChild = end[index];
+			connectHelper(start.get(endChild.getPropName()), endChild, isWeak);
 		}
 	} else {
-		std::optional<core::PropertyDescriptor> startPropOpt = start;
+		std::optional<core::PropertyDescriptor> startPropOpt = start.getDescriptor();
 		if (sceneAdaptor_->optimizeForExport()) {
-			startPropOpt = followLinkChain(sceneAdaptor_->project(), start);
+			startPropOpt = followLinkChain(sceneAdaptor_->project(), start.getDescriptor());
 		}
 		if (startPropOpt) {
 			auto startProp = startPropOpt.value();
-			auto startAdaptor(sceneAdaptor_->lookupAdaptor(startProp.object()));
-			if (startAdaptor) {
-				auto startEngineProp = dynamic_cast<ILogicPropertyProvider*>(startAdaptor)->getProperty(startProp.propertyNames());
-				if (startEngineProp) {
-					auto engineLink = createEngineLink(&sceneAdaptor_->logicEngine(), *startEngineProp, endEngineProp, isWeak);
-					if (engineLink) {
-						engineLinks_.emplace_back(std::move(engineLink));
+			if (auto startAdaptor = sceneAdaptor_->lookupAdaptor(startProp.object())) {
+				if (auto startEngineProp = dynamic_cast<ILogicPropertyProvider*>(startAdaptor)->getProperty(startProp.propertyNames())) {
+					if (auto endAdaptor = sceneAdaptor_->lookupAdaptor(editorLink_.end.object())) {
+						if (auto endEngineProp = dynamic_cast<ILogicPropertyProvider*>(endAdaptor)->getProperty(end.getPropertyNamesVector())) {
+							if (auto engineLink = createEngineLink(&sceneAdaptor_->logicEngine(), *startEngineProp, *endEngineProp, isWeak)) {
+								engineLinks_.emplace_back(std::move(engineLink));
+							}
+						}
 					}
 				}
 			}
 		}
-	}
+	}	
 }
 
 void LinkAdaptor::connect() {
@@ -117,24 +123,30 @@ void LinkAdaptor::connect() {
 		return;
 	}
 
-	auto destAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.end.object())};
+	if (editorLink_.isValid) {
+		connectHelper(core::ValueHandle(editorLink_.start), core::ValueHandle(editorLink_.end), editorLink_.isWeak);
+	}
+}
 
-	if (editorLink_.isValid && destAdaptor) {
-		auto endEngineProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
-		if (endEngineProp) {
-			connectHelper(editorLink_.start, *endEngineProp, editorLink_.isWeak);
+void LinkAdaptor::readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property) {
+	if (property) {
+		if (!isEnginePrimitive(property)) {
+			for (size_t index = 0; index < property.size(); index++) {
+				readFromEngineRecursive(recorder, property[index]);
+			}
+		} else {
+			if (auto adaptor = sceneAdaptor_->lookupAdaptor(property.rootObject())) {
+				if (auto engineProp = dynamic_cast<ILogicPropertyProvider*>(adaptor)->getProperty(property.getPropertyNamesVector())) {
+					getOutputFromEngine(*engineProp, property, recorder);
+				}
+			}
 		}
 	}
 }
 
 void LinkAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
-	auto destAdaptor{sceneAdaptor_->lookupAdaptor(editorLink_.end.object())};
-	raco::core::ValueHandle destHandle{editorLink_.end};
-	if (destAdaptor && destHandle && editorLink_.isValid) {
-		auto endProp = dynamic_cast<ILogicPropertyProvider*>(destAdaptor)->getProperty(editorLink_.end.propertyNames());
-		if (endProp) {
-			getOutputFromEngine(*endProp, destHandle, recorder);
-		}
+	if (editorLink_.isValid) {
+		readFromEngineRecursive(recorder, core::ValueHandle(editorLink_.end));
 	}
 }
 

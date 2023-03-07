@@ -10,6 +10,10 @@
 #include <gtest/gtest.h>
 
 #include "RamsesBaseFixture.h"
+
+#include "AdaptorTestUtils.h"
+#include "MaterialAdaptorTestBase.h"
+
 #include "ramses_adaptor/MeshNodeAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
@@ -18,16 +22,15 @@
 using namespace raco;
 using raco::ramses_adaptor::MeshNodeAdaptor;
 using raco::ramses_adaptor::SceneAdaptor;
-using raco::user_types::RenderBufferMS;
 using raco::user_types::Material;
 using raco::user_types::Mesh;
 using raco::user_types::MeshNode;
+using raco::user_types::RenderBufferMS;
 using raco::user_types::SMeshNode;
 using raco::user_types::ValueHandle;
 
-class MeshNodeAdaptorFixture : public RamsesBaseFixture<> {
+class MeshNodeAdaptorFixture : public MaterialAdaptorTestBase {
 protected:
-
 	template <int MESH_NODE_AMOUNT>
 	void runMeshNodeConstructionRoutine(bool private_material) {
 		auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
@@ -103,7 +106,6 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_name_change) {
 	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceName, meshNodes[0]->getAppearance()->getName());
 	EXPECT_STREQ("Changed_GeometryBinding", meshNodes[0]->getGeometryBinding()->getName());
 }
-
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMesh_constructs_ramsesMeshNode) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
@@ -265,7 +267,6 @@ TEST_F(MeshNodeAdaptorFixture, meshnode_shared_material_is_unique) {
 	EXPECT_EQ(ramsesMeshNode_a->getAppearance(), ramsesMeshNode_b->getAppearance());
 }
 
-
 TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_private) {
 	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
 	auto material = create_material("Material", "shaders/basic.vert", "shaders/basic.frag");
@@ -395,7 +396,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_wro
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 	dispatch();
 	context.set(ValueHandle{meshNode, {"mesh"}}, mesh);
-  	dispatch();
+	dispatch();
 	context.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
 	dispatch();
 	context.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
@@ -406,5 +407,152 @@ TEST_F(MeshNodeAdaptorFixture, inContext_user_type_MeshNode_submeshSelection_wro
 	ASSERT_EQ(context.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
 }
 
+TEST_F(MeshNodeAdaptorFixture, set_get_scalar_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-scalar.vert", "shaders/uniform-scalar.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
 
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
 
+	setStructComponents({meshnode, {"materials", "material", "uniforms"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents(appearance, {}, default_struct_prim_values);
+}
+
+TEST_F(MeshNodeAdaptorFixture, link_get_scalar_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-scalar.vert", "shaders/uniform-scalar.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {meshnode, {"materials", "material", "uniforms"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents({meshnode, {"materials", "material", "uniforms"}}, appearance, {}, default_struct_prim_values);
+}
+
+TEST_F(MeshNodeAdaptorFixture, set_get_array_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "ivec", "2"}}, 2);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "fvec", "3"}}, 3.0);
+
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "avec2", "4", "y"}}, 4.0);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "avec3", "5", "z"}}, 5.0);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "avec4", "6", "w"}}, 6.0);
+
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "aivec2", "4", "i2"}}, 7);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "aivec3", "5", "i3"}}, 8);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "aivec4", "6", "i4"}}, 9);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 3, {0.0, 4.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 4, {0.0, 0.0, 5.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 5, {0.0, 0.0, 0.0, 6.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 3, {0, 7});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 4, {0, 0, 8});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 5, {0, 0, 0, 9});
+}
+
+TEST_F(MeshNodeAdaptorFixture, set_get_struct_prim_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	setStructComponents({meshnode, {"materials", "material", "uniforms", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents(appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MeshNodeAdaptorFixture, link_get_struct_prim_uniforms_struct) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	link(interface, {"inputs", "s_prims"}, meshnode, {"materials", "material", "uniforms", "s_prims"});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents({meshnode, {"materials", "material", "uniforms", "s_prims"}}, appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MeshNodeAdaptorFixture, link_get_struct_prim_uniforms_members) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	linkStructComponents({interface, {"inputs", "s_prims"}}, {meshnode, {"materials", "material", "uniforms", "s_prims"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents({meshnode, {"materials", "material", "uniforms", "s_prims"}}, appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MeshNodeAdaptorFixture, set_get_array_struct_prim_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	setStructComponents({meshnode, {"materials", "material", "uniforms", "a_s_prims", "2"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents(appearance, "a_s_prims[1].", default_struct_prim_values);
+}

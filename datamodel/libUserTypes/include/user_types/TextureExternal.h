@@ -41,8 +41,8 @@ public:
 	// Using TextureMagSamplingMethod enumeration for min sampler is weird, but for external textures
 	// only nearest and linear are allowed by ramses so instead of creating a new enumeration with the same
 	// content we just reuse the mag sampling method one.
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> minSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MAG_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Min Sampling Method"), EnumerationAnnotation{TextureMagSamplingMethod}};
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> magSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MAG_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Mag Sampling Method"), EnumerationAnnotation{TextureMagSamplingMethod}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> minSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MAG_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Min Sampling Method"), EnumerationAnnotation{EUserTypeEnumerations::TextureMagSamplingMethod}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> magSamplingMethod_{DEFAULT_VALUE_TEXTURE_SAMPLER_TEXTURE_MAG_SAMPLING_METHOD_NEAREST, DisplayNameAnnotation("Mag Sampling Method"), EnumerationAnnotation{EUserTypeEnumerations::TextureMagSamplingMethod}};
 };
 
 using STextureExternal = std::shared_ptr<TextureExternal>;

@@ -182,6 +182,7 @@ public:
 
 		// EditorObject
 		Property<Table, ArraySemanticAnnotation, HiddenProperty>,
+		Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation>,
 		Property<std::string, HiddenProperty>,
 		Property<std::string, DisplayNameAnnotation>,
 

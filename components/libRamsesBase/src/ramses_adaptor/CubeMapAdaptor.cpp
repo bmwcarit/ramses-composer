@@ -87,7 +87,8 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors*
 			mipData["uriBack"].data()));
 	}
 
-	auto selectedTextureFormat = static_cast<ramses::ETextureFormat>((*editorObject()->textureFormat_));
+	auto format = static_cast<user_types::ETextureFormat>((*editorObject()->textureFormat_));
+	auto ramsesFormat = ramses_base::enumerationTranslationTextureFormat.at(format);
 
 	std::string infoText = "CubeMap information\n\n";
 	infoText.append(fmt::format("Width: {} px\n", decodingInfo.width));
@@ -100,7 +101,7 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors*
 
 	errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {editorObject()->shared_from_this()}, infoText);
 
-	return raco::ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), selectedTextureFormat, decodingInfo.width, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache);
+	return raco::ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramsesFormat, decodingInfo.width, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache);
 }
 
 raco::ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
@@ -158,11 +159,24 @@ bool CubeMapAdaptor::sync(core::Errors* errors) {
 
 	if (textureData_) {
 		textureData_->setName(createDefaultTextureDataName().c_str());
+
+		auto wrapUMode = static_cast<user_types::ETextureAddressMode>(*editorObject()->wrapUMode_);
+		auto ramsesWrapUMode = ramses_base::enumerationTranslationTextureAddressMode.at(wrapUMode);
+
+		auto wrapVMode = static_cast<user_types::ETextureAddressMode>(*editorObject()->wrapVMode_);
+		auto ramsesWrapVMode = ramses_base::enumerationTranslationTextureAddressMode.at(wrapVMode);
+
+		auto minSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_);
+		auto ramsesMinSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(minSamplMethod);
+
+		auto magSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_);
+		auto ramsesMagSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(magSamplMethod);
+
 		auto textureSampler = raco::ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
-			static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapUMode_),
-			static_cast<ramses::ETextureAddressMode>(*editorObject()->wrapVMode_),
-			static_cast<ramses::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_),
-			static_cast<ramses::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_),
+			ramsesWrapUMode,
+			ramsesWrapVMode,
+			ramsesMinSamplMethod,
+			ramsesMagSamplMethod,
 			textureData_,
 			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));
 		reset(std::move(textureSampler));

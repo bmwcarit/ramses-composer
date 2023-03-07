@@ -73,13 +73,13 @@ public:
 	 * @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
 	 * @exception ExtrefError
 	 */
-	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, core::LoadContext& loadContext, bool logErrors = true, int featureLevel = -1);
+	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, core::LoadContext& loadContext, bool logErrors = true, int featureLevel = -1, bool generateNewObjectIDs = false);
 	
 	QString name() const;
 
 	bool dirty() const noexcept;
 	bool save(std::string &outError);
-	bool saveAs(const QString& fileName, std::string& outError, bool setProjectName = false, bool setNewID = false);
+	bool saveAs(const QString& fileName, std::string& outError, bool setProjectName = false);
 
 	// @exception ExtrefError
 	void updateExternalReferences(core::LoadContext& loadContext);

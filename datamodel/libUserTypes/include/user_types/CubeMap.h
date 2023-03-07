@@ -91,7 +91,7 @@ public:
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	void updateFromExternalFile(BaseContext& context) override;
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> textureFormat_{DEFAULT_VALUE_TEXTURE_FORMAT_RGBA8, {"Format"}, {EngineEnumeration::TextureFormat}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> textureFormat_{DEFAULT_VALUE_TEXTURE_FORMAT_RGBA8, {"Format"}, {EUserTypeEnumerations::TextureFormat}};
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> mipmapLevel_{1, {"Mipmap Level"}, {1, 4}};
 

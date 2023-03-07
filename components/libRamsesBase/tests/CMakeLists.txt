@@ -11,6 +11,9 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 # Adding the unit test with gtest using our macro from dsathe top level CMakeLists.txt file
 
 set(TEST_SOURCES
+    AdaptorTestUtils.h
+    MaterialAdaptorTestBase.h
+
     AnimationAdaptor_test.cpp
     AnimationChannelAdaptor_test.cpp
     BlitPassAdaptor_test.cpp
@@ -66,16 +69,24 @@ raco_package_add_test_resources(
     images/text-back-palette.png
     images/yellow_256.png
     scripts/types-scalar.lua
+    scripts/uniform-structs.lua
+    scripts/uniform-array.lua
     shaders/basic.frag
     shaders/basic.vert
-    shaders/simple_texture.frag
-    shaders/simple_texture.vert
     shaders/multisampler.frag
     shaders/multisampler.vert
+    shaders/simple_texture.frag
+    shaders/simple_texture.vert
+    shaders/texture-external.vert
+    shaders/texture-external.frag
     shaders/uniform-array.vert
     shaders/uniform-array.frag
+    shaders/uniform-samplers.vert
+    shaders/uniform-samplers.frag
     shaders/uniform-scalar.vert
     shaders/uniform-scalar.frag
+    shaders/uniform-struct.vert
+    shaders/uniform-struct.frag
     shaders/skinning-template.vert
     shaders/skinning-template.frag
     meshes/Duck.glb

@@ -9,9 +9,11 @@
  */
 #pragma once
 
-#include "core/EngineInterface.h"
-#include "user_types/DefaultValues.h"
 #include "user_types/BaseTexture.h"
+#include "user_types/DefaultValues.h"
+#include "user_types/Enumerations.h"
+#include "core/EngineInterface.h"
+#include "user_types/Enumerations.h"
 
 namespace raco::user_types {
 
@@ -38,10 +40,8 @@ public:
 	}
 
 	bool areSamplingParametersSupported(EngineInterface const& engineInterface) const {
-		// This is a temporary hack. We need to refactor the enums in general, and the format_ enum in particular now that the user_types need to know things about it.
-		auto const& enumMap = engineInterface.enumerationDescription(EngineEnumeration::RenderBufferFormat);
-		const auto it = enumMap.find(format_.asInt());
-		return it == enumMap.end() || (it->second != "Depth24" && it->second != "Depth24_Stencil8");
+		auto format = static_cast<ERenderBufferFormat>(*format_);
+		return format != ERenderBufferFormat::Depth24 && format != ERenderBufferFormat::Depth24_Stencil8;
 	}
 
 	bool isSamplingProperty(ValueHandle const& valueHandle) const {
@@ -55,7 +55,7 @@ public:
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {1, 7680}, {"Width"}};
 	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {1, 7680}, {"Height"}};
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation> format_{DEFAULT_VALUE_RENDER_BUFFER_FORMAT, DisplayNameAnnotation("Format"), EnumerationAnnotation{EngineEnumeration::RenderBufferFormat}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> format_{DEFAULT_VALUE_RENDER_BUFFER_FORMAT, DisplayNameAnnotation("Format"), EnumerationAnnotation{EUserTypeEnumerations::RenderBufferFormat}};
 
 private:
 };

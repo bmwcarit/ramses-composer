@@ -60,11 +60,13 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 	void resetSelection();
-	void globalCopyCallback();
-	void cut();
+	
+	void copyObjects();
+	void pasteObjects(const QModelIndex &index, bool asExtRef = false);
+	void cutObjects();
+	void deleteObjects();
 	void duplicateObjects();
-	void globalPasteCallback(const QModelIndex &index, bool asExtRef = false);
-	void shortcutDelete();
+
 	void selectObject(const QString &objectID);
 	void expandAllParentsOfObject(const QString &objectID);
 	void expanded(const QModelIndex &index);

@@ -36,9 +36,6 @@
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderLayer.h"
 
-#include <ramses-client-api/AppearanceEnums.h>
-#include <ramses-client-api/TextureEnums.h>
-
 #include <spdlog/fmt/fmt.h>
 
 #include <stdlib.h>
@@ -50,46 +47,48 @@ raco::application::RaCoApplication* app;
 raco::python_api::PythonRunStatus currentRunStatus;
 
 py::object python_get_scalar_value(raco::core::ValueHandle handle) {
+	using namespace raco::user_types;
+
 	switch (handle.type()) {
 		case raco::data_storage::PrimitiveType::Bool:
 			return py::cast(handle.asBool());
 			break;
 		case raco::data_storage::PrimitiveType::Int:
 			if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
-				switch (static_cast<raco::core::EngineEnumeration>(anno->type_.asInt())) {
-					case raco::core::EngineEnumeration::CullMode:
-						return py::cast(static_cast<ramses::ECullMode>(handle.asInt()));
+				switch (static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt())) {
+					case raco::core::EUserTypeEnumerations::CullMode:
+						return py::cast(static_cast<ECullMode>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::BlendOperation:
-						return py::cast(static_cast<ramses::EBlendOperation>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::BlendOperation:
+						return py::cast(static_cast<EBlendOperation>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::BlendFactor:
-						return py::cast(static_cast<ramses::EBlendFactor>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::BlendFactor:
+						return py::cast(static_cast<EBlendFactor>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::DepthFunction:
-						return py::cast(static_cast<ramses::EDepthFunc>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::DepthFunction:
+						return py::cast(static_cast<EDepthFunc>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::TextureAddressMode:
-						return py::cast(static_cast<ramses::ETextureAddressMode>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::TextureAddressMode:
+						return py::cast(static_cast<ETextureAddressMode>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::TextureMinSamplingMethod:
-					case raco::core::EngineEnumeration::TextureMagSamplingMethod:
-						return py::cast(static_cast<ramses::ETextureSamplingMethod>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::TextureMinSamplingMethod:
+					case raco::core::EUserTypeEnumerations::TextureMagSamplingMethod:
+						return py::cast(static_cast<ETextureSamplingMethod>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::TextureFormat:
-						return py::cast(static_cast<ramses::ETextureFormat>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::TextureFormat:
+						return py::cast(static_cast<ETextureFormat>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::RenderBufferFormat:
-						return py::cast(static_cast<ramses::ERenderBufferFormat>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::RenderBufferFormat:
+						return py::cast(static_cast<ERenderBufferFormat>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::RenderLayerOrder:
-						return py::cast(static_cast<raco::user_types::ERenderLayerOrder>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::RenderLayerOrder:
+						return py::cast(static_cast<ERenderLayerOrder>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::RenderLayerMaterialFilterMode:
-						return py::cast(static_cast<raco::user_types::ERenderLayerMaterialFilterMode>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::RenderLayerMaterialFilterMode:
+						return py::cast(static_cast<ERenderLayerMaterialFilterMode>(handle.asInt()));
 
-					case raco::core::EngineEnumeration::FrustumType:
-						return py::cast(static_cast<raco::user_types::EFrustumType>(handle.asInt()));
+					case raco::core::EUserTypeEnumerations::FrustumType:
+						return py::cast(static_cast<EFrustumType>(handle.asInt()));
 
 					default:
 						assert(false);
@@ -295,7 +294,7 @@ std::vector<std::string> getTags(raco::core::SEditorObject obj, std::string tagP
 	raco::core::PropertyDescriptor desc(obj, {tagPropertyName});
 	checkHiddenProperty(desc);
 	raco::core::ValueHandle handle(desc);
-	if (handle.query<raco::core::TagContainerAnnotation>()) {
+	if (handle.query<raco::core::TagContainerAnnotation>() || handle.query<raco::core::UserTagContainerAnnotation>()) {
 		return handle.constValueRef()->asTable().asVector<std::string>();
 	} else {
 		throw std::runtime_error(fmt::format("Property '{}' is not a tag container.", desc.getPropertyPath()));
@@ -307,7 +306,7 @@ void setTags(raco::core::SEditorObject obj, std::vector<std::string> tags, std::
 	raco::core::PropertyDescriptor desc(obj, {tagPropertyName});
 	checkHiddenProperty(desc);
 	raco::core::ValueHandle handle(desc);
-	if (handle.query<raco::core::TagContainerAnnotation>()) {
+	if (handle.query<raco::core::TagContainerAnnotation>() || handle.query<raco::core::UserTagContainerAnnotation>()) {
 		app->activeRaCoProject().commandInterface()->setTags(handle, tags);
 		app->doOneLoop();
 	} else {
@@ -354,115 +353,124 @@ PYBIND11_EMBEDDED_MODULE(raco_py_io, m) {
 	});
 }
 
+
 PYBIND11_EMBEDDED_MODULE(raco, m) {
-	py::enum_<ramses::ECullMode>(m, "ECullMode")
-		.value("Disabled", ramses::ECullMode_Disabled)
-		.value("Front", ramses::ECullMode_FrontFacing)
-		.value("Back", ramses::ECullMode_BackFacing)
-		.value("FrontAndBack", ramses::ECullMode_FrontAndBackFacing);
+	using namespace raco::user_types;
 
-	py::enum_<ramses::EBlendOperation>(m, "EBlendOperation")
-		.value("Disabled", ramses::EBlendOperation_Disabled)
-		.value("Add", ramses::EBlendOperation_Add)
-		.value("Subtract", ramses::EBlendOperation_Subtract)
-		.value("ReverseSubtract", ramses::EBlendOperation_ReverseSubtract)
-		.value("Min", ramses::EBlendOperation_Min)
-		.value("Max", ramses::EBlendOperation_Max);
+	py::enum_<ECullMode>(m, "ECullMode")
+		.value("Disabled", ECullMode::Disabled)
+		.value("Front", ECullMode::FrontFacing)
+		.value("Back", ECullMode::BackFacing)
+		.value("FrontAndBack", ECullMode::FrontAndBackFacing);
 
-	py::enum_<ramses::EBlendFactor>(m, "EBlendFactor")
-		.value("Zero", ramses::EBlendFactor_Zero)
-		.value("One", ramses::EBlendFactor_One)
-		.value("SrcAlpha", ramses::EBlendFactor_SrcAlpha)
-		.value("OneMinusSrcAlpha", ramses::EBlendFactor_OneMinusSrcAlpha)
-		.value("DstAlpha", ramses::EBlendFactor_DstAlpha)
-		.value("OneMinusDstAlpha", ramses::EBlendFactor_OneMinusDstAlpha)
-		.value("SrcColor", ramses::EBlendFactor_SrcColor)
-		.value("OneMinusSrcColor", ramses::EBlendFactor_OneMinusSrcColor)
-		.value("DstColor", ramses::EBlendFactor_DstColor)
-		.value("OneMinusDstColor", ramses::EBlendFactor_OneMinusDstColor)
-		.value("ConstColor", ramses::EBlendFactor_ConstColor)
-		.value("OneMinusConstColor", ramses::EBlendFactor_OneMinusConstColor)
-		.value("ConstAlpha", ramses::EBlendFactor_ConstAlpha)
-		.value("OneMinusConstAlpha", ramses::EBlendFactor_OneMinusConstAlpha)
-		.value("AlphaSaturate", ramses::EBlendFactor_AlphaSaturate);
+	py::enum_<EBlendOperation>(m, "EBlendOperation")
+		.value("Disabled", EBlendOperation::Disabled)
+		.value("Add", EBlendOperation::Add)
+		.value("Subtract", EBlendOperation::Subtract)
+		.value("ReverseSubtract", EBlendOperation::ReverseSubtract)
+		.value("Min", EBlendOperation::Min)
+		.value("Max", EBlendOperation::Max);
 
-	py::enum_<ramses::EDepthFunc>(m, "EDepthFunction")
-		.value("Disabled", ramses::EDepthFunc_Disabled)
-		.value("Greater", ramses::EDepthFunc_Greater)
-		.value("GreaterEqual", ramses::EDepthFunc_GreaterEqual)
-		.value("Less", ramses::EDepthFunc_Less)
-		.value("LessEqual", ramses::EDepthFunc_LessEqual)
-		.value("Equal", ramses::EDepthFunc_Equal)
-		.value("NotEqual", ramses::EDepthFunc_NotEqual)
-		.value("Always", ramses::EDepthFunc_Always)
-		.value("Never", ramses::EDepthFunc_Never);
+	py::enum_<EBlendFactor>(m, "EBlendFactor")
+		.value("Zero", EBlendFactor::Zero)
+		.value("One", EBlendFactor::One)
+		.value("SrcAlpha", EBlendFactor::SrcAlpha)
+		.value("OneMinusSrcAlpha", EBlendFactor::OneMinusSrcAlpha)
+		.value("DstAlpha", EBlendFactor::DstAlpha)
+		.value("OneMinusDstAlpha", EBlendFactor::OneMinusDstAlpha)
+		.value("SrcColor", EBlendFactor::SrcColor)
+		.value("OneMinusSrcColor", EBlendFactor::OneMinusSrcColor)
+		.value("DstColor", EBlendFactor::DstColor)
+		.value("OneMinusDstColor", EBlendFactor::OneMinusDstColor)
+		.value("ConstColor", EBlendFactor::ConstColor)
+		.value("OneMinusConstColor", EBlendFactor::OneMinusConstColor)
+		.value("ConstAlpha", EBlendFactor::ConstAlpha)
+		.value("OneMinusConstAlpha", EBlendFactor::OneMinusConstAlpha)
+		.value("AlphaSaturate", EBlendFactor::AlphaSaturate);
 
-	py::enum_<ramses::ETextureAddressMode>(m, "ETextureAddressMode")
-		.value("Clamp", ramses::ETextureAddressMode_Clamp)
-		.value("Repeat", ramses::ETextureAddressMode_Repeat)
-		.value("Mirror", ramses::ETextureAddressMode_Mirror);
+	py::enum_<EDepthFunc>(m, "EDepthFunction")
+		.value("Disabled", EDepthFunc::Disabled)
+		.value("Greater", EDepthFunc::Greater)
+		.value("GreaterEqual", EDepthFunc::GreaterEqual)
+		.value("Less", EDepthFunc::Less)
+		.value("LessEqual", EDepthFunc::LessEqual)
+		.value("Equal", EDepthFunc::Equal)
+		.value("NotEqual", EDepthFunc::NotEqual)
+		.value("Always", EDepthFunc::Always)
+		.value("Never", EDepthFunc::Never);
 
-	py::enum_<ramses::ETextureSamplingMethod>(m, "ETextureSamplingMethod")
-		.value("Nearest", ramses::ETextureSamplingMethod_Nearest)
-		.value("Linear", ramses::ETextureSamplingMethod_Linear)
-		.value("Nearest_MipMapNearest", ramses::ETextureSamplingMethod_Nearest_MipMapNearest)
-		.value("Nearest_MipMapLinear", ramses::ETextureSamplingMethod_Nearest_MipMapLinear)
-		.value("Linear_MipMapNearest", ramses::ETextureSamplingMethod_Linear_MipMapNearest)
-		.value("Linear_MipMapLinear", ramses::ETextureSamplingMethod_Linear_MipMapLinear);
+	py::enum_<ETextureAddressMode>(m, "ETextureAddressMode")
+		.value("Clamp", ETextureAddressMode::Clamp)
+		.value("Repeat", ETextureAddressMode::Repeat)
+		.value("Mirror", ETextureAddressMode::Mirror);
 
-	py::enum_<ramses::ETextureFormat>(m, "ETextureFormat")
-		.value("R8", ramses::ETextureFormat::R8)
-		.value("RG8", ramses::ETextureFormat::RG8)
-		.value("RGB8", ramses::ETextureFormat::RGB8)
-		.value("RGBA8", ramses::ETextureFormat::RGBA8)
-		.value("RGB16F", ramses::ETextureFormat::RGB16F)
-		.value("RGBA16F", ramses::ETextureFormat::RGBA16F)
-		.value("SRGB8", ramses::ETextureFormat::SRGB8)
-		.value("SRGB8_ALPHA8", ramses::ETextureFormat::SRGB8_ALPHA8);
+	py::enum_<ETextureSamplingMethod>(m, "ETextureSamplingMethod")
+		.value("Nearest", ETextureSamplingMethod::Nearest)
+		.value("Linear", ETextureSamplingMethod::Linear)
+		.value("Nearest_MipMapNearest", ETextureSamplingMethod::Nearest_MipMapNearest)
+		.value("Nearest_MipMapLinear", ETextureSamplingMethod::Nearest_MipMapLinear)
+		.value("Linear_MipMapNearest", ETextureSamplingMethod::Linear_MipMapNearest)
+		.value("Linear_MipMapLinear", ETextureSamplingMethod::Linear_MipMapLinear);
 
-	py::enum_<ramses::ERenderBufferFormat>(m, "ERenderBufferFormat")
-		.value("RGBA4", ramses::ERenderBufferFormat_RGBA4)
-		.value("R8", ramses::ERenderBufferFormat_R8)
-		.value("RG8", ramses::ERenderBufferFormat_RG8)
-		.value("RGB8", ramses::ERenderBufferFormat_RGB8)
-		.value("RGBA8", ramses::ERenderBufferFormat_RGBA8)
-		.value("R16F", ramses::ERenderBufferFormat_R16F)
-		.value("R32F", ramses::ERenderBufferFormat_R32F)
-		.value("RG16F", ramses::ERenderBufferFormat_RG16F)
-		.value("RG32F", ramses::ERenderBufferFormat_RG32F)
-		.value("RGB16F", ramses::ERenderBufferFormat_RGB16F)
-		.value("RGB32F", ramses::ERenderBufferFormat_RGB32F)
-		.value("RGBA16F", ramses::ERenderBufferFormat_RGBA16F)
-		.value("RGBA32F", ramses::ERenderBufferFormat_RGBA32F)
+	py::enum_<ETextureFormat>(m, "ETextureFormat")
+		.value("R8", ETextureFormat::R8)
+		.value("RG8", ETextureFormat::RG8)
+		.value("RGB8", ETextureFormat::RGB8)
+		.value("RGBA8", ETextureFormat::RGBA8)
+		.value("RGB16F", ETextureFormat::RGB16F)
+		.value("RGBA16F", ETextureFormat::RGBA16F)
+		.value("SRGB8", ETextureFormat::SRGB8)
+		.value("SRGB8_ALPHA8", ETextureFormat::SRGB8_ALPHA8);
 
-		.value("Depth24", ramses::ERenderBufferFormat_Depth24)
-		.value("Depth24_Stencil8", ramses::ERenderBufferFormat_Depth24_Stencil8);
+	py::enum_<ERenderBufferFormat>(m, "ERenderBufferFormat")
+		.value("RGBA4", ERenderBufferFormat::RGBA4)
+		.value("R8", ERenderBufferFormat::R8)
+		.value("RG8", ERenderBufferFormat::RG8)
+		.value("RGB8", ERenderBufferFormat::RGB8)
+		.value("RGBA8", ERenderBufferFormat::RGBA8)
+		.value("R16F", ERenderBufferFormat::R16F)
+		.value("R32F", ERenderBufferFormat::R32F)
+		.value("RG16F", ERenderBufferFormat::RG16F)
+		.value("RG32F", ERenderBufferFormat::RG32F)
+		.value("RGB16F", ERenderBufferFormat::RGB16F)
+		.value("RGB32F", ERenderBufferFormat::RGB32F)
+		.value("RGBA16F", ERenderBufferFormat::RGBA16F)
+		.value("RGBA32F", ERenderBufferFormat::RGBA32F)
 
-	py::enum_<raco::user_types::ERenderLayerOrder>(m, "ERenderLayerOrder")
-		.value("Manual", raco::user_types::ERenderLayerOrder::Manual)
-		.value("SceneGraph", raco::user_types::ERenderLayerOrder::SceneGraph);
+		.value("Depth24", ERenderBufferFormat::Depth24)
+		.value("Depth24_Stencil8", ERenderBufferFormat::Depth24_Stencil8);
 
-	py::enum_<raco::user_types::ERenderLayerMaterialFilterMode>(m, "ERenderLayerMaterialFilterMode")
-		.value("Inclusive", raco::user_types::ERenderLayerMaterialFilterMode::Inclusive)
-		.value("Exclusive", raco::user_types::ERenderLayerMaterialFilterMode::Exclusive);
+	py::enum_<ERenderLayerOrder>(m, "ERenderLayerOrder")
+		.value("Manual", ERenderLayerOrder::Manual)
+		.value("SceneGraph", ERenderLayerOrder::SceneGraph);
 
-	py::enum_<raco::user_types::EFrustumType>(m, "EFrustumType")
-		.value("Aspect_FoV", raco::user_types::EFrustumType::Aspect_FieldOfView)
-		.value("Planes", raco::user_types::EFrustumType::Planes);
+	py::enum_<ERenderLayerMaterialFilterMode>(m, "ERenderLayerMaterialFilterMode")
+		.value("Inclusive", ERenderLayerMaterialFilterMode::Inclusive)
+		.value("Exclusive", ERenderLayerMaterialFilterMode::Exclusive);
 
-	py::enum_<raco::core::ErrorCategory>(m, "ErrorCategory")
-		.value("GENERAL", raco::core::ErrorCategory::GENERAL)
-		.value("PARSING", raco::core::ErrorCategory::PARSING)
-		.value("FILESYSTEM", raco::core::ErrorCategory::FILESYSTEM)
-		.value("RAMSES_LOGIC_RUNTIME", raco::core::ErrorCategory::RAMSES_LOGIC_RUNTIME)
-		.value("EXTERNAL_REFERENCE", raco::core::ErrorCategory::EXTERNAL_REFERENCE)
-		.value("MIGRATION", raco::core::ErrorCategory::MIGRATION);
+	py::enum_<EFrustumType>(m, "EFrustumType")
+		.value("Aspect_FoV", EFrustumType::Aspect_FieldOfView)
+		.value("Planes", EFrustumType::Planes);
 
-	py::enum_<raco::core::ErrorLevel>(m, "ErrorLevel")
-		.value("NONE", raco::core::ErrorLevel::NONE)
-		.value("INFORMATION", raco::core::ErrorLevel::INFORMATION)
-		.value("WARNING", raco::core::ErrorLevel::WARNING)
-		.value("ERROR", raco::core::ErrorLevel::ERROR);
+	py::enum_<ErrorCategory>(m, "ErrorCategory")
+		.value("GENERAL", ErrorCategory::GENERAL)
+		.value("PARSING", ErrorCategory::PARSING)
+		.value("FILESYSTEM", ErrorCategory::FILESYSTEM)
+		.value("RAMSES_LOGIC_RUNTIME", ErrorCategory::RAMSES_LOGIC_RUNTIME)
+		.value("EXTERNAL_REFERENCE", ErrorCategory::EXTERNAL_REFERENCE)
+		.value("MIGRATION", ErrorCategory::MIGRATION);
+
+	py::enum_<ErrorLevel>(m, "ErrorLevel")
+		.value("NONE", ErrorLevel::NONE)
+		.value("INFORMATION", ErrorLevel::INFORMATION)
+		.value("WARNING", ErrorLevel::WARNING)
+		.value("ERROR", ErrorLevel::ERROR);
+
+	py::enum_<raco::application::ELuaSavingMode>(m, "ELuaSavingMode")
+		.value("SourceCodeOnly", raco::application::ELuaSavingMode::SourceCodeOnly)
+		.value("ByteCodeOnly", raco::application::ELuaSavingMode::ByteCodeOnly)
+		.value("SourceAndByteCode", raco::application::ELuaSavingMode::SourceAndByteCode);
+
 
 	m.def("load", [](std::string path) {
 		python_load_project(path, -1);
@@ -499,10 +507,20 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 	});
 
-	m.def("save", [](std::string path, bool setNewID) {
+	m.def("save", [](std::string path, bool setNewIDs) {
+		if (app->isRunningInUI()) {
+			throw std::runtime_error(fmt::format("Can not load project: project-switching Python functions currently not allowed in UI."));
+		}
+
 		if (app->canSaveActiveProject()) {
 			std::string errorMsg;
-			if (!app->activeRaCoProject().saveAs(QString::fromStdString(path), errorMsg, app->activeProjectPath().empty(), setNewID)) {
+			bool success;
+			if (setNewIDs) {
+				success = app->saveAsWithNewIDs(QString::fromStdString(path), errorMsg, app->activeProjectPath().empty());
+			} else {
+				success = app->activeRaCoProject().saveAs(QString::fromStdString(path), errorMsg, app->activeProjectPath().empty());
+			}
+			if (!success) {
 				throw std::runtime_error(fmt::format("Saving project to '{}' failed with error '{}'.", path, errorMsg));
 			}
 		} else {
@@ -536,6 +554,13 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 	m.def("export", [](std::string ramsesExport, std::string logicExport, bool compress) {
 		std::string outError;
 		if (!app->exportProject(ramsesExport, logicExport, compress, outError)) {
+			throw std::runtime_error(fmt::format(("Export failed: {}", outError)));
+		}
+	});
+
+	m.def("export", [](std::string ramsesExport, std::string logicExport, bool compress, raco::application::ELuaSavingMode luaSavingMode) {
+		std::string outError;
+		if (!app->exportProject(ramsesExport, logicExport, compress, outError, false, luaSavingMode)) {
 			throw std::runtime_error(fmt::format(("Export failed: {}", outError)));
 		}
 	});
@@ -710,7 +735,7 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		})
 		.def("getTags", [](raco::core::SEditorObject obj) -> std::vector<std::string> {
 			return getTags(obj, "tags");
-		})		
+		})
 		.def("setTags", [](raco::core::SEditorObject obj, std::vector<std::string> tags) {
 			setTags(obj, tags, "tags");
 		})
@@ -719,6 +744,12 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		})
 		.def("setMaterialFilterTags", [](raco::core::SEditorObject obj, std::vector<std::string> tags) {
 			setTags(obj, tags, "materialFilterTags");
+		})
+		.def("getUserTags", [](raco::core::SEditorObject obj) -> std::vector<std::string> {
+			return getTags(obj, "userTags");
+		})
+		.def("setUserTags", [](raco::core::SEditorObject obj, std::vector<std::string> tags) {
+			setTags(obj, tags, "userTags");
 		})
 		.def("getRenderableTags", [](raco::core::SEditorObject obj) -> std::vector<std::pair<std::string, int>> {
 			checkTypedObject<raco::user_types::RenderLayer>(obj);

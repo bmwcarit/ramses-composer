@@ -12,10 +12,10 @@
 #include "PropertyBrowserButton.h"
 #include "application/RaCoApplication.h"
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
-#include <QLabel>
 #include <QLineEdit>
 
 namespace raco::common_widgets {
@@ -31,10 +31,12 @@ private:
 	void updateButtonStates();
 
 	QGridLayout* layout_;
+	QGridLayout* optionLayout_;
 	QCheckBox* compressEdit_;
 	QLineEdit* ramsesEdit_;
 	QLineEdit* logicEdit_;
 	QDialogButtonBox* buttonBox_;
+	QComboBox* luaSavingModeCombo_;
 
 	application::RaCoApplication* application_;
 	void setupFilePickerButton(PropertyBrowserButton* button, QLineEdit* pathEdit, const std::string& fileType);

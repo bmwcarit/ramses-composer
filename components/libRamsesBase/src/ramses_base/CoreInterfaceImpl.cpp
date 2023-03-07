@@ -8,8 +8,6 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#include "EnumerationDescriptions.h"
-
 #include "data_storage/Table.h"
 
 #include "core/EditorObject.h"
@@ -178,43 +176,6 @@ bool CoreInterfaceImpl::extractLuaDependencies(const std::string& luaScript, std
 		outError = backend_->logicEngine().getErrors().at(0).message;
 	}
 	return extractStatus;
-}
-
-const std::map<int, std::string>& CoreInterfaceImpl::enumerationDescription(raco::core::EngineEnumeration type) const {
-	switch (type) {
-		case raco::core::EngineEnumeration::CullMode:
-			return enumerationCullMode;
-		case raco::core::EngineEnumeration::BlendOperation:
-			return enumerationBlendOperation;
-		case raco::core::EngineEnumeration::BlendFactor:
-			return enumerationBlendFactor;
-		case raco::core::EngineEnumeration::DepthFunction:
-			return enumerationDepthFunction;
-		case raco::core::EngineEnumeration::TextureAddressMode:
-			return enumerationTextureAddressMode;
-		case raco::core::EngineEnumeration::TextureMinSamplingMethod:
-			return enumerationTextureMinSamplingMethod;
-		case raco::core::EngineEnumeration::TextureMagSamplingMethod:
-			return enumerationTextureMagSamplingMethod;
-		case raco::core::EngineEnumeration::TextureFormat:
-			return enumerationTextureFormat;
-
-		case raco::core::EngineEnumeration::RenderBufferFormat:
-			return enumerationRenderBufferFormat;
-
-		case raco::core::EngineEnumeration::RenderLayerOrder:
-			return raco::user_types::enumerationRenderLayerOrder;
-
-		case raco::core::EngineEnumeration::RenderLayerMaterialFilterMode:
-			return raco::user_types::enumerationRenderLayerMaterialFilterMode;
-
-		case raco::core::EngineEnumeration::FrustumType:
-			return raco::user_types::enumerationFrustumType;
-
-		default:
-			assert(false);
-			return enumerationEmpty;
-	}
 }
 
 std::string CoreInterfaceImpl::luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const {

@@ -38,6 +38,7 @@
 #include "user_types/LuaInterface.h"
 #include "user_types/RenderLayer.h"
 #include "user_types/Skin.h"
+#include "user_types/Texture.h"
 #include "user_types/UserObjectFactory.h"
 #include "user_types/PrefabInstance.h"
 #include "user_types/Enumerations.h"
@@ -210,6 +211,12 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 			commandInterface.set(raco::core::ValueHandle(skin, &raco::user_types::Skin::joints_)[index], nodes[index]);	
 		}
 		return skin;
+	}
+
+	raco::user_types::STexture create_texture(const std::string& name, const std::string& relpath) {
+		auto texture = create<raco::user_types::Texture>(name);
+		commandInterface.set({texture, {"uri"}}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
+		return texture;
 	}
 
 	raco::user_types::SPrefabInstance create_prefabInstance(raco::core::CommandInterface& cmd, const std::string& name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {

@@ -74,7 +74,7 @@ public:
 	void set(ValueHandle const& handle, std::array<int, 4> const& value);
 
 	
-	bool canSetTags(ValueHandle const& handle, std::vector<std::string> const& value) const;
+	bool canSetTags(ValueHandle const& handle, std::vector<std::string> const& value, std::string* outError = nullptr) const;
 
 	// Set a tag set property
 	// The handle must be a Table property with a TagContainer annotation.

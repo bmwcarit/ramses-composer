@@ -28,9 +28,13 @@ TextureExternalAdaptor::TextureExternalAdaptor(SceneAdaptor* sceneAdaptor, std::
 }
 
 bool TextureExternalAdaptor::sync(core::Errors* errors) {
-	reset(ramsesTextureSamplerExternal(sceneAdaptor_->scene(),
-		static_cast<ramses::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_),
-		static_cast<ramses::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_)));
+	auto minSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->minSamplingMethod_);
+	auto ramsesMinSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(minSamplMethod);
+
+	auto magSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_);
+	auto ramsesMagSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(magSamplMethod);
+
+	reset(ramsesTextureSamplerExternal(sceneAdaptor_->scene(), ramsesMinSamplMethod, ramsesMagSamplMethod));
 
 	tagDirty(false);
 	return true;
