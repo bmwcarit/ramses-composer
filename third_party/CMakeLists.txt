@@ -65,30 +65,24 @@ set_target_properties(zip uninstall test_append.out test_entry.out test_extract.
 
 # Configure ramses-sdk build options
 set(ramses-sdk_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_IVI_TEST_APPS OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_DEMO_ECM OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_SMOKE_TESTS OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_ENABLE_WAYLAND_SHELL  OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_ENABLE_DLT OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_WITH_LTO  OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_FORCE_OFF_SOMEIP_IC ON CACHE BOOL "" FORCE)
-set(ramses-sdk_FORCE_USE_SOMEIP_IC OFF CACHE BOOL "" FORCE)
 
 # These need to be set
 set(ramses-sdk_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_FULL_SHARED_LIB ON CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_CLIENT_ONLY_SHARED_LIB ON CACHE BOOL "" FORCE)
 set(ramses-sdk_CONSOLE_LOGLEVEL "info" CACHE STRING "" FORCE)
-# TODO: why are we building ramses-daemon?
+set(ramses-sdk_BUILD_DAEMON OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_TOOLS ON CACHE BOOL "" FORCE)
-
-# TODO: check if we need to enable this
 set(ramses-sdk_ENABLE_TCP_SUPPORT OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(ramses-logic/external/ramses/ EXCLUDE_FROM_ALL)
+add_subdirectory(ramses/ EXCLUDE_FROM_ALL)
 
 if (CMAKE_SYSTEM_NAME STREQUAL Windows)
     # es-3-0 / 4-5 / 4-2-core
@@ -99,36 +93,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL Linux)
 endif()
 
 add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
-
-
-set(ramses-logic_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(ramses-logic_BUILD_TOOLS ON CACHE BOOL "" FORCE)
-set(ramses-logic_ALLOW_RAMSES_BUILD OFF CACHE BOOL "" FORCE)
-set(ramses-logic_RAMSES_TARGET "raco::ramses-lib" CACHE STRING "" FORCE)
-set(ramses-logic_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
-add_subdirectory(ramses-logic/ EXCLUDE_FROM_ALL)
-
-add_library(ramses-logic-api INTERFACE)
-target_include_directories(ramses-logic-api INTERFACE
-    ramses-logic/include
-)
-
-function(add_ramses_logic_target TARGET RAMSES_TARGET)
-    add_library(${TARGET} SHARED)
-    target_link_libraries(${TARGET} PRIVATE ramses-logic-obj)
-    target_link_libraries(${TARGET} PUBLIC ${RAMSES_TARGET})
-    target_include_directories(${TARGET} PUBLIC ramses-logic/include)
-    set_target_properties(${TARGET} PROPERTIES
-        PUBLIC_HEADER "${public_headers}"
-        SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    )
-    folderize_target(${TARGET} "third_party/ramses-logic")
-endfunction()
-
-add_library(raco::ramses-logic-lib ALIAS ramses-logic)
-
-add_ramses_logic_target(ramses-logic-shared-lib-client-only ramses-shared-lib-client-only)
-add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-client-only)
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     find_program(LINUXDEPLOYQT linuxdeployqt)

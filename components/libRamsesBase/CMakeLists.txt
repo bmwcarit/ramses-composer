@@ -76,7 +76,6 @@ target_link_libraries(libRamsesBase
 PUBLIC
     ramses-client-api
     ramses-framework-api
-    ramses-logic-api
     raco::UserTypes
     raco::Components
 PRIVATE
