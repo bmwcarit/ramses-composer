@@ -52,10 +52,10 @@ public:
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> mipmapLevel_{1, {"Mipmap Level"}, {1, 4}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation("Level 1 URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uri_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation("Level 1 URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uri_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uri_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uri_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI"}};
 
 private:
 	void validateURIs(BaseContext& context);

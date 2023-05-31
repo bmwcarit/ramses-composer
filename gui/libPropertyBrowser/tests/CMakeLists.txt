@@ -11,7 +11,6 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 # Adding the unit test with gtest using our macro from dsathe top level CMakeLists.txt file
 
 set(TEST_SOURCES
-    PropertyBrowserItemTestHelper.h
     PropertyBrowserItem_test.cpp
 
     EditorTestFixture.h

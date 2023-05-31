@@ -1,0 +1,46 @@
+SPDX-License-Identifier: MPL-2.0
+
+This file is part of Ramses Composer
+(see https://github.com/COVESA/ramses-composer).
+
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+@startuml
+
+skinparam component {
+    BackgroundColor<<External Reference>> #ddd
+    BorderColor<<External Reference>> #888
+}
+
+node source_scene.rca {
+    component "Prefab" as prefab1 {
+        component Material as material1
+        component Texture as texture1
+        component Mesh as mesh1
+    }
+}
+
+node consumer_scene.rca {
+    component "Prefab" as prefab2 <<External Reference>> {
+        component Material as material2 <<External Reference>>
+        component Texture as texture2 <<External Reference>>
+        component Mesh as mesh2 <<External Reference>>
+    }
+}
+
+database "File System" as files {
+    artifact shader
+    artifact image
+    artifact glTF
+}
+
+prefab1 .r.> prefab2 : update on save
+
+material1 --> shader : URI
+texture1 --> image : URI
+mesh1 ---> glTF : URI
+material2 --> shader : URI
+texture2 --> image : URI
+mesh2 ---> glTF : URI
+
+@enduml

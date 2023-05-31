@@ -7,7 +7,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "testing/TestEnvironmentCore.h"
+#include "testing/RaCoApplicationTest.h"
 
 #include "core/PathManager.h"
 #include "core/Queries.h"
@@ -26,11 +26,7 @@
 using raco::application::RaCoApplication;
 using raco::components::Naming;
 
-class RaCoApplicationFixture : public RacoBaseTest<> {
-public:
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	RaCoApplication application{backend};
-};
+class RaCoApplicationFixture : public RaCoApplicationTest {};
 
 TEST_F(RaCoApplicationFixture, feature_level_load_keep_file_featue_level) {
 	application.switchActiveRaCoProject({}, {}, true, 1);
@@ -134,7 +130,7 @@ TEST_F(RaCoApplicationFixture, export_interface_link_opt_4) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-4.rca").string()), {});
 
 	std::string error;
-	EXPECT_FALSE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_with_lua_save_mode_for_feature_level_1) {
@@ -636,7 +632,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyScenegra
 
 	auto absPath = test_path().append("nonexistentFile.gltf").string();
 
-	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr});
 	auto scenegraph = commandInterface->meshCache()->getMeshScenegraph(absPath);
 
 	ASSERT_EQ(scenegraph, nullptr);
@@ -647,7 +643,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWrongFileReturnsEmptyAnimSamp
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	auto absPath = test_path().append("nonexistentFile.gltf").string();
-	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr});
 	auto animSampler = commandInterface->meshCache()->getAnimationSamplerData(absPath, 0, 0);
 
 	ASSERT_EQ(animSampler, nullptr);

@@ -97,9 +97,13 @@ namespace raco::serialization {
  * 49: Added TextureExternal user type.
  * 50: Added "userTags" property to EditorObject.
  * 51: Added support for struct uniforms.
+ * 52: Made MeshNode 'instanceCount' property linkable
+ * 53: Added the 'folderTypeKey' property to the URIAnnotation
+ * 54: Added color write mask, stencilOptions, and scissorOptions properties to the BlendOptions struct type.
+ *     Added ColorWriteMask, ScissorOptions, and StencilOptions struct types.
 */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 51;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 54;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
 

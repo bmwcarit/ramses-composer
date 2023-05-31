@@ -89,31 +89,23 @@ protected:
 		ASSERT_EQ(waitForFileChangeCounterGEq(3), 3);
 	}
 
+	int argc = 0;
+	// Apparently QCoreApplication needs to be initialized before the ProjectFileChangeMonitor is created, since that 
+	// will create signal connections which don't work on Linux otherwise (but they do work on Windows).
+	QCoreApplication eventLoop_{argc, nullptr};
 	std::ofstream testFileOutputStream_;
 	int fileChangeCounter_{0};
 	raco::utils::u8path testFolderPath_{test_path().append(TEST_RESOURCES_FOLDER_NAME)};
 	raco::utils::u8path testFilePath_{raco::utils::u8path(testFolderPath_).append(TEST_FILE_NAME)};
-	FileChangeCallback testCallback_ = {&context, nullptr, [this]() { ++fileChangeCounter_; }};
-	std::unique_ptr<FileChangeMonitorImpl> testFileChangeMonitor_ = std::make_unique<FileChangeMonitorImpl>();
-	std::vector<FileChangeMonitor::UniqueListener> createdFileListeners_;
-	int argc = 0;
-	QCoreApplication eventLoop_{argc, nullptr};
+	std::function<void(void)> testCallback_ = [this]() { ++fileChangeCounter_; };
+	std::unique_ptr<raco::components::ProjectFileChangeMonitor> testFileChangeMonitor_ = std::make_unique<raco::components::ProjectFileChangeMonitor>();
+	std::vector<raco::components::ProjectFileChangeMonitor::UniqueListener> createdFileListeners_;
 };
 
 
 TEST_F(FileChangeMonitorTest, InstantiationNoFileChange) {
 	ASSERT_EQ(fileChangeCounter_, 0);
 }
-
-
-// TODO Make this not crash anymore?
-/*
-TEST_F(FileChangeMonitorTest, DeInstantiationNoCrash) {
-	auto secondFileChangeMonitor = std::make_unique<FileChangeMonitorImpl>(context);
-	auto secondFileListener_ = secondFileChangeMonitor->registerFileChangedHandler(testFilePath_.string(), testCallback_);
-	secondFileChangeMonitor.reset();
-}
-*/
 
 TEST_F(FileChangeMonitorTest, FileModificationCreation) {
 	testFilePath_ = raco::utils::u8path(testFolderPath_).append("differentFile.txt");

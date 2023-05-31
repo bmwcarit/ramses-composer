@@ -18,7 +18,6 @@
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "testing/RacoBaseTest.h"
-#include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
 #include "user_types/UserObjectFactory.h"
 

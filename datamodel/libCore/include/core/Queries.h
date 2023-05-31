@@ -177,6 +177,8 @@ namespace Queries {
 	// Check if a link between properties would be valid independently of whether it is allowed in the data model.
 	bool linkWouldBeValid(const Project& project, const PropertyDescriptor& start, const PropertyDescriptor& end);
 
+	// Determine if a data model property corresponds to a primitive type in the LogicEngine
+	bool isEnginePrimitive(const ValueHandle& prop);
 };
 
 }

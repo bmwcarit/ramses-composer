@@ -209,7 +209,7 @@ public:
 private:
 	friend class BaseContext;
 
-	FileChangeMonitor::UniqueListener registerFileChangedHandler(BaseContext& context, const ValueHandle& value, FileChangeCallback::Callback callback);
+	FileChangeMonitor::UniqueListener registerFileChangedHandler(BaseContext& context, const ValueHandle& value);
 
 	mutable WEditorObject parent_;
 	

@@ -1,0 +1,84 @@
+SPDX-License-Identifier: MPL-2.0
+
+This file is part of Ramses Composer
+(see https://github.com/COVESA/ramses-composer).
+
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+@startuml
+
+
+
+
+node "Cluster Instrument" as cluster {
+artifact "Master scene\ncluster_master.rca" as rca
+node "Driving" as drive {
+artifact driving.rca
+node "Speedometer" as speed {
+artifact speed.rca
+}
+node "Gear\nIndicator" as gear {
+artifact gear.rca
+}
+node "Revmeter" as rev {
+artifact rev.rca
+}
+node "Big Gauge" as big_gauge {
+artifact big_gauge.rca
+}
+}
+node "Warnings" as warning {
+artifact warnings.rca
+node "Warning Lamps" as lamps {
+artifact lamps.rca
+}
+node "Message Popups" as message {
+artifact messages.rca
+}
+node "Message Template" as msg_template {
+artifact message_template.rca
+}
+}
+node "Gauges" as gauges {
+artifact gauges.rca
+node "Fuel gauge" as fuel {
+artifact fuel.rca
+}
+node "Coolant\nTemperature" as coolant {
+artifact coolant.rca
+}
+node "Small Gauge" as small_gauge {
+artifact small_gauge.rca
+}
+}
+}
+
+actor "Artist Adam" as adam
+actor "Artist Berta" as berta
+actor "Artist Charlie" as charlie
+adam ...> speed.rca
+berta .up.> big_gauge.rca
+charlie .up..> messages.rca
+
+big_gauge.rca -up-> speed.rca
+big_gauge.rca -up-> rev.rca
+
+speed.rca -up->driving.rca
+rev.rca -up->driving.rca
+gear.rca -up->driving.rca
+driving.rca -up--> rca
+
+small_gauge.rca -up-> fuel.rca
+small_gauge.rca -up-> coolant.rca
+
+message_template.rca -up-> messages.rca
+
+lamps.rca -up->warnings.rca
+messages.rca -up->warnings.rca
+warnings.rca -up-->rca
+
+fuel.rca -up->gauges.rca
+coolant.rca -up->gauges.rca
+gauges.rca -up-->rca
+
+@enduml

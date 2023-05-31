@@ -13,6 +13,7 @@
 #include "data_storage/Value.h"
 
 #include "core/EngineInterface.h"
+#include "core/PathManager.h"
 
 #include <map>
 
@@ -32,21 +33,30 @@ public:
 	bool serializationRequired() const override {
 		return false;
 	}
-	URIAnnotation(const URIAnnotation& other) : AnnotationBase({{"filter", &filter_}}),
-                                                filter_(other.filter_) {
-    }
+	URIAnnotation(const URIAnnotation& other)
+		: AnnotationBase({{"filter", &filter_}, {"folderTypeKey", &folderTypeKey_}}),
+		  filter_(other.filter_),
+		  folderTypeKey_(other.folderTypeKey_) {
+	}
 
-	URIAnnotation(const std::string& filter = "") : AnnotationBase({{"filter", &filter_}}),
-                                          filter_(filter) {
-    }
+	URIAnnotation(const std::string& filter = "", PathManager::FolderTypeKeys folderTypeKey = PathManager::FolderTypeKeys::Invalid)
+		: AnnotationBase({{"filter", &filter_}, {"folderTypeKey", &folderTypeKey_}}),
+		  filter_(filter),
+		  folderTypeKey_(static_cast<int>(folderTypeKey)) {
+	}
 
 	URIAnnotation& operator=(const URIAnnotation& other) {
 		filter_ = other.filter_;
+		folderTypeKey_ = other.folderTypeKey_;
 		return *this;
 	}
 
-    virtual const std::string& getFilter() {
+    const std::string& getFilter() const {
 		return *filter_;
+	}
+
+	core::PathManager::FolderTypeKeys getFolderTypeKey() const {
+		return static_cast<core::PathManager::FolderTypeKeys>(*folderTypeKey_);
 	}
 
 	bool isProjectSubdirectoryURI() const {
@@ -54,6 +64,9 @@ public:
 	}
 
     raco::data_storage::Value<std::string> filter_;
+
+	// This is really a PathManager::FolerTypeKey
+	raco::data_storage::Value<int> folderTypeKey_;
 };
 
 class HiddenProperty : public raco::data_storage::AnnotationBase {

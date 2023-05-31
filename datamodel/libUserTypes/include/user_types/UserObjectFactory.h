@@ -64,10 +64,13 @@ class Prefab;
 using SPrefab = std::shared_ptr<Prefab>;
 
 class AnchorPointOutputs;
+class ColorWriteMask;
 class BlendOptions;
 class CameraViewport;
 class LuaStandardModuleSelection;
 class OrthographicFrustum;
+class ScissorOptions;
+class StencilOptions;
 class TimerInput;
 class TimerOutput;
 
@@ -273,7 +276,13 @@ public:
 		Property<SNode, DisplayNameAnnotation>,
 		Property<AnchorPointOutputs, DisplayNameAnnotation>,
 		Property<double, DisplayNameAnnotation, LinkStartAnnotation>,
-		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>
+		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>,
+
+		// BlendOptions
+		Property<ColorWriteMask, DisplayNameAnnotation>,
+		Property<CameraViewport, DisplayNameAnnotation>,
+		Property<ScissorOptions, DisplayNameAnnotation>,
+		Property<StencilOptions, DisplayNameAnnotation>
 	>;
 
 	using StructCreationFunction = std::function<std::shared_ptr<ClassWithReflectedMembers>()>;

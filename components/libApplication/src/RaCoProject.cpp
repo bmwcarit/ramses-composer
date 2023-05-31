@@ -94,8 +94,12 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	// Since link duplicates may differ in link validity we need to initialize the link validity from scratch.
 	if (project_.checkLinkDuplicates()) {
 		project_.deduplicateLinks();
-		context_->initLinkValidity();
 	}
+	// Needed because
+	// - link duplicates may have different link validity
+	// - we used to allow links between logicengine primitive Vec2f/... and structs with the same content properties 
+	//   although they can't be linked in the logicengine.
+	context_->initLinkValidity();
 
 	// Create creation records for all PrefabInstances to force update of their children:
 	// This is necessary since we don't save all the children of the PrefabInstances anymore.

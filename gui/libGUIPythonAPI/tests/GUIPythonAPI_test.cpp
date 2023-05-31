@@ -17,6 +17,8 @@
 #include <raco_pybind11_embed.h>
 
 #include <gtest/gtest.h>
+
+#include "testing/RaCoApplicationTest.h"
 #include <QApplication>
 
 #include "application/RaCoApplication.h"
@@ -25,28 +27,21 @@
 #include "object_tree_view/ObjectTreeDock.h"
 #include "python_api/PythonAPI.h"
 #include "ramses_adaptor/SceneBackend.h"
-#include "testing/TestEnvironmentCore.h"
 
 namespace py = pybind11;
 
-using raco::application::RaCoApplication;
-
-
-class GUIPythonTest : public TestEnvironmentCore {
+class GUIPythonTest : public RaCoApplicationTest {
 	public:
 		GUIPythonTest() {
 			objectTreeDockManager = new raco::object_tree::view::ObjectTreeDockManager();
 			objectTreeDock = std::make_unique<raco::object_tree::view::ObjectTreeDock>("Dock");
 			objectTreeDockManager->addTreeDock(objectTreeDock.get());
-			objectTreeViewModel = new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dispatcher, nullptr, {raco::user_types::Node::typeDescription.typeName});
+			objectTreeViewModel = new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface(), application.dataChangeDispatcher(), nullptr, {raco::user_types::Node::typeDescription.typeName});
 			objectTreeDock->setTreeView(new raco::object_tree::view::ObjectTreeView("TreeView", objectTreeViewModel));
 
-			auto settings = raco::application::RaCoApplicationLaunchSettings{};
-			settings.createDefaultScene = false;
-			application = new RaCoApplication(backend, settings);
 			raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
 			pyGuard = std::make_unique<py::scoped_interpreter>();
-			raco::python_api::setup(application);
+			raco::python_api::setup(&application);
 			raco::gui_python_api::setup(objectTreeDockManager);
 		}
 
@@ -54,17 +49,18 @@ class GUIPythonTest : public TestEnvironmentCore {
 		std::unique_ptr<raco::object_tree::view::ObjectTreeDock> objectTreeDock;
 		raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager;
 
-		RaCoApplication* application;
 		std::unique_ptr<py::scoped_interpreter> pyGuard;
 
 		int argc = 0;
 		QApplication fakeApp_{argc, nullptr};
 
+		void dispatch() {
+			application.dataChangeDispatcher()->dispatch(recorder().release());
+		}
+	
 		std::string createNode(std::string name) {
 			auto obj = objectTreeViewModel->createNewObject(raco::user_types::Node::typeDescription.typeName, name);
-			dispatcher->dispatch(recorder);
-			// application and objectTreeViewModel project don't seem to be the same, so add the object to make sure it's there for the objectName query in python
-			application->activeRaCoProject().project()->addInstance(obj);
+			dispatch();
 			return obj->objectID();
 		}
 	};

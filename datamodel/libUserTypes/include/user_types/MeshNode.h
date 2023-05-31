@@ -61,7 +61,7 @@ public:
     Property<SMesh, DisplayNameAnnotation> mesh_{nullptr, DisplayNameAnnotation("Mesh")};
     
     Property<Table, DisplayNameAnnotation> materials_{{}, DisplayNameAnnotation("Materials")};
-	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> instanceCount_{1, DisplayNameAnnotation("Instance Count"), RangeAnnotation<int>(1, 20)};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> instanceCount_{1, RangeAnnotation<int>(1, 20), DisplayNameAnnotation("Instance Count"), {5}};
 
 private:
 	std::vector<std::string> getMaterialNames();

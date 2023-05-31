@@ -462,11 +462,12 @@ void replaceUniforms_V51(core::Table& uniforms) {
 	}
 }
 
-
 // Limitations
 // - Annotations and links are handled as static classes:
-//   the class definition is not supposed to change in any observable way:
-//   annotation name, property types and names, number of properties, serialiationRequired flag must not change.
+//   we can't change the class definition in a way that prevents deserialization of the old annotation: this means that
+//   the annotation name, the types and names of existing properties, and the serializationRequired flag must not change.
+//   the only allowed change is the addition of a new property to the annotation. in this case the migration code must
+//   find the existing annotations and fill the new property with the correct value.
 // - If the need arises to migrate the annotationns we would need to create proxy types for them in the same
 //   way currently done for the Struct PrimitiveTypes.
 
@@ -1339,7 +1340,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				auto& uniforms = dynObj->get("uniforms")->asTable();
 				replaceUniforms_V51(uniforms);
 			}
-			
+
 			if (instanceType == "MeshNode" && dynObj->hasProperty("materials")) {
 				auto* materials = &dynObj->get("materials")->asTable();
 				for (size_t i = 0; i < materials->size(); i++) {
@@ -1378,6 +1379,50 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				auto linkEndProps = link->endPropertyNamesVector();
 				if (linkEndProps.size() >= 3 && linkEndProps[2] == "uniforms") {
 					migrateLink(link, 3);
+				}
+			}
+		}
+	}
+
+	// File version 52 : Made MeshNode 'instanceCount' property linkable
+	if (deserializedIR.fileVersion < 52) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "MeshNode") {
+				if (dynObj->hasProperty("instanceCount")) {
+					auto count = dynObj->extractProperty("instanceCount");
+					dynObj->addProperty("instanceCount", new Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>{count->asInt(), RangeAnnotation<int>(1, 20), DisplayNameAnnotation("Instance Count"), {5}}, -1);
+				}
+			}
+		}
+	}
+
+	// File version 53 : Added the 'folderTypeKey' property to the URIAnnotation
+	if (deserializedIR.fileVersion < 52) {
+		std::map<std::string, core::PathManager::FolderTypeKeys> folderTypeKeys = {
+			{"CubeMap", core::PathManager::FolderTypeKeys::Image},
+			{"Texture", core::PathManager::FolderTypeKeys::Image},
+
+			{"Mesh", core::PathManager::FolderTypeKeys::Mesh},
+			{"AnimationChannel", core::PathManager::FolderTypeKeys::Mesh},
+			{"Skin", core::PathManager::FolderTypeKeys::Mesh},
+
+			{"LuaScript", core::PathManager::FolderTypeKeys::Script},
+			{"LuaScriptModule", core::PathManager::FolderTypeKeys::Script},
+
+			{"LuaInterface", core::PathManager::FolderTypeKeys::Interface},
+
+			{"Material", core::PathManager::FolderTypeKeys::Shader},
+
+			{"ProjectSettings", core::PathManager::FolderTypeKeys::Project}};
+
+		for (const auto& dynObj : deserializedIR.objects) {
+			for (size_t index = 0; index < dynObj->size(); index++) {
+				auto uriAnno = dynObj->query<URIAnnotation>();
+				if (uriAnno) {
+					auto it = folderTypeKeys.find(dynObj->serializationTypeName());
+					if (it != folderTypeKeys.end()) {
+						uriAnno->folderTypeKey_ = static_cast<int>(it->second);
+					}
 				}
 			}
 		}

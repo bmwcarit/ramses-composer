@@ -1,4 +1,8 @@
 *.ramres filter=lfs diff=lfs merge=lfs -text
 *.ramses filter=lfs diff=lfs merge=lfs -text
+*.rlogic filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
 * text=auto
+# The logo is an exception, not checked in over LFS because it doesn't work on RTD
+doc/_static/logo.png -filter -diff -merge -text

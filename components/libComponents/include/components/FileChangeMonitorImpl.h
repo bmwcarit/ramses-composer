@@ -26,17 +26,18 @@ namespace raco::components {
 template<typename Base>
 class GenericFileChangeMonitorImpl : public Base {
 public:
+	GenericFileChangeMonitorImpl() {
+		listener_ = std::make_unique<FileChangeListenerImpl>([this](auto absPath) {
+			notify(absPath);
+		});
+	}
 
 	typename Base::UniqueListener registerFileChangedHandler(std::string absPath, typename Base::Callback callback) override {
 		if (absPath.empty()) {
 			return typename Base::UniqueListener(nullptr);
 		}
 
-		if (listeners_.find(absPath) == listeners_.end()) {
-			listeners_[absPath] = std::make_unique<FileChangeListenerImpl>(absPath, [this, absPath]() {
-				notify(absPath);
-			});
-		}
+		listener_->add(absPath);
 
 		auto l = new typename Base::Callback{callback};
 		callbacks_[absPath].emplace(l);
@@ -54,12 +55,23 @@ protected:
 			it->second.erase(listener);
 			if (it->second.empty()) {
 				callbacks_.erase(absPath);
-				listeners_.erase(absPath);
+				listener_->remove(absPath);
 			}
 		}
 	}
 
-	virtual void notify(const std::string& absPath) {
+	virtual void notify(const std::string& absPath) = 0;
+
+	std::unique_ptr<components::FileChangeListenerImpl> listener_;
+	std::unordered_map<std::string, std::unordered_set<typename Base::Callback*>> callbacks_;
+};
+
+class ProjectFileChangeMonitor : public GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void(void)>>> {
+public:
+	ProjectFileChangeMonitor() : GenericFileChangeMonitorImpl() {}
+
+protected:
+	void notify(const std::string& absPath) override {
 		auto it = callbacks_.find(absPath);
 		if (it != callbacks_.end()) {
 			for (auto callback : it->second) {
@@ -67,14 +79,6 @@ protected:
 			}
 		}
 	}
-
-	std::unordered_map<std::string, std::unique_ptr<components::FileChangeListenerImpl>> listeners_;
-	std::unordered_map<std::string, std::unordered_set<typename Base::Callback*>> callbacks_;
 };
-
-using FileChangeMonitorImpl = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitor>;
-
-using ProjectFileChangeMonitor = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void(void)>>>;
-
 
 }  // namespace raco::core

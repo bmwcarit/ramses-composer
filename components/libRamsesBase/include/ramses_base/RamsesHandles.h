@@ -53,6 +53,7 @@
 #include <ramses-logic/TimerNode.h>
 #include <ramses-logic/RamsesAppearanceBinding.h>
 #include <ramses-logic/RamsesCameraBinding.h>
+#include <ramses-logic/RamsesMeshNodeBinding.h>
 #include <ramses-logic/RamsesNodeBinding.h>
 #include <ramses-logic/RamsesRenderPassBinding.h>
 #include <ramses-logic/RamsesRenderGroupBinding.h>
@@ -616,6 +617,7 @@ inline RamsesBlitPass ramsesBlitPass(ramses::Scene* scene, RamsesRenderBuffer so
 
 using RamsesAppearanceBinding = std::shared_ptr<rlogic::RamsesAppearanceBinding>;
 using UniqueRamsesDataArray = std::unique_ptr<rlogic::DataArray, std::function<void(rlogic::DataArray*)>>;
+using RamsesMeshNodeBinding = std::shared_ptr<rlogic::RamsesMeshNodeBinding>;
 using RamsesNodeBinding = std::shared_ptr<rlogic::RamsesNodeBinding>;
 using RamsesCameraBinding = std::shared_ptr<rlogic::RamsesCameraBinding>;
 using UniqueRamsesRenderPassBinding = std::unique_ptr<rlogic::RamsesRenderPassBinding, std::function<void(rlogic::RamsesRenderPassBinding*)>>;
@@ -641,6 +643,19 @@ inline RamsesNodeBinding ramsesNodeBinding(NodeHandleType node, rlogic::LogicEng
 		[logicEngine, forceNodeCopy = node](rlogic::RamsesNodeBinding* binding) {
 				destroyLogicObject(logicEngine, binding);
 			}};
+
+	if (binding) {
+		binding->setUserId(objectID.first, objectID.second);
+	}
+
+	return binding;
+}
+
+inline RamsesMeshNodeBinding ramsesMeshNodeBinding(RamsesMeshNode meshnode, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesMeshNodeBinding binding{logicEngine->createRamsesMeshNodeBinding(**meshnode, name),
+		[logicEngine, forceNodeCopy = meshnode](rlogic::RamsesMeshNodeBinding* binding) {
+			destroyLogicObject(logicEngine, binding);
+		}};
 
 	if (binding) {
 		binding->setUserId(objectID.first, objectID.second);

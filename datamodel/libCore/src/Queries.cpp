@@ -733,7 +733,50 @@ std::string Queries::getBrokenLinksErrorMessage(const Project& project, SEditorO
 	return {};
 }
 
-bool sameStructure(const ReflectionInterface* left, const ReflectionInterface* right) {
+
+bool Queries::isEnginePrimitive(const core::ValueHandle& prop) {
+	auto type = prop.type();
+	return type != core::PrimitiveType::Table &&
+		   (type != core::PrimitiveType::Struct ||
+			   prop.isVec2f() || prop.isVec3f() || prop.isVec4f() || prop.isVec2i() || prop.isVec3i() || prop.isVec4i());
+}
+
+bool isSameEnginePrimitiveType(const ValueBase* left, const ValueBase* right) {
+	auto leftType = left->type();
+	auto rightType = right->type();
+	
+	if (leftType != rightType) {
+		return false;
+	}
+
+	if (leftType == PrimitiveType::Struct) {
+		auto leftTypeDesc = &left->asStruct().getTypeDescription();
+		auto rightTypeDesc = &right->asStruct().getTypeDescription();
+
+		if (leftTypeDesc == &Vec2f::typeDescription) {
+			return rightTypeDesc == &Vec2f::typeDescription;
+		}
+		if (leftTypeDesc == &Vec3f::typeDescription) {
+			return rightTypeDesc == &Vec3f::typeDescription;
+		}
+		if (leftTypeDesc == &Vec4f::typeDescription) {
+			return rightTypeDesc == &Vec4f::typeDescription;
+		}
+
+		if (leftTypeDesc == &Vec2i::typeDescription) {
+			return rightTypeDesc == &Vec2i::typeDescription;
+		}
+		if (leftTypeDesc == &Vec3i::typeDescription) {
+			return rightTypeDesc == &Vec3i::typeDescription;
+		}
+		if (leftTypeDesc == &Vec4i::typeDescription) {
+			return rightTypeDesc == &Vec4i::typeDescription;
+		}
+	}
+	return true;
+}
+
+bool isStructureLinkCompatible(const ReflectionInterface* left, const ReflectionInterface* right) {
 	if (left->size() != right->size()) {
 		return false;
 	}
@@ -756,10 +799,12 @@ bool sameStructure(const ReflectionInterface* left, const ReflectionInterface* r
 		if (!rval) {
 			return false;
 		}
-		if (lval->type() != rval->type()) {
+		
+		if (!isSameEnginePrimitiveType(lval, rval)) {
 			return false;
 		}
-		if (lval->type() == PrimitiveType::Table && !sameStructure(&lval->asTable(), &rval->asTable())) {
+
+		if (lval->type() == PrimitiveType::Table && !isStructureLinkCompatible(&lval->asTable(), &rval->asTable())) {
 			return false;
 		}
 	}
@@ -773,14 +818,10 @@ bool checkLinkCompatibleTypes(const ValueHandle& start, const ValueHandle& end) 
 		return true;
 	}
 
-	auto startType = start.type();
-	auto endType = end.type();
-	if ((startType == PrimitiveType::Table || startType == PrimitiveType::Struct) &&
-		(endType == PrimitiveType::Table || endType == PrimitiveType::Struct)) {
-		return sameStructure(&start.constValueRef()->getSubstructure(), &end.constValueRef()->getSubstructure());
+	if (!Queries::isEnginePrimitive(start) && !Queries::isEnginePrimitive(end)) {
+		return isStructureLinkCompatible(&start.constValueRef()->getSubstructure(), &end.constValueRef()->getSubstructure());
 	}
-
-	return startType == endType;
+	return isSameEnginePrimitiveType(start.constValueRef(), end.constValueRef());
 }
 
 bool Queries::linkSatisfiesConstraints(const PropertyDescriptor& start, const PropertyDescriptor& end) {

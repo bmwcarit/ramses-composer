@@ -10,13 +10,163 @@
 #pragma once
 
 #include "core/EngineInterface.h"
+#include "user_types/BaseCamera.h"
 #include "user_types/BaseObject.h"
 #include "user_types/DefaultValues.h"
+#include "user_types/Enumerations.h"
 #include "user_types/SyncTableWithEngineInterface.h"
 
 #include <map>
 
 namespace raco::user_types {
+
+class ColorWriteMask : public StructBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"ColorWriteMask", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	ColorWriteMask() : StructBase(getProperties()) {}
+
+	ColorWriteMask(const ColorWriteMask& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(getProperties()),
+		  red_(other.red_),
+		  green_(other.green_),
+		  blue_(other.blue_),
+		  alpha_(other.alpha_) {
+	}
+
+	ColorWriteMask& operator=(const ColorWriteMask& other) {
+		red_ = other.red_;
+		green_ = other.green_;
+		blue_ = other.blue_;
+		alpha_ = other.alpha_;
+		return *this;
+	}
+
+	void copyAnnotationData(const ColorWriteMask& other) {
+		red_.copyAnnotationData(other.red_);
+		green_.copyAnnotationData(other.green_);
+		blue_.copyAnnotationData(other.blue_);
+		alpha_.copyAnnotationData(other.alpha_);
+	}
+
+	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
+		return {
+			{"red", &red_},
+			{"green", &green_},
+			{"blue", &blue_},
+			{"alpha", &alpha_}};
+	}
+
+	Property<bool, DisplayNameAnnotation> red_{true, {"Red"}};
+	Property<bool, DisplayNameAnnotation> green_{true, {"Green"}};
+	Property<bool, DisplayNameAnnotation> blue_{true, {"Blue"}};
+	Property<bool, DisplayNameAnnotation> alpha_{true, {"Alpha"}};
+};
+
+class StencilOptions : public StructBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"StencilOptions", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	StencilOptions() : StructBase(getProperties()) {}
+
+	StencilOptions(const StencilOptions& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(getProperties()),
+		  stencilFunc_(other.stencilFunc_),
+		  stencilRef_(other.stencilRef_),
+		  stencilMask_(other.stencilMask_),
+		  stencilOpStencilFail_(other.stencilOpStencilFail_),
+		  stencilOpDepthFail_(other.stencilOpDepthFail_),
+		  stencilOpDepthSucc_(other.stencilOpDepthSucc_) {
+	}
+
+	StencilOptions& operator=(const StencilOptions& other) {
+		stencilFunc_ = other.stencilFunc_;
+		stencilRef_ = other.stencilRef_;
+		stencilMask_ = other.stencilMask_;
+		stencilOpStencilFail_ = other.stencilOpStencilFail_;
+		stencilOpDepthFail_ = other.stencilOpDepthFail_;
+		stencilOpDepthSucc_ = other.stencilOpDepthSucc_;
+		return *this;
+	}
+
+	void copyAnnotationData(const StencilOptions& other) {
+		stencilFunc_.copyAnnotationData(other.stencilFunc_);
+		stencilRef_.copyAnnotationData(other.stencilRef_);
+		stencilMask_.copyAnnotationData(other.stencilMask_);
+		stencilOpStencilFail_.copyAnnotationData(other.stencilOpStencilFail_);
+		stencilOpDepthFail_.copyAnnotationData(other.stencilOpDepthFail_);
+		stencilOpDepthSucc_.copyAnnotationData(other.stencilOpDepthSucc_);
+	}
+
+	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
+		return {
+			{"stencilFunc", &stencilFunc_},
+			{"stencilRef", &stencilRef_},
+			{"stencilMask", &stencilMask_},
+			{"stencilOpStencilFail", &stencilOpStencilFail_},
+			{"stencilOpDepthFail", &stencilOpDepthFail_},
+			{"stencilOpDepthSucc", &stencilOpDepthSucc_}};
+	}
+
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> stencilFunc_{static_cast<int>(EStencilFunc::Disabled), {"Stencil Function"}, {EUserTypeEnumerations::StencilFunction}};
+	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> stencilRef_{1, {"Stencil Ref Value"}, {0, 255}};
+	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> stencilMask_{255, {"Stencil Mask Value"}, {0, 255}};
+
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> stencilOpStencilFail_{static_cast<int>(EStencilOperation::Keep), {"Stencil Operation Stencil Fail"}, {EUserTypeEnumerations::StencilOperation}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> stencilOpDepthFail_{static_cast<int>(EStencilOperation::Keep), {"Stencil Operation Depth Fail"}, {EUserTypeEnumerations::StencilOperation}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> stencilOpDepthSucc_{static_cast<int>(EStencilOperation::Keep), {"Stencil Operation Depth Succeed"}, {EUserTypeEnumerations::StencilOperation}};
+};
+
+class ScissorOptions : public StructBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"ScissorOptions", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return true;
+	}
+
+	ScissorOptions() : StructBase(getProperties()) {}
+
+	ScissorOptions(const ScissorOptions& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(getProperties()),
+		  scissorEnable_(other.scissorEnable_),
+		  scissorRegion_(other.scissorRegion_) {
+	}
+
+	ScissorOptions& operator=(const ScissorOptions& other) {
+		scissorEnable_ = other.scissorEnable_;
+		scissorRegion_ = other.scissorRegion_;
+		return *this;
+	}
+
+	void copyAnnotationData(const ScissorOptions& other) {
+		scissorEnable_.copyAnnotationData(other.scissorEnable_);
+		scissorRegion_.copyAnnotationData(other.scissorRegion_);
+	}
+
+	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
+		return {
+			{"scissorEnable", &scissorEnable_},
+			{"scissorRegion", &scissorRegion_}};
+	}
+
+	Property<bool, DisplayNameAnnotation> scissorEnable_{false, {"Scissor Enabled"}};
+	Property<CameraViewport, DisplayNameAnnotation> scissorRegion_{{}, {"Scissor Region"}};
+};
 
 class BlendOptions : public StructBase {
 public:
@@ -30,17 +180,19 @@ public:
 
 	BlendOptions() : StructBase(getProperties()) {}
 
-	BlendOptions(const BlendOptions& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr) : StructBase(getProperties()),
-		blendOperationColor_(other.blendOperationColor_),
-		blendOperationAlpha_(other.blendOperationAlpha_),
-		blendFactorSrcColor_(other.blendFactorSrcColor_),
-		blendFactorDestColor_(other.blendFactorDestColor_),
-		blendFactorSrcAlpha_(other.blendFactorSrcAlpha_),
-		blendFactorDestAlpha_(other.blendFactorDestAlpha_),
-		blendColor_(other.blendColor_),
-		depthwrite_(other.depthwrite_),
-		depthFunction_(other.depthFunction_),
-		cullmode_(other.cullmode_) {
+	BlendOptions(const BlendOptions& other, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr)
+		: StructBase(getProperties()),
+		  blendOperationColor_(other.blendOperationColor_),
+		  blendOperationAlpha_(other.blendOperationAlpha_),
+		  blendFactorSrcColor_(other.blendFactorSrcColor_),
+		  blendFactorDestColor_(other.blendFactorDestColor_),
+		  blendFactorSrcAlpha_(other.blendFactorSrcAlpha_),
+		  blendFactorDestAlpha_(other.blendFactorDestAlpha_),
+		  blendColor_(other.blendColor_),
+		  depthwrite_(other.depthwrite_),
+		  depthFunction_(other.depthFunction_),
+		  cullmode_(other.cullmode_),
+		  colorWriteMask_(other.colorWriteMask_) {
 	}
 
 	BlendOptions& operator=(const BlendOptions& other) {
@@ -54,11 +206,12 @@ public:
 		depthwrite_ = other.depthwrite_;
 		depthFunction_ = other.depthFunction_;
 		cullmode_ = other.cullmode_;
+		colorWriteMask_ = other.colorWriteMask_;
 		return *this;
 	}
 
 	void copyAnnotationData(const BlendOptions& other) {
-		blendOperationColor_.copyAnnotationData(other.blendOperationColor_); 
+		blendOperationColor_.copyAnnotationData(other.blendOperationColor_);
 		blendOperationAlpha_.copyAnnotationData(other.blendOperationAlpha_);
 		blendFactorSrcColor_.copyAnnotationData(other.blendFactorSrcColor_);
 		blendFactorDestColor_.copyAnnotationData(other.blendFactorDestColor_);
@@ -68,6 +221,7 @@ public:
 		depthwrite_.copyAnnotationData(other.depthwrite_);
 		depthFunction_.copyAnnotationData(other.depthFunction_);
 		cullmode_.copyAnnotationData(other.cullmode_);
+		colorWriteMask_.copyAnnotationData(other.colorWriteMask_);
 	}
 
 	std::vector<std::pair<std::string, ValueBase*>> getProperties() {
@@ -79,9 +233,12 @@ public:
 			{"blendFactorSrcAlpha", &blendFactorSrcAlpha_},
 			{"blendFactorDestAlpha", &blendFactorDestAlpha_},
 			{"blendColor", &blendColor_},
+			{"colorWriteMask", &colorWriteMask_},
+			{"cullmode", &cullmode_},
 			{"depthwrite", &depthwrite_},
 			{"depthFunction", &depthFunction_},
-			{"cullmode", &cullmode_}};
+			{"scissorOptions", &scissorOptions_},
+			{"stencilOptions", &stencilOptions_}};
 	}
 
 	Property<bool, DisplayNameAnnotation> depthwrite_{true, DisplayNameAnnotation("Depth Write")};
@@ -95,8 +252,13 @@ public:
 	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorSrcAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_SRC_ALPHA, {"Blend Factor Src Alpha"}, {EUserTypeEnumerations::BlendFactor}};
 	Property<int, DisplayNameAnnotation, EnumerationAnnotation> blendFactorDestAlpha_{DEFAULT_VALUE_MATERIAL_BLEND_FACTOR_DEST_ALPHA, {"Blend Factor Dest Alpha"}, {EUserTypeEnumerations::BlendFactor}};
 	Property<Vec4f, DisplayNameAnnotation> blendColor_{{}, {"Blend Color"}};
-};
 
+	Property<ColorWriteMask, DisplayNameAnnotation> colorWriteMask_{{}, {"Color Write Mask"}};
+
+	Property<ScissorOptions, DisplayNameAnnotation> scissorOptions_{{}, {"Scissor Options"}};
+
+	Property<StencilOptions, DisplayNameAnnotation> stencilOptions_{{}, {"Stencil Options"}};
+};
 
 class Material : public BaseObject {
 public:
@@ -135,10 +297,10 @@ public:
 
 	Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation> tags_{{}, {}, {}, {}, {"Tags"}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriVertex_{std::string(), {"Vertex shader files(*.glsl *.vert);; All files (*.*)"}, DisplayNameAnnotation("Vertex URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriGeometry_{std::string(), {"Geometry shader files(*.glsl *.geom);; All files (*.*)"}, DisplayNameAnnotation("Geometry URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFragment_{std::string(), {"Fragment shader files(*.glsl *.frag);; All files (*.*)"}, DisplayNameAnnotation("Fragment URI")};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriDefines_{std::string(), {"Shader define files(*.def);; All files (*.*)"}, DisplayNameAnnotation("Defines URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriVertex_{std::string(), {"Vertex shader files(*.glsl *.vert);; All files (*.*)", core::PathManager::FolderTypeKeys::Shader}, DisplayNameAnnotation("Vertex URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriGeometry_{std::string(), {"Geometry shader files(*.glsl *.geom);; All files (*.*)", core::PathManager::FolderTypeKeys::Shader}, DisplayNameAnnotation("Geometry URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFragment_{std::string(), {"Fragment shader files(*.glsl *.frag);; All files (*.*)", core::PathManager::FolderTypeKeys::Shader}, DisplayNameAnnotation("Fragment URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriDefines_{std::string(), {"Shader define files(*.def);; All files (*.*)", core::PathManager::FolderTypeKeys::Shader}, DisplayNameAnnotation("Defines URI")};
 
 	Property<BlendOptions, DisplayNameAnnotation> options_{{}, {"Options"}};
 

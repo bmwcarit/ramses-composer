@@ -644,7 +644,7 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 	auto selectedObject = indexToSEditorObject(selectedIndex);
 
 	// create dummy cache entry to prevent "cache corpses" if the mesh file is otherwise not accessed by any Mesh
-	auto dummyCacheEntry = commandInterface_->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	auto dummyCacheEntry = commandInterface_->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr});
 	if (auto sceneGraphPtr = commandInterface_->meshCache()->getMeshScenegraph(absPath)) {
 		MeshScenegraph sceneGraph{*sceneGraphPtr};
 		auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, project()->featureLevel(), nullptr).exec();

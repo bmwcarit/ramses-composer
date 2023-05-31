@@ -80,8 +80,6 @@ struct PathManager {
 
 	static void setCachedPath(FolderTypeKeys key, const u8path& path);
 
-	static FolderTypeKeys getCachedPathKeyCorrespondingToUserType(const raco::data_storage::ReflectionInterface::TypeDescriptor& type);
-
 private:
 	friend class raco::components::RaCoPreferences;
 

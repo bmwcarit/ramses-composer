@@ -1,0 +1,42 @@
+SPDX-License-Identifier: MPL-2.0
+
+This file is part of Ramses Composer
+(see https://github.com/bmwcarit/ramses-composer-docs).
+
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+@startuml
+
+actor "Technical Artist" as user
+
+node "Artist / Developer Workstation" as desktop {
+
+artifact "Assets\n*meshes (glTF)\n*textures (PNG)\n*shaders (GLSL)\n*scripts (LUA)" as assets
+
+artifact "Scene file\n<project>.rca" as rca
+
+component "Ramses Composer" as raco {
+component "Editor application" as ui
+component "RAMSES\nlogic and\nrenderer" as preview
+}
+}
+
+artifact "RAMSES scene\n<project>.logic\n<project>.ramses" as ramses_file
+
+node "Target Device" as target {
+component "Target application" as app {
+component "RAMSES\nlogic and\nrenderer" as ramses
+}
+}
+
+user -> ui
+ui --> preview : scene setup
+ui <.> rca : save/load
+
+assets .-> ui : import
+
+preview .right-> ramses_file : export
+ramses_file .right-> ramses : load
+
+@enduml

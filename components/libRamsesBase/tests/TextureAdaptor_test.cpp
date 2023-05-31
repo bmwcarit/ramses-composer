@@ -53,13 +53,16 @@ TEST_F(TextureAdaptorFixture, textureFormatR8) {
 	dispatch();
 
 	checkTextureFormats(texture, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::NONE},
-									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::WARNING},
+									 // Swizzling results in R8 ramses texture format, being compatible with GRAY image. No warnings expected.
+									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::NONE},
+									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::NONE},
+									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::NONE},
+									 // Swizzling results in R16F ramses format. It is incompatible with 8 bit image.
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::ERROR},
-									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::WARNING}});
+									 // Swizzling results in R8 ramses texture format, being compatible with GRAY image. No warnings expected.
+									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::NONE},
+									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::NONE}});
 }
 
 TEST_F(TextureAdaptorFixture, textureFormatRG16) {
@@ -86,12 +89,16 @@ TEST_F(TextureAdaptorFixture, textureFormatRG8) {
 
 	checkTextureFormats(texture, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::NONE},
-									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::WARNING},
+									 // Swizzling results in R8 ramses texture format, must be info same as above.
+									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::INFORMATION},
+									 // Swizzling results in RG8 ramses texture format, compatible with image, no errors.
+									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::ERROR},
-									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::WARNING},
-									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::WARNING}});
+									 // Swizzling results in R8 ramses texture format, must be info same as above.
+									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::INFORMATION},
+									 // Swizzling results in RG8 ramses texture format, compatible with image, no errors.
+									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::NONE}});
 }
 
 TEST_F(TextureAdaptorFixture, textureFormatRGB8) {
@@ -103,11 +110,13 @@ TEST_F(TextureAdaptorFixture, textureFormatRGB8) {
 	checkTextureFormats(texture, {{ramses::ETextureFormat::R8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RG8, raco::core::ErrorLevel::INFORMATION},
 									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::NONE},
-									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::WARNING},
+									 // Swizzle format is RGB8, compatible with file, no issues.
+									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::NONE},
-									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::WARNING}});
+									 // Swizzle format is RGB8, compatible with file, no issues.
+									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::NONE}});
 }
 
 TEST_F(TextureAdaptorFixture, textureFormatRGBA8) {
@@ -163,7 +172,8 @@ TEST_F(TextureAdaptorFixture, textureFormatRGB16) {
 									 {ramses::ETextureFormat::RGB8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGBA8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::RGB16F, raco::core::ErrorLevel::NONE},
-									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::WARNING},
+									 // Swizzled format RGB16F is compatible with image data. No warning.
+									 {ramses::ETextureFormat::RGBA16F, raco::core::ErrorLevel::NONE},
 									 {ramses::ETextureFormat::SRGB8, raco::core::ErrorLevel::ERROR},
 									 {ramses::ETextureFormat::SRGB8_ALPHA8, raco::core::ErrorLevel::ERROR}});
 }
@@ -421,14 +431,19 @@ TEST_F(TextureAdaptorFixture, textureFormatDifferentInOtherLevel) {
 	commandInterface.set({texture, &raco::user_types::Texture::textureFormat_}, static_cast<int>(ramses::ETextureFormat::RGBA8));
 	dispatch();
 
+	// R8
 	commandInterface.set({texture, &raco::user_types::Texture::level2uri_}, (test_path() / "images" / "green_512_gray.png").string());
 	commandInterface.set({texture, &raco::user_types::Texture::mipmapLevel_}, 2);
 	dispatch();
-	ASSERT_TRUE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::level2uri_}));
-	ASSERT_EQ(commandInterface.errors().getError({texture, &raco::user_types::Texture::level2uri_}).level(), raco::core::ErrorLevel::WARNING);
 
+	// Swizzled format is R8, compatible with image. No issues.
+	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::level2uri_}));
+
+	// RGBA8
 	commandInterface.set({texture, &raco::user_types::Texture::level2uri_}, (test_path() / "images" / "green_512.png").string());
 	dispatch();
+
+	// Swizzled format is RGBA8, matching image format.
 	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::level2uri_}));
 }
 

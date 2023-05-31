@@ -48,12 +48,12 @@ protected:
 
 	raco::ramses_base::HeadlessEngineBackend otherBackend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
 	raco::application::RaCoApplication otherApplication{otherBackend};
-	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application_};
+	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application};
 
 	void generateExternalProject(const std::vector<raco::core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
-		application_.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication, true, static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
+		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication, true, static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
 
-		auto project = application_.externalProjectsStore_.externalProjects_[projectPath]->project();
+		auto project = application.externalProjectsStore_.externalProjects_[projectPath]->project();
 		for (const auto &instance : instances) {
 			project->addInstance(instance);
 		}
@@ -62,7 +62,7 @@ protected:
 
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, InstantiationNoLocalInstancesInModel) {
-	commandInterface.createObject(raco::user_types::Node::typeDescription.typeName);
+	commandInterface().createObject(raco::user_types::Node::typeDescription.typeName);
 	externalProjectModel.triggerObjectTreeRebuilding();
 	ASSERT_TRUE(externalProjectModel.indexes().empty());
 }

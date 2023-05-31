@@ -63,6 +63,7 @@ private:
 	raco::ramses_base::RamsesAppearance privateAppearance_;
 	raco::ramses_base::RamsesAppearance currentAppearance_;
 	raco::ramses_base::RamsesAppearanceBinding appearanceBinding_;
+	ramses_base::RamsesMeshNodeBinding meshNodeBinding_;
 
 	// Subscriptions
 	components::Subscription meshSubscription_;

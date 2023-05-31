@@ -136,33 +136,4 @@ void PathManager::setCachedPath(FolderTypeKeys key, const u8path& path) {
 	}
 }
 
-PathManager::FolderTypeKeys PathManager::getCachedPathKeyCorrespondingToUserType(const raco::data_storage::ReflectionInterface::TypeDescriptor& type) {
-	if (&type == &raco::user_types::CubeMap::typeDescription || &type == &raco::user_types::Texture::typeDescription) {
-		return raco::core::PathManager::FolderTypeKeys::Image;
-	}
-
-	if (&type == &raco::user_types::Mesh::typeDescription || &type == &raco::user_types::AnimationChannel::typeDescription || &type == &raco::user_types::Skin::typeDescription) {
-		return raco::core::PathManager::FolderTypeKeys::Mesh;
-	}
-
-	if (&type == &raco::user_types::LuaScript::typeDescription || 
-		&type == &raco::user_types::LuaScriptModule::typeDescription) {
-		return raco::core::PathManager::FolderTypeKeys::Script;
-	}
-
-	if (&type == &raco::user_types::LuaInterface::typeDescription) {
-		return raco::core::PathManager::FolderTypeKeys::Interface;
-	}
-
-	if (&type == &raco::user_types::Material::typeDescription) {
-		return raco::core::PathManager::FolderTypeKeys::Shader;
-	}
-
-	if (&type == &raco::user_types::ProjectSettings::typeDescription) {
-		return raco::core::PathManager::FolderTypeKeys::Project;
-	}
-
-	assert(false && "unknown user type found in URIEditor::getCachedPathKeyCorrespondingToUserType()");
-	return raco::core::PathManager::FolderTypeKeys::Invalid;
-}
 }  // namespace raco::core

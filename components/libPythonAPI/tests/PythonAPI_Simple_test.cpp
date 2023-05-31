@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include "testing/RacoBaseTest.h"
+#include "testing/RaCoApplicationTest.h"
 
 #include "ramses_adaptor/SceneBackend.h"
 #include "application/RaCoApplication.h"
@@ -30,16 +30,14 @@ namespace py = pybind11;
 using raco::application::RaCoApplication;
 
 
-class PythonTest : public RacoBaseTest<> {
+class PythonTest : public RaCoApplicationTest {
 public:
-	PythonTest() : backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel}, application{backend} {
+	PythonTest() : RaCoApplicationTest() {
 		raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
 		pyGuard = std::make_unique<py::scoped_interpreter>();
 		raco::python_api::setup(&application);
 	}
 
-	raco::ramses_base::HeadlessEngineBackend backend;
-	RaCoApplication application;
 	std::unique_ptr<py::scoped_interpreter> pyGuard;
 };
 

@@ -45,7 +45,7 @@ public:
 	
 	void updateFromExternalFile(BaseContext& context) override;
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua interface files(*.lua);; All files (*.*)"}, DisplayNameAnnotation("URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua interface files(*.lua);; All files (*.*)", core::PathManager::FolderTypeKeys::Interface}, DisplayNameAnnotation("URI")};
 
 	Property<LuaStandardModuleSelection, DisplayNameAnnotation, FeatureLevel> stdModules_{{}, {"Standard Modules"}, FeatureLevel{5}};
 

@@ -194,6 +194,9 @@ using Vec3i = StructProxy<vec3iTypeName>;
 extern const char vec4iTypeName[];
 using Vec4i = StructProxy<vec4iTypeName>;
 
+extern const char colorWriteMaskTypeName[];
+using ColorWriteMask = StructProxy<colorWriteMaskTypeName>;
+
 extern const char blendmodeOptionsTypeName[];
 using BlendOptions = StructProxy<blendmodeOptionsTypeName>;
 
@@ -211,6 +214,12 @@ using DefaultResourceDirectories = StructProxy<defaultResourceDirectoriesTypeNam
 
 extern const char luaStandardModuleSelectionTypeName[];
 using LuaStandardModuleSelection = StructProxy<luaStandardModuleSelectionTypeName>;
+
+extern const char scissorOptionsTypeName[];
+using ScissorOptions = StructProxy<scissorOptionsTypeName>;
+
+extern const char stencilOptionsTypeName[];
+using StencilOptions = StructProxy<stencilOptionsTypeName>;
 
 extern const char timerInputTypeName[];
 using TimerInput = StructProxy<timerInputTypeName>;

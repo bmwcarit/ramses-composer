@@ -199,3 +199,54 @@ TEST_F(MeshNodeTest, private_material_options_do_not_get_updated_from_shared_mat
 	ASSERT_EQ(privateMaterialOptionsHandle.get("depthFunction").asInt(), 0);
 	ASSERT_EQ(privateMaterialOptionsHandle.get("cullmode").asInt(), 1);
 }
+
+TEST_F(MeshNodeTest, struct_uniform_value_caching) {
+	TextFile vertShader = makeFile("shader.vert", R"(
+#version 300 es
+precision mediump float;
+in vec3 a_Position;
+uniform mat4 u_MVPMatrix;
+void main() {
+    gl_Position = u_MVPMatrix * vec4(a_Position, 1.0);
+}
+)");
+
+	TextFile fragShader = makeFile("shader.frag", R"(
+#version 300 es
+precision mediump float;
+out vec4 FragColor;
+struct point {
+	float x;
+	float y;
+};
+uniform float a;
+uniform point p;
+void main() {
+})");
+
+	std::string altFragShader = makeFile("altshader.frag", R"(
+#version 300 es
+precision mediump float;
+out vec4 FragColor;
+struct point {
+	float x;
+	float y;
+};
+uniform point p;
+void main() {
+})");
+
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("material", vertShader, fragShader);
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	commandInterface.set(meshnode->getMaterialPrivateHandle(0), true);
+	
+	commandInterface.set(raco::core::ValueHandle{material, {"uniforms", "p", "x"}}, 0.5);
+	commandInterface.set(raco::core::ValueHandle{meshnode, {"materials", "material", "uniforms", "p", "x"}}, 2.0);
+	
+	commandInterface.set({material, &Material::uriFragment_}, altFragShader);
+
+	EXPECT_FALSE(raco::core::ValueHandle(meshnode, {"materials", "material", "uniforms"}).hasProperty("a"));
+	// Check tha we keep the uniform value of the meshnode and don't copy the value from the material instead:
+	EXPECT_EQ(raco::core::ValueHandle(meshnode, {"materials", "material", "uniforms", "p", "x"}).asDouble(), 2.0);
+}

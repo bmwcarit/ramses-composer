@@ -37,15 +37,14 @@ PropertyBrowserItem::PropertyBrowserItem(
 	core::ValueHandle valueHandle,
 	SDataChangeDispatcher dispatcher,
 	core::CommandInterface* commandInterface,
-	core::SceneBackendInterface* sceneBackend,
 	PropertyBrowserModel *model,
 	QObject* parent)
 	: QObject{parent},
 	  parentItem_{dynamic_cast<PropertyBrowserItem*>(parent)},
 	  valueHandle_{std::move(valueHandle)},
-	  subscription_{dispatcher->registerOn(valueHandle_, [this, sceneBackend]() {
+	  subscription_{dispatcher->registerOn(valueHandle_, [this]() {
 		  if (valueHandle_.isObject() || hasTypeSubstructure(valueHandle_.type())) {
-			  syncChildrenWithValueHandle(sceneBackend);
+			  syncChildrenWithValueHandle();
 		  }
 		  Q_EMIT valueChanged(valueHandle_);
 		  if (valueHandle_.isProperty()) {
@@ -64,7 +63,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	  dispatcher_{dispatcher},
 	  model_{model},
 	  expanded_{getDefaultExpandedFromValueHandleType()} {
-	createChildren(sceneBackend);
+	createChildren();
 	if (!valueHandle_.isObject() && valueHandle_.type() == core::PrimitiveType::Ref) {
 		refItem_ = new PropertyBrowserRef(this);
 	}
@@ -144,9 +143,9 @@ PropertyBrowserItem::PropertyBrowserItem(
 		{&user_types::RenderLayer::typeDescription, "sortOrder"}
 	};
 	if (const auto itChildSub = requiredChildSubscriptions.find(&valueHandle_.rootObject()->getTypeDescription()); valueHandle_.depth() == 0 && itChildSub != requiredChildSubscriptions.end()) {
-		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {itChildSub->second}}, [this, sceneBackend] {
+		changeChildrenSub_ = dispatcher->registerOn(core::ValueHandle{valueHandle_.rootObject(), {itChildSub->second}}, [this] {
 			if (valueHandle_) {
-				syncChildrenWithValueHandle(sceneBackend);
+				syncChildrenWithValueHandle();
 			}
 		});	
 	}
@@ -367,7 +366,7 @@ void PropertyBrowserItem::setTags(std::vector<std::pair<std::string, int>> const
 	commandInterface_->setRenderableTags(valueHandle_, prioritizedTags);
 }
 
-void PropertyBrowserItem::createChildren(core::SceneBackendInterface* sceneBackend) {
+void PropertyBrowserItem::createChildren() {
 	children_.reserve(static_cast<int>(valueHandle_.size()));
 
 	for (int i{0}; i < valueHandle_.size(); i++) {
@@ -383,12 +382,12 @@ void PropertyBrowserItem::createChildren(core::SceneBackendInterface* sceneBacke
 		}
 
 		if (!hidden) {
-			children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, sceneBackend, model_, this));
+			children_.push_back(new PropertyBrowserItem(valueHandle_[i], dispatcher_, commandInterface_, model_, this));
 		}
 	}
 }
 
-void PropertyBrowserItem::syncChildrenWithValueHandle(core::SceneBackendInterface* sceneBackend) {
+void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	// clear children
 	{
 		for (auto& child : children_) {
@@ -398,7 +397,7 @@ void PropertyBrowserItem::syncChildrenWithValueHandle(core::SceneBackendInterfac
 	}
 
 	// create new children
-	createChildren(sceneBackend);
+	createChildren();
 
 	Q_EMIT childrenChanged(children_);
 

@@ -84,6 +84,37 @@ enum class EDepthFunc {
 extern std::map<int, std::string> enumDescriptionDepthFunction;
 
 
+// items mach ramses::EStencilFunc
+enum class EStencilFunc {
+	Disabled = 0,
+	Never,
+	Always,
+	Equal,
+	NotEqual,
+	Less,
+	LessEqual,
+	Greater,
+	GreaterEqual,
+	NUMBER_OF_ELEMENTS
+};
+extern std::map<int, std::string> enumDescriptionStencilFunction;
+
+
+// items match ramses::EStencilOperation
+enum class EStencilOperation {
+	Keep = 0,
+	Zero,
+	Replace,
+	Increment,
+	IncrementWrap,
+	Decrement,
+	DecrementWrap,
+	Invert,
+	NUMBER_OF_ELEMENTS
+};
+extern std::map<int, std::string> enumDescriptionStencilOperation;
+
+
 // items match ETextureAddressMode
 enum class ETextureAddressMode {
 	Clamp = 0,

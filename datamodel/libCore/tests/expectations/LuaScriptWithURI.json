@@ -9,7 +9,8 @@
                     "annotations": [
                         {
                             "properties": {
-                                "filter": ""
+                                "filter": "",
+                                "folderTypeKey": 0
                             },
                             "typeName": "URIAnnotation"
                         }

@@ -10,7 +10,6 @@
 #include "EditorTestFixture.h"
 #include "property_browser/editors/URIEditor.h"
 
-#include "PropertyBrowserItemTestHelper.h"
 #include "core/EditorObject.h"
 #include "core/PathManager.h"
 #include "property_browser/PropertyBrowserItem.h"
@@ -20,7 +19,6 @@
 
 #include <QApplication>
 #include <gtest/gtest.h>
-#include <testing/TestEnvironmentCore.h>
 
 using namespace raco::core;
 using namespace raco::user_types;
@@ -36,9 +34,9 @@ public:
 
 class URIEditorTest : public EditorTestFixture {
 public:
-	PropertyBrowserItemTestHelper<Mesh> data{};
-	ValueHandle propertyHandle{data.valueHandle.get("uri")};
-	PropertyBrowserItem propertyBrowserItem{propertyHandle, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
+	SEditorObject mesh = commandInterface.createObject("Mesh");
+	ValueHandle propertyHandle{mesh, {"uri"}};
+	PropertyBrowserItem propertyBrowserItem{propertyHandle, dataChangeDispatcher, &commandInterface, &model};
 	ExposedURIEditor uriEditor{&propertyBrowserItem};
 	std::string projectPath{(test_path() / "project" / "projectFileName").string()};
 	std::string absoluteMeshPath{(test_path() / "meshes" / "Duck.glb").string()};
@@ -46,12 +44,7 @@ public:
 
 	URIEditorTest() {
 		project.setCurrentPath(projectPath);
-		project.addInstance(data.editorObject);
-		valueChanged();
-	}
-
-	void valueChanged() {
-		dataChangeDispatcher->dispatch(recorder.release());
+		dispatch();
 	}
 
 	void assertCorrectAbsolutePath() {
@@ -69,13 +62,11 @@ public:
 	void setLineEditText(const std::string &newText) {
 		uriEditor.getLineEdit()->setText(QString::fromStdString(newText));
 		uriEditor.getLineEdit()->Q_EMIT editingFinished();
-		valueChanged();
+		dispatch();
 	}
 };
 
 TEST_F(URIEditorTest, InstantiationShowWarning) {
-	data.editorObject->onAfterValueChanged(context, propertyHandle);
-
 	ASSERT_TRUE(propertyBrowserItem.hasError());
 	ASSERT_EQ(propertyBrowserItem.error().level(), ErrorLevel::WARNING);
 }
@@ -136,7 +127,7 @@ TEST_F(URIEditorTest, ModificationChangeAbsoluteToRelativePathByUserAction) {
 	setLineEditText(absoluteMeshPath);
 
 	uriEditor.switchAbsoluteRelativePath();
-	valueChanged();
+	dispatch();
 
 	assertCorrectRelativePath();
 }
@@ -145,7 +136,7 @@ TEST_F(URIEditorTest, ModificationChangeRelativeToAbsolutePathByUserAction) {
 	setLineEditText(relativeMeshPath);
 
 	uriEditor.switchAbsoluteRelativePath();
-	valueChanged();
+	dispatch();
 
 	assertCorrectAbsolutePath();
 }
@@ -157,7 +148,7 @@ TEST_F(URIEditorTest, ModificationRerootRelativePath) {
 	setLineEditText(relativeMeshPath);
 
 	propertyBrowserItem.set(raco::utils::u8path(relativeMeshPath).rerootRelativePath(projectPath, newProjectPath).string());
-	valueChanged();
+	dispatch();
 
 	ASSERT_EQ(uriEditor.getLineEdit()->text().toStdString(), newRelativeMeshPath);
 }

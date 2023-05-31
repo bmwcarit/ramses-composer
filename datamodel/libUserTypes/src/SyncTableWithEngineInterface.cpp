@@ -184,20 +184,22 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue), interfaceIndex);
 			auto fullPropPath = propertyPath + propertyPathSeparator + name;
 
-			const ValueBase* cachedValue = cacheLookupFunc(fullPropPath, iEntry.type);
-			if (cachedValue) {
-				if (iEntry.primitiveType() == PrimitiveType::Ref) {
-					// Special case for references: perform lookup in the project by object id
-					// Needed because the object might have been deleted in the meantime and we don't
-					// want to set a pointer to an invalid object here.
-					SEditorObject cachedObject = nullptr;
-					if (cachedValue->asRef()) {
-						cachedObject = context.project()->getInstanceByID(cachedValue->asRef()->objectID());
+			if (iEntry.primitiveType() != PrimitiveType::Table) {
+				const ValueBase* cachedValue = cacheLookupFunc(fullPropPath, iEntry.type);
+				if (cachedValue) {
+					if (iEntry.primitiveType() == PrimitiveType::Ref) {
+						// Special case for references: perform lookup in the project by object id
+						// Needed because the object might have been deleted in the meantime and we don't
+						// want to set a pointer to an invalid object here.
+						SEditorObject cachedObject = nullptr;
+						if (cachedValue->asRef()) {
+							cachedObject = context.project()->getInstanceByID(cachedValue->asRef()->objectID());
+						}
+						// Use the context to set reference properties to make sure the onAfterAddReferenceToThis handlers are called.
+						context.set(property.get(name), cachedObject);
+					} else {
+						*newValue = *cachedValue;
 					}
-					// Use the context to set reference properties to make sure the onAfterAddReferenceToThis handlers are called.
-					context.set(property.get(name), cachedObject);
-				} else {
-					*newValue = *cachedValue;
 				}
 			}
 		}

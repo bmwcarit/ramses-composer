@@ -19,7 +19,6 @@
 #include "property_browser/editors/RefEditor.h"
 #include "property_browser/editors/VecNTEditor.h"
 #include "components/DataChangeDispatcher.h"
-#include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
 #include "user_types/Material.h"
 #include "user_types/MeshNode.h"
@@ -50,34 +49,31 @@ struct PrimitiveEditorDataChangeFixture : public EditorTestFixtureT<::testing::T
 TEST_P(PrimitiveEditorDataChangeFixture, noValueChangeRecorded_onCreation) {
 	auto node{context.createObject(GetParam().editorObjectTypeName)};
 	dispatch();
-	application.processEvents();
 
-	PropertyBrowserItem item{{node, GetParam().editorHandleNames}, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
+	PropertyBrowserItem item{{node, GetParam().editorHandleNames}, dataChangeDispatcher, &commandInterface, &model};
 	QWidget* editor{GetParam().createEditor(&item)};
 
 	application.processEvents();
 
-	ASSERT_FALSE(raco::isValueChanged(recorder, {node, GetParam().editorHandleNames}));
+	ASSERT_FALSE(recorder.hasValueChanged({node, GetParam().editorHandleNames}));
 	delete editor;
 }
 
 TEST_P(PrimitiveEditorDataChangeFixture, noValueChangeRecorded_onForeignSet) {
 	auto node{context.createObject(GetParam().editorObjectTypeName)};
-	PropertyBrowserItem item{{node, GetParam().editorHandleNames}, dataChangeDispatcher, &commandInterface, sceneBackendInterface, &model};
+	PropertyBrowserItem item{{node, GetParam().editorHandleNames}, dataChangeDispatcher, &commandInterface, &model};
 	QWidget* editor{GetParam().createEditor(&item)};
 	dispatch();
-	application.processEvents();
 
 	if (GetParam().valueHandleNames.size() > 0)
 		GetParam().setValue(commandInterface, {node, GetParam().valueHandleNames});
 	else
 		GetParam().setValue(commandInterface, {node, GetParam().editorHandleNames});
 	dispatch();
-	application.processEvents();
 
-	ASSERT_FALSE(raco::isValueChanged(recorder, {node, GetParam().editorHandleNames}));
+	ASSERT_FALSE(recorder.hasValueChanged({node, GetParam().editorHandleNames}));
 	if (GetParam().valueHandleNames.size() > 0)
-		ASSERT_FALSE(raco::isValueChanged(recorder, {node, GetParam().valueHandleNames}));
+		ASSERT_FALSE(recorder.hasValueChanged({node, GetParam().editorHandleNames}));
 	delete editor;
 }
 

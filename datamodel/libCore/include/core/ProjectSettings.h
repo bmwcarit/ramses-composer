@@ -66,11 +66,11 @@ public:
 	}
 
 public:
-	Property<std::string, DisplayNameAnnotation, URIAnnotation> imageSubdirectory_{{"images"}, {"Images"}, {URIAnnotation::projectSubdirectoryFilter}};
-	Property<std::string, DisplayNameAnnotation, URIAnnotation> meshSubdirectory_{{"meshes"}, {"Meshes"}, {URIAnnotation::projectSubdirectoryFilter}};
-	Property<std::string, DisplayNameAnnotation, URIAnnotation> scriptSubdirectory_{{"scripts"}, {"Scripts"}, {URIAnnotation::projectSubdirectoryFilter}};
-	Property<std::string, DisplayNameAnnotation, URIAnnotation> interfaceSubdirectory_{{"interfaces"}, {"Interfaces"}, {URIAnnotation::projectSubdirectoryFilter}};
-	Property<std::string, DisplayNameAnnotation, URIAnnotation> shaderSubdirectory_{{"shaders"}, {"Shaders"}, {URIAnnotation::projectSubdirectoryFilter}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> imageSubdirectory_{{"images"}, {"Images"}, {URIAnnotation::projectSubdirectoryFilter, core::PathManager::FolderTypeKeys::Project}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> meshSubdirectory_{{"meshes"}, {"Meshes"}, {URIAnnotation::projectSubdirectoryFilter, core::PathManager::FolderTypeKeys::Project}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> scriptSubdirectory_{{"scripts"}, {"Scripts"}, {URIAnnotation::projectSubdirectoryFilter, core::PathManager::FolderTypeKeys::Project}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> interfaceSubdirectory_{{"interfaces"}, {"Interfaces"}, {URIAnnotation::projectSubdirectoryFilter, core::PathManager::FolderTypeKeys::Project}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> shaderSubdirectory_{{"shaders"}, {"Shaders"}, {URIAnnotation::projectSubdirectoryFilter, core::PathManager::FolderTypeKeys::Project}};
 };
 
 class ProjectSettings : public EditorObject {

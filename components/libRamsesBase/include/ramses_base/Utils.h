@@ -71,7 +71,9 @@ std::string pngColorTypeToString(int colorType);
 int ramsesTextureFormatToChannelAmount(ramses::ETextureFormat textureFormat);
 void normalize16BitColorData(std::vector<unsigned char>& data);
 std::vector<unsigned char> generateColorDataWithoutBlueChannel(const std::vector<unsigned char>& data);
-std::vector<unsigned char> decodeMipMapData(core::Errors* errors, core::Project& project, core::SEditorObject obj, const std::string& uriPropName, int level, PngDecodingInfo& decodingInfo);
+std::vector<unsigned char> decodeMipMapData(core::Errors* errors, core::Project& project, core::SEditorObject obj, const std::string& uriPropName, int level, PngDecodingInfo& decodingInfo, bool swizzle = false);
+std::tuple<std::string, ramses::ETextureFormat, ramses::TextureSwizzle> ramsesTextureFormatToSwizzleInfo(int colorType, ramses::ETextureFormat textureFormat);
+
 
 int clipAndCheckIntProperty(const raco::core::ValueHandle value, core::Errors* errors, bool* allValid);
 

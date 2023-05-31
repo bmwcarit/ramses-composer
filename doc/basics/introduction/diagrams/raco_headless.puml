@@ -1,0 +1,35 @@
+SPDX-License-Identifier: MPL-2.0
+
+This file is part of Ramses Composer
+(see https://github.com/bmwcarit/ramses-composer-docs).
+
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+@startuml
+
+control "Shell script" as user
+
+artifact "Scene file\n<project>.rca" as rca
+
+component "Ramses Composer Headless" as raco {
+component "Command Line Application" as ui
+component "RAMSES logic" as logic
+component "RAMSES client" as ramses
+}
+
+artifact "<project>.logic" as logic_file
+artifact "<project>.ramses" as ramses_file
+
+
+user -> ui
+ui --> logic
+ui --> ramses
+ui <.> rca : save/load
+
+logic -> ramses
+
+logic .-> logic_file
+ramses .-> ramses_file
+
+@enduml

@@ -119,7 +119,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, raco::ramses_base::PngDecodingInfo& decodingInfo) {
+RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, PngDecodingInfo& decodingInfo) {
 	if (*editorObject()->mipmapLevel_ < 1 || *editorObject()->mipmapLevel_ > 4) {
 		return getFallbackTexture();
 	}
@@ -127,13 +127,12 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, raco:
 	std::vector<std::vector<unsigned char>> rawMipDatas;
 	std::vector<ramses::MipLevelData> mipDatas;
 	auto mipMapsOk = true;
-	auto format = static_cast<user_types::ETextureFormat>((*editorObject()->textureFormat_));
-	auto ramsesFormat = ramses_base::enumerationTranslationTextureFormat.at(format);
 
 	for (auto level = 1; level <= *editorObject()->mipmapLevel_; ++level) {
 		auto uriPropName = (level > 1) ? fmt::format("level{}{}", level, "uri") : "uri";
 
-		auto levelMipData = raco::ramses_base::decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo);
+		// Raw data is requested in swizzled texture format.
+		auto levelMipData = decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo, true);
 		if (levelMipData.empty()) {
 			mipMapsOk = false;
 		}
@@ -145,17 +144,23 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, raco:
 		return getFallbackTexture();
 	}
 
+	// Swizzle is defined by original file format and user-selected texture format.
+	const auto userTextureFormat = enumerationTranslationTextureFormat.at(static_cast<user_types::ETextureFormat>(*editorObject()->textureFormat_));
+
+	// Get optimized texture format and swizzle describing how to interpret it.
+	const auto& [info, swizzleTextureFormat, swizzle] = ramsesTextureFormatToSwizzleInfo(decodingInfo.originalPngFormat, userTextureFormat);
+
 	for (auto i = 0; i < rawMipDatas.size(); ++i) {
 		auto& rawMipData = rawMipDatas[i];
 
 		// PNG has top left origin. Flip it vertically if required to match U/V origin
 		if (*editorObject()->flipTexture_) {
-			flipDecodedPicture(rawMipData, raco::ramses_base::ramsesTextureFormatToChannelAmount(ramsesFormat), decodingInfo.width * std::pow(0.5, i), decodingInfo.height * std::pow(0.5, i), decodingInfo.bitdepth);
+			flipDecodedPicture(rawMipData, ramsesTextureFormatToChannelAmount(swizzleTextureFormat), decodingInfo.width * std::pow(0.5, i), decodingInfo.height * std::pow(0.5, i), decodingInfo.bitdepth);
 		}
 		mipDatas.emplace_back(static_cast<uint32_t>(rawMipData.size()), rawMipData.data());
 	}
 
-	return ramses_base::ramsesTexture2D(sceneAdaptor_->scene(), ramsesFormat, decodingInfo.width, decodingInfo.height, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	return ramsesTexture2D(sceneAdaptor_->scene(), swizzleTextureFormat, decodingInfo.width, decodingInfo.height, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, swizzle, ramses::ResourceCacheFlag_DoNotCache, nullptr);
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {

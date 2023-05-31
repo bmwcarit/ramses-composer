@@ -49,6 +49,12 @@ const std::map<int, std::string>& enumerationDescription(core::EUserTypeEnumerat
 		case core::EUserTypeEnumerations::FrustumType:
 			return raco::user_types::enumDescriptionFrustumType;
 
+
+		case core::EUserTypeEnumerations::StencilFunction:
+			return raco::user_types::enumDescriptionStencilFunction;
+		case core::EUserTypeEnumerations::StencilOperation:
+			return raco::user_types::enumDescriptionStencilOperation;
+
 		default:
 			assert(false);
 			return enumerationEmpty;
@@ -96,6 +102,29 @@ std::map<int, std::string> enumDescriptionDepthFunction{
 	{static_cast<int>(EDepthFunc::NotEqual), "!="},
 	{static_cast<int>(EDepthFunc::Always), "true"},
 	{static_cast<int>(EDepthFunc::Never), "false"}};
+
+std::map<int, std::string> enumDescriptionStencilFunction{
+	{static_cast<int>(EStencilFunc::Disabled), "Disabled"},
+	{static_cast<int>(EStencilFunc::Never), "Never"},
+	{static_cast<int>(EStencilFunc::Always), "Always"},
+	{static_cast<int>(EStencilFunc::Equal), "="},
+	{static_cast<int>(EStencilFunc::NotEqual), "!="},
+	{static_cast<int>(EStencilFunc::Less), "<"},
+	{static_cast<int>(EStencilFunc::LessEqual), "<="},
+	{static_cast<int>(EStencilFunc::Greater), ">"},
+	{static_cast<int>(EStencilFunc::GreaterEqual), ">="}
+};
+
+std::map<int, std::string> enumDescriptionStencilOperation{
+	{static_cast<int>(EStencilOperation::Keep), "Keep"},
+	{static_cast<int>(EStencilOperation::Zero), "Zero"},
+	{static_cast<int>(EStencilOperation::Replace), "Replace"},
+	{static_cast<int>(EStencilOperation::Increment), "Increment"},
+	{static_cast<int>(EStencilOperation::IncrementWrap), "IncrementWrap"},
+	{static_cast<int>(EStencilOperation::Decrement), "Decrement"},
+	{static_cast<int>(EStencilOperation::DecrementWrap), "DecrementWrap"},
+	{static_cast<int>(EStencilOperation::Invert), "Invert"}
+};
 
 std::map<int, std::string> enumDescriptionTextureAddressMode{
 	{static_cast<int>(ETextureAddressMode::Clamp), "Clamp"},

@@ -1581,3 +1581,43 @@ TEST_F(LinkTest, uniform_array) {
 	auto [sproparr, eproparr] = link(lua, {"outputs", "float_array"}, mat, {"uniforms", "fvec"});
 	checkLinks({{sproparr, eproparr, true}});
 }
+
+
+TEST_F(LinkTest, vec_struct) {
+	TextFile script = makeFile("script.lua",
+		R"(
+function interface(INOUT)
+	local struct_3f = { x = Type:Float(), y = Type:Float(), z = Type:Float() }
+	INOUT.s3f = struct_3f
+	INOUT.v3f = Type:Vec3f()
+
+	local struct_3i = { i1 = Type:Int32(), i2 = Type:Int32(), i3 = Type:Int32() }
+	INOUT.s3i = struct_3i
+	INOUT.v3i = Type:Vec3i()
+end
+)");
+
+	auto start = create_lua_interface("start", script);
+	auto end = create_lua_interface("end", script);
+
+	auto allowed_vec_3f = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "v3f"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> ref_allowed_vec_3f{
+		{{start, {"inputs", "v3f"}}, true, false}};
+	EXPECT_EQ(allowed_vec_3f, ref_allowed_vec_3f);
+
+	auto allowed_vec_3i = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "v3i"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> ref_allowed_vec_3i{
+		{{start, {"inputs", "v3i"}}, true, false}};
+	EXPECT_EQ(allowed_vec_3i, ref_allowed_vec_3i);
+
+
+	auto allowed_struct_3f  = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "s3f"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> ref_allowed_struct_3f{
+		{{start, {"inputs", "s3f"}}, true, false}};
+	EXPECT_EQ(allowed_struct_3f, ref_allowed_struct_3f);
+
+	auto allowed_struct_3i = Queries::allLinkStartProperties(project, ValueHandle(end, {"inputs", "s3i"}));
+	std::set<std::tuple<ValueHandle, bool, bool>> ref_allowed_struct_3i{
+		{{start, {"inputs", "s3i"}}, true, false}};
+	EXPECT_EQ(allowed_struct_3i, ref_allowed_struct_3i);
+}

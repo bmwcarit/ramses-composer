@@ -15,7 +15,6 @@
 #include "core/ErrorItem.h"
 #include "core/Handles.h"
 #include "core/Queries.h"
-#include "core/SceneBackendInterface.h"
 #include "components/DataChangeDispatcher.h"
 #include <QList>
 #include <QMetaMethod>
@@ -40,7 +39,7 @@ public:
 	friend std::string to_string(PropertyBrowserItem& item);
 
 
-	PropertyBrowserItem(raco::core::ValueHandle valueHandle, raco::components::SDataChangeDispatcher dispatcher, raco::core::CommandInterface* commandInterface, raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserModel *model, QObject* parent = nullptr);
+	PropertyBrowserItem(raco::core::ValueHandle valueHandle, raco::components::SDataChangeDispatcher dispatcher, raco::core::CommandInterface* commandInterface, PropertyBrowserModel *model, QObject* parent = nullptr);
 	raco::core::PrimitiveType type() const noexcept;
 	std::string luaTypeName() const noexcept;
 	std::string displayName() const noexcept;
@@ -108,8 +107,8 @@ protected:
 	Q_SLOT void updateLinkState() noexcept;
 
 private:
-	void createChildren(core::SceneBackendInterface* sceneBackend);
-	void syncChildrenWithValueHandle(core::SceneBackendInterface* sceneBackend);
+	void createChildren();
+	void syncChildrenWithValueHandle();
 
 	PropertyBrowserItem* parentItem_{nullptr};
 	PropertyBrowserRef* refItem_{nullptr};

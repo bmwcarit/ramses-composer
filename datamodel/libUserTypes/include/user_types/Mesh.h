@@ -47,7 +47,7 @@ public:
 		
 	std::vector<std::string> materialNames();
 	
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"All Meshes (*.ctm *.glTF *.glb);;CTM files (*.ctm);;glTF files (*.glTF *.glb);;All Files (*.*)"}, DisplayNameAnnotation("URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"All Meshes (*.ctm *.glTF *.glb);;CTM files (*.ctm);;glTF files (*.glTF *.glb);;All Files (*.*)", core::PathManager::FolderTypeKeys::Mesh}, DisplayNameAnnotation("URI")};
 
 	Property<int, DisplayNameAnnotation> meshIndex_{0, DisplayNameAnnotation("Mesh Index")};
 	Property<bool, DisplayNameAnnotation> bakeMeshes_{true, DisplayNameAnnotation("Bake All Meshes")};

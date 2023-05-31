@@ -206,7 +206,7 @@ void PropertyBrowserWidget::setValueHandle(core::ValueHandle valueHandle) {
 				clearValueHandle(true);
 			}
 		});
-		propertyBrowser_.reset(new PropertyBrowserView{sceneBackend_, new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, sceneBackend_, model_}, model_, this});
+		propertyBrowser_.reset(new PropertyBrowserView{sceneBackend_, new PropertyBrowserItem{valueHandle, dispatcher_, commandInterface_, model_}, model_, this});
 		layout_.addWidget(propertyBrowser_.get(), 1, 0);
 	} else {
 		LOG_DEBUG(log_system::PROPERTY_BROWSER, "locked! ignore value handle set {}", valueHandle);

@@ -68,14 +68,6 @@ std::optional<core::PropertyDescriptor> followLinkChain(const core::Project& pro
 	return prop;
 }
 
-// Figure out if a data model property corresponds to a primitive type in the LogicEngine
-bool isEnginePrimitive(const core::ValueHandle& prop) {
-	auto type = prop.type();
-	return type != core::PrimitiveType::Table &&
-		   (type != core::PrimitiveType::Struct ||
-			   prop.isVec2f() || prop.isVec3f() || prop.isVec4f() || prop.isVec2i() || prop.isVec3i() || prop.isVec4i());
-}
-
 }  // namespace
 
 LinkAdaptor::LinkAdaptor(const core::LinkDescriptor& link, SceneAdaptor* sceneAdaptor) : editorLink_{link}, sceneAdaptor_{sceneAdaptor} {
@@ -88,7 +80,7 @@ void LinkAdaptor::lift() {
 }
 
 void LinkAdaptor::connectHelper(const core::ValueHandle& start, const core::ValueHandle& end, bool isWeak) {
-	if (!isEnginePrimitive(end)) {
+	if (!core::Queries::isEnginePrimitive(end)) {
 		for (size_t index = 0; index < end.size(); index++) {
 			auto endChild = end[index];
 			connectHelper(start.get(endChild.getPropName()), endChild, isWeak);
@@ -130,7 +122,7 @@ void LinkAdaptor::connect() {
 
 void LinkAdaptor::readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property) {
 	if (property) {
-		if (!isEnginePrimitive(property)) {
+		if (!core::Queries::isEnginePrimitive(property)) {
 			for (size_t index = 0; index < property.size(); index++) {
 				readFromEngineRecursive(recorder, property[index]);
 			}

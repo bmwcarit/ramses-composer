@@ -55,7 +55,7 @@ public:
 	// contains SNode properties
 	Property<Table, DisplayNameAnnotation> joints_{{}, {"Joint Nodes"}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"glTF files (*.glTF *.glb);;All Files (*.*)"}, DisplayNameAnnotation("URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"glTF files (*.glTF *.glb);;All Files (*.*)", core::PathManager::FolderTypeKeys::Mesh}, DisplayNameAnnotation("URI")};
 	Property<int, DisplayNameAnnotation> skinIndex_{0, {"Skin Index"}};
 
 	SharedSkinData skinData() const;

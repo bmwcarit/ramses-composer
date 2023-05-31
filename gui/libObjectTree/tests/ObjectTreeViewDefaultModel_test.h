@@ -10,6 +10,8 @@
 #pragma once
 #include "gtest/gtest.h"
 
+#include "testing/RaCoApplicationTest.h"
+
 #include "application/RaCoApplication.h"
 #include "core/Context.h"
 #include "core/Project.h"
@@ -17,25 +19,24 @@
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
-#include "testing/TestEnvironmentCore.h"
+#include "user_types/Animation.h"
 #include "user_types/CubeMap.h"
 #include "user_types/OrthographicCamera.h"
 #include "user_types/PerspectiveCamera.h"
 #include "user_types/PrefabInstance.h"
-#include "user_types/UserObjectFactory.h"
 #include "user_types/Texture.h"
-#include "user_types/Animation.h"
+#include "user_types/UserObjectFactory.h"
 
 #include <QGuiApplication>
 
-class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
-   public:
+class ObjectTreeViewDefaultModelTest : public RaCoApplicationTest {
+public:
 	std::vector<raco::core::SEditorObject> createNodes(const std::string &type, const std::vector<std::string> &nodeNames) {
 		std::vector<raco::core::SEditorObject> createdNodes;
 
 		for (const auto &name : nodeNames) {
-			createdNodes.emplace_back(context.createObject(type, name));
-			application_.dataChangeDispatcher()->dispatch(recorder.release());
+			createdNodes.emplace_back(commandInterface().createObject(type, name));
+			application.dataChangeDispatcher()->dispatch(recorder().release());
 		}
 
 		return createdNodes;
@@ -43,12 +44,12 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 
 	void moveScenegraphChildren(std::vector<raco::core::SEditorObject> const &objects, raco::core::SEditorObject parent, int row = -1) {
 		viewModel_->moveScenegraphChildren(objects, parent, row);
-		application_.dataChangeDispatcher()->dispatch(recorder.release());
+		application.dataChangeDispatcher()->dispatch(recorder().release());
 	}
 
-	size_t deleteObjectsAtIndices(const QModelIndexList& index) {
+	size_t deleteObjectsAtIndices(const QModelIndexList &index) {
 		auto delObjAmount = viewModel_->deleteObjectsAtIndices({index});
-		application_.dataChangeDispatcher()->dispatch(recorder.release());
+		application.dataChangeDispatcher()->dispatch(recorder().release());
 		return delObjAmount;
 	}
 
@@ -56,14 +57,26 @@ class ObjectTreeViewDefaultModelTest : public TestEnvironmentCore {
 		return viewModel.data((currentIndex), role).toString().toStdString();
 	}
 
-   protected:
+	void dispatch() {
+		application.dataChangeDispatcher()->dispatch(recorder().release());
+	}
+
+	std::vector<std::string> getTypes() {
+		std::vector<std::string> names;
+		for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
+			if (viewModel_->objectFactory()->isUserCreatable(typeName, raco::ramses_base::BaseEngineBackend::maxFeatureLevel)) {
+				names.emplace_back(typeName);
+			}
+		}
+		return names;
+	}
+
+protected:
 	// ObjectTreeViewDefaultModel icons initialization uses QPixmap, which requires existing QGuiApplication.
 	int argc_ = 0;
 	QGuiApplication fakeGuiApp_{argc_, nullptr};
 
 	std::vector<std::string> nodeNames_;
-	raco::application::RaCoApplication application_{backend};
-	raco::core::ExternalProjectsStoreInterface *externalProjectStore_{application_.externalProjects()};
 	std::unique_ptr<raco::object_tree::model::ObjectTreeViewDefaultModel> viewModel_;
 
 	ObjectTreeViewDefaultModelTest();

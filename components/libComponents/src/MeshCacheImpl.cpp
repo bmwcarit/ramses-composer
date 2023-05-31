@@ -9,9 +9,9 @@
  */
 #include "components/MeshCacheImpl.h"
 
-#include "core/Context.h"
 #include "components/FileChangeListenerImpl.h"
 #include "components/FileChangeMonitorImpl.h"
+#include "core/Context.h"
 
 #include "mesh_loader/CTMFileLoader.h"
 #include "mesh_loader/glTFFileLoader.h"
@@ -27,10 +27,24 @@ void MeshCacheImpl::unregister(std::string absPath, typename core::MeshCache::Ca
 		meshCacheEntries_.erase(absPath);
 	}
 }
-	
+
 void MeshCacheImpl::notify(const std::string &absPath) {
 	forceReloadCachedMesh(absPath);
-	onAfterMeshFileUpdate(absPath);
+
+	auto it = callbacks_.find(absPath);
+	if (it != callbacks_.end()) {
+		// Make a copy of the callbacks and check if each callback is still registered before invoking it
+		// to allow removing watched paths from the EditorObject::updateFromExternalFile functions.
+		auto callbacksCopy{it->second};
+		for (auto callback : callbacksCopy) {
+			if (it->second.find(callback) != it->second.end()) {
+				if (callback->object() && callback->context()) {
+					callback->object()->updateFromExternalFile(*callback->context());
+					callback->context()->callReferencedObjectChangedHandlers(callback->object());
+				}
+			}
+		}
+	}
 }
 
 raco::core::SharedMeshData MeshCacheImpl::loadMesh(const raco::core::MeshDescriptor &descriptor) {
@@ -68,15 +82,6 @@ void MeshCacheImpl::forceReloadCachedMesh(const std::string &absPath) {
 	loader->reset();
 }
 
-void MeshCacheImpl::onAfterMeshFileUpdate(const std::string &meshFileAbsPath) {
-	auto it = callbacks_.find(meshFileAbsPath);
-	if (it != callbacks_.end()) {
-		for (const auto &meshObjectCallback : it->second) {
-			(*meshObjectCallback)();
-		}
-	}
-}
-
 bool endsWith(std::string const &text, std::string const &ending) {
 	if (text.length() < ending.length()) return false;
 	const auto startPos = text.length() - ending.length();
@@ -87,7 +92,7 @@ bool endsWith(std::string const &text, std::string const &ending) {
 raco::core::MeshCacheEntry *MeshCacheImpl::getLoader(std::string absPath) {
 	// To prevent cache corpses which are not updated by file change listeners we require to call registerFileChangeHandler
 	// before attempting to load a file:
-	assert(listeners_.find(absPath) != listeners_.end());
+	assert(callbacks_.find(absPath) != callbacks_.end());
 	if (meshCacheEntries_.count(absPath) == 0) {
 		if (endsWith(absPath, ".gltf") || endsWith(absPath, ".glb")) {
 			meshCacheEntries_[absPath] = std::unique_ptr<raco::core::MeshCacheEntry>(new mesh_loader::glTFFileLoader(absPath));

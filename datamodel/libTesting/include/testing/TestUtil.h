@@ -99,10 +99,6 @@ inline auto createAnimatedScene(ContextOrCommandInterface& context, const raco::
 		link);
 }
 
-inline bool isValueChanged(const raco::core::DataChangeRecorder& recorder, const raco::core::ValueHandle& handle) {
-	return recorder.hasValueChanged(handle);
-}
-
 inline bool awaitPreviewDirty(const raco::core::DataChangeRecorder& recorder, const raco::core::SEditorObject& obj, long long timeout = 5) {
 	const std::chrono::steady_clock::time_point timeoutTS = std::chrono::steady_clock::now() + std::chrono::seconds{timeout};
 	auto dirtyObjects{recorder.getPreviewDirtyObjects()};
@@ -130,7 +126,7 @@ inline void createGitLfsPlaceholderFile(const std::string& path) {
 }
 
 inline std::pair<raco::core::MeshScenegraph, raco::core::FileChangeMonitor::UniqueListener> getMeshSceneGraphWithHandler(raco::core::MeshCache* meshCache, const raco::core::MeshDescriptor& descriptor) {
-	auto dummyCacheEntry = meshCache->registerFileChangedHandler(descriptor.absPath, {nullptr, nullptr, []() {}});
+	auto dummyCacheEntry = meshCache->registerFileChangedHandler(descriptor.absPath, {nullptr, nullptr});
 	raco::core::MeshScenegraph scenegraph{*meshCache->getMeshScenegraph(descriptor.absPath)};
 	return {scenegraph, std::move(dummyCacheEntry)};
 }

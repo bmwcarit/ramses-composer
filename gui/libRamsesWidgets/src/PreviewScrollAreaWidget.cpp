@@ -11,6 +11,7 @@
 
 #include <QMouseEvent>
 #include <QResizeEvent>
+#include <QScreen>
 #include <QScrollBar>
 #include <QWheelEvent>
 #include <QWidget>
@@ -122,48 +123,51 @@ void PreviewScrollAreaWidget::mouseMoveEvent(QMouseEvent* event) {
 
 void PreviewScrollAreaWidget::updateViewport() {
 	const QSize areaSize = viewport()->size();
-	QSize widgetSize;
+	QSize virtualSceneSize_devicePixels;
+
+	auto devicePixelScaleFactor = window()->screen()->devicePixelRatio();
 
 	switch (sizeMode_) {
 		case AutoSizing::OFF: {
-			widgetSize = scaledSize();
+			virtualSceneSize_devicePixels = scaledSize();
 			break;
 		}
 		case AutoSizing::VERTICAL_FIT: {
-			const auto scale = static_cast<float>(areaSize.height()) / sceneSize_.height();
-			widgetSize = sceneSize_ * scale;
+			const auto scale = static_cast<float>(areaSize.height() * devicePixelScaleFactor) / sceneSize_.height();
+			virtualSceneSize_devicePixels = sceneSize_ * scale;
 			scaleValue_ = scale;
 			break;
 		}
 		case AutoSizing::HORIZONTAL_FIT: {
-			const auto scale = static_cast<float>(areaSize.width()) / sceneSize_.width();
-			widgetSize = sceneSize_ * scale;
+			const auto scale = static_cast<float>(areaSize.width() * devicePixelScaleFactor) / sceneSize_.width();
+			virtualSceneSize_devicePixels = sceneSize_ * scale;
 			scaleValue_ = scale;
 			break;
 		}
 		case AutoSizing::BEST_FIT: {
-			const auto horizontalScale = static_cast<float>(areaSize.width()) / sceneSize_.width();
-			const auto verticalScale = static_cast<float>(areaSize.height()) / sceneSize_.height();
+			const auto horizontalScale = static_cast<float>(areaSize.width() * devicePixelScaleFactor) / sceneSize_.width();
+			const auto verticalScale = static_cast<float>(areaSize.height() * devicePixelScaleFactor) / sceneSize_.height();
 			float scale = std::min(horizontalScale, verticalScale);
-			widgetSize = sceneSize_ * scale;
+			virtualSceneSize_devicePixels = sceneSize_ * scale;
 			scaleValue_ = scale;
 			break;
 		}
 		case AutoSizing::ORIGINAL_FIT: {
 			scaleValue_ = 1;
-			widgetSize = scaledSize();
+			virtualSceneSize_devicePixels = scaledSize();
 			break;
 		}
 	}
+	QSize virtualSceneSize_virtualPixels = virtualSceneSize_devicePixels / devicePixelScaleFactor;
 
-	updateScrollbarSize(widgetSize);
+	updateScrollbarSize(virtualSceneSize_virtualPixels);
 
-	const QSize viewportSize = widgetSize.boundedTo(areaSize);
+	// viewportSize, viewportPosition_, and viewportOffset are given in Qt virtual pixel units
+	const QSize viewportSize = virtualSceneSize_virtualPixels.boundedTo(areaSize);
 	viewportPosition_ = QPoint{(areaSize.width() - viewportSize.width()) / 2, (areaSize.height() - viewportSize.height()) / 2};
-
 	const QPoint viewportOffset{horizontalScrollBar()->value(), verticalScrollBar()->value()};
 
-	Q_EMIT viewportRectChanged(areaSize, viewportPosition_, viewportOffset, viewportSize, widgetSize, sceneSize_);
+	Q_EMIT viewportRectChanged(areaSize, viewportPosition_, viewportOffset, viewportSize, virtualSceneSize_devicePixels, sceneSize_);
 	Q_EMIT scaleChanged(scaleValue_);
 	Q_EMIT autoSizingChanged(sizeMode_);
 }

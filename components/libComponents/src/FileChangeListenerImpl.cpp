@@ -23,18 +23,14 @@
 
 namespace raco::components {
 
-FileChangeListenerImpl::FileChangeListenerImpl(std::string& absPath, const Callback& callbackHandler)
-	: path_(absPath), fileChangeCallback_(callbackHandler) {
+FileChangeListenerImpl::FileChangeListenerImpl(const Callback& callbackHandler) 
+	: fileChangeCallback_(callbackHandler) {
 	delayedLoadTimer_.setInterval(DELAYED_FILE_LOAD_TIME_MSEC);
 	delayedLoadTimer_.setSingleShot(true);
 
 	fileWatchConnection_ = QObject::connect(&fileWatcher_, &QFileSystemWatcher::fileChanged, [this](const auto& filePath) { onFileChanged(filePath); });
 	directoryWatchConnection_ = QObject::connect(&fileWatcher_, &QFileSystemWatcher::directoryChanged, [this](const auto& dirPath) { onDirectoryChanged(dirPath); });
 	delayedLoadTimerConnection_ = QObject::connect(&delayedLoadTimer_, &QTimer::timeout, [this]() { onDelayedLoad(); });
-
-	didFileExistOnLastWatch_ = path_.exists();
-
-	installWatchers();
 }
 
 FileChangeListenerImpl::~FileChangeListenerImpl() {
@@ -42,10 +38,6 @@ FileChangeListenerImpl::~FileChangeListenerImpl() {
 	QObject::disconnect(directoryWatchConnection_);
 	QObject::disconnect(delayedLoadTimerConnection_);
 	delayedLoadTimer_.stop();
-}
-
-std::string FileChangeListenerImpl::getPath() const {
-	return path_.string();
 }
 
 void FileChangeListenerImpl::addPathToWatch(const QString& path) {
@@ -57,14 +49,9 @@ void FileChangeListenerImpl::addPathToWatch(const QString& path) {
 	}
 }
 
-void FileChangeListenerImpl::installWatchers() {
-	installFileWatch();
-	installDirectoryWatch();
-}
-
-void FileChangeListenerImpl::installFileWatch() {
-	if (path_.exists()) {
-		auto pathQtString = QString::fromStdString(path_.string());
+void FileChangeListenerImpl::installFileWatch(const raco::utils::u8path& path) {
+	if (path.exists()) {
+		auto pathQtString = QString::fromStdString(path.string());
 		auto fileWatcherContainsFilePath = fileWatcher_.files().contains(pathQtString);
 
 		if (!fileWatcherContainsFilePath) {
@@ -73,97 +60,124 @@ void FileChangeListenerImpl::installFileWatch() {
 	}
 }
 
-void FileChangeListenerImpl::installDirectoryWatch() {
-	auto previouslyWatchedDirs = fileWatcher_.directories();
-	for (auto parentPath = path_.parent_path(); parentPath != path_.root_path() && parentPath.existsDirectory(); parentPath = parentPath.parent_path()) {
-		auto parentPathQtString = QString::fromStdString(parentPath.string());
-		auto fileWatcherContainsDirectory = fileWatcher_.files().contains(parentPathQtString);
+void FileChangeListenerImpl::add(const std::string& absPath) {
+	const raco::utils::u8path& path(absPath);
 
-		if (!fileWatcherContainsDirectory) {
-			addPathToWatch(parentPathQtString);
+	// create directoriy watchers up to root -> return direct parent directory
+	auto directoryNode = createDirectoryWatches(path.parent_path());
+
+	// create file watcher and insert into direct parent directory
+	installFileWatch(path);
+	auto [it, success] = directoryNode->children_.insert({path, std::make_unique<Node>(path, directoryNode, false, path.exists())});
+	watchedFiles_[path] = it->second.get();
+}
+
+FileChangeListenerImpl::Node* FileChangeListenerImpl::createDirectoryWatches(const raco::utils::u8path& path) {
+	if (path != path.root_path()) {
+		auto node = createDirectoryWatches(path.parent_path());
+
+		auto it = node->children_.find(path);
+		if (it == node->children_.end()) {
+			bool exists = path.existsDirectory();
+			if (exists) {
+				addPathToWatch(QString::fromStdString(path.string()));
+			}
+			auto [newIt, success] = node->children_.insert({path, std::make_unique<Node>(path, node, true, exists)});
+			return newIt->second.get();
 		} else {
-			previouslyWatchedDirs.removeAll(parentPathQtString);
+			return it->second.get();
 		}
 	}
+	return &rootNode_;
+}
 
-	if (!previouslyWatchedDirs.empty()) {
-		fileWatcher_.removePaths(previouslyWatchedDirs);
+void FileChangeListenerImpl::remove(const std::string& absPath) {
+	const raco::utils::u8path& path(absPath);
+	if (fileWatcher_.removePath(QString::fromStdString(path.string()))) {
+
+		// remove file node and all parent directories which have no child nodes anymore
+		auto fileNode = watchedFiles_[path];
+		watchedFiles_.erase(path);
+
+		auto parentNode = fileNode->parent_;
+		parentNode->children_.erase(path);
+		removeDirectoryWatches(parentNode);
 	}
 }
 
-void FileChangeListenerImpl::launchDelayedLoad() {
+void FileChangeListenerImpl::removeDirectoryWatches(Node* node) {
+	if (node->children_.empty() && node != &rootNode_) {
+		fileWatcher_.removePath(QString::fromStdString(node->path_.string()));
+	
+		auto parentNode = node->parent_;
+		parentNode->children_.erase(node->path_);
+		removeDirectoryWatches(parentNode);
+	}
+}
+
+void FileChangeListenerImpl::launchDelayedLoad(const utils::u8path& path) {
+	changedFiles_.insert(path);
 	delayedLoadTimer_.stop();
 	delayedLoadTimer_.start();
 	LOG_DEBUG(log_system::RAMSES_BACKEND, "Launched delayed file watch loading");
 }
 
 void FileChangeListenerImpl::onFileChanged(const QString& filePath) {
-	launchDelayedLoad();
+	launchDelayedLoad(filePath.toStdString());
 }
 
 void FileChangeListenerImpl::onDelayedLoad() {
-	didFileExistOnLastWatch_ = path_.exists();
-
 #if (defined(OS_WINDOWS) || defined(OS_UNIX))
-	if (didFileExistOnLastWatch_) {
-		if (fileCanBeAccessed()) {
-			fileChangeCallback_();
+	for (const auto& path : changedFiles_) {
+
+		auto it = watchedFiles_.find(path);
+		if (it != watchedFiles_.end()) {
+			it->second->didFileExistOnLastWatch_ = path.exists();
+			if (!it->second->didFileExistOnLastWatch_ || fileCanBeAccessed(path)) {
+				fileChangeCallback_(path.string());
+			}
 		}
-	} else {
-		fileChangeCallback_();
 	}
 #else
 	fileChangeCallback_();
 #endif
+
+	changedFiles_.clear();
 }
 
-void FileChangeListenerImpl::onDirectoryChanged(const QString& dirPath) {
-	auto fileExists = path_.exists();
-	auto directoryOrFileWasRenamed = didFileExistOnLastWatch_ && !fileExists;
-	auto fileWasCreatedOrMovedInPlace = !didFileExistOnLastWatch_ && fileExists;
-
-	if (directoryOrFileWasRenamed || fileWasCreatedOrMovedInPlace) {
-		launchDelayedLoad();
+void FileChangeListenerImpl::onDirectoryChanged(const QString& dirPathString) {
+	utils::u8path dirPath(dirPathString.toStdString());
+	std::vector<utils::u8path> updated;
+	for (const auto& [path, entry] : watchedFiles_) {
+		if (dirPath.contains(path)) {
+			if (path.exists() != entry->didFileExistOnLastWatch_) {
+				launchDelayedLoad(path);
+			}
+			installFileWatch(path);
+		}
 	}
-
-	installFileWatch();
 }
 
-bool FileChangeListenerImpl::fileCanBeAccessed() {
+bool FileChangeListenerImpl::fileCanBeAccessed(const raco::utils::u8path& path) {
 #if (defined(OS_WINDOWS))
-	return fileCanBeAccessedOnWindows();
-#elif (defined(OS_UNIX))
-	return fileCanBeAccessedOnUnix();
-#endif
-}
-
-#if (defined(OS_WINDOWS))
-bool FileChangeListenerImpl::fileCanBeAccessedOnWindows() {
-	auto fileHandle = CreateFileW(path_.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+	auto fileHandle = CreateFileW(path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 
 	if (fileHandle && fileHandle != INVALID_HANDLE_VALUE) {
 		CloseHandle(fileHandle);
 		return true;
 	}
 
-	LOG_DEBUG(log_system::RAMSES_BACKEND, "Windows could not access file {} - it seems to be opened for writing by another process right now.", path_.string());
-
-	return false;
-}
-#endif
-
-#if (defined(OS_UNIX))
-bool FileChangeListenerImpl::fileCanBeAccessedOnUnix() {
-	auto fileDescriptor = open(path_.string().c_str(), O_RDONLY);
+	LOG_DEBUG(log_system::RAMSES_BACKEND, "Windows could not access file {} - it seems to be opened for writing by another process right now.", path.string());
+#elif (defined(OS_UNIX))
+	auto fileDescriptor = open(path.string().c_str(), O_RDONLY);
 	if (fileDescriptor > 0) {
 		close(fileDescriptor);
 		return true;
 	}
 
-	LOG_DEBUG(log_system::RAMSES_BACKEND, "Linux could not access file {} - {}", path_.string(), strerror(errno));
-
+	LOG_DEBUG(log_system::RAMSES_BACKEND, "Linux could not access file {} - {}", path.string(), strerror(errno));
+#endif
 	return false;
 }
-#endif
 
 }  // namespace raco::components

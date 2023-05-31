@@ -27,6 +27,7 @@ R"(1 - LogicEngine v1.0.3
     - Added SkinBinding
 5 - LogicEngine v1.4.0
     - Added support for LuaModules in LuaInterfaces
+    - Added MeshNodeBinding
 )";
 
 BaseEngineBackend::BaseEngineBackend(

@@ -13,7 +13,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "testing/RacoBaseTest.h"
+#include "testing/RaCoApplicationTest.h"
 
 #include "application/RaCoApplication.h"
 #include "components/TracePlayer.h"
@@ -42,17 +42,15 @@ protected:
 		spdlog::drop_all();
 		raco::log_system::init();
 		raco::log_system::setConsoleLogLevel(spdlog::level::level_enum::info);
-		racoApp.overrideTime([this] {
+		application.overrideTime([this] {
 			return tracePlayerTestTime_;
 		});
-		cmd_ = racoApp.activeRaCoProject().commandInterface();
-		player_ = &racoApp.activeRaCoProject().tracePlayer();
+		cmd_ = application.activeRaCoProject().commandInterface();
+		player_ = &application.activeRaCoProject().tracePlayer();
 		tracePlayerDataLua_ = createLua("TracePlayerData", LuaType::LuaScript, false)->as<raco::user_types::LuaScript>();
 		createLua("saInfo", LuaType::LuaScript);
 	}
 
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication racoApp{backend};
 	raco::core::CommandInterface* cmd_{nullptr};
 	TracePlayer* player_{nullptr};
 	std::vector<raco::core::SEditorObject> luaObjs_;
@@ -89,6 +87,8 @@ protected:
 
 	int argc{0};
 	QCoreApplication eventLoop_{argc, nullptr};
+	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	raco::application::RaCoApplication application{backend, {{}, false, false, -1, false}};
 };
 
 /* ************************************** helper functions ************************************** */
@@ -212,7 +212,7 @@ void TracePlayerTest::increaseTimeAndDoOneLoop() {
 		lastFrameTime_ += frameTimeGenerator_() % (maxFrameTime_ - minFrameTime_);
 	}
 	tracePlayerTestTime_ += lastFrameTime_;
-	racoApp.doOneLoop();
+	application.doOneLoop();
 }
 
 void TracePlayerTest::setMinMaxFrameTime(long minFrameTime, long maxFrameTime) {

@@ -37,6 +37,8 @@ const char renderPassTypeName[] = "RenderPass";
 const char renderTargetTypeName[] = "RenderTarget";
 const char prefabTypeName[] = "Prefab";
 const char prefabInstanceTypeName[] = "PrefabInstance";
+const char scissorOptionsTypeName[] = "ScissorOptions";
+const char stencilOptionsTypeName[] = "StencilOptions";
 const char skinTypeName[] = "Skin";
 const char timerTypeName[] = "Timer";
 
@@ -46,6 +48,7 @@ const char vec4fTypeName[] = "Vec4f";
 const char vec2iTypeName[] = "Vec2i";
 const char vec3iTypeName[] = "Vec3i";
 const char vec4iTypeName[] = "Vec4i";
+const char colorWriteMaskTypeName[] = "ColorWriteMask";
 const char blendmodeOptionsTypeName[] = "BlendOptions";
 const char cameraViewportTypeName[] = "CameraViewport";
 const char perspectiveFrustumTypeName[] = "PerspectiveFrustum";

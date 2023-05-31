@@ -136,6 +136,7 @@ raco_package_add_test_resources(
     migrationTestData/V29.rca
     migrationTestData/V29_tags.rca
     migrationTestData/V29_renderlayer.rca
+    migrationTestData/interfaces/intf-struct-vec.lua
     migrationTestData/scripts/array.lua
     migrationTestData/scripts/array-of-array.lua
     migrationTestData/scripts/array-of-structs.lua
@@ -161,6 +162,9 @@ raco_package_add_test_resources(
     migrationTestData/V44.rca
     migrationTestData/V45.rca
     migrationTestData/V50.rca
+    migrationTestData/V51.rca
+    migrationTestData/V51_link_vec_struct.rca
+    migrationTestData/V52.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

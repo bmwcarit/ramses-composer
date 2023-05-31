@@ -90,6 +90,12 @@ py::object python_get_scalar_value(raco::core::ValueHandle handle) {
 					case raco::core::EUserTypeEnumerations::FrustumType:
 						return py::cast(static_cast<EFrustumType>(handle.asInt()));
 
+					case raco::core::EUserTypeEnumerations::StencilFunction:
+						return py::cast(static_cast<EStencilFunc>(handle.asInt()));
+
+					case raco::core::EUserTypeEnumerations::StencilOperation:
+						return py::cast(static_cast<EStencilOperation>(handle.asInt()));
+
 					default:
 						assert(false);
 						return py::none();
@@ -163,6 +169,33 @@ void set_scalar_value_typed(const raco::core::ValueHandle& handle, py::object va
 	}
 }
 
+template<typename T, int N>
+std::array<T, N> to_std_array(const py::list& pyList) {
+	auto result = std::array<T, N>{};
+	std::transform(pyList.begin(), pyList.end(), result.begin(), [](const auto& pyObject) { return pyObject.template cast<T>(); });
+	return result;
+}
+
+void set_as_vec(raco::core::ValueHandle const& handle, const py::list& pyList) {
+	auto* commandInterface = app->activeRaCoProject().commandInterface();
+	const auto typeDesc = &handle.constValueRef()->asStruct().getTypeDescription();
+	if (typeDesc == &raco::core::Vec2f::typeDescription) {
+		commandInterface->set(handle, to_std_array<double, 2>(pyList));
+	} else if (typeDesc == &raco::core::Vec3f::typeDescription) {
+		commandInterface->set(handle, to_std_array<double, 3>(pyList));
+	} else if (typeDesc == &raco::core::Vec4f::typeDescription) {
+		commandInterface->set(handle, to_std_array<double, 4>(pyList));
+	} else if (typeDesc == &raco::core::Vec2i::typeDescription) {
+		commandInterface->set(handle, to_std_array<int, 2>(pyList));
+	} else if (typeDesc == &raco::core::Vec3i::typeDescription) {
+		commandInterface->set(handle, to_std_array<int, 3>(pyList));
+	} else if (typeDesc == &raco::core::Vec4i::typeDescription) {
+		commandInterface->set(handle, to_std_array<int, 4>(pyList));
+	}	else {
+		throw std::runtime_error(fmt::format("Set property '{}': should be of vector type.", handle.getPropertyPath()));
+	}
+}
+
 void python_set_value(const raco::core::PropertyDescriptor& desc, py::object value) {
 	checkProperty(desc);
 	raco::core::ValueHandle handle{desc};
@@ -186,6 +219,18 @@ void python_set_value(const raco::core::PropertyDescriptor& desc, py::object val
 			case raco::data_storage::PrimitiveType::Ref:
 				set_scalar_value_typed<raco::core::SEditorObject>(handle, value, "reference");
 				break;
+		}
+	} else if (
+		handle.isVec2f() || handle.isVec3f() || handle.isVec4f() ||
+		handle.isVec2i() || handle.isVec3i() || handle.isVec4i()) {
+		const auto pyList = py::cast<py::list>(value);
+		if (handle.size() == pyList.size()) {
+			set_as_vec(handle, pyList);
+		} else {
+			throw std::runtime_error(fmt::format("Set property '{}': iterable length ({}) doesn't match vector dimensions ({}).",
+				handle.getPropertyPath(),
+				pyList.size(),
+				handle.size()));
 		}
 	} else {
 		throw std::runtime_error(fmt::format("Set property '{}': can't set complex properties directly.", handle.getPropertyPath()));
@@ -218,7 +263,7 @@ void python_import_gltf(const std::string path, const raco::core::SEditorObject 
 
 	auto* commandInterface = app->activeRaCoProject().commandInterface();
 	// create dummy cache entry to prevent "cache corpses" if the mesh file is otherwise not accessed by any Mesh
-	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr, []() {}});
+	auto dummyCacheEntry = commandInterface->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr});
 	if (auto* sceneGraph = commandInterface->meshCache()->getMeshScenegraph(absPath)) {
 		commandInterface->insertAssetScenegraph(*sceneGraph, absPath, parent);
 	} else {
@@ -398,6 +443,27 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.value("NotEqual", EDepthFunc::NotEqual)
 		.value("Always", EDepthFunc::Always)
 		.value("Never", EDepthFunc::Never);
+
+	py::enum_<EStencilFunc>(m, "EStencilFunction")
+		.value("Disabled", EStencilFunc::Disabled)
+		.value("Never", EStencilFunc::Never)
+		.value("Always", EStencilFunc::Always)
+		.value("Equal", EStencilFunc::Equal)
+		.value("NotEqual", EStencilFunc::NotEqual)
+		.value("Less", EStencilFunc::Less)
+		.value("LessEqual", EStencilFunc::LessEqual)
+		.value("Greater", EStencilFunc::Greater)
+		.value("GreaterEqual", EStencilFunc::GreaterEqual);
+
+	py::enum_<EStencilOperation>(m, "EStencilOperation")
+		.value("Keep", EStencilOperation::Keep)
+		.value("Zero", EStencilOperation::Zero)
+		.value("Replace", EStencilOperation::Replace)
+		.value("Increment", EStencilOperation::Increment)
+		.value("IncrementWrap", EStencilOperation::IncrementWrap)
+		.value("Decrement", EStencilOperation::Decrement)
+		.value("DecrementWrap", EStencilOperation::DecrementWrap)
+		.value("Invert", EStencilOperation::Invert);
 
 	py::enum_<ETextureAddressMode>(m, "ETextureAddressMode")
 		.value("Clamp", ETextureAddressMode::Clamp)

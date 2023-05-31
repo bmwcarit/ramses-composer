@@ -11,6 +11,7 @@
 
 #include "property_browser/PropertyBrowserModel.h"
 #include "components/DataChangeDispatcher.h"
+#include "core/UserObjectFactoryInterface.h"
 #include "testing/TestEnvironmentCore.h"
 #include <QApplication>
 
@@ -24,9 +25,11 @@ public:
 	raco::property_browser::PropertyBrowserModel model;
 
 	EditorTestFixtureT() : TestEnvironmentCoreT<T>{}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
+	EditorTestFixtureT(raco::core::UserObjectFactoryInterface* objectFactory) : TestEnvironmentCoreT<T>{objectFactory}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
 
 	void dispatch() {
 		dataChangeDispatcher->dispatch(this->recorder.release());
+		application.processEvents();
 	}
 };
 

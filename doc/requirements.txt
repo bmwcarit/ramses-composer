@@ -1,0 +1,12 @@
+#  -------------------------------------------------------------------------
+#  Copyright (C) 2020 BMW AG
+#  -------------------------------------------------------------------------
+#  This Source Code Form is subject to the terms of the Mozilla Public
+#  License, v. 2.0. If a copy of the MPL was not distributed with this
+#  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#  -------------------------------------------------------------------------
+
+myst-parser==0.18.1
+Sphinx==5.3.0
+sphinx-rtd-theme==1.0.0
+sphinx_lfs_content==1.1.1

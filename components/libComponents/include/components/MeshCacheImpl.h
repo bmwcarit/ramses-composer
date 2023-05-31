@@ -43,7 +43,6 @@ private:
 	core::MeshCacheEntry* getLoader(std::string absPath) override;
 
 	void forceReloadCachedMesh(const std::string& absPath);
-	void onAfterMeshFileUpdate(const std::string& meshFileAbsPath);
 
 	std::unordered_map<std::string, core::UniqueMeshCacheEntry> meshCacheEntries_;
 };

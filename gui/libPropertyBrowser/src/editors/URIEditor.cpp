@@ -41,7 +41,7 @@ URIEditor::URIEditor(PropertyBrowserItem* item, QWidget* parent) : StringEditor(
 		auto uriAnno = item_->query<core::URIAnnotation>();
 		std::string cachedPath;
 		auto projectAbsPath = item_->project()->currentFolder();
-		auto cachedPathKey = raco::core::PathManager::getCachedPathKeyCorrespondingToUserType(item_->valueHandle().rootObject()->getTypeDescription());
+		auto cachedPathKey = uriAnno->getFolderTypeKey();
 
 		if (fileExists()) {
 			auto fileInfo = QFileInfo(QString::fromStdString(raco::utils::u8path(lineEdit_->text().toStdString()).normalizedAbsolutePath(projectAbsPath).string()));

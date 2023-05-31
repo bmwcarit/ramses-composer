@@ -20,6 +20,10 @@ namespace raco::serialization {
 struct ObjectsDeserialization;
 }  // namespace raco::serialization
 
+namespace raco::components {
+class MeshCacheImpl;
+}
+
 namespace raco::core {
 struct MeshDescriptor;
 struct MeshScenegraph;
@@ -31,8 +35,6 @@ class UndoStack;
 class Errors;
 class UserObjectFactoryInterface;
 class EngineInterface;
-
-class FileChangeCallback;
 
 /**
  * @brief The BaseContext is used internally to perform data model changes while ensuring low-level consistency.
@@ -177,7 +179,7 @@ public:
 private:
 	friend class UndoStack;
 	friend class UndoHelpers;
-	friend class FileChangeCallback;
+	friend class components::MeshCacheImpl;
 	friend class PrefabOperations;
 	friend class ExtrefOperations;
 

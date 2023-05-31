@@ -97,33 +97,33 @@ public:
 
 	Property<bool, DisplayNameAnnotation> generateMipmaps_{false, DisplayNameAnnotation("Automatically Generate Mipmaps")};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 1 URI +Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 1 URI -Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 1 URI -X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 1 URI +X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 1 URI +Y"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 1 URI -Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 1 URI +Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 1 URI -Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 1 URI -X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 1 URI +X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 1 URI +Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 1 URI -Y"}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI +Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI -Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI -X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI +X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI +Y"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 2 URI -Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI +Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI -Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI -X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI +X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI +Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level2uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 2 URI -Y"}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI +Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI -Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI -X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI +X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI +Y"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 3 URI -Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI +Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI -Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI -X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI +X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI +Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI -Y"}};
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI +Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI -Z"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI -X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI +X"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI +Y"}};
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)"}, DisplayNameAnnotation{"Level 4 URI -Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriFront_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI +Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriBack_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI -Z"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriLeft_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI -X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriRight_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI +X"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriTop_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI +Y"}};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uriBottom_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI -Y"}};
 
 private:
 	void validateURIs(BaseContext& context);

@@ -128,6 +128,11 @@ bool MeshNodeAdaptor::sync(core::Errors* errors) {
 
 	syncMaterials(errors);
 	syncMeshObject();
+
+	if (sceneAdaptor_->featureLevel() >= rlogic::EFeatureLevel::EFeatureLevel_05) {
+		meshNodeBinding_ = ramses_base::ramsesMeshNodeBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_MeshNodeBinding" , editorObject()->objectIDAsRamsesLogicID());
+	}
+
 	tagDirty(false);
 	return true;
 }
@@ -216,6 +221,10 @@ void MeshNodeAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes)
 	if (appearanceBinding_) {
 		logicNodes.push_back(appearanceBinding_.get());
 	}
+
+	if (meshNodeBinding_) {
+		logicNodes.push_back(meshNodeBinding_.get());
+	}
 }
 
 const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::string>& names) {
@@ -227,6 +236,10 @@ const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::stri
 			return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), ramsesPropNames, 0);
 		}
 		return nullptr;
+	} else if (names.size() == 1 && names[0] == "instanceCount") {
+		if (meshNodeBinding_) {
+			return meshNodeBinding_->getInputs()->getChild("instanceCount");
+		}
 	}
 	return SpatialAdaptor::getProperty(names);
 }
@@ -248,6 +261,10 @@ std::vector<ExportInformation> MeshNodeAdaptor::getExportInformation() const {
 
 	if (appearanceBinding_ != nullptr) {
 		result.emplace_back("AppearanceBinding", appearanceBinding_->getName().data());
+	}
+
+	if (meshNodeBinding_ != nullptr) {
+		result.emplace_back("MeshNodeBinding", meshNodeBinding_->getName().data());
 	}
 
 	return result;

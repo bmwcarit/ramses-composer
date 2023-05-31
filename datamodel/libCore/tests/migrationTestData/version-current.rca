@@ -2,7 +2,7 @@
     "externalProjects": {
     },
     "featureLevel": 5,
-    "fileVersion": 51,
+    "fileVersion": 54,
     "instances": [
         {
             "properties": {
@@ -198,9 +198,98 @@
                                         "blendFactorSrcColor": 2,
                                         "blendOperationAlpha": 0,
                                         "blendOperationColor": 0,
+                                        "colorWriteMask": {
+                                            "alpha": true,
+                                            "blue": true,
+                                            "green": true,
+                                            "red": true
+                                        },
                                         "cullmode": 2,
                                         "depthFunction": 4,
-                                        "depthwrite": true
+                                        "depthwrite": true,
+                                        "scissorOptions": {
+                                            "scissorEnable": false,
+                                            "scissorRegion": {
+                                                "height": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": 1
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 720
+                                                },
+                                                "offsetX": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": -7680
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "offsetY": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": -7680
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "width": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": 1
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 1440
+                                                }
+                                            }
+                                        },
+                                        "stencilOptions": {
+                                            "stencilFunc": 0,
+                                            "stencilMask": {
+                                                "annotations": [
+                                                    {
+                                                        "properties": {
+                                                            "max": 255,
+                                                            "min": 0
+                                                        },
+                                                        "typeName": "RangeAnnotationInt"
+                                                    }
+                                                ],
+                                                "value": 255
+                                            },
+                                            "stencilOpDepthFail": 0,
+                                            "stencilOpDepthSucc": 0,
+                                            "stencilOpStencilFail": 0,
+                                            "stencilRef": {
+                                                "annotations": [
+                                                    {
+                                                        "properties": {
+                                                            "max": 255,
+                                                            "min": 0
+                                                        },
+                                                        "typeName": "RangeAnnotationInt"
+                                                    }
+                                                ],
+                                                "value": 1
+                                            }
+                                        }
                                     },
                                     "typeName": "BlendOptions::DisplayNameAnnotation"
                                 },
@@ -718,9 +807,98 @@
                     "blendFactorSrcColor": 2,
                     "blendOperationAlpha": 0,
                     "blendOperationColor": 0,
+                    "colorWriteMask": {
+                        "alpha": true,
+                        "blue": true,
+                        "green": true,
+                        "red": true
+                    },
                     "cullmode": 2,
                     "depthFunction": 4,
-                    "depthwrite": true
+                    "depthwrite": true,
+                    "scissorOptions": {
+                        "scissorEnable": false,
+                        "scissorRegion": {
+                            "height": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": 1
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 720
+                            },
+                            "offsetX": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": -7680
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 0
+                            },
+                            "offsetY": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": -7680
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 0
+                            },
+                            "width": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": 1
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 1440
+                            }
+                        }
+                    },
+                    "stencilOptions": {
+                        "stencilFunc": 0,
+                        "stencilMask": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "max": 255,
+                                        "min": 0
+                                    },
+                                    "typeName": "RangeAnnotationInt"
+                                }
+                            ],
+                            "value": 255
+                        },
+                        "stencilOpDepthFail": 0,
+                        "stencilOpDepthSucc": 0,
+                        "stencilOpStencilFail": 0,
+                        "stencilRef": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "max": 255,
+                                        "min": 0
+                                    },
+                                    "typeName": "RangeAnnotationInt"
+                                }
+                            ],
+                            "value": 1
+                        }
+                    }
                 },
                 "uniforms": {
                     "order": [
@@ -1093,9 +1271,98 @@
                     "blendFactorSrcColor": 2,
                     "blendOperationAlpha": 0,
                     "blendOperationColor": 0,
+                    "colorWriteMask": {
+                        "alpha": true,
+                        "blue": true,
+                        "green": true,
+                        "red": true
+                    },
                     "cullmode": 2,
                     "depthFunction": 4,
-                    "depthwrite": true
+                    "depthwrite": true,
+                    "scissorOptions": {
+                        "scissorEnable": false,
+                        "scissorRegion": {
+                            "height": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": 1
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 720
+                            },
+                            "offsetX": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": -7680
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 0
+                            },
+                            "offsetY": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": -7680
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 0
+                            },
+                            "width": {
+                                "annotations": [
+                                    {
+                                        "properties": {
+                                            "max": 7680,
+                                            "min": 1
+                                        },
+                                        "typeName": "RangeAnnotationInt"
+                                    }
+                                ],
+                                "value": 1440
+                            }
+                        }
+                    },
+                    "stencilOptions": {
+                        "stencilFunc": 0,
+                        "stencilMask": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "max": 255,
+                                        "min": 0
+                                    },
+                                    "typeName": "RangeAnnotationInt"
+                                }
+                            ],
+                            "value": 255
+                        },
+                        "stencilOpDepthFail": 0,
+                        "stencilOpDepthSucc": 0,
+                        "stencilOpStencilFail": 0,
+                        "stencilRef": {
+                            "annotations": [
+                                {
+                                    "properties": {
+                                        "max": 255,
+                                        "min": 0
+                                    },
+                                    "typeName": "RangeAnnotationInt"
+                                }
+                            ],
+                            "value": 1
+                        }
+                    }
                 },
                 "uniforms": {
                     "order": [
@@ -1221,9 +1488,98 @@
                                         "blendFactorSrcColor": 2,
                                         "blendOperationAlpha": 0,
                                         "blendOperationColor": 0,
+                                        "colorWriteMask": {
+                                            "alpha": true,
+                                            "blue": true,
+                                            "green": true,
+                                            "red": true
+                                        },
                                         "cullmode": 2,
                                         "depthFunction": 4,
-                                        "depthwrite": true
+                                        "depthwrite": true,
+                                        "scissorOptions": {
+                                            "scissorEnable": false,
+                                            "scissorRegion": {
+                                                "height": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": 1
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 720
+                                                },
+                                                "offsetX": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": -7680
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "offsetY": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": -7680
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 0
+                                                },
+                                                "width": {
+                                                    "annotations": [
+                                                        {
+                                                            "properties": {
+                                                                "max": 7680,
+                                                                "min": 1
+                                                            },
+                                                            "typeName": "RangeAnnotationInt"
+                                                        }
+                                                    ],
+                                                    "value": 1440
+                                                }
+                                            }
+                                        },
+                                        "stencilOptions": {
+                                            "stencilFunc": 0,
+                                            "stencilMask": {
+                                                "annotations": [
+                                                    {
+                                                        "properties": {
+                                                            "max": 255,
+                                                            "min": 0
+                                                        },
+                                                        "typeName": "RangeAnnotationInt"
+                                                    }
+                                                ],
+                                                "value": 255
+                                            },
+                                            "stencilOpDepthFail": 0,
+                                            "stencilOpDepthSucc": 0,
+                                            "stencilOpStencilFail": 0,
+                                            "stencilRef": {
+                                                "annotations": [
+                                                    {
+                                                        "properties": {
+                                                            "max": 255,
+                                                            "min": 0
+                                                        },
+                                                        "typeName": "RangeAnnotationInt"
+                                                    }
+                                                ],
+                                                "value": 1
+                                            }
+                                        }
                                     },
                                     "typeName": "BlendOptions::DisplayNameAnnotation"
                                 },
@@ -1867,7 +2223,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "1467063033252"
+                    "ticker_us": "705447578607"
                 }
             },
             "typeName": "Timer"
@@ -2242,7 +2598,7 @@
     ],
     "racoVersion": [
         1,
-        7,
+        8,
         0
     ],
     "ramsesVersion": [
@@ -2263,15 +2619,24 @@
             "blendFactorSrcColor": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "blendOperationAlpha": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "blendOperationColor": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "colorWriteMask": "ColorWriteMask::DisplayNameAnnotation",
             "cullmode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "depthFunction": "Int::DisplayNameAnnotation::EnumerationAnnotation",
-            "depthwrite": "Bool::DisplayNameAnnotation"
+            "depthwrite": "Bool::DisplayNameAnnotation",
+            "scissorOptions": "ScissorOptions::DisplayNameAnnotation",
+            "stencilOptions": "StencilOptions::DisplayNameAnnotation"
         },
         "CameraViewport": {
             "height": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "offsetX": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "offsetY": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "width": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation"
+        },
+        "ColorWriteMask": {
+            "alpha": "Bool::DisplayNameAnnotation",
+            "blue": "Bool::DisplayNameAnnotation",
+            "green": "Bool::DisplayNameAnnotation",
+            "red": "Bool::DisplayNameAnnotation"
         },
         "DefaultResourceDirectories": {
             "imageSubdirectory": "String::DisplayNameAnnotation::URIAnnotation",
@@ -2294,6 +2659,18 @@
             "nearPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
             "rightPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation",
             "topPlane": "Double::DisplayNameAnnotation::RangeAnnotationDouble::LinkEndAnnotation"
+        },
+        "ScissorOptions": {
+            "scissorEnable": "Bool::DisplayNameAnnotation",
+            "scissorRegion": "CameraViewport::DisplayNameAnnotation"
+        },
+        "StencilOptions": {
+            "stencilFunc": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "stencilMask": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "stencilOpDepthFail": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "stencilOpDepthSucc": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "stencilOpStencilFail": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "stencilRef": "Int::DisplayNameAnnotation::RangeAnnotationInt"
         },
         "TimerInput": {
             "ticker_us": "Int64::DisplayNameAnnotation::LinkEndAnnotation"
@@ -2471,7 +2848,7 @@
         "MeshNode": {
             "children": "Table::ArraySemanticAnnotation::HiddenProperty",
             "enabled": "Bool::DisplayNameAnnotation::LinkEndAnnotation::FeatureLevel",
-            "instanceCount": "Int::DisplayNameAnnotation::RangeAnnotationInt",
+            "instanceCount": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "materials": "Table::DisplayNameAnnotation",
             "mesh": "Mesh::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",

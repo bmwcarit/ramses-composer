@@ -51,7 +51,7 @@ public:
 
 	bool isValid() const;
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua);; All files (*.*)"}, DisplayNameAnnotation("URI")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua script files(*.lua);; All files (*.*)", core::PathManager::FolderTypeKeys::Script}, DisplayNameAnnotation("URI")};
 
 	Property<LuaStandardModuleSelection, DisplayNameAnnotation> stdModules_{{}, {"Standard Modules"}};
 

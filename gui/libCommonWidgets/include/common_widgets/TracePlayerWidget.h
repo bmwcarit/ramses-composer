@@ -35,7 +35,7 @@ enum class ErrorLevel;
 }  // namespace raco::core
 namespace raco::components {
 class TracePlayer;
-using TraceFileChangeMonitor = GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void()>>>;
+using TraceFileChangeMonitor = ProjectFileChangeMonitor;
 }  // namespace raco::components
 
 namespace raco::common_widgets {

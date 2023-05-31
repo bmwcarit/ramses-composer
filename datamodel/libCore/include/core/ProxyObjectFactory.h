@@ -241,7 +241,13 @@ public:
 		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>,
 
 		// Skin
-		Property<SMeshNode, DisplayNameAnnotation>
+		Property<SMeshNode, DisplayNameAnnotation>,
+
+		// BlendOptions
+		Property<ColorWriteMask, DisplayNameAnnotation>,
+		Property<CameraViewport, DisplayNameAnnotation>,
+		Property<ScissorOptions, DisplayNameAnnotation>,
+		Property<StencilOptions, DisplayNameAnnotation>
 	>;
 
 	static ProxyObjectFactory& getInstance();

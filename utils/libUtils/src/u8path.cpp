@@ -58,7 +58,15 @@ bool operator!=(const u8path& lhs, const u8path& rhs) {
 	return lhs.path_ != rhs.path_;
 }	
 
- const std::filesystem::path& u8path::internalPath() const {
+bool operator<(const u8path& lhs, const u8path& rhs) {
+	return lhs.path_ < rhs.path_;
+}
+
+bool u8path::contains(const u8path& path) {
+	return path.string().find(string()) == 0;
+}
+
+const std::filesystem::path& u8path::internalPath() const {
 	return path_;
 }
 

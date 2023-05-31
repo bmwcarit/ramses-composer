@@ -27,7 +27,7 @@ add_library(libCore
 	include/core/Errors.h src/Errors.cpp
 	include/core/ExternalReferenceAnnotation.h
 	include/core/ExtrefOperations.h src/ExtrefOperations.cpp
-    include/core/FileChangeCallback.h src/FileChangeCallback.cpp
+    include/core/FileChangeCallback.h
     include/core/FileChangeMonitor.h 
 	include/core/Handles.h src/Handles.cpp 
 	include/core/Iterators.h src/Iterators.cpp 

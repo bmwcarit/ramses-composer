@@ -47,7 +47,7 @@ public:
 
 	PropertyInterface getOutputProperty() const;
 
-	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"glTF files (*.glTF *.glb);;All Files (*.*)"}, DisplayNameAnnotation("Animation Source")};
+	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"glTF files (*.glTF *.glb);;All Files (*.*)", core::PathManager::FolderTypeKeys::Mesh}, DisplayNameAnnotation("Animation Source")};
 
 	Property<int, DisplayNameAnnotation> animationIndex_{{}, DisplayNameAnnotation("Animation Index")};
 	Property<int, DisplayNameAnnotation> samplerIndex_{{}, DisplayNameAnnotation("Sampler Index")};

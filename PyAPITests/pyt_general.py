@@ -440,6 +440,67 @@ class GeneralTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             node.visibility = True
 
+    def test_vec_prop_set(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        # Vector assignment from list
+        lua.inputs.vector2i = [1, 2]
+        self.assertEqual(lua.inputs.vector2i.i1.value(), 1)
+
+        lua.inputs.vector2f = [1.5, 2]
+        lua.inputs.vector3i = [1, 2, 3]
+        lua.inputs.vector3f = [1.5, 2, 3]
+        lua.inputs.vector4i = [1, 2, 3, 4]
+        lua.inputs.vector4f = [1.5, 2, 3, 4]
+        self.assertEqual(lua.inputs.vector4f.w.value(), 4)
+
+        # Vector assignment from tuple
+        lua.inputs.vector2f = (3.5, 4)
+        self.assertEqual(lua.inputs.vector2f.x.value(), 3.5)
+
+        # Vector dimension must match list length
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector2f = (1, 2, 3)
+
+    def test_array_prop_set_from_list_fail(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/array.lua"
+
+        # Array of size 5 exists
+        self.assertEqual(len(lua.inputs.float_array.keys()), 5)
+
+        # Array assignment is not supported
+        with self.assertRaises(RuntimeError):
+            lua.inputs.float_array = [1, 2, 3, 4, 5]
+
+    def test_struct_prop_set_from_list_fail(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/struct.lua"
+
+        # Struct with 2 elements exists
+        self.assertEqual(len(lua.inputs.struct.keys()), 2)
+
+        # Struct assignment is not supported
+        with self.assertRaises(RuntimeError):
+            lua.inputs.struct = [1, 2]
+
+    def test_vec_prop_set_from_non_iterable_fail(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        # Assigning non-iterable results in error
+        with self.assertRaises(TypeError):
+            lua.inputs.vector2i = 1
+
+    def test_vec_prop_set_from_wrong_type_fail(self):
+        lua = raco.create("LuaScript", "lua")
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+
+        # Assigning non-iterable results in error
+        with self.assertRaises(RuntimeError):
+            lua.inputs.vector2i = [1, "abc"]
+
     def test_set_int_enum_fail(self):
         material = raco.create("Material", "my_mat")
 

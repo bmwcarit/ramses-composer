@@ -32,6 +32,12 @@ public:
 	void commit(bool forceUpdate);
 
 public Q_SLOTS:
+	/**
+	 * @brief setup viewport size and position including scaling
+	 * 
+	 * The areaSize, viewportPosition, viewportOffset, and viewportSize parameters are given in Qt virtual pixels units.
+	 * The virtualSize and targetSize parameters are given in device pixel units.
+	*/
 	void setViewportRect(
 		const QSize areaSize,
 		const QPoint viewportPosition,

@@ -21,10 +21,8 @@
 #include "core/Undo.h"
 #include "core/ProjectSettings.h"
 #include "core/Queries.h"
-#include "core/SceneBackendInterface.h"
 #include "core/UserObjectFactoryInterface.h"
 #include "log_system/log.h"
-#include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "components/FileChangeMonitorImpl.h"
 #include "components/MeshCacheImpl.h"
@@ -77,6 +75,7 @@ public:
 		if (!instance) {
 			instance = new TestObjectFactory();
 			instance->addType<raco::user_types::Foo>();
+			instance->addType<raco::user_types::MockTableObject>();
 			instance->addType<raco::user_types::ObjectWithTableProperty>();
 			instance->addType<raco::user_types::ObjectWithStructProperty>();
 			instance->addType<raco::user_types::FutureType>();
@@ -91,7 +90,6 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	using BaseContext = raco::core::BaseContext;
 	using Project = raco::core::Project;
 	using Errors = raco::core::Errors;
-	using FileChangeMonitorImpl = raco::components::FileChangeMonitorImpl;
 	using UserObjectFactoryInterface = raco::core::UserObjectFactoryInterface;
 	using UserObjectFactory = raco::user_types::UserObjectFactory;
 	using DataChangeRecorderInterface = raco::core::DataChangeRecorderInterface;
@@ -263,7 +261,6 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 
 	TestEnvironmentCoreT(UserObjectFactoryInterface* objectFactory = &UserObjectFactory::getInstance(), rlogic::EFeatureLevel featureLevel = raco::ramses_base::BaseEngineBackend::maxFeatureLevel)
 		: backend{featureLevel},
-		  fileChangeMonitor{std::make_unique<FileChangeMonitorImpl>()},
 		  meshCache{},
 		  project{},
 		  recorder{},
@@ -275,8 +272,6 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		raco::log_system::init();
 		clearQEventLoop();
 		context.setMeshCache(&meshCache);
-		dispatcher = raco::ramses_adaptor::SceneBackend::SDataChangeDispatcher{std::make_shared<raco::components::DataChangeDispatcher>()};
-		sceneBackendInterface = new raco::ramses_adaptor::SceneBackend(backend, dispatcher);
 		auto settings = context.createObject(raco::core::ProjectSettings::typeDescription.typeName, "ProjectSettings");
 		context.set({settings, &raco::core::ProjectSettings::featureLevel_}, static_cast<int>(featureLevel));
 		undoStack.reset();
@@ -293,8 +288,6 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 
 
 	raco::ramses_base::HeadlessEngineBackend backend;
-	// FileChangeMonitor needs to be destroyed after the project (and with them all FileListeners have been cleaned up)
-	std::unique_ptr<FileChangeMonitorImpl> fileChangeMonitor;
 	raco::components::MeshCacheImpl meshCache;
 	Project project;
 	raco::core::DataChangeRecorder recorder;
@@ -302,8 +295,6 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	BaseContext context;
 	TestUndoStack undoStack;
 	raco::core::CommandInterface commandInterface;
-	raco::ramses_adaptor::SceneBackend::SDataChangeDispatcher dispatcher;
-	raco::core::SceneBackendInterface* sceneBackendInterface;
 };
 
 using TestEnvironmentCore = TestEnvironmentCoreT<>;

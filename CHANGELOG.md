@@ -24,6 +24,29 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.9.0] Stencil & Scissor support, Linkable instance count, Texture optimization, Misc Bugfixes
+* **File version number has changed. Files saved with RaCo 1.9.0 cannot be opened by previous versions.**
+
+### Known Issues
+* Setting a MeshNode `instanceCount` property to a negative value via a link will lead to a runtime crash in Ramses.
+
+### Added
+* Added support for stencil testing via new stencil-related properties in the `Material` and `MeshNode` options.
+* Added support for scissor testing via new properties in the options container of the `Material` and `MeshNode` types.
+* Added color write mask suport in the `Material` and `MeshNode` options.
+ 
+### Changes
+* Added support for direct list/tuple assignment to properties of vector type in Python API.
+* Available at feature level 5: made the `instanceCount` property of `MeshNodes` linkable. 
+* Optimize the texture format in Ramses for normal `Texture` objects. No duplicate color channels or channels with constant values are created anymore. This removes warnings about creating empty channels.
+* Do not display warnings for unlinked interfaces in Export dialog
+
+### Fixes
+* Don't allow to create links between Vec2f/etc properties and struct properties with the same child properties since they can't be created in the LogicEngine.
+* Fixed the potential loss of struct uniform values in `MeshNodes` when loading a file created with RamsesComposer V1.7.0 or earlier with V1.8.0. 
+* Fix preview scaling to make the scale equal to the device pixel over scene size ratio where the scene size is given by the `Display Size` property in the `ProjectSettings` object.
+
+
 ## [1.8.0] Free Tagging System, Lua Logging, Linkable Struct Uniforms, Misc Bugfixes
 * **File version number has changed. Files saved with RaCo 1.8.0 cannot be opened by previous versions.**
 
