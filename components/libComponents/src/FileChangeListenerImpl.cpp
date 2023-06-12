@@ -91,6 +91,27 @@ FileChangeListenerImpl::Node* FileChangeListenerImpl::createDirectoryWatches(con
 	return &rootNode_;
 }
 
+FileChangeListenerImpl::Node* FileChangeListenerImpl::getNode(const raco::utils::u8path& path) {
+	if (path != path.root_path()) {
+		auto node = getNode(path.parent_path());
+
+		auto it = node->children_.find(path);
+		assert(it != node->children_.end());
+		return it->second.get();
+	}
+	return &rootNode_;
+}
+
+
+void FileChangeListenerImpl::updateDirectoryWatches(Node* node) {
+	if (node->isDirectory_ && node->path_.existsDirectory()) {
+		addPathToWatch(QString::fromStdString(node->path_.string()));
+		for (const auto& [dummy, childNode] : node->children_) {
+			updateDirectoryWatches(childNode.get());
+		}
+	}
+}
+
 void FileChangeListenerImpl::remove(const std::string& absPath) {
 	const raco::utils::u8path& path(absPath);
 	if (fileWatcher_.removePath(QString::fromStdString(path.string()))) {
@@ -147,7 +168,9 @@ void FileChangeListenerImpl::onDelayedLoad() {
 
 void FileChangeListenerImpl::onDirectoryChanged(const QString& dirPathString) {
 	utils::u8path dirPath(dirPathString.toStdString());
-	std::vector<utils::u8path> updated;
+	if (auto node = getNode(dirPath)) {
+		updateDirectoryWatches(node);
+	}
 	for (const auto& [path, entry] : watchedFiles_) {
 		if (dirPath.contains(path)) {
 			if (path.exists() != entry->didFileExistOnLastWatch_) {

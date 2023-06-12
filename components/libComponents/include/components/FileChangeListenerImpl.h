@@ -45,7 +45,7 @@ private:
 	struct Node {
 		Node(
 			utils::u8path path = {}, Node *parent = nullptr, bool isDirectory = true, bool didFileExistOnLastWatch = false)
-			: parent_(parent), isDirectory_(isDirectory), didFileExistOnLastWatch_(didFileExistOnLastWatch) {
+			: path_(path), parent_(parent), isDirectory_(isDirectory), didFileExistOnLastWatch_(didFileExistOnLastWatch) {
 		}
 
 		utils::u8path path_;
@@ -78,6 +78,9 @@ private:
 	void onDirectoryChanged(const QString &dirPath);
 	Node *createDirectoryWatches(const raco::utils::u8path &path);
 	void removeDirectoryWatches(Node* node);
+	Node *getNode(const raco::utils::u8path &path);
+	void updateDirectoryWatches(Node *node);
+
 
 	static bool fileCanBeAccessed(const raco::utils::u8path &path);
 };

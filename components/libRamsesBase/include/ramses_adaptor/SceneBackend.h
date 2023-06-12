@@ -54,6 +54,8 @@ public:
 	std::vector<SceneItemDesc> getSceneItemDescriptions() const override;
 	std::string getExportedObjectNames(SEditorObject editorObject) const override;
 
+	static bool discardLogicEngineMessage(std::string_view message);
+
 private:
 	/**
 	 * @brief call LogicEngine validate() and filter out warnings that RamsesComposer is 

@@ -11,6 +11,7 @@
 
 #include "data_storage/Table.h"
 #include "lodepng.h"
+#include "ramses_adaptor/SceneBackend.h"
 #include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
 #include "ramses_base/EnumerationTranslations.h"
@@ -500,7 +501,12 @@ void installRamsesLogHandler(bool enableTrace) {
 
 void installLogicLogHandler() {
 	rlogic::Logger::SetDefaultLogging(false);
-	rlogic::Logger::SetLogHandler([](rlogic::ELogMessageType level, std::string_view message) { SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES_LOGIC), toSpdLogLevel(level), message); });
+	rlogic::Logger::SetLogHandler(
+		[](rlogic::ELogMessageType level, std::string_view message) {
+			if (!ramses_adaptor::SceneBackend::discardLogicEngineMessage(message)) {
+				SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES_LOGIC), toSpdLogLevel(level), message);
+			}
+		});
 }
 
 void setRamsesLogLevel(spdlog::level::level_enum level) {

@@ -14,40 +14,15 @@
 #include "components/FileChangeMonitorImpl.h"
 #include "testing/TestEnvironmentCore.h"
 #include "utils/u8path.h"
+#include "utils/FileUtils.h"
 
 #include <fstream>
 
 using namespace raco::core;
 
-class FileChangeMonitorTest : public TestEnvironmentCore {
+class BasicFileChangeMonitorTest : public TestEnvironmentCore {
 protected:
-	static constexpr const char* TEST_RESOURCES_FOLDER_NAME = "testresources";
-	static constexpr const char* TEST_FILE_NAME = "test.txt";
-
-	void SetUp() override {
-		TestEnvironmentCore::SetUp();
-		std::filesystem::create_directory(testFolderPath_);
-
-		testFileOutputStream_ = std::ofstream(testFilePath_.string(), std::ios_base::out);
-		testFileOutputStream_.close();
-
-		createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.string(), testCallback_));
-	}
-
-	void TearDown() override {
-		if (testFilePath_.exists()) {
-			std::filesystem::permissions(testFilePath_, std::filesystem::perms::all);
-		}
-		if (testFolderPath_.exists()) {
-			std::filesystem::permissions(testFolderPath_, std::filesystem::perms::all);
-		}
-		if (test_path().exists()) {
-			std::filesystem::permissions(test_path(), std::filesystem::perms::all);
-		}
-		TestEnvironmentCore::TearDown();
-	}
-
-	int waitForFileChangeCounterGEq(int count, int timeOutInMS = 2000) {
+	bool waitForFileChangeCounterGEq(int count, int timeOutInMS = 2000) {
 		auto start = std::chrono::steady_clock::now();
 		do {
 			// Programmatic file/directory modifications need to be explicitly processed in a Qt event loop (QCoreApplication).
@@ -66,7 +41,45 @@ protected:
 		}
 		while (fileChangeCounter_ < count && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() <= timeOutInMS);
 		
-		return fileChangeCounter_;
+		return fileChangeCounter_ == count;
+	}
+
+	int argc = 0;
+	// Apparently QCoreApplication needs to be initialized before the ProjectFileChangeMonitor is created, since that 
+	// will create signal connections which don't work on Linux otherwise (but they do work on Windows).
+	QCoreApplication eventLoop_{argc, nullptr};
+
+	int fileChangeCounter_{0};
+	std::function<void(void)> testCallback_ = [this]() { ++fileChangeCounter_; };
+	std::unique_ptr<raco::components::ProjectFileChangeMonitor> testFileChangeMonitor_ = std::make_unique<raco::components::ProjectFileChangeMonitor>();
+	std::vector<raco::components::ProjectFileChangeMonitor::UniqueListener> createdFileListeners_;
+};
+
+class FileChangeMonitorTest : public BasicFileChangeMonitorTest {
+protected:
+	static constexpr const char* TEST_RESOURCES_FOLDER_NAME = "testresources";
+	static constexpr const char* TEST_FILE_NAME = "test.txt";
+
+	void SetUp() override {
+		TestEnvironmentCore::SetUp();
+		std::filesystem::create_directory(testFolderPath_);
+
+		raco::utils::file::write(testFilePath_, {});
+
+		createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.string(), testCallback_));
+	}
+
+	void TearDown() override {
+		if (testFilePath_.exists()) {
+			std::filesystem::permissions(testFilePath_, std::filesystem::perms::all);
+		}
+		if (testFolderPath_.exists()) {
+			std::filesystem::permissions(testFolderPath_, std::filesystem::perms::all);
+		}
+		if (test_path().exists()) {
+			std::filesystem::permissions(test_path(), std::filesystem::perms::all);
+		}
+		TestEnvironmentCore::TearDown();
 	}
 
 	void runRenamingRoutine(raco::utils::u8path& originPath, const char* firstRename, const char* secondRename) {
@@ -77,31 +90,21 @@ protected:
 		evenNewerFilePath.replace_filename(secondRename);
 
 		std::filesystem::rename(testFilePath_, newFilePath);
-		ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+		ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 
 		std::filesystem::rename(newFilePath, evenNewerFilePath);
-		ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+		ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 
 		std::filesystem::rename(evenNewerFilePath, testFilePath_);
-		ASSERT_EQ(waitForFileChangeCounterGEq(2), 2);
+		ASSERT_TRUE(waitForFileChangeCounterGEq(2));
 
 		std::filesystem::rename(testFilePath_, newFilePath);
-		ASSERT_EQ(waitForFileChangeCounterGEq(3), 3);
+		ASSERT_TRUE(waitForFileChangeCounterGEq(3));
 	}
 
-	int argc = 0;
-	// Apparently QCoreApplication needs to be initialized before the ProjectFileChangeMonitor is created, since that 
-	// will create signal connections which don't work on Linux otherwise (but they do work on Windows).
-	QCoreApplication eventLoop_{argc, nullptr};
-	std::ofstream testFileOutputStream_;
-	int fileChangeCounter_{0};
 	raco::utils::u8path testFolderPath_{test_path().append(TEST_RESOURCES_FOLDER_NAME)};
 	raco::utils::u8path testFilePath_{raco::utils::u8path(testFolderPath_).append(TEST_FILE_NAME)};
-	std::function<void(void)> testCallback_ = [this]() { ++fileChangeCounter_; };
-	std::unique_ptr<raco::components::ProjectFileChangeMonitor> testFileChangeMonitor_ = std::make_unique<raco::components::ProjectFileChangeMonitor>();
-	std::vector<raco::components::ProjectFileChangeMonitor::UniqueListener> createdFileListeners_;
 };
-
 
 TEST_F(FileChangeMonitorTest, InstantiationNoFileChange) {
 	ASSERT_EQ(fileChangeCounter_, 0);
@@ -110,29 +113,24 @@ TEST_F(FileChangeMonitorTest, InstantiationNoFileChange) {
 TEST_F(FileChangeMonitorTest, FileModificationCreation) {
 	testFilePath_ = raco::utils::u8path(testFolderPath_).append("differentFile.txt");
 	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler(testFilePath_.string(), testCallback_));
-	ASSERT_EQ(waitForFileChangeCounterGEq(0), 0);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(0));
 
-	testFileOutputStream_ = std::ofstream(testFilePath_.string(), std::ios_base::out);
-	testFileOutputStream_.close();
+	raco::utils::file::write(testFilePath_, {});
 
-	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
 
 
 TEST_F(FileChangeMonitorTest, FileModificationEditing) {
-	testFileOutputStream_.open(testFilePath_.string(), std::ios_base::out);
+	raco::utils::file::write(testFilePath_, "Test");
 
-	testFileOutputStream_ << "Test";
-	testFileOutputStream_.flush();
-	testFileOutputStream_.close();
-
-	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
 
 
 TEST_F(FileChangeMonitorTest, FileModificationDeletion) {
 	std::filesystem::remove(testFilePath_);
-	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
 
 
@@ -142,16 +140,17 @@ TEST_F(FileChangeMonitorTest, FileModificationRenaming) {
 
 
 TEST_F(FileChangeMonitorTest, FileModificationMultipleModificationsAtTheSameTime) {
-	testFileOutputStream_.open(testFilePath_.string(), std::ios_base::out);
-	testFileOutputStream_ << "Test";
+	std::ofstream testFileOutputStream(testFilePath_.string(), std::ios_base::out);
+	testFileOutputStream << "Test";
 
 	std::ofstream otherOutputStream = std::ofstream(testFilePath_.string(), std::ios_base::app);
 	otherOutputStream << "Other";
 	otherOutputStream.close();
 
-	testFileOutputStream_.close();
+	testFileOutputStream.close();
 
-	ASSERT_GE(waitForFileChangeCounterGEq(1), 1); // Linux gives sometimes one, sometimes two events.
+	// Linux gives sometimes one, sometimes two events.
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
 
 #if (!defined(__linux))
@@ -163,22 +162,128 @@ TEST_F(FileChangeMonitorTest, FileModificationSetAndTryToEditReadOnly) {
 	ASSERT_TRUE(!ec) << "Failed to set permissons. Error code: " << ec.value() << " Error message: '" << ec.message() << "'";
 
 	// fileChangeCounter_ will be 0 in WSL, but the proper value in Linux container
-	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 
-	testFileOutputStream_.open(testFilePath_.string(), std::ios_base::out);
-	ASSERT_FALSE(testFileOutputStream_.is_open());
+	std::ofstream testFileOutputStream(testFilePath_.string(), std::ios_base::out);
+	ASSERT_FALSE(testFileOutputStream.is_open());
 
-	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
 #endif
 
 
 TEST_F(FileChangeMonitorTest, FolderModificationDeletion) {
 	std::filesystem::remove_all(test_path().append(TEST_RESOURCES_FOLDER_NAME));
-	ASSERT_EQ(waitForFileChangeCounterGEq(1), 1); 
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
 
 
 TEST_F(FileChangeMonitorTest, FolderModificationRenaming) {
 	runRenamingRoutine(testFolderPath_, "newFolder", "evenNewerFolder");
+}
+
+TEST_F(BasicFileChangeMonitorTest, create_file_existing_directory) {
+	auto testFolderPath = test_path() / "test-folder";
+	std::string test_file_name = "test.txt";
+
+	std::filesystem::create_directory(testFolderPath);
+
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler((testFolderPath / test_file_name).string(), testCallback_));
+	EXPECT_EQ(fileChangeCounter_, 0);
+
+	raco::utils::file::write(testFolderPath / test_file_name, {});
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
+}
+
+TEST_F(BasicFileChangeMonitorTest, create_file_no_directory) {
+	auto testFolderPath = test_path() / "test-folder";
+	std::string test_file_name = "test.txt";
+
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler((testFolderPath / test_file_name).string(), testCallback_));
+	EXPECT_EQ(fileChangeCounter_, 0);
+
+	std::filesystem::create_directory(testFolderPath);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(0));
+
+	raco::utils::file::write(testFolderPath / test_file_name, {});
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
+}
+
+TEST_F(FileChangeMonitorTest, directory_rename_disappearance) {
+	auto movedFolderPath = test_path() / "moved-directory";
+	std::filesystem::rename(testFolderPath_, movedFolderPath);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
+
+	std::filesystem::rename(movedFolderPath, testFolderPath_);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(2));
+}
+
+TEST_F(BasicFileChangeMonitorTest, directory_rename_appearance) {
+	auto initialFolderPath = test_path() / "initial-folder";
+	auto testFolderPath = test_path() / "test-folder";
+	std::string test_file_name = "test.txt";
+
+	std::filesystem::create_directory(initialFolderPath);
+	raco::utils::file::write(initialFolderPath / test_file_name, {});
+
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler((testFolderPath / test_file_name).string(), testCallback_));
+	EXPECT_EQ(fileChangeCounter_, 0);
+
+	std::filesystem::rename(initialFolderPath, testFolderPath);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
+}
+
+TEST_F(BasicFileChangeMonitorTest, directory_appear_file_change) {
+	auto initialFolderPath = test_path() / "initial-folder";
+	auto testFolderPath = test_path() / "test-folder";
+	std::string test_file_name = "test.txt";
+
+	std::filesystem::create_directory(initialFolderPath);
+	raco::utils::file::write(initialFolderPath / test_file_name, {});
+
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler((testFolderPath / test_file_name).string(), testCallback_));
+	EXPECT_EQ(fileChangeCounter_, 0);
+
+	std::filesystem::rename(initialFolderPath, testFolderPath);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
+
+	raco::utils::file::write(testFolderPath / test_file_name, "Test");
+	ASSERT_TRUE(waitForFileChangeCounterGEq(2));
+}
+
+TEST_F(BasicFileChangeMonitorTest, directory_appear_file_disappear) {
+	auto initialFolderPath = test_path() / "initial-folder";
+	auto testFolderPath = test_path() / "test-folder";
+	std::string test_file_name = "test.txt";
+
+	std::filesystem::create_directory(initialFolderPath);
+	raco::utils::file::write(initialFolderPath / test_file_name, {});
+
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler((testFolderPath / test_file_name).string(), testCallback_));
+	EXPECT_EQ(fileChangeCounter_, 0);
+
+	std::filesystem::rename(initialFolderPath, testFolderPath);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
+
+	std::filesystem::rename(testFolderPath / test_file_name, testFolderPath / "new-file-name.txt");
+	ASSERT_TRUE(waitForFileChangeCounterGEq(2));
+}
+
+TEST_F(BasicFileChangeMonitorTest, directory_appear_file_appear) {
+	auto initialFolderPath = test_path() / "initial-folder";
+	auto testFolderPath = test_path() / "test-folder";
+	std::string initial_test_file_name = "initial.txt";
+	std::string test_file_name = "test.txt";
+
+	std::filesystem::create_directory(initialFolderPath);
+	raco::utils::file::write(initialFolderPath / initial_test_file_name, {});
+
+	createdFileListeners_.emplace_back(testFileChangeMonitor_->registerFileChangedHandler((testFolderPath / test_file_name).string(), testCallback_));
+	EXPECT_EQ(fileChangeCounter_, 0);
+
+	std::filesystem::rename(initialFolderPath, testFolderPath);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(0));
+
+	std::filesystem::rename(testFolderPath / initial_test_file_name, testFolderPath / test_file_name);
+	ASSERT_TRUE(waitForFileChangeCounterGEq(1));
 }
