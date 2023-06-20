@@ -24,6 +24,12 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.9.1] Bugfix Release
+
+### Fixes
+* Prevent stencil and scissor options in materials and meshnodes from being reset to their defaults by undo/redo operations.
+
+
 ## [1.9.0] Stencil & Scissor support, Linkable instance count, Texture optimization, Misc Bugfixes
 * **File version number has changed. Files saved with RaCo 1.9.0 cannot be opened by previous versions.**
 

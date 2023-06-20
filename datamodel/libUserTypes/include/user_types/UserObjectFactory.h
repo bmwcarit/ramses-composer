@@ -290,6 +290,7 @@ public:
 	struct StructDescriptor {
 		ReflectionInterface::TypeDescriptor description;
 		StructCreationFunction createFunc;
+		ValueCreationFunction createValueFunc;
 	};
 
 
@@ -341,6 +342,8 @@ private:
 	static std::shared_ptr<AnnotationBase> createAnnotationInternal();
 	template <class T>
 	static std::shared_ptr<ClassWithReflectedMembers> createStructInternal();
+	template <class T>
+	static data_storage::ValueBase* createStructValueInternal();
 	template <class T>
 	static data_storage::ValueBase* createValueInternal() {
 		return new Value<std::shared_ptr<T>>();

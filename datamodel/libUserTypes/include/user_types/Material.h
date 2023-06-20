@@ -192,7 +192,9 @@ public:
 		  depthwrite_(other.depthwrite_),
 		  depthFunction_(other.depthFunction_),
 		  cullmode_(other.cullmode_),
-		  colorWriteMask_(other.colorWriteMask_) {
+		  colorWriteMask_(other.colorWriteMask_),
+		  scissorOptions_(other.scissorOptions_),
+		  stencilOptions_(other.stencilOptions_) {
 	}
 
 	BlendOptions& operator=(const BlendOptions& other) {
@@ -207,6 +209,8 @@ public:
 		depthFunction_ = other.depthFunction_;
 		cullmode_ = other.cullmode_;
 		colorWriteMask_ = other.colorWriteMask_;
+		scissorOptions_ = other.scissorOptions_;
+		stencilOptions_ = other.stencilOptions_;
 		return *this;
 	}
 
@@ -222,6 +226,8 @@ public:
 		depthFunction_.copyAnnotationData(other.depthFunction_);
 		cullmode_.copyAnnotationData(other.cullmode_);
 		colorWriteMask_.copyAnnotationData(other.colorWriteMask_);
+		scissorOptions_.copyAnnotationData(other.scissorOptions_);
+		stencilOptions_.copyAnnotationData(other.stencilOptions_);
 	}
 
 	std::vector<std::pair<std::string, ValueBase*>> getProperties() {

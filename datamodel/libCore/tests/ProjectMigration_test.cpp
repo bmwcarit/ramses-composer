@@ -1073,3 +1073,60 @@ TEST_F(MigrationTest, check_user_factory_can_create_all_static_properties) {
 		}
 	}
 }
+
+void change_property(ValueBase* value) {
+	switch (value->type()) {
+		case PrimitiveType::Bool:
+			*value = !value->asBool();
+			break;
+		case PrimitiveType::Int:
+			*value = value->asInt() + 1;
+			break;
+		case PrimitiveType::Int64:
+			*value = value->asInt64() + 1;
+			break;
+		case PrimitiveType::Double:
+			*value = value->asDouble() + 1;
+			break;
+		case PrimitiveType::String:
+			*value = value->asString() + "postfix";
+			break;
+		case PrimitiveType::Ref:
+			// We can't just change the pointer here but would need to create another valid object as pointer target.
+			// Ignore for now since we don't have Ref properties inside structs yet.
+			break;
+		case PrimitiveType::Table:
+		case PrimitiveType::Struct: {
+			auto& container = value->getSubstructure();
+			for (size_t index = 0; index < container.size(); index++) {
+				change_property(container.get(index));
+			}
+		} break;
+	}
+}
+
+TEST_F(MigrationTest, check_struct_copy_operators) {
+	// Check that the copy constructor and operator= work for all struct types.
+	// If this fails fix the implementation of the failing struct member function.
+
+	auto& userFactory{UserObjectFactory::getInstance()};
+
+	for (auto& item : userFactory.getStructTypes()) {
+		auto name = item.first;
+		auto property = userFactory.createValue(name);
+		ASSERT_TRUE(property->type() != PrimitiveType::Ref) << fmt::format("Struct name {}", name);
+
+		change_property(property);
+
+		// clone uses the copy constructor
+		auto prop_clone = property->clone(nullptr);
+		ASSERT_TRUE(*property == *prop_clone) << fmt::format("Struct name {}", name);
+
+		// check operator=
+		auto property_2 = userFactory.createValue(name);
+		ASSERT_FALSE(*property_2 == *property);
+
+		*property_2 = *property;
+		ASSERT_TRUE(*property_2 == *property) << fmt::format("Struct name {}", name);
+	}
+}

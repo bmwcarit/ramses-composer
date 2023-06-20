@@ -53,6 +53,10 @@ std::shared_ptr<ClassWithReflectedMembers> UserObjectFactory::createStructIntern
 	return std::make_shared<T>();
 }
 
+template <class T>
+data_storage::ValueBase* UserObjectFactory::createStructValueInternal() {
+	return new Value<T>();
+}
 
 template <class... Args>
 std::map<std::string, UserObjectFactory::TypeDescriptor> UserObjectFactory::makeTypeMap() {
@@ -79,7 +83,7 @@ std::map<std::string, UserObjectFactory::AnnotationDescriptor> UserObjectFactory
 template <class... Args>
 std::map<std::string, UserObjectFactory::StructDescriptor> UserObjectFactory::makeStructTypeMap() {
 	return std::map<std::string, UserObjectFactory::StructDescriptor>{
-		{Args::typeDescription.typeName, {Args::typeDescription, createStructInternal<Args>}}...};
+		{Args::typeDescription.typeName, {Args::typeDescription, createStructInternal<Args>, createStructValueInternal<Args>}}...};
 }
 
 UserObjectFactory::UserObjectFactory() {
@@ -184,6 +188,10 @@ data_storage::ValueBase* UserObjectFactory::createValue(const std::string& type)
 			return it->second();
 		}
 	}
+	if (auto it = structTypes_.find(type); it != structTypes_.end()) {
+		return it->second.createValueFunc();
+	}
+
 	return new Value<SEditorObject>();
 }
 
