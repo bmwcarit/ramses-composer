@@ -16,7 +16,6 @@
 
 #include "ramses_adaptor/MaterialAdaptor.h"
 
-#include "user_types/CubeMap.h"
 #include "user_types/RenderBuffer.h"
 #include "user_types/RenderBufferMS.h"
 #include "user_types/TextureExternal.h"
@@ -602,4 +601,19 @@ TEST_F(MaterialAdaptorTest, set_get_array_of_struct_of_array_of_struct_sampler_u
 	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_cubemap", engine_cubeMap);
 	checkUniformScalar<const ramses::TextureSampler*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_buffer", engine_buffer);
 	checkUniformScalar<const ramses::TextureSamplerMS*>(appearance, "a_s_a_struct_samplers[1].samplers[1].s_buffer_ms", engine_buffer_ms);
+}
+
+TEST_F(MaterialAdaptorTest, shaders_are_preprocessed) {
+	auto material = create_material("mat",
+		"shaders/include/main_mat_adapter_test.vert",
+		"shaders/include/main_mat_adapter_test.frag",
+		"shaders/include/main_mat_adapter_test.geom");
+
+	setStructComponents({material, {"uniforms"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents(appearance, {}, default_struct_prim_values);
 }

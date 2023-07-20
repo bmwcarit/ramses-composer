@@ -39,6 +39,10 @@ bool Queries::isTagProperty(ValueHandle const& handle) {
 	return handle.getPropName() == "tags";
 }
 
+bool Queries::isTagContainerProperty(const ValueHandle& handle) {
+	return handle.query<core::UserTagContainerAnnotation>() || handle.query<core::TagContainerAnnotation>() || handle.query<core::RenderableTagContainerAnnotation>();
+}
+
 std::set<std::string> Queries::renderableTags(SEditorObject const& obj) {
 	return tagsForTypes(obj, UserTypesWithRenderableTags{});
 }

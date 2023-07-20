@@ -46,10 +46,12 @@ protected:
 	int getLabelAreaWidthHint() const;
 	Q_SLOT void updateError();
 private:
+	void updateObjectNameDisplay();
 	void recalculateLabelWidth();
 	void collectTabWidgets(QObject* item, QWidgetList& tabWidgets);
 	void recalculateTabOrder();
 	void registerCopyPasteContextMenu(QWidget* widget);
+	QStringList objectNames() const;
 
 	raco::core::SceneBackendInterface* sceneBackend_;
 
@@ -63,6 +65,8 @@ private:
 	int labelWidth_{0};
 	float highlight_{0};
 	void generateItemTooltip(PropertyBrowserItem* item, bool connectWithChangeEvents);
+
+	std::vector<components::Subscription> objectNameChangeSubscriptions_;
 };
 
 }  // namespace raco::property_browser

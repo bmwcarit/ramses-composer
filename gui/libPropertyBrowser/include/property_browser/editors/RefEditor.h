@@ -19,7 +19,7 @@ class QLineEdit;
 namespace raco::property_browser {
 class PropertyBrowserItem;
 
-class RefEditor final : public PropertyEditor {
+class RefEditor : public PropertyEditor {
 	Q_OBJECT
 	Q_PROPERTY(bool unexpectedEmptyReference READ unexpectedEmptyReference);
 
@@ -27,11 +27,10 @@ public:
 	explicit RefEditor(
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
+	void updateRef();
 	bool unexpectedEmptyReference() const noexcept;
 
 protected:
-	bool emptyReference_ = false;
-
 	PropertyBrowserRef* ref_{nullptr};
 	QLineEdit* currentRef_{nullptr};
 	QPushButton* changeRefButton_{nullptr};

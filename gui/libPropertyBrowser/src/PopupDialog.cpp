@@ -7,14 +7,14 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "common_widgets/PopupDialog.h"
+#include "property_browser/PopupDialog.h"
 
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDesktopWidget>
 #include <QWindow>
 
-namespace raco::common_widgets {
+namespace raco::property_browser {
 
 	PopupDialog::PopupDialog(QWidget* anchor, QString title) : QDialog{anchor}, anchor_(anchor) {
 		setAttribute(Qt::WA_DeleteOnClose);

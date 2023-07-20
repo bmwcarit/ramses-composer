@@ -30,7 +30,7 @@ inline bool validateURI(raco::core::BaseContext& context, const raco::core::Valu
 	if (handle.asString().empty()) {
 		context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::WARNING, handle, "Empty URI.");
 		return false;
-	} else if (!raco::utils::u8path(uriPath).exists()) {
+	} else if (!raco::utils::u8path(uriPath).exists(context.isUriValidationCaseSensitive())) {
 		context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::ERROR, handle, "File not found.");
 		return false;
 	} else {

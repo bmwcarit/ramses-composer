@@ -19,7 +19,6 @@ constexpr const char* PROPERTY = "application/raco-json-property";
 }  // namespace raco::MimeTypes
 
 namespace raco::RaCoClipboard {
-
 void set(const std::string& content, const char* mimeType = MimeTypes::OBJECTS);
 bool hasEditorObject();
 std::string get(const char* mimeType = MimeTypes::OBJECTS);

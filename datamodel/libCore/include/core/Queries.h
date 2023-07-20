@@ -12,6 +12,7 @@
 #include "EditorObject.h"
 #include "Handles.h"
 #include "Link.h"
+#include "TagDataCache.h"
 
 #include <map>
 #include <vector>
@@ -54,6 +55,9 @@ namespace Queries {
 	std::vector<SEditorObject> filterForDeleteableObjects(Project const& project, const std::vector<SEditorObject>& objects);
 	std::vector<SEditorObject> filterForMoveableScenegraphChildren(Project const& project, const std::vector<SEditorObject>& objects, SEditorObject const& newParent);
 
+	std::vector<std::string> validTypesForChildrenOf(SEditorObject object);
+
+
 	template<class UserType>
 	std::vector<std::shared_ptr<UserType>> filterByType(const std::vector<SEditorObject>& objects) {
 		std::vector<std::shared_ptr<UserType>> r;
@@ -68,8 +72,11 @@ namespace Queries {
 	bool isResource(const SEditorObject& object);
 	bool isNotResource(const SEditorObject& object);
 	bool isProjectSettings(const SEditorObject& object);
-	bool isChildHandle(const ValueHandle& handle);
 	bool isChildObject(const SEditorObject& child, const SEditorObject& parent);
+	bool typeHasStartingLinks(SEditorObject object);
+
+	bool isChildHandle(const ValueHandle& handle);
+	TagType getHandleTagType(const ValueHandle& handle);
 
 	/**
 	 * @brief Build path description for an object composed of the object names starting at the scenegraph root and descending the scenegraph to the object. The components are separated by '/' but without a leading separator at the beginning.
@@ -127,6 +134,10 @@ namespace Queries {
 		//   true even if parent is linked or if link state is read-only
 		//   true for external reference or prefab instance subtree objects
 		bool validLinkTarget;
+
+		bool operator==(const LinkState& other) const {
+			return current == other.current && readonly == other.readonly && validLinkTarget == other.validLinkTarget;
+		}
 	};
 	
 	CurrentLinkState currentLinkState(const Project& project, const ValueHandle& property);
@@ -179,6 +190,14 @@ namespace Queries {
 
 	// Determine if a data model property corresponds to a primitive type in the LogicEngine
 	bool isEnginePrimitive(const ValueHandle& prop);
+
+	/**
+	 * @brief Construct property path description from multiple properties.
+	 * 
+	 * The returned path may contain placeholders if multiple objects are passed in or if the property paths inside
+	 * the objects are different.
+	*/
+	std::string getPropertyPath(const std::set<ValueHandle>& handles);
 };
 
 }

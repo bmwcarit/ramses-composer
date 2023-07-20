@@ -13,7 +13,6 @@
 #include "core/PrefabOperations.h"
 #include "core/Queries.h"
 #include "user_types/Prefab.h"
-#include "user_types/PrefabInstance.h"
 #include "style/Icons.h"
 
 namespace raco::object_tree::model {
@@ -33,46 +32,6 @@ QVariant ObjectTreeViewPrefabModel::data(const QModelIndex& index, int role) con
 	}
 
 	return ObjectTreeViewDefaultModel::data(index, role);
-}
-
-std::vector<std::string> ObjectTreeViewPrefabModel::typesAllowedIntoIndex(const QModelIndex& index) const {
-
-	auto prefabType = raco::user_types::Prefab::typeDescription.typeName;
-	if (indexToSEditorObject(index)) {
-		auto types = ObjectTreeViewDefaultModel::typesAllowedIntoIndex(index);
-
-		auto prefabIndex = std::find(types.begin(), types.end(), prefabType);
-		if (prefabIndex != types.end()) {
-			types.erase(std::find(types.begin(), types.end(), prefabType));
-		}
-
-		return types;
-	} else {
-		return {prefabType};	
-	}
-}
-
-std::vector<core::SEditorObject> ObjectTreeViewPrefabModel::filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const {
-	return raco::core::Queries::filterForTopLevelObjectsByTypeName(objects, {raco::user_types::Prefab::typeDescription.typeName});
-}
-
-bool ObjectTreeViewPrefabModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {
-	if (index.isValid()) {
-
-		if (auto parentObj = indexToSEditorObject(index)) {
-			if (parentObj->query<core::ExternalReferenceAnnotation>() || raco::core::PrefabOperations::findContainingPrefabInstance(parentObj)) {
-				return false;
-			}
-		}
-
-		return ObjectTreeViewDefaultModel::isObjectAllowedIntoIndex(index, obj);
-	} else {
-		if (obj->as<user_types::Prefab>()) {
-			return true;
-		} else {
-			return false;
-		}
-	}
 }
 
 }  // namespace raco::object_tree::model

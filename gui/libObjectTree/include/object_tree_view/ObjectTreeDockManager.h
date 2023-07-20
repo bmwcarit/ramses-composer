@@ -30,9 +30,11 @@ public:
 	ObjectTreeDock* getActiveDockWithSelection() const;
 	bool docksContainObject(const QString& objID) const;
 
+	std::vector<core::SEditorObject> getSelection() const;
+
 Q_SIGNALS:
 	void treeDockListChanged();
-	void newObjectTreeItemsSelected(const std::set<raco::core::ValueHandle> &objects);
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet& objects);
 	void selectionCleared();
 
 public Q_SLOTS:

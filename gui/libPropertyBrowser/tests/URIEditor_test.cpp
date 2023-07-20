@@ -29,125 +29,309 @@ namespace raco::property_browser {
 class ExposedURIEditor : public URIEditor {
 public:
 	ExposedURIEditor(PropertyBrowserItem *item) : URIEditor(item) {}
-	QLineEdit *getLineEdit() { return lineEdit_; }
+	StringEditorLineEdit *getLineEdit() { return lineEdit_; }
+	void setFromFileDialog(const QString& file) {
+		URIEditor::setFromFileDialog(file);
+	}
+	void switchToAbsolutePath() {
+		URIEditor::switchToAbsolutePath();
+	}
+	void switchToRelativePath() {
+		URIEditor::switchToRelativePath();
+	}
+	bool switchToAbsolutePathEnabled() {
+		return URIEditor::switchToAbsolutePathEnabled();
+	}
+	bool switchToRelativePathEnabled() {
+		return URIEditor::switchToRelativePathEnabled();
+	}
 };
 
 class URIEditorTest : public EditorTestFixture {
 public:
-	SEditorObject mesh = commandInterface.createObject("Mesh");
-	ValueHandle propertyHandle{mesh, {"uri"}};
-	PropertyBrowserItem propertyBrowserItem{propertyHandle, dataChangeDispatcher, &commandInterface, &model};
+	SMesh mesh_1 = this->create<Mesh>("mesh_1");
+	ValueHandle uriHandle_1{mesh_1, {"uri"}};
+
+	SMesh mesh_2 = this->create<Mesh>("mesh_2");
+	ValueHandle uriHandle_2{mesh_2, {"uri"}};
+	
+	PropertyBrowserItem propertyBrowserItem{{uriHandle_1, uriHandle_2}, this->dataChangeDispatcher, &this->commandInterface, &this->model};
 	ExposedURIEditor uriEditor{&propertyBrowserItem};
-	std::string projectPath{(test_path() / "project" / "projectFileName").string()};
-	std::string absoluteMeshPath{(test_path() / "meshes" / "Duck.glb").string()};
-	std::string relativeMeshPath{raco::utils::u8path(absoluteMeshPath).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
+	std::string projectPath{(this->test_path() / "project" / "projectFileName").string()};
+
+	std::string absoluteMeshPath_1{(this->test_path() / "meshes" / "Duck.glb").string()};
+	std::string relativeMeshPath_1{raco::utils::u8path(absoluteMeshPath_1).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
+
+	std::string absoluteMeshPath_2{(this->test_path() / "meshes" / "defaultQuad.gltf").string()};
+	std::string relativeMeshPath_2{raco::utils::u8path(absoluteMeshPath_2).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
+
+	std::string absoluteMeshPath_3{(this->test_path() / "meshes" / "ToyCar/ToyCar.gltf").string()};
+	std::string relativeMeshPath_3{raco::utils::u8path(absoluteMeshPath_3).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
 
 	URIEditorTest() {
-		project.setCurrentPath(projectPath);
-		dispatch();
-	}
-
-	void assertCorrectAbsolutePath() {
-		ASSERT_EQ(uriEditor.getLineEdit()->text().toStdString(), absoluteMeshPath);
-		ASSERT_TRUE(uriEditor.pathIsAbsolute());
-		ASSERT_FALSE(propertyBrowserItem.hasError());
-	}
-
-	void assertCorrectRelativePath() {
-		ASSERT_EQ(uriEditor.getLineEdit()->text().toStdString(), relativeMeshPath);
-		ASSERT_FALSE(uriEditor.pathIsAbsolute());
-		ASSERT_FALSE(propertyBrowserItem.hasError());
+		this->project.setCurrentPath(projectPath);
+		this->dispatch();
 	}
 
 	void setLineEditText(const std::string &newText) {
-		uriEditor.getLineEdit()->setText(QString::fromStdString(newText));
+		uriEditor.getLineEdit()->set(newText);
+		uriEditor.getLineEdit()->setModified(true);
 		uriEditor.getLineEdit()->Q_EMIT editingFinished();
-		dispatch();
+		this->dispatch();
+	}
+
+	void setFromFileDialog(const std::string &path) {
+		uriEditor.setFromFileDialog(QString::fromStdString(path));
+		this->dispatch();
+	}
+
+	void switchToAbsolute() {
+		uriEditor.switchToAbsolutePath();
+		this->dispatch();
+	}
+	
+	void switchToRelative() {
+		uriEditor.switchToRelativePath();
+		this->dispatch();
 	}
 };
 
 TEST_F(URIEditorTest, InstantiationShowWarning) {
 	ASSERT_TRUE(propertyBrowserItem.hasError());
-	ASSERT_EQ(propertyBrowserItem.error().level(), ErrorLevel::WARNING);
-}
-
-TEST_F(URIEditorTest, InstantiationIsDefaultRelative) {
-	ASSERT_FALSE(uriEditor.pathIsAbsolute());
+	ASSERT_EQ(propertyBrowserItem.maxErrorLevel(), ErrorLevel::WARNING);
 }
 
 TEST_F(URIEditorTest, ModificationAddNonExistentPath) {
 	propertyBrowserItem.set((test_path() / "THISSHOULDNOTEXIST.txt").string());
 	
 	ASSERT_TRUE(propertyBrowserItem.hasError());
-	ASSERT_EQ(propertyBrowserItem.error().level(), ErrorLevel::ERROR);
+	ASSERT_EQ(propertyBrowserItem.maxErrorLevel(), ErrorLevel::ERROR);
 }
 
 TEST_F(URIEditorTest, ModificationAddExistentMeshPath) {
-	propertyBrowserItem.set(absoluteMeshPath);
+	propertyBrowserItem.set(absoluteMeshPath_1);
 	
 	ASSERT_FALSE(propertyBrowserItem.hasError());
 }
 
 TEST_F(URIEditorTest, ModificationSetEmptyPathAfterExistantPath) {
-	propertyBrowserItem.set(absoluteMeshPath);
+	propertyBrowserItem.set(absoluteMeshPath_1);
 	propertyBrowserItem.set(std::string());
 	
 	ASSERT_TRUE(propertyBrowserItem.hasError());
-	ASSERT_EQ(propertyBrowserItem.error().level(), ErrorLevel::WARNING);
-	ASSERT_FALSE(uriEditor.pathIsAbsolute());
+	ASSERT_EQ(propertyBrowserItem.maxErrorLevel(), ErrorLevel::WARNING);
 }
 
-TEST_F(URIEditorTest, ModificationSetAbsolutePath) {
-	setLineEditText(absoluteMeshPath);
 
-	assertCorrectAbsolutePath();
-}
-
-TEST_F(URIEditorTest, ModificationSetRelativePath) {
-	setLineEditText(relativeMeshPath);
-
-	assertCorrectRelativePath();
-}
-
-TEST_F(URIEditorTest, ModificationChangeAbsoluteToRelativePathByText) {
-	setLineEditText(absoluteMeshPath);
-	setLineEditText(relativeMeshPath);
-
-	assertCorrectRelativePath();
-}
-
-TEST_F(URIEditorTest, ModificationChangeRelativeToAbsolutePathByText) {
-	setLineEditText(relativeMeshPath);
-	setLineEditText(absoluteMeshPath);
-
-	assertCorrectAbsolutePath();
-}
-
-TEST_F(URIEditorTest, ModificationChangeAbsoluteToRelativePathByUserAction) {
-	setLineEditText(absoluteMeshPath);
-
-	uriEditor.switchAbsoluteRelativePath();
+TEST_F(URIEditorTest, set_text_abs_start_abs) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, absoluteMeshPath_3);
 	dispatch();
 
-	assertCorrectRelativePath();
+	setLineEditText(absoluteMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_1);
 }
 
-TEST_F(URIEditorTest, ModificationChangeRelativeToAbsolutePathByUserAction) {
-	setLineEditText(relativeMeshPath);
-
-	uriEditor.switchAbsoluteRelativePath();
+TEST_F(URIEditorTest, set_text_abs_start_rel) {
+	commandInterface.set(uriHandle_1, relativeMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
 	dispatch();
 
-	assertCorrectAbsolutePath();
+	setLineEditText(absoluteMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_1);
+}
+
+TEST_F(URIEditorTest, set_text_abs_start_mixed) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	setLineEditText(absoluteMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_1);
+}
+
+
+TEST_F(URIEditorTest, set_text_rel_start_abs) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, absoluteMeshPath_3);
+	dispatch();
+
+	setLineEditText(relativeMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_1);
+}
+
+TEST_F(URIEditorTest, set_text_rel_start_rel) {
+	commandInterface.set(uriHandle_1, relativeMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	setLineEditText(relativeMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_1);
+}
+
+TEST_F(URIEditorTest, set_text_rel_start_mixed) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	setLineEditText(relativeMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_1);
+}
+
+TEST_F(URIEditorTest, set_dialog_abs_start_abs) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, absoluteMeshPath_3);
+	dispatch();
+
+	setFromFileDialog(absoluteMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_1);
+}
+
+TEST_F(URIEditorTest, set_dialog_abs_start_rel) {
+	commandInterface.set(uriHandle_1, relativeMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	setFromFileDialog(absoluteMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_1);
+}
+
+TEST_F(URIEditorTest, set_dialog_abs_start_mixed) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	setFromFileDialog(absoluteMeshPath_1);
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_1);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_1);
+}
+
+TEST_F(URIEditorTest, switch_to_abs_start_abs) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, absoluteMeshPath_3);
+	dispatch();
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), false);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+
+	switchToAbsolute();
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_2);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_3);
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), false);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+}
+
+TEST_F(URIEditorTest, switch_to_abs_start_rel) {
+	commandInterface.set(uriHandle_1, relativeMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), false);
+
+	switchToAbsolute();
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_2);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_3);
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), false);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+}
+
+TEST_F(URIEditorTest, switch_to_abs_start_mixed) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+
+	switchToAbsolute();
+
+	EXPECT_EQ(*mesh_1->uri_, absoluteMeshPath_2);
+	EXPECT_EQ(*mesh_2->uri_, absoluteMeshPath_3);
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), false);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+}
+
+TEST_F(URIEditorTest, switch_to_rel_start_abs) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, absoluteMeshPath_3);
+	dispatch();
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), false);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+
+	switchToRelative();
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_2);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_3);
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), false);
+}
+
+TEST_F(URIEditorTest, switch_to_rel_start_rel) {
+	commandInterface.set(uriHandle_1, relativeMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), false);
+
+	switchToRelative();
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_2);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_3);
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), false);
+}
+
+TEST_F(URIEditorTest, switch_to_rel_start_mixed) {
+	commandInterface.set(uriHandle_1, absoluteMeshPath_2);
+	commandInterface.set(uriHandle_2, relativeMeshPath_3);
+	dispatch();
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), true);
+
+	switchToRelative();
+
+	EXPECT_EQ(*mesh_1->uri_, relativeMeshPath_2);
+	EXPECT_EQ(*mesh_2->uri_, relativeMeshPath_3);
+
+	EXPECT_EQ(uriEditor.switchToAbsolutePathEnabled(), true);
+	EXPECT_EQ(uriEditor.switchToRelativePathEnabled(), false);
 }
 
 TEST_F(URIEditorTest, ModificationRerootRelativePath) {
 	auto newProjectPath = test_path() / "project" / "projectSubFolder" / "projectFileName";
-	auto newRelativeMeshPath = raco::utils::u8path(absoluteMeshPath).normalizedRelativePath(newProjectPath.parent_path());
+	auto newRelativeMeshPath = raco::utils::u8path(absoluteMeshPath_1).normalizedRelativePath(newProjectPath.parent_path());
 
-	setLineEditText(relativeMeshPath);
+	setLineEditText(relativeMeshPath_1);
 
-	propertyBrowserItem.set(raco::utils::u8path(relativeMeshPath).rerootRelativePath(projectPath, newProjectPath).string());
+	propertyBrowserItem.set(raco::utils::u8path(relativeMeshPath_1).rerootRelativePath(projectPath, newProjectPath).string());
 	dispatch();
 
 	ASSERT_EQ(uriEditor.getLineEdit()->text().toStdString(), newRelativeMeshPath);

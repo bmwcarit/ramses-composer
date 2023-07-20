@@ -9,9 +9,8 @@
  */
 #include "property_browser/editors/IntEditor.h"
 
-
-#include "core/Queries.h"
 #include "core/BasicAnnotations.h"
+#include "core/Queries.h"
 
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -29,45 +28,70 @@ IntEditor::IntEditor(
 	auto* layout = new PropertyBrowserGridLayout{this};
 	stack_ = new QStackedWidget{this};
 
-	auto* spinBox = new IntSpinBox{stack_};
-	using raco::property_browser::IntSlider;
-	auto* slider = new IntSlider{stack_};
+	spinBox_ = new IntSpinBox{stack_};
+	using property_browser::IntSlider;
+	slider_ = new IntSlider{stack_};
 
-	slider->setValue(item->valueHandle().as<int>());
-	spinBox->setValue(item->valueHandle().as<int>());
+	setValueToControls(slider_, spinBox_);
 
 	if (auto rangeAnnotation = item->query<core::RangeAnnotation<int>>()) {
-		spinBox->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
-		slider->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+		spinBox_->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
+		slider_->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 	}
 
 	// connect everything to our item values
-	{
-		QObject::connect(spinBox, &IntSpinBox::valueEdited, item, [item](int value) { item->set(value); });
-		QObject::connect(slider, &IntSlider::valueEdited, item, [item](int value) { item->set(value); });
-		QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [slider, spinBox](core::ValueHandle& handle) {
-			slider->setValue(handle.as<int>());
-			spinBox->setValue(handle.as<int>());
-		});
-	}
+	QObject::connect(spinBox_, &IntSpinBox::valueEdited, item, [item](int value) { item->set(value); });
+	QObject::connect(slider_, &IntSlider::valueEdited, item, [item](int value) { item->set(value); });
+	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this, item]() {
+		setValueToControls(slider_, spinBox_);
+	});
+
+	QObject::connect(spinBox_, &IntSpinBox::saveFocusInValue, item, [this]() {
+		focusInValues_.clear();
+		for (const auto& handle : item_->valueHandles()) {
+			focusInValues_[handle] = handle.asInt();
+		}
+	});
+	QObject::connect(spinBox_, &IntSpinBox::restoreFocusInValue, item, [this]() {
+		std::string desc = fmt::format("Restore value of property '{}'", item_->getPropertyPath());
+		item_->commandInterface()->executeCompositeCommand(
+			[this]() {
+				for (const auto& handle : item_->valueHandles()) {
+					item_->commandInterface()->set(handle, focusInValues_[handle]);
+				}
+			},
+			desc);
+		setValueToControls(slider_, spinBox_);
+	});
 
 	// State change: Show spinbox or slider
-	QObject::connect(slider, &IntSlider::singleClicked, this, [this, spinBox]() { stack_->setCurrentWidget(spinBox); });
-	QObject::connect(spinBox, &IntSpinBox::editingFinished, this, [this, slider]() { 
-		stack_->setCurrentWidget(slider); 
-		slider->clearFocus();
+	QObject::connect(slider_, &IntSlider::singleClicked, this, [this]() { stack_->setCurrentWidget(spinBox_); });
+	QObject::connect(spinBox_, &IntSpinBox::editingFinished, this, [this]() {
+		stack_->setCurrentWidget(slider_);
+		slider_->clearFocus();
 	});
-	QObject::connect(spinBox, &IntSpinBox::focusNextRequested, this, [this, item]() { item->requestNextSiblingFocus(); });
-	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this, spinBox]() {
-		stack_->setCurrentWidget(spinBox);
-		spinBox->setFocus();
+	QObject::connect(spinBox_, &IntSpinBox::focusNextRequested, this, [this, item]() { item->requestNextSiblingFocus(); });
+	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
+		stack_->setCurrentWidget(spinBox_);
+		spinBox_->setFocus();
 	});
 
-	stack_->addWidget(slider);
-	stack_->addWidget(spinBox);
+	stack_->addWidget(slider_);
+	stack_->addWidget(spinBox_);
 
-	stack_->setCurrentWidget(slider);
+	stack_->setCurrentWidget(slider_);
 	layout->addWidget(stack_);
+}
+
+void IntEditor::setValueToControls(IntSlider* slider, IntSpinBox* spinBox) const {
+	auto value = item_->as<int>();
+	if (value.has_value()) {
+		slider->setValue(value.value());
+		spinBox->setValue(value.value());
+	} else {
+		slider->setMultipleValues();
+		spinBox->setMultipleValues();
+	}
 }
 
 }  // namespace raco::property_browser

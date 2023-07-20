@@ -7,14 +7,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "common_widgets/ObjectSearchView.h"
+#include "property_browser/ObjectSearchView.h"
+#include "core/Queries.h"
+#include "common_widgets/RaCoClipboard.h"
 
-namespace raco::common_widgets {
+namespace raco::property_browser {
 
 ObjectSearchViewItem::ObjectSearchViewItem(const QString& s, const core::ValueHandle& handle) : QStandardItem{s}, handle_{handle} {
 	setDragEnabled(true);
 
-	setToolTip(QString::fromStdString(raco::core::Queries::getFullObjectHierarchyPath(handle_.rootObject())));
+	setToolTip(QString::fromStdString(core::Queries::getFullObjectHierarchyPath(handle_.rootObject())));
 }
 
 ObjectSearchModel::ObjectSearchModel(QObject* parent) : QStandardItemModel{parent} {}
@@ -53,28 +55,12 @@ bool ObjectSearchFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelI
 	return sourceModel()->data(index).toString().contains(filterRegExp());
 }
 
-ObjectSearchView::ObjectSearchView(components::SDataChangeDispatcher dispatcher, core::Project* project, const core::ValueHandle& obj, QWidget* parent)
+ObjectSearchView::ObjectSearchView(components::SDataChangeDispatcher dispatcher, core::Project* project, const std::set<core::ValueHandle>& objects, QWidget* parent)
 	: QWidget{parent},
-	  project_{project},
-	  obj_{obj},
 	  layout_{this},
 	  list_{this},
 	  model_{&list_},
-	  filterModel_{},
-	  projectChanges_{dispatcher->registerOnObjectsLifeCycle(
-		  [this, dispatcher](raco::core::SEditorObject obj) {
-            if (obj->isType<raco::user_types::LuaScript>()) {
-                outputsChanges_[obj] = dispatcher->registerOnPreviewDirty(obj, [this]() {
-                    rebuild();
-                });
-                rebuild();
-            } },
-		  [this](raco::core::SEditorObject obj) {
-			  if (outputsChanges_.find(obj) != outputsChanges_.end()) {
-				  outputsChanges_.erase(outputsChanges_.find(obj));
-				  rebuild();
-			  }
-		  })} {
+	  filterModel_{} {
 	layout_.addWidget(&list_);
 	filterModel_.setSourceModel(&model_);
 	list_.setModel(&filterModel_);
@@ -131,4 +117,4 @@ QModelIndex ObjectSearchView::selection() const noexcept {
 	return filterModel_.mapToSource(list_.currentIndex());
 }
 
-}  // namespace raco::common_widgets
+}  // namespace raco::property_browser

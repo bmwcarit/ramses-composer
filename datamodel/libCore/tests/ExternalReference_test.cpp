@@ -186,7 +186,8 @@ public:
 
 	std::string setupBase(const std::string &basePathName, std::function<void()> func, const std::string &baseProjectName = std::string("base"), int featureLevel = -1) {
 		RaCoApplicationLaunchSettings settings;
-		settings.featureLevel = featureLevel;
+		settings.createDefaultScene = false;
+		settings.initialLoadFeatureLevel = featureLevel;
 		RaCoApplication base{backend, settings};
 		app = &base;
 		project = base.activeRaCoProject().project();
@@ -202,13 +203,40 @@ public:
 	}
 
 	std::string setupGeneric(std::function<void()> func) {
-		RaCoApplication app_{backend};
+		RaCoApplicationLaunchSettings settings;
+		settings.createDefaultScene = false;
+		RaCoApplication app_{backend, settings};
 		app = &app_;
 		project = app_.activeRaCoProject().project();
 		cmd = app_.activeRaCoProject().commandInterface();
 
 		func();
 		return project->projectID();
+	}
+
+	std::string copyExternalObjects(const std::string& basePathName, const std::vector<std::string>& externalObjectNames) {
+		RaCoApplicationLaunchSettings settings;
+		settings.createDefaultScene = false;
+		RaCoApplication app{backend, settings};
+		auto project = app.activeRaCoProject().project();
+
+		LoadContext loadContext;
+		loadContext.pathStack.emplace_back(project->currentPath());
+		bool status = app.externalProjects()->addExternalProject(basePathName.c_str(), loadContext);
+		if (!status) {
+			return {};
+		}
+		auto originProject = app.externalProjects()->getExternalProject(basePathName);
+		auto originCmd = app.externalProjects()->getExternalProjectCommandInterface(basePathName);
+
+		std::vector<SEditorObject> origin;
+		for (auto name : externalObjectNames) {
+			if (auto obj = Queries::findByName(originProject->instances(), name)) {
+				origin.emplace_back(obj);
+			}
+		}
+
+		return originCmd->copyObjects(origin);
 	}
 
 	bool pasteFromExt(const std::string &basePathName, const std::vector<std::string> &externalObjectNames, bool asExtref, std::vector<SEditorObject> *outPasted = nullptr) {
@@ -232,12 +260,14 @@ public:
 			}
 		}
 
+		size_t numInstances = project->instances().size();
 		try {
 			auto pasted = cmd->pasteObjects(originCmd->copyObjects(origin), nullptr, asExtref);
 			if (outPasted) {
 				*outPasted = pasted;
 			}
 		} catch (std::exception &error) {
+			EXPECT_EQ(project->instances().size(), numInstances);
 			success = false;
 		}
 		return success;
@@ -246,7 +276,8 @@ public:
 	std::string setupComposite(const std::string &basePathName, const std::string &compositePathName, const std::vector<std::string> &externalObjectNames,
 		std::function<void()> func, const std::string &projectName = std::string(), int featureLevel = -1) {
 		RaCoApplicationLaunchSettings settings;
-		settings.featureLevel = featureLevel;
+		settings.createDefaultScene = false;
+		settings.initialLoadFeatureLevel = featureLevel;
 		RaCoApplication app_{backend, settings};
 		app = &app_;
 		project = app->activeRaCoProject().project();
@@ -268,7 +299,7 @@ public:
 	void updateBase(const std::string &basePathName, std::function<void()> func, int featureLevel = -1) {
 		RaCoApplicationLaunchSettings settings;
 		settings.initialProject = basePathName.c_str();
-		settings.featureLevel = featureLevel;
+		settings.initialLoadFeatureLevel = featureLevel;
 
 		RaCoApplication base{backend, settings};
 		app = &base;
@@ -284,7 +315,7 @@ public:
 	void updateComposite(const std::string &pathName, std::function<void()> func, int featureLevel = -1) {
 		RaCoApplicationLaunchSettings settings;
 		settings.initialProject = pathName.c_str();
-		settings.featureLevel = featureLevel;
+		settings.initialLoadFeatureLevel = featureLevel;
 
 		RaCoApplication app_{backend, settings};
 		app = &app_;
@@ -374,6 +405,7 @@ TEST_F(ExtrefTest, extref_paste_fail_existing_object_from_same_project) {
 
 	updateComposite(basePathName, [this, basePathName]() {
 		ASSERT_FALSE(pasteFromExt(basePathName, {"Prefab"}, true));
+		ASSERT_EQ(project->instances().size(), 2);  // ProjectSettings and Prefab
 	});
 }
 
@@ -390,6 +422,7 @@ TEST_F(ExtrefTest, extref_paste_fail_deleted_object_from_same_project) {
 		dontFind("Prefab");
 
 		ASSERT_FALSE(pasteFromExt(basePathName, {"Prefab"}, true));
+		ASSERT_EQ(project->instances().size(), 1);  // ProjecSettings
 	});
 }
 
@@ -403,6 +436,7 @@ TEST_F(ExtrefTest, extref_paste_fail_existing_object_from_same_project_path) {
 	updateComposite(basePathName, [this, basePathName]() {
 		rename_project("not_base_anymore");
 		ASSERT_FALSE(pasteFromExt(basePathName, {"Prefab"}, true));
+		ASSERT_EQ(project->instances().size(), 2);  // ProjectSettings and Prefab
 	});
 }
 
@@ -421,6 +455,7 @@ TEST_F(ExtrefTest, extref_paste_fail_deleted_object_from_same_project_path) {
 		dontFind("Prefab");
 
 		ASSERT_FALSE(pasteFromExt(basePathName, {"Prefab"}, true));
+		ASSERT_EQ(project->instances().size(), 1);  // ProjectSettings
 	});
 }
 
@@ -445,8 +480,11 @@ TEST_F(ExtrefTest, extref_paste_fail_from_filecopy) {
 
 	updateComposite(basePathName1, [this, basePathName2]() {
 		ASSERT_FALSE(pasteFromExt(basePathName2, {"mesh"}, true));
+		ASSERT_EQ(project->instances().size(), 2);	// ProjectSettings and mesh
 		ASSERT_FALSE(pasteFromExt(basePathName2, {"material"}, true));
+		ASSERT_EQ(project->instances().size(), 2);	// ProjectSettings and mesh
 		ASSERT_FALSE(pasteFromExt(basePathName2, {"prefab"}, true));
+		ASSERT_EQ(project->instances().size(), 2);	// ProjectSettings and mesh
 	});
 
 	setupGeneric([this, basePathName2]() {
@@ -538,7 +576,9 @@ TEST_F(ExtrefTest, filecopy_paste_fail_different_object) {
 
 	setupGeneric([this, basePathName1, basePathName2]() {
 		ASSERT_TRUE(pasteFromExt(basePathName1, {"prefab"}, true));
+		ASSERT_EQ(project->instances().size(), 3);	// ProjectSettings, prefab, and meshnode
 		ASSERT_FALSE(pasteFromExt(basePathName2, {"mesh"}, true));
+		ASSERT_EQ(project->instances().size(), 3);	// ProjectSettings, prefab, and meshnode
 	});
 }
 
@@ -560,7 +600,9 @@ TEST_F(ExtrefTest, filecopy_paste_fail_new_object) {
 
 	setupGeneric([this, basePathName1, basePathName2]() {
 		ASSERT_TRUE(pasteFromExt(basePathName1, {"mesh"}, true));
+		ASSERT_EQ(project->instances().size(), 2);	// ProjectSettings and mesh
 		ASSERT_FALSE(pasteFromExt(basePathName2, {"material"}, true));
+		ASSERT_EQ(project->instances().size(), 2);	// ProjectSettings and mesh
 	});
 }
 
@@ -1477,6 +1519,33 @@ TEST_F(ExtrefTest, nesting_create_loop_fail) {
 
 	updateComposite(basePathName, [this, compositePathName]() {
 		ASSERT_FALSE(pasteFromExt(compositePathName, {"prefab_comp"}, true));
+		ASSERT_EQ(project->instances().size(), 2);	// ProjectSettings and prefab
+	});
+}
+
+TEST_F(ExtrefTest, paste_fail_precheckExternalReferenceUpdate_project_loop_nested) {
+	auto basePathName{(test_path() / "base.rca").string()};
+	auto compositePathName{(test_path() / "composite.rca").string()};
+
+	setupBase(basePathName, [this]() {
+		auto prefab = create<Prefab>("prefab");
+	});
+
+	setupComposite(
+		basePathName, compositePathName, {"prefab"}, [this]() {
+			auto prefab_base = findExt<Prefab>("prefab");
+			auto prefab_comp = create<Prefab>("prefab_comp");
+			auto inst_base = create_prefabInstance("inst", prefab_base);
+		},
+		"composite");
+
+	auto serialized = copyExternalObjects(compositePathName, {"prefab_comp"});
+
+	updateComposite(basePathName, [this, serialized]() {
+		EXPECT_EQ(project->instances().size(), 2); // ProjectSettings, prefab
+		EXPECT_THROW(cmd->pasteObjects(serialized, {}, true), std::runtime_error);
+		EXPECT_EQ(project->instances().size(), 2);	// ProjectSettings, prefab
+		EXPECT_TRUE(project->externalProjectsMap().empty());
 	});
 }
 
@@ -2585,6 +2654,7 @@ TEST_F(ExtrefTest, feature_level_upgrade_composite) {
 		},
 		2);
 }
+
 TEST_F(ExtrefTest, feature_level_upgrade_base) {
 	auto basePathName{(test_path() / "base.rca").string()};
 	auto compositePathName{(test_path() / "composite.rca").string()};

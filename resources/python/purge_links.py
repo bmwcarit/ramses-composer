@@ -13,14 +13,19 @@ import raco
 print("\nInitial number of links: ", len(raco.links()))
 
 count = 0
+count_ro = 0
 for link in raco.links():
-	if not link.valid:
-		count += 1
-		raco.removeLink(link.end)
-		#print(link)
+    if not link.valid:
+        if not link.end.object().isReadOnly():
+            count += 1
+            raco.removeLink(link.end)
+            #print(link)
+        else:
+            count_ro += 1
 		
 print("\nPurging invalid links:")        
 print("Number of removed links: ", count)
+print("Number of invalid read-only links (not removed): ", count_ro)
 print("New number of links: ", len(raco.links()))
 
 if len(sys.argv) > 1:

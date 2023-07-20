@@ -20,14 +20,14 @@ class QListWidget;
 class QPushButton;
 
 namespace raco::core {
-enum class TagType;
+	enum class TagType;
 }
 
 namespace raco::property_browser {
 class PropertyBrowserItem;
 class TagDataCache;
 
-class TagContainerEditor final : public PropertyEditor {
+class TagContainerEditor : public PropertyEditor {
 	Q_OBJECT
 public:
 	explicit TagContainerEditor(PropertyBrowserItem* item, QWidget* parent);
@@ -35,19 +35,21 @@ public:
 Q_SIGNALS:
 	void tagCacheDirty();
 
+protected:
+	QListWidget* tagList_{};
+
 private:
 	void editButtonClicked() const;
 	void updateTags() const;
-	void updateRenderedBy() const;
+	void updateTextAndButton() const;
 	bool showRenderedBy() const;
 
-	raco::core::TagType tagType_{};
+	core::TagType tagType_{};
 	QPushButton* editButton_{};
-	QListWidget* tagList_{};
 	QLabel* renderedBy_ {};
 
 	//std::unique_ptr<TagDataCache> tagDataCache_;
 	std::array<components::Subscription, 14> renderLayerSubscriptions_;
-	components::Subscription materialPropertySubscription_;
+	std::vector<components::Subscription> materialPropertySubscriptions_;
 };
 }  // namespace raco::property_browser

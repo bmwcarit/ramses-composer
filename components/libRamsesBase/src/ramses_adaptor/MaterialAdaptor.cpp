@@ -23,7 +23,6 @@
 #include "user_types/RenderBuffer.h"
 #include "user_types/RenderBufferMS.h"
 #include "utils/FileUtils.h"
-#include "ramses_base/Utils.h"
 
 #include "user_types/EngineTypeAnnotation.h"
 
@@ -70,15 +69,15 @@ bool MaterialAdaptor::sync(core::Errors* errors) {
 		return uniformsHandle.contains(handle);
 	});
 
-	bool status = TypedObjectAdaptor<user_types::Material, ramses::Effect>::sync(errors);
+	TypedObjectAdaptor::sync(errors);
 
 	appearanceBinding_.reset();
 	appearance_.reset();
 
 	if (editorObject()->isShaderValid()) {
-		std::string const vertexShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriVertex_}));
-		std::string const fragmentShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriFragment_}));
-		std::string const geometryShader = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriGeometry_}));
+		std::string const vertexShader{user_types::Material::loadShader(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriVertex_})};
+		std::string const fragmentShader{user_types::Material::loadShader(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriFragment_})};
+		std::string const geometryShader{user_types::Material::loadShader(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriGeometry_})};
 		std::string const shaderDefines = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject(), &user_types::Material::uriDefines_}));
 		auto const effectDescription = raco::ramses_base::createEffectDescription(vertexShader, geometryShader, fragmentShader, shaderDefines);
 		reset(raco::ramses_base::ramsesEffect(sceneAdaptor_->scene(), *effectDescription));

@@ -19,9 +19,11 @@
 namespace raco::ramses_widgets {
 
 class SceneStateEventHandler final : public ramses::RendererEventHandlerEmpty, public ramses::RendererSceneControlEventHandlerEmpty {
+
 public:
 	explicit SceneStateEventHandler(ramses::RamsesRenderer& renderer);
 
+	void framebufferPixelsRead(const uint8_t* pixelData, const uint32_t pixelDataSize, ramses::displayId_t displayId, ramses::displayBufferId_t displayBuffer, ramses::ERendererEventResult result) override;
 	void offscreenBufferLinked(ramses::displayBufferId_t offscreenBufferId, ramses::sceneId_t, ramses::dataConsumerId_t, bool success) override;
 	void offscreenBufferCreated(ramses::displayId_t, ramses::displayBufferId_t offscreenBufferId, ramses::ERendererEventResult result) override;
 	void offscreenBufferDestroyed(ramses::displayId_t, ramses::displayBufferId_t offscreenBufferId, ramses::ERendererEventResult) override;
@@ -38,8 +40,11 @@ public:
 	bool waitForOffscreenBufferDestruction(ramses::displayBufferId_t displayBufferId);
 	bool waitForOffscreenBufferLinked(ramses::displayBufferId_t displayBufferId);
 	bool waitUntilOrTimeout(const std::function<bool()>& conditionFunction);
+	bool waitForScreenshot();
 
 	ramses::RendererSceneState sceneState(ramses::sceneId_t sceneId);
+	
+	bool saveScreenshot(const std::string& filename, ramses::displayId_t displayId, ramses::displayBufferId_t screenshotBuf, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 private:
 	struct SceneInfo {
@@ -49,8 +54,10 @@ private:
 
 	typedef std::unordered_map<ramses::sceneId_t, SceneInfo> SceneSet;
 
-	template <typename T>
-	void waitForElementInSet(const T element, const std::unordered_set<T>& set);
+	bool screenshotSaved_ = false;
+	std::string screenshot_;
+	uint32_t screenshotWidth_ = 0U;
+	uint32_t screenshotHeight_ = 0U;
 
 	std::unordered_set<ramses::displayId_t> displays_;
 	std::unordered_set<ramses::displayBufferId_t> offscreenBuffers_;

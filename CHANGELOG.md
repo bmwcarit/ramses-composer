@@ -24,6 +24,42 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.10.0] Multiedit, Shader Includes, Drag-and-drop Support, Misc Usability Improvements and Bugfixes
+
+### Added
+* Added support for the multiple edit functionality in the property browser.
+* Added support for `#include` directives in shader files. Include directives can be nested. The path of the included files must be relative and will be interpreted relative to the path of the shader file containing the include.
+* Added support for opening `.rca` files using drag-and-drop.
+* Added drag-and-drop support for resource files (`.gltf`, `.glb`, `.ctm`, `.png`, `.vert`, `.frag`, `.geom`, `.def`, `.glsl`). Dropping a resource file on a URI property will fill the property. Dropping a resource file in the treeviews will create a new resource object.
+* Added application preference to optionally enable the case-sensitive URI validation. The default is off.
+* Added functionality to save screenshots of the preview using the GUI application and exposed via the Python API. 
+* Added `resolveUriPropertyToAbsolutePath` function to the Python API to obtain the absolute path from a uri property.
+* Added a feature level update python script and updated the python migration scripts in the `python` subdirectory.
+    * Use the `migrate_recursive_v1.0.1.py` script to update projects from RaCo version <=1.0.1 to the current version. Keeps feature level.
+    * Use the `migrate_recursive.py` script to update projects from RaCo version >=1.1.0 to the current version. Keeps feature level.
+    * Use the `upgrade_fl_recursive.py` script to perform a feature level upgrade to a specified feature level. Also updates the projects to the current RaCo version.
+    * All scripts will update the main project and all external projects used by it.
+    * Detailed usage information is contained in the scripts and can be obtained by running the script with the Python interpreter directly.
+* Added section on feature levels to the `Basics/Introduction` chapter of the documentation.
+
+### Changes
+* Top-level objects in the scenegraph are now moveable.
+* The folding state of non-locked property browsers is preserved and saved in a cache per session for all expandable properties.
+* Added a new confirmation dialog to prevent accidental file version upgrade on Save. The appearance of this dialog is controlled via a new option in the preferences dialog.
+* Adjust the behaviour of the `-f` commandline option in the GUI application to ensure that projects specified on the commandline will load regardless of the feature level set in the preferences dialog. The behaviour is now as follows:
+    * default feature level for new projects
+        * set via the preferences dialog in the GUI application
+        * set via the `-f` commdandline option in the headless application
+    * initial project load feature level
+        * set via the `-f` commdandline option in both gui and headless applications.
+        * if specified the initial project given using the `-p` option will be upgraded to the given feature level.
+        * if no initial project is specified the initial default project will be created with the given feature level.
+        * if no `-f` option is used the initial project given the `-p` option will be loaded at the feature level of the project itself.
+
+### Fixes
+* Don't optimize away `LuaInterfaces` with invalid links ending on them when exporting a scene. Note that invalid links ending on non-existing properties will not have associated error items indicating an invalid link.
+
+
 ## [1.9.1] Bugfix Release
 
 ### Fixes

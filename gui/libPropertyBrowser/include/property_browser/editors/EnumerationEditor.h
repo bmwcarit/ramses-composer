@@ -16,7 +16,7 @@ class QComboBox;
 namespace raco::property_browser {
 class PropertyBrowserItem;
 
-class EnumerationEditor final : public PropertyEditor {
+class EnumerationEditor : public PropertyEditor {
 public:
 	explicit EnumerationEditor(PropertyBrowserItem* item, QWidget* parent);
 

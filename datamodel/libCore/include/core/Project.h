@@ -42,6 +42,13 @@ public:
 
 	void addInstance(SEditorObject object);
 
+	/**
+	 * @brief Move object in the instances vector to the position insertBeforeIndex
+	 * @param insertBeforeIndex Insertion index; if == -1 then move to the end
+	 * @return Returns the new index in the instances array
+	*/
+	int moveInstance(SEditorObject object, int insertBeforeIndex = -1);
+
 	const std::vector<SEditorObject>& instances() const;
 
 	std::string projectName() const;
@@ -100,6 +107,10 @@ public:
 	bool usesExternalProjectByPath(const std::string& absPath) const;
 
 	const std::map<std::string, serialization::ExternalProjectInfo>& externalProjectsMap() const;
+
+	// Replace the current external project mappings with new ones.
+	// This will lead to an inconsistent project state if used carelessly.
+	void replaceExternalProjectsMappings(const std::map<std::string, serialization::ExternalProjectInfo>& newExtProjectMappings);
 
 	// "garbage collect" external project mapping by removing external projects that are
 	// not used in the current project.

@@ -23,7 +23,7 @@ using SCEditorObject = std::shared_ptr<const EditorObject>;
 namespace raco::data_storage {
 
 //using raco::core::EditorObject;
-using raco::core::SEditorObject;
+using core::SEditorObject;
 
 class ValueBase;
 class AnnotationBase;

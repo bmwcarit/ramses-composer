@@ -206,17 +206,19 @@ public:
 	// Used to check back pointers in the unit tests.
 	const std::set<WEditorObject, std::owner_less<WEditorObject>>& referencesToThis() const;
 
+protected:
+	// Create file watchers for paths and associate them with the specified property.
+	void recreatePropertyFileWatchers(BaseContext& context, const std::string& propertyName, const std::set<std::string>& paths);
+
 private:
 	friend class BaseContext;
-
-	FileChangeMonitor::UniqueListener registerFileChangedHandler(BaseContext& context, const ValueHandle& value);
 
 	mutable WEditorObject parent_;
 	
 	// volatile
 	mutable std::set<WEditorObject, std::owner_less<WEditorObject>> referencesToThis_;
 	
-	mutable std::map<std::string, FileChangeMonitor::UniqueListener> uriListeners_;
+	mutable std::map<std::string, std::set<FileChangeMonitor::UniqueListener>> uriListeners_;
 };
 
 class CompareEditorObjectByID {

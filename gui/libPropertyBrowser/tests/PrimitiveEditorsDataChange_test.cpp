@@ -50,7 +50,9 @@ TEST_P(PrimitiveEditorDataChangeFixture, noValueChangeRecorded_onCreation) {
 	auto node{context.createObject(GetParam().editorObjectTypeName)};
 	dispatch();
 
-	PropertyBrowserItem item{{node, GetParam().editorHandleNames}, dataChangeDispatcher, &commandInterface, &model};
+	ValueHandle propertyHandle{node, GetParam().editorHandleNames};
+	std::set handles{propertyHandle};
+	PropertyBrowserItem item{handles, dataChangeDispatcher, &commandInterface, &model};
 	QWidget* editor{GetParam().createEditor(&item)};
 
 	application.processEvents();
@@ -61,7 +63,9 @@ TEST_P(PrimitiveEditorDataChangeFixture, noValueChangeRecorded_onCreation) {
 
 TEST_P(PrimitiveEditorDataChangeFixture, noValueChangeRecorded_onForeignSet) {
 	auto node{context.createObject(GetParam().editorObjectTypeName)};
-	PropertyBrowserItem item{{node, GetParam().editorHandleNames}, dataChangeDispatcher, &commandInterface, &model};
+	ValueHandle propertyHandle{node, GetParam().editorHandleNames};
+	std::set handles{propertyHandle};
+	PropertyBrowserItem item{handles, dataChangeDispatcher, &commandInterface, &model};
 	QWidget* editor{GetParam().createEditor(&item)};
 	dispatch();
 

@@ -21,6 +21,7 @@ add_library(libPropertyBrowser
     include/property_browser/editors/EnumerationEditor.h src/editors/EnumerationEditor.cpp
     include/property_browser/editors/Int64Editor.h src/editors/Int64Editor.cpp
     include/property_browser/editors/IntEditor.h src/editors/IntEditor.cpp
+    include/property_browser/editors/LinkEditorPopup.h
     include/property_browser/editors/LinkEditor.h src/editors/LinkEditor.cpp
     include/property_browser/editors/PropertyEditor.h src/editors/PropertyEditor.cpp
     include/property_browser/editors/RefEditor.h src/editors/RefEditor.cpp
@@ -29,11 +30,17 @@ add_library(libPropertyBrowser
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
     include/property_browser/editors/VecNTEditor.h src/editors/VecNTEditor.cpp
 
+    include/property_browser/LinkStartSearchView.h src/LinkStartSearchView.cpp
+    include/property_browser/ObjectSearchView.h src/ObjectSearchView.cpp
+    include/property_browser/PopupDialog.h src/PopupDialog.cpp
+
+    include/property_browser/PropertyBrowserCache.h src/PropertyBrowserCache.cpp
     include/property_browser/PropertyBrowserEditorPopup.h src/PropertyBrowserEditorPopup.cpp
     include/property_browser/PropertyBrowserItem.h src/PropertyBrowserItem.cpp
     include/property_browser/PropertyBrowserLayouts.h
     include/property_browser/PropertyBrowserModel.h
     include/property_browser/PropertyBrowserRef.h src/PropertyBrowserRef.cpp
+    include/property_browser/PropertyBrowserUtilities.h
     include/property_browser/PropertyBrowserWidget.h src/PropertyBrowserWidget.cpp
     include/property_browser/PropertySubtreeChildrenContainer.h src/PropertySubtreeChildrenContainer.cpp
     include/property_browser/PropertySubtreeView.h src/PropertySubtreeView.cpp
@@ -62,6 +69,7 @@ PUBLIC
     raco::UserTypes
     raco::Components
     raco::CommonWidgets
+    raco::ObjectTree
     Qt5::Widgets
 PRIVATE
     raco::Style

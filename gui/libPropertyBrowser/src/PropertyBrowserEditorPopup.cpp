@@ -22,8 +22,6 @@ namespace raco::property_browser {
 
 using namespace raco::style;
 
-using ObjectSearchView = raco::common_widgets::ObjectSearchView;
-
 PropertyBrowserEditorPopup::PropertyBrowserEditorPopup(PropertyBrowserItem* item, QWidget* anchor, ObjectSearchView* list) : QDialog{anchor}, item_{item}, list_{list} {
 	setWindowFlags(Qt::Popup);
 	setAttribute(Qt::WA_DeleteOnClose);

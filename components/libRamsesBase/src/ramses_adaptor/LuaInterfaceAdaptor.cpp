@@ -124,10 +124,17 @@ bool LuaInterfaceAdaptor::sync(core::Errors* errors) {
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), interfaceText);
 		ramsesInterface_.reset();
 
-		if (!interfaceText.empty() &&
-			(!sceneAdaptor_->optimizeForExport() || 
-				!raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false).empty() &&
-				raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true).empty())) {
+		auto linksStarting = raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false);
+		auto linksEnding = raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true);
+
+		bool validStartingLinks = std::any_of(linksStarting.begin(), linksStarting.end(), [](core::SLink link) {
+			return link->isValid();
+		});
+		bool validEndingLinks = std::any_of(linksEnding.begin(), linksEnding.end(), [](core::SLink link) {
+			return link->isValid();
+		});
+
+		if (!interfaceText.empty() && (!sceneAdaptor_->optimizeForExport() || validStartingLinks && !validEndingLinks)) {
 
 			if (sceneAdaptor_->featureLevel() >= 5) {
 				std::vector<raco::ramses_base::RamsesLuaModule> modules;

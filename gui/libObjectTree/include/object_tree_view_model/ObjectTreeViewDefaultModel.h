@@ -33,6 +33,7 @@ Traversal through the entire tree is guaranteed by the iterateThroughTree() meth
 #include "core/ExtrefOperations.h"
 
 #include <QAbstractItemModel>
+#include <QFileInfo>
 
 namespace raco::object_tree::model {
 
@@ -63,6 +64,7 @@ public:
 	QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
 	QModelIndex parent(const QModelIndex& child) const override;
 	QStringList decodeMimeData(const QMimeData* data) const;
+	QList<QFileInfo> getAcceptableFilesInfo(const QMimeData* data) const;
 	bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
 	bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
 	Qt::ItemFlags flags(const QModelIndex& index) const override;
@@ -83,6 +85,11 @@ public:
 	core::Project* project() const;
 
 	std::set<std::string> externalProjectPathsAtIndices(const QModelIndexList& indices);
+
+	void setAcceptableFileExtensions(const QStringList& extensions);
+	void setAcceptLuaModules(bool accept);
+	void setAcceptLuaScripts(bool accept);
+	void setAcceptLuaInterfaces(bool accept);
 
 	virtual Qt::TextElideMode textElideMode() const;
 
@@ -111,6 +118,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const std::string& typeName, const std::string& nodeName = "", const QModelIndex& parent = QModelIndex());
+	core::SEditorObject createNewObjectFromFile(const QFileInfo& fileInfo);
 	virtual size_t deleteObjectsAtIndices(const QModelIndexList& indices);
 	virtual void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy);
 	virtual void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut);
@@ -128,10 +136,16 @@ protected:
 	core::ExternalProjectsStoreInterface* externalProjectStore_;
 	std::vector<std::string> allowedUserCreatableUserTypes_;
 	std::unordered_map<std::string, QModelIndex> indexes_;
-	std::unordered_map<std::string, std::vector<components::Subscription>> nodeSubscriptions_;
-	std::unordered_map<std::string, std::vector<components::Subscription>> lifeCycleSubscriptions_;
+	
+	components::Subscription objectNameSubscription_;
+	components::Subscription visibilitySubscription_;
+	components::Subscription enabledSubscription_;
+	components::Subscription childrenSubscription_;
+	components::Subscription rootOrderSubscription_;
+	components::Subscription lifeCycleSubscription_;
 	components::Subscription afterDispatchSubscription_;
 	components::Subscription extProjectChangedSubscription_;
+	
 	bool groupExternalReferences_;
 	bool groupByType_;
 
@@ -179,6 +193,11 @@ protected:
 		{VisibilityState::Visible, raco::style::Icons::instance().visibilityOn},
 		{VisibilityState::Invisible, raco::style::Icons::instance().visibilityOff},
 	};
+
+	QStringList acceptableFileExtensions_;
+	bool acceptLuaModules_ = false;
+	bool acceptLuaScripts_ = false;
+	bool acceptLuaInterfaces_ = false;
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;
 	QMimeData* generateMimeData(const QModelIndexList& indexes, const std::string& originPath) const;

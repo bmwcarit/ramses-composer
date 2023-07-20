@@ -14,15 +14,12 @@ add_library(libCommonWidgets
     include/common_widgets/DebugLayout.h
     include/common_widgets/ErrorView.h src/ErrorView.cpp
     include/common_widgets/ExportDialog.h src/ExportDialog.cpp
-    include/common_widgets/LinkStartSearchView.h src/LinkStartSearchView.cpp
     include/common_widgets/log_model/LogViewModel.h src/log_model/LogViewModel.cpp
     include/common_widgets/log_model/LogViewSink.h src/log_model/LogViewSink.cpp
     include/common_widgets/log_model/LogViewSortFilterProxyModel.h src/log_model/LogViewSortFilterProxyModel.cpp
     include/common_widgets/LogView.h src/LogView.cpp
     include/common_widgets/MeshAssetImportDialog.h src/MeshAssetImportDialog.cpp
     include/common_widgets/NoContentMarginsLayout.h
-    include/common_widgets/ObjectSearchView.h src/ObjectSearchView.cpp
-    include/common_widgets/PopupDialog.h src/PopupDialog.cpp
     include/common_widgets/PreferencesView.h src/PreferencesView.cpp
     include/common_widgets/PropertyBrowserButton.h src/PropertyBrowserButton.cpp
     include/common_widgets/QtGuiFormatter.h

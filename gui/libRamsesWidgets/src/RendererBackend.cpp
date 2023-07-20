@@ -41,7 +41,7 @@ RendererBackend::RendererBackend(rlogic::EFeatureLevel featureLevel, const std::
 	  eventHandler_{std::make_unique<SceneStateEventHandler>(*renderer_.get())} {
 	// Connect needs to be called after the renderer is created
 	// Additonally there can only be one renderer per framework
-	connect();
+	BaseEngineBackend::connect();
 	renderer_->setSkippingOfUnmodifiedBuffers(false);
 }
 

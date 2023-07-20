@@ -9,32 +9,16 @@
  */
 
 #include "gtest/gtest.h"
-
 #include "utils/FileUtils.h"
 #include "utils/u8path.h"
+#include "UtilsBaseTest.h"
 
 #include <fstream>
 
 using namespace raco::utils;
 
-class FileUtilsTest : public testing::Test {
+class FileUtilsTest : public UtilsBaseTest {
 public:
-	virtual std::string test_case_name() const {
-		return ::testing::UnitTest::GetInstance()->current_test_info()->name();
-	}
-
-	virtual std::string test_suite_name() const {
-		return ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
-	}
-
-	virtual u8path test_relative_path() const {
-		return u8path{test_suite_name()} / test_case_name();
-	}
-
-	virtual u8path test_path() const {
-		return (std::filesystem::current_path() / test_relative_path());
-	}
-
 	std::vector<u8path> testFileNames = {
 		test_path() / "test",
 		test_path() / u8"äöüÄÖÜáàÁÀÇß",
@@ -43,19 +27,6 @@ public:
 	};
 
 	std::string testFileContents = u8"test\täöüÄÖÜáàÁÀÇß 滴滴启动纽交所退市 🐌🌝👍🏼t";
-
-protected:
-	virtual void SetUp() override {
-		if (std::filesystem::exists(test_path())) {
-			// Debugging case: if we debug and kill the test before complition the test directory will not be cleaned by TearDown
-			std::filesystem::remove_all(test_path());
-		}
-		std::filesystem::create_directories(test_path());
-	}
-
-	virtual void TearDown() override {
-		std::filesystem::remove_all(test_path());
-	}
 };
 
 TEST_F(FileUtilsTest, writeReadFileTest) {

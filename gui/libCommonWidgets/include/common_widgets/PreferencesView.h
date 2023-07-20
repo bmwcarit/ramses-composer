@@ -12,12 +12,9 @@
 #include "components/RaCoPreferences.h"
 
 #include <QDialog>
-#include <QGridLayout>
 #include <QLineEdit>
 #include <QSpinBox>
-#include <QWidget>
-#include <utility>
-#include <vector>
+#include <QCheckBox>
 
 namespace raco::components {
 class RaCoPreferences;
@@ -38,6 +35,10 @@ public:
 private:
 	QLineEdit* userProjectEdit_;
 	QSpinBox* featureLevelEdit_;
+	QCheckBox* uriValidationCaseSensitiveCheckbox_;
+	QCheckBox* preventAccidentalUpgradeEdit_;
+	QCheckBox* preventAccidentalUpgradeCheckbox_;
+	QLineEdit* screenshotDirectoryEdit_;
 };
 
 }  // namespace raco::common_widgets

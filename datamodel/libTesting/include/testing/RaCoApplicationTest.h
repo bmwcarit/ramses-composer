@@ -19,7 +19,7 @@
 class RaCoApplicationTest : public RacoBaseTest<> {
 public:
 	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication application{backend, {{}, false, false, -1, false}};
+	raco::application::RaCoApplication application{backend, {{}, false, false, -1, -1, false}};
 
 	raco::core::ExternalProjectsStoreInterface* externalProjectStore() {
 		return application.externalProjects();

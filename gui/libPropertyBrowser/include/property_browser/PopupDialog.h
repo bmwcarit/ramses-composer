@@ -13,7 +13,7 @@
 
 class QApplicationStateChangeEvent;
 
-namespace raco::common_widgets {
+namespace raco::property_browser {
 
 	class PopupDialog : public QDialog {
 	public:

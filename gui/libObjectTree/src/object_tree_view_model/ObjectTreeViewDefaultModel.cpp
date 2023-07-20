@@ -14,24 +14,21 @@
 #include "core/CommandInterface.h"
 #include "core/EditorObject.h"
 #include "core/ExternalReferenceAnnotation.h"
-#include "core/PrefabOperations.h"
 #include "core/Project.h"
-#include "user_types/Prefab.h"
 #include "core/Queries.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "components/Naming.h"
 #include "style/Colors.h"
-#include "user_types/Mesh.h"
-#include "user_types/PrefabInstance.h"
 #include "user_types/UserObjectFactory.h"
+#include "object_creator/ObjectCreator.h"
 
 #include <QApplication>
-#include <QClipboard>
 #include <QDataStream>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonObject>
 #include <QMimeData>
 #include <QProgressDialog>
-#include <QSet>
 
 namespace raco::object_tree::model {
 
@@ -52,9 +49,11 @@ ObjectTreeViewDefaultModel::ObjectTreeViewDefaultModel(raco::core::CommandInterf
 	  groupByType_(groupByType){
 	resetInvisibleRootNode();
 
-	lifeCycleSubscriptions_["objectLifecycle"].emplace_back(dispatcher_->registerOnObjectsLifeCycle(
+	std::sort(allowedUserCreatableUserTypes_.begin(), allowedUserCreatableUserTypes_.end());
+
+	lifeCycleSubscription_ = dispatcher_->registerOnObjectsLifeCycle(
 		[this](auto sEditorObject) { dirty_ = true; },
-		[this](auto sEditorObject) { dirty_ = true; }));
+		[this](auto sEditorObject) { dirty_ = true; });
 
 	afterDispatchSubscription_ = dispatcher_->registerOnAfterDispatch([this]() {
 		if (dirty_) {
@@ -69,13 +68,15 @@ ObjectTreeViewDefaultModel::ObjectTreeViewDefaultModel(raco::core::CommandInterf
 		} 
 	};
 
-	nodeSubscriptions_["objectName"].emplace_back(dispatcher_->registerOnPropertyChange("objectName", setDirtyAction));
-	nodeSubscriptions_["visibility"].emplace_back(dispatcher_->registerOnPropertyChange("visibility", setDirtyAction));
-	nodeSubscriptions_["enabled"].emplace_back(dispatcher_->registerOnPropertyChange("enabled", setDirtyAction));
-
-	nodeSubscriptions_["children"].emplace_back(dispatcher_->registerOnPropertyChange("children", [this](ValueHandle handle) {
+	objectNameSubscription_ = dispatcher_->registerOnPropertyChange("objectName", setDirtyAction);
+	visibilitySubscription_ =  dispatcher_->registerOnPropertyChange("visibility", setDirtyAction);
+	enabledSubscription_ =  dispatcher_->registerOnPropertyChange("enabled", setDirtyAction);
+	childrenSubscription_ = dispatcher_->registerOnPropertyChange("children", [this](ValueHandle handle) {
 		dirty_ = true;
-	}));
+	});
+	rootOrderSubscription_ = dispatcher_->registerOnRootOrderChanged([this]() {
+		dirty_ = true;
+		});
 
 	extProjectChangedSubscription_ = dispatcher_->registerOnExternalProjectMapChanged([this]() { dirty_ = true; });
 
@@ -219,61 +220,82 @@ QModelIndex ObjectTreeViewDefaultModel::index(int row, int column, const QModelI
 	}
 }
 
+QList<QFileInfo> ObjectTreeViewDefaultModel::getAcceptableFilesInfo(const QMimeData* data) const {
+	if (data->urls().empty()) {
+		return {};
+	}
+
+	QList<QFileInfo> fileInfos;
+	for (const auto& url : data->urls()) {
+		const QString filePath = url.toLocalFile();
+		if (!filePath.isEmpty()) {
+			const QFileInfo fileInfo{QFile{filePath}};
+			const auto fileExtension = fileInfo.suffix().toLower();
+			if (acceptableFileExtensions_.contains(fileExtension)) {
+				fileInfos.push_front(fileInfo);
+			}
+		}
+	}
+	
+	return fileInfos;
+}
+
 bool ObjectTreeViewDefaultModel::canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const {
 	if (action == Qt::IgnoreAction) {
 		return false;
 	}
-	if (!data->hasFormat(OBJECT_EDITOR_ID_MIME_TYPE)) {
-		return false;
-	}
 
-	auto idList{decodeMimeData(data)};
-	auto dragDroppingProjectNode = externalProjectStore_->isExternalProject(idList.front().toStdString());
+	if (data->hasFormat(OBJECT_EDITOR_ID_MIME_TYPE)) {
+		 auto idList{decodeMimeData(data)};
+		 auto dragDroppingProjectNode = externalProjectStore_->isExternalProject(idList.front().toStdString());
 
-	if (dragDroppingProjectNode) {
-		return false;
-	}
+		 if (dragDroppingProjectNode) {
+			return false;
+		 }
 
-	auto originPath = getOriginPathFromMimeData(data);
-	auto droppingFromOtherProject = originPath != project()->currentPath();
-	auto parentType = indexToTreeNode(parent)->getType();
-	auto droppingAsExternalReference = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::AltModifier) || 
-		parentType == ObjectTreeNodeType::ExtRefGroup;
-	if (droppingAsExternalReference && (!droppingFromOtherProject || parentType == ObjectTreeNodeType::EditorObject)) {
-		return false;
-	}
+		 auto originPath = getOriginPathFromMimeData(data);
+		 auto droppingFromOtherProject = originPath != project()->currentPath();
+		 auto parentType = indexToTreeNode(parent)->getType();
+		 auto droppingAsExternalReference = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::AltModifier) ||
+			parentType == ObjectTreeNodeType::ExtRefGroup;
+		 if (droppingAsExternalReference && (!droppingFromOtherProject || parentType == ObjectTreeNodeType::EditorObject)) {
+			return false;
+		 }
 
-	std::vector<SEditorObject> objectsFromId;
-	std::set<std::string> sourceProjectTopLevelObjectIds;
-	if (idList.empty()) {
-		return false;
-	}
-	for (const auto& id : idList) {
-		auto idString = id.toStdString();
-		auto objectFromId = Queries::findById((droppingFromOtherProject) ? *externalProjectStore_->getExternalProjectCommandInterface(originPath)->project() : *project(), idString);
-
+		 if (idList.empty()) {
+			return false;
+		 }
+	
 		if (!droppingFromOtherProject) {
-			if (&objectFromId->getTypeDescription() != &raco::user_types::PrefabInstance::typeDescription && raco::core::PrefabOperations::findContainingPrefabInstance(objectFromId)) {
-				return false;
+			std::vector<SEditorObject> objs;
+			for (const auto& id : idList) {
+				objs.emplace_back(project()->getInstanceByID(id.toStdString()));
 			}
 
-			if (objectFromId->getParent() == nullptr && !parent.isValid()) {
-				auto objIndex = indexFromTreeNodeID(id.toStdString());
-				auto objIsAlreadyInSameModel = objIndex.isValid();
-				if (objIsAlreadyInSameModel) {
-					if (!indexToSEditorObject(objIndex)->query<raco::core::ExternalReferenceAnnotation>()) {
-						return false;
-					}
+			return (std::any_of(objs.begin(), objs.end(), [this, parent](auto obj) { return isObjectAllowedIntoIndex(parent, obj); }) &&
+				!Queries::filterForMoveableScenegraphChildren(*project(), objs, indexToSEditorObject(parent)).empty());
+
+		} else {
+			std::vector<SEditorObject> objectsFromId;
+			std::set<std::string> sourceProjectTopLevelObjectIds;
+			auto originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
+			for (const auto& id : idList) {
+				auto idString = id.toStdString();
+				auto objectFromId = Queries::findById(*originCommandInterface->project(), idString);
+
+				if (objectFromId->getParent() == nullptr) {
+					sourceProjectTopLevelObjectIds.emplace(idString);
 				}
+				objectsFromId.emplace_back(objectFromId);
 			}
+			return canPasteIntoIndex(parent, objectsFromId, sourceProjectTopLevelObjectIds, droppingAsExternalReference);
 		}
-
-		if (objectFromId->getParent() == nullptr) {
-			sourceProjectTopLevelObjectIds.emplace(idString);
-		}
-		objectsFromId.emplace_back(objectFromId);
 	}
-	return canPasteIntoIndex(parent, objectsFromId, sourceProjectTopLevelObjectIds, droppingAsExternalReference);
+	else if (!acceptableFileExtensions_.empty() && !getAcceptableFilesInfo(data).empty()) {
+		return true;
+	}
+
+	return false;
 }
 
 QModelIndex ObjectTreeViewDefaultModel::parent(const QModelIndex& child) const {
@@ -508,6 +530,11 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const std::string& typ
 	return newObj;
 }
 
+SEditorObject ObjectTreeViewDefaultModel::createNewObjectFromFile(const QFileInfo& fileInfo) {
+	object_creator::ObjectCreator objCreator(commandInterface_, acceptLuaModules_, acceptLuaInterfaces_, acceptLuaScripts_);
+	return objCreator.createNewObjectFromFile(fileInfo);
+}
+
 bool ObjectTreeViewDefaultModel::canCopyAtIndices(const QModelIndexList& indices) const {
 	for (const auto& index : indices) {
 		if (indexToSEditorObject(index)) {
@@ -635,7 +662,18 @@ void ObjectTreeViewDefaultModel::cutObjectsAtIndices(const QModelIndexList& indi
 }
 
 void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEditorObject>& objects, SEditorObject parent, int row) {
-	commandInterface_->moveScenegraphChildren(objects, parent, parent ? row : -1);
+	int insertBeforeIndex = row;
+	if (!parent) {
+		// For top-level target objects we need to translate the row into the index in the Project::instances() vector:
+		auto insertionObject = indexToSEditorObject(index(row, 0, invisibleRootIndex_));
+		if (insertionObject) {
+			auto it = std::find(commandInterface_->project()->instances().begin(), commandInterface_->project()->instances().end(), insertionObject);
+			insertBeforeIndex = it - commandInterface_->project()->instances().begin();
+		} else {
+			insertBeforeIndex = -1;
+		}
+	}
+	commandInterface_->moveScenegraphChildren(objects, parent, insertBeforeIndex);
 }
 
 void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex) {
@@ -746,10 +784,15 @@ bool ObjectTreeViewDefaultModel::isIndexAboveInHierachyOrPosition(QModelIndex le
 }
 
 std::vector<std::string> raco::object_tree::model::ObjectTreeViewDefaultModel::typesAllowedIntoIndex(const QModelIndex& index) const {
-	if (!core::Queries::canPasteIntoObject(*commandInterface_->project(), indexToSEditorObject(index))) {
-		return {};
-	} else {
+	auto object = indexToSEditorObject(index);
+	if (!object) {
 		return allowedUserCreatableUserTypes_;
+	} else {
+		if (!core::Queries::canPasteIntoObject(*commandInterface_->project(), object)) {
+			return {};
+		} else {
+			return core::Queries::validTypesForChildrenOf(object);
+		}
 	}
 }
 
@@ -762,6 +805,22 @@ std::set<std::string> ObjectTreeViewDefaultModel::externalProjectPathsAtIndices(
 		}
 	}
 	return projectPaths;
+}
+
+void ObjectTreeViewDefaultModel::setAcceptableFileExtensions(const QStringList& extensions) {
+	acceptableFileExtensions_ = extensions;
+}
+
+void ObjectTreeViewDefaultModel::setAcceptLuaModules(bool accept){
+	acceptLuaModules_ = accept;
+}
+
+void ObjectTreeViewDefaultModel::setAcceptLuaScripts(bool accept){
+	acceptLuaScripts_ = accept;
+}
+
+void ObjectTreeViewDefaultModel::setAcceptLuaInterfaces(bool accept) {
+	acceptLuaInterfaces_ = accept;
 }
 
 bool ObjectTreeViewDefaultModel::setData(const QModelIndex& index, const QVariant& value, int role) {

@@ -39,6 +39,11 @@ raco_package_add_headless_test(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+IF (MSVC)
+	# /bigobj is needed to compile UserObjectFactory.cpp
+	target_compile_options(libCore_test PRIVATE "/bigobj")
+endif()
+
 raco_package_add_test_resources(
     libCore_test "${CMAKE_SOURCE_DIR}/resources"
     shaders/basic.frag

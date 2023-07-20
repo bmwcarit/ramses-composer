@@ -10,7 +10,9 @@
 #pragma once
 
 #include "object_tree_view/ObjectTreeDockManager.h"
+#include "ramses_widgets/PreviewMainWindow.h"
 
 namespace raco::gui_python_api {
-	void setup(raco::object_tree::view::ObjectTreeDockManager* objTreeDockManager);
+	void setupObjectTree(object_tree::view::ObjectTreeDockManager* objTreeDockManager);
+	void setupPreviewWindow(ramses_widgets::PreviewMainWindow* preview);
 }

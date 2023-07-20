@@ -38,21 +38,23 @@ RaCoApplicationLaunchSettings::RaCoApplicationLaunchSettings()
 	: initialProject{},
 	  createDefaultScene{true},
 	  enableRamsesTrace{false},
-	  featureLevel{-1},
+	  newFileFeatureLevel{-1},
+	  initialLoadFeatureLevel{-1},
 	  runningInUI{false} {
 }
 
-RaCoApplicationLaunchSettings::RaCoApplicationLaunchSettings(QString argInitialProject, bool argCreateDefaultScene, bool argEnableRamsesTrace, int argFeatureLevel, bool argRunningInUI)
+RaCoApplicationLaunchSettings::RaCoApplicationLaunchSettings(QString argInitialProject, bool argCreateDefaultScene, bool argEnableRamsesTrace, int argNewFileFeatureLevel, int argInitialLoadFeatureLevel, bool argRunningInUI)
 	: initialProject(argInitialProject),
 	  createDefaultScene(argCreateDefaultScene),
 	  enableRamsesTrace(argEnableRamsesTrace),
-	  featureLevel(argFeatureLevel),
+	  newFileFeatureLevel(argNewFileFeatureLevel),
+	  initialLoadFeatureLevel{argInitialLoadFeatureLevel},
 	  runningInUI(argRunningInUI) {
 }
 
 RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings)
 	: engine_{&engine},
-	  applicationFeatureLevel_(settings.featureLevel),
+	  applicationFeatureLevel_(settings.newFileFeatureLevel),
 	  dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  dataChangeDispatcherEngine_{std::make_shared<raco::components::DataChangeDispatcher>()},
 	  scenesBackend_{new ramses_adaptor::SceneBackend(engine, dataChangeDispatcherEngine_)},
@@ -64,7 +66,7 @@ RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const R
 
 	runningInUI_ = settings.runningInUI;
 
-	switchActiveRaCoProject(settings.initialProject, {}, settings.createDefaultScene, settings.featureLevel);
+	switchActiveRaCoProject(settings.initialProject, {}, settings.createDefaultScene, settings.initialLoadFeatureLevel);
 }
 
 RaCoApplication::~RaCoApplication() {

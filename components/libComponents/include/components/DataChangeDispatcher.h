@@ -124,6 +124,8 @@ public:
 	Subscription registerOnExternalProjectChanged(Callback callback) noexcept;
 	Subscription registerOnExternalProjectMapChanged(Callback callback) noexcept;
 
+	Subscription registerOnRootOrderChanged(Callback callback) noexcept;
+
 	// This will regisiter a callback which is invoked by dispatch() after all other changes have been dispatched.
 	Subscription registerOnAfterDispatch(Callback callback);
 
@@ -172,6 +174,8 @@ private:
 	bool externalProjectChanged_{false};
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> externalProjectChangedListeners_{};
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> externalProjectMapChangedListeners_{};
+
+	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> rootOrderChangedListeners_{};
 
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> onAfterDispatchListeners_{};
 

@@ -134,6 +134,9 @@ The `raco` module is available in both RaCoHeadless and RaCoEditor. You'll need 
 > importGLTF(path[, parent])
 >> Import complete contents of a gltf file into the current scene. Inserts the new nodes below `parent` in the scenegraph when the optional argument is given.
 
+> saveScreenshot(path)
+>> Save a screenshot of the preview to the given `path` as a `.png` image file.
+
 
 ### Active Project Access
 
@@ -178,6 +181,9 @@ The `raco` module is available in both RaCoHeadless and RaCoEditor. You'll need 
 
 > addExternalReferences(path, type)
 >> Adds all objects of a certain `type` (or a list of `types`) from an external project at `path` as external references. Returns a list containing the added objects.
+
+> resolveUriPropertyToAbsolutePath(property)
+>> Obtain the absolute path from the value of a uri property given by a `PropertyDescriptor`. This function will resolve relative to absolute paths using the appropriate project path as a base directory.
 
 ### Objects
 

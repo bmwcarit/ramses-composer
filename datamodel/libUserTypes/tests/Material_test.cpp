@@ -8,9 +8,8 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "testing/TestEnvironmentCore.h"
-
+#include "testing/TestUtil.h"
 #include "user_types/Material.h"
-#include "utils/FileUtils.h"
 #include <gtest/gtest.h>
 
 using namespace raco::core;
@@ -43,6 +42,18 @@ public:
 		fragmentUriHandle = {material, &Material::uriFragment_};
 		geometryUriHandle = {material, &Material::uriGeometry_};
 		definesUriHandle = {material, &Material::uriDefines_};
+	}
+
+	void verifyFileWatcher(std::string_view relPath) {
+		recorder.reset();
+
+		// Modify shader file
+		std::ofstream out{(test_path() / relPath).internalPath(), std::ifstream::out | std::ifstream::app};
+		out << "// appended comment" << std::endl;
+		out.close();
+
+		// Expect file watcher was executed and shader was reloaded
+		EXPECT_TRUE(raco::awaitPreviewDirty(recorder, material, 5));
 	}
 };
 
@@ -177,3 +188,61 @@ TEST_F(MaterialTest, shaderDefines) {
 	ASSERT_FALSE(commandInterface.errors().hasError(vertexUriHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(fragmentUriHandle));
 }
+
+// Verify that Material compiles preprocessed shaders of each type
+TEST_F(MaterialTest, preprocessorHandlesShaderIncludes) {
+	makeFile("file_error.glsl", "source code with error");
+	auto vertInvalid = makeFile("testShader_vert.glsl", "#include \"file_error.glsl\"");
+	auto fragInvalid = makeFile("testShader_frag.glsl", "#include \"file_error.glsl\"");
+	auto geomInvalid = makeFile("testShader_geom.glsl", "#include \"file_error.glsl\"");
+	auto vertValid = makeFile("valid_vert.glsl", "#include \"shaders/basic.vert\"");
+	auto fragValid = makeFile("valid_frag.glsl", "#include \"shaders/basic.frag\"");
+
+	// Preprocessor replaces #include directives with incorrect source code
+	commandInterface.set(vertexUriHandle, vertInvalid);
+	commandInterface.set(fragmentUriHandle, fragInvalid);
+	commandInterface.set(fragmentUriHandle, geomInvalid);
+
+	ASSERT_TRUE(commandInterface.errors().hasError(material));
+	ASSERT_NE(commandInterface.errors().getError(material).message().find("[GLSL Compiler] vertex shader Shader Parsing Error"), std::string::npos);
+
+	// Fix vertex shader
+	commandInterface.set(vertexUriHandle, vertValid);
+	ASSERT_TRUE(commandInterface.errors().hasError(material));
+	ASSERT_NE(commandInterface.errors().getError(material).message().find("[GLSL Compiler] fragment shader Shader Parsing Error"), std::string::npos);
+
+	// Fix fragment shader
+	commandInterface.set(fragmentUriHandle, fragValid);
+	ASSERT_TRUE(commandInterface.errors().hasError(material));
+	ASSERT_NE(commandInterface.errors().getError(material).message().find("[GLSL Compiler] geometry shader Shader Parsing Error"), std::string::npos);
+
+	// Fix geometry shader
+	commandInterface.set(geometryUriHandle, std::string());
+	ASSERT_FALSE(commandInterface.errors().hasError(material));
+}
+
+#if (!defined (__linux__))
+// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
+
+TEST_F(MaterialTest, shaderFileWatcherTest) {
+	const std::vector<std::string> files{
+		"shaders/include/main_mat_adapter_test.vert",
+		"shaders/include/main_mat_adapter_test.frag",
+		"shaders/include/main_mat_adapter_test.geom",
+		"shaders/include/uniforms_vert.glsl",
+		"shaders/include/uniforms_frag.glsl",
+		"shaders/include/uniforms_geom.glsl"
+	};
+
+	commandInterface.set(vertexUriHandle, (test_path() / files[0]).string());
+	commandInterface.set(fragmentUriHandle, (test_path() / files[1]).string());
+	commandInterface.set(geometryUriHandle, (test_path() / files[2]).string());
+
+	ASSERT_FALSE(commandInterface.errors().hasError(material));
+
+	for (const auto& file : files) {
+		verifyFileWatcher(file);
+	}
+}
+
+#endif

@@ -73,6 +73,21 @@ public:
 	void set(ValueHandle const& handle, std::array<int, 3> const& value);
 	void set(ValueHandle const& handle, std::array<int, 4> const& value);
 
+	/**
+	 * @brief Set multiple int properties to the same value generating only a single undo stack entry.
+	 */
+	void set(const std::set<ValueHandle>& handles, int value);
+
+	/**
+	 * @brief Set multiple int64_t properties to the same value generating only a single undo stack entry.
+	 */
+	void set(const std::set<ValueHandle>& handles, int64_t value);
+
+	/**
+	 * @brief Set multiple double properties to the same value generating only a single undo stack entry.
+	*/
+	void set(const std::set<ValueHandle>& handles, double const& value);
+
 	
 	bool canSetTags(ValueHandle const& handle, std::vector<std::string> const& value, std::string* outError = nullptr) const;
 
@@ -146,12 +161,34 @@ public:
 	// @return number of actually deleted objects.
 	size_t deleteUnreferencedResources();
 
+
+	/**
+	 * @brief Execute a lambda function generating only a single undo stack entry.
+	 * 
+	 * The given function may call any number of CommandInterface operations although these will not 
+	 * generate individual undo stack entries. Only a single undo stack entry is generated for the whole
+	 * composite operation with the specified description.
+	 * 
+	 * Composite commands can be nested, i.e. the supplied function may itself call executeCompositeCommand.
+	 * 
+	 * Composite commands are atomic, i.e. if an individual operation in the compositeCommand fails and 
+	 * throws an exception the composite command as a whole re-throws the exception and will roll back the
+	 * project to the state at the beginning of the composite command. In case of nested composite commands
+	 * the outermost composite command is rolled back.
+	 * 
+	 * @param compositeCommand Function to be executed as a composite command.
+	 * @param description Description for the composite undo stack entry.
+	*/
+	void executeCompositeCommand(std::function<void()> compositeCommand, const std::string& description);
+
 private:
 	bool canSetHandle(ValueHandle const& handle) const;
 	bool canSetHandle(ValueHandle const& handle, PrimitiveType type) const;
 
 	bool checkHandleForSet(ValueHandle const& handle);
 	bool checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type);
+
+	static std::string getMergeId(const std::set<ValueHandle>& handles);
 
 	BaseContext* context_;
 	UndoStack* undoStack_;

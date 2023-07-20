@@ -11,6 +11,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 add_library(libTesting INTERFACE
 	include/testing/RacoBaseTest.h
 	include/testing/RaCoApplicationTest.h
+	include/testing/StructTypes.h
 	include/testing/TestEnvironmentCore.h
 	include/testing/TestUtil.h
 	include/testing/MockUserTypes.h

@@ -65,12 +65,19 @@ namespace raco::property_browser {
 		if (index.row() == rowCount() - 1) {
 			if (index.column() == 1) {
 				return Qt::ItemIsEnabled | Qt::ItemNeverHasChildren;
-				
 			} else {
 				return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemNeverHasChildren;				
 			}
 		}
-		return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemNeverHasChildren;
+		if (orderIsReadOnly_ && index.column() == 1) {
+			return Qt::ItemIsSelectable | Qt::ItemNeverHasChildren;
+		} else {
+			return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemNeverHasChildren;
+		}
+	}
+
+	void TagContainerEditor_AppliedTagModel::setOrderIsReadOnly(bool readonly) {
+		orderIsReadOnly_ = readonly;
 	}
 
 	int TagContainerEditor_AppliedTagModel::rowForTag(QString const& s) const {
@@ -100,6 +107,9 @@ namespace raco::property_browser {
 	}
 
 	int TagContainerEditor_AppliedTagModel::orderIndexForRow(int row) const {
+		if (data(index(row, 1)).toString() == "Multiple values") {
+			return 0;
+		}
 		return data(index(row, 1)).toInt();
 	}
 
@@ -111,16 +121,22 @@ namespace raco::property_browser {
 		if (!isTagAllowed(tag)) return nullptr;
 		auto* treeWidgetItem = new QStandardItem(tag);
 		row = row >= 0 ? std::min(row, rowCount()-1) : (rowCount() - 1);
-		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
+		if (tagType_ == core::TagType::NodeTags_Referencing) {
 			if (!orderIndex.has_value()) {
 				if (row == rowCount() - 1) {
 					orderIndex = orderIndexForLastRow();
 				} else {
 					orderIndex = orderIndexForRow(row);
 				}
-			}			
-			auto* orderIndexItem = new QStandardItem(QString::fromStdString(std::to_string(orderIndex.value())));
-			insertRow(row, {treeWidgetItem, orderIndexItem});
+				auto* orderIndexItem = new QStandardItem(QString::fromStdString(std::to_string(orderIndex.value())));
+				insertRow(row, {treeWidgetItem, orderIndexItem});
+			} else if (orderIndex == INT_MIN) {
+				insertRow(row, {treeWidgetItem,
+					new QStandardItem("Multiple values")});
+			} else {
+				insertRow(row, {treeWidgetItem,
+					new QStandardItem(QString::fromStdString(std::to_string(orderIndex.value())))});
+			}
 		} else {
 			insertRow(row, treeWidgetItem);			
 		}

@@ -33,7 +33,6 @@ namespace raco::property_browser {
 QLabel* WidgetFactory::createPropertyLabel(PropertyBrowserItem* item, QWidget* parent) {
 	QLabel* label = new QLabel{item->displayName().c_str(), parent};
 	label->setForegroundRole(QPalette::BrightText);
-	QObject::connect(item, &PropertyBrowserItem::displayNameChanged, label, &QLabel::setText);
 	return label;
 }
 
@@ -59,7 +58,7 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 		case PrimitiveType::Ref:
 			return new RefEditor{item, parent};
 		case PrimitiveType::Struct: {
-			auto typeDesc = &item->valueHandle().constValueRef()->asStruct().getTypeDescription();
+			auto typeDesc = &item->valueHandles().begin()->constValueRef()->asStruct().getTypeDescription();
 			if (typeDesc == &core::Vec2f::typeDescription) {
 				return new Vec2fEditor{item, parent};
 			} else if (typeDesc == &core::Vec3f::typeDescription) {
@@ -76,7 +75,7 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 			return new PropertyEditor{ item, parent };
 		}
 		case PrimitiveType::Table:
-			if (item->query<core::UserTagContainerAnnotation>() || item->query<core::TagContainerAnnotation>() || item->query<core::RenderableTagContainerAnnotation>()) {
+			if (item->isTagContainerProperty()) {
 				return new TagContainerEditor{ item, parent };
 			}
 			return new PropertyEditor{ item, parent };

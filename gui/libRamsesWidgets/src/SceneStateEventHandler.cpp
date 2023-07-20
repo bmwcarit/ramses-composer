@@ -11,6 +11,7 @@
 
 #include "log_system/log.h"
 #include "ramses_base/RamsesFormatter.h"
+#include "ramses_widgets/RamsesPreviewWindow.h"
 
 using raco::log_system::RAMSES_BACKEND;
 
@@ -21,6 +22,18 @@ namespace raco::ramses_widgets {
 
 SceneStateEventHandler::SceneStateEventHandler(ramses::RamsesRenderer& renderer)
 	: renderer_(renderer) {
+}
+
+void SceneStateEventHandler::framebufferPixelsRead(const uint8_t* pixelData, const uint32_t pixelDataSize, ramses::displayId_t displayId, ramses::displayBufferId_t displayBuffer, ramses::ERendererEventResult result) {
+	if (!screenshot_.empty()) {
+		screenshotSaved_ = false;
+		if (result == ramses::ERendererEventResult_OK) {
+			std::vector<uint8_t> buffer;
+			buffer.insert(buffer.end(), &pixelData[0], &pixelData[pixelDataSize]);
+			screenshotSaved_ = ramses::RamsesUtils::SaveImageBufferToPng(screenshot_, buffer, screenshotWidth_, screenshotHeight_, true);
+		}
+		screenshot_.clear();
+	}
 }
 
 void SceneStateEventHandler::offscreenBufferLinked(ramses::displayBufferId_t offscreenBufferId, ramses::sceneId_t sceneId, ramses::dataConsumerId_t, bool success) {
@@ -105,17 +118,26 @@ bool SceneStateEventHandler::waitUntilOrTimeout(const std::function<bool()>& con
 	return conditionFunction();
 }
 
-template <typename T>
-void SceneStateEventHandler::waitForElementInSet(const T element, const std::unordered_set<T>& set) {
-	while (set.find(element) == set.end()) {
-		renderer_.dispatchEvents(*this);
-		renderer_.getSceneControlAPI()->dispatchEvents(*this);
-		std::this_thread::sleep_for(std::chrono::milliseconds(10u));
-	}
+bool SceneStateEventHandler::waitForScreenshot() {
+	waitUntilOrTimeout([&] { return screenshot_.empty(); });
+	return screenshotSaved_;
 }
 
 ramses::RendererSceneState SceneStateEventHandler::sceneState(ramses::sceneId_t sceneId) {
 	return scenes_[sceneId].state;
+}
+
+bool SceneStateEventHandler::saveScreenshot(const std::string& filename, ramses::displayId_t displayId, ramses::displayBufferId_t screenshotBuf, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+	if (screenshot_.empty() && !filename.empty()) {
+		screenshotSaved_ = false;
+		screenshot_ = filename;
+		screenshotWidth_ = width - x;
+		screenshotHeight_ = height - x;
+		renderer_.readPixels(displayId, screenshotBuf, x, y, width, height);
+		renderer_.flush();
+		return true;
+	}
+	return false;
 }
 
 }  // namespace raco::ramses_widgets

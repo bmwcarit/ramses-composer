@@ -10,11 +10,11 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 set(TEST_SOURCES
     Value_test.cpp
     Property_test.cpp
-    StructTypes.h
 )
 
 set(TEST_LIBRARIES
     raco::DataStorage
+    raco::Testing
 )
 
 raco_package_add_test(
@@ -23,3 +23,5 @@ raco_package_add_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+target_link_libraries(libDataStorage_test raco::ramses-logic-lib-client-only)

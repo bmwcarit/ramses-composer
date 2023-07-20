@@ -9,12 +9,12 @@
  */
 #pragma once
 
+#include "PreviewContentWidget.h"
 #include "components/DataChangeDispatcher.h"
 #include "components/DebugInstanceCounter.h"
 #include "ramses_widgets/RendererBackend.h"
 #include <QLabel>
 #include <QMainWindow>
-#include <QToolButton>
 #include <memory>
 
 namespace raco::user_types {
@@ -60,9 +60,12 @@ public:
 public Q_SLOTS:
 	void setViewport(const QSize& sceneSize);
 	void commit(bool forceUpdate);
+	void saveScreenshot();
+	void saveScreenshot(const std::string& fullPath);
 
 private:
 	std::unique_ptr<Ui::PreviewMainWindow> ui_;
+	core::Project* project_;
 	PreviewContentWidget* previewWidget_;
 	PreviewScrollAreaWidget* scrollAreaWidget_;
 	QLabel* sceneIdLabel_;

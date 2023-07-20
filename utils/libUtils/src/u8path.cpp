@@ -82,12 +82,26 @@ const std::filesystem::path& u8path::internalPath() const {
 	return path_.empty();
 }
 
- bool u8path::exists() const {
+ bool u8path::exists(bool caseSensitive) const {
 	std::error_code ec;
 	auto status = std::filesystem::status(path_, ec);
 	if (!ec) {
+#ifdef _WIN32
+		// enforce case-sensitive path name check for Windows systems to unify behavior with Linux builds
+		if (std::filesystem::exists(status)) {
+			if (caseSensitive) {
+				return std::filesystem::canonical(path_, ec) == path_;
+			}
+
+			return true;
+		}
+
+		return false;
+#else
 		return std::filesystem::exists(status);
+#endif
 	}
+
 	return false;
 }
 

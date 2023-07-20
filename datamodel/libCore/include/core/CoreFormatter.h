@@ -18,6 +18,7 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <sstream>
+#include <array>
 
 template <>
 struct fmt::formatter<raco::data_storage::PrimitiveType> : formatter<string_view> {
@@ -168,5 +169,21 @@ struct fmt::formatter<raco::core::LinkDescriptor> : formatter<string_view> {
 			fmt::join(link.start.propertyNames(), "."),
 			ObjectNameOnly{link.end.object()},
 			fmt::join(link.end.propertyNames(), "."));
+	}
+};
+
+template <>
+struct fmt::formatter<std::array<double, 3>> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const std::array<double, 3>& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({}, {}, {})", v[0], v[1], v[2]);
+	}
+};
+
+template <>
+struct fmt::formatter<std::array<double, 4>> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const std::array<double, 4>& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({}, {}, {}, {})", v[0], v[1], v[2], v[3]);
 	}
 };

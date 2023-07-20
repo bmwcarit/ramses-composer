@@ -30,11 +30,9 @@
 #include <QHeaderView>
 #include <QMenu>
 #include <QMessageBox>
-#include <QMimeData>
 #include <QProcess>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
-#include <QStandardItemModel>
 
 namespace raco::object_tree::view {
 
@@ -86,7 +84,7 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 			selectedItemIDs_.erase(deselObj->objectID());
 		}
 
-		Q_EMIT newObjectTreeItemsSelected(getSelectedHandles());
+		Q_EMIT newObjectTreeItemsSelected(getSelectedObjects());
 	});
 
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemExpansionStates);
@@ -111,10 +109,9 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
 }
 
-std::set<core::ValueHandle> ObjectTreeView::getSelectedHandles() const {
+core::SEditorObjectSet ObjectTreeView::getSelectedObjects() const {
 	auto selectedObjects = indicesToSEditorObjects(selectionModel()->selectedIndexes());
-
-	return std::set<ValueHandle>(selectedObjects.begin(), selectedObjects.end());
+	return core::SEditorObjectSet(selectedObjects.begin(), selectedObjects.end());
 }
 
 namespace {
@@ -491,6 +488,12 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	return treeViewMenu;
 }
 
+void ObjectTreeView::dropEvent(QDropEvent *event) {
+	for (const auto& fileInfo : treeModel_->getAcceptableFilesInfo(event->mimeData())) {
+		treeModel_->createNewObjectFromFile(fileInfo);
+	}
+}
+
 void ObjectTreeView::dragMoveEvent(QDragMoveEvent *event) {
 	setDropIndicatorShown(true);
 	QTreeView::dragMoveEvent(event);
@@ -597,15 +600,17 @@ void ObjectTreeView::restoreItemExpansionStates() {
 }
 
 void ObjectTreeView::restoreItemSelectionStates() {
+	// This doesn't emit any signals:
 	selectionModel()->reset();
 	std::vector<QModelIndex> selectedObjects;
 
+	QItemSelection selectedItems;
 	auto selectionIt = selectedItemIDs_.begin();
 	while (selectionIt != selectedItemIDs_.end()) {
 		const auto &selectionID = *selectionIt;
 		auto selectedObjectIndex = indexFromTreeNodeID(selectionID);
 		if (selectedObjectIndex.isValid()) {
-			selectionModel()->select(selectedObjectIndex, SELECTION_MODE);
+			selectedItems.select(selectedObjectIndex, selectedObjectIndex);
 			selectedObjects.emplace_back(selectedObjectIndex);
 			expandAllParentsOfObject(selectedObjectIndex);
 			++selectionIt;
@@ -615,6 +620,9 @@ void ObjectTreeView::restoreItemSelectionStates() {
 	}
 
 	if (!selectedObjects.empty()) {
+		// This does emit a single selectionChanged() signal
+		// TODO is it correct not to send any signal if the selection is now empty?
+		selectionModel()->select(selectedItems, SELECTION_MODE);
 		scrollTo(selectedObjects.front());
 	}
 }

@@ -115,6 +115,7 @@ void DataChangeRecorder::reset() {
 	removedLinks_.clear();
 	changedValidityLinks_.clear();
 	externalProjectMapChanged_ = false;
+	rootOrderChanged_ = false;
 }
 
 DataChangeRecorder DataChangeRecorder::release() {
@@ -207,6 +208,10 @@ void DataChangeRecorder::recordExternalProjectMapChanged() {
 	externalProjectMapChanged_ = true;
 }
 
+void DataChangeRecorder::recordRootOrderChanged() {
+	rootOrderChanged_ = true;
+}
+
 void DataChangeRecorder::mergeChanges(const DataChangeRecorder& other) {
 	for (auto obj : other.createdObjects_) {
 		recordCreateObject(obj);
@@ -242,6 +247,9 @@ void DataChangeRecorder::mergeChanges(const DataChangeRecorder& other) {
 	}
 	if (other.externalProjectMapChanged()) {
 		externalProjectMapChanged_ = true;
+	}
+	if (other.rootOrderChanged()) {
+		rootOrderChanged_ = true;
 	}
 }
 
@@ -323,6 +331,11 @@ bool DataChangeRecorder::externalProjectMapChanged() const {
 	return externalProjectMapChanged_;
 }
 
+bool DataChangeRecorder::rootOrderChanged() const {
+	return rootOrderChanged_;
+}
+
+
 void MultiplexedDataChangeRecorder::addRecorder(DataChangeRecorderInterface* recorder) {
 	recorders_.push_back(recorder);
 }
@@ -389,6 +402,12 @@ void MultiplexedDataChangeRecorder::recordPreviewDirty(SEditorObject const& obje
 void MultiplexedDataChangeRecorder::recordExternalProjectMapChanged() {
 	for (auto recorder : recorders_) {
 		recorder->recordExternalProjectMapChanged();
+	}
+}
+
+void MultiplexedDataChangeRecorder::recordRootOrderChanged() {
+	for (auto recorder : recorders_) {
+		recorder->recordRootOrderChanged();
 	}
 }
 

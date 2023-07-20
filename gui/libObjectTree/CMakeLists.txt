@@ -22,6 +22,7 @@ add_library(libObjectTree
     include/object_tree_view_model/ObjectTreeViewResourceModel.h
     include/object_tree_view_model/ObjectTreeViewSortProxyModels.h src/object_tree_view_model/ObjectTreeViewSortProxyModels.cpp
     src/object_tree_view_model/ObjectTreeViewResourceModel.cpp
+	include/object_creator/ObjectCreator.h src/object_creator/ObjectCreator.cpp
 )
 
 target_include_directories(libObjectTree

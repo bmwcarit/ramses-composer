@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "common_widgets/ObjectSearchView.h"
+#include "property_browser/ObjectSearchView.h"
 
 #include <QDialog>
 #include <QLabel>
@@ -22,11 +22,7 @@ class PropertyBrowserItem;
 
 class PropertyBrowserEditorPopup : public QDialog {
 public:
-	using ObjectSearchView = raco::common_widgets::ObjectSearchView;
-
 	PropertyBrowserEditorPopup(PropertyBrowserItem* item, QWidget* anchor, ObjectSearchView* list);
-
-
 
 protected:
 	bool eventFilter(QObject* obj, QEvent* event);

@@ -9,8 +9,9 @@
  */
 #include "property_browser/editors/RefEditor.h"
 
-#include "common_widgets/ObjectSearchView.h"
+#include "property_browser/ObjectSearchView.h"
 #include "common_widgets/PropertyBrowserButton.h"
+#include "common_widgets/RaCoClipboard.h"
 #include "core/Context.h"
 #include "core/Project.h"
 #include "core/Queries.h"
@@ -18,63 +19,71 @@
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
-#include "property_browser/controls/MouseWheelGuard.h"
-#include "style/Colors.h"
 #include "style/Icons.h"
 
 #include <QApplication>
-#include <QComboBox>
-#include <QDesktopWidget>
-#include <QDialog>
-#include <QEvent>
 #include <QKeyEvent>
-#include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
 
 namespace raco::property_browser {
 
-using namespace raco::style;
+using namespace style;
 
 class RefEditorPopup : public PropertyBrowserEditorPopup {
+	QMetaObject::Connection indexChangedConnection_;
+
 public:
 	class RefSearchView : public ObjectSearchView {
+		core::Project* project_;
+		QMetaObject::Connection itemsChangedConnection_;
+
 	public:
-		RefSearchView(const raco::property_browser::PropertyBrowserRef::RefItems& refs, components::SDataChangeDispatcher dispatcher, core::Project* project, const core::ValueHandle& obj, QWidget* parent)
-			: ObjectSearchView(dispatcher, project, obj, parent), refs_(refs) {
+		RefSearchView(const PropertyBrowserRef* ref, components::SDataChangeDispatcher dispatcher, core::Project* project, const std::set<core::ValueHandle>& objects, QWidget* parent)
+			: ObjectSearchView(dispatcher, project, objects, parent), 
+			project_(project),
+			ref_(ref) {
 			rebuild();
 			updateSelection();
+
+			itemsChangedConnection_ = QObject::connect(ref_, &PropertyBrowserRef::itemsChanged, [this](auto) {
+				rebuild();
+			});
+		}
+
+		~RefSearchView() {
+			QObject::disconnect(itemsChangedConnection_);
 		}
 
 	protected:
 		void rebuild() noexcept override {
 			model_.clear();
 
-			for (auto i = 1; i < refs_.size(); ++i) {
-				auto ref = refs_[i];
+			for (auto i = 1; i < ref_->items().size(); ++i) {
+				auto ref = ref_->items()[i];
 				auto obj = project_->getInstanceByID(ref.objId.toStdString());
-				auto* item = new raco::common_widgets::ObjectSearchViewItem{ref.objName, obj};
+				auto* item = new ObjectSearchViewItem{ref.objName, obj};
 				model_.appendRow(item);
 			}
 		}
 
-	const raco::property_browser::PropertyBrowserRef::RefItems &refs_;
+		const PropertyBrowserRef* ref_;
 	};
 
+	RefEditorPopup(PropertyBrowserItem* item, QWidget* anchor) : PropertyBrowserEditorPopup{item, anchor, new RefSearchView(item->refItem(), item->dispatcher(), item->project(), item->valueHandles(), anchor)} {
+		currentRelation_.setReadOnly(true);
+		deleteButton_.setFlat(true);
+		deleteButton_.setIcon(Icons::instance().remove);
+		update();
 
-	RefEditorPopup(PropertyBrowserItem* item, QWidget* anchor) : PropertyBrowserEditorPopup{item, anchor, new RefSearchView(item->refItem()->items(), item->dispatcher(), item->project(), item->valueHandle(), anchor)} {
-		bool hasRef = (item->refItem()->currentIndex() != PropertyBrowserRef::EMPTY_REF_INDEX);
+		indexChangedConnection_ = QObject::connect(item->refItem(), &PropertyBrowserRef::indexChanged, [this](auto) {
+			update();
+		});
+	}
 
-		if (hasRef) {
-			currentRelation_.setReadOnly(true);
-			currentRelation_.setText(item->refItem()->items().at(item->refItem()->currentIndex()).objName);
-			deleteButton_.setFlat(true);
-			deleteButton_.setIcon(Icons::instance().remove);
-		} else {
-			currentRelation_.setVisible(false);
-			deleteButton_.setVisible(false);
-		}
+	~RefEditorPopup() {
+		QObject::disconnect(indexChangedConnection_);
 	}
 
 protected:
@@ -85,6 +94,23 @@ protected:
 	void removeObjectRelation() override {
 		item_->refItem()->setIndex(PropertyBrowserRef::EMPTY_REF_INDEX);
 	}
+
+	void update() {
+		currentRelation_.setVisible(true);
+		deleteButton_.setVisible(true);
+
+		if (item_->refItem()->hasMultipleValues()) {
+			currentRelation_.setText(PropertyBrowserItem::MultipleValueText);
+		} else {
+			const bool hasRef = (item_->refItem()->currentIndex() != PropertyBrowserRef::EMPTY_REF_INDEX);
+			if (hasRef) {
+				currentRelation_.setText(item_->refItem()->items().at(item_->refItem()->currentIndex()).objName);
+			} else {
+				currentRelation_.setVisible(false);
+				deleteButton_.setVisible(false);
+			}
+		}
+	}
 };
 
 
@@ -93,55 +119,65 @@ RefEditor::RefEditor(
 	QWidget* parent)
 	: PropertyEditor(item, parent),
 	  ref_{item->refItem()} {
-	auto* layout{new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>{this}};
+	auto* layout{new common_widgets::NoContentMarginsLayout<QHBoxLayout>{this}};
 
-	changeRefButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::instance().openInNew, "", this);
+	changeRefButton_ = new common_widgets::PropertyBrowserButton(Icons::instance().openInNew, "", this);
 	QObject::connect(changeRefButton_, &QPushButton::clicked, [this]() {
 		new RefEditorPopup(item_, changeRefButton_);
 	});
-
 	layout->addWidget(changeRefButton_);
 
 	currentRef_ = new QLineEdit{this};
 	currentRef_->setReadOnly(true);
-	currentRef_->setText(ref_->items().at(ref_->currentIndex()).objName);
-	currentRef_->setToolTip(ref_->items().at(ref_->currentIndex()).tooltipText);
 	currentRef_->setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
-	emptyReference_ = (ref_->currentIndex() == PropertyBrowserRef::EMPTY_REF_INDEX);
-	QObject::connect(currentRef_, &QLineEdit::customContextMenuRequested, this, &RefEditor::createCustomContextMenu);
 	layout->addWidget(currentRef_);
 
-	goToRefObjectButton_ = new raco::common_widgets::PropertyBrowserButton(raco::style::Icons::instance().goTo, "", this);
+	goToRefObjectButton_ = new common_widgets::PropertyBrowserButton(Icons::instance().goTo, "", this);
+	layout->addWidget(goToRefObjectButton_);
+
+	updateRef();
+
+	QObject::connect(currentRef_, &QLineEdit::customContextMenuRequested, this, &RefEditor::createCustomContextMenu);
 
 	QObject::connect(goToRefObjectButton_, &QPushButton::clicked, [this, item]() {
 		item->model()->Q_EMIT objectSelectionRequested(ref_->items().at(ref_->currentIndex()).objId);
 	});
 
-	layout->addWidget(goToRefObjectButton_);
-
 	QObject::connect(ref_, &PropertyBrowserRef::indexChanged, [this](auto index) {
-		emptyReference_ = (index == PropertyBrowserRef::EMPTY_REF_INDEX);
-		goToRefObjectButton_->setDisabled(emptyReference_);
-		currentRef_->setText(ref_->items().at(ref_->currentIndex()).objName);
-		currentRef_->setToolTip(ref_->items().at(ref_->currentIndex()).tooltipText);
+		updateRef();
 	});
 
 	// Override the enabled behaviour of the parent class, so that the goto button can remain enabled even though the rest of the control gets disabled.
 	setEnabled(true);
 	currentRef_->setEnabled(item->editable());
 	changeRefButton_->setEnabled(item->editable());
-	goToRefObjectButton_->setEnabled(!emptyReference_);
 	QObject::disconnect(item, &PropertyBrowserItem::editableChanged, this, &QWidget::setEnabled);
 	QObject::connect(item, &PropertyBrowserItem::editableChanged, this, [this]() {
 		currentRef_->setEnabled(item_->editable());
 		changeRefButton_->setEnabled(item_->editable());
-		goToRefObjectButton_->setEnabled(!emptyReference_);
+		auto emptyReference = (ref_->currentIndex() == PropertyBrowserRef::EMPTY_REF_INDEX);
+		goToRefObjectButton_->setDisabled(emptyReference || ref_->hasMultipleValues());
 	});
+}
+
+void RefEditor::updateRef() {
+	if (ref_->hasMultipleValues()) {
+		currentRef_->setText(PropertyBrowserItem::MultipleValueText);
+		currentRef_->setToolTip(PropertyBrowserItem::MultipleValueText);
+	} else {
+		currentRef_->setText(ref_->items().at(ref_->currentIndex()).objName);
+		currentRef_->setToolTip(ref_->items().at(ref_->currentIndex()).tooltipText);
+	}
+	auto emptyReference = (ref_->currentIndex() == PropertyBrowserRef::EMPTY_REF_INDEX);
+	goToRefObjectButton_->setDisabled(emptyReference || ref_->hasMultipleValues());
+	currentRef_->update();
 }
 
 
 bool RefEditor::unexpectedEmptyReference() const noexcept {
-	return emptyReference_ && !item_->valueHandle().query<core::ExpectEmptyReference>();
+	return std::any_of(item_->valueHandles().begin(), item_->valueHandles().end(), [this](const core::ValueHandle& handle) {
+		return handle.asRef() == nullptr && !handle.query<core::ExpectEmptyReference>();
+	});
 }
 
 void RefEditor::createCustomContextMenu(const QPoint& p) {
@@ -149,12 +185,12 @@ void RefEditor::createCustomContextMenu(const QPoint& p) {
 		return;
 	}
 
-	auto deserialization{raco::serialization::deserializeObjects(RaCoClipboard::get())};
+	auto deserialization{serialization::deserializeObjects(RaCoClipboard::get())};
 	if (!deserialization) {
 		return;
 	}
 
-	auto copiedObjects = raco::core::BaseContext::getTopLevelObjectsFromDeserializedObjects(*deserialization, item_->project());
+	auto copiedObjects = core::BaseContext::getTopLevelObjectsFromDeserializedObjects(*deserialization, item_->project());
 
 	if (copiedObjects.empty()) {
 		return;

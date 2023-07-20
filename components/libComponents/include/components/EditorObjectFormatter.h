@@ -19,7 +19,11 @@ struct fmt::formatter<std::shared_ptr<TUserType>> : formatter<string_view> {
 	template <typename FormatContext>
 	auto format(const std::shared_ptr<TUserType>& c, FormatContext& ctx) {
 		static_assert(std::is_base_of<raco::core::EditorObject, TUserType>::value);
-		return formatter<string_view>::format(c->objectName(), ctx);
+		if (c) {
+			return formatter<string_view>::format(c->objectName(), ctx);
+		} else {
+			return formatter<string_view>::format("<None>", ctx);
+		}
 	}
 };
 

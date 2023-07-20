@@ -125,8 +125,11 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return mesh;
 	}
 
-	raco::user_types::SMaterial create_material(const std::string& name, const std::string& relpathVertex, const std::string& relpathFragment) {
+	raco::user_types::SMaterial create_material(const std::string& name, const std::string& relpathVertex, const std::string& relpathFragment, const std::string& relpathGeometry = std::string()) {
 		auto material = create<raco::user_types::Material>(name);
+		if (relpathGeometry.length()) {
+			commandInterface.set({material, {"uriGeometry"}}, (RacoBaseTest<BaseClass>::test_path() / relpathGeometry).string());
+		}
 		commandInterface.set({material, {"uriVertex"}}, (RacoBaseTest<BaseClass>::test_path() / relpathVertex).string());
 		commandInterface.set({material, {"uriFragment"}}, (RacoBaseTest<BaseClass>::test_path() / relpathFragment).string());
 		return material;

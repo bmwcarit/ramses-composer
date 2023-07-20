@@ -11,61 +11,100 @@
 
 #include "Validation.h"
 #include "core/Context.h"
+#include "core/MeshCacheInterface.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
 #include "utils/FileUtils.h"
-#include <algorithm>
+#include "utils/ShaderPreprocessor.h"
 
 namespace raco::user_types {
+
+using utils::shader::ShaderPreprocessor;
 
 const PropertyInterfaceList& Material::attributes() const {
 	return attributes_;
 }
 
+bool validateShaderURI(BaseContext& context, const ValueHandle& uri, bool isNonEmptyRequired) {
+	if (uri.asString().empty() && !isNonEmptyRequired) {
+		context.errors().removeError(uri);
+		return false;
+	}
+
+	return validateURI(context, uri);
+}
+
+std::string Material::loadShader(const Project& project, const ValueHandle& uri) {
+	const std::string shaderPath = PathQueries::resolveUriPropertyToAbsolutePath(project, uri);
+	const ShaderPreprocessor preprocessor(shaderPath);
+	return preprocessor.getProcessedShader();
+}
+
+std::tuple<bool, std::string> Material::validateShader(BaseContext& context, const ValueHandle& uriHandle, bool isNonEmptyUriRequired) {
+	// Clear old listeners associated with shader.
+	const auto shaderPath{PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), uriHandle)};
+	std::set pathsToWatch{shaderPath};
+	std::string shaderCode;
+	auto isPreprocessedShaderValid = false;
+
+	// Check whether URI is specified and file exists.
+	if (validateShaderURI(context, uriHandle, isNonEmptyUriRequired)) {
+		// Preprocess and check for erroneous include directives.
+		const auto preprocessor = ShaderPreprocessor{shaderPath};
+		if (!preprocessor.hasError()) {
+			isPreprocessedShaderValid = true;
+			shaderCode = preprocessor.getProcessedShader();
+			pathsToWatch.insert(preprocessor.getIncludedFiles().begin(), preprocessor.getIncludedFiles().end());
+		} else {
+			context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::ERROR, uriHandle, preprocessor.getError());
+		}
+	}
+
+	recreatePropertyFileWatchers(context, uriHandle.getPropName(), pathsToWatch);
+
+	return {isPreprocessedShaderValid, shaderCode};
+}
+
 void Material::updateFromExternalFile(BaseContext& context) {
 	context.errors().removeError(ValueHandle{shared_from_this()});
-	bool isUriGeometryValid = false;
-	if (uriGeometry_.asString().empty() || (isUriGeometryValid = validateURI(context, ValueHandle{shared_from_this(), &Material::uriGeometry_}))) {
-		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriGeometry_});
-	}
 	bool isUriDefinesValid = false;
-	if (uriDefines_.asString().empty() || (isUriDefinesValid = validateURI(context, ValueHandle{shared_from_this(), &Material::uriDefines_}))) {
-		context.errors().removeError(ValueHandle{shared_from_this(), &Material::uriDefines_});
+	const auto definesUriHandle = ValueHandle{shared_from_this(), &Material::uriDefines_};
+	if (uriDefines_.asString().empty() || (isUriDefinesValid = validateURI(context, definesUriHandle))) {
+		context.errors().removeError(definesUriHandle);
 	}
 
-	isShaderValid_ = false;
+	isShaderProgramValid_ = false;
 	PropertyInterfaceList uniforms;
-	if (validateURIs<const ValueHandle&, const ValueHandle&>(context, ValueHandle{shared_from_this(), &Material::uriFragment_}, ValueHandle{shared_from_this(), &Material::uriVertex_})) {
-		std::string vertexShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriVertex_}))};
-		std::string fragmentShader{raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriFragment_}))};
+	const auto [vertexValid, vertexShader] = validateShader(context, {shared_from_this(), &Material::uriVertex_});
+	const auto [fragmentValid, fragmentShader] = validateShader(context, {shared_from_this(), &Material::uriFragment_});
 
-		std::string geometryShader = "";
-		if (isUriGeometryValid) {
-			geometryShader = {raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriGeometry_}))};
-			// ramses treats the empty string as no geometry shader should be loaded and only shows errors if the stringcontains at least a single character.
-			// We want to display errors. We want to display errors when the file load was successful but the file is empty.
-			if (geometryShader == "") {
-				geometryShader = " ";
-			}
+	const ValueHandle geometryUriHandle{shared_from_this(), &Material::uriGeometry_};
+	auto [geometryValid, geometryShader] = validateShader(context, geometryUriHandle,false);
+
+	// Fragment and vertex shaders are required. Geometry shader is optional and must be valid only if specified.
+	if (fragmentValid && vertexValid && (geometryValid || geometryUriHandle.asString().empty())) {
+		if (geometryValid && geometryShader.empty()) {
+			// Shader file exists but is empty. Trigger compilation by setting contents to single space.
+			geometryShader = " ";
 		}
 
-		std::string shaderDefines = "";
+		std::string shaderDefines;
 		if (isUriDefinesValid) {
 			shaderDefines = {raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriDefines_}))};
 			// ramses treats the empty string as no shader defines should be loaded and only shows errors if the string contains at least a single charcater.
 			// We want to display errors when the file load was successful but the file is empty.
-			if (shaderDefines == "") {
+			if (shaderDefines.empty()) {
 				shaderDefines = " ";
 			}
 		}
 
 		std::string error{};
-		isShaderValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
-		if (error.size() > 0) {
+		isShaderProgramValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
+		if (!error.empty()) {
 			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, error);
 		}
 	}
-	if (!isShaderValid_) {
+	if (!isShaderProgramValid_) {
 		attributes_.clear();
 	}
 

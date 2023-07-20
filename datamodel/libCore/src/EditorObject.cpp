@@ -163,17 +163,17 @@ void EditorObject::onAfterAddReferenceToThis(ValueHandle const& sourceReferenceP
 	}
 }
 
-FileChangeMonitor::UniqueListener EditorObject::registerFileChangedHandler(BaseContext& context, const ValueHandle& value) {
-	auto resourceAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), value);
-	return context.meshCache()->registerFileChangedHandler(resourceAbsPath, {&context, shared_from_this()});
+void EditorObject::recreatePropertyFileWatchers(BaseContext& context, const std::string& propertyName, const std::set<std::string>& paths) {
+	uriListeners_[propertyName].clear();
+	for (const auto& path : paths) {
+		uriListeners_[propertyName].emplace(context.meshCache()->registerFileChangedHandler(path, {&context, shared_from_this()}));
+	}
 }
 
 void EditorObject::onAfterContextActivated(BaseContext& context) {
 	for (size_t i = 0; i < size(); i++) {
 		if (auto anno = get(i)->query<URIAnnotation>(); anno && !anno->isProjectSubdirectoryURI()) {
-			auto propName = name(i);
-			ValueHandle handle{shared_from_this(), {i}};
-			uriListeners_[propName] = registerFileChangedHandler(context, handle);
+			recreatePropertyFileWatchers(context, name(i), {PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {i}})});
 		}
 	}
 	updateFromExternalFile(context);
@@ -182,8 +182,7 @@ void EditorObject::onAfterContextActivated(BaseContext& context) {
 void EditorObject::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
 	if (auto anno = value.query<URIAnnotation>(); anno && !anno->isProjectSubdirectoryURI()) {
 		assert(value.depth() == 1);
-		auto propName = value.getPropName();
-		uriListeners_[propName] = registerFileChangedHandler(context, value);
+		recreatePropertyFileWatchers(context, value.getPropName(), {PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), value)});
 		updateFromExternalFile(context);
 	}
 }

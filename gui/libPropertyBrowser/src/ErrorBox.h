@@ -19,6 +19,8 @@ class ErrorBox final : public QTextEdit {
 public:
 	explicit ErrorBox(const QString& content, core::ErrorLevel errorLevel, QWidget* parent);
 
+	void updateContent(const QString& content);
+
 	QSize sizeHint() const override;
 
 protected:

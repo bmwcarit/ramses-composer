@@ -42,7 +42,7 @@ class GUIPythonTest : public RaCoApplicationTest {
 			raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
 			pyGuard = std::make_unique<py::scoped_interpreter>();
 			raco::python_api::setup(&application);
-			raco::gui_python_api::setup(objectTreeDockManager);
+			raco::gui_python_api::setupObjectTree(objectTreeDockManager);
 		}
 
 		raco::object_tree::model::ObjectTreeViewDefaultModel* objectTreeViewModel;

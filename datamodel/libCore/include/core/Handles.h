@@ -185,12 +185,11 @@ public:
 	// Return '/'-separated property path starting at the root object
 	std::string getPropertyPath(bool useObjectID = false) const;
 
-
 	ValueHandle parent() const;
 
 	// Nesting level of property.
 	size_t depth() const;
-	
+
 	bool operator==(const ValueHandle& right) const;
 	bool operator<(const ValueHandle& right) const;
 

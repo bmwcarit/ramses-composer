@@ -28,6 +28,9 @@ class GeneralTests(unittest.TestCase):
             if object.typeName() == type:
                 return object
 
+    def instance_names(self):
+        return [obj.objectName.value() for obj in raco.instances()]
+
     def test_reset(self):
         raco.reset()
         self.assertEqual(len(raco.instances()), 1)
@@ -629,10 +632,34 @@ class GeneralTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             raco.moveScenegraph(child, parent, 1)
         
-        with self.assertRaises(RuntimeError):
-            raco.moveScenegraph(child, None, 0)
+        raco.moveScenegraph(child, None, 0)
 
-        
+    def test_move_scenegraph_toplevel(self):
+        node1 = raco.create("Node", "node1")
+        node2 = raco.create("Node", "node2")
+        self.assertEqual(self.instance_names(), ["", "node1", "node2"])
+
+        raco.moveScenegraph(node2, node1, 0)
+        self.assertEqual(self.instance_names(), ["", "node1", "node2"])
+
+        raco.moveScenegraph(node2, None, 0)
+        self.assertEqual(self.instance_names(), [ "node2", "", "node1"])
+
+        raco.moveScenegraph(node2, node1, 0)
+        self.assertEqual(self.instance_names(), [ "node2", "", "node1"])
+
+        raco.moveScenegraph(node2, None, 3)
+        self.assertEqual(self.instance_names(), ["", "node1", "node2"])
+
+        raco.moveScenegraph(node1, None, -1)
+        self.assertEqual(self.instance_names(), ["", "node2", "node1"])
+
+        with self.assertRaises(RuntimeError):
+            raco.moveScenegraph(node2, None, 4)
+
+        with self.assertRaises(RuntimeError):
+            raco.moveScenegraph(node2, None, -2)
+
     def test_link_create_remove(self):
         node = raco.create("Node", "node")
         lua = raco.create("LuaScript", "lua")
@@ -1261,3 +1288,22 @@ class GeneralTests(unittest.TestCase):
         # Ramses Logic rejects ByteCodeOnly
         with self.assertRaises(RuntimeError):
             self.export("lua_ByteCodeOnly_FL1", raco.ELuaSavingMode.ByteCodeOnly)
+            
+    def test_resolveUriPropertyToAbsolutePath (self):
+        # load scene to obtain known current project folder:
+        raco.load(self.cwd() + "/../resources/example_scene.rca")
+        self.assertEqual(os.path.normpath(raco.projectPath()), os.path.normpath(self.cwd() + "/../resources/example_scene.rca"))
+
+        lua = raco.create("LuaScript", "lua")
+
+        # check absolute path
+        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
+        self.assertEqual(raco.resolveUriPropertyToAbsolutePath(lua.uri), lua.uri.value())
+
+        # check relative path
+        lua.uri = R"../scripts/types-scalar.lua"
+        abs_path = raco.resolveUriPropertyToAbsolutePath(lua.uri)
+        self.assertEqual(os.path.normpath(abs_path), os.path.normpath(self.cwd() + "/../scripts/types-scalar.lua"))
+
+        with self.assertRaises(RuntimeError):
+            raco.resolveUriPropertyToAbsolutePath(lua.objectName)

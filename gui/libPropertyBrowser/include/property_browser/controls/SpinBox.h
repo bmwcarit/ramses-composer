@@ -12,7 +12,6 @@
 #include "data_storage/Value.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 
-#include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QKeyEvent>
 #include <optional>
@@ -25,13 +24,15 @@ std::optional<T> evaluateLuaExpression(QString expression, T min = raco::data_st
 template <typename T>
 class InternalSpinBox : public QAbstractSpinBox {
 public:
-	InternalSpinBox(QWidget* parent, std::function<void(T)> valueEdited);
+	InternalSpinBox(QWidget* parent, std::function<void(T)> valueEdited, std::function<void()> saveFocusInValue, std::function<void()> restoreFocusInValue);
 
 	QString textFromValue(T value) const;
 	T valueFromText(const QString& text) const;
 
 	T value() const;
 	void setValue(T newValue);
+	void setMultipleValues() const;
+	bool hasMultipleValues() const;
 
 	void setRange(T min, T max);
 
@@ -42,8 +43,9 @@ protected:
 	T value_;
 	T min_;
 	T max_;
-	T focusInOldValue_;
-	std::function<void(T)> valueEdited_;
+	std::function<void(T)> valueEditedFunc_;
+	std::function<void()> saveFocusInValueFunc_;
+	std::function<void()> restoreFocusInValueFunc_;
 
 	void focusInEvent(QFocusEvent* event);
 	void keyPressEvent(QKeyEvent* event);
@@ -55,6 +57,8 @@ public:
 	SpinBox(QWidget* parent = nullptr);
 
 	void setValue(T v);
+	void setMultipleValues();
+	bool hasMultipleValues();
 	T value() const noexcept;
 
 	int outOfRange() const noexcept;
@@ -64,6 +68,8 @@ public:
 
 protected:
 	virtual void emitvalueEdited(T value) = 0;
+	virtual void emitSaveFocusInValue() = 0;
+	virtual void emitRestoreFocusInValue() = 0;
 	virtual void emitEditingFinished() = 0;
 	virtual void emitFocusNextRequested() = 0;
 
@@ -81,11 +87,15 @@ public:
 	DoubleSpinBox(QWidget* parent = nullptr);
 Q_SIGNALS:
 	void valueEdited(double val);
+	void saveFocusInValue();
+	void restoreFocusInValue();
 	void editingFinished();
 	void focusNextRequested();
 
 protected:
 	void emitvalueEdited(double value) override;
+	void emitSaveFocusInValue() override ;
+	void emitRestoreFocusInValue() override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };
@@ -100,11 +110,15 @@ public:
 
 Q_SIGNALS:
 	void valueEdited(int val);
+	void saveFocusInValue();
+	void restoreFocusInValue();
 	void editingFinished();
 	void focusNextRequested();
 
 protected:
 	void emitvalueEdited(int value) override;
+	void emitSaveFocusInValue() override;
+	void emitRestoreFocusInValue() override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };
@@ -118,11 +132,15 @@ public:
 
 Q_SIGNALS:
 	void valueEdited(int64_t val);
+	void saveFocusInValue();
+	void restoreFocusInValue();
 	void editingFinished();
 	void focusNextRequested();
 
 protected:
 	void emitvalueEdited(int64_t value) override;
+	void emitSaveFocusInValue() override;
+	void emitRestoreFocusInValue() override;
 	void emitEditingFinished() override;
 	void emitFocusNextRequested() override;
 };

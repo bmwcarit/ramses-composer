@@ -10,6 +10,7 @@
 
 #include "data_storage/Value.h"
 #include "property_browser/controls/ScalarSlider.h"
+#include "property_browser/PropertyBrowserItem.h"
 #include "style/Colors.h"
 #include "style/Icons.h"
 #include "style/RaCoStyle.h"
@@ -24,13 +25,13 @@
 
 namespace raco::property_browser {
 
-using namespace raco::style;
+using namespace style;
 
 template <typename T>
 ScalarSlider<T>::ScalarSlider(QWidget* parent)
 	: QWidget{parent},
-	  min_(raco::data_storage::numericalLimitMin<T>()),
-	  max_(raco::data_storage::numericalLimitMax<T>()),
+	  min_(data_storage::numericalLimitMin<T>()),
+	  max_(data_storage::numericalLimitMax<T>()),
 	  softMin_(static_cast<T>(0.0)),
 	  softMax_(static_cast<T>(1.0)),
 	  value_(static_cast<T>(0.5)) {
@@ -64,8 +65,8 @@ void ScalarSlider<T>::setSoftRange(T min, T max) {
 template <typename T>
 void ScalarSlider<T>::slotSetValue(T value) {
 	value = std::clamp(value, min_, max_);
-
-	if (value_ != value) {
+	if (multipleValues_ || value_ != value) {
+		multipleValues_ = false;
 		value_ = value;
 		update();
 	}
@@ -106,7 +107,10 @@ void ScalarSlider<T>::paintEvent(QPaintEvent* event) {
 		painter.setClipRect(rect());
 	}
 
-	QString text = std::is_integral<T>::value ? QString::number(value_) : QLocale(QLocale::C).toString(static_cast<double>(value_), 'f', 5);
+	QString text = PropertyBrowserItem::MultipleValueText;
+	if (!multipleValues_) {
+		text = std::is_integral<T>::value ? QString::number(value_) : QLocale(QLocale::C).toString(static_cast<double>(value_), 'f', 5);
+	}
 	painter.drawText(rect(), Qt::AlignHCenter | Qt::AlignVCenter, text);
 
 	if (mouseIsInside_ && !mouseIsDragging_) {

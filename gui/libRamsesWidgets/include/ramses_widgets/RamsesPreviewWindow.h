@@ -61,6 +61,8 @@ public:
 	const State& currentState();
 	State& nextState();
 	void commit(bool forceUpdate = false);
+	
+	bool saveScreenshot(const std::string& fullPath);
 
 private:
 	void* windowHandle_;

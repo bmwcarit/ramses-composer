@@ -82,6 +82,8 @@ set(RACO_PYTHON_EXAMPLE_SCRIPTS
 	python/use_pip_to_install_module.py
 	python/use_pip_to_uninstall_module.py
 	python/migrate_recursive.py
+	python/migrate_recursive_from_v1.0.1.py
+	python/upgrade_fl_recursive.py
 )
 
 foreach(relpath ${RACO_PYTHON_EXAMPLE_SCRIPTS})

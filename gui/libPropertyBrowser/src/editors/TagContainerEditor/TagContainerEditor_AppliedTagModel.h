@@ -26,7 +26,7 @@ namespace raco::property_browser {
 class TagContainerEditor_AppliedTagModel : public QStandardItemModel {
 		Q_OBJECT
 	public:
-		TagContainerEditor_AppliedTagModel(QWidget* parent, raco::core::TagType tagType);
+		TagContainerEditor_AppliedTagModel(QWidget* parent, core::TagType tagType);
 
 		bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
 		bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
@@ -36,6 +36,8 @@ class TagContainerEditor_AppliedTagModel : public QStandardItemModel {
 		void setForbiddenTags(std::set<std::string> const& forbiddenTags) {
 			forbiddenTags_ = forbiddenTags;
 		}
+
+		void setOrderIsReadOnly(bool readonly);
 
 		int rowForTag(QString const& s) const;
 		bool containsTag(QString const& s) const;
@@ -67,9 +69,10 @@ class TagContainerEditor_AppliedTagModel : public QStandardItemModel {
 		int orderIndexForRow(int row) const;
 		int orderIndexForLastRow() const;
 
-		raco::core::TagType const tagType_;
+		core::TagType const tagType_;
 		QStandardItem* addTagWidgetItem_{ nullptr };
 		std::set<std::string> forbiddenTags_;
+		bool orderIsReadOnly_ = false;
 	};
 
 }

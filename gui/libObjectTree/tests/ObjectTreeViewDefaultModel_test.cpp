@@ -692,19 +692,16 @@ TEST_F(ObjectTreeViewDefaultModelTest, ObjectDeletionMultiSelectionIncludingPref
 TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexEmptyIndex) {
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex({});
 	std::vector<std::string> allowedTypesAssert{ Animation::typeDescription.typeName,
-		Node::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName,
+		LuaScript::typeDescription.typeName,
 		MeshNode::typeDescription.typeName,
-		PrefabInstance::typeDescription.typeName,
+		Node::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
-		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName,
+		PrefabInstance::typeDescription.typeName,
 		Skin::typeDescription.typeName};
 
-	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
-	for (int i = 0; i < allowedTypes.size(); ++i) {
-		ASSERT_EQ(allowedTypes[i], allowedTypesAssert[i]);
-	}
+	EXPECT_EQ(allowedTypes, allowedTypesAssert);
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexInvalidParent) {
@@ -722,19 +719,16 @@ TEST_F(ObjectTreeViewDefaultModelTest, TypesAllowedIntoIndexNode) {
 
 	auto allowedTypes = viewModel_->typesAllowedIntoIndex(viewModel_->indexFromTreeNodeID(node->objectID()));
 	std::vector<std::string> allowedTypesAssert{Animation::typeDescription.typeName,
-		Node::typeDescription.typeName,
+		LuaInterface::typeDescription.typeName,
+		LuaScript::typeDescription.typeName,
 		MeshNode::typeDescription.typeName,
-		PrefabInstance::typeDescription.typeName,
+		Node::typeDescription.typeName,
 		OrthographicCamera::typeDescription.typeName,
 		PerspectiveCamera::typeDescription.typeName,
-		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName,
+		PrefabInstance::typeDescription.typeName,
 		Skin::typeDescription.typeName};
 
-	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
-	for (int i = 0; i < allowedTypes.size(); ++i) {
-		ASSERT_EQ(allowedTypes[i], allowedTypesAssert[i]);
-	}
+	EXPECT_EQ(allowedTypes, allowedTypesAssert);
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsSceneGraphObjectsAreAllowedWithEmptyIndex) {
@@ -1079,12 +1073,12 @@ TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedWhenChild
 	ASSERT_FALSE(viewModel_->canPasteIntoIndex({}, parsedObjs, sourceProjectTopLevelObjectIds, true));
 }
 
-TEST_F(ObjectTreeViewDefaultModelTest, CanNotMoveTopLevelObjectThatIsAlreadyInModel) {
+TEST_F(ObjectTreeViewDefaultModelTest, move_toplevel) {
 	auto node = create<Node>("node");
 	dispatch();
 
 	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(node->objectID())});
-	ASSERT_FALSE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, {}));
+	ASSERT_TRUE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, {}));
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, CanNotMoveNodesInsidePrefabInstance) {
@@ -1101,6 +1095,27 @@ TEST_F(ObjectTreeViewDefaultModelTest, CanNotMoveNodesInsidePrefabInstance) {
 
 	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(prefabInstance->children_->asVector<SEditorObject>().front()->objectID())});
 	ASSERT_FALSE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, {}));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, move_to_self_child) {
+	auto node = create<Node>("node");
+	auto child = create<Node>("child", node);
+	dispatch();
+
+	auto childIndex = viewModel_->indexFromTreeNodeID(child->objectID());
+	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(node->objectID())});
+	ASSERT_FALSE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, childIndex));
+}
+
+TEST_F(ObjectTreeViewDefaultModelTest, move_to_other_child) {
+	auto node = create<Node>("node");
+	auto child = create<Node>("child", node);
+	auto move = create<Node>("move");
+	dispatch();
+
+	auto childIndex = viewModel_->indexFromTreeNodeID(child->objectID());
+	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(move->objectID())});
+	ASSERT_TRUE(viewModel_->canDropMimeData(mimeData, Qt::DropAction::MoveAction, 0, 0, childIndex));
 }
 
 TEST_F(ObjectTreeViewDefaultModelTest, CanCopyAndPasteObjectThatIsAlreadyInModel) {

@@ -32,5 +32,6 @@ target_link_libraries(libStyle
         Qt5::Widgets
     PRIVATE
         raco::LogSystem
+        raco::Core
 )
 add_library(raco::Style ALIAS libStyle)

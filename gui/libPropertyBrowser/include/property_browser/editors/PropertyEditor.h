@@ -24,11 +24,17 @@ public:
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
 
+	bool canCopyValue();
+	bool canPasteValue();
+
 	void pasteValue();
 	virtual void copyValue();
 
 protected:
 	PropertyBrowserItem* item_;
+
+	// Made protected to enable unit testing:
+	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value);
 
 private:
 	static void pasteInt(PropertyBrowserItem* item, core::ValueBase* value);
@@ -43,11 +49,8 @@ private:
 	static bool isVector(PropertyBrowserItem* item);
 	static bool isVector(core::ValueBase* value);
 	template <typename T>
-	static T getFittingVectorValueForPasting(data_storage::ReflectionInterface& substructure, const std::string& keyInIntVector, const std::string& keyInDoubleVector);
-	template <typename T>
 	static void pasteVector(PropertyBrowserItem* item, core::ValueBase* value);
 	static void pastePropertyOfSameType(PropertyBrowserItem* item, data_storage::ValueBase* value);
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value);
 };
 
 }  // namespace raco::property_browser

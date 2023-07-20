@@ -12,6 +12,7 @@ add_library(libUtils
     include/utils/CrashDump.h src/CrashDump.cpp
     include/utils/FileUtils.h src/FileUtils.cpp
     include/utils/MathUtils.h src/MathUtils.cpp
+    include/utils/ShaderPreprocessor.h src/ShaderPreprocessor.cpp
     include/utils/u8path.h src/u8path.cpp
     include/utils/ZipUtils.h src/ZipUtils.cpp
 )

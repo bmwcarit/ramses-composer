@@ -10,7 +10,7 @@
 #include "data_storage/Value.h"
 #include "data_storage/Table.h"
 
-#include "StructTypes.h"
+#include "testing/StructTypes.h"
 
 #include "gtest/gtest.h"
 

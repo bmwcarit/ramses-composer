@@ -222,6 +222,14 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 		externalProjectChanged_ = false;
 	}
 
+	if (dataChanges.rootOrderChanged()) {
+		for (auto& listener : rootOrderChangedListeners_) {
+			if (!listener.expired()) {
+				listener.lock()->call();
+			}
+		}
+	}
+
 	if (dataChanges.externalProjectMapChanged()) {
 		for (auto& listener : externalProjectMapChangedListeners_) {
 			if (!listener.expired())
@@ -391,6 +399,15 @@ Subscription DataChangeDispatcher::registerOnExternalProjectMapChanged(Callback 
 	}};
 }
 
+Subscription DataChangeDispatcher::registerOnRootOrderChanged(Callback callback) noexcept {
+	auto listener{std::make_shared<UndoListener>(std::move(callback))};
+	rootOrderChangedListeners_.insert(listener);
+	return Subscription{this, listener,
+		[this, listener]() {
+			rootOrderChangedListeners_.erase(listener);
+		}};
+}
+
 Subscription DataChangeDispatcher::registerOnAfterDispatch(Callback callback) {
 	auto listener{std::make_shared<UndoListener>(std::move(callback))};
 	onAfterDispatchListeners_.insert(listener);
@@ -517,6 +534,7 @@ void DataChangeDispatcher::assertEmpty() {
 	assert(undoChangeListeners_.empty());
 	assert(externalProjectChangedListeners_.empty());
 	assert(externalProjectMapChangedListeners_.empty());
+	assert(rootOrderChangedListeners_.empty());
 	assert(onAfterDispatchListeners_.empty());
 }
 

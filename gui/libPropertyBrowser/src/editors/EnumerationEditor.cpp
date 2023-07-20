@@ -9,18 +9,14 @@
  */
 #include "property_browser/editors/EnumerationEditor.h"
 
-
 #include "core/EngineInterface.h"
 #include "core/Queries.h"
-#include "core/BasicAnnotations.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/controls/MouseWheelGuard.h"
-#include "style/Colors.h"
-#include "user_types/Enumerations.h"
-#include "core/EngineInterface.h"
 
 #include <QComboBox>
+#include <QLabel>
 
 namespace raco::property_browser {
 
@@ -31,37 +27,48 @@ EnumerationEditor::EnumerationEditor(PropertyBrowserItem* item, QWidget* parent)
 	comboBox_->installEventFilter(new MouseWheelGuard());
 	layout->addWidget(comboBox_);
 
-	auto& values = raco::user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(item->query<raco::core::EnumerationAnnotation>()->type_.asInt()));
+	auto& values = user_types::enumerationDescription(static_cast<core::EUserTypeEnumerations>(item->query<core::EnumerationAnnotation>()->type_.asInt()));
 	for (const auto& [entryEnumValue, entryEnumString] : values) {
 		comboBox_->addItem(entryEnumString.c_str());
 		ramsesEnumIndexToComboBoxIndex_[entryEnumValue] = comboBoxIndexToRamsesEnumIndex_.size();
 		comboBoxIndexToRamsesEnumIndex_.emplace_back(entryEnumValue);
 	}
-	if (item->type() == data_storage::PrimitiveType::Bool) {
-		assert(values.size() == 2);
-		comboBox_->setCurrentIndex(item->valueHandle().asBool() ? 1 : 0);		
-	} else {
-		comboBox_->setCurrentIndex(ramsesEnumIndexToComboBoxIndex_[item->valueHandle().asInt()]);
-	}
+
+	// This should work but doesn't in Qt 5.15.2
+	// comboBox_->setPlaceholderText(PropertyBrowserItem::MultipleValueText);
+	// ...so we need to use a workaround instead:
+	auto placeholder = new QLabel("  " + PropertyBrowserItem::MultipleValueText);
+	comboBox_->setLayout(new QVBoxLayout());
+	comboBox_->layout()->setContentsMargins(0, 0, 0, 0);
+	comboBox_->layout()->addWidget(placeholder);
+	// this should work but doesn't
+	//QObject::connect(comboBox_, qOverload<int>(&QComboBox::currentIndexChanged), [placeholder](int index) {
+	//	placeholder->setVisible(index == -1);
+	//});
+
+	auto updateCombobox = [this, item, placeholder]() {
+		auto value = item->as<int>();
+		if (value.has_value()) {
+			comboBox_->setCurrentIndex(ramsesEnumIndexToComboBoxIndex_[value.value()]);
+			placeholder->setVisible(false);
+		} else {
+			comboBox_->setCurrentIndex(-1);
+			placeholder->setVisible(true);
+		}
+	};
+
+	updateCombobox();
+
 	QObject::connect(comboBox_, qOverload<int>(&QComboBox::activated), item, [this, item](int index) {
-		if (item->type() == data_storage::PrimitiveType::Bool) {
-			item->set(index > 0);
-		} else {
-			item->set(comboBoxIndexToRamsesEnumIndex_[index]);
-		}
+		item->set(comboBoxIndexToRamsesEnumIndex_[index]);
 	});
-	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this] (raco::core::ValueHandle& handle) {
-		if (handle.type() == data_storage::PrimitiveType::Bool) {
-			comboBox_->setCurrentIndex(handle.asBool() ? 1 : 0);
-		} else {
-			comboBox_->setCurrentIndex(ramsesEnumIndexToComboBoxIndex_[handle.asInt()]);
-		}
+	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this, updateCombobox]() {
+		updateCombobox();
 	});
 }
 
 int EnumerationEditor::currentIndex() const {
 	return comboBox_->currentIndex();
 }
-
 
 }  // namespace raco::property_browser

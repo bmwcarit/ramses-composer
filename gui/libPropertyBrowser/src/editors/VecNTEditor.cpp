@@ -31,16 +31,20 @@ void VecNTEditorColorPickerButton<N>::paintEvent(QPaintEvent* event) {
 		QPushButton::paintEvent(event);
 
 		QPainter painter{this};
-
 		QPalette pal{palette()};
-
 		painter.setRenderHint(QPainter::Antialiasing);
 		auto backgroundBrush = pal.base();
-		backgroundBrush.setColor(colorFromItem());
 		auto pen = QPen(pal.windowText(), 1.5);
-		painter.setBrush(backgroundBrush);
 		painter.setPen(pen);
-		painter.drawEllipse(QRect(rect().x() + 4 , rect().y() + 4, 16, 16));
+
+		if (item_->hasSingleValue()) {
+			backgroundBrush.setColor(colorFromItem());
+		} else {
+			backgroundBrush.setStyle(Qt::BrushStyle::BDiagPattern);
+			backgroundBrush.setColor(style::Colors::color(style::Colormap::text));
+		}
+		painter.setBrush(backgroundBrush);
+		painter.drawEllipse(QRect(rect().x() + 4, rect().y() + 4, 16, 16));
 	}
 
 template <int N>
@@ -51,7 +55,10 @@ void VecNTEditorColorPickerButton<N>::showColorPicker() {
 		options = QColorDialog::ColorDialogOption::ShowAlphaChannel;
 	}
 
-	auto currentColor = colorFromItem();
+	QColor currentColor(0, 0, 0, 255);
+	if (item_->hasSingleValue()) {
+		currentColor = colorFromItem();
+	}
 
 	QColor color = QColorDialog::getColor(currentColor, this, "Select Color", options);
 
@@ -62,9 +69,9 @@ void VecNTEditorColorPickerButton<N>::showColorPicker() {
 
 template <>
 QColor VecNTEditorColorPickerButton<3>::colorFromItem() const {
-	auto r = item_->children().at(0)->valueHandle().as<double>();
-	auto g = item_->children().at(1)->valueHandle().as<double>();
-	auto b = item_->children().at(2)->valueHandle().as<double>();
+	auto r = item_->children().at(0)->as<double>().value();
+	auto g = item_->children().at(1)->as<double>().value();
+	auto b = item_->children().at(2)->as<double>().value();
 	return QColor::fromRgbF(
 		std::clamp(r, 0.0, 1.0),
 		std::clamp(g, 0.0, 1.0),
@@ -73,10 +80,10 @@ QColor VecNTEditorColorPickerButton<3>::colorFromItem() const {
 
 template <>
 QColor VecNTEditorColorPickerButton<4>::colorFromItem() const {
-	auto r = item_->children().at(0)->valueHandle().as<double>();
-	auto g = item_->children().at(1)->valueHandle().as<double>();
-	auto b = item_->children().at(2)->valueHandle().as<double>();
-	auto a = item_->children().at(3)->valueHandle().as<double>();
+	auto r = item_->children().at(0)->as<double>().value();
+	auto g = item_->children().at(1)->as<double>().value();
+	auto b = item_->children().at(2)->as<double>().value();
+	auto a = item_->children().at(3)->as<double>().value();
 	return QColor::fromRgbF(
 		std::clamp(r, 0.0, 1.0),
 		std::clamp(g, 0.0, 1.0),
@@ -106,7 +113,6 @@ VecNTEditor<T, N>::VecNTEditor(
 		if (auto rangeAnnotation = item->children().at(i)->query<raco::core::RangeAnnotation<T>>()) {
 			spinboxes_[i]->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 		}
-		spinboxes_[i]->setValue(item->children().at(i)->valueHandle().as<T>());
 		QObject::connect(spinboxes_[i].get(), &SpinBoxType::valueEdited, this, [this, item, i](T value) {
 			item->children().at(i)->set(value);
 			updateColorPicker();
@@ -130,6 +136,8 @@ VecNTEditor<T, N>::VecNTEditor(
 	});
 
 	setupColorPicker(item);
+
+	updateSpinBoxesAndColorPicker();
 
 	QObject::connect(item, &PropertyBrowserItem::expandedChanged, this, &VecNTEditor<T, N>::setExpandedMode);
 	setExpandedMode(item->expanded());
@@ -157,31 +165,25 @@ void VecNTEditor<T, N>::setExpandedMode(bool expanded) {
 template <typename T, int N>
 void VecNTEditor<T, N>::updateSpinBoxesAndColorPicker() {
 	for (int i = 0; i < N; i++) {
-		spinboxes_[i]->setValue(item_->children().at(i)->valueHandle().as<T>());
+		auto childItem = item_->children().at(i);
+		auto childValue = childItem->as<T>();
+		if (childValue.has_value()) {
+			spinboxes_[i]->setValue(childValue.value());
+		} else {
+			spinboxes_[i]->setMultipleValues();
+		}
 	}
 	updateColorPicker();
 }
 
 template <typename T, int N>
 void VecNTEditor<T, N>::setupColorPicker(PropertyBrowserItem* item) {
-	// Don't do anything, only 3 and 4 double vectors are supported.
-}
-
-template <>
-void VecNTEditor<double, 3>::setupColorPicker(PropertyBrowserItem* item) {
-	if (item->canBeChosenByColorPicker()) {
-		auto* layout = static_cast<PropertyBrowserGridLayout*>(this->layout());
-		colorPickerButton_ = new VecNTEditorColorPickerButton<3>(item, this);
-		layout->addWidget(colorPickerButton_, 0, 0, Qt::AlignRight);
-	}
-}
-
-template <>
-void VecNTEditor<double, 4>::setupColorPicker(PropertyBrowserItem* item) {
-	if (item->canBeChosenByColorPicker()) {
-		auto* layout = static_cast<PropertyBrowserGridLayout*>(this->layout());
-		colorPickerButton_ = new VecNTEditorColorPickerButton<4>(item, this);
-		layout->addWidget(colorPickerButton_, 0, 0, Qt::AlignRight);
+	if constexpr (N == 3 || N == 4) {
+		if (item->canBeChosenByColorPicker()) {
+			auto* layout = static_cast<PropertyBrowserGridLayout*>(this->layout());
+			colorPickerButton_ = new VecNTEditorColorPickerButton<N>(item, this);
+			layout->addWidget(colorPickerButton_, 0, 0, Qt::AlignRight);
+		}
 	}
 }
 

@@ -153,3 +153,28 @@ of Ramses Composer scenes to Logic and RAMSES files.
 	-o, --outlogfile <log-file-name>    	File name to write log file to.
 	-f, --featurelevel <feature-level>  	RamsesLogic feature level (-1, 1 ... 2)
  	-y, --pythonpath <python-path>			Directory to add to python module search path.
+
+
+## Feature Levels
+
+To allow easier upgrades of RAMSES and RAMSES Logic in the toolchain RAMSES Logic allows to selectively enable only a subset of features using feature levels. To support this in RamsesComposer every project has a feature level which is used when exporting using RAMSES and RAMSES Logic. By keeping the feature level of an existing project  when switching to a newer RamsesComposer version featuring a newer RAMSES Logic the exported files can still be loaded by an older RAMSES Logic supporting the feature level of the project. A RamsesComposer project has to be upgraded explicitly by the user to a new feature level if desired. Upgrading a RamsesComposer project to a newer feature level is needed to access the features provided by that feature level.
+
+The feature level for new projects can be set using the `Preferences Dialog` in the GUI application and via the `-f` commandline option in the headless application.
+
+To upgrade a project to a higher feature level the `-f` commandline option can be used which will attempt to upgrade the initially loaded project given using the `-p` commandline option to the desired feature level. The GUI application also allows a feature level upgrade via the `File/Upgrade Feature Level` menu. The new feature level can't be lower than the current feature level of the project or the upgrade will fail.
+
+A project may reference external projects with the same or lower feature levels but externally referenced projects must not have a higher feature level than the master project.
+
+The following table contains a list of the features enabled in RamsesComposer at various feature levels together with the corresponding RAMSES Logic and RamsesComposer versions making them available.
+
+Feature Level | RAMSES Logic Version | RamsesComposer Version | Feature 
+-|-|-|-
+1 | <=1.0.3 | <= 1.2.0 | Base Features
+2 | 1.1.0 |  1.3.0 | - added AnchorPoint type <br> - linkable RenderPass properties <br> - added `enabled` Node property <br> - frustum planes for PerspectiveCameras
+3 | 1.2.0 | 1.5.0 | dynamic control of render order via links in RenderLayer `renderableTags` properties
+4 | 1.3.0 | 1.6.0 | added Skin type
+5 | 1.4.0 | 1.6.0 | added support for LuaModules in LuaInterfaces
+5 | 1.4.0 | 1.9.0 | linkable `instanceCount` MeshNode 
+
+
+

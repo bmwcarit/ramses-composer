@@ -313,15 +313,17 @@ public:
 	Property<Table, DisplayNameAnnotation> uniforms_{{}, DisplayNameAnnotation("Uniforms")};
 
 	bool isShaderValid() const {
-		return isShaderValid_;
+		return isShaderProgramValid_;
 	}
+
+	// Utility method to get preprocessed shader.
+	static std::string loadShader(const Project& project, const ValueHandle& uri);
 
 	const PropertyInterfaceList& attributes() const;
 
 private:
-	void syncUniforms(BaseContext& context);
-
-	bool isShaderValid_ = false;
+	// Validity of shader program containing all shader stages.
+	bool isShaderProgramValid_ = false;
 
 	PropertyInterfaceList attributes_;
 
@@ -339,6 +341,9 @@ private:
 	void autofillShaderFiles(BaseContext& context, const std::string& fileName, ShaderFileType setShaderProperty);
 	bool areAllOtherShadersEmpty(ShaderFileType fileType);
 	std::string getShaderFileEnding(ShaderFileType shader, bool endsWithDotGlsl);
+
+	// Read, validate and update subscriptions.
+	std::tuple<bool, std::string> validateShader(BaseContext& context, const ValueHandle& uriHandle, bool isNonEmptyUriRequired = true);
 };
 
 using SMaterial = std::shared_ptr<Material>;

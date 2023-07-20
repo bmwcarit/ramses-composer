@@ -17,6 +17,7 @@ target_include_directories(libGUIPythonAPI PUBLIC include/)
 target_link_libraries(libGUIPythonAPI
 PUBLIC
 	raco::ObjectTree
+	raco::RamsesWidgets
 PRIVATE
 	raco::pybind11)
 

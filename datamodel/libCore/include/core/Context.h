@@ -64,6 +64,9 @@ public:
 
 	UserObjectFactoryInterface* objectFactory();
 	EngineInterface& engineInterface();
+
+	void setUriValidationCaseSensitive(bool value);
+	bool isUriValidationCaseSensitive() const;
 	
 	// Basic property changes
 	void set(ValueHandle const& handle, bool const& value);
@@ -219,6 +222,8 @@ private:
 
 	MultiplexedDataChangeRecorder changeMultiplexer_;
 	DataChangeRecorder modelChanges_;
+
+	bool isUriValidationCaseSensitive_ = false;
 };
 
 }

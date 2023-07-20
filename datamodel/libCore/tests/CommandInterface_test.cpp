@@ -46,6 +46,16 @@ TEST_F(CommandInterfaceTest, set_int_fail) {
 	EXPECT_THROW(commandInterface.set({obj, &Foo::i_}, 1), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_multi_int_fail) {
+	auto obj = create<Foo>("name");
+
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, &Foo::b_)}), 1), std::runtime_error);
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, {"no_such_property"})}), 1), std::runtime_error);
+
+	commandInterface.deleteObjects({obj});
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, &Foo::i_)}), 1), std::runtime_error);
+}
+
 TEST_F(CommandInterfaceTest, set_int64_fail) {
 	auto obj = create<Foo>("name");
 	int64_t value = 42;
@@ -57,6 +67,17 @@ TEST_F(CommandInterfaceTest, set_int64_fail) {
 	EXPECT_THROW(commandInterface.set({obj, &Foo::i64_}, value), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_multi_int64_fail) {
+	auto obj = create<Foo>("name");
+	int64_t value = 42;
+
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, &Foo::b_)}), value), std::runtime_error);
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, {"no_such_property"})}), value), std::runtime_error);
+
+	commandInterface.deleteObjects({obj});
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, &Foo::i64_)}), value), std::runtime_error);
+}
+
 TEST_F(CommandInterfaceTest, set_double_fail) {
 	auto obj = create<Foo>("name");
 
@@ -65,6 +86,29 @@ TEST_F(CommandInterfaceTest, set_double_fail) {
 
 	commandInterface.deleteObjects({obj});
 	EXPECT_THROW(commandInterface.set({obj, &Foo::x_}, 2.0), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, set_multi_double_fail) {
+	auto obj = create<Foo>("name");
+
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, &Foo::b_)}), 2.0), std::runtime_error);
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, {"no_such_property"})}), 2.0), std::runtime_error);
+
+	commandInterface.deleteObjects({obj});
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, &Foo::x_)}), 2.0), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, set_multi_double) {
+	auto obj = create<Foo>("name");
+
+	commandInterface.set(
+		std::set<ValueHandle>({ValueHandle(obj, {"v3f", "x"}),
+			ValueHandle(obj, {"v3f", "y"}),
+			ValueHandle(obj, {"v3f", "z"})}),
+		2.0);
+	EXPECT_EQ(*obj->v3f_->x, 2.0);
+	EXPECT_EQ(*obj->v3f_->y, 2.0);
+	EXPECT_EQ(*obj->v3f_->z, 2.0);
 }
 
 TEST_F(CommandInterfaceTest, set_string_fail) {
@@ -327,12 +371,27 @@ TEST_F(CommandInterfaceTest, set_int_fail_invalid_enum) {
 	EXPECT_THROW(commandInterface.set({material, {"options", "cullmode"}}, 42), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_multi_int_fail_invalid_enum) {
+	auto material = create<Material>("mat");
+
+	EXPECT_EQ(material->options_->get("cullmode")->asInt(), 2);
+	commandInterface.set(std::set<ValueHandle>({ValueHandle(material, {"options", "cullmode"})}), 1);
+	EXPECT_EQ(material->options_->get("cullmode")->asInt(), 1);
+
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(material, {"options", "cullmode"})}), 42), std::runtime_error);
+}
+
 TEST_F(CommandInterfaceTest, set_int_fail_read_only) {
 	auto obj = create<Foo>("name");
 		
 	EXPECT_THROW(commandInterface.set({obj, {"readOnly"}}, 27), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_multi_int_fail_read_only) {
+	auto obj = create<Foo>("name");
+
+	EXPECT_THROW(commandInterface.set(std::set<ValueHandle>({ValueHandle(obj, {"readOnly"})}), 27), std::runtime_error);
+}
 
 TEST_F(CommandInterfaceTest, move_scenegraph_fail_prefab_loop) {
 	auto prefab = create<Prefab>("prefab");
@@ -446,9 +505,14 @@ TEST_F(CommandInterfaceTest, move_fail_insertion_index_too_big) {
 }
 
 TEST_F(CommandInterfaceTest, move_fail_insertion_index_invalid_to_root) {
+	auto settings = project.settings();
 	auto node1 = create<Node>("node1");
+	
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node1}));
 
-	EXPECT_THROW(commandInterface.moveScenegraphChildren({node1}, nullptr, 0), std::runtime_error);
+	EXPECT_EQ(commandInterface.moveScenegraphChildren({node1}, nullptr, 0), 1);
+	EXPECT_EQ(commandInterface.moveScenegraphChildren({node1}, nullptr, 2), 1);
+	EXPECT_THROW(commandInterface.moveScenegraphChildren({node1}, nullptr, 3), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_no_start) {

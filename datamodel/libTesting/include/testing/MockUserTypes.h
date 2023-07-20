@@ -172,7 +172,7 @@ public:
 
 	Value<bool> b_{false};
 	Value<int> i_{3};
-	Value<int64_t> i64_;
+	Value<int64_t> i64_{0};
 	Property<double, LinkStartAnnotation, LinkEndAnnotation> x_{2.5, {}, {}};
 	Value<std::string> s_{"cat"};
 	Value<SEditorObject> ref_;

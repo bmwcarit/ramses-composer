@@ -87,6 +87,15 @@ bool ObjectTreeDockManager::docksContainObject(const QString& objID) const {
 	return false;
 }
 
+std::vector<core::SEditorObject> ObjectTreeDockManager::getSelection() const {
+	auto activeDockWhichHasSelection = getActiveDockWithSelection();
+	if (activeDockWhichHasSelection == nullptr || activeDockWhichHasSelection->windowTitle().toStdString() == "Project Browser") {
+		return std::vector<raco::core::SEditorObject>();
+	}
+
+	return activeDockWhichHasSelection->getActiveTreeView()->getSortedSelectedEditorObjects();
+}
+
 void ObjectTreeDockManager::connectTreeDockSignals(ObjectTreeDock* dock) {
 	QObject::connect(dock, &ObjectTreeDock::externalObjectSelected, [this](auto* selectionSrcDock) {
 		// Keep the external dock focused while clearing selection to not show external objects in the Property Browser

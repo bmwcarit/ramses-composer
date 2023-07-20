@@ -21,11 +21,6 @@ public:
 	ObjectTreeViewPrefabModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
 
 	QVariant data(const QModelIndex& index, int role) const override;
-	bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const override;
-	std::vector<std::string> typesAllowedIntoIndex(const QModelIndex& index) const override;
-
-protected:
-	std::vector<core::SEditorObject> filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const override;
 };
 
 }  // namespace raco::object_tree::model

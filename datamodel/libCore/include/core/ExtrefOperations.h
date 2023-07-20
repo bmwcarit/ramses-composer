@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "EditorObject.h"
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +56,13 @@ public:
 	// @exception ExtrefError
 	static void updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext);
 
+	// Check if an external reference update would fail if the rootObjects would all be in the current project.
+	// 
+	// This will collect all external objects as is done in the actual external reference update but starting
+	// with the supplied set of objects instead of the external reference objects in the current project.
+	//
+	// In case of failure this will throw the same exception as an actual external reference update would.
+	static void precheckExternalReferenceUpdate(Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext, std::vector<SEditorObject> rootObjects);
 };
 
 }  // namespace raco::core

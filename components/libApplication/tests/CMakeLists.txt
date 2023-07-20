@@ -63,6 +63,9 @@ raco_package_test_resources_process(
     export-interface-link-opt-2.rca
     export-interface-link-opt-3.rca
     export-interface-link-opt-4.rca
+    export-interface-opt-no-ending.rca
+    export-interface-opt-ending-valid.rca
+    export-interface-opt-ending-invalid.rca
     scripts/script1.lua
     scripts/script2.lua
     interfaces/script1.lua

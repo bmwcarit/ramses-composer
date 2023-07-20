@@ -60,7 +60,7 @@ public:
 
 	// Convenience methods to extend std::filesystem::path functionality
 
-	bool exists() const;
+	bool exists(bool caseSensitive = false) const;
 	bool existsDirectory() const;
 	bool existsFile() const;
 	bool userHasReadAccess() const;

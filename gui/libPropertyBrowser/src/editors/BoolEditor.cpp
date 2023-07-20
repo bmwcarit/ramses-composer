@@ -11,7 +11,6 @@
 
 #include "core/Queries.h"
 #include "property_browser/PropertyBrowserItem.h"
-#include "style/Colors.h"
 
 #include <QCheckBox>
 #include <property_browser/PropertyBrowserLayouts.h>
@@ -21,17 +20,28 @@ BoolEditor::BoolEditor(
 	PropertyBrowserItem* item,
 	QWidget* parent)
 	: PropertyEditor(item, parent) {
+	
+	checkBox_ = new QCheckBox{this};
+	checkBox_->setTristate(true);
+	setCheckState();
 
 	auto* layout{new PropertyBrowserHBoxLayout{this}};
-	checkBox_ = new QCheckBox{this};
-	QObject::connect(checkBox_, &QCheckBox::clicked, item, [item](bool checked) { item->set(checked); });
-	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, [this](core::ValueHandle& handle) { checkBox_->setChecked(handle.asBool()); });
-	checkBox_->setChecked(item->valueHandle().asBool());
 	layout->addWidget(checkBox_);
-
+	
+	QObject::connect(item, &PropertyBrowserItem::valueChanged, this, &BoolEditor::setCheckState);
+	QObject::connect(checkBox_, &QCheckBox::clicked, item, [item](bool checked) { item->set(checked); });
 	QObject::connect(item, &PropertyBrowserItem::widgetRequestFocus, this, [this]() {
 		checkBox_->setFocus();
 	});
+}
+
+void BoolEditor::setCheckState() const {
+	const auto value = item_->as<bool>();
+	if (value.has_value()) {
+		checkBox_->setCheckState(value.value() ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	} else {
+		checkBox_->setCheckState(Qt::CheckState::PartiallyChecked);
+	}
 }
 
 }  // namespace raco::property_browser

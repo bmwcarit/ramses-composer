@@ -50,6 +50,30 @@ void Project::addInstance(SEditorObject object) {
 	instanceMap_[object->objectID()] = object;
 }
 
+int Project::moveInstance(SEditorObject object, int insertBeforeIndex) {
+	auto it = std::find(instances_.begin(), instances_.end(), object);
+	auto oldIndex = it - instances_.begin();
+	
+	if (oldIndex == insertBeforeIndex || oldIndex + 1 == insertBeforeIndex) {
+		// Moving the object to before itself or to before its successor is a NOP:
+		return oldIndex;
+	} else if (insertBeforeIndex > oldIndex) {
+		// if moving towards the end we need to adjust the insertion index since removing the
+		// object in its current position will shift the insertion index by one.
+		--insertBeforeIndex;
+	}
+
+	instances_.erase(it);
+	if (insertBeforeIndex == -1) {
+		instances_.emplace_back(object);
+		return instances_.size() - 1;
+	} else {
+		instances_.insert(instances_.begin() + insertBeforeIndex, object);
+		return insertBeforeIndex;
+	}
+}
+
+
 const std::vector<SEditorObject>& Project::instances() const {
 	return instances_;
 }
@@ -309,6 +333,10 @@ bool Project::usesExternalProjectByPath(const std::string& absPath) const {
 
 const std::map<std::string, serialization::ExternalProjectInfo>& Project::externalProjectsMap() const {
 	return externalProjectsMap_;  
+}
+
+void Project::replaceExternalProjectsMappings(const std::map<std::string, serialization::ExternalProjectInfo>& newExtProjectMappings) {
+	externalProjectsMap_ = newExtProjectMappings;
 }
 
 bool Project::gcExternalProjectMapping() {

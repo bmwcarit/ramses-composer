@@ -673,10 +673,37 @@ std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralize
 		
 	BaseContext::generateNewObjectIDs(newObjects);
 
+	// Check in advance if external reference update at the end will succeed.
+	// We need to do this because we can't abort anymore once we changed the project.
+	if (pasteAsExtref) {
+		try {
+			LoadContext loadContext;
+			loadContext.featureLevel = project_->featureLevel();
+			loadContext.pathStack.emplace_back(project_->currentPath());
+
+			std::vector<SEditorObject> rootObjects;
+			for (const auto& object : project_->instances()) {
+				if (object->query<ExternalReferenceAnnotation>()) {
+					rootObjects.emplace_back(object);
+				}
+			}
+			std::copy(newObjects.begin(), newObjects.end(), std::back_inserter(rootObjects));
+
+			ExtrefOperations::precheckExternalReferenceUpdate(project_, *externalProjectsStore_, loadContext, rootObjects);
+		} catch (const ExtrefError& e) {
+			project_->gcExternalProjectMapping();
+			throw e;
+		}
+	}
+
+	// From this point onwards we must not fail the operation anymore because we are starting to change 
+	// the project.
+
 	for (auto& editorObject : newObjects) {
 		project_->addInstance(editorObject);
 		changeMultiplexer_.recordCreateObject(editorObject);
 	}
+	changeMultiplexer_.recordRootOrderChanged();
 
 	// collect all top level objects (e.g. everything which doesn't have a parent)
 	std::vector<SEditorObject> topLevelObjects{};
@@ -817,6 +844,7 @@ SEditorObject BaseContext::createObject(std::string type, std::string name, std:
 	object->onAfterContextActivated(*this);
 
 	changeMultiplexer_.recordCreateObject(object);
+	changeMultiplexer_.recordRootOrderChanged();
 
 	return object;
 }
@@ -935,6 +963,7 @@ size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, boo
 	for (auto obj : toRemove) {
 		changeMultiplexer_.recordDeleteObject(obj);
 	}
+	changeMultiplexer_.recordRootOrderChanged();
 
 	return toRemove.size();
 }
@@ -968,6 +997,12 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 
 		if (newParent) {
 			addProperty({newParent, &EditorObject::children_}, std::string(), std::make_unique<Value<SEditorObject>>(object), insertBeforeIndex);
+		} else {
+			auto newIndex = project_->moveInstance(object, insertBeforeIndex);
+			if (insertBeforeIndex != -1) {
+				insertBeforeIndex = newIndex;
+			}
+			changeMultiplexer_.recordRootOrderChanged();
 		}
 
 		if (insertBeforeIndex != -1) {
@@ -1332,6 +1367,13 @@ std::vector<SEditorObject> BaseContext::getTopLevelObjectsFromDeserializedObject
 	}
 
 	return topLevelObjects;
+}
+
+void BaseContext::setUriValidationCaseSensitive(bool value) {
+	isUriValidationCaseSensitive_ = value;
+}
+bool BaseContext::isUriValidationCaseSensitive() const {
+	return isUriValidationCaseSensitive_;
 }
 
 }  // namespace raco::core

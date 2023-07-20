@@ -41,6 +41,11 @@ QSize ErrorBox::sizeHint() const {
 	return document()->size().toSize();
 }
 
+void ErrorBox::updateContent(const QString& content) {
+	setPlainText(content);
+	update();
+}
+
 void ErrorBox::paintEvent(QPaintEvent* event) {
 	if (size().height() != sizeHint().height()) {
 		setMinimumHeight(sizeHint().height());

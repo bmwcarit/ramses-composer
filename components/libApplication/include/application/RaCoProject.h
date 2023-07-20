@@ -24,6 +24,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <QFileInfo>
 
 namespace raco::components {
 class TracePlayer;
@@ -68,6 +69,13 @@ public:
 	static std::unique_ptr<RaCoProject> createNew(RaCoApplication* app, bool createDefaultScene, int featureLevel);
 
 	/**
+	 * @brief Loads and checks project file
+	 * @param filename path to the project file
+	 * @return file JSON content
+	 */
+	static QJsonDocument loadFileDocument(const QFileInfo& fileInfo);
+
+	/**
 	 * @brief Load scene
 	 * @param featureLevel update scene to given feature level if >0 and use feature level from file if -1
 	 * @exception FutureFileVersion when the loaded file contains a file version which is bigger than the known versions
@@ -95,6 +103,7 @@ public:
 
 	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
+	void applyPreferences() const;
 	void applyDefaultCachedPaths();
 	void setupCachedPathSubscriptions(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
 		

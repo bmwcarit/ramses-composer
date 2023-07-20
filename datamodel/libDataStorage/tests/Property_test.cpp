@@ -11,7 +11,7 @@
 
 #include "data_storage/AnnotationBase.h"
 
-#include "StructTypes.h"
+#include "testing/StructTypes.h"
 
 #include <memory>
 #include <stdexcept>

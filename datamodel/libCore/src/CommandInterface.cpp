@@ -110,6 +110,16 @@ bool CommandInterface::checkScalarHandleForSet(ValueHandle const& handle, Primit
 	return true;
 }
 
+std::string CommandInterface::getMergeId(const std::set<ValueHandle>& handles) {
+	 if (handles.size() > 1) {
+		std::vector<std::string> paths;
+		std::transform(handles.begin(), handles.end(), std::inserter(paths, paths.end()), [](auto handle) {
+			return handle.getPropertyPath(true);
+		});
+		return fmt::format("({})", fmt::join(paths, ", "));
+	 }
+	return handles.begin()->getPropertyPath(true);
+}
 
 void CommandInterface::set(ValueHandle const& handle, bool const& value) {
 	if (checkScalarHandleForSet(handle, PrimitiveType::Bool) && handle.asBool() != value) {
@@ -121,7 +131,7 @@ void CommandInterface::set(ValueHandle const& handle, bool const& value) {
 }
 
 bool CommandInterface::canSet(ValueHandle const& handle, int const& value) const {
-	if (canSetHandle(handle, PrimitiveType::Int) && handle.asInt() != value) {
+	if (canSetHandle(handle, PrimitiveType::Int)) {
 		if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
 			auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
 			if (description.find(value) == description.end()) {
@@ -141,7 +151,7 @@ void CommandInterface::set(ValueHandle const& handle, int const& value) {
 				throw std::runtime_error(fmt::format("Value '{}' not in enumeration type", value));
 			}
 		}
-		
+
 		context_->set(handle, value);
 		PrefabOperations::globalPrefabUpdate(*context_);
 		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
@@ -149,6 +159,34 @@ void CommandInterface::set(ValueHandle const& handle, int const& value) {
 	}
 }
 
+void CommandInterface::set(const std::set<ValueHandle>& handles, int value) {
+	if (std::all_of(handles.begin(), handles.end(), [this, value](auto handle) {
+			if (checkScalarHandleForSet(handle, PrimitiveType::Int)) {
+				if (auto anno = handle.template query<raco::core::EnumerationAnnotation>()) {
+					auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
+					if (description.find(value) == description.end()) {
+						throw std::runtime_error(fmt::format("Value '{}' not in enumeration type", value));
+						return false;
+					}
+				}
+				return true;
+			}
+			return false;
+		}) &&
+		std::any_of(handles.begin(), handles.end(), [value](auto handle) {
+			return handle.asInt() != value;
+		})) {
+		for (auto handle : handles) {
+			if (handle.asInt() != value) {
+				context_->set(handle, value);
+			}
+		}
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set property '{}' to {}", Queries::getPropertyPath(handles), value), getMergeId(handles));
+	}
+}
+ 
 void CommandInterface::set(ValueHandle const& handle, int64_t const& value) {
 	if (checkScalarHandleForSet(handle, PrimitiveType::Int64) && handle.asInt64() != value) {
 		context_->set(handle, value);
@@ -158,12 +196,48 @@ void CommandInterface::set(ValueHandle const& handle, int64_t const& value) {
 	}
 }
 
+void CommandInterface::set(const std::set<ValueHandle>& handles, int64_t value) {
+	if (std::all_of(handles.begin(), handles.end(), [this](auto handle) {
+			return checkScalarHandleForSet(handle, PrimitiveType::Int64);
+		}) &&
+		std::any_of(handles.begin(), handles.end(), [value](auto handle) {
+			return handle.asInt64() != value;
+		})) {
+		for (auto handle : handles) {
+			if (handle.asInt64() != value) {
+				context_->set(handle, value);
+			}
+		}
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set property '{}' to {}", Queries::getPropertyPath(handles), value), getMergeId(handles));
+	}
+}
+
 void CommandInterface::set(ValueHandle const& handle, double const& value) {
 	if (checkScalarHandleForSet(handle, PrimitiveType::Double) && handle.asDouble() != value) {
 		context_->set(handle, value);
 		PrefabOperations::globalPrefabUpdate(*context_);
 		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
 			fmt::format("{}", handle.getPropertyPath(true)));
+	}
+}
+
+void CommandInterface::set(const std::set<ValueHandle>& handles, double const& value) {
+	if (std::all_of(handles.begin(), handles.end(), [this](auto handle) {
+			return checkScalarHandleForSet(handle, PrimitiveType::Double);
+		}) &&
+		std::any_of(handles.begin(), handles.end(), [value](auto handle) {
+			return handle.asDouble() != value;
+		})) {
+		for (auto handle : handles) {
+			if (handle.asDouble() != value) {
+				context_->set(handle, value);
+			}
+		}
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set property '{}' to {}", Queries::getPropertyPath(handles), value), getMergeId(handles));
 	}
 }
 
@@ -185,7 +259,7 @@ void CommandInterface::set(ValueHandle const& handle, SEditorObject const& value
 		if (!Queries::isValidReferenceTarget(*context_->project(), handle, value)) {
 			throw std::runtime_error(fmt::format("Property '{}' can't be set to '{}': invalid reference value", handle.getPropertyPath(), value->objectID()));
 		}
-		
+
 		context_->set(handle, value);
 		PrefabOperations::globalPrefabUpdate(*context_);
 		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(),
@@ -424,7 +498,7 @@ size_t CommandInterface::moveScenegraphChildren(std::vector<SEditorObject> const
 			throw std::runtime_error(fmt::format("Scenegraph move: insertion index '{}' for new parent '{}' is out of range", insertBeforeIndex, newParent->objectName()));
 		}
 	} else {
-		if (insertBeforeIndex != -1) {
+		if (insertBeforeIndex < -1 || insertBeforeIndex > static_cast<int>(project()->instances().size())) {
 			throw std::runtime_error(fmt::format("Scenegraph move: insertion index '{}' for new parent <root> is out of range", insertBeforeIndex));
 		}
 	}
@@ -490,26 +564,20 @@ std::vector<SEditorObject> CommandInterface::pasteObjects(const std::string& val
 		throw std::runtime_error(fmt::format("Paste objects: target object '{}' not in project", target->objectName()));
 	}
 
-	std::vector<SEditorObject> result;
-	if (Queries::canPasteIntoObject(*project(), target)) {
-		try {
-			result = context_->pasteObjects(val, target, pasteAsExtref);
-
-			PrefabOperations::globalPrefabUpdate(*context_);
-			undoStack_->push(fmt::format("Paste {} into '{}'",
-				pasteAsExtref ? std::string("as external reference") : std::string(),
-				target ? target->objectName() : "<root>"));
-		}
-		catch (ExtrefError& e) {
-			// Force restoring project from last undo stack state.
-			// Necessary to get consistent state when "paste as external reference" fails only during the external reference update.
-			undoStack_->setIndex(undoStack_->getIndex(), true);
-			throw std::runtime_error(fmt::format("Paste as external reference: external reference update failed with error '{}'", e.what()));
-		}
-	}
-	else {
+	if (!Queries::canPasteIntoObject(*project(), target)) {
 		throw std::runtime_error(fmt::format("Paste objects: invalid paste target '{}'", target->objectName()));
 	}
+
+	std::vector<SEditorObject> result;
+	// Note Context::pasteObjects will throw an exception if pasting as external reference is not possible but
+	// the project will remain unchanged in this case.
+	result = context_->pasteObjects(val, target, pasteAsExtref);
+
+	PrefabOperations::globalPrefabUpdate(*context_);
+	undoStack_->push(fmt::format("Paste {} into '{}'",
+		pasteAsExtref ? std::string("as external reference") : std::string(),
+		target ? target->objectName() : "<root>"));
+
 	return result;
 }
 
@@ -536,10 +604,8 @@ std::vector<SEditorObject> CommandInterface::duplicateObjects(const std::vector<
 		duplicatedObjs.emplace_back(duplicatedObj);
 	}
 
-	if (!duplicatedObjs.empty()) {
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Duplicate {} object{}", duplicatedObjs.size(), duplicatedObjs.size() > 1 ? "s" : ""));
-	}
+	PrefabOperations::globalPrefabUpdate(*context_);
+	undoStack_->push(fmt::format("Duplicate {} object{}", duplicatedObjs.size(), duplicatedObjs.size() > 1 ? "s" : ""));
 
 	return duplicatedObjs;
 }
@@ -586,6 +652,17 @@ size_t CommandInterface::deleteUnreferencedResources() {
 		return deleteObjects(toRemove);
 	}
 	return 0;
+}
+
+void CommandInterface::executeCompositeCommand(std::function<void()> compositeCommand, const std::string &description) {
+	undoStack_->beginCompositeCommand();
+	try {
+		compositeCommand();
+	} catch (const std::exception&) {
+		undoStack_->endCompositeCommand(description, true);
+		throw;
+	}
+	undoStack_->endCompositeCommand(description);
 }
 
 }  // namespace raco::core

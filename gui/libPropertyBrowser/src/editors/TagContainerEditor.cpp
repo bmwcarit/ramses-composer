@@ -34,21 +34,7 @@ namespace raco::property_browser {
 TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* parent) : PropertyEditor(item, parent) {
 	auto* layout{new PropertyBrowserGridLayout{this}};
 
-	if (item->valueHandle().isRefToProp(&user_types::EditorObject::userTags_)) {
-		tagType_ = raco::core::TagType::UserTags;
-	} else if (item->valueHandle().rootObject()->isType<user_types::Material>()) {
-		tagType_ = raco::core::TagType::MaterialTags;
-	} else if (item->valueHandle().rootObject()->isType<user_types::RenderLayer>()) {
-		if (item->valueHandle().isRefToProp(&user_types::RenderLayer::materialFilterTags_)) {
-			tagType_ = raco::core::TagType::MaterialTags;
-		} else if (item->valueHandle().isRefToProp(&user_types::RenderLayer::renderableTags_)) {
-			tagType_ = raco::core::TagType::NodeTags_Referencing;
-		} else {
-			tagType_ = raco::core::TagType::NodeTags_Referenced;
-		}
-	} else {
-		tagType_ = raco::core::TagType::NodeTags_Referenced;
-	}
+	tagType_ = core::Queries::getHandleTagType(*item->valueHandles().begin());
 
 	layout->setColumnStretch(0, 0);
 	layout->setColumnStretch(1, 1);
@@ -63,6 +49,11 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 	tagList_ = new QListWidget{this};
 	tagList_->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 	tagList_->setSelectionMode(QAbstractItemView::NoSelection);
+
+	if (item_->valueHandles().size() > 1) {
+		editButton_->setDisabled(true);
+		tagList_->setDisabled(true);
+	}
 
 	layout->addWidget(tagList_, 0, 1, Qt::AlignTop);
 
@@ -82,11 +73,13 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 			item->dispatcher()->registerOnPropertyChange("materialFilterMode", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
 			item->dispatcher()->registerOnPropertyChange("materialFilterTags", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); }),
 			item->dispatcher()->registerOnPropertyChange("renderableTags", [this](core::ValueHandle handle) { Q_EMIT tagCacheDirty(); })};
-		if (auto meshNode = item->valueHandle().rootObject()->as<user_types::MeshNode>(); meshNode != nullptr) {
-			materialPropertySubscription_ = item->dispatcher()->registerOn(core::ValueHandle{meshNode, &user_types::MeshNode::materials_}, [this]() { Q_EMIT tagCacheDirty(); });
-		}
+		std::for_each(item->valueHandles().begin(), item->valueHandles().end(), [&item, this](const core::ValueHandle& handle) {
+			if (auto meshNode = handle.rootObject()->as<user_types::MeshNode>(); meshNode != nullptr) {
+				materialPropertySubscriptions_.emplace_back(item->dispatcher()->registerOn(core::ValueHandle{meshNode, &user_types::MeshNode::materials_}, [this]() { Q_EMIT tagCacheDirty(); }));
+			}
+		});
 		// Pool all refreshs in one frame into one refresh.
-		QObject::connect(this, &TagContainerEditor::tagCacheDirty, this, &TagContainerEditor::updateRenderedBy, Qt::QueuedConnection);
+		QObject::connect(this, &TagContainerEditor::tagCacheDirty, this, &TagContainerEditor::updateTextAndButton, Qt::QueuedConnection);
 
 		renderedBy_ = new QLabel{this};
 		renderedBy_->setForegroundRole(QPalette::BrightText);
@@ -112,54 +105,85 @@ void TagContainerEditor::editButtonClicked() const {
 
 void TagContainerEditor::updateTags() const {
 	tagList_->clear();
-	if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
-		const auto order = static_cast<user_types::ERenderLayerOrder>(item_->valueHandle().rootObject()->as<user_types::RenderLayer>()->sortOrder_.asInt());		
-		std::map<int, QStringList> tagsSorted;
-		for (size_t index{0}; index < item_->valueHandle().size(); index++) {
-			auto tag = item_->valueHandle()[index].getPropName();
-			auto orderIndex = order == user_types::ERenderLayerOrder::Manual ? item_->valueHandle()[index].asInt() : 0;
-			tagsSorted[orderIndex].append(QString::fromStdString(tag));
+
+	// Rearrange tags from all value handles into the map which has tag name as a key
+	std::map<std::string, std::set<core::ValueHandle>> tagHandlesMap;
+	std::for_each(item_->valueHandles().begin(), item_->valueHandles().end(), [this, &tagHandlesMap](const core::ValueHandle& handle) {
+		for (size_t index{0}; index < handle.size(); index++) {
+			std::string tag;
+			if (tagType_ == core::TagType::NodeTags_Referencing) {
+				tag = handle[index].getPropName();
+			} else {
+				tag = handle[index].asString();
+			}
+
+			if (tagHandlesMap.find(tag) == tagHandlesMap.end()) {
+				tagHandlesMap[tag] = {};
+			}
+			tagHandlesMap[tag].insert(handle);
 		}
-		for (auto const& p : tagsSorted) {
-			tagList_->addItem(p.second.join(", "));
+	});
+
+	bool multipleValues = false;
+	std::vector<std::string> commonTags;
+	std::for_each(tagHandlesMap.begin(), tagHandlesMap.end(), [this, &multipleValues, &commonTags](const std::pair<std::string, std::set<core::ValueHandle>>& tagHandlesPair) {
+		if (tagHandlesPair.second.size() == item_->valueHandles().size()) { // if all handles have this tag
+			commonTags.emplace_back(tagHandlesPair.first);
+		} else if (!tagHandlesPair.second.empty()) {
+			multipleValues = true;
 		}
-	} else {
-		tagList_->setSortingEnabled(true);
-		for (size_t index{0}; index < item_->valueHandle().size(); index++) {
-			auto tag = item_->valueHandle()[index].asString();
-			tagList_->addItem(QString::fromStdString(tag));
-		}
+	});
+
+	if (multipleValues) {
+		tagList_->addItem("Multiple values");
 	}
+
+	std::for_each(commonTags.begin(), commonTags.end(), [this](const std::string& commonTag) {
+		tagList_->addItem(QString::fromStdString(commonTag));
+	});
+
 	if (tagList_->count() == 0) {
 		// we need a dummy item to make the double click work on empty lists.
 		tagList_->addItem("");
 	}
 	tagList_->setFixedHeight(std::max(tagList_->fontMetrics().height(), tagList_->sizeHintForRow(0) * tagList_->count()) + 2 * tagList_->frameWidth());
 
-	updateRenderedBy();
+	updateTextAndButton();
 }
 
-void TagContainerEditor::updateRenderedBy() const {
+void TagContainerEditor::updateTextAndButton() const {
 	if (!showRenderedBy()) {
 		return;
 	}
-	const auto tagData = raco::core::TagDataCache::createTagDataCache(item_->project(), raco::core::TagType::NodeTags_Referencing);
-	auto alltags = core::Queries::renderableTagsWithParentTags(item_->valueHandle().rootObject());
-	const auto rps = tagData->allRenderPassesForObjectWithTags(item_->valueHandle().rootObject(), alltags);
-	if (!rps.empty()) {
-		renderedBy_->setText(QString::fromStdString(fmt::format("Rendered by: {}", rps)));
-	} else {
-		auto rls = tagData->allReferencingObjects<user_types::RenderLayer>(alltags);
-		if (!rls.empty()) {
-			renderedBy_->setText(QString::fromStdString(fmt::format("Rendered by: <none>\nAdded to: {}", rls)));
-		} else {
-			renderedBy_->setText(QString::fromStdString("Rendered by: <none>\nAdded to: <none>"));			
-		}
+
+	std::set<std::shared_ptr<user_types::RenderPass>> renderedBy;
+	std::set<std::shared_ptr<user_types::RenderLayer>> addedTo;
+	bool isMultipleRenderedBy = false;
+	bool isMultipleAddedTo = false;
+	item_->getTagsInfo(renderedBy, isMultipleRenderedBy, addedTo, isMultipleAddedTo);
+	std::string renderedByText = "Rendered by: <none>\n";
+	if (isMultipleRenderedBy) {
+		renderedByText = "Rendered by: Multiple values\n";
 	}
+	else if (!renderedBy.empty()) {
+		renderedByText = fmt::format("Rendered by: {}\n", renderedBy);
+	}
+
+	if (isMultipleAddedTo) {
+		renderedByText += "Added to: Multiple values";
+	}
+	else if (!addedTo.empty()) {
+		renderedByText += fmt::format("Added to: {}", addedTo);
+	} else {
+		renderedByText += "Added to: <none>";
+	}
+	renderedBy_->setText(QString::fromStdString(renderedByText));
 }
 
 bool TagContainerEditor::showRenderedBy() const {
-	return core::Queries::isUserTypeInTypeList(item_->valueHandle().rootObject(), core::Queries::UserTypesWithRenderableTags()) && core::Queries::isTagProperty(item_->valueHandle());
+	return std::all_of(item_->valueHandles().begin(), item_->valueHandles().end(), [](const core::ValueHandle& handle) {
+		return core::Queries::isUserTypeInTypeList(handle.rootObject(), core::Queries::UserTypesWithRenderableTags()) && core::Queries::isTagProperty(handle);
+	});
 }
 
 }  // namespace raco::property_browser

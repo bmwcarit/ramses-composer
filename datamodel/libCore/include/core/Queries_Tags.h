@@ -60,6 +60,10 @@ bool isUserTypeInTypeList(SEditorObject const& obj, std::tuple<std::shared_ptr<T
 // true if the handle points to a property storing tags applied to an object.
 bool isTagProperty(ValueHandle const& handle);
 
+// Check if a property carries any of the various types of TagContainerAnnotations 
+bool isTagContainerProperty(const ValueHandle& handle);
+
+
 // Return all tags for an object which are referenced by the render layer renderables property
 std::set<std::string> renderableTags(SEditorObject const& obj);
 

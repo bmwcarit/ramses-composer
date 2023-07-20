@@ -13,6 +13,8 @@
 #include "style/Icons.h"
 #include "style/QStyleFormatter.h"
 
+#include "core/ErrorItem.h"
+
 #include <QPushButton>
 #include <QLineEdit>
 #include <QComboBox>
@@ -407,11 +409,11 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 			if (const QStyleOptionFrame *opt =
 					qstyleoption_cast<const QStyleOptionFrame *>(option)) {
 				QBrush backBrush = opt->palette.brush(QPalette::Base);
-				// the hardcoded values need to correspond to enum core::ErrorLevel
-				if (saveGetProperty(widget, "errorLevel", 1).toInt() == 2 || saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
+				auto errorLevel = static_cast<core::ErrorLevel>(saveGetProperty(widget, "errorLevel", 1).toInt());
+				if (errorLevel == core::ErrorLevel::WARNING || saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
 					backBrush = Colors::brush(Colormap::warningColor);
 				}
-				if (saveGetProperty(widget, "errorLevel", 1).toInt() == 3) {
+				if (errorLevel == core::ErrorLevel::ERROR) {
 					backBrush = Colors::brush(Colormap::errorColorDark);
 				}
 				if (saveGetProperty(widget, "updatedInBackground", 1).toBool()) {
@@ -447,7 +449,9 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 			if (const QStyleOptionButton *opt =
 					qstyleoption_cast<const QStyleOptionButton *>(option)) {
 				QBrush fill;
-				if (opt->state & State_NoChange)
+				if (!(opt->state & State_On) && !(opt->state & State_Off)) // Tristate
+					fill = opt->palette.base();
+				else if (opt->state & State_NoChange)
 					fill = QBrush(opt->palette.base().color(), Qt::Dense4Pattern);
 				else if (opt->state & State_Sunken)
 					fill = opt->palette.button();
@@ -463,7 +467,8 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 					p->setPen(opt->palette.dark().color());
 				else
 					p->setPen(opt->palette.text().color());
-				if (!(opt->state & State_Off)) {
+
+				if (opt->state & State_On) {
 					QPointF points[6];
 					qreal scaleh = opt->rect.width() / 12.0;
 					qreal scalev = opt->rect.height() / 12.0;
@@ -476,6 +481,17 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 					p->setPen(QPen(opt->palette.text().color(), 0));
 					p->setBrush(opt->palette.text().color());
 					p->drawPolygon(points, 6);
+				} else if (!(opt->state & State_On) && !(opt->state & State_Off)) {	 // Tristate
+					QPointF points[4];
+					qreal scaleh = opt->rect.width() / 12.0;
+					qreal scalev = opt->rect.height() / 12.0;
+					points[0] = {opt->rect.x() + 3 * scaleh, opt->rect.y() + 5 * scalev};
+					points[1] = {points[0].x() + 6 * scaleh, points[0].y() + 0 * scalev};
+					points[2] = {points[1].x() + 0 * scaleh, points[1].y() + 2 * scalev};
+					points[3] = {points[2].x() - 6 * scaleh, points[2].y() + 0 * scalev};
+					p->setPen(QPen(opt->palette.text().color(), 0));
+					p->setBrush(opt->palette.text().color());
+					p->drawPolygon(points, 4);
 				}
 				p->restore();
 			}

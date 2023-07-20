@@ -10,6 +10,8 @@
 #pragma once
 
 #include "PropertyEditor.h"
+#include "property_browser/controls/ScalarSlider.h"
+#include "property_browser/controls/SpinBox.h"
 
 class QStackedWidget;
 
@@ -17,7 +19,7 @@ namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
-class IntEditor final : public PropertyEditor {
+class IntEditor : public PropertyEditor {
 public:
 	explicit IntEditor(
 		PropertyBrowserItem* item,
@@ -25,6 +27,13 @@ public:
 
 protected:
 	QStackedWidget* stack_;
+	IntSpinBox* spinBox_;
+	IntSlider* slider_;
+
+private:
+	void setValueToControls(IntSlider* slider, IntSpinBox* spinBox) const;
+
+	std::map<core::ValueHandle, int> focusInValues_;
 };
 
 }  // namespace raco::property_browser

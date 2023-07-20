@@ -17,13 +17,15 @@ namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
-class BoolEditor final : public PropertyEditor {
+class BoolEditor : public PropertyEditor {
 public:
 	explicit BoolEditor(
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
 
 protected:
+	void setCheckState() const;
+
 	QCheckBox *checkBox_;
 };
 

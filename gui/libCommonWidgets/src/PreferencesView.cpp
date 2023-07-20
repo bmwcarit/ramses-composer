@@ -56,7 +56,7 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 		QObject::connect(selectDirectoryButton, &QPushButton::clicked, [this]() {
 			auto dir = userProjectEdit_->text();
 			dir = QFileDialog::getExistingDirectory(this, "Select Directory", dir);
-			if (dir.size() > 0) {
+			if (!dir.isEmpty()) {
 				userProjectEdit_->setText(dir);
 			}
 		});
@@ -71,6 +71,51 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 	QObject::connect(featureLevelEdit_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() {
 		Q_EMIT dirtyChanged(dirty());
 	});
+
+	uriValidationCaseSensitiveCheckbox_ = new QCheckBox(this);
+	uriValidationCaseSensitiveCheckbox_->setCheckState(RaCoPreferences::instance().isUriValidationCaseSensitive ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	uriValidationCaseSensitiveCheckbox_->setToolTip("Enable to detect path case mismatch in URIs.");
+	formLayout->addRow("Case-sensitive URI validation", uriValidationCaseSensitiveCheckbox_);
+
+	QObject::connect(uriValidationCaseSensitiveCheckbox_, &QCheckBox::stateChanged, this, [this]() {
+		Q_EMIT dirtyChanged(dirty());
+	});
+	
+	preventAccidentalUpgradeCheckbox_ = new QCheckBox(this);
+	preventAccidentalUpgradeCheckbox_->setCheckState(RaCoPreferences::instance().preventAccidentalUpgrade ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	preventAccidentalUpgradeCheckbox_->setToolTip("Prevent accidental file version upgrade on save");
+	formLayout->addRow("Prevent accidental upgrade", preventAccidentalUpgradeCheckbox_);
+
+	QObject::connect(preventAccidentalUpgradeCheckbox_, &QCheckBox::stateChanged, this, [this]() {
+		Q_EMIT dirtyChanged(dirty());
+	});
+
+	{
+		auto* selectScreenshotDirectoryButton = new PropertyBrowserButton("  ...  ", this);
+
+		auto container = new QWidget{this};
+		auto containerLayout = new QGridLayout{container};
+		screenshotDirectoryEdit_ = new QLineEdit{this};
+
+		containerLayout->addWidget(screenshotDirectoryEdit_, 0, 0);
+		containerLayout->addWidget(selectScreenshotDirectoryButton, 0, 1);
+		containerLayout->setColumnStretch(0, 1);
+		containerLayout->setMargin(0);
+
+		formLayout->addRow("Screenshot Directory", container);
+		screenshotDirectoryEdit_->setText(RaCoPreferences::instance().screenshotDirectory);
+		QObject::connect(screenshotDirectoryEdit_, &QLineEdit::textChanged, this, [this](auto) {
+			Q_EMIT dirtyChanged(dirty());
+		});
+
+		QObject::connect(selectScreenshotDirectoryButton, &QPushButton::clicked, [this]() {
+			auto dir = screenshotDirectoryEdit_->text();
+			dir = QFileDialog::getExistingDirectory(this, "Select Directory", dir);
+			if (!dir.isEmpty()) {
+				screenshotDirectoryEdit_->setText(dir);
+			}
+		});
+	}
 
 	auto buttonBox = new QDialogButtonBox{this};
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
@@ -108,6 +153,9 @@ void PreferencesView::save() {
 	
 	prefs.userProjectsDirectory = newUserProjectPathString;
 	prefs.featureLevel = featureLevelEdit_->value();
+	prefs.isUriValidationCaseSensitive = uriValidationCaseSensitiveCheckbox_->checkState() == Qt::CheckState::Checked;
+	prefs.preventAccidentalUpgrade = preventAccidentalUpgradeCheckbox_->checkState() == Qt::CheckState::Checked;
+	prefs.screenshotDirectory = screenshotDirectoryEdit_->text();
 
 	if (!prefs.save()) {
 		LOG_ERROR(raco::log_system::COMMON, "Saving settings failed: {}", raco::core::PathManager::preferenceFilePath().string());
@@ -120,7 +168,10 @@ void PreferencesView::save() {
 bool PreferencesView::dirty() {
 	auto& prefs{RaCoPreferences::instance()};
 	return prefs.userProjectsDirectory != userProjectEdit_->text() ||
-		   prefs.featureLevel != featureLevelEdit_->value();
+		prefs.featureLevel != featureLevelEdit_->value() ||
+		prefs.isUriValidationCaseSensitive != (uriValidationCaseSensitiveCheckbox_->checkState() == Qt::CheckState::Checked) ||
+		prefs.preventAccidentalUpgrade != (preventAccidentalUpgradeCheckbox_->checkState() == Qt::CheckState::Checked) ||
+		prefs.screenshotDirectory != screenshotDirectoryEdit_->text();
 }
 
 }  // namespace raco::common_widgets

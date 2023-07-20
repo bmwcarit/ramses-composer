@@ -145,6 +145,24 @@ SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& de
 
 }  // namespace
 
+void ExtrefOperations::precheckExternalReferenceUpdate(Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext, std::vector<SEditorObject> rootObjects) {
+	auto extProjectMapCopy = project->externalProjectsMap();
+	try {
+		std::map<std::string, ExternalObjectDescriptor> externalObjects;
+		for (const auto& object : rootObjects) {
+			if (object->getParent() == nullptr) {
+				collectExternalObjects(project, ExternalObjectDescriptor{object, project}, externalProjectsStore, externalObjects, loadContext, true);
+			}
+		}
+	} catch (const ExtrefError& e) {
+		// Cleanup changes to the projects external project mappings since this function shouldn't change the project.
+		project->replaceExternalProjectsMappings(extProjectMapCopy);
+		throw e;
+	}
+	// Cleanup changes to the projects external project mappings since this function shouldn't change the project.
+	project->replaceExternalProjectsMappings(extProjectMapCopy);
+}
+
 void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext) {
 	// remove project-global errors
 	context.errors().removeError(ValueHandle());

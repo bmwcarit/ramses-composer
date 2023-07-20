@@ -73,6 +73,8 @@ public Q_SLOTS:
 protected:
 	void timerEvent(QTimerEvent* event) override;
 	void closeEvent(QCloseEvent* event) override;
+	void dragEnterEvent(QDragEnterEvent* event) override;
+	void dropEvent(QDropEvent* event) override;
 	void restoreSettings();
 	/** @returns if user canceled the dirty resolution */
 	bool resolveDirtiness();
@@ -81,6 +83,7 @@ protected:
 	void restoreCustomLayout(const QString& layoutName);
 	void regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks);
 	void saveDockManagerCustomLayouts();
+	bool isUpgradePrevented();
 
 protected Q_SLOTS:
 	void openProject(const QString& file = {}, int featureLevel = -1, bool generateNewObjectIDs = false);
@@ -115,4 +118,6 @@ private:
 	std::map<QString, qint64> pythonScriptArgumentCache_;
 
 	int renderTimerId_ = 0;
+
+	QFileInfo getDragAndDropFileInfo(const QDropEvent* event);
 };

@@ -29,6 +29,10 @@ public:
 		return object_;
 	}
 
+	bool operator==(const FileChangeCallback& other) const {
+		return context_ == other.context_ && object_ == other.object_;
+	}
+
 private:
 	BaseContext* context_;
 	SEditorObject object_{nullptr};

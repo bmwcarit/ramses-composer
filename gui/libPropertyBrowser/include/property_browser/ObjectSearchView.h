@@ -10,11 +10,9 @@
 #pragma once
 
 #include "common_widgets/NoContentMarginsLayout.h"
-#include "common_widgets/RaCoClipboard.h"
 #include "components/DataChangeDispatcher.h"
 #include "core/Iterators.h"
 #include "core/Project.h"
-#include "core/Queries.h"
 #include "user_types/LuaScript.h"
 #include <QGridLayout>
 #include <QListView>
@@ -22,9 +20,8 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QWidget>
-#include <spdlog/fmt/fmt.h>
 
-namespace raco::common_widgets {
+namespace raco::property_browser {
 
 class ObjectSearchViewItem : public QStandardItem {
 public:
@@ -53,7 +50,7 @@ protected:
 class ObjectSearchView : public QWidget {
 	Q_OBJECT
 public:
-	explicit ObjectSearchView(components::SDataChangeDispatcher dispatcher, core::Project* project, const core::ValueHandle& obj, QWidget* parent);
+	explicit ObjectSearchView(components::SDataChangeDispatcher dispatcher, core::Project* project, const std::set<core::ValueHandle>& objects, QWidget* parent);
 
 	Q_SLOT void setFilterByName(const QString& filter);
 
@@ -70,14 +67,10 @@ protected:
 	Q_SLOT void updateSelection() noexcept;
 	void focusInEvent(QFocusEvent* event) override;
 
-	core::Project* project_;
-	core::ValueHandle obj_;
-	NoContentMarginsLayout<QGridLayout> layout_;
+	common_widgets::NoContentMarginsLayout<QGridLayout> layout_;
 	QListView list_;
 	ObjectSearchModel model_;
 	ObjectSearchFilterProxyModel filterModel_;
-	raco::components::Subscription projectChanges_;
-	std::map<raco::core::SEditorObject, raco::components::Subscription> outputsChanges_;
 };
 
-}  // namespace raco::common_widgets
+}  // namespace raco::property_browser

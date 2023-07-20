@@ -12,6 +12,7 @@
 #include <core/Handles.h>
 #include "user_types/Node.h"
 #include "user_types/PerspectiveCamera.h"
+#include "user_types/OrthographicCamera.h"
 
 #include "testing/MockUserTypes.h"
 

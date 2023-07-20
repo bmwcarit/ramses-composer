@@ -72,6 +72,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	  meshCache_{app->meshCache()} {
 	context_->setMeshCache(meshCache_);
 	context_->setExternalProjectsStore(externalProjectsStore);
+	context_->setUriValidationCaseSensitive(components::RaCoPreferences::instance().isUriValidationCaseSensitive);
 
 	// Abort file loading if we encounter external reference RenderPasses or extref cameras outside a Prefab.
 	// A bug in V0.9.0 allowed to create such projects.
@@ -305,13 +306,11 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	return result;
 }
 
-std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, LoadContext& loadContext, bool logErrors, int featureLevel, bool generateNewObjectIDs) {
-	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
+QJsonDocument RaCoProject::loadFileDocument(const QFileInfo& fileInfo) {
+	const QString absPath = fileInfo.absoluteFilePath();
 
-	QFileInfo path(filename);
-	QString absPath = path.absoluteFilePath();
-	if (path.suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) != 0) {
-		throw std::runtime_error(fmt::format("Load file: wrong extension {}", path.filePath().toStdString()));
+	if (fileInfo.suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) != 0) {
+		throw std::runtime_error(fmt::format("Load file: wrong extension {}", fileInfo.filePath().toStdString()));
 	}
 
 	if (!raco::utils::u8path(absPath.toStdString()).existsFile()) {
@@ -348,6 +347,15 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 	if (document.isNull()) {
 		throw std::runtime_error("Loading JSON file resulted in a null document object");
 	}
+	return document;
+}
+
+std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, LoadContext& loadContext, bool logErrors, int featureLevel, bool generateNewObjectIDs) {
+	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
+
+	QFileInfo fileInfo(filename);
+	const QString absPath = fileInfo.absoluteFilePath();
+	const auto document = loadFileDocument(filename);
 
 	auto fileVersion{raco::serialization::deserializeFileVersion(document)};
 	if (fileVersion > raco::serialization::RAMSES_PROJECT_FILE_VERSION) {
@@ -429,12 +437,23 @@ QString RaCoProject::name() const {
 
 
 QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
-	// Sort instances and links serialized to file:
-	// needed for file comparison via diff.
-	auto instances{project_.instances()};
-	std::sort(instances.begin(), instances.end(), [](const SEditorObject& left, const SEditorObject& right) {
+	// Create instances in serialization order:
+	// - non-resource top-level nodes appear in the order of the instance pool
+	//   this is needed to ensure preservation of the top-level scenegraph order
+	// - the remaining objects follow sorted by object id. the sorting ensures stable files for diffing.
+	std::vector<SEditorObject> instances;
+	std::vector<SEditorObject> tmpInstances;
+	for (auto obj : project_.instances()) {
+		if (!obj->getParent() && !obj->getTypeDescription().isResource) {
+			instances.emplace_back(obj);		
+		} else {
+			tmpInstances.emplace_back(obj);
+		}
+	}
+	std::sort(tmpInstances.begin(), tmpInstances.end(), [](const SEditorObject& left, const SEditorObject& right) {
 		return left->objectID() < right->objectID();
 	});
+	std::copy(tmpInstances.begin(), tmpInstances.end(), std::inserter(instances, instances.end()));
 
 	std::vector<SLink> links;
 	std::copy(project_.links().begin(), project_.links().end(), std::back_inserter(links));
@@ -769,6 +788,11 @@ MeshCache* RaCoProject::meshCache() {
 
 raco::components::TracePlayer& RaCoProject::tracePlayer() {
 	return *tracePlayer_;
+}
+
+void RaCoProject::applyPreferences() const {
+	context_->setUriValidationCaseSensitive(components::RaCoPreferences::instance().isUriValidationCaseSensitive);
+	context_->performExternalFileReload(project_.instances());
 }
 
 }  // namespace raco::application

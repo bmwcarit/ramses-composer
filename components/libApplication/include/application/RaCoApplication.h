@@ -36,17 +36,19 @@ class SceneBackend;
 namespace raco::application {
 
 struct RaCoApplicationLaunchSettings {
-	RaCoApplicationLaunchSettings(); 
+	RaCoApplicationLaunchSettings();
 	RaCoApplicationLaunchSettings(QString initialProject,
 		bool createDefaultScene,
 		bool enableRamsesTrace,
-		int featureLevel,
+		int newFileFeatureLevel,
+		int initialLoadFeatureLevel,
 		bool runningInUI);
 
 	QString initialProject;
 	bool createDefaultScene;
 	bool enableRamsesTrace;
-	int featureLevel;
+	int newFileFeatureLevel;
+	int initialLoadFeatureLevel;
 	bool runningInUI;
 };
 
@@ -57,7 +59,8 @@ enum class ELuaSavingMode {
 	SourceAndByteCode
 };
 
-class RaCoApplication {
+class RaCoApplication{
+
 public:
 	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings = {});
 	~RaCoApplication();

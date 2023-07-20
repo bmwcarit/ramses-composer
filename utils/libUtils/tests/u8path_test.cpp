@@ -12,55 +12,32 @@
 
 #include "utils/FileUtils.h"
 #include "utils/u8path.h"
-#include <filesystem>
+#include "UtilsBaseTest.h"
 
+#include <filesystem>
 #include <fstream>
 
 using namespace raco::utils;
 
-class u8pathTest : public testing::Test {
+class u8pathTest : public UtilsBaseTest {
 public:
-	virtual std::string test_case_name() const {
-		return ::testing::UnitTest::GetInstance()->current_test_info()->name();
-	}
-
-	virtual std::string test_suite_name() const {
-		return ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
-	}
-
-	virtual u8path test_relative_path() const {
-		return u8path{test_suite_name()} / test_case_name();
-	}
-
-	virtual u8path test_path() const {
-		return std::filesystem::current_path() / test_relative_path();
-	}
-
 	std::vector<u8path> testFileNames = {
 		test_path() / "test",
 		test_path() / u8"äöüÄÖÜáàÁÀÇß",
 		test_path() / u8"滴滴启动纽交所退市"
 	};
-
-protected:
-	virtual void SetUp() override {
-		if (std::filesystem::exists(test_path())) {
-			// Debugging case: if we debug and kill the test before complition the test directory will not be cleaned by TearDown
-			std::filesystem::remove_all(test_path());
-		}
-		std::filesystem::create_directories(test_path());
-	}
-
-	virtual void TearDown() override {
-		std::filesystem::remove_all(test_path());
-	}
 };
 
 TEST_F(u8pathTest, existsFileTest) {
 	ASSERT_TRUE(test_path().exists());
 
 	for (const auto& testFileName : testFileNames) {
+		auto testFileNameUppercase = testFileName.string();
+		std::transform(testFileNameUppercase.begin(), testFileNameUppercase.end(), testFileNameUppercase.begin(), ::toupper);
+
 		ASSERT_FALSE(testFileName.exists());
+		ASSERT_FALSE(u8path(testFileNameUppercase).exists());
+		ASSERT_FALSE(u8path(testFileNameUppercase).exists(true));
 		ASSERT_FALSE(testFileName.userHasReadAccess());
 		ASSERT_FALSE(testFileName.existsFile());
 		ASSERT_FALSE(testFileName.existsDirectory());
@@ -68,6 +45,12 @@ TEST_F(u8pathTest, existsFileTest) {
 		file::write(testFileName.string(), "");
 
 		ASSERT_TRUE(testFileName.exists());
+#if (!defined (__linux__))
+		// Platform-dependent: on Windows the check is case-insensitive and returns true even for upper-case name.
+		ASSERT_TRUE(u8path(testFileNameUppercase).exists());
+#endif
+		// Platform-independent case-sensitive check.
+		ASSERT_FALSE(u8path(testFileNameUppercase).exists(true));
 		ASSERT_TRUE(testFileName.userHasReadAccess());
 		ASSERT_TRUE(testFileName.existsFile());
 		ASSERT_FALSE(testFileName.existsDirectory());
@@ -78,10 +61,20 @@ TEST_F(u8pathTest, existsDirTest) {
 	ASSERT_TRUE(test_path().exists());
 
 	for (const auto& testDirName : testFileNames) {
+		auto testDirNameUppercase = testDirName.string();
+		std::transform(testDirNameUppercase.begin(), testDirNameUppercase.end(), testDirNameUppercase.begin(), ::toupper);
+
 		auto testDirSubfileName = testDirName / "test";
 
+		auto testDirSubfileNameUppercase = testDirSubfileName.string();
+		std::transform(testDirSubfileNameUppercase.begin(), testDirSubfileNameUppercase.end(), testDirSubfileNameUppercase.begin(), ::toupper);
+
 		ASSERT_FALSE(testDirName.exists());
+		ASSERT_FALSE(u8path(testDirNameUppercase).exists());
+		ASSERT_FALSE(u8path(testDirNameUppercase).exists(true));
 		ASSERT_FALSE(testDirSubfileName.exists());
+		ASSERT_FALSE(u8path(testDirSubfileNameUppercase).exists());
+		ASSERT_FALSE(u8path(testDirSubfileNameUppercase).exists(true));
 		ASSERT_FALSE(testDirSubfileName.userHasReadAccess());
 		ASSERT_FALSE(testDirName.existsFile());
 		ASSERT_FALSE(testDirName.existsDirectory());
@@ -91,7 +84,16 @@ TEST_F(u8pathTest, existsDirTest) {
 		file::write(testDirSubfileName.string(), "");
 
 		ASSERT_TRUE(testDirName.exists());
+#if (!defined (__linux__))
+		// Platform-dependent: on Windows the check is case-insensitive and returns true even for upper-case name.
+		ASSERT_TRUE(u8path(testDirNameUppercase).exists());
+		ASSERT_TRUE(u8path(testDirSubfileNameUppercase).exists());
+#endif
+		// Platform-independent case-sensitive check.
+		ASSERT_FALSE(u8path(testDirNameUppercase).exists(true));
 		ASSERT_TRUE(testDirSubfileName.exists());
+		// Platform-independent case-sensitive check.
+		ASSERT_FALSE(u8path(testDirSubfileNameUppercase).exists(true));
 		ASSERT_TRUE(testDirSubfileName.userHasReadAccess());
 		ASSERT_FALSE(testDirName.existsFile());
 		ASSERT_TRUE(testDirName.existsDirectory());

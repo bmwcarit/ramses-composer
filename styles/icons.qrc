@@ -8,6 +8,7 @@
         <file alias="unlinkableIcon">_Default/icons/unlinkable.svg</file>
         <file alias="linkableIcon">_Default/icons/linkable.svg</file>
         <file alias="linkedIcon">_Default/icons/linked.svg</file>
+        <file alias="linkMultipleValuesIcon">_Default/icons/linkMultipleValues.svg</file>
         <file alias="parentLinkedIcon">_Default/icons/parentLinked.svg</file>
         <file alias="linkBrokenIcon">_Default/icons/linkBroken.svg</file>
         <file alias="lockedIcon">_Default/icons/locked.svg</file>
@@ -61,6 +62,7 @@
         <file alias="doubleArrowLeft">_Default/icons/keyboard_double_arrow_left_white_24dp.svg</file>
         <file alias="anchorIcon">_Default/icons/anchor_white_24dp.svg</file>
         <file alias="typeSkinIcon">_Default/icons/typeSkin.svg</file>
+        <file alias="screenshotIcon">_Default/icons/screenshot.svg</file>
         <file alias="visibilityOnIcon">_Default/icons/visibility_white_24dp.svg</file>
         <file alias="visibilityOffIcon">_Default/icons/visibility_off_white_24dp.svg</file>
         <file alias="visibilityDisabledIcon">_Default/icons/visibility_disabled_white_24dp.svg</file>

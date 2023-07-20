@@ -58,22 +58,19 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 		AnimationChannel::typeDescription.typeName,
 		BlitPass::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
+		LuaScriptModule::typeDescription.typeName,
 		Material::typeDescription.typeName,
 		Mesh::typeDescription.typeName,
-		LuaScriptModule::typeDescription.typeName,
-		Texture::typeDescription.typeName,
-		TextureExternal::typeDescription.typeName,
-		Timer::typeDescription.typeName,
 		RenderBuffer::typeDescription.typeName,
 		RenderBufferMS::typeDescription.typeName,
-		RenderTarget::typeDescription.typeName,
 		RenderLayer::typeDescription.typeName,
-		RenderPass::typeDescription.typeName};
+		RenderPass::typeDescription.typeName,
+		RenderTarget::typeDescription.typeName,
+		Texture::typeDescription.typeName,
+		TextureExternal::typeDescription.typeName,
+		Timer::typeDescription.typeName};
 
-	ASSERT_EQ(allowedTypes.size(), allowedTypesAssert.size());
-	for (int i = 0; i < allowedTypes.size(); ++i) {
-		ASSERT_EQ(allowedTypes[i], allowedTypesAssert[i]);
-	}
+	EXPECT_EQ(allowedTypes, allowedTypesAssert);
 }
 
 TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexAnyTypeBehavesLikeEmptyIndex) {

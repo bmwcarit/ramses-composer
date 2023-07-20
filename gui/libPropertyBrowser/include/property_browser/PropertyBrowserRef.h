@@ -40,6 +40,7 @@ public:
 	explicit PropertyBrowserRef(PropertyBrowserItem* parent);
 
 	const RefItems& items() const noexcept;
+	bool hasMultipleValues() const;
 	int currentIndex() noexcept;
 
 	Q_SIGNAL void indexChanged(int index);
@@ -53,13 +54,16 @@ protected:
 	void updateIndex() noexcept;
 
 private:
+	QString getEmptyRefDescription(const core::ValueHandle& handle);
+
 	RefItems items_{};
 	int index_{0};
+	bool hasMultipleValues_;
 	PropertyBrowserItem* parent_;
-	raco::components::Subscription subscription_;
-	raco::components::Subscription lifecycleSub_;
-	raco::components::Subscription childMoveSub_;
-	std::vector<raco::components::Subscription> objectNames_;
+	std::vector<components::Subscription> subscriptions_;
+	components::Subscription lifecycleSub_;
+	components::Subscription childMoveSub_;
+	std::vector<components::Subscription> objectNames_;
 };
 
 }  // namespace raco::property_browser

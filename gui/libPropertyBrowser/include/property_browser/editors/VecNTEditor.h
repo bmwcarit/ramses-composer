@@ -12,19 +12,14 @@
 #include "PropertyEditor.h"
 #include "common_widgets/PropertyBrowserButton.h"
 #include "core/Queries.h"
-#include "core/BasicTypes.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/controls/SpinBox.h"
 #include "style/Colors.h"
-#include "style/Icons.h"
-#include "style/RaCoStyle.h"
 #include <QBitmap>
 #include <QColorDialog>
 #include <QPainter>
-#include <QPalette>
 #include <array>
-#include <type_traits>
 
 namespace raco::property_browser {
 
@@ -58,7 +53,7 @@ struct VecNTEditorTraits<int> {
 };
 
 template <typename T, int N>
-class VecNTEditor final : public PropertyEditor {
+class VecNTEditor : public PropertyEditor {
 	typedef typename VecNTEditorTraits<T>::SpinBoxType SpinBoxType;
 
 public:

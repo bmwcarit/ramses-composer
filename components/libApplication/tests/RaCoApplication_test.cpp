@@ -133,6 +133,42 @@ TEST_F(RaCoApplicationFixture, export_interface_link_opt_4) {
 	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
 }
 
+TEST_F(RaCoApplicationFixture, export_interface_opt_no_ending_link) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-opt-no-ending.rca").string()), {});
+
+	std::string message;
+	std::vector<raco::core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	auto sceneStatus = application.getExportSceneDescriptionAndStatus(sceneDescription, message);
+
+	EXPECT_TRUE(std::any_of(sceneDescription.begin(), sceneDescription.end(), [this](const auto& item) {
+		return item.type_== "LuaInterface" && item.objectName_ == "LuaInterface";
+	}));
+}
+
+TEST_F(RaCoApplicationFixture, export_interface_opt_ending_valid) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-opt-ending-valid.rca").string()), {});
+
+	std::string message;
+	std::vector<raco::core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	auto sceneStatus = application.getExportSceneDescriptionAndStatus(sceneDescription, message);
+
+	EXPECT_FALSE(std::any_of(sceneDescription.begin(), sceneDescription.end(), [this](const auto& item) {
+		return item.type_ == "LuaInterface" && item.objectName_ == "LuaInterface";
+	}));
+}
+
+TEST_F(RaCoApplicationFixture, export_interface_opt_ending_invalid) {
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-opt-ending-invalid.rca").string()), {});
+
+	std::string message;
+	std::vector<raco::core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	auto sceneStatus = application.getExportSceneDescriptionAndStatus(sceneDescription, message);
+
+	EXPECT_TRUE(std::any_of(sceneDescription.begin(), sceneDescription.end(), [this](const auto& item) {
+		return item.type_ == "LuaInterface" && item.objectName_ == "LuaInterface";
+	}));
+}
+
 TEST_F(RaCoApplicationFixture, export_with_lua_save_mode_for_feature_level_1) {
 	// Feature Level 1 only supports ELuaSavingMode::SourceCodeOnly.
 	application.switchActiveRaCoProject({}, {}, true, 1);

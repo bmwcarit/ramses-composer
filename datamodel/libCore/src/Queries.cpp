@@ -358,10 +358,6 @@ bool Queries::isNotResource(const SEditorObject& object) {
 	return !object->getTypeDescription().isResource && !isProjectSettings(object);
 }
 
-bool Queries::isChildHandle(const ValueHandle& handle) {
-	return handle.type() == PrimitiveType::Ref && handle.depth() == 2 && handle.parent().getPropName() == "children";
-}
-
 bool Queries::isChildObject(const SEditorObject& child, const SEditorObject& parent) {
 	for (auto current = child->getParent(); current; current = current->getParent()) {
 		if (current == parent) {
@@ -370,6 +366,37 @@ bool Queries::isChildObject(const SEditorObject& child, const SEditorObject& par
 	}
 
 	return false;
+}
+
+bool Queries::typeHasStartingLinks(core::SEditorObject obj) {
+	return obj->isType<user_types::LuaScript>() 
+		|| obj->isType<user_types::LuaInterface>()
+		|| obj->isType<user_types::AnchorPoint>()
+		|| obj->isType<user_types::Timer>()
+		|| obj->isType<user_types::Animation>();
+}
+
+bool Queries::isChildHandle(const ValueHandle& handle) {
+	return handle.type() == PrimitiveType::Ref && handle.depth() == 2 && handle.parent().getPropName() == "children";
+}
+
+TagType Queries::getHandleTagType(const ValueHandle& handle) {
+	if (handle.isRefToProp(&EditorObject::userTags_)) {
+		return TagType::UserTags;
+	}
+	if (handle.rootObject()->isType<user_types::Material>()) {
+		return TagType::MaterialTags;
+	}
+	if (handle.rootObject()->isType<user_types::RenderLayer>()) {
+		if (handle.isRefToProp(&user_types::RenderLayer::materialFilterTags_)) {
+			return TagType::MaterialTags;
+		}
+		if (handle.isRefToProp(&user_types::RenderLayer::renderableTags_)) {
+			return TagType::NodeTags_Referencing;
+		}
+		return TagType::NodeTags_Referenced;
+	}
+	return TagType::NodeTags_Referenced;
 }
 
 std::string Queries::getFullObjectHierarchyPath(SEditorObject obj) {
@@ -1032,6 +1059,22 @@ std::vector<SEditorObject> Queries::filterForDeleteableObjects(Project const& pr
 	return deletableObjects;
 }
 
+std::vector<std::string> Queries::validTypesForChildrenOf(SEditorObject object) {
+	if (isResource(object) || object->as<user_types::LuaScript>() || object->as<user_types::LuaInterface>() || object->as<user_types::Animation>() || object->as<user_types::Skin>()) {
+		return {};
+	}
+	return {
+		user_types::Animation::typeDescription.typeName,
+		user_types::LuaInterface::typeDescription.typeName,
+		user_types::LuaScript::typeDescription.typeName,
+		user_types::MeshNode::typeDescription.typeName,
+		user_types::Node::typeDescription.typeName,
+		user_types::OrthographicCamera::typeDescription.typeName,
+		user_types::PerspectiveCamera::typeDescription.typeName,
+		user_types::PrefabInstance::typeDescription.typeName,
+		user_types::Skin::typeDescription.typeName};
+}
+
 std::vector<SEditorObject> Queries::filterForMoveableScenegraphChildren(Project const& project, const std::vector<SEditorObject>& objects, SEditorObject const& newParent) {	
 	
 	if (newParent && !canPasteIntoObject(project, newParent)) {
@@ -1076,6 +1119,20 @@ std::vector<SEditorObject> Queries::filterForMoveableScenegraphChildren(Project 
 		});
 
 	return result;
+}
+
+std::string Queries::getPropertyPath(const std::set<ValueHandle>& handles) {
+	if (handles.size() > 1) {
+		auto propNames = handles.begin()->getPropertyNamesVector();
+		if (std::all_of(++handles.begin(), handles.end(), [&propNames](auto handle) {
+				return propNames == handle.getPropertyNamesVector();
+			})) {
+			return fmt::format("({} objects).{}", handles.size(), fmt::join(propNames, "."));
+		} else {
+			return fmt::format("({} properties)", handles.size());
+		}
+	}
+	return handles.begin()->getPropertyPath();
 }
 
 }  // namespace raco::core

@@ -30,6 +30,7 @@ public:
 	void setBackgroundColor(core::Vec4f backgroundColor);
 	void setMsaaSampleRate(PreviewMultiSampleRate sampleRate);
 	void commit(bool forceUpdate);
+	bool saveScreenshot(const std::string& fullPath);
 
 public Q_SLOTS:
 	/**

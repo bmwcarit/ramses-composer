@@ -11,7 +11,6 @@
 
 #include "core/EditorObject.h"
 
-#include <QAbstractItemModel>
 #include <QTreeView>
 #include <unordered_set>
 
@@ -33,7 +32,7 @@ class ObjectTreeView : public QTreeView {
 public:
 	ObjectTreeView(const QString &viewTitle, raco::object_tree::model::ObjectTreeViewDefaultModel *viewModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel = nullptr, QWidget *parent = nullptr);
 
-	std::set<ValueHandle> getSelectedHandles() const;
+	core::SEditorObjectSet getSelectedObjects() const;
 	std::vector<SEditorObject> getSortedSelectedEditorObjects() const;
 	QString getViewTitle() const;
 
@@ -55,7 +54,7 @@ public:
 Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
-	void newObjectTreeItemsSelected(const std::set<ValueHandle> &handles);
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects);
 	void externalObjectSelected();
 
 public Q_SLOTS:
@@ -82,7 +81,8 @@ protected:
 	std::unordered_set<std::string> selectedItemIDs_;
 
 	virtual QMenu* createCustomContextMenu(const QPoint &p);
-
+	
+	void dropEvent(QDropEvent *event) override;
 	void dragMoveEvent(QDragMoveEvent *event) override;
 	void mousePressEvent(QMouseEvent *event) override;
 

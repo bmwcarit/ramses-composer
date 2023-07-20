@@ -16,7 +16,6 @@
 #include "core/Project.h"
 #include "core/Queries.h"
 #include "core/ExternalReferenceAnnotation.h"
-#include "user_types/UserObjectFactory.h"
 
 namespace raco::object_tree::model {
 

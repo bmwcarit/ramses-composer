@@ -9,24 +9,31 @@
  */
 #include "ramses_widgets/PreviewMainWindow.h"
 
+#include "components/RaCoPreferences.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/SceneBackend.h"
 #include "ramses_widgets/PreviewContentWidget.h"
 #include "ramses_widgets/PreviewScrollAreaWidget.h"
-#include "user_types/BaseCamera.h"
+#include "ramses_widgets/SceneStateEventHandler.h"
 #include "user_types/PerspectiveCamera.h"
+#include "style/Icons.h"
 
 #include "ui_PreviewMainWindow.h"
 #include <QLabel>
 #include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QToolButton>
+#include <QHBoxLayout>
+
 
 namespace raco::ramses_widgets {
 
 PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ramses_adaptor::SceneBackend* sceneBackend, const QSize& sceneSize, raco::core::Project* project,
 	raco::components::SDataChangeDispatcher dispatcher, QWidget* parent)
 	: QMainWindow{parent},
-	  ui_{new Ui::PreviewMainWindow()} {
+	  ui_{new Ui::PreviewMainWindow()},
+	  project_(project) {
 	ui_->setupUi(this);
 
 	sceneIdLabel_ = new QLabel{"scene id: -", ui_->statusbar};
@@ -154,6 +161,25 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		});
 		ui_->toolBar->insertWidget(ui_->actionSelectSizeMode, msaaMenuButton);
 	}
+
+	// Screenshot button
+	{
+		auto* screenshotButton = new QPushButton{};
+		screenshotButton->setIcon(style::Icons::instance().screenshot);
+		screenshotButton->setToolTip("Save Screenshot");
+
+		auto* stretchedWidget = new QWidget(ui_->toolBar);
+		auto* layout = new QHBoxLayout(stretchedWidget);
+		layout->setContentsMargins(0, 0, 0, 0);
+		layout->addStretch();
+		layout->addWidget(screenshotButton);
+		stretchedWidget->setLayout(layout);
+		ui_->toolBar->addWidget(stretchedWidget);
+
+		connect(screenshotButton, &QPushButton::clicked, [this]() {
+			saveScreenshot();
+		});
+	}
 }
 
 PreviewMainWindow::~PreviewMainWindow() {
@@ -175,5 +201,34 @@ void PreviewMainWindow::setViewport(const QSize& sceneSize) {
 void PreviewMainWindow::commit(bool forceUpdate) {
 	previewWidget_->commit(forceUpdate);
 }
+
+void PreviewMainWindow::saveScreenshot() {
+	const auto screenshotDir = components::RaCoPreferences::instance().screenshotDirectory.toStdString();
+	if (screenshotDir.empty()) {
+		QMessageBox::warning(this, "Could not save the screenshot", "Please make sure that the directory specified in \"File > Preferences > Screenshot Directory\" is not empty.", QMessageBox::Ok);
+		return;
+	}
+
+	auto projectName = project_->projectName();
+	if (projectName.empty()) {
+		projectName = "default";
+	}
+
+	const auto currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm-ss-zzz").toStdString();
+	const auto screenshotFileName = screenshotDir + "/" + projectName + "_" + currentTime + ".png";
+
+	const auto saved = previewWidget_->saveScreenshot(screenshotFileName);
+	if (!saved) {
+		QMessageBox::warning(this, "Saving screenshot failed", "Could not save the screenshot. Please make sure that the directory specified in \"File > Preferences > Screenshot Directory\" exists and is accessable.", QMessageBox::Ok);
+	}
+}
+
+void PreviewMainWindow::saveScreenshot(const std::string& fullPath) {
+	const auto saved = previewWidget_->saveScreenshot(fullPath);
+	if (!saved) {
+		throw std::runtime_error {"Could not save screenshot to \"" + fullPath + "\". Please make sure that the path specified is correct and accessable."};
+	}
+}
+
 
 }  // namespace raco::ramses_widgets

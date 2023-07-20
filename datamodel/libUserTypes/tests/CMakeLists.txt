@@ -65,4 +65,10 @@ raco_package_add_test_resources(
     shaders/basic.frag
     shaders/uniform-array.vert
     shaders/uniform-array.frag
+    shaders/include/main_mat_adapter_test.frag
+    shaders/include/main_mat_adapter_test.geom
+    shaders/include/main_mat_adapter_test.vert
+    shaders/include/uniforms_frag.glsl
+    shaders/include/uniforms_geom.glsl
+    shaders/include/uniforms_vert.glsl
 )

@@ -27,16 +27,30 @@ class StringEditorLineEdit : public QLineEdit {
 
 public:
 	StringEditorLineEdit(QWidget* parent = nullptr) : QLineEdit(parent) {  }
+	void setDragAndDropFilter(const QString& filter) {
+		dragAndDropFilter_ = filter;
+	}
+
+	bool hasMultipleValues() const;
+
+	void set(std::optional<std::string> value);
 
 protected:
-	QString focusInOldText_;
-
 	void focusInEvent(QFocusEvent* event);
-
 	void keyPressEvent(QKeyEvent* event);
+	void dragEnterEvent(QDragEnterEvent* event) override;
+	void dropEvent(QDropEvent* event) override;
 
 Q_SIGNALS:
 	void focusNextRequested();
+	void saveFocusInValues();
+	void restoreFocusInValues();
+	void fileDropped(QString filePath);
+
+private:
+	bool multiValue_ = false;
+	QString dragAndDropFilter_;
+	QString getAcceptableFilePath(const QMimeData* mimeData) const;
 };
 
 class StringEditor : public PropertyEditor {
@@ -54,11 +68,14 @@ public Q_SLOTS:
 
 protected:
 	bool editingStartedByUser();
+	void updateLineEdit();
 	void updateErrorState();
 
 	bool updatedInBackground_ = false;
 	core::ErrorLevel errorLevel_{core::ErrorLevel::NONE};
 	StringEditorLineEdit* lineEdit_;
+
+	std::map<core::ValueHandle, std::string> focusInValues_;
 };
 
 }  // namespace raco::property_browser

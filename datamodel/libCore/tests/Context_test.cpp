@@ -158,11 +158,11 @@ TEST_F(ContextTest, Prefab) {
 }
 
 TEST_F(ContextTest, Scenegraph) {
-	SNode foo{new Node("foo")};
-	SNode bar{new Node("bar")};
-	SNode child{new Node("child")};
-	SNode child2{new Node("child 2")};
-	SNode child3{new Node("child 3")};
+	auto foo = context.createObject(Node::typeDescription.typeName, "foo");
+	auto bar = context.createObject(Node::typeDescription.typeName, "bar");
+	auto child  = context.createObject(Node::typeDescription.typeName, "child");
+	auto child2 = context.createObject(Node::typeDescription.typeName, "child2");
+	auto child3 = context.createObject(Node::typeDescription.typeName, "child3");
 
 	ValueHandle foo_handle{foo};
 	ValueHandle bar_handle{bar};
@@ -483,16 +483,43 @@ TEST_F(ContextTest, meshnode_set_material_adds_backpointers_for_reftype_uniforms
 }
 
 
-TEST_F(ContextTest, ObjectMovingOnTopLevel) {
+TEST_F(ContextTest, move_top_level) {
 	auto settings = project.settings();
-	auto firstRoot = context.createObject(Node::typeDescription.typeName);
-	auto secondRoot = context.createObject(Node::typeDescription.typeName);
+	auto node1 = context.createObject(Node::typeDescription.typeName);
+	auto node2 = context.createObject(Node::typeDescription.typeName);
+	auto node3 = context.createObject(Node::typeDescription.typeName);
 
-	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, firstRoot, secondRoot}));
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node1, node2, node3}));
 
-	context.moveScenegraphChildren({secondRoot}, {}, 0);
+	recorder.reset();
+	context.moveScenegraphChildren({node2}, node1, 0);
+	EXPECT_FALSE(recorder.rootOrderChanged());
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node1, node2, node3}));
 
-	ASSERT_NE(project.instances(), std::vector<SEditorObject>({secondRoot, firstRoot})) << "[!!!]  Moving top-level scenegraph nodes has been implemented / fixed. Replace ASSERT_NE macro with ASSERT_EQ macro in ContextTest unit test ObjectMovingOnTopLevel!";
+	recorder.reset();
+	context.moveScenegraphChildren({node2}, {}, 0);
+	EXPECT_TRUE(recorder.rootOrderChanged());
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({node2, settings, node1, node3}));
+
+	recorder.reset();
+	context.moveScenegraphChildren({node2}, node1, 0);
+	EXPECT_FALSE(recorder.rootOrderChanged());
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({node2, settings, node1, node3}));
+
+	recorder.reset();
+	context.moveScenegraphChildren({node2, node3}, {}, 0);
+	EXPECT_TRUE(recorder.rootOrderChanged());
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({node2, node3, settings, node1}));
+
+	recorder.reset();
+	context.moveScenegraphChildren({node3, node2}, {}, 3);
+	EXPECT_TRUE(recorder.rootOrderChanged());
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node3, node2, node1}));
+
+	recorder.reset();
+	context.moveScenegraphChildren({node3}, {}, 4);
+	EXPECT_TRUE(recorder.rootOrderChanged());
+	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node2, node1, node3}));
 }
 
 TEST_F(ContextTest, ErrorCreationForObject) {

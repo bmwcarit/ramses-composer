@@ -137,6 +137,17 @@ If any of these uniforms are found in a shader, they will not show up in the Pro
 
 In addition the `u_jointMat` uniform of private materials of MeshNodes will be set by Skin objects referencing the MeshNode. It has to be an array of type `VEC4` of the same length as the number of joints nodes in the Skin object.
 
+## Shader Includes
+Ramses Composer supports `#include` directives in shaders. The path must be relative to current source file. Shaders with `#include` directive are preprocessed by Ramses Composer and then sent to Ramses. Shader errors show locations in preprocessed file. Shader tooltips show preprocessor errors.
+
+Example:
+
+```
+// Shader source file
+#include "offset.inc"
+#include "../some_relative_path/file.txt"
+```
+
 ## Texture Loading and Conversion
 Ramses Composer currently supports PNG images with 8 or 16 bit color depth.
 The number of color channels can vary from 1 for greyscale to 4 for RGBA images.

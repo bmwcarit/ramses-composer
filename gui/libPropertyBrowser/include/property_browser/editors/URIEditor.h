@@ -26,19 +26,32 @@ class URIEditor : public StringEditor {
 public:
 	explicit URIEditor(PropertyBrowserItem* item, QWidget* parent = nullptr);
 
-	bool pathIsAbsolute();
-	void switchAbsoluteRelativePath();
-	void updateURIValueHandle();
-
 protected:
-	std::string createAbsolutePath();
-	std::string createRelativePath();
-	bool fileExists();
+	// Returns 
+	// - the unique absolute path of all the handles if the absolute paths of the individual handles are 
+	//   all non-empty and equal.
+	// - nullopt otherwise.
+	std::optional<std::string> uniqueAbsolutePath();
+
+	// Returns true if the uniquAbsolutePath is not nullopt and the corresponding file exists
+	bool fileUniqueAndExists();
+
 	void showCustomLineEditContextMenu(const QPoint& p, PropertyBrowserItem* item);
 	void updateFileEditButton();
-	void updateURILineEditString();
-	
+	void setFromFileDialog(const QString& file);
+	void switchToAbsolutePath();
+	void switchToRelativePath();
+
+	bool canSwitchToAbsolutePath(const core::ValueHandle& handle);
+	bool canSwitchToRelativePath(const core::ValueHandle& handle);
+
+	bool switchToAbsolutePathEnabled();
+	bool switchToRelativePathEnabled();
+
 	QPushButton* editButton_;
+
+private:
+	void setItemValue(const QString& file);
 };
 
 }  // namespace raco::property_browser

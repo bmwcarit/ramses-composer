@@ -952,6 +952,17 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 		return pyErrorItems;
 	});
+
+	m.def("resolveUriPropertyToAbsolutePath", [](const PropertyDescriptor& desc) {
+		checkProperty(desc);
+		const auto handle = ValueHandle(desc);
+		const auto uriAnnotation = handle.constValueRef()->query<URIAnnotation>();
+		if (uriAnnotation) {
+			return PathQueries::resolveUriPropertyToAbsolutePath(*app->activeRaCoProject().project(), handle);
+		} else {
+			throw std::runtime_error(fmt::format("Can't resolve uri to absolute path: '{}' is not a uri property.", desc.getPropertyPath()));
+		}
+	});
 }
 
 namespace raco::python_api {

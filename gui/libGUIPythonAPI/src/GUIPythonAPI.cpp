@@ -17,28 +17,36 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
-#include "core/Handles.h"
 #include "gui_python_api/GUIPythonAPI.h"
 #include "object_tree_view/ObjectTreeDock.h"
+
 #include "raco_pybind11_embed.h"
 
 namespace {
 	raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager;
-}
+	raco::ramses_widgets::PreviewMainWindow* previewWindow = nullptr;
+	}
 
 PYBIND11_EMBEDDED_MODULE(raco_gui, m) {
 	m.def("getSelection", []() {
-		auto activeDockWhichHasSelection = objectTreeDockManager->getActiveDockWithSelection();
-		if (activeDockWhichHasSelection == nullptr || activeDockWhichHasSelection->windowTitle().toStdString() == "Project Browser") {
-			return std::vector<raco::core::SEditorObject>();
-		}
+		return objectTreeDockManager->getSelection();
+	});
 
-		return activeDockWhichHasSelection->getActiveTreeView()->getSortedSelectedEditorObjects();
+	m.def("saveScreenshot", [](const std::string& fullPath) {
+		if (previewWindow) {
+			previewWindow->saveScreenshot(fullPath);
+		} else {
+			throw std::runtime_error("Could not save screenshot to \"" + fullPath + "\": no Preview window exists.");
+		}
 	});
 }
 
 namespace raco::gui_python_api {
-	void setup(raco::object_tree::view::ObjectTreeDockManager* objTreeDockManager) {
+	void setupObjectTree(object_tree::view::ObjectTreeDockManager* objTreeDockManager) {
 		::objectTreeDockManager = objTreeDockManager;
+	}
+
+	void setupPreviewWindow(ramses_widgets::PreviewMainWindow* preview) {
+		::previewWindow = preview;
 	}
 }

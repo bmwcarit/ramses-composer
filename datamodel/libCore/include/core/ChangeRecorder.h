@@ -37,6 +37,8 @@ public:
 	virtual void recordPreviewDirty(SEditorObject const& object) = 0;
 
 	virtual void recordExternalProjectMapChanged() = 0;
+
+	virtual void recordRootOrderChanged() = 0;
 };
 
 class DataChangeRecorder : public DataChangeRecorderInterface {
@@ -57,6 +59,8 @@ public:
 	void recordPreviewDirty(SEditorObject const& object) override;
 	
 	void recordExternalProjectMapChanged() override;
+
+	void recordRootOrderChanged() override;
 
 	/**
 	 * #reset() with return of all chanages.
@@ -90,6 +94,8 @@ public:
 	SEditorObjectSet getPreviewDirtyObjects() const;
 
 	bool externalProjectMapChanged() const;
+
+	bool rootOrderChanged() const;
 
 	void mergeChanges(const DataChangeRecorder& other);
 
@@ -136,6 +142,7 @@ private:
 	SEditorObjectSet previewDirty_;
 
 	bool externalProjectMapChanged_ = false;
+	bool rootOrderChanged_ = false;
 };
 
 class MultiplexedDataChangeRecorder : public DataChangeRecorderInterface {
@@ -159,6 +166,7 @@ public:
 	void recordPreviewDirty(SEditorObject const& object) override;
 
 	void recordExternalProjectMapChanged() override;
+	void recordRootOrderChanged() override;
 
 private:
 	std::vector<DataChangeRecorderInterface*> recorders_;

@@ -1021,3 +1021,32 @@ TEST_F(RaCoProjectFixture, loadDoubleModuleReferenceWithoutError) {
 	ASSERT_FALSE(logsink->containsError());
 	raco::log_system::unregisterSink(logsink);
 }
+
+TEST_F(RaCoProjectFixture, saveLoadScenegraphOrder) {
+	std::string msg;
+	{
+		SEditorObject node1 = create<Node>("node1");
+		SEditorObject node2 = create<Node>("node2");
+		ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, true));
+	}
+
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "project.rca").string()), {});
+
+	auto rootNodeNames = [this]() {
+		std::vector<std::string> names;
+		for (auto obj : project().instances()) {
+			names.emplace_back(obj->objectName());
+		}
+		return names;
+	};
+
+	EXPECT_EQ(rootNodeNames(), std::vector<std::string>({"project", "node1", "node2"}));
+
+	auto node2 = raco::core::Queries::findByName(project().instances(), "node2");
+	commandInterface().moveScenegraphChildren({node2}, {}, 0);
+	EXPECT_EQ(rootNodeNames(), std::vector<std::string>({"node2", "project", "node1"}));
+	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project2.rca").string().c_str(), msg));
+
+	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "project2.rca").string()), {});
+	EXPECT_EQ(rootNodeNames(), std::vector<std::string>({"node2", "project", "node1"}));
+}

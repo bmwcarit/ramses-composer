@@ -49,12 +49,17 @@ void PropertySubtreeView::registerCopyPasteContextMenu(QWidget* widget) {
 	widget->setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
 	connect(widget, &PropertyEditor::customContextMenuRequested, [this, widget](const QPoint& p) {
 		auto* treeViewMenu = new QMenu(this);
-		treeViewMenu->addAction("Copy", this, [this]() {
+		// TODO shouldn't we disable this is we can't copy since we have a multiple value?
+		// see PropertyEditor::copyValue
+		auto copyAction = treeViewMenu->addAction("Copy", this, [this]() {
 			propertyControl_->copyValue();
 		});
-		treeViewMenu->addAction("Paste", this, [this]() {
+		copyAction->setEnabled(propertyControl_->canCopyValue());
+		// TODO disable when clipboard doesn't contain property !?
+		auto pasteAction = treeViewMenu->addAction("Paste", this, [this]() {
 			propertyControl_->pasteValue();
 		});
+		pasteAction->setEnabled(propertyControl_->canPasteValue());
 
 		treeViewMenu->exec(widget->mapToGlobal(p));
 	});
@@ -74,7 +79,7 @@ PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* scen
 	auto* labelContainer = new QWidget{this};
 	auto* labelLayout = new PropertyBrowserHBoxLayout{labelContainer};
 	labelLayout->setAlignment(Qt::AlignLeft);
-	if (!item->valueHandle().isObject()) {
+	if (item->isProperty()) {
 		label_ = WidgetFactory::createPropertyLabel(item, labelContainer);
 		label_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
@@ -99,9 +104,7 @@ PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* scen
 		labelLayout->addWidget(label_, 0);
 		labelLayout->addWidget(linkControl, 1);
 
-		if (!item->valueHandle().isObject()) {
-			generateItemTooltip(item, true);
-		}
+		generateItemTooltip(item, true);
 
 		linkControl->setControl(propertyControl_);
 		label_->setEnabled(item->editable());
@@ -118,10 +121,20 @@ PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* scen
 		labelLayout->addWidget(label_, 0);
 	}
 
+	if (item->isObject() && item->valueHandles().size() > 1) {
+		for (auto handle : item->valueHandles()) {
+			auto nameHandle = handle.get("objectName");
+			objectNameChangeSubscriptions_.push_back(item->dispatcher()->registerOn(nameHandle, [this]() {
+				updateObjectNameDisplay();
+			}));
+		}
+		updateObjectNameDisplay();
+	}
+
 	QObject::connect(item, &PropertyBrowserItem::errorChanged, this, &PropertySubtreeView::updateError);
 	updateError();
 
-	layout_.addWidget(labelContainer, 1, 0);
+	layout_.addWidget(labelContainer, 2, 0);
 
 	if (item->expandable()) {
 		// Events which can cause a build or destroy of the childrenContainer_
@@ -132,40 +145,79 @@ PropertySubtreeView::PropertySubtreeView(raco::core::SceneBackendInterface* scen
 	}
 }
 
-void PropertySubtreeView::generateItemTooltip(PropertyBrowserItem* item, bool connectWithChangeEvents) {
-	auto labelToolTip = QString::fromStdString(item->valueHandle().getPropName());
 
-	auto isLuaScriptProperty = &item->valueHandle().rootObject()->getTypeDescription() == &raco::user_types::LuaScript::typeDescription && !item->valueHandle().parent().isObject();
-	if (isLuaScriptProperty) {
+void PropertySubtreeView::generateItemTooltip(PropertyBrowserItem* item, bool connectWithChangeEvents) {
+	auto labelToolTip = QString::fromStdString(item->getPropertyName());
+
+	if (item->isLuaProperty()) {
 		labelToolTip.append(" [" + QString::fromStdString(item->luaTypeName()) + "]");
 	}
-
 	label_->setToolTip(labelToolTip);
 
-	auto isObjectName = item->valueHandle().getPropName() == "objectName";
-	if (isObjectName) {
-		auto exportedObjectNames = sceneBackend_->getExportedObjectNames(item->valueHandle().rootObject());
-		if (!exportedObjectNames.empty()) {
-			propertyControl_->setToolTip(QString::fromStdString(exportedObjectNames));
+	if (item->valueHandles().begin()->isRefToProp(&core::EditorObject::objectName_)) {
+		QString tooltipText;
+		if (item->valueHandles().size() == 1) {
+			tooltipText = QString::fromStdString(sceneBackend_->getExportedObjectNames(item->valueHandles().begin()->rootObject()));
+		} else {
+			QStringList items = objectNames();
+			items.push_front("Current objects:");
+			tooltipText = items.join("\n");
+		}
+		if (!tooltipText.isEmpty()) {
+			propertyControl_->setToolTip(tooltipText);
 		}
 
 		if (connectWithChangeEvents) {
-			connect(item, &PropertyBrowserItem::valueChanged, this, [this, item]{ generateItemTooltip(item, false);});
+			connect(item, &PropertyBrowserItem::valueChanged, this, [this, item] { generateItemTooltip(item, false); });
 		}
 	}
 }
 
-void PropertySubtreeView::updateError() {
+QStringList PropertySubtreeView::objectNames() const {
+	QStringList items;
+	for (auto handle : item_->valueHandles()) {
+		auto object = handle.rootObject();
+		std::string labelText = fmt::format("{} [{}]", object->objectName(), object->getTypeDescription().typeName);
+		items.push_back(QString::fromStdString(labelText));
+	}
+	items.sort();
+	return items;
+}
+
+void PropertySubtreeView::updateObjectNameDisplay() {
+	QStringList items = objectNames();
+	items.push_front("Current objects:");
+	QString description = items.join("\n");
+
 	if (layout_.itemAtPosition(0, 0) && layout_.itemAtPosition(0, 0)->widget()) {
 		auto* widget = layout_.itemAtPosition(0, 0)->widget();
+		dynamic_cast<ErrorBox*>(widget)->updateContent(description);
+	} else {
+		layout_.addWidget(new ErrorBox(description, core::ErrorLevel::INFORMATION, this), 0, 0);
+	}
+}
+
+void PropertySubtreeView::updateError() {
+	if (layout_.itemAtPosition(1, 0) && layout_.itemAtPosition(1, 0)->widget()) {
+		auto* widget = layout_.itemAtPosition(1, 0)->widget();
 		layout_.removeWidget(widget);
 		widget->hide();
 		widget->deleteLater();
 	}
+
 	if (item_->hasError()) {
-		auto errorItem = item_->error();
-		if (errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME || errorItem.category() == core::ErrorCategory::PARSING || errorItem.category() == core::ErrorCategory::GENERAL || errorItem.category() == core::ErrorCategory::MIGRATION) {
-			layout_.addWidget(new ErrorBox(errorItem.message().c_str(), errorItem.level(), this), 0, 0);
+		std::string errorMsg;
+		auto optCategory = item_->errorCategory();
+		if (!optCategory.has_value()) {
+			errorMsg = "Multiple Erorrs";
+		} else {
+			auto category = optCategory.value();
+			if (category == core::ErrorCategory::RAMSES_LOGIC_RUNTIME || category == core::ErrorCategory::PARSING || category == core::ErrorCategory::GENERAL || category == core::ErrorCategory::MIGRATION) {
+				errorMsg = item_->errorMessage().c_str();
+			}
+		}
+		if (!errorMsg.empty()) {
+			layout_.addWidget(new ErrorBox(QString::fromStdString(errorMsg), item_->maxErrorLevel(), this), 1, 0);
 			// It is unclear why this is needed - but without it, the error box does not appear immediately when an incompatible render buffer is assigned to a render target and the scene error view is in the background.
 			// The error box does appear later, e. g. when the mouse cursor is moved over the preview or when the left mouse button is clicked in a different widget.
 			update();
@@ -198,11 +250,12 @@ void PropertySubtreeView::recalculateTabOrder() {
 
 void PropertySubtreeView::updateChildrenContainer() {
 	if (item_->showChildren() && !childrenContainer_) {
-		if (!item_->valueHandle().isObject() && item_->type() == core::PrimitiveType::Ref) {
+		if (item_->isProperty() && item_->type() == core::PrimitiveType::Ref) {
 			childrenContainer_ = new PropertySubtreeChildrenContainer{item_, this};
 			childrenContainer_->addWidget(new EmbeddedPropertyBrowserView{item_, this});
-			layout_.addWidget(childrenContainer_, 2, 0);
-		} else if (item_->valueHandle().isObject() || hasTypeSubstructure(item_->type())) {
+			layout_.addWidget(childrenContainer_, 3, 0);
+		} else 
+			if (item_->isObject() || hasTypeSubstructure(item_->type())) {
 			childrenContainer_ = new PropertySubtreeChildrenContainer{item_, this};
 
 			for (const auto& child : item_->children()) {
@@ -223,7 +276,7 @@ void PropertySubtreeView::updateChildrenContainer() {
 				recalculateTabOrder();
 			});
 			recalculateLabelWidth();
-			layout_.addWidget(childrenContainer_, 2, 0);
+			layout_.addWidget(childrenContainer_, 3, 0);
 		}
 	} else if (!item_->showChildren() && childrenContainer_) {
 		delete childrenContainer_;

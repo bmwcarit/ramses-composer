@@ -9,9 +9,9 @@
  */
 #pragma once
 
-#include "common_widgets/ObjectSearchView.h"
+#include "property_browser/ObjectSearchView.h"
 
-namespace raco::common_widgets {
+namespace raco::property_browser {
 
 class LinkStartViewItem final : public ObjectSearchViewItem {
 public:
@@ -29,13 +29,19 @@ public:
 class LinkStartSearchView : public ObjectSearchView {
 	Q_OBJECT
 public:
-	LinkStartSearchView(components::SDataChangeDispatcher dispatcher, core::Project* project, const core::ValueHandle& end, QWidget* parent);
+	LinkStartSearchView(components::SDataChangeDispatcher dispatcher, core::Project* project, const std::set<core::ValueHandle>& endHandles, QWidget* parent);
 
 	bool allowedStrong(const QModelIndex& index) const;
 	bool allowedWeak(const QModelIndex& index) const;
 
 protected:
 	void rebuild() noexcept override;
+
+	core::Project* project_;
+	std::set<core::ValueHandle> objects_;
+
+	components::Subscription projectChanges_;
+	std::map<core::SEditorObject, raco::components::Subscription> outputsChanges_;
 };
 
-}  // namespace raco::common_widgets
+}  // namespace raco::property_browser

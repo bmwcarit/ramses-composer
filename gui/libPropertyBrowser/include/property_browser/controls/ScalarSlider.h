@@ -39,6 +39,8 @@ protected:
 	virtual void signalValueEdited(T value) = 0;
 	virtual void signalSingleClicked() = 0;
 
+	bool multipleValues_{false};
+
 private:
 	void addValue(T step);
 	T min_;
@@ -63,6 +65,13 @@ Q_SIGNALS:
 	void singleClicked();
 public Q_SLOTS:
 	void setValue(double v) { slotSetValue(v); }
+	void setMultipleValues() {
+		multipleValues_ = true;
+		update();
+	}
+	bool hasMultipleValues() const {
+		return multipleValues_;
+	}
 
 protected:
 	void signalValueEdited(double value) override {
@@ -83,6 +92,13 @@ Q_SIGNALS:
 	void singleClicked();
 public Q_SLOTS:
 	void setValue(int v) { slotSetValue(v); }
+	void setMultipleValues() {
+		multipleValues_ = true;
+		update();
+	}
+	bool hasMultipleValues() const {
+		return multipleValues_;
+	}
 
 protected:
 	void signalValueEdited(int value) override {
@@ -103,6 +119,10 @@ Q_SIGNALS:
 	void singleClicked();
 public Q_SLOTS:
 	void setValue(int64_t v) { slotSetValue(v); }
+	void setMultipleValues() { 
+		multipleValues_ = true; 
+		update();
+	}
 
 protected:
 	void signalValueEdited(int64_t value) override {

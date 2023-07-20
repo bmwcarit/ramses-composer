@@ -117,6 +117,10 @@ void PreviewContentWidget::commit(bool forceUpdate) {
 	}
 }
 
+bool PreviewContentWidget::saveScreenshot(const std::string& fullPath) {
+	return ramsesPreview_->saveScreenshot(fullPath);
+}
+
 void PreviewContentWidget::mouseMoveEvent(QMouseEvent* event) {
 	Q_EMIT newMousePosition(event->globalPos());
 	QWidget::mouseMoveEvent(event);

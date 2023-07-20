@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 1.9.1)
+project(RaCoOS VERSION 1.10.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
@@ -250,7 +250,7 @@ if(PACKAGE_TESTS)
 	# Define a macro to easily setup tests
 	macro(raco_package_add_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 	    add_executable(${TESTNAME} ${FILES})
-		target_link_libraries(${TESTNAME} gtest gmock gtest_main ${LIBRARIES} raco::ramses-logic-lib-client-only)
+		target_link_libraries(${TESTNAME} gtest gmock gtest_main ${LIBRARIES})
 		gtest_discover_tests(${TESTNAME}
 			WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
 			PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
@@ -277,13 +277,15 @@ if(PACKAGE_TESTS)
 	endmacro()
 	macro(raco_package_add_headless_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
+		target_link_libraries(${TESTNAME} raco::ramses-logic-lib-client-only)
 		deploy_headless_shared_dlls(${TESTNAME})
 		deploy_ramses_client_only_shared_dlls(${TESTNAME} "$<TARGET_FILE_DIR:${TESTNAME}>")
 	endmacro()
 	macro(raco_package_add_gui_test TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
 		raco_package_add_qt_test(${TESTNAME} "${FILES}" "${LIBRARIES}" "${TEST_WORKING_DIRECTORY}")
+		target_link_libraries(${TESTNAME} raco::ramses-lib raco::ramses-logic-lib)
 		deploy_gui_shared_dlls(${TESTNAME})
-		deploy_ramses_client_only_shared_dlls(${TESTNAME} "$<TARGET_FILE_DIR:${TESTNAME}>")
+		deploy_ramses_with_renderer_shared_dlls(${TESTNAME} "$<TARGET_FILE_DIR:${TESTNAME}>")
 	endmacro()
 	function(raco_package_test_resources_process TESTNAME SOURCE_DIRECTORY)
 		foreach(fname ${ARGN}) 

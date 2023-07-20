@@ -33,9 +33,13 @@ bool RaCoPreferences::save() {
 	settings.setValue("scriptSubdirectory", scriptSubdirectory);
 	settings.setValue("interfaceSubdirectory", interfaceSubdirectory);
 	settings.setValue("shaderSubdirectory", shaderSubdirectory);
+	settings.setValue("screenshotDirectory", screenshotDirectory);
 	settings.setValue("featureLevel", featureLevel);
+	settings.setValue("isUriValidationCaseSensitive", isUriValidationCaseSensitive);
+	settings.setValue("preventAccidentalUpgrade", preventAccidentalUpgrade);
 
 	settings.sync();
+
 	return settings.status() == QSettings::NoError;
 }
 
@@ -53,8 +57,11 @@ void RaCoPreferences::load() {
 	scriptSubdirectory = settings.value("scriptSubdirectory", "scripts").toString();
 	interfaceSubdirectory = settings.value("interfaceSubdirectory", "interfaces").toString();
 	shaderSubdirectory = settings.value("shaderSubdirectory", "shaders").toString();
+	screenshotDirectory = settings.value("screenshotDirectory", "").toString();
 
 	featureLevel = settings.value("featureLevel", 1).toInt();
+	isUriValidationCaseSensitive = settings.value("isUriValidationCaseSensitive", false).toBool();
+	preventAccidentalUpgrade = settings.value("preventAccidentalUpgrade", false).toBool();
 }
 
 RaCoPreferences& RaCoPreferences::instance() noexcept {

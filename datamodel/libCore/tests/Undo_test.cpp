@@ -246,6 +246,30 @@ TEST_F(UndoTest, ScenegraphMove_multiple_children) {
 			}});
 }
 
+TEST_F(UndoTest, ScenegraphMove_top_level) {
+	auto settings = project.settings();
+	auto node1 = commandInterface.createObject(Node::typeDescription.typeName, "node1");
+	auto node2 = commandInterface.createObject(Node::typeDescription.typeName, "node2");
+	auto node3 = commandInterface.createObject(Node::typeDescription.typeName, "node3");
+
+	checkUndoRedoMultiStep<2>(
+		{[this, node1, node2]() {
+			 commandInterface.moveScenegraphChildren({node2}, {}, 0);
+		 },
+			[this, node1, node3]() {
+				commandInterface.moveScenegraphChildren({node3, node1}, {}, 1);
+			}},
+		{[this, settings, node1, node2, node3]() {
+			 ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node1, node2, node3}));
+		 },
+			[this, settings, node1, node2, node3]() {
+				ASSERT_EQ(project.instances(), std::vector<SEditorObject>({node2, settings, node1, node3}));
+			},
+			[this, settings, node1, node2, node3]() {
+				ASSERT_EQ(project.instances(), std::vector<SEditorObject>({node2, node3, node1, settings}));
+			}});
+}
+
 TEST_F(UndoTest, Create_node) {
 	checkUndoRedo([this]() { commandInterface.createObject(Node::typeDescription.typeName, "node"); },
 		[this]() {
@@ -1491,4 +1515,360 @@ TEST_F(UndoTest, referenced_object_moved_into_prefab) {
 
 	commandInterface.undoStack().redo();
 	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
+}
+
+TEST_F(UndoTest, composite_single_op) {
+	auto node = create<Node>("node");
+	ValueHandle translation_x{node, {"translation", "x"}};
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, translation_x]() {
+			commandInterface.executeCompositeCommand(
+				[this, translation_x]() {
+					commandInterface.set(translation_x, 3.0);
+				},
+				"Composite command");
+		},
+		[this, translation_x]() {
+			EXPECT_EQ(translation_x.asDouble(), 0.0);
+		},
+		[this, translation_x]() {
+			EXPECT_EQ(translation_x.asDouble(), 3.0);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+	EXPECT_EQ(undoStack.description(undoStack.getIndex()), std::string("Composite command"));
+}
+
+TEST_F(UndoTest, composite_multi_op) {
+	auto node = create<Node>("node");
+	ValueHandle translation_x{node, {"translation", "x"}};
+	ValueHandle translation_y{node, {"translation", "y"}};
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, translation_x, translation_y]() {
+			commandInterface.executeCompositeCommand(
+				[this, translation_x, translation_y]() {
+					commandInterface.set(translation_x, 3.0);
+					commandInterface.set(translation_y, 4.0);
+				},
+				"Composite command");
+		},
+		[this, translation_x, translation_y]() {
+			EXPECT_EQ(translation_x.asDouble(), 0.0);
+			EXPECT_EQ(translation_y.asDouble(), 0.0);
+		},
+		[this, translation_x, translation_y]() {
+			EXPECT_EQ(translation_x.asDouble(), 3.0);
+			EXPECT_EQ(translation_y.asDouble(), 4.0);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+	EXPECT_EQ(undoStack.description(undoStack.getIndex()), std::string("Composite command"));
+}
+
+TEST_F(UndoTest, composite_abort) {
+	auto node = create<Node>("node");
+	ValueHandle translation_x{node, {"translation", "x"}};
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	EXPECT_THROW(
+		commandInterface.executeCompositeCommand(
+			[this, translation_x]() {
+				commandInterface.set(translation_x, 3.0);
+				commandInterface.set(translation_x, true);
+			},
+			"Composite command"),
+		std::runtime_error);
+
+	EXPECT_EQ(index, undoStack.getIndex());
+	EXPECT_EQ(size, undoStack.size());
+	EXPECT_EQ(translation_x.asDouble(), 0.0);
+}
+
+TEST_F(UndoTest, composite_nested) {
+	auto node = create<Node>("node");
+	ValueHandle translation_x{node, {"translation", "x"}};
+	ValueHandle translation_y{node, {"translation", "y"}};
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, translation_x, translation_y]() {
+			commandInterface.executeCompositeCommand(
+				[this, translation_x, translation_y]() {
+					commandInterface.set(translation_x, 3.0);
+					commandInterface.executeCompositeCommand(
+						[this, translation_y]() {
+							commandInterface.set(translation_y, 4.0);
+						},
+						"Inner");
+				},
+				"Outer");
+		},
+		[this, translation_x, translation_y]() {
+			EXPECT_EQ(translation_x.asDouble(), 0.0);
+			EXPECT_EQ(translation_y.asDouble(), 0.0);
+		},
+		[this, translation_x, translation_y]() {
+			EXPECT_EQ(translation_x.asDouble(), 3.0);
+			EXPECT_EQ(translation_y.asDouble(), 4.0);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+	EXPECT_EQ(undoStack.description(undoStack.getIndex()), std::string("Outer"));
+}
+
+TEST_F(UndoTest, composite_nested_abort_outer) {
+	auto node = create<Node>("node");
+	ValueHandle translation_x{node, {"translation", "x"}};
+	ValueHandle translation_y{node, {"translation", "y"}};
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	EXPECT_THROW(
+		commandInterface.executeCompositeCommand(
+			[this, translation_x, translation_y]() {
+				commandInterface.executeCompositeCommand(
+					[this, translation_y]() {
+						commandInterface.set(translation_y, 4.0);
+					},
+					"Inner");
+				commandInterface.set(translation_x, true);
+			},
+			"Outer"),
+		std::runtime_error);
+
+	EXPECT_EQ(index, undoStack.getIndex());
+	EXPECT_EQ(size, undoStack.size());
+	EXPECT_EQ(translation_x.asDouble(), 0.0);
+	EXPECT_EQ(translation_y.asDouble(), 0.0);
+}
+
+TEST_F(UndoTest, composite_nested_abort_inner) {
+	auto node = create<Node>("node");
+	ValueHandle translation_x{node, {"translation", "x"}};
+	ValueHandle translation_y{node, {"translation", "y"}};
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	EXPECT_THROW(
+		commandInterface.executeCompositeCommand(
+			[this, translation_x, translation_y]() {
+				commandInterface.set(translation_x, 3.0);
+				commandInterface.executeCompositeCommand(
+					[this, translation_y]() {
+						commandInterface.set(translation_y, false);
+					},
+					"Inner");
+			},
+			"Outer"),
+		std::runtime_error);
+
+	EXPECT_EQ(index, undoStack.getIndex());
+	EXPECT_EQ(size, undoStack.size());
+	EXPECT_EQ(translation_x.asDouble(), 0.0);
+	EXPECT_EQ(translation_y.asDouble(), 0.0);
+}
+
+TEST_F(UndoTest, set_multi_int) {
+	auto obj_1 = create<Foo>("Foo");
+	auto obj_2 = create<Foo>("Alt");
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, obj_1, obj_2]() {
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(obj_1, &Foo::i_),
+					ValueHandle(obj_2, &Foo::i_),
+					ValueHandle(obj_2, {"v2i", "i2"})}),
+				2);
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i_, 3);
+			EXPECT_EQ(*obj_2->i_, 3);
+			EXPECT_EQ(*obj_2->v2i_->i2_, 0);
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i_, 2);
+			EXPECT_EQ(*obj_2->i_, 2);
+			EXPECT_EQ(*obj_2->v2i_->i2_, 2);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+}
+
+TEST_F(UndoTest, set_multi_int_merge) {
+	auto obj_1 = create<Foo>("Foo");
+	auto obj_2 = create<Foo>("Alt");
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, obj_1, obj_2]() {
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(obj_1, &Foo::i_),
+					ValueHandle(obj_2, &Foo::i_),
+					ValueHandle(obj_2, {"v2i", "i2"})}),
+				2);
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(obj_1, &Foo::i_),
+					ValueHandle(obj_2, &Foo::i_),
+					ValueHandle(obj_2, {"v2i", "i2"})}),
+				13);
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i_, 3);
+			EXPECT_EQ(*obj_2->i_, 3);
+			EXPECT_EQ(*obj_2->v2i_->i2_, 0);
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i_, 13);
+			EXPECT_EQ(*obj_2->i_, 13);
+			EXPECT_EQ(*obj_2->v2i_->i2_, 13);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+}
+
+TEST_F(UndoTest, set_multi_int64) {
+	auto obj_1 = create<Foo>("Foo");
+	auto obj_2 = create<Foo>("Alt");
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, obj_1, obj_2]() {
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(obj_1, &Foo::i64_),
+					ValueHandle(obj_2, &Foo::i64_)}),
+				int64_t(2));
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i64_, 0);
+			EXPECT_EQ(*obj_2->i64_, 0);
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i64_, 2);
+			EXPECT_EQ(*obj_2->i64_, 2);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+}
+
+TEST_F(UndoTest, set_multi_int64_merge) {
+	auto obj_1 = create<Foo>("Foo");
+	auto obj_2 = create<Foo>("Alt");
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, obj_1, obj_2]() {
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(obj_1, &Foo::i64_),
+					ValueHandle(obj_2, &Foo::i64_)}),
+				int64_t(2));
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(obj_1, &Foo::i64_),
+					ValueHandle(obj_2, &Foo::i64_)}),
+				int64_t(13));
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i64_, 0);
+			EXPECT_EQ(*obj_2->i64_, 0);
+		},
+		[this, obj_1, obj_2]() {
+			EXPECT_EQ(*obj_1->i64_, 13);
+			EXPECT_EQ(*obj_2->i64_, 13);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+}
+
+TEST_F(UndoTest, set_multi_double) {
+	auto node = create<Node>("name");
+	auto meshnode = create<MeshNode>("meshnode");
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, node, meshnode]() {
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(node, {"translation", "x"}),
+					ValueHandle(node, {"translation", "y"}),
+					ValueHandle(meshnode, {"translation", "z"})}),
+				2.0);
+		},
+		[this, node, meshnode]() {
+			EXPECT_EQ(*node->translation_->x, 0.0);
+			EXPECT_EQ(*node->translation_->y, 0.0);
+			EXPECT_EQ(*meshnode->translation_->z, 0.0);
+		},
+		[this, node, meshnode]() {
+			EXPECT_EQ(*node->translation_->x, 2.0);
+			EXPECT_EQ(*node->translation_->y, 2.0);
+			EXPECT_EQ(*meshnode->translation_->z, 2.0);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
+}
+
+TEST_F(UndoTest, set_multi_double_merge) {
+	auto node = create<Node>("name");
+	auto meshnode = create<MeshNode>("meshnode");
+
+	auto index = undoStack.getIndex();
+	auto size = undoStack.size();
+
+	checkUndoRedo(
+		[this, node, meshnode]() {
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(node, {"translation", "x"}),
+					ValueHandle(node, {"translation", "y"}),
+					ValueHandle(meshnode, {"translation", "z"})}),
+				2.0);
+			commandInterface.set(
+				std::set<ValueHandle>({ValueHandle(node, {"translation", "x"}),
+					ValueHandle(node, {"translation", "y"}),
+					ValueHandle(meshnode, {"translation", "z"})}),
+				3.0);
+		},
+		[this, node, meshnode]() {
+			EXPECT_EQ(*node->translation_->x, 0.0);
+			EXPECT_EQ(*node->translation_->y, 0.0);
+			EXPECT_EQ(*meshnode->translation_->z, 0.0);
+		},
+		[this, node, meshnode]() {
+			EXPECT_EQ(*node->translation_->x, 3.0);
+			EXPECT_EQ(*node->translation_->y, 3.0);
+			EXPECT_EQ(*meshnode->translation_->z, 3.0);
+		});
+
+	EXPECT_EQ(index + 1, undoStack.getIndex());
+	EXPECT_EQ(size + 1, undoStack.size());
 }

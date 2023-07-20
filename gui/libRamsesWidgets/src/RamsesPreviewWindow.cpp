@@ -97,6 +97,19 @@ RamsesPreviewWindow::~RamsesPreviewWindow() {
 	}
 }
 
+bool RamsesPreviewWindow::saveScreenshot(const std::string& fullPath) {
+	const auto width = current_.targetSize.width();
+	const auto height = current_.targetSize.height();
+
+	if (offscreenBufferId_.isValid() && displayId_.isValid()) {
+		if (rendererBackend_.eventHandler().saveScreenshot(fullPath, displayId_, offscreenBufferId_, 0, 0, width, height)) {
+			return rendererBackend_.eventHandler().waitForScreenshot();
+		}
+	}
+
+	return false;
+}
+
 const RamsesPreviewWindow::State& RamsesPreviewWindow::currentState() {
 	return current_;
 }

@@ -89,6 +89,12 @@ raco_package_add_test_resources(
     shaders/uniform-struct.frag
     shaders/skinning-template.vert
     shaders/skinning-template.frag
+    shaders/include/main_mat_adapter_test.vert
+    shaders/include/main_mat_adapter_test.frag
+    shaders/include/main_mat_adapter_test.geom
+    shaders/include/uniforms_frag.glsl
+    shaders/include/uniforms_vert.glsl
+    shaders/include/uniforms_geom.glsl
     meshes/Duck.glb
     meshes/meshrefless.gltf
     meshes/meshless.gltf

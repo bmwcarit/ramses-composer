@@ -27,6 +27,7 @@ public:
 	const QIcon parentIsLinked{":parentLinkedIcon"};
 	const QIcon unlinkable{":unlinkableIcon"};
 	const QIcon linkBroken{":linkBrokenIcon"};
+	const QIcon linkMultipleValues{":linkMultipleValuesIcon"};
 	const QIcon locked{":lockedIcon"};
 	const QIcon unlocked{":unlockedIcon"};
 	const QIcon close{":closeIcon"};
@@ -74,6 +75,7 @@ public:
 	const QIcon doubleArrowLeft{":doubleArrowLeft"};
 	const QIcon typeAnchorPoint{":anchorIcon"};
 	const QIcon typeSkin{":typeSkinIcon"};
+	const QIcon screenshot{":screenshotIcon"};
 	const QIcon visibilityDisabled{makeDisabled(":visibilityDisabledIcon")};
 	const QIcon visibilityOn{makeDisabled(":visibilityOnIcon")};
 	const QIcon visibilityOff{makeDisabled(":visibilityOffIcon")};

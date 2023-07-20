@@ -72,7 +72,7 @@ namespace raco::property_browser {
 		QCompleter* completer_;
 	};
 
-	TagContainerEditor_Popup::TagContainerEditor_Popup(PropertyBrowserItem* item, raco::core::TagType tagType, QWidget* anchor) : PopupDialog{anchor, QString::fromStdString(item->valueHandle().rootObject()->objectName()) + "." +  QString::fromStdString(item->displayName())}, tagType_{tagType}, item_{item} {
+	TagContainerEditor_Popup::TagContainerEditor_Popup(PropertyBrowserItem* item, core::TagType tagType, QWidget* anchor) : PopupDialog{anchor, QString::fromStdString(item->getRootObjectName()) + "." + QString::fromStdString(item->displayName())}, tagType_{tagType}, item_{item} {
 		listOfTags_ = std::make_unique<TreeViewWithDel>(this);
 		availableTagsItemModel_ = new TagContainerEditor_AvailableTagsItemModel(&listOfAvailableTags_);
 		tagListItemModel_ = new TagContainerEditor_AppliedTagModel(listOfTags_.get(), tagType_);
@@ -82,37 +82,80 @@ namespace raco::property_browser {
 		closeButton_.setFlat(true);
 		closeButton_.setText("Cancel");
 
-		// Set up list of tags
-		for (size_t index{ 0 }; index < item->valueHandle().size(); index++) {
-			if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
-				tagListItemModel_->addTag(item->valueHandle()[index].getPropName(), -1,
-					item->valueHandle()[index].asInt());
-				
+		// Rearrange tags from all value handles into the map which has tag name as a key
+		std::map<std::string, std::pair<std::set<core::ValueHandle>, std::set<int>>> tagHandlesOrderMap;
+		std::for_each(item_->valueHandles().begin(), item_->valueHandles().end(), [this, &tagHandlesOrderMap](const core::ValueHandle& handle) {
+			if (tagType_ == core::TagType::NodeTags_Referencing) {
+				for (size_t index{0}; index < handle.size(); index++) {
+					auto tag = handle[index].getPropName();
+					auto orderIndex = handle[index].asInt();
+
+					if (tagHandlesOrderMap.find(tag) == tagHandlesOrderMap.end()) {
+						tagHandlesOrderMap[tag] = {};
+					}
+					tagHandlesOrderMap[tag].first.insert(handle);
+					tagHandlesOrderMap[tag].second.insert(orderIndex);
+				}
 			} else {
-				tagListItemModel_->addTag(item->valueHandle()[index].asString());				
+				for (size_t index{0}; index < handle.size(); index++) {
+					auto tag = handle[index].asString();
+
+					if (tagHandlesOrderMap.find(tag) == tagHandlesOrderMap.end()) {
+						tagHandlesOrderMap[tag] = {};
+					}
+					tagHandlesOrderMap[tag].first.insert(handle);
+				}
 			}
-		}
+		});
+
+		std::map<std::string, int> tagOrderMap;
+		std::for_each(tagHandlesOrderMap.begin(), tagHandlesOrderMap.end(), [this, &tagOrderMap](const std::pair<std::string, std::pair<std::set<core::ValueHandle>, std::set<int>>>& tagHandlesOrderPair) {
+			if (tagHandlesOrderPair.second.first.size() == item_->valueHandles().size()) {	// if all handles have this tag
+				if (tagHandlesOrderPair.second.second.size() == 1) {						// if this tag has only one value for all handles
+					tagOrderMap[tagHandlesOrderPair.first] = *tagHandlesOrderPair.second.second.begin();
+				} else {
+					tagOrderMap[tagHandlesOrderPair.first] = INT_MIN;
+				}
+			}
+		});
+
+		std::for_each(tagOrderMap.begin(), tagOrderMap.end(), [this](const std::pair<std::string, int> tagOrderPair) {
+			tagListItemModel_->addTag(tagOrderPair.first, -1, std::optional<int>(tagOrderPair.second));
+		});
+
 		listOfTags_->setDragEnabled(true);
 		listOfTags_->setAcceptDrops(true);
-		listOfTags_->setDropIndicatorShown(tagType == raco::core::TagType::NodeTags_Referencing);
+		listOfTags_->setDropIndicatorShown(tagType == core::TagType::NodeTags_Referencing);
 		listOfTags_->setDefaultDropAction(Qt::MoveAction);
 		completer_.setModel(availableTagsItemModel_);
 		listOfTags_->setItemDelegate(new TreeViewItemWithFullWidthEditor(listOfTags_.get(), &completer_));
 		listOfTags_->setModel(tagListItemModel_);
-		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
-			tagListItemModel_->setHorizontalHeaderLabels({"Applied tags", "Render Order"});
+		if (tagType_ == core::TagType::NodeTags_Referencing) {
+			if (item_->valueHandles().size() > 1) {
+				tagListItemModel_->setHorizontalHeaderLabels({"Common applied tags", "Render Order"});
+			} else {
+				tagListItemModel_->setHorizontalHeaderLabels({"Applied tags", "Render Order"});
+			}
 			listOfTags_->header()->setStretchLastSection(false);
 			listOfTags_->header()->setSectionResizeMode(0, QHeaderView::ResizeMode::Stretch);
 			listOfTags_->header()->setSectionResizeMode(1, QHeaderView::ResizeMode::ResizeToContents);
-			auto renderLayer = item->valueHandle().rootObject()->as<user_types::RenderLayer>();
-			if (renderLayer && renderLayer->sortOrder_.asInt() != static_cast<int>(user_types::ERenderLayerOrder::Manual)) {
-				listOfTags_->header()->hideSection(1);
-			}
+
+			tagListItemModel_->setOrderIsReadOnly(
+				std::any_of(item->valueHandles().begin(), item->valueHandles().end(), [this](const core::ValueHandle& handle) {
+					auto renderLayer = handle.rootObject()->as<user_types::RenderLayer>();
+					return renderLayer && renderLayer->sortOrder_.asInt() == static_cast<int>(user_types::ERenderLayerOrder::SceneGraph);
+				}));
+
 		} else {
-			tagListItemModel_->setHorizontalHeaderLabels({"Applied tags"});
+			if (item_->valueHandles().size() > 1) {
+				tagListItemModel_->setHorizontalHeaderLabels({"Common applied tags"});
+			} else {
+				tagListItemModel_->setHorizontalHeaderLabels({"Applied tags"});
+			}
+			
 		}
 
-		tagDataCache_ = raco::core::TagDataCache::createTagDataCache(item->project(), tagType);
+		tagDataCache_ = core::TagDataCache::createTagDataCache(item->project(), tagType);
 
 		onTagListUpdated();
 		
@@ -123,7 +166,7 @@ namespace raco::property_browser {
 			auto const tag = QString::fromStdString(p.first);
 			QStringList listOfRenderLayerNames;
 			for (auto const& r : p.second.referencingObjects_) {
-				if (tagType_ == raco::core::TagType::MaterialTags) {
+				if (tagType_ == core::TagType::MaterialTags) {
 					auto renderLayer = std::dynamic_pointer_cast<user_types::RenderLayer>(r);
 					listOfRenderLayerNames.push_back((*renderLayer->materialFilterMode_ == static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Exclusive) ? "+" : "-") + QString::fromStdString(r->objectName()));
 				}
@@ -181,7 +224,7 @@ namespace raco::property_browser {
 	}
 
 	void TagContainerEditor_Popup::newTagListAccepted() {
-		if (tagType_ == raco::core::TagType::NodeTags_Referencing) {
+		if (tagType_ == core::TagType::NodeTags_Referencing) {
 			item_->setTags(tagListItemModel_->renderableTags());
 		} else {
 			item_->setTags(tagListItemModel_->tags());
@@ -203,17 +246,25 @@ namespace raco::property_browser {
 	void TagContainerEditor_Popup::onTagListUpdated() {
 		// Calculate the list of forbidden tags (tags which would create a loop in the render layer hierarchy)
 		auto appliedTags = tagListItemModel_->tags();
-		forbiddenTags_ = { appliedTags.begin(), appliedTags.end() };
+		forbiddenTags_ = {appliedTags.begin(), appliedTags.end()};
 		switch (tagType_) {
-			case raco::core::TagType::MaterialTags: {
+			case core::TagType::MaterialTags: {
 				break;
 			}
-			case raco::core::TagType::NodeTags_Referenced: {				
-				raco::core::Queries::findForbiddenTags(*tagDataCache_, item_->valueHandle().rootObject(), forbiddenTags_);
+			case core::TagType::NodeTags_Referenced: {
+				std::set<std::string> forbiddenTags;
+				std::for_each(item_->valueHandles().begin(), item_->valueHandles().end(), [this, &forbiddenTags](const core::ValueHandle& handle) {
+					core::Queries::findForbiddenTags(*tagDataCache_, handle.rootObject(), forbiddenTags);
+					forbiddenTags_.merge(forbiddenTags);
+				});
 				break;
 			}
-			case raco::core::TagType::NodeTags_Referencing: {
-				raco::core::Queries::findRenderLayerForbiddenRenderableTags(*tagDataCache_, item_->valueHandle().rootObject()->as<user_types::RenderLayer>(), forbiddenTags_);
+			case core::TagType::NodeTags_Referencing: {
+				std::set<std::string> forbiddenTags;
+				std::for_each(item_->valueHandles().begin(), item_->valueHandles().end(), [this, &forbiddenTags](const core::ValueHandle& handle) {
+					core::Queries::findRenderLayerForbiddenRenderableTags(*tagDataCache_, handle.rootObject()->as<user_types::RenderLayer>(), forbiddenTags);
+					forbiddenTags_.merge(forbiddenTags);
+				});
 				break;
 			}
 			case raco::core::TagType::UserTags: {
@@ -230,21 +281,34 @@ namespace raco::property_browser {
 		if (!showRenderedBy()) {
 			return;
 		}
-		std::set<std::string> alltags;
-		auto node = item_->valueHandle().rootObject()->as<user_types::Node>();
-		if (node != nullptr && node->getParent() != nullptr) {
-			alltags = core::Queries::renderableTagsWithParentTags(node->getParent());
+
+		std::set<std::shared_ptr<user_types::RenderPass>> renderedBy;
+		std::set<std::shared_ptr<user_types::RenderLayer>> addedTo;
+		bool isMultipleRenderedBy = false;
+		bool isMultipleAddedTo = false;
+		item_->getTagsInfo(renderedBy, isMultipleRenderedBy, addedTo, isMultipleAddedTo);
+		std::string referencedByText = "Added to: <none>\n";
+		std::string renderedByText = "Rendered by: <none>\n";
+		if (isMultipleRenderedBy) {
+			renderedByText = "Rendered by: Multiple values\n";
+		} else if (!renderedBy.empty()) {
+			renderedByText = fmt::format("Rendered by: {}\n", renderedBy);
 		}
-		auto mytags = tagListItemModel_->tags<std::set<std::string>>();
-		alltags.merge(mytags);		
-		auto allReferencingRenderLayers = tagDataCache_->allReferencingObjects<user_types::RenderLayer>(alltags);
-		const auto rps = tagDataCache_->allRenderPassesForObjectWithTags(item_->valueHandle().rootObject(), alltags);
-		referencedBy_.setText(QString::fromStdString(fmt::format("Added to: {}", allReferencingRenderLayers)));
-		renderedBy_.setText(QString::fromStdString(fmt::format("Rendered by: {}", rps)));
+
+		if (isMultipleAddedTo) {
+			referencedByText = "Added to: Multiple values";
+		} else if (!addedTo.empty()) {
+			referencedByText = fmt::format("Added to: {}", addedTo);
+		}
+
+		referencedBy_.setText(QString::fromStdString(referencedByText));
+		renderedBy_.setText(QString::fromStdString(renderedByText));
 	}
 
 	bool TagContainerEditor_Popup::showRenderedBy() const {
-		return core::Queries::isUserTypeInTypeList(item_->valueHandle().rootObject(), core::Queries::UserTypesWithRenderableTags()) && core::Queries::isTagProperty(item_->valueHandle());
+		return std::all_of(item_->valueHandles().begin(), item_->valueHandles().end(), [](const core::ValueHandle& handle) {
+			return core::Queries::isUserTypeInTypeList(handle.rootObject(), core::Queries::UserTypesWithRenderableTags()) && core::Queries::isTagProperty(handle);
+		});
 	}
 
 }

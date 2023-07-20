@@ -11,13 +11,15 @@
 
 #include "PropertyEditor.h"
 
-class QStackedWidget;
+#include "property_browser/controls/ScalarSlider.h"
+#include "property_browser/controls/SpinBox.h"
 
+class QStackedWidget;
 namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
-class DoubleEditor final : public PropertyEditor {
+class DoubleEditor : public PropertyEditor {
 public:
 	explicit DoubleEditor(
 		PropertyBrowserItem* item,
@@ -25,6 +27,14 @@ public:
 
 protected:
 	QStackedWidget* stack_;
+
+	DoubleSlider* slider_;
+	DoubleSpinBox* spinBox_;
+
+private:
+	void setValueToControls(DoubleSlider* slider, DoubleSpinBox* spinBox) const;
+
+	std::map<core::ValueHandle, double> focusInValues_;
 };
 
 }  // namespace raco::property_browser
