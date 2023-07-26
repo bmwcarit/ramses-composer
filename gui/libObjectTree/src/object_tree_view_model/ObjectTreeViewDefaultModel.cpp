@@ -373,39 +373,43 @@ bool ObjectTreeViewDefaultModel::dropMimeData(const QMimeData* data, Qt::DropAct
 		return true;
 	}
 
-	if (!data->hasFormat(OBJECT_EDITOR_ID_MIME_TYPE)) {
-		return false;
-	}
+	if (data->hasFormat(OBJECT_EDITOR_ID_MIME_TYPE)) {
+		auto originPath = getOriginPathFromMimeData(data);
+		auto mimeDataContainsLocalInstances = originPath == project()->currentPath();
+		auto movedItemIDs = decodeMimeData(data);
 
-	auto originPath = getOriginPathFromMimeData(data);
-	auto mimeDataContainsLocalInstances = originPath == project()->currentPath();
-	auto movedItemIDs = decodeMimeData(data);
-
-	if (mimeDataContainsLocalInstances) {
-		std::vector<SEditorObject> objs;
-		for (const auto& movedItemID : movedItemIDs) {
-			if (auto childObj = project()->getInstanceByID(movedItemID.toStdString())) {
-				objs.emplace_back(childObj);
+		if (mimeDataContainsLocalInstances) {
+			std::vector<SEditorObject> objs;
+			for (const auto& movedItemID : movedItemIDs) {
+				if (auto childObj = project()->getInstanceByID(movedItemID.toStdString())) {
+					objs.emplace_back(childObj);
+				}
 			}
+
+			moveScenegraphChildren(objs, indexToSEditorObject(parent), row);
+		} else {
+			auto originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
+			std::vector<SEditorObject> objs;
+			for (const auto& movedItemID : movedItemIDs) {
+				if (auto externalProjectObj = originCommandInterface->project()->getInstanceByID(movedItemID.toStdString())) {
+					objs.emplace_back(externalProjectObj);
+				}
+			}
+			auto serializedObjects = originCommandInterface->copyObjects(objs, true);
+
+			auto pressedKeys = QGuiApplication::queryKeyboardModifiers();
+			auto pasteAsExtRef = pressedKeys.testFlag(Qt::KeyboardModifier::AltModifier) || indexToTreeNode(parent)->getType() == ObjectTreeNodeType::ExtRefGroup;
+			pasteObjectAtIndex(parent, pasteAsExtRef, nullptr, serializedObjects);
+			return true;
 		}
 
-		moveScenegraphChildren(objs, indexToSEditorObject(parent), row);
-	} else {
-		auto originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(originPath);
-		std::vector<SEditorObject> objs;
-		for (const auto& movedItemID : movedItemIDs) {
-			if (auto externalProjectObj = originCommandInterface->project()->getInstanceByID(movedItemID.toStdString())) {
-				objs.emplace_back(externalProjectObj);
-			}
+	} else if (!acceptableFileExtensions_.empty() && !getAcceptableFilesInfo(data).empty()) {
+		for (const auto& fileInfo : getAcceptableFilesInfo(data)) {
+			dropFile(fileInfo, parent);
 		}
-		auto serializedObjects = originCommandInterface->copyObjects(objs, true);
-
-		auto pressedKeys = QGuiApplication::queryKeyboardModifiers();
-		auto pasteAsExtRef = pressedKeys.testFlag(Qt::KeyboardModifier::AltModifier) || indexToTreeNode(parent)->getType() == ObjectTreeNodeType::ExtRefGroup;
-		pasteObjectAtIndex(parent, pasteAsExtRef, nullptr, serializedObjects);
+		return true;
 	}
-
-	return true;
+	return false;
 }
 
 Qt::ItemFlags ObjectTreeViewDefaultModel::flags(const QModelIndex& index) const {
@@ -530,9 +534,13 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const std::string& typ
 	return newObj;
 }
 
-SEditorObject ObjectTreeViewDefaultModel::createNewObjectFromFile(const QFileInfo& fileInfo) {
-	object_creator::ObjectCreator objCreator(commandInterface_, acceptLuaModules_, acceptLuaInterfaces_, acceptLuaScripts_);
-	return objCreator.createNewObjectFromFile(fileInfo);
+void ObjectTreeViewDefaultModel::dropFile(const QFileInfo& fileInfo, const QModelIndex& parent) {
+	if (gltfDropOpensAssetImportDialog_ && (fileInfo.suffix().toLower() == "glb" || fileInfo.suffix().toLower() == "gltf")) {
+		importMeshScenegraph(fileInfo.absoluteFilePath(), parent);
+	} else {
+		object_creator::ObjectCreator objCreator(commandInterface_, acceptLuaModules_, acceptLuaInterfaces_, acceptLuaScripts_);
+		objCreator.createNewObjectFromFile(fileInfo);
+	}
 }
 
 bool ObjectTreeViewDefaultModel::canCopyAtIndices(const QModelIndexList& indices) const {
@@ -685,7 +693,7 @@ void ObjectTreeViewDefaultModel::importMeshScenegraph(const QString& filePath, c
 	auto dummyCacheEntry = commandInterface_->meshCache()->registerFileChangedHandler(absPath, {nullptr, nullptr});
 	if (auto sceneGraphPtr = commandInterface_->meshCache()->getMeshScenegraph(absPath)) {
 		MeshScenegraph sceneGraph{*sceneGraphPtr};
-		auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, project()->featureLevel(), nullptr).exec();
+		auto importStatus = raco::common_widgets::MeshAssetImportDialog(sceneGraph, project()->featureLevel(), QFileInfo(filePath).fileName(), nullptr).exec();
 		if (importStatus == QDialog::Accepted) {
 			commandInterface_->insertAssetScenegraph(sceneGraph, absPath, selectedObject);
 		}
@@ -821,6 +829,10 @@ void ObjectTreeViewDefaultModel::setAcceptLuaScripts(bool accept){
 
 void ObjectTreeViewDefaultModel::setAcceptLuaInterfaces(bool accept) {
 	acceptLuaInterfaces_ = accept;
+}
+
+void ObjectTreeViewDefaultModel::setDropGltfOpensAssetImportDialog(bool flag) {
+	gltfDropOpensAssetImportDialog_ = flag;
 }
 
 bool ObjectTreeViewDefaultModel::setData(const QModelIndex& index, const QVariant& value, int role) {

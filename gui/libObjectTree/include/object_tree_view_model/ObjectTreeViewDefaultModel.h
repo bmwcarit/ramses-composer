@@ -90,6 +90,7 @@ public:
 	void setAcceptLuaModules(bool accept);
 	void setAcceptLuaScripts(bool accept);
 	void setAcceptLuaInterfaces(bool accept);
+	void setDropGltfOpensAssetImportDialog(bool flag);
 
 	virtual Qt::TextElideMode textElideMode() const;
 
@@ -118,7 +119,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 	core::SEditorObject createNewObject(const std::string& typeName, const std::string& nodeName = "", const QModelIndex& parent = QModelIndex());
-	core::SEditorObject createNewObjectFromFile(const QFileInfo& fileInfo);
+	void dropFile(const QFileInfo& fileInfo, const QModelIndex& parent);
 	virtual size_t deleteObjectsAtIndices(const QModelIndexList& indices);
 	virtual void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy);
 	virtual void cutObjectsAtIndices(const QModelIndexList& indices, bool deepCut);
@@ -198,6 +199,7 @@ protected:
 	bool acceptLuaModules_ = false;
 	bool acceptLuaScripts_ = false;
 	bool acceptLuaInterfaces_ = false;
+	bool gltfDropOpensAssetImportDialog_ = false;
 
 	std::string getOriginPathFromMimeData(const QMimeData* data) const;
 	QMimeData* generateMimeData(const QModelIndexList& indexes, const std::string& originPath) const;

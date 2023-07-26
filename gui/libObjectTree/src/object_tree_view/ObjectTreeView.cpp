@@ -488,12 +488,6 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	return treeViewMenu;
 }
 
-void ObjectTreeView::dropEvent(QDropEvent *event) {
-	for (const auto& fileInfo : treeModel_->getAcceptableFilesInfo(event->mimeData())) {
-		treeModel_->createNewObjectFromFile(fileInfo);
-	}
-}
-
 void ObjectTreeView::dragMoveEvent(QDragMoveEvent *event) {
 	setDropIndicatorShown(true);
 	QTreeView::dragMoveEvent(event);

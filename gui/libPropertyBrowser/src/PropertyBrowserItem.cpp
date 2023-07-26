@@ -457,7 +457,12 @@ std::string PropertyBrowserItem::errorMessage() const {
 	if (messages.size() == 1) {
 		return *messages.begin();
 	} else if (messages.size() > 1) {
-		return "Multiple Errors";
+		std::map<core::ErrorLevel, std::string> levelDesc = {
+			{core::ErrorLevel::NONE, ""},
+			{core::ErrorLevel::INFORMATION, "Information Items"},
+			{core::ErrorLevel::WARNING, "Warnings"},
+			{core::ErrorLevel::ERROR, "Errors"}};
+		return "Multiple " + levelDesc[maxErrorLevel()];
 	}
 	return {};
 }

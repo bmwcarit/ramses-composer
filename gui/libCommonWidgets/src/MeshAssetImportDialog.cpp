@@ -22,12 +22,12 @@
 
 namespace raco::common_widgets {
 
-MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QWidget* parent)
+MeshAssetImportDialog::MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QString fileName, QWidget* parent)
 	: sceneGraph_{sceneGraph},
 	  nodeTreeList_{sceneGraph_.nodes.size()},
 	  meshTreeList_{sceneGraph_.meshes.size()},
 	  animTreeList_{sceneGraph_.animations.size()} {
-	setWindowTitle("Import External Assets");
+	setWindowTitle("Import External Assets from '" + fileName + "'");
 
 	widget_ = new QTreeWidget(this);
 	widget_->setHeaderItem(new QTreeWidgetItem({"Name", "Type"}));

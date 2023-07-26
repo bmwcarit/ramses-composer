@@ -82,7 +82,6 @@ protected:
 
 	virtual QMenu* createCustomContextMenu(const QPoint &p);
 	
-	void dropEvent(QDropEvent *event) override;
 	void dragMoveEvent(QDragMoveEvent *event) override;
 	void mousePressEvent(QMouseEvent *event) override;
 

@@ -269,9 +269,10 @@ ads::CDockAreaWidget* createAndAddSceneGraphTree(MainWindow* mainWindow, const c
 		Skin::typeDescription.typeName};
 
 	auto* model = new raco::object_tree::model::ObjectTreeViewDefaultModel(racoApplication->activeRaCoProject().commandInterface(), racoApplication->dataChangeDispatcher(), racoApplication->externalProjects(), allowedCreateableUserTypes);
-	model->setAcceptableFileExtensions(QStringList{"lua"});
+	model->setAcceptableFileExtensions(QStringList{"lua", "gltf", "glb"});
 	model->setAcceptLuaScripts(true);
 	model->setAcceptLuaInterfaces(true);
+	model->setDropGltfOpensAssetImportDialog(true);
 	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, new raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel(mainWindow, false),
 		ads::LeftDockWidgetArea, mainWindow, dockManager, treeDockManager, nullptr);
 }

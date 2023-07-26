@@ -25,7 +25,7 @@ namespace raco::common_widgets {
 
 class MeshAssetImportDialog final : public QDialog {
 public:
-	explicit MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QWidget* parent = nullptr);
+	explicit MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QString fileName, QWidget* parent = nullptr);
 
 	QGridLayout* layout_;
 	QTreeWidget* widget_;
