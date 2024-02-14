@@ -15,10 +15,7 @@
 #include "object_tree_view/ObjectTreeView.h"
 
 #include <QComboBox>
-#include <QLabel>
 #include <QLineEdit>
-#include <QModelIndexList>
-#include <QSortFilterProxyModel>
 
 namespace raco::object_tree::view {
 
@@ -29,19 +26,19 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	setFeature(ads::CDockWidget::DockWidgetDeleteOnClose, true);
 
-	treeDockLayout_ = new raco::common_widgets::NoContentMarginsLayout<QVBoxLayout>(treeDockContent_);
+	treeDockLayout_ = new common_widgets::NoContentMarginsLayout<QVBoxLayout>(treeDockContent_);
 	treeDockContent_->setLayout(treeDockLayout_);
 
 	filterLineEdit_ = new QLineEdit(this);
 	filterLineEdit_->setPlaceholderText("Filter Objects...");
 	filterByComboBox_ = new QComboBox(this);
-	filterByComboBox_->addItem("Filter by Name", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_NAME));
-	filterByComboBox_->addItem("Filter by Type", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_TYPE));
-	filterByComboBox_->addItem("Filter by Object ID", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_ID));
-	filterByComboBox_->addItem("Filter by User Tag", QVariant(raco::object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_USERTAGS));
+	filterByComboBox_->addItem("Filter by Name", QVariant(object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_NAME));
+	filterByComboBox_->addItem("Filter by Type", QVariant(object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_TYPE));
+	filterByComboBox_->addItem("Filter by Object ID", QVariant(object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_ID));
+	filterByComboBox_->addItem("Filter by User Tag", QVariant(object_tree::model::ObjectTreeViewDefaultModel::ColumnIndex::COLUMNINDEX_USERTAGS));
 
 	auto treeDockSettingsWidget = new QWidget(treeDockContent_);
-	treeDockSettingsLayout_ = new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(treeDockSettingsWidget);
+	treeDockSettingsLayout_ = new common_widgets::NoContentMarginsLayout<QHBoxLayout>(treeDockSettingsWidget);
 	treeDockSettingsLayout_->setContentsMargins(2, 3, 2, 0);
 	treeDockSettingsLayout_->addWidget(filterLineEdit_);
 	treeDockSettingsLayout_->addWidget(filterByComboBox_);
@@ -67,7 +64,7 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 
 }
 
-raco::object_tree::view::ObjectTreeDock::~ObjectTreeDock() {
+ObjectTreeDock::~ObjectTreeDock() {
 	Q_EMIT dockClosed(this);
 }
 
@@ -77,8 +74,8 @@ void ObjectTreeDock::setTreeView(ObjectTreeView *treeView) {
 	filterLineEdit_->setVisible(treeView->hasProxyModel());
 	filterByComboBox_->setVisible(treeView->hasProxyModel());
 
-	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, [this](const auto &objects) {
-		Q_EMIT newObjectTreeItemsSelected(objects, this);
+	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, [this](const auto &objects, const auto &property) {
+		Q_EMIT newObjectTreeItemsSelected(objects, this, property);
 	});
 	connect(treeView, &ObjectTreeView::externalObjectSelected, [this]() {
 		Q_EMIT externalObjectSelected(this);
@@ -100,7 +97,18 @@ void ObjectTreeDock::resetSelection() {
 }
 
 void ObjectTreeDock::filterTreeViewObjects() {
-	getActiveTreeView()->filterObjects(filterLineEdit_->text());
+	const auto filterResult = getActiveTreeView()->filterObjects(filterLineEdit_->text());
+	setLineEditErrorLevel(filterResult);
+}
+
+void ObjectTreeDock::setLineEditErrorLevel(FilterResult filterResult) {
+	if (filterResult == FilterResult::Failed) {
+		filterLineEdit_->setProperty("errorLevel", static_cast<int>(core::ErrorLevel::ERROR));
+	} else if (filterResult == FilterResult::PartialSuccess) {
+		filterLineEdit_->setProperty("errorLevel", static_cast<int>(core::ErrorLevel::WARNING));
+	} else {
+		filterLineEdit_->setProperty("errorLevel", static_cast<int>(core::ErrorLevel::NONE));
+	}
 }
 
 }  // namespace raco::object_tree::view

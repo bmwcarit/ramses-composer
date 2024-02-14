@@ -25,7 +25,7 @@ void RaCoPreferences::init() noexcept {
 }
 
 bool RaCoPreferences::save() {
-	auto settings = raco::core::PathManager::preferenceSettings();
+	auto settings = core::PathManager::preferenceSettings();
 	settings.setValue("userProjectsDirectory", userProjectsDirectory);
 
 	settings.setValue("imageSubdirectory", imageSubdirectory);
@@ -44,12 +44,12 @@ bool RaCoPreferences::save() {
 }
 
 void RaCoPreferences::load() {
-	auto settings = raco::core::PathManager::preferenceSettings();
+	auto settings = core::PathManager::preferenceSettings();
 	std::string dir = settings.value("userProjectsDirectory", "").toString().toStdString();
-	if (raco::utils::u8path(dir).existsDirectory()) {
+	if (utils::u8path(dir).existsDirectory()) {
 		userProjectsDirectory = QString::fromStdString(dir);
 	} else {
-		userProjectsDirectory = QString::fromStdString(raco::core::PathManager::defaultProjectFallbackPath().string());
+		userProjectsDirectory = QString::fromStdString(core::PathManager::defaultProjectFallbackPath().string());
 	}
 
 	imageSubdirectory = settings.value("imageSubdirectory", "images").toString();

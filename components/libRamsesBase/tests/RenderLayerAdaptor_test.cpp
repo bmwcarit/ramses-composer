@@ -15,31 +15,31 @@
 #include "user_types/RenderLayer.h"
 #include "user_types/Enumerations.h"
 
-using raco::user_types::Material;
-using raco::user_types::MeshNode;
-using raco::user_types::Node;
-using raco::user_types::RenderLayer;
+using user_types::Material;
+using user_types::MeshNode;
+using user_types::Node;
+using user_types::RenderLayer;
 
 class RenderLayerAdaptorTest : public RamsesBaseFixture<> {
 protected:
 	int32_t getSortOrder(const ramses::RenderGroup& group, const ramses::MeshNode& meshnode) {
 		int32_t order;
 		auto status = group.getMeshNodeOrder(meshnode, order);
-		EXPECT_EQ(status, ramses::StatusOK);
+		EXPECT_TRUE(status);
 		return order;
 	}
 
 	int32_t getGroupSortOrder(const ramses::RenderGroup& group, const ramses::RenderGroup& nestedGroup) {
 		int32_t order;
 		auto status = group.getRenderGroupOrder(nestedGroup, order);
-		EXPECT_EQ(status, ramses::StatusOK);
+		EXPECT_TRUE(status);
 		return order;
 	}
 
-	void set_renderables(raco::user_types::SRenderLayer layer, const std::vector<std::pair<std::string,int>>& renderables) {
+	void set_renderables(user_types::SRenderLayer layer, const std::vector<std::pair<std::string,int>>& renderables) {
 		context.removeAllProperties({layer, {"renderableTags"}});
 		for (int index = 0; index < renderables.size(); index++) {
-			context.addProperty({layer, {"renderableTags"}}, renderables[index].first, std::make_unique<raco::data_storage::Value<int>>(renderables[index].second));
+			context.addProperty({layer, {"renderableTags"}}, renderables[index].first, std::make_unique<data_storage::Value<int>>(renderables[index].second));
 		}
 	}
 
@@ -149,9 +149,9 @@ TEST_F(RenderLayerAdaptorTest, renderables_meshnode_root_add_layer_renderable) {
 	auto engineGroup = select<ramses::RenderGroup>(*sceneContext.scene(), "layer");
 
 	ASSERT_FALSE(engineGroup->containsMeshNode(*engineMeshNode));
-	ASSERT_TRUE(sceneContext.scene()->findObjectByName("layer.render_main") == nullptr);
+	ASSERT_TRUE(sceneContext.scene()->findObject("layer.render_main") == nullptr);
 
-	context.addProperty({layer, {"renderableTags"}}, "render_main", std::make_unique<raco::data_storage::Value<int>>(0));
+	context.addProperty({layer, {"renderableTags"}}, "render_main", std::make_unique<data_storage::Value<int>>(0));
 	dispatch();
 	auto engineGroupNested = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_main");
 	ASSERT_FALSE(engineGroup->containsMeshNode(*engineMeshNode));
@@ -213,7 +213,7 @@ TEST_F(RenderLayerAdaptorTest, matfilter_toggle_invert) {
 	ASSERT_TRUE(engineGroupNested->containsMeshNode(*engineMeshNode_def));
 	ASSERT_FALSE(engineGroupNested->containsMeshNode(*engineMeshNode_alt));
 
-	context.set({layer, &raco::user_types::RenderLayer::materialFilterMode_}, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Exclusive));
+	context.set({layer, &user_types::RenderLayer::materialFilterMode_}, static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Exclusive));
 	dispatch();
 	
 	engineGroupNested = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_main");
@@ -415,7 +415,7 @@ TEST_F(RenderLayerAdaptorTest, matfilter_nested_toggle_invert) {
 	ASSERT_FALSE(engineGroupNested->containsMeshNode(*engineMeshNode_def));
 	ASSERT_TRUE(engineGroupNested->containsMeshNode(*engineMeshNode_alt));
 
-	context.set({layer, &raco::user_types::RenderLayer::materialFilterMode_}, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Exclusive));
+	context.set({layer, &user_types::RenderLayer::materialFilterMode_}, static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Exclusive));
 	dispatch();
 	engineGroupNested = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_main");
 
@@ -541,7 +541,7 @@ TEST_F(RenderLayerAdaptorTest, sortorder_manual) {
 	auto meshnode2 = create<MeshNode>("meshnode2", nullptr, {"render_alt"});
 	auto meshnode3 = create<MeshNode>("meshnode3", root);
 	auto layer = create_layer("layer", {}, {{"render_main", 0}, {"render_alt", 1}});
-	context.set({layer, {"sortOrder"}}, static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
+	context.set({layer, {"sortOrder"}}, static_cast<int>(user_types::ERenderLayerOrder::Manual));
 
 	dispatch();
 
@@ -594,7 +594,7 @@ TEST_F(RenderLayerAdaptorTest, sortorder_scenegraph) {
 	auto meshnode2 = create<MeshNode>("meshnode2", nullptr, {"render_alt"});
 	auto meshnode3 = create<MeshNode>("meshnode3", root);
 	auto layer = create_layer("layer", {}, {{"render_main", 0}, {"render_alt", 1}});
-	context.set({layer, {"sortOrder"}}, static_cast<int>(raco::user_types::ERenderLayerOrder::SceneGraph));
+	context.set({layer, {"sortOrder"}}, static_cast<int>(user_types::ERenderLayerOrder::SceneGraph));
 
 	dispatch();
 
@@ -602,8 +602,8 @@ TEST_F(RenderLayerAdaptorTest, sortorder_scenegraph) {
 	auto engineMeshNode2 = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode2");
 	auto engineMeshNode3 = select<ramses::MeshNode>(*sceneContext.scene(), "meshnode3");
 	auto engineGroup = select<ramses::RenderGroup>(*sceneContext.scene(), "layer");
-	ASSERT_TRUE(sceneContext.scene()->findObjectByName("layer.render_main") == nullptr);
-	ASSERT_TRUE(sceneContext.scene()->findObjectByName("layer.render_alt") == nullptr);
+	ASSERT_TRUE(sceneContext.scene()->findObject("layer.render_main") == nullptr);
+	ASSERT_TRUE(sceneContext.scene()->findObject("layer.render_alt") == nullptr);
 
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode1));
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode2));
@@ -614,8 +614,8 @@ TEST_F(RenderLayerAdaptorTest, sortorder_scenegraph) {
 
 	set_renderables(layer, {{"render_alt", 0}, {"render_main", 1}});
 	dispatch();
-	ASSERT_TRUE(sceneContext.scene()->findObjectByName("layer.render_main") == nullptr);
-	ASSERT_TRUE(sceneContext.scene()->findObjectByName("layer.render_alt") == nullptr);
+	ASSERT_TRUE(sceneContext.scene()->findObject("layer.render_main") == nullptr);
+	ASSERT_TRUE(sceneContext.scene()->findObject("layer.render_alt") == nullptr);
 
 	// Priorities are ignored for scene graph sorted render layers.
 	ASSERT_TRUE(engineGroup->containsMeshNode(*engineMeshNode1));
@@ -625,7 +625,7 @@ TEST_F(RenderLayerAdaptorTest, sortorder_scenegraph) {
 	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode2), 3);
 	ASSERT_EQ(getSortOrder(*engineGroup, *engineMeshNode3), 2);
 
-	context.set({layer, {"sortOrder"}}, static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
+	context.set({layer, {"sortOrder"}}, static_cast<int>(user_types::ERenderLayerOrder::Manual));
 	dispatch();
 	auto engineGroupNested_main = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_main");
 	auto engineGroupNested_alt = select<ramses::RenderGroup>(*sceneContext.scene(), "layer.render_alt");

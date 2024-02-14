@@ -48,7 +48,7 @@ using raco::application::RaCoApplicationLaunchSettings;
 
 class ExtrefTest : public RacoBaseTest<> {
 public:
-	void checkLinks(const std::vector<raco::core::Link> &refLinks) {
+	void checkLinks(const std::vector<core::Link> &refLinks) {
 		RacoBaseTest::checkLinks(*project, refLinks);
 	}
 
@@ -87,20 +87,20 @@ public:
 		return meshnode;
 	}
 
-	SLuaScript create_lua(const std::string &name, const std::string &relpath, raco::core::SEditorObject parent = nullptr) {
+	SLuaScript create_lua(const std::string &name, const std::string &relpath, core::SEditorObject parent = nullptr) {
 		auto lua = create<LuaScript>(name, parent);
 		cmd->set({lua, {"uri"}}, (test_path() / relpath).string());
 		return lua;
 	}
 
-	SLuaScript create_lua(const std::string &name, const TextFile &file, raco::core::SEditorObject parent = nullptr) {
+	SLuaScript create_lua(const std::string &name, const TextFile &file, core::SEditorObject parent = nullptr) {
 		auto lua = create<LuaScript>(name, parent);
 		cmd->set({lua, {"uri"}}, static_cast<std::string>(file));
 		return lua;
 	}
 
-	SPrefabInstance create_prefabInstance(const std::string &name, raco::user_types::SPrefab prefab, raco::user_types::SEditorObject parent = nullptr) {
-		auto inst = create<raco::user_types::PrefabInstance>(name, parent);
+	SPrefabInstance create_prefabInstance(const std::string &name, user_types::SPrefab prefab, user_types::SEditorObject parent = nullptr) {
+		auto inst = create<user_types::PrefabInstance>(name, parent);
 		cmd->set({inst, &PrefabInstance::template_}, prefab);
 		return inst;
 	}
@@ -133,11 +133,11 @@ public:
 	SEditorObject findLocal(const std::string &name) {
 		EXPECT_EQ(1,
 			std::count_if(project->instances().begin(), project->instances().end(), [name](SEditorObject obj) {
-				return obj->objectName() == name && !obj->query<raco::core::ExternalReferenceAnnotation>();
+				return obj->objectName() == name && !obj->query<core::ExternalReferenceAnnotation>();
 			}));
 
 		auto it = std::find_if(project->instances().begin(), project->instances().end(), [name](SEditorObject obj) {
-			return obj->objectName() == name && !obj->query<raco::core::ExternalReferenceAnnotation>();
+			return obj->objectName() == name && !obj->query<core::ExternalReferenceAnnotation>();
 		});
 		return *it;
 	}
@@ -146,12 +146,12 @@ public:
 	std::shared_ptr<T> findExt(const std::string &name, const std::string &projectID = std::string()) {
 		SEditorObject editorObj = nullptr;
 		for (const auto obj : project->instances()) {
-			if (obj->objectName() == name && obj->query<raco::core::ExternalReferenceAnnotation>()) {
+			if (obj->objectName() == name && obj->query<core::ExternalReferenceAnnotation>()) {
 				editorObj = obj;
 			}
 		}
 		EXPECT_TRUE(editorObj != nullptr);
-		auto anno = editorObj->query<raco::core::ExternalReferenceAnnotation>();
+		auto anno = editorObj->query<core::ExternalReferenceAnnotation>();
 		EXPECT_TRUE(anno != nullptr);
 		if (!projectID.empty()) {
 			EXPECT_EQ(*anno->projectID_, projectID);
@@ -178,8 +178,8 @@ public:
 		});
 	}
 
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-
+	ramses_base::HeadlessEngineBackend backend;
+	
 	RaCoApplication *app;
 	Project *project;
 	CommandInterface *cmd;
@@ -1450,7 +1450,7 @@ TEST_F(ExtrefTest, filecopy_update_fail_nested_same_object) {
 		cmd->set({meshnode, {"mesh"}}, mesh);
 	});
 
-	EXPECT_THROW(updateComposite(compositePathName, [this]() {}), raco::core::ExtrefError);
+	EXPECT_THROW(updateComposite(compositePathName, [this]() {}), core::ExtrefError);
 }
 
 TEST_F(ExtrefTest, filecopy_update_fail_nested_different_object) {
@@ -1498,7 +1498,7 @@ TEST_F(ExtrefTest, filecopy_update_fail_nested_different_object) {
 		cmd->set({meshnode, {"mesh"}}, mesh);
 	});
 
-	EXPECT_THROW(updateComposite(compositePathName, [this]() {}), raco::core::ExtrefError);
+	EXPECT_THROW(updateComposite(compositePathName, [this]() {}), core::ExtrefError);
 }
 
 TEST_F(ExtrefTest, nesting_create_loop_fail) {
@@ -2016,7 +2016,7 @@ TEST_F(ExtrefTest, paste_reroot_lua_uri_with_link_down) {
 		auto node = create<Node>("prefab_node", prefab);
 		auto lua = create<LuaScript>("prefab_lua", prefab);
 
-		raco::utils::file::write((test_path() / "subdir/script.lua").string(), R"(
+		utils::file::write((test_path() / "subdir/script.lua").string(), R"(
 function interface(IN,OUT)
 	IN.v = Type:Vec3f()
 	OUT.v = Type:Vec3f()
@@ -2066,7 +2066,7 @@ TEST_F(ExtrefTest, prefab_link_quaternion_in_prefab) {
 	setupBase(basePathName1, [this, basePathName1]() {
 		project->setCurrentPath(basePathName1);
 
-		raco::utils::file::write((test_path() / "script.lua").string(), R"(
+		utils::file::write((test_path() / "script.lua").string(), R"(
 function interface(IN,OUT)
 	IN.v = Type:Vec4f()
 	OUT.v = Type:Vec4f()
@@ -2118,9 +2118,9 @@ TEST_F(ExtrefTest, animation_channel_data_gets_propagated) {
 
 		auto anim = create<Animation>("anim");
 		auto animChannel = findExt<AnimationChannel>("animCh");
-		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+		cmd->set(ValueHandle(anim, {"animationChannels"})[0], animChannel);
 
-		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
+		ASSERT_EQ(**anim->animationChannels_->get(0), animChannel);
 	});
 }
 
@@ -2137,7 +2137,7 @@ TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 		cmd->moveScenegraphChildren({animNode}, prefab);
 
 		auto animChannel = create_animationchannel("animCh", "meshes/InterpolationTest/InterpolationTest.gltf");
-		cmd->set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+		cmd->set(ValueHandle(anim, {"animationChannels"})[0], animChannel);
 	});
 
 	setupBase(basePathName2, [this, basePathName1]() {
@@ -2146,7 +2146,7 @@ TEST_F(ExtrefTest, animation_in_extref_prefab_gets_propagated) {
 		auto anim = findExt<Animation>("anim");
 		auto animChannel = findExt<AnimationChannel>("animCh");
 
-		ASSERT_EQ(anim->get("animationChannels")->asTable()[0]->asRef(), animChannel);
+		ASSERT_EQ(**anim->animationChannels_->get(0), animChannel);
 	});
 }
 
@@ -2633,57 +2633,59 @@ TEST_F(ExtrefTest, feature_level_upgrade_composite) {
 		basePathName, [this]() {
 			auto prefab = create<Prefab>("prefab");
 		},
-		"base", 1);
+		"base", ramses_base::BaseEngineBackend::minFeatureLevel);
 
 	setupComposite(
 		basePathName, compositePathName, {"prefab"}, [this]() {
 			auto prefab = findExt<Prefab>("prefab");
 			auto inst = create_prefabInstance("inst", prefab);
 		},
-		"composite", 1);
+		"composite", ramses_base::BaseEngineBackend::minFeatureLevel);
 
 	updateBase(basePathName, [this]() {
-		EXPECT_EQ(project->featureLevel(), 1);
+		EXPECT_EQ(project->featureLevel(), ramses_base::BaseEngineBackend::minFeatureLevel);
 		auto prefab = find("prefab");
 		auto node = create<Node>("node", prefab);
 	});
 
 	updateComposite(
 		compositePathName, [this]() {
-			EXPECT_EQ(project->featureLevel(), 2);
+			EXPECT_EQ(project->featureLevel(), ramses_base::BaseEngineBackend::maxFeatureLevel);
 		},
-		2);
+		ramses_base::BaseEngineBackend::maxFeatureLevel);
 }
 
 TEST_F(ExtrefTest, feature_level_upgrade_base) {
-	auto basePathName{(test_path() / "base.rca").string()};
-	auto compositePathName{(test_path() / "composite.rca").string()};
+	if (ramses_base::BaseEngineBackend::minFeatureLevel < ramses_base::BaseEngineBackend::maxFeatureLevel) {
+		auto basePathName{(test_path() / "base.rca").string()};
+		auto compositePathName{(test_path() / "composite.rca").string()};
 
-	setupBase(
-		basePathName, [this]() {
-			auto prefab = create<Prefab>("prefab");
-		},
-		"base", 1);
+		setupBase(
+			basePathName, [this]() {
+				auto prefab = create<Prefab>("prefab");
+			},
+			"base", ramses_base::BaseEngineBackend::minFeatureLevel);
 
-	setupComposite(
-		basePathName, compositePathName, {"prefab"}, [this]() {
-			auto prefab = findExt<Prefab>("prefab");
-			auto inst = create_prefabInstance("inst", prefab);
-		},
-		"composite", 1);
+		setupComposite(
+			basePathName, compositePathName, {"prefab"}, [this]() {
+				auto prefab = findExt<Prefab>("prefab");
+				auto inst = create_prefabInstance("inst", prefab);
+			},
+			"composite", ramses_base::BaseEngineBackend::minFeatureLevel);
 
-	updateBase(
-		basePathName, [this]() {}, 2);
+		updateBase(
+			basePathName, [this]() {}, ramses_base::BaseEngineBackend::maxFeatureLevel);
 
-	EXPECT_THROW(updateComposite(
-					 compositePathName, [this]() {}, 1),
-		raco::core::ExtrefError);
+		EXPECT_THROW(updateComposite(
+						 compositePathName, [this]() {}, ramses_base::BaseEngineBackend::minFeatureLevel),
+			core::ExtrefError);
 
-	updateComposite(
-		compositePathName, [this]() {
-			EXPECT_EQ(project->featureLevel(), 2);
-		},
-		2);
+		updateComposite(
+			compositePathName, [this]() {
+				EXPECT_EQ(project->featureLevel(), ramses_base::BaseEngineBackend::maxFeatureLevel);
+			},
+			ramses_base::BaseEngineBackend::maxFeatureLevel);
+	}
 }
 
 TEST_F(ExtrefTest, extref_paste_from_orig_and_save_as_with_new_id_copy) {

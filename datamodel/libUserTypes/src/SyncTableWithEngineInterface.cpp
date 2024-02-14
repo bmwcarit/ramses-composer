@@ -23,13 +23,13 @@
 
 namespace raco::user_types {
 
-using raco::core::PropertyInterface;
-using raco::core::PropertyInterfaceList;
-using raco::core::ValueHandle;
-using raco::data_storage::PrimitiveType;
+using core::PropertyInterface;
+using core::PropertyInterfaceList;
+using core::ValueHandle;
+using data_storage::PrimitiveType;
 
 template <class... Args>
-raco::data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
+data_storage::ValueBase* createDynamicProperty(EnginePrimitive type) {
 	switch (type) {
 		case EnginePrimitive::Bool:
 			return UserObjectFactory::staticCreateProperty<bool, EngineTypeAnnotation, Args...>({}, {type}, {Args()}...);
@@ -123,7 +123,7 @@ std::vector<PropertyInterface>::const_iterator findNameInInterfaces(const Proper
 	return interfaces.end();
 }
 
-inline void cacheRecursive(raco::core::BaseContext& context, const ValueHandle& property, const std::string& propertyPath, OutdatedPropertiesStore& outdatedPropertiesStore) {
+inline void cacheRecursive(core::BaseContext& context, const ValueHandle& property, const std::string& propertyPath, OutdatedPropertiesStore& outdatedPropertiesStore) {
 	for (size_t i{0}; i < property.size(); i++) {
 		const auto name = property[i].getPropName();
 		const ValueBase* value = property[i].constValueRef();
@@ -139,7 +139,7 @@ inline void cacheRecursive(raco::core::BaseContext& context, const ValueHandle& 
 	}
 }
 
-inline void removeProperties(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, OutdatedPropertiesStore& outdatedPropertiesStore) {
+inline void removeProperties(core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, OutdatedPropertiesStore& outdatedPropertiesStore) {
 	std::vector<std::string> toRemove{};
 	for (size_t propertyIndex{0}; propertyIndex < property.size(); propertyIndex++) {
 		const auto name = property[propertyIndex].getPropName();
@@ -165,26 +165,25 @@ inline void removeProperties(raco::core::BaseContext& context, const PropertyInt
 	}
 }
 
-inline void addProperties(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, const OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd, std::function<const ValueBase*(const std::string& fullPropPath, raco::core::EnginePrimitive engineType)> cacheLookupFunc) {
+inline void addProperties(core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& property, const std::string& propertyPath, const OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd, std::function<const ValueBase*(const std::string& fullPropPath, core::EnginePrimitive engineType)> cacheLookupFunc) {
 	for (size_t interfaceIndex{0}; interfaceIndex < interface.size(); interfaceIndex++) {
 		const auto& iEntry = interface[interfaceIndex];
 		const std::string name(dataModelNameFromInterface(iEntry, interfaceIndex));
 		if (!property.hasProperty(name)) {
-			std::unique_ptr<raco::data_storage::ValueBase> uniqueValue;
+			std::unique_ptr<data_storage::ValueBase> uniqueValue;
 			bool isRefType = PropertyInterface::primitiveType(iEntry.type) == PrimitiveType::Ref;
 			if (linkStart && linkEnd && !isRefType) {
-				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkStartAnnotation, raco::core::LinkEndAnnotation>(iEntry.type));
+				uniqueValue = std::unique_ptr<data_storage::ValueBase>(createDynamicProperty<core::LinkStartAnnotation, core::LinkEndAnnotation>(iEntry.type));
 			} else if (linkStart && !isRefType) {
-				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkStartAnnotation>(iEntry.type));
+				uniqueValue = std::unique_ptr<data_storage::ValueBase>(createDynamicProperty<core::LinkStartAnnotation>(iEntry.type));
 			} else if (linkEnd && !isRefType) {
-				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<raco::core::LinkEndAnnotation>(iEntry.type));
+				uniqueValue = std::unique_ptr<data_storage::ValueBase>(createDynamicProperty<core::LinkEndAnnotation>(iEntry.type));
 			} else {
-				uniqueValue = std::unique_ptr<raco::data_storage::ValueBase>(createDynamicProperty<>(iEntry.type));
+				uniqueValue = std::unique_ptr<data_storage::ValueBase>(createDynamicProperty<>(iEntry.type));
 			}
-			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue), interfaceIndex);
-			auto fullPropPath = propertyPath + propertyPathSeparator + name;
 
 			if (iEntry.primitiveType() != PrimitiveType::Table) {
+				auto fullPropPath = propertyPath + propertyPathSeparator + name;
 				const ValueBase* cachedValue = cacheLookupFunc(fullPropPath, iEntry.type);
 				if (cachedValue) {
 					if (iEntry.primitiveType() == PrimitiveType::Ref) {
@@ -195,13 +194,13 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 						if (cachedValue->asRef()) {
 							cachedObject = context.project()->getInstanceByID(cachedValue->asRef()->objectID());
 						}
-						// Use the context to set reference properties to make sure the onAfterAddReferenceToThis handlers are called.
-						context.set(property.get(name), cachedObject);
+						*uniqueValue = cachedObject;
 					} else {
-						*newValue = *cachedValue;
+						*uniqueValue = *cachedValue;
 					}
 				}
 			}
+			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue), interfaceIndex);
 		}
 		if (iEntry.primitiveType() == PrimitiveType::Table) {
 			addProperties(context, iEntry.children, property.get(name), propertyPath + propertyPathSeparator + name, outdatedPropertiesStore, linkStart, linkEnd, cacheLookupFunc);
@@ -210,13 +209,13 @@ inline void addProperties(raco::core::BaseContext& context, const PropertyInterf
 }
 }  // namespace
 
-void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd, std::function<const ValueBase*(const std::string& fullPropPath, raco::core::EnginePrimitive engineType)> cacheLookupFunc) {
+void syncTableWithEngineInterface(core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd, std::function<const ValueBase*(const std::string& fullPropPath, core::EnginePrimitive engineType)> cacheLookupFunc) {
 	removeProperties(context, interface, handle, "", outdatedPropertiesStore);
 	addProperties(context, interface, handle, "", outdatedPropertiesStore, linkStart, linkEnd, cacheLookupFunc);
 }
 
-void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd) {
-	syncTableWithEngineInterface(context, interface, handle, outdatedPropertiesStore, linkStart, linkEnd, [&outdatedPropertiesStore](const std::string& fullPropPath, raco::core::EnginePrimitive engineType) -> const ValueBase* {
+void syncTableWithEngineInterface(core::BaseContext& context, const PropertyInterfaceList& interface, const ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd) {
+	syncTableWithEngineInterface(context, interface, handle, outdatedPropertiesStore, linkStart, linkEnd, [&outdatedPropertiesStore](const std::string& fullPropPath, core::EnginePrimitive engineType) -> const ValueBase* {
 		auto it = outdatedPropertiesStore.find(std::make_pair(fullPropPath, engineType));
 		if (it != outdatedPropertiesStore.end()) {
 			return it->second.get();

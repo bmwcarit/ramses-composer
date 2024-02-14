@@ -20,7 +20,7 @@ class SceneAdaptor;
 
 class MaterialAdaptor final : public TypedObjectAdaptor<user_types::Material, ramses::Effect>, public ILogicPropertyProvider {
 private:
-	static raco::ramses_base::RamsesEffect createEffect(SceneAdaptor* buildContext);
+	static ramses_base::RamsesEffect createEffect(SceneAdaptor* buildContext);
 
 public:
 	explicit MaterialAdaptor(SceneAdaptor* buildContext, user_types::SMaterial material);
@@ -28,24 +28,24 @@ public:
 
 	bool sync(core::Errors* errors) override;
 
-	raco::ramses_base::RamsesAppearance appearance() {
+	ramses_base::RamsesAppearance appearance() {
 		return appearance_;
 	}
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	raco::ramses_base::RamsesAppearance appearance_;
-	raco::ramses_base::RamsesAppearanceBinding appearanceBinding_;
+	ramses_base::RamsesAppearance appearance_;
+	ramses_base::RamsesAppearanceBinding appearanceBinding_;
 
 	components::Subscription subscription_;
 	components::Subscription optionsSubscription_;
 	components::Subscription uniformSubscription_;
 };
 
-void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, raco::ramses_base::RamsesAppearance appearance, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle);
+void updateAppearance(core::Errors* errors, SceneAdaptor* sceneAdaptor, ramses_base::RamsesAppearance appearance, user_types::BlendOptions& options, const core::ValueHandle& optionsContHandle, const core::ValueHandle& uniformConHandle);
 
 };	// namespace raco::ramses_adaptor

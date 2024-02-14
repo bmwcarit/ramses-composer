@@ -24,6 +24,62 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [2.0.0] Switch to Ramses 28, Abstract Scene View, Misc UI Iprovements and Bugfixes
+* **This is a major version upgrade for both RamsesComposer and Ramses/LogicEngine containing changes that can break existing scenes.** 
+* **File version number has changed. Files saved with RaCo 2.0.0 cannot be opened by previous versions.**
+* **Update from Ramses-Logic 1.4.2 and Ramses 27.0.130 to Ramses 28.0.0. The LogicEngine has been merged into Ramses.**
+* **Scenes exported with RaCo 2.0.0 can't be loaded with Ramses versions prior to 28.0.0.**
+* **Export will only write a single file containing both Ramses and LogicEngine objects.**
+* **The feature level will start counting up from 1 in RaCo 2.0.0 and Ramses 28.0.0 again. The RaCo 2.0.0 feature level 1 does include all features from any feature level in RaCo <2.0.0 or Ramses 27.0.130 though. This implies that scenes of any feature level saved with RaCo <2.0.0 are automatically upgraded and all previously available features will be enabled upon loading.**
+* **RamsesComposer now requires Ubuntu 20.04 and gcc 9.4.0 instead of Ubuntu 18.04 and gcc 8.4.0 to build.**
+
+### Breaking Changes
+
+The following changes can break existing scenes upon loading
+* Bool uniforms are now represented by `bool` instead of `int32` properties in `Materials`. Due to the change in the property type the property value will be lost. In addition links ending on bool uniform properties will break.
+* Module statements in `LuaInterface` objects are never ignored anymore. They were ignored at feature levels <5 in Raco <2.0.0. See also changes for v.1.6.0.
+
+The following changes may break python scripts processing a scene but existing scenes will be migrated automatically when loading them
+* Conversion of the fixed number of `layer` properties in the `RenderPass` and `buffer` and `bufferMS` properties in the `RenderTarget` into array-type containers. Breaking python scripts due to the changes in the property names.
+* Conversion of the `targets` and `joints` properties in the `Skin` and `animationChannels` in the `Animation` to array-type properties. Breaking python scripts due to the changes in the property names.
+* The newly introduced array-type properties mentioned above have the indices starting at 1 as property names as for the `LuaScript` array-type properties.
+*  Split the `RenderTarget` type into separate `RenderTarget` and `RenderTargetMS` types with only a single `buffers` array-type property which can contain only `RenderBuffer`s or `RenderBufferMS`s. 
+* Introduced generic meta data scheme. 
+    * The meta data is now stored in a new `metadata` property. 
+    * Each category of meta data has a named container property inside the `metadata` property and can be accessed from the Python API like any other property. 
+    * The gltfExtras meta data is now stored in the `gltfExtras` category inside the `metadata` container. The Python API `metadata` function has been removed.
+* Removed the `userTags` property from the `ProjectSettings` object.
+* The `logic_path` parameter was removed from the `export` function in the Python API.
+
+
+### Added
+* Added abstract scene view which shows a 3d representation of all objects in the scene in world space. This has a separate camera which can be moved around freely and also allows to manipulate the transformation proerties of objects using the mouse and/or the keyboard. 
+* Added button in property browser to show objects referencing the current object.
+* Added prefab lookup button to the property browser.
+* Added texture preview in the property browser.
+* Added controls to allow the resizing of array-of-reference properties. This applies to the `animationChannels` property in `Animation`, the `layer` property in `RenderPass`, the `buffers` property in `RenderTarget` and `RenderTargetMS`, and the `targets` property in `Skin` objects.
+* Added `resize` property member function to the Python API to resize array-type properties.
+* Added composite commands to the Python API which generate only a single undo stack entry. See Python API reference for details.
+* Added shortcuts for the mostly used functions.
+* Added warning when an opened RCA file is changed externally.
+* Added dialog to copy the content of scalar read-only properties into the clipboard as plain text.
+
+### Changes
+* After starting a new instance of RaCo with "Load external project" via the context menu of an object, that object will be automatically selected in the new instance.
+* Object filtering in the tree views now can be done using complex boolean expressions. The search syntax is described in the `User interface overview` section of the `Introduction` chapter in the documentation.
+
+### Fixes
+* Prevent crash when opening invalid or broken project files and show an error dialog instead.
+* Fixed crash caused by a tabbed away Preview Window when closing RaCo.
+* Fixed crash when the folder of the currently loaded project is deleted.
+* Prevent directories from being added as external projects when calling the `addExternalProject` Python API function with a directory as argument.
+* Export of `Nodes` with `enabled`=false and `visibilty`=true is now correct.
+* Fixed generation of multiple undo stack entries when a property inside a `Prefab` is changed multiple times. The undo stack entries are now merged as for properties outside `Prefabs`.
+* Fixed update of partially linked array uniform properties to avoid discarding the non-linked property values during updates.
+* Prevent user from taking screenshots when multisampling factor is greater than zero.
+* Add manual update (refresh) button to the preview which will reset the preview itself and all offscreen buffers and rerender the scene.
+
+
 ## [1.10.0] Multiedit, Shader Includes, Drag-and-drop Support, Misc Usability Improvements and Bugfixes
 
 ### Added

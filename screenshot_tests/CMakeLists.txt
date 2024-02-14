@@ -10,10 +10,10 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 if(WIN32)
 	set(RACO_EXE "$<TARGET_FILE:RaCoCommand>")
-	set(VIEWER_EXE "$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer.exe")
+	set(VIEWER_EXE "$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer.exe")
 else()
 	set(RACO_EXE "$<TARGET_FILE:RaCoCommand>.sh")
-	set(VIEWER_EXE "$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer.sh")
+	set(VIEWER_EXE "$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer.sh")
 endif()
 
 macro(add_screenshot_test TESTNAME PROJECTPATH) 
@@ -34,7 +34,6 @@ if(WIN32)
 		generated
 		empty
 		duck
-		morphing
 		skinning
 	)
 
@@ -44,16 +43,21 @@ if(WIN32)
 		advanced/external_references/composite_road
 		advanced/external_references/simple_road
 		advanced/modules/modules
+		advanced/morphing/morphing
 		advanced/nested_prefabs/toy_cars
 		advanced/python_api/broken_link
+		advanced/skinning/skinning-simple
+		basics/blitpass/blitpass
 		basics/hello_world/cube
 		basics/monkey/monkey
+		basics/multisampling/msaa
 		basics/offscreen/offscreen
 		basics/ordering/1_by_scene_graph
 		basics/ordering/2_by_tags_priority
 		basics/ordering/3_by_render_pass_slots
 		basics/ordering/4_by_render_pass
 		basics/ordering/5_nested_render_layers
+		basics/ordering/6_dynamic_render_order
 		basics/prefabs/lantern_road
 		basics/stencil_testing/stencil
 	)
@@ -72,13 +76,13 @@ if(WIN32)
 		add_custom_command(
 			OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/expected/${projectname}.png
 			MAIN_DEPENDENCY ${projectpath}
-			DEPENDS ramses-logic-viewer RaCoEditor
+			DEPENDS ramses-viewer RaCoEditor
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/exported/"
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/expected/"
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/actual/"
 			COMMAND ${RACO_EXE} -p ${projectpath} -e ${CMAKE_CURRENT_SOURCE_DIR}/exported/${projectname} -l 3
-			COMMAND ${VIEWER_EXE} "${CMAKE_CURRENT_SOURCE_DIR}/exported/${projectname}.ramses" "${CMAKE_CURRENT_SOURCE_DIR}/exported/${projectname}.rlogic" --exec-lua "rlogic.screenshot('expected/${projectname}.png')"
+			COMMAND ${VIEWER_EXE} --gui on --exec-lua "R.screenshot('expected/${projectname}.png')" "${CMAKE_CURRENT_SOURCE_DIR}/exported/${projectname}.ramses"
 		)
 
 		LIST(APPEND RACO_SCREENSHOT_REF_FILES "${CMAKE_CURRENT_SOURCE_DIR}/expected/${projectname}.png")

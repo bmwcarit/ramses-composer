@@ -40,7 +40,7 @@ TEST_F(LuaScriptModuleAdaptorTest, defaultConstruction) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaModule>().size(), 0);
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, invalidModule) {
@@ -49,11 +49,11 @@ TEST_F(LuaScriptModuleAdaptorTest, invalidModule) {
 	dispatch();
 
 	auto moduleFile = generateLuaScript("script");
-	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set({module, &user_types::LuaScriptModule::uri_}, moduleFile);
 	dispatch();
 
 	ASSERT_TRUE(commandInterface.errors().hasError(module));
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaModule>().size(), 0);
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule) {
@@ -62,12 +62,12 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule) {
 	dispatch();
 
 	auto moduleFile = generateModule("coalas");
-	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set({module, &user_types::LuaScriptModule::uri_}, moduleFile);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
-	ASSERT_NE(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module"), nullptr);
-	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaModule>().size(), 1);
+	ASSERT_NE(select<ramses::LuaModule>(sceneContext.logicEngine(), "Module"), nullptr);
+	ASSERT_EQ(select<ramses::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_unassign) {
@@ -76,13 +76,13 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_unassign) {
 	dispatch();
 
 	auto moduleFile = generateModule("coalas");
-	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set({module, &user_types::LuaScriptModule::uri_}, moduleFile);
 	dispatch();
 
-	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, std::string());
+	commandInterface.set({module, &user_types::LuaScriptModule::uri_}, std::string());
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaModule>().size(), 0);
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_rename_obj) {
@@ -91,15 +91,15 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_rename_obj) {
 	dispatch();
 
 	auto moduleFile = generateModule("coalas");
-	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set({module, &user_types::LuaScriptModule::uri_}, moduleFile);
 	dispatch();
 
 	context.set({module, &LuaScriptModule::objectName_}, std::string("Changed"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
-	ASSERT_NE(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Changed"), nullptr);
-	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Changed")->getUserId(), module->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaModule>().size(), 1);
+	ASSERT_NE(select<ramses::LuaModule>(sceneContext.logicEngine(), "Changed"), nullptr);
+	ASSERT_EQ(select<ramses::LuaModule>(sceneContext.logicEngine(), "Changed")->getUserId(), module->objectIDAsRamsesLogicID());
 }
 
 TEST_F(LuaScriptModuleAdaptorTest, validModule_variousLuaScripts_noModuleCopies) {
@@ -107,7 +107,7 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_variousLuaScripts_noModuleCopies)
 	dispatch();
 
 	auto moduleFile = generateModule("coalas");
-	commandInterface.set({module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set({module, &user_types::LuaScriptModule::uri_}, moduleFile);
 	dispatch();
 
 	auto script1 = context.createObject(LuaScript::typeDescription.typeName, "Script1");
@@ -116,9 +116,9 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_variousLuaScripts_noModuleCopies)
 	auto scriptFile1 = generateLuaScript("script1");
 	auto scriptFile2 = generateLuaScript("script2");
 	auto scriptFile3 = generateLuaScript("script3");
-	commandInterface.set({script1, &raco::user_types::LuaScript::uri_}, scriptFile1);
-	commandInterface.set({script2, &raco::user_types::LuaScript::uri_}, scriptFile2);
-	commandInterface.set({script3, &raco::user_types::LuaScript::uri_}, scriptFile3);
+	commandInterface.set({script1, &user_types::LuaScript::uri_}, scriptFile1);
+	commandInterface.set({script2, &user_types::LuaScript::uri_}, scriptFile2);
+	commandInterface.set({script3, &user_types::LuaScript::uri_}, scriptFile3);
 
 	dispatch();
 
@@ -127,6 +127,6 @@ TEST_F(LuaScriptModuleAdaptorTest, validModule_variousLuaScripts_noModuleCopies)
 	commandInterface.set({script3, {"luaModules", "neededModule"}}, module);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaModule>().size(), 1);
-	ASSERT_EQ(select<rlogic::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaModule>().size(), 1);
+	ASSERT_EQ(select<ramses::LuaModule>(sceneContext.logicEngine(), "Module")->getUserId(), module->objectIDAsRamsesLogicID());
 }

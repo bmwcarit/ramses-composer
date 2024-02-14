@@ -55,6 +55,10 @@ CTMMesh::CTMMesh(CTMimporter& importer) {
 	}
 
 	submeshIndexBufferRanges_ = {{0, 3 * numTriangles_}};
+
+	// Build non-indexed triangle buffer to be used for picking in ramses
+	auto vertexData = reinterpret_cast<const glm::vec3*>(attribBuffer(attribIndex(MeshData::ATTRIBUTE_POSITION)));
+	triangleBuffer_ = core::MeshData::buildTriangleBuffer(vertexData, indexBuffer_);
 }
 
 uint32_t CTMMesh::numSubmeshes() const {
@@ -117,6 +121,10 @@ MeshData::VertexAttribDataType CTMMesh::attribDataType(int attribIndex) const {
 
 const char* CTMMesh::attribBuffer(int attribIndex) const {
 	return reinterpret_cast<const char*>(attributes_.at(attribIndex).data.data());
+}
+
+const std::vector<glm::vec3>& CTMMesh::triangleBuffer() const {
+	return triangleBuffer_;
 }
 
 }  // namespace raco::mesh_loader

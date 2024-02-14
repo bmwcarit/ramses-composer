@@ -14,7 +14,7 @@
 #include <QSize>
 #include <QColor>
 #include <memory>
-#include <ramses-framework-api/RamsesFrameworkTypes.h>
+#include <ramses/framework/RamsesFrameworkTypes.h>
 
 namespace raco::ramses_widgets {
 
@@ -70,7 +70,7 @@ private:
 
 	ramses::displayId_t displayId_;
 	ramses::displayBufferId_t offscreenBufferId_;
-	std::unique_ptr<raco::ramses_widgets::PreviewFramebufferScene> framebufferScene_;
+	std::unique_ptr<ramses_widgets::PreviewFramebufferScene> framebufferScene_;
 
 	State current_{};
 	State next_{};

@@ -21,11 +21,11 @@
 #include "core/Project.h"
 #include "core/ProjectMigration.h"
 #include "ramses_adaptor/SceneBackend.h"
+#include "ramses_adaptor/AbstractSceneAdaptor.h"
 #include "ramses_base/BaseEngineBackend.h"
 #include "user_types/Animation.h"
 
 #include "core/Handles.h"
-#include <ramses_base/LogicEngineFormatter.h>
 
 #ifdef OS_WINDOWS
 // see: https://doc.qt.io/qt-5/qfileinfo.html#ntfs-permissions
@@ -54,15 +54,15 @@ RaCoApplicationLaunchSettings::RaCoApplicationLaunchSettings(QString argInitialP
 
 RaCoApplication::RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings)
 	: engine_{&engine},
-	  applicationFeatureLevel_(settings.newFileFeatureLevel),
-	  dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()},
-	  dataChangeDispatcherEngine_{std::make_shared<raco::components::DataChangeDispatcher>()},
-	  scenesBackend_{new ramses_adaptor::SceneBackend(engine, dataChangeDispatcherEngine_)},
+	  newFileFeatureLevel_(settings.newFileFeatureLevel),
+	  dataChangeDispatcher_{std::make_shared<components::DataChangeDispatcher>()},
+	  dataChangeDispatcherPreviewScene_{std::make_shared<components::DataChangeDispatcher>()},
+	  dataChangeDispatcherAbstractScene_{std::make_shared<components::DataChangeDispatcher>()},
+	  previewSceneBackend_{new ramses_adaptor::SceneBackend(engine, dataChangeDispatcherPreviewScene_)},
 	  externalProjectsStore_(this) {
 	ramses_base::installRamsesLogHandler(settings.enableRamsesTrace);
-	ramses_base::installLogicLogHandler();
 	// Preferences need to be initalized before we have a fist initial project
-	raco::components::RaCoPreferences::init();
+	components::RaCoPreferences::init();
 
 	runningInUI_ = settings.runningInUI;
 
@@ -96,7 +96,8 @@ std::string RaCoApplication::activeProjectFolder() const {
 }
 
 void RaCoApplication::resetSceneBackend() {
-	scenesBackend_->reset();
+	previewSceneBackend_->reset();
+	abstractScene_.reset();
 }
 
 class WithRelinkCallback {
@@ -113,9 +114,18 @@ public:
 	ExternalProjectsStore& externalProjectsStore_;
 };
 
-void RaCoApplication::setupScene(bool optimizeForExport) {
-	engine_->setFeatureLevel(static_cast<rlogic::EFeatureLevel>(activeRaCoProject().project()->featureLevel()));
-	scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), optimizeForExport);
+void RaCoApplication::setupScene(bool optimizeForExport, bool setupAbstractScene) {
+	auto featureLevel = static_cast<ramses::EFeatureLevel>(activeRaCoProject().project()->featureLevel());
+
+	previewSceneBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), optimizeForExport, ramses_adaptor::SceneBackend::toSceneId(*activeRaCoProject().project()->settings()->sceneId_));
+	if (runningInUI_) {
+		if (setupAbstractScene) {
+			abstractScene_.reset();
+			abstractScene_ = std::make_unique<ramses_adaptor::AbstractSceneAdaptor>(&engine_->client(), ramses_base::BaseEngineBackend::abstractSceneId(), activeRaCoProject().project(), dataChangeDispatcherAbstractScene_, &meshCache_, previewSceneBackend_->sceneAdaptor());
+		} else if (abstractScene_) {
+			abstractScene_->setPreviewAdaptor(previewSceneBackend_->sceneAdaptor());
+		}
+	}
 }
 
 void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function<std::string(const std::string&)> relinkCallback, bool createDefaultScene, int featureLevel, bool generateNewObjectIDs) {
@@ -123,7 +133,8 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 	WithRelinkCallback withRelinkCallback(externalProjectsStore_, relinkCallback);
 
 	activeProject_.reset();
-	scenesBackend_->reset();
+	previewSceneBackend_->reset();
+	abstractScene_.reset();
 
 	// The module cache should already by empty after removing the local and external projects but explicitly clear it anyway
 	// to avoid potential problems.
@@ -134,11 +145,16 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 
 	if (!(featureLevel == -1 ||
 			featureLevel >= ramses_base::BaseEngineBackend::minFeatureLevel && featureLevel <= ramses_base::BaseEngineBackend::maxFeatureLevel)) {
-		throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+		throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)));
 	}
+
 	if (file.isEmpty()) {
-		activeProject_ = RaCoProject::createNew(this, createDefaultScene, static_cast<int>(featureLevel == -1 ? applicationFeatureLevel_ : featureLevel));
+		int newFeatureLevel = featureLevel == -1 ? newFileFeatureLevel_ : featureLevel;
+		engine_->setFeatureLevel(static_cast<ramses::EFeatureLevel>(newFeatureLevel));
+		activeProject_ = RaCoProject::createNew(this, createDefaultScene, newFeatureLevel);
 	} else {
+		auto fileFeatureLevel = RaCoProject::preloadFeatureLevel(file, featureLevel);
+		engine_->setFeatureLevel(static_cast<ramses::EFeatureLevel>(fileFeatureLevel));
 		activeProject_ = RaCoProject::loadFromFile(file, this, loadContext, false, featureLevel, generateNewObjectIDs);
 	}
 
@@ -149,7 +165,7 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 	activeProject_->applyDefaultCachedPaths();
 	activeProject_->setupCachedPathSubscriptions(dataChangeDispatcher_);
 
-	setupScene(false);
+	setupScene(false, true);
 	startTime_ = std::chrono::high_resolution_clock::now();
 	doOneLoop();
 
@@ -168,51 +184,51 @@ bool RaCoApplication::saveAsWithNewIDs(const QString& newPath, std::string& outE
 }
 
 core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector<core::SceneBackendInterface::SceneItemDesc>& outDescription, std::string& outMessage) {
-	setupScene(true);
+	setupScene(true, false);
 	logicEngineNeedsUpdate_ = true;
 	doOneLoop();
 
-	outDescription = scenesBackend_->getSceneItemDescriptions();
+	outDescription = previewSceneBackend_->getSceneItemDescriptions();
 
-	core::ErrorLevel errorLevel = scenesBackend_->sceneValid();
+	core::ErrorLevel errorLevel = previewSceneBackend_->sceneValid();
 	if (errorLevel != core::ErrorLevel::NONE) {
 		outMessage = sceneBackend()->getValidationReport(errorLevel);
 	} else {
 		outMessage = std::string();
 	}
 
-	setupScene(false);
+	setupScene(false, false);
 	logicEngineNeedsUpdate_ = true;
 	rendererDirty_ = true;
 
 	return errorLevel;
 }
 
-bool RaCoApplication::exportProject(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) {
-	setupScene(true);
+bool RaCoApplication::exportProject(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) {
+	setupScene(true, false);
 	logicEngineNeedsUpdate_ = true;
 	doOneLoop();
 
-	bool status = exportProjectImpl(ramsesExport, logicExport, compress, outError, forceExportWithErrors, luaSavingMode);
+	bool status = exportProjectImpl(ramsesExport, compress, outError, forceExportWithErrors, luaSavingMode);
 
-	setupScene(false);
+	setupScene(false, false);
 	logicEngineNeedsUpdate_ = true;
 	rendererDirty_ = true;
 
 	return status;
 }
 
-bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const {
+bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const {
 	// Flushing the scene prevents inconsistent states being saved which could lead to unexpected bevahiour after loading the scene:
-	scenesBackend_->flush();
+	previewSceneBackend_->flush();
 
 	if (!forceExportWithErrors) {
-		if (activeRaCoProject().errors()->hasError(raco::core::ErrorLevel::ERROR)) {
+		if (activeRaCoProject().errors()->hasError(core::ErrorLevel::ERROR)) {
 			outError = "Export failed: scene contains Composer errors:\n";
 			for (const auto& [object, objErrors] : activeRaCoProject().errors()->getAllErrors()) {
 				for (const auto& [handle, error] : objErrors) {
-					if (error.level() >= raco::core::ErrorLevel::ERROR) {
-						outError.append(raco::core::Errors::formatError(error));
+					if (error.level() >= core::ErrorLevel::ERROR) {
+						outError.append(core::Errors::formatError(error));
 					}
 				}
 			}
@@ -223,44 +239,35 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, const s
 			return false;
 		}
 	}
-	auto status = scenesBackend_->currentScene()->saveToFile(ramsesExport.c_str(), compress);
-	if (status != ramses::StatusOK) {
-		outError = scenesBackend_->currentScene()->getStatusMessage(status);
-		return false;
-	}
-	rlogic::SaveFileConfig metadata;
-	// Since the SceneBackend filters some validation warnings we have to disable validation when saving, because
-	// we can't selectively disable some validation warnings here:
-	metadata.setValidationEnabled(false);
+
+	ramses::SaveFileConfig config;
+	config.setCompressionEnabled(compress);
 	// Use JSON format for the metadata string to allow future extensibility
 	// CAREFUL: only include data here which we are certain all users agree to have included in the exported files.
-	metadata.setMetadataString(fmt::format(
+	config.setMetadataString(fmt::format(
 		R"___({{
 	"generator" : "{}"
 }})___",
 		QCoreApplication::applicationName().toStdString()));
-	metadata.setExporterVersion(RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+	config.setExporterVersion(RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH, serialization::RAMSES_PROJECT_FILE_VERSION);
+	config.setLuaSavingMode(static_cast<ramses::ELuaSavingMode>(luaSavingMode));
 
-	metadata.setLuaSavingMode(static_cast<rlogic::ELuaSavingMode>(luaSavingMode));
-
-	if (!engine_->logicEngine().saveToFile(logicExport.c_str(), metadata)) {
-		if (engine_->logicEngine().getErrors().size() > 0) {
-			outError = engine_->logicEngine().getErrors().at(0).message;
-		} else {
-			outError = "Unknown Errror: ramses-logic failed to export.";
-		}
+	if (!previewSceneBackend_->currentScene()->saveToFile(ramsesExport.c_str(), config)) {
+		outError = previewSceneBackend_->getLastError().value().message;
 		return false;
 	}
+
 	return true;
 }
 
 void RaCoApplication::doOneLoop() {
 	// write data into engine
-	if (ramses_adaptor::SceneBackend::toSceneId(*activeRaCoProject().project()->settings()->sceneId_) != scenesBackend_->currentSceneId()) {
-		scenesBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), false);
+	if (ramses_adaptor::SceneBackend::toSceneId(*activeRaCoProject().project()->settings()->sceneId_) != previewSceneBackend_->currentSceneId()) {
+		// No need to setup the abstract scene again since its scene id never changes
+		setupScene(false, false);
 	}
 
-	for (const auto& timerNode : engine_->logicEngine().getCollection<rlogic::TimerNode>()) {
+	for (const auto& timerNode : previewSceneBackend_->logicEngine()->getCollection<ramses::TimerNode>()) {
 		if (timerNode->getInputs()->getChild("ticker_us")->get<int64_t>() == 0) {
 			logicEngineNeedsUpdate_ = true;
 			break;
@@ -278,15 +285,21 @@ void RaCoApplication::doOneLoop() {
 	activeProject_->tracePlayer().refresh(elapsedMsec);
 
 	auto dataChanges = activeProject_->recorder()->release();
-	dataChangeDispatcherEngine_->dispatch(dataChanges);
-	if (logicEngineNeedsUpdate_ || !dataChanges.getAllChangedObjects(true, true, true).empty()) {
-		if (!engine_->logicEngine().update()) {
-			LOG_ERROR_IF(raco::log_system::RAMSES_BACKEND, !engine_->logicEngine().getErrors().empty(), "{}", LogicEngineErrors{engine_->logicEngine()});
+	dataChangeDispatcherPreviewScene_->dispatch(dataChanges);
+	if (logicEngineNeedsUpdate_ || !dataChanges.getAllChangedObjects(true, true, true).empty() || !dataChanges.getDeletedObjects().empty()) {
+		if (!previewSceneBackend_->logicEngine()->update()) {
+			auto issue = previewSceneBackend_->getLastError().value();
+			LOG_ERROR(log_system::RAMSES_BACKEND, issue.message);
+			previewSceneBackend_->sceneAdaptor()->updateRuntimeError(issue);
+		} else {
+			previewSceneBackend_->sceneAdaptor()->clearRuntimeError();
 		}
-		// read modified engine data / runtime errors
-		scenesBackend_->readDataFromEngine(dataChanges);
+		// read modified engine data
+		previewSceneBackend_->readDataFromEngine(dataChanges);
 		logicEngineNeedsUpdate_ = false;
 	}
+
+	dataChangeDispatcherAbstractScene_->dispatch(dataChanges);
 
 	dataChangeDispatcher_->dispatch(dataChanges);
 }
@@ -303,18 +316,22 @@ bool RaCoApplication::canSaveActiveProject() const {
 }
 
 const core::SceneBackendInterface* RaCoApplication::sceneBackend() const {
-	return scenesBackend_.get();
+	return previewSceneBackend_.get();
 }
 
-raco::ramses_adaptor::SceneBackend* RaCoApplication::sceneBackendImpl() const {
-	return scenesBackend_.get();
+ramses_adaptor::SceneBackend* RaCoApplication::sceneBackendImpl() const {
+	return previewSceneBackend_.get();
 }
 
-raco::components::SDataChangeDispatcher RaCoApplication::dataChangeDispatcher() {
+ramses_adaptor::AbstractSceneAdaptor* RaCoApplication::abstractScene() const {
+	return abstractScene_.get();
+}
+
+components::SDataChangeDispatcher RaCoApplication::dataChangeDispatcher() {
 	return dataChangeDispatcher_;
 }
 
-raco::core::EngineInterface* RaCoApplication::engine() {
+core::EngineInterface* RaCoApplication::engine() {
 	return engine_->coreInterface();
 }
 
@@ -353,23 +370,23 @@ void RaCoApplication::overrideTime(std::function<int64_t()> getTime) {
 }
 
 int RaCoApplication::minFeatureLevel() {
-	return static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel);
+	return static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel);
 }
 
 int RaCoApplication::maxFeatureLevel() {
-	return static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
+	return static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel);
 }
 
 const std::string& RaCoApplication::featureLevelDescriptions() {
-	return raco::ramses_base::BaseEngineBackend::featureLevelDescriptions;
+	return ramses_base::BaseEngineBackend::featureLevelDescriptions;
 }
 
-void RaCoApplication::setApplicationFeatureLevel(int featureLevel) {
-	applicationFeatureLevel_ = featureLevel;
+void RaCoApplication::setNewFileFeatureLevel(int featureLevel) {
+	newFileFeatureLevel_ = featureLevel;
 }
 
-int RaCoApplication::applicationFeatureLevel() const {
-	return applicationFeatureLevel_;
+int RaCoApplication::newFileFeatureLevel() const {
+	return newFileFeatureLevel_;
 }
 
 const FeatureLevelLoadError* RaCoApplication::getFlError() const {
@@ -380,7 +397,7 @@ core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {
 	return &externalProjectsStore_;
 }
 
-raco::core::MeshCache* RaCoApplication::meshCache() {
+core::MeshCache* RaCoApplication::meshCache() {
 	return &meshCache_;
 }
 

@@ -20,6 +20,7 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
+#include "data_storage/Array.h"
 
 #include <cassert>
 
@@ -28,6 +29,10 @@ namespace raco::core {
 using namespace raco::data_storage;
 
 void UndoHelpers::updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler) {
+	if (dest->query<VolatileProperty>()) {
+		return;
+	}
+
 	PrimitiveType type = src->type();
 	bool changed = false;
 	if (type == PrimitiveType::Ref) {
@@ -52,6 +57,11 @@ void UndoHelpers::updateSingleValue(const ValueBase *src, ValueBase *dest, Value
 		} else {
 			updateTableByName(&src->asTable(), &dest->asTable(), destHandle, translateRef, outChanges, invokeHandler);
 		}
+	} else if (type == PrimitiveType::Array) {
+		assert(ValueBase::classesEqual(*src, *dest));
+		updateArray(&src->asArray(), &dest->asArray(), destHandle, translateRef, outChanges, invokeHandler);
+		// Assume annotation data doesn't contain Ref type properties.
+		dest->copyAnnotationData(*src);
 	} else if (type == PrimitiveType::Struct) {
 		assert(ValueBase::classesEqual(*src, *dest));
 		updateStruct(&src->asStruct(), &dest->asStruct(), destHandle, translateRef, outChanges, invokeHandler);
@@ -67,7 +77,7 @@ void UndoHelpers::updateSingleValue(const ValueBase *src, ValueBase *dest, Value
 	}
 }
 
-void UndoHelpers::callOnBeforeRemoveReferenceHandler(raco::data_storage::Table *dest, const size_t &index, raco::core::ValueHandle &destHandle) {
+void UndoHelpers::callOnBeforeRemoveReferenceHandler(ReflectionInterface *dest, const size_t &index, core::ValueHandle &destHandle) {
 	auto oldValue = dest->get(index);
 	if (oldValue->type() == PrimitiveType::Ref) {
 		if (auto oldObj = oldValue->asRef()) {
@@ -93,6 +103,32 @@ void UndoHelpers::updateTableAsArray(const Table *src, Table *dest, ValueHandle 
 	}
 	if (dest->size() > 0) {
 		dest->clear();
+		changed = true;
+	}
+
+	for (size_t index{0}; index < src->size(); index++) {
+		dest->addProperty(src->get(index)->clone(&translateRef));
+		changed = true;
+	}
+
+	if (changed && outChanges && destHandle) {
+		outChanges->recordValueChanged(destHandle);
+	}
+}
+
+void UndoHelpers::updateArray(const ArrayBase* src, ArrayBase* dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder* outChanges, bool invokeHandler) {
+	bool changed = false;
+	if (ReflectionInterface::compare(*src, *dest, translateRef)) {
+		return;
+	}
+
+	if (invokeHandler && destHandle) {
+		for (size_t index{0}; index < dest->size(); index++) {
+			UndoHelpers::callOnBeforeRemoveReferenceHandler(dest, index, destHandle);
+		}
+	}
+	if (dest->size() > 0) {
+		dest->resize(0);
 		changed = true;
 	}
 
@@ -199,7 +235,7 @@ void UndoHelpers::updateEditorObject(const EditorObject *src, SEditorObject dest
 	for (size_t index = 0; index < src->size(); index++) {
 		std::string name = src->name(index);
 		assert(dest->hasProperty(name));
-		if (!excludeIf(name)) {
+		if (!excludeIf(name) && !dest->query<VolatileProperty>()) {
 			assert(ValueBase::classesEqual(*dest->get(name), *src->get(name)));
 			
 			UndoHelpers::updateSingleValue(src->get(name), dest->get(name), ValueHandle(dest, {index}), translateRef, outChanges, invokeHandler);
@@ -474,6 +510,10 @@ void UndoStack::endCompositeCommand(const std::string &description, bool abort) 
 			}
 		}
 	}
+}
+
+int UndoStack::depth() const {
+	return depth_;
 }
 
 size_t UndoStack::size() const {

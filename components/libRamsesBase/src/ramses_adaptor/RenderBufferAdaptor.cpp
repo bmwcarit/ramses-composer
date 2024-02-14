@@ -48,20 +48,19 @@ bool RenderBufferAdaptor::sync(core::Errors* errors) {
 
 	auto format = static_cast<user_types::ERenderBufferFormat>(*editorObject()->format_);
 	ramses::ERenderBufferFormat ramsesFormat = ramses_base::enumerationTranslationRenderBufferFormat.at(format);
-	ramses::ERenderBufferType type = raco::ramses_base::ramsesRenderBufferTypeFromFormat(ramsesFormat);
 
 	bool allValid = true;
-	uint32_t clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBuffer::width_}, errors, &allValid);
-	uint32_t clippedHeight = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBuffer::height_}, errors, &allValid);
+	uint32_t clippedWidth = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::RenderBuffer::width_}, errors, &allValid);
+	uint32_t clippedHeight = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::RenderBuffer::height_}, errors, &allValid);
 
 	if (allValid) {
-		buffer_ = raco::ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
+		buffer_ = ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
 			clippedWidth, clippedHeight,
-			type,
 			ramsesFormat,
-			ramses::ERenderBufferAccessMode_ReadWrite,
+			ramses::ERenderBufferAccessMode::ReadWrite,
 			0U,
-			(editorObject()->objectName() + "_Buffer").c_str());
+			(editorObject()->objectName() + "_Buffer").c_str(), 
+			editorObject_->objectIDAsRamsesLogicID());
 	}
 
 	if (buffer_) {
@@ -81,22 +80,27 @@ bool RenderBufferAdaptor::sync(core::Errors* errors) {
 		auto magSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_);
 		auto ramsesMagSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(magSamplMethod);
 
-		if (type == ramses::ERenderBufferType_Color) {
+		if (ramsesFormat == ramses::ERenderBufferFormat::Depth24 || ramsesFormat == ramses::ERenderBufferFormat::Depth24_Stencil8 ||
+			ramsesFormat == ramses::ERenderBufferFormat::Depth16 || ramsesFormat == ramses::ERenderBufferFormat::Depth32) {
+			textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
+				ramses::ETextureAddressMode::Clamp,
+				ramses::ETextureAddressMode::Clamp,
+				ramses::ETextureSamplingMethod::Nearest,
+				ramses::ETextureSamplingMethod::Nearest,
+				buffer_,
+				1, 
+				{},
+				editorObject()->objectIDAsRamsesLogicID());
+		} else {
 			textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
 				ramsesWrapUMode,
 				ramsesWrapVMode,
 				ramsesMinSamplMethod,
 				ramsesMagSamplMethod,
 				buffer_,
-				(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));
-		} else {
-			textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
-				ramses::ETextureAddressMode_Clamp,
-				ramses::ETextureAddressMode_Clamp,
-				ramses::ETextureSamplingMethod_Nearest,
-				ramses::ETextureSamplingMethod_Nearest,
-				buffer_,
-				1);
+				(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1),
+				{},
+				editorObject()->objectIDAsRamsesLogicID());
 		}
 
 		reset(std::move(textureSampler));

@@ -108,7 +108,9 @@ raco_package_add_test_resources(
     expectations/LuaScriptWithAnnotatedDouble.json
     expectations/LuaScriptWithURI.json
     expectations/LuaScriptLinkedToNode.json
+    expectations/Arrays.json
 
+    testData/cube.gltf
     testData/duck.glb
     testData/in-float.lua
     testData/in-struct.lua
@@ -116,6 +118,8 @@ raco_package_add_test_resources(
     testData/in-specific-prop-names.lua
     testData/float.lua
     testData/ToyCar.gltf
+    testData/basic.vert
+    testData/basic.frag
     testData/uniform-types-vert.glsl
     testData/uniform-types-frag.glsl
     testData/simple_texture.frag
@@ -170,6 +174,15 @@ raco_package_add_test_resources(
     migrationTestData/V51.rca
     migrationTestData/V51_link_vec_struct.rca
     migrationTestData/V52.rca
+    migrationTestData/V54.rca
+    migrationTestData/V54-rendertarget-base.rca
+    migrationTestData/V54-rendertarget-extref.rca
+    migrationTestData/V54-rendertarget-extref-keepalive.rca
+    migrationTestData/V55.rca
+    migrationTestData/V57.rca
+    migrationTestData/V58.rca
+    migrationTestData/V59.rca
+    migrationTestData/V60.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

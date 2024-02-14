@@ -41,31 +41,6 @@ void CubeMap::updateFromExternalFile(BaseContext& context) {
 }
 
 void CubeMap::validateURIs(BaseContext& context) {
-	context.errors().removeError({shared_from_this(), &CubeMap::uriFront_});
-	context.errors().removeError({shared_from_this(), &CubeMap::uriBack_});
-	context.errors().removeError({shared_from_this(), &CubeMap::uriLeft_});
-	context.errors().removeError({shared_from_this(), &CubeMap::uriRight_});
-	context.errors().removeError({shared_from_this(), &CubeMap::uriTop_});
-	context.errors().removeError({shared_from_this(), &CubeMap::uriBottom_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level2uriFront_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level2uriBack_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level2uriLeft_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level2uriRight_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level2uriTop_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level2uriBottom_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level3uriFront_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level3uriBack_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level3uriLeft_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level3uriRight_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level3uriTop_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level3uriBottom_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level4uriFront_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level4uriBack_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level4uriLeft_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level4uriRight_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level4uriTop_});
-	context.errors().removeError({shared_from_this(), &CubeMap::level4uriBottom_});
-
 	validateURI(context, {shared_from_this(), &CubeMap::uriFront_});
 	validateURI(context, {shared_from_this(), &CubeMap::uriBack_});
 	validateURI(context, {shared_from_this(), &CubeMap::uriLeft_});
@@ -80,6 +55,13 @@ void CubeMap::validateURIs(BaseContext& context) {
 		validateURI(context, {shared_from_this(), &CubeMap::level2uriRight_});
 		validateURI(context, {shared_from_this(), &CubeMap::level2uriTop_});
 		validateURI(context, {shared_from_this(), &CubeMap::level2uriBottom_});
+	} else {
+		context.errors().removeError({shared_from_this(), &CubeMap::level2uriFront_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level2uriBack_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level2uriLeft_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level2uriRight_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level2uriTop_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level2uriBottom_});
 	}
 
 	if (*mipmapLevel_ > 2) {
@@ -89,6 +71,13 @@ void CubeMap::validateURIs(BaseContext& context) {
 		validateURI(context, {shared_from_this(), &CubeMap::level3uriRight_});
 		validateURI(context, {shared_from_this(), &CubeMap::level3uriTop_});
 		validateURI(context, {shared_from_this(), &CubeMap::level3uriBottom_});
+	} else {
+		context.errors().removeError({shared_from_this(), &CubeMap::level3uriFront_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level3uriBack_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level3uriLeft_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level3uriRight_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level3uriTop_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level3uriBottom_});
 	}
 
 	if (*mipmapLevel_ > 3) {
@@ -98,11 +87,18 @@ void CubeMap::validateURIs(BaseContext& context) {
 		validateURI(context, {shared_from_this(), &CubeMap::level4uriRight_});
 		validateURI(context, {shared_from_this(), &CubeMap::level4uriTop_});
 		validateURI(context, {shared_from_this(), &CubeMap::level4uriBottom_});
+	} else {
+		context.errors().removeError({shared_from_this(), &CubeMap::level4uriFront_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level4uriBack_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level4uriLeft_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level4uriRight_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level4uriTop_});
+		context.errors().removeError({shared_from_this(), &CubeMap::level4uriBottom_});
 	}
 }
 
 void CubeMap::validateMipmapLevel(BaseContext& context) {
-	auto mipmapLevelValue = ValueHandle{shared_from_this(), &raco::user_types::CubeMap::mipmapLevel_};
+	auto mipmapLevelValue = ValueHandle{shared_from_this(), &user_types::CubeMap::mipmapLevel_};
 
 	if (*mipmapLevel_ < 1 || *mipmapLevel_ > 4) {
 		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, mipmapLevelValue,

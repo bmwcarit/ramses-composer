@@ -10,16 +10,15 @@
 #pragma once
 #include "object_tree_view/ObjectTreeView.h"
 #include "components/DebugInstanceCounter.h"
+#include "core/ErrorItem.h"
 
 #include <QComboBox>
 #include <DockWidget.h>
-#include <QHBoxLayout>
-#include <QListWidget>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
 #include <memory>
-#include <unordered_set>
+#include <QLineEdit>
 
 namespace raco::object_tree::view {
 
@@ -38,23 +37,24 @@ public Q_SLOTS:
 
 Q_SIGNALS:
 	void externalObjectSelected(ObjectTreeDock *srcDock);
-	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects, ObjectTreeDock *srcDock);
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects, ObjectTreeDock *srcDock, const QString &property);
 	void dockClosed(ObjectTreeDock *closedDock);
 	void dockSelectionFocusRequested(ObjectTreeDock *focusDock);
 
 private:
 	void filterTreeViewObjects();
+	void setLineEditErrorLevel(FilterResult filterResult);
 
 	QWidget *treeDockContent_;
 	QVBoxLayout *treeDockLayout_;
-	
+
 	QLineEdit *filterLineEdit_;
 	QComboBox *filterByComboBox_;
 	QHBoxLayout *treeDockSettingsLayout_;
 
 	QStackedWidget *treeViewStack_;
 
-	std::shared_ptr<raco::core::BaseContext> currentContext_;
+	std::shared_ptr<core::BaseContext> currentContext_;
 	
 };
 

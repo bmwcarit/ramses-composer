@@ -13,7 +13,10 @@
 #include "common_widgets/TimingsWidget.h"
 #include "common_widgets/log_model/LogViewModel.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
+#include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
+#include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
 #include "ramses_widgets/RendererBackend.h"
+#include "property_browser/PropertyBrowserWidget.h"
 
 #include <QListWidget>
 #include <QMainWindow>
@@ -43,6 +46,7 @@ public:
 		static inline const char* PROJECT_SETTINGS{"Project Settings"};
 		static inline const char* PROPERTY_BROWSER{"Property Browser"};
 		static inline const char* RAMSES_PREVIEW{"Ramses Preview"};
+		static inline const char* ABSTRACT_SCENE_VIEW{"Abstract Scene View"};
 		static inline const char* RESOURCES{"Resources"};
 		static inline const char* SCENE_GRAPH{"Scene Graph"};
 		static inline const char* UNDO_STACK{"Undo Stack"};
@@ -59,7 +63,6 @@ public:
 		QWidget* parent = nullptr);
 	~MainWindow();
 
-	void setNewPreviewMenuEntryEnabled(bool enabled);
 	void updateApplicationTitle();
 	void updateSavedLayoutMenu();
 	void updateUpgradeMenu();
@@ -68,7 +71,7 @@ public:
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
-	void focusToObject(const QString& objectID);
+	void focusToSelection(const QString& objectID, const QString& property);
 
 protected:
 	void timerEvent(QTimerEvent* event) override;
@@ -84,11 +87,13 @@ protected:
 	void regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks);
 	void saveDockManagerCustomLayouts();
 	bool isUpgradePrevented();
+	bool promptToReloadActiveProject();
 
 protected Q_SLOTS:
-	void openProject(const QString& file = {}, int featureLevel = -1, bool generateNewObjectIDs = false);
+	void openProject(const QString& file = {}, int featureLevel = -1, bool generateNewObjectIDs = false, bool ignoreDirtiness = false);
 	bool saveActiveProject();
 	bool upgradeActiveProject(int newFeatureLevel);
+	void activeProjectFileChanged();
 	bool saveAsActiveProject(bool newID = false);
 	bool saveAsActiveProjectWithNewID();
 	void resetDockManager();
@@ -97,10 +102,33 @@ protected Q_SLOTS:
 
 Q_SIGNALS:
 	void viewportChanged(const QSize& sceneSize);
-	void objectFocusRequestedForPropertyBrowser(const QString& objectID);
-	void objectFocusRequestedForTreeDock(const QString& objectID);
+	void focusRequestedForPropertyBrowser(const QString& objectID, const QString& property);
+	void focusRequestedForTreeDock(const QString& objectID, const QString& property);
 
 private:
+	RaCoDockManager* createDockManager();
+	static ads::CDockWidget* createDockWidget(const QString& title, QWidget *parent);
+
+	ads::CDockAreaWidget* createAndAddTracePlayer();
+
+	ads::CDockAreaWidget* createAndAddPreview(const char* dockObjName);
+	ads::CDockAreaWidget* createAndAddAbstractSceneView(const char* dockObjName);
+	ads::CDockAreaWidget* createAndAddPropertyBrowser(const char* dockObjName);
+	ads::CDockAreaWidget* createAndAddSceneGraphTree(const char* dockObjName);
+	void createAndAddProjectSettings(const char* dockObjName);
+
+	ads::CDockAreaWidget* createAndAddPrefabTree(const char* dockObjName, ads::CDockAreaWidget* dockArea);
+	ads::CDockAreaWidget* createAndAddResourceTree(const char* dockObjName, ads::CDockAreaWidget* dockArea);
+	ads::CDockAreaWidget* createAndAddUndoView(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
+	ads::CDockAreaWidget* createAndAddErrorView(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
+	ads::CDockAreaWidget* createAndAddLogView(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
+	ads::CDockAreaWidget* createAndAddPythonRunner(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
+	ads::CDockAreaWidget* createAndAddProjectBrowser(const char* dockObjName, ads::CDockAreaWidget* dockArea);
+
+	ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel* dockModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel* sortFilterModel, ads::DockWidgetArea area, ads::CDockAreaWidget* dockArea);
+
+	void createInitialWidgets();
+
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;
 	RaCoDockManager* dockManager_;

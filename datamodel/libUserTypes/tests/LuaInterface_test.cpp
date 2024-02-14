@@ -18,17 +18,12 @@ using namespace raco::user_types;
 
 class LuaInterfaceTest : public TestEnvironmentCore {};
 
-class LuaInterfaceTest_FL4 : public TestEnvironmentCore {
-public:
-	LuaInterfaceTest_FL4() : TestEnvironmentCore(&UserObjectFactory::getInstance(), rlogic::EFeatureLevel::EFeatureLevel_04) {}
-};
-
 TEST_F(LuaInterfaceTest, uri_warning_empty_uri) {
 	auto interface = create<LuaInterface>("interface");
 	ValueHandle uriHandle{interface, &LuaInterface::uri_};
 
 	EXPECT_TRUE(commandInterface.errors().hasError(uriHandle));
-	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::WARNING);
+	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::WARNING);
 }
 	
 TEST_F(LuaInterfaceTest, uri_error_set_invalid_uri) {
@@ -38,7 +33,7 @@ TEST_F(LuaInterfaceTest, uri_error_set_invalid_uri) {
 	commandInterface.set(uriHandle, std::string("invalid"));
 
 	EXPECT_TRUE(commandInterface.errors().hasError(uriHandle));
-	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::ERROR);
+	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::ERROR);
 }
 
 TEST_F(LuaInterfaceTest, uri_error_compile_error) {
@@ -68,19 +63,7 @@ end
 	EXPECT_TRUE(commandInterface.errors().hasError({interface}));
 }
 
-TEST_F(LuaInterfaceTest_FL4, interface_using_modules_FL4) {
-	TextFile interfaceFile = makeFile("interface.lua", R"(
-modules("coalas")
-function interface(INOUT)
-end
-)");
-	auto interface = create_lua_interface("script", interfaceFile);
-
-	EXPECT_FALSE(commandInterface.errors().hasError({interface}));
-	ASSERT_FALSE(commandInterface.errors().hasError({interface, {"luaModules", "coalas"}}));
-}
-
-TEST_F(LuaInterfaceTest, interface_using_modules_FL5) {
+TEST_F(LuaInterfaceTest, interface_using_modules) {
 	TextFile interfaceFile = makeFile("interface.lua", R"(
 modules("coalas")
 function interface(INOUT)
@@ -186,7 +169,7 @@ return what
 
 	ASSERT_FALSE(commandInterface.errors().hasError({interface}));
 	ASSERT_TRUE(commandInterface.errors().hasError(modulesHandle.get("coalas")));
-	ASSERT_EQ(commandInterface.errors().getError(modulesHandle.get("coalas")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(modulesHandle.get("coalas")).level(), core::ErrorLevel::ERROR);
 	ASSERT_EQ(commandInterface.errors().getError(modulesHandle.get("coalas")).message(), "Invalid LuaScriptModule 'module' assigned.");
 }
 

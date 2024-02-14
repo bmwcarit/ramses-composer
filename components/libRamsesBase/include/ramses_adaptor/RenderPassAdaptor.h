@@ -11,7 +11,7 @@
 
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "user_types/RenderPass.h"
-#include <ramses-client-api/RenderPass.h>
+#include <ramses/client/RenderPass.h>
 
 namespace raco::ramses_adaptor {
 
@@ -22,14 +22,14 @@ public:
 	bool sync(core::Errors* errors) override;
 	std::vector<ExportInformation> getExportInformation() const override;
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 
 private:
-	raco::ramses_base::UniqueRamsesRenderPassBinding binding_;
+	ramses_base::UniqueRamsesRenderPassBinding binding_;
 
-	std::array<components::Subscription, 17> subscriptions_;
+	std::array<components::Subscription, 10> subscriptions_;
 };
 
 };	// namespace raco::ramses_adaptor

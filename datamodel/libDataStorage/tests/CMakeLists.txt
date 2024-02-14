@@ -23,5 +23,3 @@ raco_package_add_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-target_link_libraries(libDataStorage_test raco::ramses-logic-lib-client-only)

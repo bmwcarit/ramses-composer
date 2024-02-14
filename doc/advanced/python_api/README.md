@@ -125,17 +125,14 @@ The `raco` module is available in both RaCoHeadless and RaCoEditor. You'll need 
 > externalProjects()
 >> Get a list of the absolute paths of all externally referenced projects.
 
-> export(ramses_path, logic_path, compress)
->> Export the active project. The paths of the Ramses and RamsesLogic files need to be specified. Additionally, compression can be enabled using the `compress` flag.
+> export(ramses_path, compress[, luaSaveMode])
+>> Export the active project. The paths of the Ramses file needs to be specified. Additionally, compression can be enabled using the `compress` flag. Optionally the `luaSaveMode` parameter can be used to control whether the export should include Lua scripts as source code, byte code, or both. The `luaSaveMode` must be a `ELuaSavingMode` enumeration with the valid values being `SourceCodeOnly`, `ByteCodeOnly`, and `SourceAndByteCode`.
 
 > getErrors()
 >> Returns a list of active `ErrorItems`
 
 > importGLTF(path[, parent])
 >> Import complete contents of a gltf file into the current scene. Inserts the new nodes below `parent` in the scenegraph when the optional argument is given.
-
-> saveScreenshot(path)
->> Save a screenshot of the preview to the given `path` as a `.png` image file.
 
 
 ### Active Project Access
@@ -233,9 +230,6 @@ Member functions:
 > keys()
 >> Returns a list of the names of all properties in internal data model order.
 
-> metadata()
->> If the object is a mesh this will return gltf `extras` metadata as a dictionary. Only string values in the gltf `extras` are supported.
-
 > getUserTags()
 >> Return the `userTags` property of an object as list of strings.
 
@@ -305,6 +299,8 @@ The printed representation includes the type and the full path of the property s
 > keys()
 >> Returns a list of the names of all nested properties if `property` has substructure. Returns an empty list if `property` has no substructure.
 
+> resize(newSize)
+>> Resize an array property to `newSize`. Array properties have a `typeName()` of the form `Array[elementType]`.
 
 ### Child property access
 
@@ -400,6 +396,31 @@ The member variables of a LinkDescriptor can't be changed. Modification of links
 >> In case of object errors, this will return the EditorObject causing the error.
 >> If the error refers to a property, this will return the PropertyDescriptor instead.
 
+### Composite Commands
+
+Each Python API call will normally generate a single undo stack entry. In complicated scripts this may lead to a huge number of undo stack entries. This makes it more difficult for users to find the range of operations a script performed and may also lead to unnecessarily high memory consumption.
+
+It is therefore possible to group individual Python API calls into composite commands which only generate a single undo stack entry. This is done using a `with` statement context manager as follows
+```
+with raco.compositeCommand("create and init node"):
+	node = raco.create("Node", "node")
+	node.translation.x = 100.0
+```
+The parameter of the context manager is the description of the entry which is shown in the undo view.
+
+Composite commands can be nested, e.g.
+```
+with raco.compositeCommand("create and init node"):
+	node = raco.create("Node", "node")
+	node.translation.x = 100.0
+	with raco.compositeCommand("inner composite command"):
+		raco.create("Material", "material")
+		raco.create("Mesh", "mesh")
+```
+will still generate only a single undo stack entry.
+
+If any operation within a possibly nested composite command fails or an exception is thrown inside a composite command the outermost composite command is aborted and the project is restored to the state before entering the outermost composite command. In other words, composite commands are executed atomically, i.e. they succeeed or fail as a whole.
+
 ## `raco_gui` module reference
 When running python scripts inside RaCoEditor, `raco_gui` is available to interact with editor specific things. You'll need to add an explicit import statement for the module in order to call the methods mentioned below.
 
@@ -407,3 +428,6 @@ If you need to ensure that your scripts run both in headless and in gui, you can
 
 > getSelection()
 >> Returns a list of the currently selected editor objects.
+
+> saveScreenshot(path)
+>> Save a screenshot of the preview to the given `path` as a `.png` image file.

@@ -26,6 +26,7 @@
 #include "core/Serialization.h"
 #include "core/Undo.h"
 #include "core/UserObjectFactoryInterface.h"
+#include "data_storage/Array.h"
 #include "log_system/log.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
@@ -215,6 +216,23 @@ void BaseContext::setT<StructBase>(ValueHandle const& handle, StructBase const& 
 	changeMultiplexer_.recordValueChanged(handle);
 }
 
+template <>
+void BaseContext::setT<ArrayBase>(ValueHandle const& handle, ArrayBase const& value) {
+	ValueBase* v = handle.valueRef();
+
+	callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(handle);
+
+	v->setArray(value);
+
+	callReferenceToThisHandler<&EditorObject::onAfterAddReferenceToThis>(handle);
+
+	handle.object_->onAfterValueChanged(*this, handle);
+
+	callReferencedObjectChangedHandlers(handle.object_);
+
+	changeMultiplexer_.recordValueChanged(handle);
+}
+
 void BaseContext::set(ValueHandle const& handle, bool const& value) {
 	setT(handle, value);
 }
@@ -291,10 +309,19 @@ void BaseContext::set(ValueHandle const& handle, StructBase const& value) {
 	setT(handle, value);
 }
 
-ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty, int indexBefore) {
-	Table& table{handle.valueRef()->asTable()};
+void BaseContext::set(ValueHandle const& handle, ArrayBase const& value) {
+	setT(handle, value);
+}
 
-	ValueBase* newValue = table.addProperty(name, std::move(newProperty), indexBefore);
+ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty, int indexBefore) {
+	ValueBase* newValue; 
+	if (handle.type() == PrimitiveType::Table) {
+		newValue = handle.valueRef()->asTable().addProperty(name, std::move(newProperty), indexBefore);
+	} else if (handle.type() == PrimitiveType::Array) {
+		newValue = handle.valueRef()->asArray().addProperty(std::move(newProperty), indexBefore);
+	} else {
+		assert(false);
+	}
 
 	ValueHandle newHandle = indexBefore == -1 ? handle[handle.size() - 1] : handle[indexBefore];
 
@@ -319,8 +346,6 @@ ValueBase* BaseContext::addProperty(const ValueHandle& handle, std::string name,
 }
 
 void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
-	Table& table{handle.valueRef()->asTable()};
-
 	SEditorObjectSet updateLinkErrors;
 
 	{
@@ -339,7 +364,13 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 
 		callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(propHandle);
 
-		table.removeProperty(index);
+		if (handle.type() == PrimitiveType::Table) {
+			handle.valueRef()->asTable().removeProperty(index);
+		} else if (handle.type() == PrimitiveType::Array) {
+			handle.valueRef()->asArray().removeProperty(index);
+		} else {
+			assert(false);
+		}
 	}
 
 	// We need to update the broken link errors _after_ removing the property since links are only considered
@@ -360,8 +391,9 @@ void BaseContext::removeProperty(const ValueHandle& handle, size_t index) {
 }
 
 void BaseContext::removeProperty(const ValueHandle& handle, const std::string& name) {
-	Table& table{handle.valueRef()->asTable()};
-	removeProperty(handle, table.index(name));
+	auto index = handle.valueRef()->getSubstructure().index(name);
+	assert(index != -1);
+	removeProperty(handle, index);
 }
 
 void BaseContext::removeAllProperties(const ValueHandle& handle) {
@@ -373,6 +405,25 @@ void BaseContext::removeAllProperties(const ValueHandle& handle) {
 void BaseContext::swapProperties(const ValueHandle& handle, size_t index_1, size_t index_2) {
 	Table& table{handle.valueRef()->asTable()};
 	table.swapProperties(index_1, index_2);
+
+	callReferencedObjectChangedHandlers(handle.object_);
+
+	changeMultiplexer_.recordValueChanged(handle);
+}
+
+void BaseContext::resizeArray(const ValueHandle& handle, size_t newSize) {
+	auto& array = handle.valueRef()->asArray();
+	auto oldSize = array.size();
+
+	for (size_t index = newSize; index < oldSize; index++) {
+		callReferenceToThisHandler<&EditorObject::onBeforeRemoveReferenceToThis>(handle[index]);
+	}
+
+	array.resize(newSize);
+
+	// grow: no onAfterAddReferenceToThis needed since the new array elements are empty
+
+	handle.object_->onAfterValueChanged(*this, handle);
 
 	callReferencedObjectChangedHandlers(handle.object_);
 
@@ -432,7 +483,7 @@ std::string BaseContext::copyObjects(const std::vector<SEditorObject>& objects, 
 	auto allObjects{collectObjectsForCopyOrCutOperations(objects, deepCopy)};
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
-	return raco::serialization::serializeObjects(allObjects, 
+	return serialization::serializeObjects(allObjects, 
 		rootObjectIDs, 
 		collectLinksForCopyOrCutOperation(*project_, allObjects), 
 		project_->currentFolder(), 
@@ -449,7 +500,7 @@ std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, b
 	auto allLinks{collectLinksForCopyOrCutOperation(*project_, allObjects)};
 	auto rootObjectIDs{findRootObjectIDs(allObjects)};
 	auto originFolders{findOriginFolders(*project_, allObjects)};
-	std::string serialization{raco::serialization::serializeObjects(allObjects, 
+	std::string serialization{serialization::serializeObjects(allObjects, 
 		rootObjectIDs, 
 		allLinks, 
 		project_->currentFolder(), 
@@ -463,7 +514,7 @@ std::string BaseContext::cutObjects(const std::vector<SEditorObject>& objects, b
 	return serialization;
 }
 
-void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization) {
+void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, serialization::ObjectsDeserialization& deserialization) {
 	for (auto object : newObjects) {
 		if (PathQueries::isPathRelativeToCurrentProject(object)) {
 			for (auto property : core::ValueTreeIteratorAdaptor(core::ValueHandle{object})) {
@@ -476,11 +527,11 @@ void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, ra
 					} else {
 						originFolder = deserialization.originFolder;
 					}
-					if (!originFolder.empty() && !uriPath.empty() && raco::utils::u8path(uriPath).is_relative()) {
-						if (raco::utils::u8path::areSharingSameRoot(originFolder, this->project()->currentPath())) {
-							property.valueRef()->set(raco::utils::u8path(uriPath).rerootRelativePath(originFolder, this->project()->currentFolder()).string());
+					if (!originFolder.empty() && !uriPath.empty() && utils::u8path(uriPath).is_relative()) {
+						if (utils::u8path::areSharingSameRoot(originFolder, this->project()->currentPath())) {
+							property.valueRef()->set(utils::u8path(uriPath).rerootRelativePath(originFolder, this->project()->currentFolder()).string());
 						} else {
-							property.valueRef()->set(raco::utils::u8path(uriPath).normalizedAbsolutePath(originFolder).string());
+							property.valueRef()->set(utils::u8path(uriPath).normalizedAbsolutePath(originFolder).string());
 						}
 					}
 				}
@@ -490,7 +541,7 @@ void BaseContext::rerootRelativePaths(std::vector<SEditorObject>& newObjects, ra
 }
 
 
-bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::serialization::ObjectsDeserialization& deserialization) {
+bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, serialization::ObjectsDeserialization& deserialization) {
 	// filter objects:
 	// - keep only top-level prefabs, top-level lua script and resources
 	if (!Queries::canPasteObjectAsExternalReference(editorObject, deserialization.rootObjectIDs.find(editorObject->objectID()) != deserialization.rootObjectIDs.end())) {
@@ -516,7 +567,7 @@ bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::ser
 		originProjectID = *anno->projectID_;
 		auto it = deserialization.externalProjectsMap.find(originProjectID);
 		if (it != deserialization.externalProjectsMap.end()) {
-			originProjectPath = raco::utils::u8path(it->second.path).normalizedAbsolutePath(deserialization.originFolder).string();
+			originProjectPath = utils::u8path(it->second.path).normalizedAbsolutePath(deserialization.originFolder).string();
 		} else {
 			throw ExtrefError("Paste: can't resolve external project path");
 		}
@@ -542,7 +593,7 @@ bool BaseContext::extrefPasteDiscardObject(SEditorObject editorObject, raco::ser
 	return true;
 }
 
-void BaseContext::adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization, bool pasteAsExtref) {
+void BaseContext::adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& newObjects, serialization::ObjectsDeserialization& deserialization, bool pasteAsExtref) {
 	for (auto& editorObject : newObjects) {
 		if (pasteAsExtref) {
 			if (!editorObject->query<ExternalReferenceAnnotation>()) {
@@ -554,7 +605,7 @@ void BaseContext::adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& ne
 
 				auto it = deserialization.externalProjectsMap.find(extProjID);
 				if (it != deserialization.externalProjectsMap.end()) {
-					project_->addExternalProjectMapping(extProjID, raco::utils::u8path(it->second.path).normalizedAbsolutePath(deserialization.originFolder).string(), it->second.name);
+					project_->addExternalProjectMapping(extProjID, utils::u8path(it->second.path).normalizedAbsolutePath(deserialization.originFolder).string(), it->second.name);
 				} else {
 					throw ExtrefError("Paste: can't resolve external project path");
 				}
@@ -567,7 +618,7 @@ void BaseContext::adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& ne
 	}
 }
 
-void BaseContext::restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization) {
+void BaseContext::restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, serialization::ObjectsDeserialization& deserialization) {
 	std::map<std::string, SEditorObject> oldIdToEditorObject{};
 	for (auto& editorObject : newObjects) {
 		oldIdToEditorObject[editorObject->objectID()] = editorObject;
@@ -584,7 +635,7 @@ void BaseContext::restoreReferences(const Project& project, std::vector<SEditorO
 	}
 }
 
-void BaseContext::generateNewObjectIDs(std::vector<raco::core::SEditorObject>& newObjects) {
+void BaseContext::generateNewObjectIDs(std::vector<core::SEditorObject>& newObjects) {
 	// Generate new ids:
 	// Pass 1: everything except PrefabInstance children
 	std::map<std::string, std::string> prefabInstanceIDMap;
@@ -612,7 +663,7 @@ void BaseContext::generateNewObjectIDs(std::vector<raco::core::SEditorObject>& n
 }
 
 std::vector<SEditorObject> BaseContext::pasteObjects(const std::string& seralizedObjects, const SEditorObject& target, bool pasteAsExtref) {
-	auto deserialization_opt{raco::serialization::deserializeObjects(seralizedObjects)};
+	auto deserialization_opt{serialization::deserializeObjects(seralizedObjects)};
 	if (!deserialization_opt) {
 		throw std::runtime_error("Paste Objects: data has invalid format.");
 	}
@@ -938,6 +989,10 @@ bool BaseContext::deleteWithVolatileSideEffects(Project* project, const SEditorO
 }
 
 size_t BaseContext::deleteObjects(std::vector<SEditorObject> const& objects, bool gcExternalProjectMap, bool includeChildren) {
+	if (objects.empty()) {
+		return 0;
+	}
+	
 	SEditorObjectSet toRemove;
 	if (includeChildren) {
 		toRemove = Queries::collectAllChildren(objects);
@@ -1035,22 +1090,26 @@ void BaseContext::moveScenegraphChildren(std::vector<SEditorObject> const& objec
 	});
 }
 
-void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
-	auto relativeFilePath = raco::utils::u8path(absPath).normalizedRelativePath(project()->currentFolder());
+void BaseContext::insertAssetScenegraph(const core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
+	auto relativeFilePath = utils::u8path(absPath).normalizedRelativePath(project()->currentFolder());
 	std::vector<SEditorObject> meshScenegraphMeshes;
 	std::vector<SEditorObject> meshScenegraphNodes;
 
 	LOG_INFO(log_system::CONTEXT, "Importing all meshes...");
-	auto projectMeshes = Queries::filterByTypeName(project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
+	auto projectMeshes = Queries::filterByTypeName(project()->instances(), {user_types::Mesh::typeDescription.typeName});
 	std::map<std::tuple<bool, int, std::string>, SEditorObject> propertiesToMeshMap;
 	std::map<std::tuple<std::string, int, int>, SEditorObject> propertiesToChannelMap;
 
 	for (const auto& instance : project()->instances()) {
-		if (instance->as<raco::user_types::Mesh>() && !instance->query<raco::core::ExternalReferenceAnnotation>()) {
-			propertiesToMeshMap[{instance->get("bakeMeshes")->asBool(), instance->get("meshIndex")->asInt(), instance->get("uri")->asString()}] = instance;
-		} else if (instance->as<raco::user_types::AnimationChannel>() && !instance->query<raco::core::ExternalReferenceAnnotation>()) {
-			auto absPath = core::PathQueries::resolveUriPropertyToAbsolutePath(*project_, ValueHandle(instance, &user_types::AnimationChannel::uri_));
-			propertiesToChannelMap[{absPath, instance->get("animationIndex")->asInt(), instance->get("samplerIndex")->asInt()}] = instance;
+		if (!instance->query<core::ExternalReferenceAnnotation>()) {
+			if (instance->isType<user_types::Mesh>()) {
+				auto mesh = instance->as<user_types::Mesh>();
+				propertiesToMeshMap[{*mesh->bakeMeshes_, *mesh->meshIndex_, *mesh->uri_}] = instance;
+			} else if (instance->isType<user_types::AnimationChannel>()) {
+				auto channel = instance->as<user_types::AnimationChannel>();
+				auto absPath = core::PathQueries::resolveUriPropertyToAbsolutePath(*project_, ValueHandle(instance, &user_types::AnimationChannel::uri_));
+				propertiesToChannelMap[{absPath, *channel->animationIndex_, *channel->samplerIndex_}] = instance;
+			}
 		}
 	}
 
@@ -1064,12 +1123,11 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		auto meshWithSameProperties = propertiesToMeshMap.find({false, static_cast<int>(i), relativeFilePath.string()});
 		if (meshWithSameProperties == propertiesToMeshMap.end()) {
 			LOG_DEBUG(log_system::CONTEXT, "Did not find existing local Mesh with same properties as asset mesh, creating one instead...");
-			auto &currentSubmesh = meshScenegraphMeshes.emplace_back(createObject(raco::user_types::Mesh::typeDescription.typeName, *scenegraph.meshes[i]));
-			auto currentSubmeshHandle = ValueHandle{currentSubmesh};
+			auto& currentSubmesh = meshScenegraphMeshes.emplace_back(createObject(user_types::Mesh::typeDescription.typeName, *scenegraph.meshes[i]));
 
-			set(currentSubmeshHandle.get("bakeMeshes"), false);
-			set(currentSubmeshHandle.get("meshIndex"), static_cast<int>(i));
-			set(currentSubmeshHandle.get("uri"), relativeFilePath.string());
+			set({currentSubmesh, &user_types::Mesh::bakeMeshes_}, false);
+			set({currentSubmesh, &user_types::Mesh::meshIndex_}, static_cast<int>(i));
+			set({currentSubmesh, &user_types::Mesh::uri_}, relativeFilePath.string());
 		} else {
 			LOG_DEBUG(log_system::CONTEXT, "Found existing local Mesh {} with same properties as asset mesh, using this Mesh...", *scenegraph.meshes[i]);
 			meshScenegraphMeshes.emplace_back(meshWithSameProperties->second);
@@ -1085,7 +1143,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 
 	auto meshPath = relativeFilePath.filename().string();
 	meshPath = project_->findAvailableUniqueName(topLevelObjects.begin(), topLevelObjects.end(), nullptr, meshPath);
-	auto sceneRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshPath);
+	auto sceneRootNode = createObject(user_types::Node::typeDescription.typeName, meshPath);
 	if (parent) {
 		moveScenegraphChildren(core::Queries::filterForMoveableScenegraphChildren(*project(), {sceneRootNode}, parent), parent);
 	}
@@ -1103,17 +1161,17 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		SEditorObject newNode;
 		if (meshScenegraphNode.subMeshIndices.empty()) {
 			LOG_DEBUG(log_system::CONTEXT, "Found node {} with no submeshes -> creating Node...", meshScenegraphNode.name);
-			newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
+			newNode = meshScenegraphNodes.emplace_back(createObject(user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
 		} else {
 			SEditorObject submeshRootNode;
 			if (meshScenegraphNode.subMeshIndices.size() == 1) {
 				LOG_DEBUG(log_system::CONTEXT, "Found node {} with singular submesh -> creating MeshNode...", meshScenegraphNode.name);
-				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name));
+				newNode = meshScenegraphNodes.emplace_back(createObject(user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name));
 				submeshRootNode = newNode;
 			} else {
 				LOG_DEBUG(log_system::CONTEXT, "Found node {} with multiple submeshes -> creating MeshNode for each submesh...", meshScenegraphNode.name);
-				newNode = meshScenegraphNodes.emplace_back(createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
-				submeshRootNode = createObject(raco::user_types::Node::typeDescription.typeName, meshScenegraphNode.name + "_meshnodes");
+				newNode = meshScenegraphNodes.emplace_back(createObject(user_types::Node::typeDescription.typeName, meshScenegraphNode.name));
+				submeshRootNode = createObject(user_types::Node::typeDescription.typeName, meshScenegraphNode.name + "_meshnodes");
 				moveScenegraphChildren({submeshRootNode}, newNode);
 			}
 
@@ -1129,7 +1187,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				if (meshScenegraphNode.subMeshIndices.size() == 1) {
 					submeshNode = newNode;
 				} else {
-					submeshNode = createObject(raco::user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name + "_meshnode_" + std::to_string(submeshIndex));
+					submeshNode = createObject(user_types::MeshNode::typeDescription.typeName, meshScenegraphNode.name + "_meshnode_" + std::to_string(submeshIndex));
 					moveScenegraphChildren({submeshNode}, submeshRootNode);
 				}
 
@@ -1138,7 +1196,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 					continue;
 				}
 
-				set(ValueHandle{submeshNode}.get("mesh"), meshScenegraphMeshes[assignedSubmeshIndex]);
+				set({submeshNode, &user_types::MeshNode::mesh_}, meshScenegraphMeshes[assignedSubmeshIndex]);
 
 				const auto& glTFMaterial = scenegraph.materials[assignedSubmeshIndex];
 				if (glTFMaterial.has_value()) {
@@ -1148,7 +1206,8 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 
 					if (foundMaterial && foundMaterial->isType<user_types::Material>()) {
 						LOG_DEBUG(log_system::CONTEXT, "Found matching material {} in project resources, will reassign current MeshNode material to it", glTFMaterialName);
-						set(ValueHandle{submeshNode}.get("materials")[0].get("material"), foundMaterial);
+
+						set(submeshNode->as<user_types::MeshNode>()->getMaterialHandle(0), foundMaterial);
 					}
 				}
 			}
@@ -1160,17 +1219,9 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		LOG_DEBUG(log_system::CONTEXT, "All nodes traversed.");
 
 		LOG_DEBUG(log_system::CONTEXT, "Applying scenegraph node transformations...");
-		ValueHandle newNodeHandle{newNode};
-
-		auto transformNode = [this](auto& valueHandle, auto& propertyName, auto& vec3f) {
-			set(valueHandle.get(propertyName).get("x"), vec3f[0]);
-			set(valueHandle.get(propertyName).get("y"), vec3f[1]);
-			set(valueHandle.get(propertyName).get("z"), vec3f[2]);
-		};
-
-		transformNode(newNodeHandle, "scaling", meshScenegraphNode.transformations.scale);
-		transformNode(newNodeHandle, "rotation", meshScenegraphNode.transformations.rotation);
-		transformNode(newNodeHandle, "translation", meshScenegraphNode.transformations.translation);
+		set({newNode, &user_types::Node::scaling_}, meshScenegraphNode.transformations.scale);
+		set({newNode, &user_types::Node::rotation_}, meshScenegraphNode.transformations.rotation);
+		set({newNode, &user_types::Node::translation_}, meshScenegraphNode.transformations.translation);
 		LOG_DEBUG(log_system::CONTEXT, "All scenegraph node transformations applied.");
 	}
 	LOG_INFO(log_system::CONTEXT, "All scenegraph nodes imported.");
@@ -1184,10 +1235,9 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	}
 	LOG_INFO(log_system::CONTEXT, "Scenegraph structure restored.");
 
-
 	LOG_INFO(log_system::CONTEXT, "Importing animation samplers...");
 	std::map<int, std::vector<SEditorObject>> sceneChannels;
-	for (auto animIndex = 0; animIndex < scenegraph.animationSamplers.size();  ++animIndex) {
+	for (auto animIndex = 0; animIndex < scenegraph.animationSamplers.size(); ++animIndex) {
 		auto& samplers = scenegraph.animationSamplers[animIndex];
 		for (auto samplerIndex = 0; samplerIndex < samplers.size(); ++samplerIndex) {
 			auto& meshAnimSampler = scenegraph.animationSamplers.at(animIndex)[samplerIndex];
@@ -1200,15 +1250,14 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			auto samplerWithSameProperties = propertiesToChannelMap.find({absPath, animIndex, samplerIndex});
 			if (samplerWithSameProperties == propertiesToChannelMap.end()) {
 				LOG_DEBUG(log_system::CONTEXT, "Did not find existing local AnimationChannel with same properties as asset animation sampler, creating one instead...");
-				auto& sampler = sceneChannels[animIndex].emplace_back(createObject(raco::user_types::AnimationChannel::typeDescription.typeName, fmt::format("{}", *meshAnimSampler)));
-				set({sampler, {"uri"}}, relativeFilePath.string());
-				set({sampler, {"animationIndex"}}, animIndex);
-				set({sampler, {"samplerIndex"}}, samplerIndex);
+				auto& sampler = sceneChannels[animIndex].emplace_back(createObject(user_types::AnimationChannel::typeDescription.typeName, fmt::format("{}", *meshAnimSampler)));
+				set({sampler, &user_types::AnimationChannel::uri_}, relativeFilePath.string());
+				set({sampler, &user_types::AnimationChannel::animationIndex_}, animIndex);
+				set({sampler, &user_types::AnimationChannel::samplerIndex_}, samplerIndex);
 			} else {
 				LOG_DEBUG(log_system::CONTEXT, "Found existing local AnimationChannel '{}' with same properties as asset animation sampler, using this AnimationChannel...", *meshAnimSampler);
 				sceneChannels[animIndex].emplace_back(samplerWithSameProperties->second);
 			}
-
 		}
 	}
 	LOG_INFO(log_system::CONTEXT, "Animation samplers imported.");
@@ -1224,8 +1273,8 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 
 		auto& meshAnim = *scenegraph.animations[animationIndex];
 		auto samplerSize = scenegraph.animationSamplers.at(animationIndex).size();
-		auto& newAnim = scenegraphAnims.emplace_back(createObject(raco::user_types::Animation::typeDescription.typeName, fmt::format("{}", meshAnim.name)));
-		newAnim->as<raco::user_types::Animation>()->setChannelAmount(samplerSize);
+		auto& newAnim = scenegraphAnims.emplace_back(createObject(user_types::Animation::typeDescription.typeName, fmt::format("{}", meshAnim.name)));
+		newAnim->as<user_types::Animation>()->setChannelAmount(samplerSize);
 		moveScenegraphChildren({newAnim}, sceneRootNode);
 		LOG_INFO(log_system::CONTEXT, "Assigning animation samplers to animation '{}'...", meshAnim.name);
 		for (auto samplerIndex = 0; samplerIndex < samplerSize; ++samplerIndex) {
@@ -1233,7 +1282,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				continue;
 			}
 
-			set({newAnim, {"animationChannels", fmt::format("Channel {}", samplerIndex)}}, sceneChannels[animationIndex][samplerIndex]);
+			set(ValueHandle(newAnim, {"animationChannels"})[samplerIndex], sceneChannels[animationIndex][samplerIndex]);
 			LOG_DEBUG(log_system::CONTEXT, "Assigned sampler to anim channel {}", samplerIndex);
 		}
 		LOG_INFO(log_system::CONTEXT, "Samplers assigned.", meshAnim.name);
@@ -1247,16 +1296,16 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				continue;
 			}
 
-			auto &linkEndNode = meshScenegraphNodes[channel.nodeIndex];
+			auto& linkEndNode = meshScenegraphNodes[channel.nodeIndex];
 			ValueHandle linkEndProp;
 			auto& animTargetProp = channel.targetPath;
 
 			if (animTargetProp == "translation") {
-				linkEndProp = {linkEndNode, {"translation"}};
+				linkEndProp = {linkEndNode, &user_types::Node::translation_};
 			} else if (animTargetProp == "rotation") {
-				linkEndProp = {linkEndNode, {"rotation"}};
+				linkEndProp = {linkEndNode, &user_types::Node::rotation_};
 			} else if (animTargetProp == "scale") {
-				linkEndProp = {linkEndNode, {"scaling"}};
+				linkEndProp = {linkEndNode, &user_types::Node::scaling_};
 			} else if (animTargetProp == "weights") {
 				LOG_WARNING(log_system::CONTEXT, "Animation sampler of animation '{}' at index {} has animation target 'weights' which is unsupported - skipping link...", meshAnim.name, channelIndex);
 				continue;
@@ -1278,39 +1327,37 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	}
 	LOG_INFO(log_system::CONTEXT, "Animations imported.");
 
-	if (project_->featureLevel() >= user_types::Skin::typeDescription.featureLevel) {
-		for (auto index = 0; index < scenegraph.skins.size(); index++) {
-			const auto& sceneSkin = scenegraph.skins[index];
-			if (!sceneSkin.has_value()) {
-				LOG_DEBUG(log_system::CONTEXT, "Found disabled skin at index {}, ignoring...", index);
-				continue;
-			}
+	for (auto index = 0; index < scenegraph.skins.size(); index++) {
+		const auto& sceneSkin = scenegraph.skins[index];
+		if (!sceneSkin.has_value()) {
+			LOG_DEBUG(log_system::CONTEXT, "Found disabled skin at index {}, ignoring...", index);
+			continue;
+		}
 
-			std::vector<SEditorObject> targetMeshNodes;
-			auto targetMeshNode = meshScenegraphNodes[sceneSkin->meshNodeIndex];
-			if (targetMeshNode->isType<user_types::MeshNode>()) {
-				targetMeshNodes.emplace_back(targetMeshNode);
-			} else {
-				auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
-				for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
-					if (child->isType<user_types::MeshNode>()) {
-						targetMeshNodes.emplace_back(child);
-					} else {
-						LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
-					}
+		std::vector<SEditorObject> targetMeshNodes;
+		auto targetMeshNode = meshScenegraphNodes[sceneSkin->meshNodeIndex];
+		if (targetMeshNode->isType<user_types::MeshNode>()) {
+			targetMeshNodes.emplace_back(targetMeshNode);
+		} else {
+			auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
+			for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
+				if (child->isType<user_types::MeshNode>()) {
+					targetMeshNodes.emplace_back(child);
+				} else {
+					LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
 				}
 			}
-			if (!targetMeshNodes.empty()) {
-				auto skinObj = createObject(user_types::Skin::typeDescription.typeName, sceneSkin->name);
-				set({skinObj, &user_types::Skin::uri_}, relativeFilePath.string());
-				skinObj->as<user_types::Skin>()->setupTargetProperties(targetMeshNodes.size());
-				moveScenegraphChildren({skinObj}, sceneRootNode);
-				for (auto index = 0; index < targetMeshNodes.size(); index++) {
-					set(ValueHandle(skinObj, &user_types::Skin::targets_)[index], targetMeshNodes[index]);
-				}
-				for (auto jointIndex = 0; jointIndex < sceneSkin->jointNodeIndices.size(); jointIndex++) {
-					set(ValueHandle(skinObj, &user_types::Skin::joints_)[jointIndex], meshScenegraphNodes[sceneSkin->jointNodeIndices[jointIndex]]);
-				}
+		}
+		if (!targetMeshNodes.empty()) {
+			auto skinObj = createObject(user_types::Skin::typeDescription.typeName, sceneSkin->name);
+			set({skinObj, &user_types::Skin::uri_}, relativeFilePath.string());
+			skinObj->as<user_types::Skin>()->setupTargetProperties(targetMeshNodes.size());
+			moveScenegraphChildren({skinObj}, sceneRootNode);
+			for (auto index = 0; index < targetMeshNodes.size(); index++) {
+				set(ValueHandle(skinObj, &user_types::Skin::targets_)[index], targetMeshNodes[index]);
+			}
+			for (auto jointIndex = 0; jointIndex < sceneSkin->jointNodeIndices.size(); jointIndex++) {
+				set(ValueHandle(skinObj, &user_types::Skin::joints_)[jointIndex], meshScenegraphNodes[sceneSkin->jointNodeIndices[jointIndex]]);
 			}
 		}
 	}
@@ -1343,8 +1390,8 @@ void BaseContext::removeLink(const PropertyDescriptor& end) {
 	}
 }
 
-void BaseContext::updateExternalReferences(LoadContext& loadContext) {
-	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), loadContext);
+void BaseContext::updateExternalReferences(LoadContext& loadContext, int fileVersion) {
+	ExtrefOperations::updateExternalObjects(*this, project(), *externalProjectsStore(), loadContext, fileVersion);
 	PrefabOperations::globalPrefabUpdate(*this, true);
 }
 

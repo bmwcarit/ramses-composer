@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include <ramses-client-api/RamsesObjectTypes.h>
-#include <ramses-framework-api/RamsesFrameworkTypes.h>
-#include <ramses-framework-api/RendererSceneState.h>
+#include <ramses/framework/RamsesObjectTypes.h>
+#include <ramses/framework/RamsesFrameworkTypes.h>
+#include <ramses/framework/RendererSceneState.h>
 #include <spdlog/fmt/fmt.h>
 
 template <>
@@ -98,157 +98,73 @@ struct fmt::formatter<ramses::ERamsesObjectType> : formatter<string_view> {
 	template <typename FormatContext>
 	auto format(const ramses::ERamsesObjectType type, FormatContext& ctx) {
 		switch (type) {
-			case ramses::ERamsesObjectType::ERamsesObjectType_Invalid:
+			case ramses::ERamsesObjectType::Invalid:
 				return format_to(ctx.out(), "Invalid");
-			case ramses::ERamsesObjectType::ERamsesObjectType_ClientObject:
+			case ramses::ERamsesObjectType::ClientObject:
 				return format_to(ctx.out(), "ClientObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_RamsesObject:
+			case ramses::ERamsesObjectType::RamsesObject:
 				return format_to(ctx.out(), "RamsesObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SceneObject:
+			case ramses::ERamsesObjectType::SceneObject:
 				return format_to(ctx.out(), "SceneObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_AnimationObject:
-				return format_to(ctx.out(), "AnimationObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Client:
+			case ramses::ERamsesObjectType::Client:
 				return format_to(ctx.out(), "Client");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Scene:
+			case ramses::ERamsesObjectType::Scene:
 				return format_to(ctx.out(), "Scene");
-			case ramses::ERamsesObjectType::ERamsesObjectType_AnimationSystem:
-				return format_to(ctx.out(), "AnimationSystem");
-			case ramses::ERamsesObjectType::ERamsesObjectType_AnimationSystemRealTime:
-				return format_to(ctx.out(), "AnimationSystemRealTime");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Node:
+			case ramses::ERamsesObjectType::LogicEngine:
+				return format_to(ctx.out(), "LogicEngine");
+			case ramses::ERamsesObjectType::LogicObject:
+				return format_to(ctx.out(), "LogicObject");
+			case ramses::ERamsesObjectType::Node:
 				return format_to(ctx.out(), "Node");
-			case ramses::ERamsesObjectType::ERamsesObjectType_MeshNode:
+			case ramses::ERamsesObjectType::MeshNode:
 				return format_to(ctx.out(), "MeshNode");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Camera:
+			case ramses::ERamsesObjectType::Camera:
 				return format_to(ctx.out(), "Camera");
-			case ramses::ERamsesObjectType::ERamsesObjectType_PerspectiveCamera:
+			case ramses::ERamsesObjectType::PerspectiveCamera:
 				return format_to(ctx.out(), "PerspectiveCamera");
-			case ramses::ERamsesObjectType::ERamsesObjectType_OrthographicCamera:
+			case ramses::ERamsesObjectType::OrthographicCamera:
 				return format_to(ctx.out(), "OrthographicCamera");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Effect:
+			case ramses::ERamsesObjectType::Effect:
 				return format_to(ctx.out(), "Effect");
-			case ramses::ERamsesObjectType::ERamsesObjectType_AnimatedProperty:
-				return format_to(ctx.out(), "AnimatedProperty");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Animation:
-				return format_to(ctx.out(), "Animation");
-			case ramses::ERamsesObjectType::ERamsesObjectType_AnimationSequence:
-				return format_to(ctx.out(), "AnimationSequence");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Appearance:
+			case ramses::ERamsesObjectType::Appearance:
 				return format_to(ctx.out(), "Appearance");
-			case ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding:
-				return format_to(ctx.out(), "GeometryBinding");
-			case ramses::ERamsesObjectType::ERamsesObjectType_PickableObject:
+			case ramses::ERamsesObjectType::Geometry:
+				return format_to(ctx.out(), "Geometry");
+			case ramses::ERamsesObjectType::PickableObject:
 				return format_to(ctx.out(), "PickableObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Spline:
-				return format_to(ctx.out(), "Spline");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepBool:
-				return format_to(ctx.out(), "SplineStepBool");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepFloat:
-				return format_to(ctx.out(), "SplineStepFloat");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepInt32:
-				return format_to(ctx.out(), "SplineStepInt32");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepVector2f:
-				return format_to(ctx.out(), "SplinteStepVector2f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepVector3f:
-				return format_to(ctx.out(), "SplineStepVector3f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepVector4f:
-				return format_to(ctx.out(), "SplineStepVector4f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepVector2i:
-				return format_to(ctx.out(), "SplineStepVector2i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepVector3i:
-				return format_to(ctx.out(), "SplineStepVector3i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineStepVector4i:
-				return format_to(ctx.out(), "SplineStepVector4i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearFloat:
-				return format_to(ctx.out(), "SplineLinearFloat");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearInt32:
-				return format_to(ctx.out(), "SplineLinearInt32");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearVector2f:
-				return format_to(ctx.out(), "SplineLinearVector2f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearVector3f:
-				return format_to(ctx.out(), "SplineLinearVector3f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearVector4f:
-				return format_to(ctx.out(), "SplineLinearVector4f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearVector2i:
-				return format_to(ctx.out(), "SplineLinearVector2i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearVector3i:
-				return format_to(ctx.out(), "SplineLinearVector3i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineLinearVector4i:
-				return format_to(ctx.out(), "SplineLinearVector4i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierFloat:
-				return format_to(ctx.out(), "SplineBezierFloat");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierInt32:
-				return format_to(ctx.out(), "SplineBezierInt32");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierVector2f:
-				return format_to(ctx.out(), "SplineBezierVector2f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierVector3f:
-				return format_to(ctx.out(), "SplineBezierVector3f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierVector4f:
-				return format_to(ctx.out(), "SplineBezierVector4f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierVector2i:
-				return format_to(ctx.out(), "SplineBezierVector2i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierVector3i:
-				return format_to(ctx.out(), "SplineBezierVector3i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SplineBezierVector4i:
-				return format_to(ctx.out(), "SplineBezierVector4i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Resource:
+			case ramses::ERamsesObjectType::Resource:
 				return format_to(ctx.out(), "Resource");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Texture2D:
+			case ramses::ERamsesObjectType::Texture2D:
 				return format_to(ctx.out(), "Texture2D");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Texture3D:
+			case ramses::ERamsesObjectType::Texture3D:
 				return format_to(ctx.out(), "Texture3D");
-			case ramses::ERamsesObjectType::ERamsesObjectType_TextureCube:
+			case ramses::ERamsesObjectType::TextureCube:
 				return format_to(ctx.out(), "TextureCube");
-			case ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource:
+			case ramses::ERamsesObjectType::ArrayResource:
 				return format_to(ctx.out(), "ArrayResource");
-			case ramses::ERamsesObjectType::ERamsesObjectType_RenderGroup:
+			case ramses::ERamsesObjectType::RenderGroup:
 				return format_to(ctx.out(), "RenderGroup");
-			case ramses::ERamsesObjectType::ERamsesObjectType_RenderPass:
+			case ramses::ERamsesObjectType::RenderPass:
 				return format_to(ctx.out(), "RenderPass");
-			case ramses::ERamsesObjectType::ERamsesObjectType_BlitPass:
+			case ramses::ERamsesObjectType::BlitPass:
 				return format_to(ctx.out(), "BlitPass");
-			case ramses::ERamsesObjectType::ERamsesObjectType_TextureSampler:
+			case ramses::ERamsesObjectType::TextureSampler:
 				return format_to(ctx.out(), "TextureSampler");
-			case ramses::ERamsesObjectType::ERamsesObjectType_TextureSamplerMS:
+			case ramses::ERamsesObjectType::TextureSamplerMS:
 				return format_to(ctx.out(), "TextureSamplerMS");
-			case ramses::ERamsesObjectType::ERamsesObjectType_RenderBuffer:
+			case ramses::ERamsesObjectType::RenderBuffer:
 				return format_to(ctx.out(), "RenderBuffer");
-			case ramses::ERamsesObjectType::ERamsesObjectType_RenderTarget:
+			case ramses::ERamsesObjectType::RenderTarget:
 				return format_to(ctx.out(), "RenderTarget");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataBufferObject:
-				return format_to(ctx.out(), "DataBufferObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_Texture2DBuffer:
+			case ramses::ERamsesObjectType::ArrayBuffer:
+				return format_to(ctx.out(), "ArrayBuffer");
+			case ramses::ERamsesObjectType::Texture2DBuffer:
 				return format_to(ctx.out(), "Texture2DBuffer");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataObject:
+			case ramses::ERamsesObjectType::DataObject:
 				return format_to(ctx.out(), "DataObject");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataFloat:
-				return format_to(ctx.out(), "DataFloat");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataVector2f:
-				return format_to(ctx.out(), "DataVector2f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataVector3f:
-				return format_to(ctx.out(), "DataVector3f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataVector4f:
-				return format_to(ctx.out(), "DataVector4f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataMatrix22f:
-				return format_to(ctx.out(), "DataMatrix22f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataMatrix33f:
-				return format_to(ctx.out(), "DataMatrix33f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataMatrix44f:
-				return format_to(ctx.out(), "DataMatrix44f");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataInt32:
-				return format_to(ctx.out(), "DataInt32");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataVector2i:
-				return format_to(ctx.out(), "DataVector2i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataVector3i:
-				return format_to(ctx.out(), "DataVector3i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_DataVector4i:
-				return format_to(ctx.out(), "DataVector4i");
-			case ramses::ERamsesObjectType::ERamsesObjectType_StreamTexture:
-				return format_to(ctx.out(), "StreamTexture");
-			case ramses::ERamsesObjectType::ERamsesObjectType_SceneReference:
+			case ramses::ERamsesObjectType::SceneReference:
 				return format_to(ctx.out(), "SceneReference");
-			case ramses::ERamsesObjectType::ERamsesObjectType_TextureSamplerExternal:
+			case ramses::ERamsesObjectType::TextureSamplerExternal:
 				return format_to(ctx.out(), "TextureSamplerExternal");
 			default:
 				return format_to(ctx.out(), "Unknown");

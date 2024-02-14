@@ -99,8 +99,8 @@ SLink lookupLink(SLink srcLink, const std::map<std::string, std::set<SLink>>& de
 		for (const auto& destLink : it->second) {
 			if (transStartObj == *destLink->startObject_ &&
 				transEndObj == *destLink->endObject_ &&
-				*srcLink->startProp_ == *destLink->startProp_ &&
-				*srcLink->endProp_ == *destLink->endProp_) {
+				srcLink->startProp_->compare(*destLink->startProp_) &&
+				srcLink->endProp_->compare(*destLink->endProp_)) {
 				return destLink;
 			}
 		}
@@ -223,7 +223,8 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	}
 
 	// Create new prefab instance child objects for children of prefab
-	std::vector<std::pair<SEditorObject, SEditorObject>> createdObjects;
+	std::map<SEditorObject, SEditorObject> createdObjects;
+	
 	for (auto prefabChild : prefabChildren) {
 		auto it = mapToInstance.find(prefabChild);
 		if (it == mapToInstance.end()) {
@@ -233,7 +234,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 			mapToPrefab[newInstChild] = prefabChild;
 			context.project()->addInstance(newInstChild);
 			localChanges.recordCreateObject(newInstChild);
-			createdObjects.emplace_back(prefabChild, newInstChild);
+			createdObjects[prefabChild] = newInstChild;
 			
 			// If we add an object we must also update the children property of the scenegraph parent
 			// Normally this property should already be present in the model changes, but
@@ -245,7 +246,9 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	}
 
 	// Complete update of the the newly created objects
-	for (auto [prefabChild, instChild] : createdObjects) {
+	for (const auto& item: createdObjects) {
+		auto prefabChild = item.first;
+		auto instChild = item.second;
 		// Object IDs are never updated and the object name for newly created objects is already correct.
 		UndoHelpers::updateEditorObject(
 			prefabChild.get(), instChild, translateRefFunc,
@@ -287,9 +290,7 @@ void PrefabOperations::updatePrefabInstance(BaseContext& context, const SPrefab&
 	}
 	for (const auto& prop : allChangedValues) {
 		if (prop.rootObject() != prefab && prefabChildren.find(prop.rootObject()) != prefabChildren.end()) {
-			if (std::find_if(createdObjects.begin(), createdObjects.end(), [prop](auto item) {
-					return prop.rootObject() == item.first;
-				}) == createdObjects.end()) {
+			if (createdObjects.find(prop.rootObject()) == createdObjects.end()) {
 				auto it = mapToInstance.find(prop.rootObject());
 				assert(it != mapToInstance.end());
 				auto inst = it->second;

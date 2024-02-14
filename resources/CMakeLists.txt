@@ -62,6 +62,11 @@ set(RESOURCE_FILES
 	shaders/uniform-array.vert
 	shaders/uniform-array.frag
 	example_scene.rca
+	# the following resources are needed by the 3d view
+	meshes/gizmo-arrow.glb
+	meshes/gizmo-scale.glb
+	meshes/gizmo-torus.glb
+	meshes/sphere-ico.glb
 )
 
 foreach(relpath ${RESOURCE_FILES})

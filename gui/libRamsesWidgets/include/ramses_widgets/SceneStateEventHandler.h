@@ -9,16 +9,19 @@
  */
 #pragma once
 
-#include <ramses-renderer-api/IRendererEventHandler.h>
-#include <ramses-renderer-api/IRendererSceneControlEventHandler.h>
-#include <ramses-renderer-api/RamsesRenderer.h>
-#include <ramses-renderer-api/RendererSceneControl.h>
+#include <ramses/renderer/IRendererEventHandler.h>
+#include <ramses/renderer/IRendererSceneControlEventHandler.h>
+#include <ramses/renderer/RamsesRenderer.h>
+#include <ramses/renderer/RendererSceneControl.h>
 #include <unordered_map>
 #include <unordered_set>
 
+#include <QObject>
+
 namespace raco::ramses_widgets {
 
-class SceneStateEventHandler final : public ramses::RendererEventHandlerEmpty, public ramses::RendererSceneControlEventHandlerEmpty {
+class SceneStateEventHandler final : public QObject, public ramses::RendererEventHandlerEmpty, public ramses::RendererSceneControlEventHandlerEmpty {
+	Q_OBJECT
 
 public:
 	explicit SceneStateEventHandler(ramses::RamsesRenderer& renderer);
@@ -32,7 +35,16 @@ public:
 	void sceneStateChanged(ramses::sceneId_t sceneId, ramses::RendererSceneState state) override;
 	void sceneFlushed(ramses::sceneId_t sceneId, ramses::sceneVersionTag_t sceneVersion) override;
 
-	void waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state);
+	enum class ECompareFunc {
+		Equal,
+		LessEqual,
+		GreaterEqual
+	};
+
+	void waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state, ECompareFunc compFunc = ECompareFunc::Equal);
+
+	void objectsPicked(ramses::sceneId_t sceneId, const ramses::pickableObjectId_t* pickedObjects, size_t pickedObjectsCount) override;
+
 	bool waitForFlush(ramses::sceneId_t sceneId, ramses::sceneVersionTag_t sceneVersion);
 	bool waitForDisplayCreation(ramses::displayId_t displayId);
 	bool waitForDisplayDestruction(ramses::displayId_t displayId);
@@ -45,6 +57,9 @@ public:
 	ramses::RendererSceneState sceneState(ramses::sceneId_t sceneId);
 	
 	bool saveScreenshot(const std::string& filename, ramses::displayId_t displayId, ramses::displayBufferId_t screenshotBuf, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+
+Q_SIGNALS:
+	void pickRequest(std::vector<ramses::pickableObjectId_t> pickIds);
 
 private:
 	struct SceneInfo {

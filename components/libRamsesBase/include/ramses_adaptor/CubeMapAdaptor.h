@@ -14,8 +14,8 @@
 #include "components/DataChangeDispatcher.h"
 #include "user_types/CubeMap.h"
 #include <memory>
-#include <ramses-client-api/TextureCube.h>
-#include <ramses-client-api/TextureSampler.h>
+#include <ramses/client/TextureCube.h>
+#include <ramses/client/TextureSampler.h>
 
 namespace raco::ramses_adaptor {
 
@@ -27,14 +27,14 @@ public:
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	raco::ramses_base::RamsesTextureCube createTexture(core::Errors* errors);
-	raco::ramses_base::RamsesTextureCube fallbackCube();
+	ramses_base::RamsesTextureCube createTexture(core::Errors* errors);
+	ramses_base::RamsesTextureCube fallbackCube();
 	std::string createDefaultTextureDataName();
 
 	std::array<components::Subscription, 9> subscriptions_;
-	raco::ramses_base::RamsesTextureCube textureData_;
+	ramses_base::RamsesTextureCube textureData_;
 
-	std::map<std::string, std::vector<unsigned char>> generateMipmapData(core::Errors* errors, int level, raco::ramses_base::PngDecodingInfo& decodingInfo);
+	std::map<std::string, std::vector<unsigned char>> generateMipmapData(core::Errors* errors, int level, ramses_base::PngDecodingInfo& decodingInfo);
 };
 
 };  // namespace raco::ramses_adaptor

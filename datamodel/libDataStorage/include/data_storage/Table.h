@@ -33,15 +33,15 @@ public:
 	// Performs deep copy of all property values of the argument
 	Table(const Table&, std::function<SEditorObject(SEditorObject)>* translateRef = nullptr);
 
-	virtual ValueBase* get(std::string const& propertyName) override;
+	virtual ValueBase* get(std::string_view propertyName) override;
 	virtual ValueBase* get(size_t index) override;
 
-	virtual const ValueBase* get(std::string const& propertyName) const override;
+	virtual const ValueBase* get(std::string_view propertyName) const override;
 	virtual const ValueBase* get(size_t index) const override;
 
 	virtual size_t size() const override;
 
-	virtual int index(std::string const& propertyName) const override;
+	virtual int index(std::string_view propertyName) const override;
 	virtual const std::string& name(size_t index) const override;
 
 
@@ -51,13 +51,13 @@ public:
 	// can add and remove array entries / named properties
 
 	// Add named property at the end of the property list.
-	ValueBase *addProperty(std::string const &name, PrimitiveType type);
+	ValueBase *addProperty(std::string_view name, PrimitiveType type);
 	
 	// Add user-created property; Table will take over ownership of object.
-	ValueBase* addProperty(std::string const& name, ValueBase* property, int index_before = -1);
+	ValueBase* addProperty(std::string_view name, ValueBase* property, int index_before = -1);
 
 	// Add user-created property; Table will take over ownership of object.
-	ValueBase* addProperty(const std::string& name, std::unique_ptr<ValueBase>&& property, int index_before = -1);
+	ValueBase* addProperty(std::string_view name, std::unique_ptr<ValueBase>&& property, int index_before = -1);
 
 	// Insert new property at specified position into the property list.
 	// If index_before = -1 the property is appended, otherwise it will be insert before the
@@ -67,12 +67,12 @@ public:
 	ValueBase* addProperty(std::unique_ptr<ValueBase>&& property, int index_before = -1);
 
 	void removeProperty(size_t index);
-	void removeProperty(std::string const& propertyName);
+	void removeProperty(std::string_view propertyName);
 
-	void renameProperty(const std::string& oldName, const std::string& newName);
+	void renameProperty(std::string_view oldName, std::string_view newName);
 
 	void replaceProperty(size_t index, ValueBase* property);
-	void replaceProperty(const std::string& name, ValueBase* property);
+	void replaceProperty(std::string_view name, ValueBase* property);
 
 	void swapProperties(size_t index_1, size_t index_2);
 

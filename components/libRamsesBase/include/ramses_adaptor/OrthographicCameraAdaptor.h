@@ -14,7 +14,7 @@
 #include "components/DataChangeDispatcher.h"
 #include "user_types/OrthographicCamera.h"
 #include <memory>
-#include <ramses-client-api/OrthographicCamera.h>
+#include <ramses/client/OrthographicCamera.h>
 
 namespace raco::ramses_adaptor {
 
@@ -23,18 +23,18 @@ public:
 	explicit OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject);
 	~OrthographicCameraAdaptor() override;
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
 	bool sync(core::Errors* errors) override;
 
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 
-	raco::ramses_base::RamsesCameraBinding cameraBinding();
+	ramses_base::RamsesCameraBinding cameraBinding();
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	components::Subscription viewportSubscription_;
 	components::Subscription frustrumSubscription_;
-	raco::ramses_base::RamsesCameraBinding cameraBinding_;
+	ramses_base::RamsesCameraBinding cameraBinding_;
 };
 
 };	// namespace raco::ramses_adaptor

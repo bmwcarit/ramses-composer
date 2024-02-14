@@ -409,13 +409,17 @@ void RaCoStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opti
 			if (const QStyleOptionFrame *opt =
 					qstyleoption_cast<const QStyleOptionFrame *>(option)) {
 				QBrush backBrush = opt->palette.brush(QPalette::Base);
-				auto errorLevel = static_cast<core::ErrorLevel>(saveGetProperty(widget, "errorLevel", 1).toInt());
-				if (errorLevel == core::ErrorLevel::WARNING || saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
+				const std::string name = widget->objectName().toStdString();
+				const auto errorLevel = static_cast<core::ErrorLevel>(saveGetProperty(widget, "errorLevel", 0).toInt());
+
+				if (errorLevel == core::ErrorLevel::WARNING||
+					saveGetProperty(widget, "unexpectedEmptyReference", 1).toBool()) {
 					backBrush = Colors::brush(Colormap::warningColor);
 				}
 				if (errorLevel == core::ErrorLevel::ERROR) {
 					backBrush = Colors::brush(Colormap::errorColorDark);
 				}
+				
 				if (saveGetProperty(widget, "updatedInBackground", 1).toBool()) {
 					backBrush = Colors::brush(Colormap::updatedInBackground);
 				}

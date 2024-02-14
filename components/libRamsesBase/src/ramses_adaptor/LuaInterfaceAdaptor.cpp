@@ -9,12 +9,12 @@
  */
 #include "ramses_adaptor/LuaInterfaceAdaptor.h"
 
-#include "ramses_adaptor/LuaScriptModuleAdaptor.h"
-#include "utils/FileUtils.h"
 #include "core/PrefabOperations.h"
 #include "core/Queries.h"
-#include "user_types/PrefabInstance.h"
+#include "ramses_adaptor/LuaScriptModuleAdaptor.h"
 #include "user_types/LuaScript.h"
+#include "user_types/PrefabInstance.h"
+#include "utils/FileUtils.h"
 
 namespace raco::ramses_adaptor {
 
@@ -47,19 +47,15 @@ LuaInterfaceAdaptor::LuaInterfaceAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 		  tagDirty();
 		  recreateStatus_ = true;
 	  })},
-	  linksLifecycleSubscription_{sceneAdaptor_->dispatcher()->registerOnLinksLifeCycle(
-		  [this](const core::LinkDescriptor& link) {
+	  linksLifecycleSubscription_{sceneAdaptor_->dispatcher()->registerOnLinksLifeCycle([this](const core::LinkDescriptor& link) {
 			  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
 				  tagDirty();
 				  recreateStatus_ = true; 
-			  }
-		  }, 
-		  [this](const core::LinkDescriptor& link) {
+			  } }, [this](const core::LinkDescriptor& link) {
 			  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
 				  tagDirty();
 				  recreateStatus_ = true;
-			  }
-		  })},
+			  } })},
 	  linkValidityChangeSubscription_{sceneAdaptor_->dispatcher()->registerOnLinkValidityChange([this](const core::LinkDescriptor& link) {
 		  if (sceneAdaptor_->optimizeForExport() && (link.start.object() == editorObject_ || link.end.object() == editorObject_)) {
 			  tagDirty();
@@ -82,13 +78,13 @@ void LuaInterfaceAdaptor::setupParentSubscription() {
 	}
 }
 
-void LuaInterfaceAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void LuaInterfaceAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	if (ramsesInterface_) {
 		logicNodes.push_back(ramsesInterface_.get());
 	}
 }
 
-const rlogic::Property* LuaInterfaceAdaptor::getProperty(const std::vector<std::string>& names) {
+ramses::Property* LuaInterfaceAdaptor::getProperty(const std::vector<std::string_view>& names) {
 	if (ramsesInterface_ && names.size() >= 1 && names[0] == "inputs") {
 		return ILogicPropertyProvider::getPropertyRecursive(ramsesInterface_->getInputs(), names, 1);
 	}
@@ -103,9 +99,8 @@ void LuaInterfaceAdaptor::onRuntimeError(core::Errors& errors, std::string const
 	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
-
 std::string LuaInterfaceAdaptor::generateRamsesObjectName() const {
-	auto prefabInstOuter = raco::core::PrefabOperations::findOuterContainingPrefabInstance(editorObject_);
+	auto prefabInstOuter = core::PrefabOperations::findOuterContainingPrefabInstance(editorObject_);
 	if (prefabInstOuter) {
 		if (prefabInstOuter == parent_) {
 			return parent_->objectName() + "." + editorObject_->objectName();
@@ -120,12 +115,12 @@ bool LuaInterfaceAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 
 	if (recreateStatus_) {
-		auto interfaceText = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaInterface::uri_}));
+		auto interfaceText = utils::file::read(core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaInterface::uri_}));
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), interfaceText);
 		ramsesInterface_.reset();
 
-		auto linksStarting = raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false);
-		auto linksEnding = raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true);
+		auto linksStarting = core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false);
+		auto linksEnding = core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true);
 
 		bool validStartingLinks = std::any_of(linksStarting.begin(), linksStarting.end(), [](core::SLink link) {
 			return link->isValid();
@@ -135,35 +130,32 @@ bool LuaInterfaceAdaptor::sync(core::Errors* errors) {
 		});
 
 		if (!interfaceText.empty() && (!sceneAdaptor_->optimizeForExport() || validStartingLinks && !validEndingLinks)) {
-
-			if (sceneAdaptor_->featureLevel() >= 5) {
-				std::vector<raco::ramses_base::RamsesLuaModule> modules;
-				auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
-				if (!sceneAdaptor_->optimizeForExport()) {
-					luaConfig.enableDebugLogFunctions();
-				}
-				const auto& moduleDeps = editorObject_->luaModules_.asTable();
-				for (auto i = 0; i < moduleDeps.size(); ++i) {
-					if (auto moduleRef = moduleDeps.get(i)->asRef()) {
-						auto moduleAdaptor = sceneAdaptor_->lookup<LuaScriptModuleAdaptor>(moduleRef);
-						if (auto module = moduleAdaptor->module()) {
-							modules.emplace_back(module);
-							luaConfig.addDependency(moduleDeps.name(i), *module);
-						}
+			std::vector<ramses_base::RamsesLuaModule> modules;
+			auto luaConfig = ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+			if (!sceneAdaptor_->optimizeForExport()) {
+				luaConfig.enableDebugLogFunctions();
+			}
+			const auto& moduleDeps = editorObject_->luaModules_.asTable();
+			for (auto i = 0; i < moduleDeps.size(); ++i) {
+				if (auto moduleRef = moduleDeps.get(i)->asRef()) {
+					auto moduleAdaptor = sceneAdaptor_->lookup<LuaScriptModuleAdaptor>(moduleRef);
+					if (auto module = moduleAdaptor->module()) {
+						modules.emplace_back(module);
+						luaConfig.addDependency(moduleDeps.name(i), *module);
 					}
 				}
-
-				ramsesInterface_ = raco::ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, luaConfig, modules, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
-			} else {
-				ramsesInterface_ = raco::ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
 			}
+
+			ramsesInterface_ = ramses_base::ramsesLuaInterface(&sceneAdaptor_->logicEngine(), interfaceText, luaConfig, modules, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
 		}
 	}
 
 	if (ramsesInterface_) {
 		core::ValueHandle luaInputs{editorObject_, &user_types::LuaInterface::inputs_};
 		auto success = setLuaInputInEngine(ramsesInterface_->getInputs(), luaInputs);
-		LOG_WARNING_IF(log_system::RAMSES_ADAPTOR, !success, "Script set properties failed: {}", LogicEngineErrors{sceneAdaptor_->logicEngine()});
+		if (!success) {
+			LOG_WARNING(log_system::RAMSES_ADAPTOR, "Script set properties failed: {}", sceneAdaptor_->scene()->getRamsesClient().getRamsesFramework().getLastError().value().message);
+		}
 	}
 
 	tagDirty(false);
@@ -176,12 +168,12 @@ std::vector<ExportInformation> LuaInterfaceAdaptor::getExportInformation() const
 		return {};
 	}
 
-	if (raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false).empty() ||
-		!raco::core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true).empty()) {
+	if (core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, true, false).empty() ||
+		!core::Queries::getLinksConnectedToObject(sceneAdaptor_->project(), editorObject_, false, true).empty()) {
 		return {};
 	}
 
-	return {ExportInformation{"LuaInterface", ramsesInterface_->getName().data()}};
+	return {ExportInformation{"LuaInterface", ramsesInterface_->getName()}};
 }
 
 }  // namespace raco::ramses_adaptor

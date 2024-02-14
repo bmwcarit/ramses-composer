@@ -18,14 +18,14 @@
 
 class ObjectTreeViewMultipleModelsTest : public ObjectTreeViewDefaultModelTest {
 protected:
-	raco::object_tree::model::ObjectTreeViewPrefabModel prefabModel_;
-        raco::core::SEditorObject prefab_;
+	object_tree::model::ObjectTreeViewPrefabModel prefabModel_;
+        core::SEditorObject prefab_;
 	ObjectTreeViewMultipleModelsTest()
 		: ObjectTreeViewDefaultModelTest(),
-		  prefabModel_(&commandInterface(), application.dataChangeDispatcher(), nullptr, {raco::user_types::Prefab::typeDescription.typeName}) {
+		  prefabModel_(&commandInterface(), application.dataChangeDispatcher(), nullptr, {user_types::Prefab::typeDescription.typeName}) {
 	}
 
 	void SetUp() override {
-		prefab_ = createNodes(raco::user_types::Prefab::typeDescription.typeName, {"Prefab"}).front();
+		prefab_ = createNodes(user_types::Prefab::typeDescription.typeName, {"Prefab"}).front();
 	}
 };

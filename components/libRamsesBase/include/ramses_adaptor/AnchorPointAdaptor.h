@@ -18,10 +18,10 @@ namespace raco::ramses_adaptor {
 
 class AnchorPointAdaptor final : public UserTypeObjectAdaptor<user_types::AnchorPoint>, public ILogicPropertyProvider {
 public:
-	AnchorPointAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnchorPoint anchorPoint);
+	AnchorPointAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnchorPoint anchorPoint);
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 	std::vector<ExportInformation> getExportInformation() const override;
 
@@ -29,10 +29,10 @@ public:
 	void readDataFromEngine(core::DataChangeRecorder& recorder);
 
 private:
-	raco::ramses_base::RamsesAnchorPoint anchorPoint_;
+	ramses_base::RamsesAnchorPoint anchorPoint_;
 
-	raco::components::Subscription dirtySubscription_;
-	std::array<raco::components::Subscription, 3> subscriptions_;
+	components::Subscription dirtySubscription_;
+	std::array<components::Subscription, 3> subscriptions_;
 };
 
 }  // namespace raco::ramses_adaptor

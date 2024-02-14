@@ -28,7 +28,7 @@ std::string PropertyDescriptor::getPropertyPath(bool useObjectID) const {
 }
 
 std::string PropertyDescriptor::getFullPropertyPath() const {
-	auto hierarchyPath = raco::core::Queries::getFullObjectHierarchyPath(object_->getParent());
+	auto hierarchyPath = core::Queries::getFullObjectHierarchyPath(object_->getParent());
 	if (!hierarchyPath.empty()) {
 		hierarchyPath.append("/");
 	}

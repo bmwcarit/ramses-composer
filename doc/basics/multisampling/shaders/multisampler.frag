@@ -4,7 +4,7 @@ precision highp float;
 uniform highp sampler2DMS textureSampler;
 uniform highp int sampleCount;
 
-in lowp vec2 v_TextureCoordinate;
+in highp vec2 v_TextureCoordinate;
 out vec4 fragColor;
 
 void main(void)

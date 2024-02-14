@@ -22,45 +22,45 @@ class TextureTest : public TestEnvironmentCore {};
 TEST_F(TextureTest, invalidLevels) {
 	auto texture{commandInterface.createObject(Texture::typeDescription.typeName)};
 
-	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	ASSERT_FALSE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 
-	commandInterface.set({texture, &raco::user_types::Texture::mipmapLevel_}, -1);
-	ASSERT_TRUE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	commandInterface.set({texture, &user_types::Texture::mipmapLevel_}, -1);
+	ASSERT_TRUE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 
-	commandInterface.set({texture, &raco::user_types::Texture::mipmapLevel_}, 1);
-	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	commandInterface.set({texture, &user_types::Texture::mipmapLevel_}, 1);
+	ASSERT_FALSE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 
-	commandInterface.set({texture, &raco::user_types::Texture::mipmapLevel_}, 5);
-	ASSERT_TRUE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	commandInterface.set({texture, &user_types::Texture::mipmapLevel_}, 5);
+	ASSERT_TRUE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 
-	commandInterface.set({texture, &raco::user_types::Texture::mipmapLevel_}, 4);
-	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	commandInterface.set({texture, &user_types::Texture::mipmapLevel_}, 4);
+	ASSERT_FALSE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 }
 
 TEST_F(TextureTest, levelOtherThanOneWhenGenerationFlagIsActivated) {
 	auto texture{commandInterface.createObject(Texture::typeDescription.typeName)};
 
-	commandInterface.set({texture, &raco::user_types::Texture::mipmapLevel_}, 2);
-	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	commandInterface.set({texture, &user_types::Texture::mipmapLevel_}, 2);
+	ASSERT_FALSE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 
-	commandInterface.set({texture, &raco::user_types::Texture::generateMipmaps_}, true);
-	ASSERT_TRUE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
-	ASSERT_EQ(commandInterface.errors().getError({texture, &raco::user_types::Texture::mipmapLevel_}).level(), raco::core::ErrorLevel::WARNING);
+	commandInterface.set({texture, &user_types::Texture::generateMipmaps_}, true);
+	ASSERT_TRUE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
+	ASSERT_EQ(commandInterface.errors().getError({texture, &user_types::Texture::mipmapLevel_}).level(), core::ErrorLevel::WARNING);
 
-	commandInterface.set({texture, &raco::user_types::Texture::generateMipmaps_}, false);
-	ASSERT_FALSE(commandInterface.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+	commandInterface.set({texture, &user_types::Texture::generateMipmaps_}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 }
 
 TEST_F(TextureTest, error_present_after_load) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	ramses_base::HeadlessEngineBackend backend;
 
 	{
 		raco::application::RaCoApplication app{backend};
 		auto& cmd = *app.activeRaCoProject().commandInterface();
 
 		auto texture{cmd.createObject(Texture::typeDescription.typeName, "texture")};
-		cmd.set({texture, &raco::user_types::Texture::mipmapLevel_}, -1);
-		ASSERT_TRUE(cmd.errors().hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+		cmd.set({texture, &user_types::Texture::mipmapLevel_}, -1);
+		ASSERT_TRUE(cmd.errors().hasError({texture, &user_types::Texture::mipmapLevel_}));
 
 		std::string msg;
 		app.activeRaCoProject().saveAs(QString::fromStdString((test_path() / "test.rca").string()), msg);
@@ -73,8 +73,8 @@ TEST_F(TextureTest, error_present_after_load) {
 
 		auto& project = *app.activeRaCoProject().project();
 
-		auto texture = raco::core::Queries::findByName(project.instances(), "texture");
+		auto texture = core::Queries::findByName(project.instances(), "texture");
 
-		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError({texture, &raco::user_types::Texture::mipmapLevel_}));
+		ASSERT_TRUE(app.activeRaCoProject().errors()->hasError({texture, &user_types::Texture::mipmapLevel_}));
 	}
 }

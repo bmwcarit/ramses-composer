@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <functional>
 
+using namespace raco;
 using namespace raco::core;
 using namespace raco::user_types;
 
@@ -1248,7 +1249,7 @@ TEST_F(LinkTest, restore_meshnode_uniform_switching_shared) {
 
 TEST_F(LinkTest, lua_to_quaternion) {
 	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
-	auto node = create<raco::user_types::Node>("node", nullptr);
+	auto node = create<user_types::Node>("node", nullptr);
 
 	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector4f"}, node, {"rotation"});
 	checkLinks({{sprop, eprop, true}});
@@ -1256,7 +1257,7 @@ TEST_F(LinkTest, lua_to_quaternion) {
 
 TEST_F(LinkTest, lua_to_euler_after_quaternion) {
 	auto luaScript = create_lua("base", "scripts/types-scalar.lua");
-	auto node = create<raco::user_types::Node>("node", nullptr);
+	auto node = create<user_types::Node>("node", nullptr);
 
 	auto [sprop, eprop] = link(luaScript, {"outputs", "ovector4f"}, node, {"rotation"});
 	auto [sprop2, eprop2] = link(luaScript, {"outputs", "ovector3f"}, node, {"rotation"});
@@ -1264,8 +1265,8 @@ TEST_F(LinkTest, lua_to_euler_after_quaternion) {
 }
 
 TEST_F(LinkTest, remove_link_keeps_value_with_undo_redo) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication app{backend};
+	ramses_base::HeadlessEngineBackend backend;
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	auto start = create_lua(cmd, "lua_start", "scripts/SimpleScript.lua");
@@ -1307,8 +1308,8 @@ TEST_F(LinkTest, remove_link_keeps_value_with_undo_redo) {
 
 
 TEST_F(LinkTest, break_link_keeps_value_with_undo_redo) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication app{backend};
+	ramses_base::HeadlessEngineBackend backend;
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	auto start = create_lua(cmd, "lua_start", "scripts/SimpleScript.lua");
@@ -1349,8 +1350,8 @@ TEST_F(LinkTest, break_link_keeps_value_with_undo_redo) {
 }
 
 TEST_F(LinkTest, break_link_remove_child_prop_keeps_value_with_undo_redo) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication app{backend};
+	ramses_base::HeadlessEngineBackend backend;
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	TextFile script_1 = makeFile("script-1.lua",
@@ -1437,8 +1438,8 @@ TEST_F(LinkTest, dont_crash_when_object_is_deleted_after_property_with_link_was_
 }
 
 TEST_F(LinkTest, timer_link) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication app{backend};
+	ramses_base::HeadlessEngineBackend backend;
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	TextFile script = makeFile("script.lua",
@@ -1486,8 +1487,8 @@ end
 }
 
 TEST_F(LinkTest, timer_link_to_input) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication app{backend};
+	ramses_base::HeadlessEngineBackend backend;
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	TextFile script = makeFile("script.lua",
@@ -1521,8 +1522,8 @@ end
 }
 
 TEST_F(LinkTest, timer_link_different_type) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
-	raco::application::RaCoApplication app{backend};
+	ramses_base::HeadlessEngineBackend backend;
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	TextFile script = makeFile("script.lua",

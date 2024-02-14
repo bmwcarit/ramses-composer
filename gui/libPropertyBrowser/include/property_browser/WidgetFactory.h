@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <QWidget>
 #include <QLabel>
 
 namespace raco::property_browser {
@@ -24,8 +23,12 @@ class PropertyEditor;
  */
 class WidgetFactory {
 public:
-	static PropertyEditor* createPropertyEditor(PropertyBrowserItem* item, QWidget* parent = nullptr);
-	static QLabel* createPropertyLabel(PropertyBrowserItem* item, QWidget* parent = nullptr);
-	static LinkEditor* createLinkControl(PropertyBrowserItem* item, QWidget* parent = nullptr);
+	static std::tuple<QWidget*, LinkEditor*> createPropertyWidgets(PropertyBrowserItem* item, QWidget* parent);
+
+private:
+	static PropertyEditor* createPropertyEditor(PropertyBrowserItem* item, QWidget* label, QWidget* parent);
+	static QWidget* createPropertyLabel(PropertyBrowserItem* item, QWidget* parent);
+	static LinkEditor* createLinkControl(PropertyBrowserItem* item, QWidget* parent, QWidget* propertyEditor);
+	static PropertyEditor* createPropertyControl(PropertyBrowserItem* item, QWidget* label, QWidget* parent);
 };
 }  // namespace raco::property_browser

@@ -80,22 +80,22 @@ bool BlitPassAdaptor::sync(core::Errors* errors) {
 	if (recreate_) {
 		errors->removeError({editorObject()->shared_from_this()});
 		blitPass_.reset();
-		raco::ramses_base::RamsesRenderBuffer startBuffer;
-		raco::ramses_base::RamsesRenderBuffer endBuffer;
-		if (auto srcBuffer = sceneAdaptor_->lookup<raco::ramses_adaptor::RenderBufferAdaptor>(*editorObject_->sourceRenderBuffer_)) {
+		ramses_base::RamsesRenderBuffer startBuffer;
+		ramses_base::RamsesRenderBuffer endBuffer;
+		if (auto srcBuffer = sceneAdaptor_->lookup<ramses_adaptor::RenderBufferAdaptor>(*editorObject_->sourceRenderBuffer_)) {
 			startBuffer = srcBuffer->buffer();
-		} else if (auto srcBufferMS = sceneAdaptor_->lookup<raco::ramses_adaptor::RenderBufferMSAdaptor>(*editorObject_->sourceRenderBufferMS_)) {
+		} else if (auto srcBufferMS = sceneAdaptor_->lookup<ramses_adaptor::RenderBufferMSAdaptor>(*editorObject_->sourceRenderBufferMS_)) {
 			startBuffer = srcBufferMS->buffer();
 		}
 
-		if (auto destBuffer = sceneAdaptor_->lookup<raco::ramses_adaptor::RenderBufferAdaptor>(*editorObject_->targetRenderBuffer_)) {
+		if (auto destBuffer = sceneAdaptor_->lookup<ramses_adaptor::RenderBufferAdaptor>(*editorObject_->targetRenderBuffer_)) {
 			endBuffer = destBuffer->buffer();
-		} else if (auto destBufferMS = sceneAdaptor_->lookup<raco::ramses_adaptor::RenderBufferMSAdaptor>(*editorObject_->targetRenderBufferMS_)) {
+		} else if (auto destBufferMS = sceneAdaptor_->lookup<ramses_adaptor::RenderBufferMSAdaptor>(*editorObject_->targetRenderBufferMS_)) {
 			endBuffer = destBufferMS->buffer();
 		}
 
 		if (startBuffer && endBuffer) {
-			blitPass_ = raco::ramses_base::ramsesBlitPass(sceneAdaptor_->scene(), startBuffer, endBuffer, editorObject_->objectName().c_str());
+			blitPass_ = ramses_base::ramsesBlitPass(sceneAdaptor_->scene(), startBuffer, endBuffer, editorObject_->objectName().c_str(), editorObject_->objectIDAsRamsesLogicID());
 
 			if (!blitPass_) {
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()->shared_from_this()},
@@ -112,19 +112,17 @@ bool BlitPassAdaptor::sync(core::Errors* errors) {
 		blitPass_->setRenderOrder(*editorObject()->renderOrder_);
 
 		bool allValid = true;
-		uint32_t clippedSourceX = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::BlitPass::sourceX_}, errors, &allValid);
-		uint32_t clippedSourceY = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::BlitPass::sourceY_}, errors, &allValid);
-		uint32_t clippedDestinationX = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::BlitPass::destinationX_}, errors, &allValid);
-		uint32_t clippedDestinationY = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::BlitPass::destinationY_}, errors, &allValid);
-		uint32_t clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::BlitPass::width_}, errors, &allValid);
-		uint32_t clippedHeight = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::BlitPass::height_}, errors, &allValid);
+		uint32_t clippedSourceX = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::BlitPass::sourceX_}, errors, &allValid);
+		uint32_t clippedSourceY = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::BlitPass::sourceY_}, errors, &allValid);
+		uint32_t clippedDestinationX = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::BlitPass::destinationX_}, errors, &allValid);
+		uint32_t clippedDestinationY = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::BlitPass::destinationY_}, errors, &allValid);
+		uint32_t clippedWidth = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::BlitPass::width_}, errors, &allValid);
+		uint32_t clippedHeight = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::BlitPass::height_}, errors, &allValid);
 
 		if (allValid) {
-			auto updateStatus = blitPass_->setBlittingRegion(clippedSourceX, clippedSourceY, clippedDestinationX, clippedDestinationY, clippedWidth, clippedHeight);
-
-			if (updateStatus != ramses::StatusOK) {
+			if (!blitPass_->setBlittingRegion(clippedSourceX, clippedSourceY, clippedDestinationX, clippedDestinationY, clippedWidth, clippedHeight)) {
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()->shared_from_this()},
-					blitPass_->getStatusMessage(updateStatus));
+					sceneAdaptor_->scene()->getRamsesClient().getRamsesFramework().getLastError().value().message);
 			}
 		}
 	}

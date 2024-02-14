@@ -23,7 +23,7 @@ TEST_F(BlitPassAdaptorTest, defaultConstruction) {
 
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 0);
 }
 
@@ -33,11 +33,11 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_BlitPassObj_sourceSingleSample_targetS
 	auto targetRenderBuffer = context.createObject(RenderBuffer::typeDescription.typeName, "RenderBuffer");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
 }
 
@@ -47,11 +47,11 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_BlitPassObj_sourceMultiSample_targetMu
 	auto targetRenderBuffer = context.createObject(RenderBufferMS::typeDescription.typeName, "RenderBufferMS");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBufferMS_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBufferMS_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBufferMS_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBufferMS_}, targetRenderBuffer);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
 }
 
@@ -61,11 +61,11 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_BlitPassObj_sourceSingleSample_targetM
 	auto targetRenderBuffer = context.createObject(RenderBufferMS::typeDescription.typeName, "RenderBufferMS");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBufferMS_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBufferMS_}, targetRenderBuffer);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
 }
 
@@ -75,11 +75,11 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_BlitPassObj_sourceMultiSample_targetSi
 	auto targetRenderBuffer = context.createObject(RenderBuffer::typeDescription.typeName, "RenderBuffer");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBufferMS_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBufferMS_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
 }
 
@@ -91,13 +91,13 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_BlitPassObj_all_refs_filled) {
 	auto targetRenderBufferMS = context.createObject(RenderBufferMS::typeDescription.typeName, "RenderBufferMS");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBufferMS_}, sourceRenderBufferMS);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBufferMS_}, targetRenderBufferMS);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBufferMS_}, sourceRenderBufferMS);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBufferMS_}, targetRenderBufferMS);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
 }
 
@@ -107,21 +107,21 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_BlitPassObj_invalidate) {
 	auto targetRenderBuffer = context.createObject(RenderBuffer::typeDescription.typeName, "RenderBuffer");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::width_}, 600);
+	context.set({blitPass, &user_types::BlitPass::width_}, 600);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
 	ASSERT_TRUE(context.errors().hasError(blitPass));
 
-	context.set({blitPass, &raco::user_types::BlitPass::width_}, 256);
+	context.set({blitPass, &user_types::BlitPass::width_}, 256);
 	dispatch();
 
-	blitPasses = select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass);
+	blitPasses = select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass);
 	ASSERT_EQ(blitPasses.size(), 1);
 	ASSERT_FALSE(context.errors().hasError(blitPass));
 }
@@ -132,19 +132,19 @@ TEST_F(BlitPassAdaptorTest, validBlitPass_nameChange) {
 	auto targetRenderBuffer = context.createObject(RenderBuffer::typeDescription.typeName, "RenderBuffer");
 	dispatch();
 
-	context.set({blitPass, &raco::user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
-	context.set({blitPass, &raco::user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::sourceRenderBuffer_}, sourceRenderBuffer);
+	context.set({blitPass, &user_types::BlitPass::targetRenderBuffer_}, targetRenderBuffer);
 	dispatch();
 
-	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass)};
+	auto blitPasses{select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass)};
 	ASSERT_EQ(blitPasses.size(), 1);
-	ASSERT_STREQ(blitPasses.front()->getName(), "MyBlitPass");
+	ASSERT_TRUE(blitPasses.front()->getName() == "MyBlitPass");
 
-	context.set({blitPass, &raco::user_types::BlitPass::objectName_}, std::string("BlitPassRenamed"));
+	context.set({blitPass, &user_types::BlitPass::objectName_}, std::string("BlitPassRenamed"));
 	dispatch();
 
-	blitPasses = select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_BlitPass);
+	blitPasses = select<ramses::BlitPass>(*sceneContext.scene(), ramses::ERamsesObjectType::BlitPass);
 	ASSERT_EQ(blitPasses.size(), 1);
-	ASSERT_STREQ(blitPasses.front()->getName(), "BlitPassRenamed");
+	ASSERT_TRUE(blitPasses.front()->getName() == "BlitPassRenamed");
 
 }

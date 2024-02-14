@@ -46,14 +46,14 @@ RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::
 	QObject::connect(scriptPathURIButton_, &QPushButton::clicked, [this]() {
 		auto pythonPath = scriptPathEdit_->currentText();
 		if (pythonPath.isEmpty()) {
-			auto cachedScriptPath = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Script, pythonPath.toStdString());
+			auto cachedScriptPath = core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Script, pythonPath.toStdString());
 			pythonPath = QString::fromStdString(cachedScriptPath.string());
 		}
 
 		auto pythonScriptPath = QFileDialog::getOpenFileName(this, "Open Python Script", pythonPath, "Python Scripts (*.py);; All files (*.*)");
 		if (!pythonScriptPath.isEmpty()) {
 			scriptPathEdit_->setCurrentText(pythonScriptPath);
-			raco::core::PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Script, QFileInfo(pythonScriptPath).absoluteDir().absolutePath().toStdString());
+			core::PathManager::setCachedPath(core::PathManager::FolderTypeKeys::Script, QFileInfo(pythonScriptPath).absoluteDir().absolutePath().toStdString());
 		}
 	});
 
@@ -84,7 +84,7 @@ RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::
 
 void RunScriptDialog::addPythonOutput(const std::string& outBuffer, const std::string& errorBuffer) {
 	auto launchTime = QDateTime::currentDateTime();
-	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 =====</font></b><br>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
+	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 =====</font></b><br>").arg(style::Colors::color(style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
 
 	auto vbar = statusTextBlock_->verticalScrollBar();
 	auto atBottom = vbar->value() == vbar->maximum();
@@ -98,9 +98,9 @@ void RunScriptDialog::addPythonOutput(const std::string& outBuffer, const std::s
 	}
 
 	if (!errorBuffer.empty()) {
-		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(raco::style::Colors::color(raco::style::Colormap::errorColorLight).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));
+		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(style::Colors::color(style::Colormap::errorColorLight).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));
 	}
-	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 FINISHED =====</font></b><br>").arg(raco::style::Colors::color(raco::style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
+	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 FINISHED =====</font></b><br>").arg(style::Colors::color(style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
 }
 
 void RunScriptDialog::setScriptIsRunning(bool isRunning) {

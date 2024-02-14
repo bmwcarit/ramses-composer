@@ -90,6 +90,13 @@ Table* MeshNode::getUniformContainer(size_t materialSlot) {
 		return &materials_->get(materialSlot)->asTable().get("uniforms")->asTable();
 	}
 	return nullptr;
+}
+
+BlendOptions* MeshNode::getOptions(size_t materialSlot) {
+	if (materialSlot < materials_->size()) {
+		return dynamic_cast<BlendOptions*>(&materials_->get(materialSlot)->asTable().get("options")->asStruct());
+	}
+	return nullptr;
 };
 
 ValueHandle MeshNode::getMaterialHandle(size_t materialSlot) {
@@ -133,7 +140,7 @@ PropertyInterface MeshNode::makeInterfaceFromProperty(std::string_view name, con
 }
 
 void MeshNode::updateUniformContainer(BaseContext& context, const std::string& materialName, const Table* src, ValueHandle& destUniforms) {
-	raco::core::PropertyInterfaceList uniformDescription;
+	core::PropertyInterfaceList uniformDescription;
 	if (src) {
 		for (size_t i = 0; i < src->size(); i++) {
 			uniformDescription.emplace_back(makeInterfaceFromProperty(src->name(i), src->get(i)));
@@ -141,14 +148,17 @@ void MeshNode::updateUniformContainer(BaseContext& context, const std::string& m
 	}
 
 	OutdatedPropertiesStore& cache = cachedUniformValues_[materialName];
-	auto lookup = [src, &cache](const std::string& fullPropPath, raco::core::EnginePrimitive engineType) -> const ValueBase* {
+	auto lookup = [src, &cache](const std::string& fullPropPath, core::EnginePrimitive engineType) -> const ValueBase* {
 		auto it = cache.find(std::make_pair(fullPropPath, engineType));
 		if (it != cache.end()) {
 			return it->second.get();
 		} 
 		// Copy value from material if not found in cache.
 		// To get the property name we need to remove the leading '/' from the property path.
-		return src->get(fullPropPath.substr(1));
+		if (src->hasProperty(fullPropPath.substr(1))) {
+			return src->get(fullPropPath.substr(1));
+		}
+		return nullptr;
 	};
 
 	syncTableWithEngineInterface(context, uniformDescription, destUniforms, cache, false, true, lookup);
@@ -163,11 +173,11 @@ void MeshNode::checkMeshMaterialAttributMatch(BaseContext& context) {
 		for (const auto& attrib : material->attributes()) {
 			std::string name = attrib.name;
 
-			static const std::unordered_map<raco::core::MeshData::VertexAttribDataType, EnginePrimitive> meshAttribTypeMap = {
-				{raco::core::MeshData::VertexAttribDataType::VAT_Float, EnginePrimitive::Double},
-				{raco::core::MeshData::VertexAttribDataType::VAT_Float2, EnginePrimitive::Vec2f},
-				{raco::core::MeshData::VertexAttribDataType::VAT_Float3, EnginePrimitive::Vec3f},
-				{raco::core::MeshData::VertexAttribDataType::VAT_Float4, EnginePrimitive::Vec4f}};
+			static const std::unordered_map<core::MeshData::VertexAttribDataType, EnginePrimitive> meshAttribTypeMap = {
+				{core::MeshData::VertexAttribDataType::VAT_Float, EnginePrimitive::Double},
+				{core::MeshData::VertexAttribDataType::VAT_Float2, EnginePrimitive::Vec2f},
+				{core::MeshData::VertexAttribDataType::VAT_Float3, EnginePrimitive::Vec3f},
+				{core::MeshData::VertexAttribDataType::VAT_Float4, EnginePrimitive::Vec4f}};
 
 			int index = mesh->meshData()->attribIndex(name);
 			if (index != -1) {
@@ -187,10 +197,11 @@ void MeshNode::checkMeshMaterialAttributMatch(BaseContext& context) {
 		}
 	}
 
-	context.errors().removeError(ValueHandle{shared_from_this(), {"mesh"}});
 	context.updateBrokenLinkErrors(shared_from_this());
 	if (!errors.empty()) {
-		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this(), {"mesh"}}, errors);
+		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this(), &MeshNode::mesh_}, errors);
+	} else {
+		context.errors().removeError(ValueHandle{shared_from_this(), &MeshNode::mesh_});
 	}
 }
 

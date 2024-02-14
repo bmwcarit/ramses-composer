@@ -30,7 +30,7 @@ MeshAdaptor::MeshAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMesh mesh)
 	  })} {
 }
 
-raco::ramses_base::RamsesArrayResource MeshAdaptor::indicesPtr() {
+ramses_base::RamsesArrayResource MeshAdaptor::indicesPtr() {
 	return indices_;
 }
 
@@ -48,17 +48,12 @@ bool MeshAdaptor::sync(core::Errors* errors) {
 	if (isValid()) {
 		auto mesh = editorObject_->meshData();
 		auto indices = mesh->getIndices();
-		indices_ = ramsesArrayResource(sceneAdaptor_->scene(), ramses::EDataType::UInt32, static_cast<uint32_t>(indices.size()), indices.data());
-		indices_->setName(std::string(this->editorObject_->objectName() + "_MeshIndexData").c_str());
-
+		indices_ = ramsesArrayResource(sceneAdaptor_->scene(), indices, std::string(this->editorObject_->objectName() + "_MeshIndexData").c_str());
 
 		for (uint32_t i{0}; i < mesh->numAttributes(); i++) {
 			auto name = mesh->attribName(i);
-			auto type = mesh->attribDataType(i);
-			auto buffer = mesh->attribBuffer(i);
-			auto elementCount = mesh->attribElementCount(i);
-			vertexDataMap_[name] = ramsesArrayResource(sceneAdaptor_->scene(), convert(type), elementCount, buffer);
-			vertexDataMap_[name]->setName(std::string(this->editorObject_->objectName() + "_MeshVertexData_" + name).c_str());
+			std::string attribName = this->editorObject_->objectName() + "_MeshVertexData_" + name;
+			vertexDataMap_[name] = arrayResourceFromAttribute(sceneAdaptor_->scene(), mesh, i, attribName); 
 		}
 	} else {
 		vertexDataMap_.clear();
@@ -78,7 +73,7 @@ std::vector<ExportInformation> MeshAdaptor::getExportInformation() const {
 	result.emplace_back(indices_.get()->getType(), indices_->getName());
 
 	for (const auto& item : vertexDataMap_)	{
-		result.emplace_back(ramses::ERamsesObjectType_ArrayResource, item.second->getName());
+		result.emplace_back(ramses::ERamsesObjectType::ArrayResource, item.second->getName());
 	}
 
 	return result;

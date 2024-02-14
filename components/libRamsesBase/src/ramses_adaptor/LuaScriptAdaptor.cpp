@@ -12,7 +12,6 @@
 #include "ramses_adaptor/LuaScriptModuleAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
-#include "ramses_base/LogicEngineFormatter.h"
 #include "ramses_base/Utils.h"
 #include "user_types/PrefabInstance.h"
 #include "utils/FileUtils.h"
@@ -49,7 +48,7 @@ LuaScriptAdaptor::LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<u
 	setupInputValuesSubscription();
 }
 
-void LuaScriptAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void LuaScriptAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	logicNodes.push_back(rlogicLuaScript());
 }
 
@@ -88,12 +87,12 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 
 	if (recreateStatus_) {
-		auto scriptContent = utils::file::read(raco::core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaScript::uri_}));
+		auto scriptContent = utils::file::read(core::PathQueries::resolveUriPropertyToAbsolutePath(sceneAdaptor_->project(), {editorObject_, &user_types::LuaScript::uri_}));
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "{}: {}", generateRamsesObjectName(), scriptContent);
 		luaScript_.reset();
 		if (!scriptContent.empty()) {
-			std::vector<raco::ramses_base::RamsesLuaModule> modules;
-			auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+			std::vector<ramses_base::RamsesLuaModule> modules;
+			auto luaConfig = ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
 			if (!sceneAdaptor_->optimizeForExport()) {
 				luaConfig.enableDebugLogFunctions();
 			}
@@ -107,14 +106,16 @@ bool LuaScriptAdaptor::sync(core::Errors* errors) {
 					}
 				}
 			}
-			luaScript_ = raco::ramses_base::ramsesLuaScript(&sceneAdaptor_->logicEngine(), scriptContent, luaConfig, modules, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
+			luaScript_ = ramses_base::ramsesLuaScript(&sceneAdaptor_->logicEngine(), scriptContent, luaConfig, modules, generateRamsesObjectName(), editorObject_->objectIDAsRamsesLogicID());
 		}
 	}
 
 	if (luaScript_) {
 		core::ValueHandle luaInputs{editorObject_, &user_types::LuaScript::inputs_};
 		auto success = setLuaInputInEngine(luaScript_->getInputs(), luaInputs);
-		LOG_WARNING_IF(log_system::RAMSES_ADAPTOR, !success, "Script set properties failed: {}", LogicEngineErrors{sceneAdaptor_->logicEngine()});
+		if (!success) {
+			LOG_WARNING(log_system::RAMSES_ADAPTOR, "Script set properties failed: {}", sceneAdaptor_->scene()->getRamsesClient().getRamsesFramework().getLastError().value().message);
+		}
 	}
 
 	tagDirty(false);
@@ -129,9 +130,9 @@ void LuaScriptAdaptor::readDataFromEngine(core::DataChangeRecorder &recorder) {
 	}
 }
 
-const rlogic::Property* LuaScriptAdaptor::getProperty(const std::vector<std::string>& names) {
+ramses::Property* LuaScriptAdaptor::getProperty(const std::vector<std::string_view>& names) {
 	if (luaScript_ && names.size() >= 1) {
-		const rlogic::Property* prop{names.at(0) == "inputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
+		ramses::Property* prop{names.at(0) == "inputs" ? luaScript_->getInputs() : luaScript_->getOutputs()};
 		return ILogicPropertyProvider::getPropertyRecursive(prop, names, 1);
 	}	
 	return nullptr;
@@ -150,7 +151,7 @@ std::vector<ExportInformation> LuaScriptAdaptor::getExportInformation() const {
 		return {};
 	}
 
-	return {ExportInformation{"LuaScript", luaScript_->getName().data()}};
+	return {ExportInformation{"LuaScript", luaScript_->getName()}};
 }
 
 }  // namespace raco::ramses_adaptor

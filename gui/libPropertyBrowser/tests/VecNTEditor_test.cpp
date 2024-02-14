@@ -47,10 +47,6 @@ public:
 			return spinBox->hasMultipleValues();
 		});
 	}
-
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value) {
-		VecNTEditor<double, 4>::pasteProperty(item, value);
-	}
 };
 
 class VecNTEditorTest : public EditorTestFixture {
@@ -131,7 +127,7 @@ TEST_F(VecNTEditorTest, paste_property_from_vec4f) {
 	dispatch();
 
 	Value<Vec4f> value{5.0};
-	vecNTEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 
 	checkVec4fValue({material_1, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 5.0});
 	checkVec4fValue({material_2, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 5.0});
@@ -143,7 +139,7 @@ TEST_F(VecNTEditorTest, paste_property_from_vec3f) {
 	dispatch();
 
 	Value<Vec3f> value{5.0};
-	vecNTEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 
 	checkVec4fValue({material_1, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 3.0});
 	checkVec4fValue({material_2, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 3.0});
@@ -155,7 +151,7 @@ TEST_F(VecNTEditorTest, paste_property_from_vec4i) {
 	dispatch();
 
 	Value<Vec4i> value{5};
-	vecNTEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 
 	checkVec4fValue({material_1, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 5.0});
 	checkVec4fValue({material_2, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 5.0});
@@ -167,7 +163,7 @@ TEST_F(VecNTEditorTest, paste_property_from_vec3i) {
 	dispatch();
 
 	Value<Vec3i> value{5};
-	vecNTEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 
 	checkVec4fValue({material_1, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 3.0});
 	checkVec4fValue({material_2, {"options", "blendColor"}}, {5.0, 5.0, 5.0, 3.0});

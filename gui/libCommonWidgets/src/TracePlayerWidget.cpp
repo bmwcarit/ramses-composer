@@ -57,11 +57,11 @@ constexpr int STEP_DEFAULT{1};
 
 namespace raco::common_widgets {
 
-TracePlayerWidget::TracePlayerWidget(const QString& widgetName, raco::components::TracePlayer* tracePlayer)
+TracePlayerWidget::TracePlayerWidget(const QString& widgetName, components::TracePlayer* tracePlayer)
 	: tracePlayer_(tracePlayer),
-	  defaultDir_(QString::fromStdString(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Project).string())) {
+	  defaultDir_(QString::fromStdString(core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Project).string())) {
 	tracePlayer_->setCallbacks(
-		[this](raco::components::TracePlayer::PlayerState s) { stateChanged(s); },
+		[this](components::TracePlayer::PlayerState s) { stateChanged(s); },
 		[this](int index) { updateCtrls(index); },
 		[this](std::vector<std::string> log, core::ErrorLevel c) { reportLog(log, c); });
 	configCtrls();
@@ -90,19 +90,19 @@ void TracePlayerWidget::configCtrls() {
 	fileNameLineEdt_->setPlaceholderText("trace file absolute path");
 
 	browseBtn_ = new QPushButton(this);
-	browseBtn_->setIcon(raco::style::Icons::instance().browse);
+	browseBtn_->setIcon(style::Icons::instance().browse);
 	browseBtn_->setToolTip("Browse");
 
 	reloadBtn_ = new QPushButton(this);
-	reloadBtn_->setIcon(raco::style::Icons::instance().refresh);
+	reloadBtn_->setIcon(style::Icons::instance().refresh);
 	reloadBtn_->setToolTip("Reload");
 
 	editBtn_ = new QPushButton(this);
-	editBtn_->setIcon(raco::style::Icons::instance().openInNew);
+	editBtn_->setIcon(style::Icons::instance().openInNew);
 	editBtn_->setToolTip("Edit");
 
 	loopBtn_ = new QPushButton(this);
-	loopBtn_->setIcon(raco::style::Icons::instance().loopingInactive);
+	loopBtn_->setIcon(style::Icons::instance().loopingInactive);
 	loopBtn_->setToolTip("Loop playback");
 
 	statusIndicator_ = new QLabel(this);
@@ -127,23 +127,23 @@ void TracePlayerWidget::configCtrls() {
 						   " (" + QString::number(SPEED_SINGLE_STEP) + ")");
 
 	playBtn_ = new QPushButton(this);
-	playBtn_->setIcon(raco::style::Icons::instance().playInactive);
+	playBtn_->setIcon(style::Icons::instance().playInactive);
 	playBtn_->setToolTip("Play");
 
 	pauseBtn_ = new QPushButton(this);
-	pauseBtn_->setIcon(raco::style::Icons::instance().pauseInactive);
+	pauseBtn_->setIcon(style::Icons::instance().pauseInactive);
 	pauseBtn_->setToolTip("Pause");
 
 	stopBtn_ = new QPushButton(this);
-	stopBtn_->setIcon(raco::style::Icons::instance().stopInactive);
+	stopBtn_->setIcon(style::Icons::instance().stopInactive);
 	stopBtn_->setToolTip("Stop");
 
 	stepForwardBtn_ = new QPushButton(this);
-	stepForwardBtn_->setIcon(raco::style::Icons::instance().skipNext);
+	stepForwardBtn_->setIcon(style::Icons::instance().skipNext);
 	stepForwardBtn_->setToolTip("Step Forward");
 
 	stepBackwardBtn_ = new QPushButton(this);
-	stepBackwardBtn_->setIcon(raco::style::Icons::instance().skipPrevious);
+	stepBackwardBtn_->setIcon(style::Icons::instance().skipPrevious);
 	stepBackwardBtn_->setToolTip("Step Backward");
 
 	stepSpin_ = new QSpinBox(this);
@@ -246,12 +246,12 @@ void TracePlayerWidget::parseTraceFile() {
 		jumpToSpin_->setRange(0, lastFrameIndex);
 		timelineSlider_->setToolTip(QString::number(traceLen) + " frames");
 		jumpToSpin_->setToolTip(QString::number(0) + " ... " + QString::number(lastFrameIndex));
-		reloadBtn_->setIcon(raco::style::Icons::instance().refresh);
+		reloadBtn_->setIcon(style::Icons::instance().refresh);
 		loadedTraceFileChangeListener_ = loadedTraceFileChangeMonitor_.registerFileChangedHandler(
 			filename,
 			[this]() {
 			reportLog({"Loaded trace file has been modified! Press Reload to reparse file."}, core::ErrorLevel::WARNING);
-			reloadBtn_->setIcon(raco::style::Icons::instance().refreshNeeded); });
+			reloadBtn_->setIcon(style::Icons::instance().refreshNeeded); });
 	} else {
 		/* do nothing */
 	}
@@ -355,14 +355,14 @@ void TracePlayerWidget::reportLog(const std::vector<std::string>& tracePlayerRep
 			logCleared();
 			break;
 		case core::ErrorLevel::INFORMATION:
-			statusIndicator_->setPixmap(raco::style::Icons::instance().info.pixmap(reloadBtn_->iconSize()));
+			statusIndicator_->setPixmap(style::Icons::instance().info.pixmap(reloadBtn_->iconSize()));
 			break;
 		case core::ErrorLevel::WARNING:
-			statusIndicator_->setPixmap(raco::style::Icons::instance().warning.pixmap(reloadBtn_->iconSize()));
+			statusIndicator_->setPixmap(style::Icons::instance().warning.pixmap(reloadBtn_->iconSize()));
 			statusIndicator_->show();
 			break;
 		case core::ErrorLevel::ERROR:
-			statusIndicator_->setPixmap(raco::style::Icons::instance().error.pixmap(reloadBtn_->iconSize()));
+			statusIndicator_->setPixmap(style::Icons::instance().error.pixmap(reloadBtn_->iconSize()));
 			statusIndicator_->show();
 			break;
 		default:
@@ -388,25 +388,25 @@ void TracePlayerWidget::clearLog() {
 	}
 }
 
-void TracePlayerWidget::stateChanged(raco::components::TracePlayer::PlayerState state) {
+void TracePlayerWidget::stateChanged(components::TracePlayer::PlayerState state) {
 	enableCtrls(Ctrl::All);
-	playBtn_->setIcon(raco::style::Icons::instance().playInactive);
-	pauseBtn_->setIcon(raco::style::Icons::instance().pauseInactive);
-	stopBtn_->setIcon(raco::style::Icons::instance().stopInactive);
+	playBtn_->setIcon(style::Icons::instance().playInactive);
+	pauseBtn_->setIcon(style::Icons::instance().pauseInactive);
+	stopBtn_->setIcon(style::Icons::instance().stopInactive);
 	switch (state) {
-		case raco::components::TracePlayer::PlayerState::Init:
+		case components::TracePlayer::PlayerState::Init:
 			break;
-		case raco::components::TracePlayer::PlayerState::Faulty:
+		case components::TracePlayer::PlayerState::Faulty:
 			enableCtrls(Ctrl::EditButton);
 			break;
-		case raco::components::TracePlayer::PlayerState::Playing:
-			playBtn_->setIcon(raco::style::Icons::instance().playActive);
+		case components::TracePlayer::PlayerState::Playing:
+			playBtn_->setIcon(style::Icons::instance().playActive);
 			break;
-		case raco::components::TracePlayer::PlayerState::Paused:
-			pauseBtn_->setIcon(raco::style::Icons::instance().pauseActive);
+		case components::TracePlayer::PlayerState::Paused:
+			pauseBtn_->setIcon(style::Icons::instance().pauseActive);
 			break;
-		case raco::components::TracePlayer::PlayerState::Stopped:
-			stopBtn_->setIcon(raco::style::Icons::instance().stopActive);
+		case components::TracePlayer::PlayerState::Stopped:
+			stopBtn_->setIcon(style::Icons::instance().stopActive);
 			updateCtrls(0);
 			break;
 		default:
@@ -419,9 +419,9 @@ void TracePlayerWidget::loopClicked() {
 	if (tracePlayer_) {
 		tracePlayer_->toggleLooping();
 		if (tracePlayer_->getLoopingStatus()) {
-			loopBtn_->setIcon(raco::style::Icons::instance().loopingActive);
+			loopBtn_->setIcon(style::Icons::instance().loopingActive);
 		} else {
-			loopBtn_->setIcon(raco::style::Icons::instance().loopingInactive);
+			loopBtn_->setIcon(style::Icons::instance().loopingInactive);
 		}
 	}
 }

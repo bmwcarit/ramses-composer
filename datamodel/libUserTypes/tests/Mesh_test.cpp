@@ -23,7 +23,7 @@ TEST_F(MeshTest, submeshSelection_wrongSubmeshIndexCreatesErrorTooLow) {
 	commandInterface.set(ValueHandle{mesh, {"bakeMeshes"}}, false);
 	commandInterface.set(ValueHandle{mesh, {"uri"}}, test_path().append("meshes/Duck.glb").string());
 	commandInterface.set(ValueHandle{mesh, {"meshIndex"}}, -1);
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
 }
 
 TEST_F(MeshTest, submeshSelection_correctSubmeshIndexFixesError) {
@@ -34,14 +34,14 @@ TEST_F(MeshTest, submeshSelection_correctSubmeshIndexFixesError) {
 	commandInterface.set(ValueHandle{mesh, {"meshIndex"}}, 1);
 	commandInterface.set(ValueHandle{mesh, {"meshIndex"}}, 0);
 
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::INFORMATION);
 }
 
 TEST_F(MeshTest, meshInfo_showMetaDataWithUnbakedMeshes) {
 	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, false);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
 
 	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).message(),
 		R"(Mesh information
@@ -55,7 +55,7 @@ in vec3 a_Position;
 in vec3 a_Normal;
 in vec2 a_TextureCoordinate;)");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::meshIndex_}, 1);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::meshIndex_}, 1);
 	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).message(),
 		R"(Mesh information
 
@@ -71,7 +71,7 @@ in vec2 a_TextureCoordinate;
 Metadata:
 prop1: truck mesh property)");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::meshIndex_}, 2);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::meshIndex_}, 2);
 	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).message(),
 		R"(Mesh information
 
@@ -87,7 +87,7 @@ in vec2 a_TextureCoordinate;
 Metadata:
 prop1: truck mesh property)");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::meshIndex_}, 3);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::meshIndex_}, 3);
 	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).message(),
 		R"(Mesh information
 
@@ -107,10 +107,10 @@ prop1: truck mesh property)");
 TEST_F(MeshTest, meshInfo_dontShowMetaDataWithBakedMeshes) {
 	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::meshIndex_}, 1);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, true);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, false);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::meshIndex_}, 1);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, true);
 
 	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).message(),
 		R"(Mesh information
@@ -126,36 +126,39 @@ in vec2 a_TextureCoordinate;)");
 }
 
 TEST_F(MeshTest, meshInfo_updateMetaDataAfterInvalidUri) {
-	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
+	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh")->as<Mesh>();
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::meshIndex_}, 1);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, std::string("invalid"));
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, false);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::meshIndex_}, 1);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, std::string("invalid"));
 
-	ASSERT_TRUE(mesh->as<raco::user_types::Mesh>()->metaData_.empty());
+	ASSERT_FALSE(mesh->metaData_->hasProperty("gltfExtras"));
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
-	ASSERT_FALSE(mesh->as<raco::user_types::Mesh>()->metaData_.empty());
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string());
+	ASSERT_TRUE(mesh->metaData_->hasProperty("gltfExtras"));
+	auto& extrasContainer = mesh->metaData_->get("gltfExtras")->asTable();
+	ASSERT_TRUE(extrasContainer.hasProperty("prop1"));
+	EXPECT_EQ(extrasContainer.get("prop1")->asString(), std::string("truck mesh property"));
 }
 
 TEST_F(MeshTest, valid_file_with_no_meshes_unbaked_submesh_error) {
 	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, false);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
 
 	ASSERT_TRUE(commandInterface.errors().hasError({mesh}));
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
 }
 
 TEST_F(MeshTest, valid_file_with_no_meshes_baked_no_submesh_error) {
 	auto mesh = commandInterface.createObject(Mesh::typeDescription.typeName, "Mesh");
 
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, false);
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
-	commandInterface.set(ValueHandle{mesh, &raco::user_types::Mesh::bakeMeshes_}, true);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, false);
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::uri_}, test_path().append("meshes/meshless.gltf").string());
+	commandInterface.set(ValueHandle{mesh, &user_types::Mesh::bakeMeshes_}, true);
 
 	ASSERT_TRUE(commandInterface.errors().hasError({mesh}));
-	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(ValueHandle{mesh}).level(), core::ErrorLevel::ERROR);
 }

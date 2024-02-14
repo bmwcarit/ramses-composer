@@ -13,7 +13,6 @@
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 #include "components/DataChangeDispatcher.h"
-#include "ramses_base/LogicEngine.h"
 #include <core/Context.h>
 #include <memory>
 #include "core/SceneBackendInterface.h"
@@ -28,21 +27,23 @@ class BaseEngineBackend;
 
 namespace raco::ramses_adaptor {
 
-class SceneBackend : public raco::core::SceneBackendInterface {
+class SceneBackend : public core::SceneBackendInterface {
 public:
 	static ramses::sceneId_t toSceneId(int i);
 
-	using Project = raco::core::Project;
-	using SEditorObject = raco::core::SEditorObject;
-	using SDataChangeDispatcher = raco::components::SDataChangeDispatcher;
+	using Project = core::Project;
+	using SEditorObject = core::SEditorObject;
+	using SDataChangeDispatcher = components::SDataChangeDispatcher;
 
 	explicit SceneBackend(ramses_base::BaseEngineBackend& engine, const SDataChangeDispatcher& dispatcher);
-	void setScene(Project* project, core::Errors* errors, bool optimizeForExport);
+	void setScene(Project* project, core::Errors* errors, bool optimizeForExport, ramses::sceneId_t sceneId);
 	void reset();
 	void flush();
 	void readDataFromEngine(core::DataChangeRecorder &recorder);
 	ramses::sceneId_t currentSceneId() const;
-	const ramses::Scene* currentScene() const;
+	ramses::Scene* currentScene() const;
+
+	std::optional<ramses::Issue> getLastError();
 
 	SceneAdaptor* sceneAdaptor() const {
 		return scene_.get();
@@ -53,19 +54,15 @@ public:
 	uint64_t currentSceneIdValue() const override;
 	std::vector<SceneItemDesc> getSceneItemDescriptions() const override;
 	std::string getExportedObjectNames(SEditorObject editorObject) const override;
+	
+	ramses::LogicEngine* logicEngine() const;
 
-	static bool discardLogicEngineMessage(std::string_view message);
+	static bool discardRamsesMessage(std::string_view message);
 
 private:
-	/**
-	 * @brief call LogicEngine validate() and filter out warnings that RamsesComposer is 
-	 * deliberately ignoring.
-	*/
-	std::vector<rlogic::WarningData> logicEngineFilteredValidation() const;
 	std::string ramsesFilteredValidationReport(core::ErrorLevel minLevel) const;
 
 	ramses::RamsesClient* client() const;
-	ramses_base::LogicEngine* logicEngine() const;
 
 	SDataChangeDispatcher dispatcher_;
 	ramses_base::BaseEngineBackend& engine_;

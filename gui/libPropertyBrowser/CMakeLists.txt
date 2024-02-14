@@ -11,11 +11,16 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 find_package(Qt5 COMPONENTS Widgets Test REQUIRED)
 
 add_library(libPropertyBrowser
+    include/property_browser/controls/ColorChannelInfo.h
+    include/property_browser/controls/ColorChannelListWidget.h src/controls/ColorChannelListWidget.cpp
     include/property_browser/controls/ExpandButton.h src/controls/ExpandButton.cpp
+    include/property_browser/controls/ImageWidget.h src/controls/ImageWidget.cpp
     include/property_browser/controls/MouseWheelGuard.h src/controls/MouseWheelGuard.cpp
     include/property_browser/controls/ScalarSlider.h src/controls/ScalarSlider.cpp
     include/property_browser/controls/SpinBox.h src/controls/SpinBox.cpp
+    include/property_browser/controls/TexturePreviewWidget.h src/controls/TexturePreviewWidget.cpp
 
+    include/property_browser/editors/ArrayEditor.h src/editors/ArrayEditor.cpp
     include/property_browser/editors/BoolEditor.h src/editors/BoolEditor.cpp
     include/property_browser/editors/DoubleEditor.h src/editors/DoubleEditor.cpp
     include/property_browser/editors/EnumerationEditor.h src/editors/EnumerationEditor.cpp
@@ -27,6 +32,7 @@ add_library(libPropertyBrowser
     include/property_browser/editors/RefEditor.h src/editors/RefEditor.cpp
     include/property_browser/editors/StringEditor.h src/editors/StringEditor.cpp
     include/property_browser/editors/TagContainerEditor.h src/editors/TagContainerEditor.cpp
+    include/property_browser/editors/TexturePreviewEditor.h src/editors/TexturePreviewEditor.cpp
     include/property_browser/editors/URIEditor.h src/editors/URIEditor.cpp
     include/property_browser/editors/VecNTEditor.h src/editors/VecNTEditor.cpp
 
@@ -37,6 +43,7 @@ add_library(libPropertyBrowser
     include/property_browser/PropertyBrowserCache.h src/PropertyBrowserCache.cpp
     include/property_browser/PropertyBrowserEditorPopup.h src/PropertyBrowserEditorPopup.cpp
     include/property_browser/PropertyBrowserItem.h src/PropertyBrowserItem.cpp
+    include/property_browser/PropertyCopyPaste.h src/PropertyCopyPaste.cpp
     include/property_browser/PropertyBrowserLayouts.h
     include/property_browser/PropertyBrowserModel.h
     include/property_browser/PropertyBrowserRef.h src/PropertyBrowserRef.cpp
@@ -44,6 +51,7 @@ add_library(libPropertyBrowser
     include/property_browser/PropertyBrowserWidget.h src/PropertyBrowserWidget.cpp
     include/property_browser/PropertySubtreeChildrenContainer.h src/PropertySubtreeChildrenContainer.cpp
     include/property_browser/PropertySubtreeView.h src/PropertySubtreeView.cpp
+    include/property_browser/Utilities.h
     include/property_browser/WidgetFactory.h src/WidgetFactory.cpp
 
     src/editors/TagContainerEditor/TagContainerEditor_AppliedTagModel.h src/editors/TagContainerEditor/TagContainerEditor_AppliedTagModel.cpp

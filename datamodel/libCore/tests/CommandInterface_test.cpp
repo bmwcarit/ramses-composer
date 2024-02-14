@@ -362,6 +362,19 @@ TEST_F(CommandInterfaceTest, set_fail_prefab_instance_child) {
 	EXPECT_THROW(commandInterface.set({inst_node, &Node::visibility_}, false), std::runtime_error);
 }
 
+TEST_F(CommandInterfaceTest, set_volatile_prefab_instance_child) {
+	auto prefab = create<Prefab>("prefab");
+	auto node = create<Node>("node", prefab);
+
+	auto inst = create_prefabInstance("inst", prefab);
+	auto inst_node = inst->children_->get(0)->asRef()->as<user_types::Node>();
+
+	EXPECT_EQ(*inst_node->editorVisibility_, true);
+
+	commandInterface.set({inst_node, &Node::editorVisibility_}, false);
+	EXPECT_EQ(*inst_node->editorVisibility_, false);
+}
+
 TEST_F(CommandInterfaceTest, set_int_fail_invalid_enum) {
 	auto material = create<Material>("mat");
 
@@ -515,7 +528,7 @@ TEST_F(CommandInterfaceTest, move_fail_insertion_index_invalid_to_root) {
 	EXPECT_THROW(commandInterface.moveScenegraphChildren({node1}, nullptr, 3), std::runtime_error);
 }
 
-TEST_F(CommandInterfaceTest, addLink_fail_no_start) {
+TEST_F(CommandInterfaceTest, addLink_fail_no_start_object) {
 	auto node = create<Node>("node");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
@@ -523,12 +536,27 @@ TEST_F(CommandInterfaceTest, addLink_fail_no_start) {
 	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
 }
 
-TEST_F(CommandInterfaceTest, addLink_fail_no_end) {
+TEST_F(CommandInterfaceTest, addLink_fail_no_end_object) {
 	auto node = create<Node>("node");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
 	commandInterface.deleteObjects({node});
 	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
+}
+
+
+TEST_F(CommandInterfaceTest, addLink_fail_no_start_property) {
+	auto node = create<Node>("node");
+	auto lua = create_lua("lua", "scripts/types-scalar.lua");
+
+	EXPECT_THROW(commandInterface.addLink({lua, {"translation"}}, {node, {"translation"}}), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, addLink_fail_no_end_property) {
+	auto node = create<Node>("node");
+	auto lua = create_lua("lua", "scripts/types-scalar.lua");
+
+	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, {"inputs", "float"}}), std::runtime_error);
 }
 
 TEST_F(CommandInterfaceTest, addLink_fail_loop) {
@@ -603,8 +631,8 @@ TEST_F(CommandInterfaceTest, removeLink_fail_end_object_readonly) {
 	auto node = create<Node>("node", prefab);
 
 	auto inst = create_prefabInstance("inst", prefab);
-	auto inst_node = raco::select<raco::user_types::Node>(inst->children_->asVector<SEditorObject>(), "node");
-	auto inst_lua = raco::select<raco::user_types::Node>(inst->children_->asVector<SEditorObject>(), "lua");
+	auto inst_node = raco::select<user_types::Node>(inst->children_->asVector<SEditorObject>(), "node");
+	auto inst_lua = raco::select<user_types::Node>(inst->children_->asVector<SEditorObject>(), "lua");
 
 	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, node, {"translation"});
 	EXPECT_THROW(commandInterface.removeLink({inst_node, {"translation"}}), std::runtime_error);
@@ -666,4 +694,34 @@ TEST_F(CommandInterfaceTest, paste_invalid_json) {
 )___";
 
 	EXPECT_THROW(commandInterface.pasteObjects(data, nullptr), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, array_resize_fail_no_array) {
+	auto obj = create<ObjectWithArrays>("obj");
+	EXPECT_THROW(commandInterface.resizeArray({obj, &ObjectWithArrays::table_}, 2), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, array_resize_fail_array_semantic_anno) {
+	auto obj = create<ObjectWithArrays>("obj");
+	EXPECT_THROW(commandInterface.resizeArray({obj, &ObjectWithArrays::array_ref_array_semantic_}, 2), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, array_resize_fail_editorobject_children) {
+	auto obj = create<Node>("node");
+	EXPECT_THROW(commandInterface.resizeArray({obj, &EditorObject::children_}, 2), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, array_resize_fail_not_resizable) {
+	auto obj = create<ObjectWithArrays>("obj");
+	EXPECT_THROW(commandInterface.resizeArray({obj, &ObjectWithArrays::array_ref_}, 2), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, array_resize_grow) {
+	auto obj = create<ObjectWithArrays>("obj");
+
+	commandInterface.resizeArray({obj, &ObjectWithArrays::array_ref_resizable_}, 2);
+
+	EXPECT_EQ(obj->array_ref_resizable_->size(), 2);
+	EXPECT_EQ(**obj->array_ref_resizable_->get(0), nullptr);
+	EXPECT_EQ(**obj->array_ref_resizable_->get(1), nullptr);
 }

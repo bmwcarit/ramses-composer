@@ -28,7 +28,7 @@ public:
 private:
 	std::array<components::Subscription, 13> subscriptions_;
 
-	raco::ramses_base::RamsesBlitPass blitPass_;
+	ramses_base::RamsesBlitPass blitPass_;
 	bool recreate_;
 	bool update_;
 };

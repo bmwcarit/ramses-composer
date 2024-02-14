@@ -9,6 +9,7 @@
  */
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "user_types/Node.h"
+#include "user_types/MeshNode.h"
 
 #include <algorithm>
 #include <cassert>
@@ -98,10 +99,10 @@ ObjectTreeNodeType ObjectTreeNode::getType() const {
 
 namespace {
 	std::map<std::string, std::string> irregularObjectTypePluralNames{
-		{raco::serialization::proxy::meshTypeName, "Meshes"},
-		{raco::serialization::proxy::renderPassTypeName, "RenderPasses"},
-		{raco::serialization::proxy::blitPassTypeName, "BlitPasses"},
-		{raco::serialization::proxy::renderBufferMSTypeName, "RenderBufferMS"}};
+		{serialization::proxy::meshTypeName, "Meshes"},
+		{serialization::proxy::renderPassTypeName, "RenderPasses"},
+		{serialization::proxy::blitPassTypeName, "BlitPasses"},
+		{serialization::proxy::renderBufferMSTypeName, "RenderBufferMS"}};
 }
 
 std::string ObjectTreeNode::getDisplayName() const {
@@ -145,10 +146,10 @@ std::string ObjectTreeNode::getExternalProjectName() const {
 	return externalProjectName_;
 }
 
-VisibilityState ObjectTreeNode::getVisibility() const {
+VisibilityState ObjectTreeNode::getPreviewVisibility() const {
 	auto visibility = VisibilityState::Missing;
 	if (representedObject_) {
-		if (auto node = representedObject_->as<raco::user_types::Node>()) {
+		if (auto node = representedObject_->as<user_types::Node>()) {
 			// If Enabled property is set to False, Visibility is ignored by runtime.
 			if (*node->enabled_) {
 				visibility = *node->visibility_ ? VisibilityState::Visible : VisibilityState::Invisible;
@@ -158,6 +159,15 @@ VisibilityState ObjectTreeNode::getVisibility() const {
 		}
 	}
 	return visibility;
+}
+
+VisibilityState ObjectTreeNode::getAbstractViewVisibility() const {
+	if (representedObject_) {
+		if (auto node = representedObject_->as<user_types::MeshNode>()) {
+			return *node->editorVisibility_ ? VisibilityState::Visible : VisibilityState::Invisible;
+		}
+	}
+	return VisibilityState::Missing;
 }
 
 void ObjectTreeNode::setBelongsToExternalProject(const std::string& path, const std::string& name) {
@@ -187,7 +197,7 @@ std::string ObjectTreeNode::getID() const {
 
 std::vector<std::string> ObjectTreeNode::getUserTags() const {
 	if (type_ == ObjectTreeNodeType::EditorObject) {
-		return representedObject_->userTags_->asVector<std::string>();
+		return representedObject_->as<user_types::BaseObject>()->userTags_->asVector<std::string>();
 	}
 	return {};
 }

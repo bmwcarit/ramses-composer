@@ -21,7 +21,7 @@
 
 namespace raco::object_tree::model {
 
-ObjectTreeViewExternalProjectModel::ObjectTreeViewExternalProjectModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore)
+ObjectTreeViewExternalProjectModel::ObjectTreeViewExternalProjectModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore)
 	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, {}, true) {
 	// don't rebuild tree when creating/deleting local objects
 	lifeCycleSubscription_ = components::Subscription{};
@@ -38,9 +38,9 @@ QVariant ObjectTreeViewExternalProjectModel::data(const QModelIndex& index, int 
 	if (treeNode->getType() == ObjectTreeNodeType::ExternalProject) {
 		if (role == Qt::ForegroundRole) {
 			if (commandInterface_->project()->usesExternalProjectByPath(indexToTreeNode(index)->getExternalProjectPath())) {
-				return QVariant(raco::style::Colors::color(raco::style::Colormap::externalReference));
+				return QVariant(style::Colors::color(style::Colormap::externalReference));
 			} else {
-				return QVariant(raco::style::Colors::color(raco::style::Colormap::text));
+				return QVariant(style::Colors::color(style::Colormap::text));
 			}
 
 		}
@@ -55,7 +55,7 @@ QVariant ObjectTreeViewExternalProjectModel::data(const QModelIndex& index, int 
 			}
 
 			if (failed) {
-				return QVariant(raco::style::Icons::instance().error);
+				return QVariant(style::Icons::instance().error);
 			} else {
 				return QVariant(QIcon());
 			}
@@ -70,7 +70,7 @@ void ObjectTreeViewExternalProjectModel::addProject(const QString& projectPath) 
 	loadContext.featureLevel = commandInterface_->project()->featureLevel();
 	loadContext.pathStack.emplace_back(commandInterface_->project()->currentPath());
 	if (externalProjectStore_->addExternalProject(projectPath.toStdString(), loadContext)) {
-		LOG_INFO(raco::log_system::OBJECT_TREE_VIEW, "Added Project {} to Project Browser", projectPath.toStdString());
+		LOG_INFO(log_system::OBJECT_TREE_VIEW, "Added Project {} to Project Browser", projectPath.toStdString());
 	}
 }
 
@@ -102,9 +102,9 @@ bool ObjectTreeViewExternalProjectModel::canRemoveProjectsAtIndices(const QModel
 
 void ObjectTreeViewExternalProjectModel::copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) {
 
-	raco::core::CommandInterface* commandInterface = nullptr;
+	core::CommandInterface* commandInterface = nullptr;
 
-	std::vector<raco::core::SEditorObject> objects;
+	std::vector<core::SEditorObject> objects;
 	for (const auto& index : indices) {
 
 		auto treeNode = indexToTreeNode(index);
@@ -137,7 +137,7 @@ void ObjectTreeViewExternalProjectModel::setNodeExternalProjectInfo(ObjectTreeNo
 	auto projectPath = parent->getExternalProjectPath();
 	auto projectName = parent->getExternalProjectName();
 	if (auto obj = node->getRepresentedObject()) {
-		if (auto extrefAnno = obj->query<raco::core::ExternalReferenceAnnotation>()) {
+		if (auto extrefAnno = obj->query<core::ExternalReferenceAnnotation>()) {
 			if (auto originCommandInterface = externalProjectStore_->getExternalProjectCommandInterface(projectPath)) {
 				auto project = originCommandInterface->project();
 				// Keep the project path from the root project, even in case of extrefs. 
@@ -169,7 +169,7 @@ void ObjectTreeViewExternalProjectModel::buildObjectTree() {
 }
 
 std::vector<core::SEditorObject> ObjectTreeViewExternalProjectModel::filterForTopLevelObjects(const std::vector<core::SEditorObject>& objects) const {
-	return raco::core::Queries::filterForVisibleTopLevelObjects(objects);
+	return core::Queries::filterForVisibleTopLevelObjects(objects);
 }
 
 Qt::ItemFlags ObjectTreeViewExternalProjectModel::flags(const QModelIndex& index) const {

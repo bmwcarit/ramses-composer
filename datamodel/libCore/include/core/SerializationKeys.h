@@ -21,7 +21,6 @@ constexpr const char* VALUE{"value"};
 constexpr const char* ANNOTATIONS{"annotations"};
 constexpr const char* FILE_VERSION{"fileVersion"};
 constexpr const char* RAMSES_VERSION{"ramsesVersion"};
-constexpr const char* RAMSES_LOGIC_ENGINE_VERSION{"logicEngineVersion"};
 constexpr const char* RAMSES_COMPOSER_VERSION{"racoVersion"};
 constexpr const char* INSTANCES{"instances"};
 constexpr const char* EXTERNAL_PROJECTS{"externalProjects"};

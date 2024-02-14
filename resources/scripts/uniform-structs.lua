@@ -1,6 +1,7 @@
 
 function interface(INOUT)
 	local struct_prim = {
+		b = Type:Bool(),
         i = Type:Int32(),
         f = Type:Float(),
 		
@@ -14,6 +15,7 @@ function interface(INOUT)
     }
 	
 	local struct_array_prim = {
+		bvec = Type:Array(3, Type:Bool()),
         ivec = Type:Array(2, Type:Int32()),
         fvec = Type:Array(5, Type:Float()),
 		

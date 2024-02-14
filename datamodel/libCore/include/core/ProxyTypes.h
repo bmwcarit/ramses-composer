@@ -125,9 +125,17 @@ extern const char renderPassTypeName[];
 using RenderPass = Proxy<renderPassTypeName>;
 using SRenderPass = std::shared_ptr<RenderPass>;
 
+extern const char renderTargetBaseTypeName[];
+using RenderTargetBase = Proxy<renderTargetBaseTypeName>;
+using SRenderTargetBase = std::shared_ptr<RenderTargetBase>;
+
 extern const char renderTargetTypeName[];
-using RenderTarget = Proxy<renderTargetTypeName>;
+using RenderTarget = Proxy<renderTargetTypeName, RenderTargetBase>;
 using SRenderTarget = std::shared_ptr<RenderTarget>;
+
+extern const char renderTargetMSTypeName[];
+using RenderTargetMS = Proxy<renderTargetMSTypeName, RenderTargetBase>;
+using SRenderTargetMS = std::shared_ptr<RenderTargetMS>;
 
 extern const char prefabTypeName[];
 using Prefab = Proxy<prefabTypeName>;

@@ -16,7 +16,7 @@
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include <array>
-#include <ramses-client-api/MeshNode.h>
+#include <ramses/client/MeshNode.h>
 
 
 namespace raco::ramses_adaptor {
@@ -47,11 +47,11 @@ public:
 		return std::shared_ptr<ramses::Node>(handlePtr, handlePtr->get()); 
 	}
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 
-	const raco::ramses_base::RamsesAppearance& privateAppearance() const;
-	const raco::ramses_base::RamsesAppearanceBinding& appearanceBinding() const;
+	const ramses_base::RamsesAppearance& privateAppearance() const;
+	const ramses_base::RamsesAppearanceBinding& appearanceBinding() const;
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
@@ -60,9 +60,9 @@ private:
 	void setupMaterialSubscription();
 	void setupUniformChildrenSubscription();
 
-	raco::ramses_base::RamsesAppearance privateAppearance_;
-	raco::ramses_base::RamsesAppearance currentAppearance_;
-	raco::ramses_base::RamsesAppearanceBinding appearanceBinding_;
+	ramses_base::RamsesAppearance privateAppearance_;
+	ramses_base::RamsesAppearance currentAppearance_;
+	ramses_base::RamsesAppearanceBinding appearanceBinding_;
 	ramses_base::RamsesMeshNodeBinding meshNodeBinding_;
 
 	// Subscriptions

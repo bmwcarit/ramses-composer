@@ -144,9 +144,9 @@
                     }
                 },
                 "uriDefines": "",
-                "uriFragment": "../../../../resources/shaders/basic-alpha.frag",
+                "uriFragment": "../testData/basic.frag",
                 "uriGeometry": "",
-                "uriVertex": "../../../../resources/shaders/basic-alpha.vert"
+                "uriVertex": "../testData/basic.vert"
             },
             "typeName": "Material"
         },
@@ -1045,7 +1045,7 @@
                 "meshIndex": 0,
                 "objectID": "8dcb406c-3056-4de0-94bc-8f64e8d05306",
                 "objectName": "Mesh",
-                "uri": "../../../../../../OneDrive - Paradox Cat GmbH/Documents/RamsesComposer/meshes/cube.gltf"
+                "uri": "../testData/cube.gltf"
             },
             "typeName": "Mesh"
         },

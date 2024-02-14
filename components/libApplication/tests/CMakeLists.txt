@@ -30,6 +30,7 @@ raco_package_add_headless_test(
 
 raco_package_test_resources_process(
     libApplication_test "${CMAKE_SOURCE_DIR}/resources"
+    empty-raco-1x-fl2.rca
     shaders/basic.frag
     shaders/basic.vert
     meshes/RiggedFigure/RiggedFigure.gltf

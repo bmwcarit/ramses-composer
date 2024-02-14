@@ -11,14 +11,18 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 raco_find_qt_components(Widgets)
 
 add_library(libRamsesWidgets
+    include/ramses_widgets/AbstractViewContentWidget.h src/AbstractViewContentWidget.cpp
+    include/ramses_widgets/AbstractViewMainWindow.h src/AbstractViewMainWindow.cpp
     include/ramses_widgets/BuildOptions.h
     include/ramses_widgets/PreviewContentWidget.h src/PreviewContentWidget.cpp
     include/ramses_widgets/PreviewFramebufferScene.h src/PreviewFramebufferScene.cpp
     include/ramses_widgets/PreviewMainWindow.h src/PreviewMainWindow.cpp
     include/ramses_widgets/PreviewScrollAreaWidget.h src/PreviewScrollAreaWidget.cpp
     include/ramses_widgets/RamsesPreviewWindow.h src/RamsesPreviewWindow.cpp
+    include/ramses_widgets/RamsesAbstractViewWindow.h src/RamsesAbstractViewWindow.cpp
     include/ramses_widgets/RendererBackend.h src/RendererBackend.cpp
     include/ramses_widgets/SceneStateEventHandler.h src/SceneStateEventHandler.cpp
+    include/ramses_widgets/TransformationController.h src/TransformationController.cpp
     src/PreviewMainWindow.ui
 )
 
@@ -38,10 +42,11 @@ target_link_libraries(libRamsesWidgets
         raco::LogSystem
         raco::UserTypes
         raco::Style
+        raco::ObjectTree
         Qt5::Widgets
     PRIVATE
-        raco::ramses-logic-lib
         raco::ramses-lib
+        raco::Style
 )
 
 add_library(raco::RamsesWidgets ALIAS libRamsesWidgets)

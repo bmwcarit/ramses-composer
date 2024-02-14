@@ -10,18 +10,30 @@
 
 #pragma once
 
+#include "ObjectTreeNode.h"
 #include <QSortFilterProxyModel>
 
 namespace raco::object_tree::model {
 
 class ObjectTreeViewDefaultSortFilterProxyModel : public QSortFilterProxyModel {
+	std::function<bool(const ObjectTreeNode&)> customFilter = nullptr;
+
 public:
 	ObjectTreeViewDefaultSortFilterProxyModel(QObject *parent = nullptr, bool enableSorting = true);
 
+	using FilterFunction = std::function<bool(const QAbstractItemModel*, int, const QModelIndex&)>;
+
 	bool sortingEnabled() const;
+	
+	void setCustomFilter(std::function<bool(const ObjectTreeNode&)> filterFunc);
+	void removeCustomFilter();
+
+	QString getDataAtIndex(const QModelIndex &index) const;
+
 protected:
 
 	QVariant data(const QModelIndex &index, int role) const override;
+	bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
 
 	bool sortingEnabled_;
 };

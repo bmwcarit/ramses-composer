@@ -42,7 +42,7 @@ public:
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 
 
-	Property<int, DisplayNameAnnotation, EnumerationAnnotation, FeatureLevel> frustumType_{static_cast<int>(EFrustumType::Aspect_FieldOfView), {"Frustum Type"}, {EUserTypeEnumerations::FrustumType}, {2}};
+	Property<int, DisplayNameAnnotation, EnumerationAnnotation> frustumType_{static_cast<int>(EFrustumType::Aspect_FieldOfView), {"Frustum Type"}, {EUserTypeEnumerations::FrustumType}};
 	Property<Table, DisplayNameAnnotation, LinkEndAnnotation> frustum_{{}, {"Frustum"}, {}};
 
 private:

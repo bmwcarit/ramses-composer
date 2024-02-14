@@ -12,6 +12,8 @@
 #include "core/Context.h"
 #include "core/Handles.h"
 
+#include "user_types/UserTypeAnnotations.h"
+
 namespace raco::user_types {
 
 void Texture::onAfterContextActivated(BaseContext& context) {
@@ -39,28 +41,29 @@ void Texture::updateFromExternalFile(BaseContext& context) {
 }
 
 void Texture::validateURIs(BaseContext& context) {
-	context.errors().removeError({shared_from_this(), &Texture::uri_});
-	context.errors().removeError({shared_from_this(), &Texture::level2uri_});
-	context.errors().removeError({shared_from_this(), &Texture::level3uri_});
-	context.errors().removeError({shared_from_this(), &Texture::level4uri_});
-
 	validateURI(context, {shared_from_this(), &Texture::uri_});
 
 	if (*mipmapLevel_ > 1) {
 		validateURI(context, {shared_from_this(), &Texture::level2uri_});
+	} else {
+		context.errors().removeError({shared_from_this(), &Texture::level2uri_});
 	}
 
 	if (*mipmapLevel_ > 2) {
 		validateURI(context, {shared_from_this(), &Texture::level3uri_});
+	} else {
+		context.errors().removeError({shared_from_this(), &Texture::level3uri_});
 	}
 
 	if (*mipmapLevel_ > 3) {
 		validateURI(context, {shared_from_this(), &Texture::level4uri_});
+	} else {
+		context.errors().removeError({shared_from_this(), &Texture::level4uri_});
 	}
 }
 
 void Texture::validateMipmapLevel(BaseContext& context) {
-	auto mipmapLevelValue = ValueHandle{shared_from_this(), &raco::user_types::Texture::mipmapLevel_};
+	auto mipmapLevelValue = ValueHandle{shared_from_this(), &user_types::Texture::mipmapLevel_};
 	
 	if (*mipmapLevel_ < 1 || *mipmapLevel_ > 4) {
 		context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, mipmapLevelValue,
@@ -71,6 +74,10 @@ void Texture::validateMipmapLevel(BaseContext& context) {
 	} else {
 		context.errors().removeError(mipmapLevelValue);
 	}
+}
+
+void Texture::addTexturePreviewProperty() {
+	preview_->addProperty("texturePreview", new Property<bool, TexturePreviewEditorAnnotation>{{}, {}});
 }
 
 }  // namespace raco::user_types

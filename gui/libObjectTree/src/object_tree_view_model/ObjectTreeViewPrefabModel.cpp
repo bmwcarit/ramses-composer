@@ -17,7 +17,7 @@
 
 namespace raco::object_tree::model {
 
-ObjectTreeViewPrefabModel::ObjectTreeViewPrefabModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes)
+ObjectTreeViewPrefabModel::ObjectTreeViewPrefabModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes)
 	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, allowedCreatableUserTypes, true) {
 }
 
@@ -26,7 +26,7 @@ QVariant ObjectTreeViewPrefabModel::data(const QModelIndex& index, int role) con
 
 	if (role == Qt::ItemDataRole::DecorationRole && index.column() == COLUMNINDEX_NAME) {
 		auto editorObj = indexToSEditorObject(index);
-		if (editorObj && editorObj->query<raco::core::ExternalReferenceAnnotation>() && editorObj->as<user_types::Prefab>()) {
+		if (editorObj && editorObj->query<core::ExternalReferenceAnnotation>() && editorObj->as<user_types::Prefab>()) {
 			return QVariant(typeIconMap.at("ExtrefPrefab"));
 		}
 	}

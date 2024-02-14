@@ -19,7 +19,6 @@ namespace raco::property_browser {
 
 PropertySubtreeChildrenContainer::PropertySubtreeChildrenContainer(PropertyBrowserItem* item, QWidget* parent)
 	: QWidget{parent}, layout_{new PropertyBrowserVBoxLayout{this}} {
-	layout_->setAlignment(Qt::AlignTop);
 }
 
 void PropertySubtreeChildrenContainer::setOffset(int offset) {
@@ -34,8 +33,22 @@ void PropertySubtreeChildrenContainer::removeWidget(QWidget* child) {
 	layout_->removeWidget(child);
 }
 
-void PropertySubtreeChildrenContainer::insertWidget(size_t index, QWidget* child) {
-	layout_->insertWidget(static_cast<int>(index), child, 0, Qt::AlignTop);
+void PropertySubtreeChildrenContainer::deleteAllChildren() {
+	for (const auto& child : getChildSubtreeViews()) {
+		removeWidget(child);
+		child->deleteLater();
+	}
+}
+
+std::vector<PropertySubtreeView*> PropertySubtreeChildrenContainer::getChildSubtreeViews() const {
+	std::vector<PropertySubtreeView*> result; 
+	for (int index = 0; index < layout_->count(); index++) {
+		auto widget = dynamic_cast<PropertySubtreeView*>(layout_->itemAt(index)->widget());
+		if (widget) {
+			result.emplace_back(widget);	
+		}
+	}
+	return result;
 }
 
 }  // namespace raco::property_browser

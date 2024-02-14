@@ -43,6 +43,7 @@ add_library(libUserTypes
 	include/user_types/TextureExternal.h src/TextureExternal.cpp
 	include/user_types/Timer.h src/Timer.cpp
 	include/user_types/UserObjectFactory.h src/UserObjectFactory.cpp
+	include/user_types/UserTypeAnnotations.h
 	src/Validation.h
 	src/LuaUtils.h src/LuaUtils.cpp
 )

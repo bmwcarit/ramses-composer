@@ -370,7 +370,7 @@ int TracePlayer::getPropertyLineNumber(const QString& propertyKey) {
 	return propertyLine;
 }
 
-QJsonValue TracePlayer::deepCopyFromLua(raco::core::ValueHandle const& luaValHandle) {
+QJsonValue TracePlayer::deepCopyFromLua(core::ValueHandle const& luaValHandle) {
 	switch (luaValHandle.type()) {
 		case data_storage::PrimitiveType::Struct:
 		case data_storage::PrimitiveType::Table: {
@@ -592,9 +592,9 @@ int TracePlayer::parseTimestamp(const QJsonObject& qjTracePlayerData, int frameI
 
 core::SEditorObject TracePlayer::findLua(const std::string& luaObjName, bool logErrors) {
 	/// find matching LuaScript or LuaInterface
-	const auto isControllableLua{[&luaObjName](const raco::core::SEditorObject& o) {
+	const auto isControllableLua{[&luaObjName](const core::SEditorObject& o) {
 		return (
-			((o->objectName() == luaObjName) && (!raco::core::PrefabOperations::findContainingPrefab(o))) &&
+			((o->objectName() == luaObjName) && (!core::PrefabOperations::findContainingPrefab(o))) &&
 			((o->isType<user_types::LuaInterface>()) ||
 				(o->isType<user_types::LuaScript>() && (!core::PrefabOperations::findContainingPrefabInstance(o)))));
 	}};
@@ -692,7 +692,7 @@ std::string TracePlayer::streamKeysChain(const std::vector<std::string>& keysCha
 void TracePlayer::updateLuaProperty(const core::SEditorObject& lua, const std::vector<std::string>& keysChain, const QJsonValue& jsonChild, bool logErrors) {
 	const std::string keysStream{lua->objectName() + "->" + streamKeysChain(keysChain)};
 
-	if (auto const valHandle{raco::core::ValueHandle{lua, keysChain}}) {
+	if (auto const valHandle{core::ValueHandle{lua, keysChain}}) {
 		clearError("Property was not found! ( propPath: " + keysStream + " )", core::ErrorLevel::WARNING);
 
 		if (core::Queries::linkState(racoCoreInterface_->project(), valHandle).current != core::Queries::CurrentLinkState::NOT_LINKED) {
@@ -705,7 +705,7 @@ void TracePlayer::updateLuaProperty(const core::SEditorObject& lua, const std::v
 
 		switch (jsonChild.type()) {
 			case QJsonValue::Bool: {
-				if (valHandle.type() != raco::data_storage::PrimitiveType::Bool) {
+				if (valHandle.type() != data_storage::PrimitiveType::Bool) {
 					if (logErrors) {
 						addError("Property type mismatch >> Expected a Bool! ( propPath: " + keysStream + " )", core::ErrorLevel::WARNING);
 					}
@@ -716,9 +716,9 @@ void TracePlayer::updateLuaProperty(const core::SEditorObject& lua, const std::v
 				break;
 			}
 			case QJsonValue::Double: {
-				if (valHandle.type() == raco::data_storage::PrimitiveType::Int) {
+				if (valHandle.type() == data_storage::PrimitiveType::Int) {
 					racoCoreInterface_->setCodeControlledValueHandle(valHandle, static_cast<int>(jsonChild.toDouble()));
-				} else if (valHandle.type() == raco::data_storage::PrimitiveType::Double) {
+				} else if (valHandle.type() == data_storage::PrimitiveType::Double) {
 					racoCoreInterface_->setCodeControlledValueHandle(valHandle, jsonChild.toDouble());
 				} else {
 					if (logErrors) {
@@ -730,7 +730,7 @@ void TracePlayer::updateLuaProperty(const core::SEditorObject& lua, const std::v
 				break;
 			}
 			case QJsonValue::String: {
-				if (valHandle.type() != raco::data_storage::PrimitiveType::String) {
+				if (valHandle.type() != data_storage::PrimitiveType::String) {
 					if (logErrors) {
 						addError("Property type mismatch >> Expected a String! ( propPath: " + keysStream + " )", core::ErrorLevel::WARNING);
 					}
@@ -760,13 +760,13 @@ void TracePlayer::addError(const std::string& msg, core::ErrorLevel level, bool 
 
 		switch (level) {
 			case core::ErrorLevel::ERROR:
-				LOG_ERROR(raco::log_system::TRACE_PLAYER, msg);
+				LOG_ERROR(log_system::TRACE_PLAYER, msg);
 				break;
 			case core::ErrorLevel::WARNING:
-				LOG_WARNING(raco::log_system::TRACE_PLAYER, msg);
+				LOG_WARNING(log_system::TRACE_PLAYER, msg);
 				break;
 			case core::ErrorLevel::INFORMATION:
-				LOG_INFO(raco::log_system::TRACE_PLAYER, msg);
+				LOG_INFO(log_system::TRACE_PLAYER, msg);
 				break;
 			default:
 				break;

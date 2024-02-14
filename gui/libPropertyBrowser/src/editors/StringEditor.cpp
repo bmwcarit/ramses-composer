@@ -24,7 +24,7 @@ namespace raco::property_browser {
 
 StringEditor::StringEditor(PropertyBrowserItem* item, QWidget* parent)
 	: PropertyEditor(item, parent) {
-	this->setLayout(new raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>(this));
+	this->setLayout(new common_widgets::NoContentMarginsLayout<QHBoxLayout>(this));
 	lineEdit_ = new StringEditorLineEdit(this);
 	layout()->addWidget(lineEdit_);
 	
@@ -78,6 +78,11 @@ StringEditor::StringEditor(PropertyBrowserItem* item, QWidget* parent)
 	QObject::connect(lineEdit_, &QLineEdit::editingFinished, this, [this]() {
 		updatedInBackground_ = false;
 	});
+
+	// eventFilter to capture right click for showing copy dialog.
+	installEventFilter(this);
+	canDisplayCopyDialog = true;
+	setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
 }
 
 void StringEditor::updateLineEdit() {
@@ -87,10 +92,10 @@ void StringEditor::updateLineEdit() {
 
 void StringEditor::updateErrorState() {
 	if (item_->hasError()) {
-		errorLevel_ = item_->maxErrorLevel();
+		lineEdit_->setProperty("errorLevel", static_cast<int>(item_->maxErrorLevel()));
 		lineEdit_->setToolTip(item_->errorMessage().c_str());
 	} else {
-		errorLevel_ = core::ErrorLevel::NONE;
+		lineEdit_->setProperty("errorLevel", static_cast<int>(core::ErrorLevel::NONE));
 		lineEdit_->setToolTip({});
 	}
 }
@@ -111,14 +116,18 @@ bool StringEditor::updatedInBackground() const {
 	return updatedInBackground_;
 }
 
-int StringEditor::errorLevel() const noexcept {
-	return static_cast<int>(errorLevel_);
-}
-
 void StringEditorLineEdit::focusInEvent(QFocusEvent* event) {
 	this->selectAll();
 	Q_EMIT saveFocusInValues();
 	QLineEdit::focusInEvent(event);
+}
+
+int StringEditorLineEdit::errorLevel() const noexcept {
+	return static_cast<int>(errorLevel_);
+}
+
+void StringEditorLineEdit::setErrorLevel(int level) {
+	errorLevel_ = static_cast<core::ErrorLevel>(level);
 }
 
 bool StringEditorLineEdit::hasMultipleValues() const {

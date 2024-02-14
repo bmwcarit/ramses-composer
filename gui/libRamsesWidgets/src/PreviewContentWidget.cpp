@@ -42,6 +42,10 @@ void PreviewContentWidget::setBackgroundColor(core::Vec4f backgroundColor) {
 	}
 }
 
+PreviewMultiSampleRate PreviewContentWidget::getMsaaSampleRate() {
+	return ramsesPreview_->nextState().sampleRate;
+}
+
 void PreviewContentWidget::setMsaaSampleRate(PreviewMultiSampleRate sampleRate) {
 	if (ramsesPreview_) {
 		ramsesPreview_->nextState().sampleRate = sampleRate;

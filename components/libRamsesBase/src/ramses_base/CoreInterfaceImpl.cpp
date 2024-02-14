@@ -22,29 +22,29 @@
 #include "user_types/Enumerations.h"
 #include "user_types/LuaScriptModule.h"
 
-#include <ramses-logic/LuaInterface.h>
-#include <ramses-logic/LuaModule.h>
-#include <ramses-logic/LuaScript.h>
-#include <ramses-logic/Property.h>
+#include <ramses/client/logic/LuaInterface.h>
+#include <ramses/client/logic/LuaModule.h>
+#include <ramses/client/logic/LuaScript.h>
+#include <ramses/client/logic/Property.h>
 
 namespace raco::ramses_base {
 
 namespace {
-void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface>& interface, const rlogic::Property* property) {
-	static const std::map<rlogic::EPropertyType, raco::core::EnginePrimitive> typeMap = {
-		{rlogic::EPropertyType::Float, raco::core::EnginePrimitive::Double},
-		{rlogic::EPropertyType::Vec2f, raco::core::EnginePrimitive::Vec2f},
-		{rlogic::EPropertyType::Vec3f, raco::core::EnginePrimitive::Vec3f},
-		{rlogic::EPropertyType::Vec4f, raco::core::EnginePrimitive::Vec4f},
-		{rlogic::EPropertyType::Int32, raco::core::EnginePrimitive::Int32},
-		{rlogic::EPropertyType::Int64, raco::core::EnginePrimitive::Int64},
-		{rlogic::EPropertyType::Vec2i, raco::core::EnginePrimitive::Vec2i},
-		{rlogic::EPropertyType::Vec3i, raco::core::EnginePrimitive::Vec3i},
-		{rlogic::EPropertyType::Vec4i, raco::core::EnginePrimitive::Vec4i},
-		{rlogic::EPropertyType::String, raco::core::EnginePrimitive::String},
-		{rlogic::EPropertyType::Bool, raco::core::EnginePrimitive::Bool},
-		{rlogic::EPropertyType::Struct, raco::core::EnginePrimitive::Struct},
-		{rlogic::EPropertyType::Array, raco::core::EnginePrimitive::Array}};
+void fillLuaScriptInterface(std::vector<core::PropertyInterface>& interface, const ramses::Property* property) {
+	static const std::map<ramses::EPropertyType, core::EnginePrimitive> typeMap = {
+		{ramses::EPropertyType::Float, core::EnginePrimitive::Double},
+		{ramses::EPropertyType::Vec2f, core::EnginePrimitive::Vec2f},
+		{ramses::EPropertyType::Vec3f, core::EnginePrimitive::Vec3f},
+		{ramses::EPropertyType::Vec4f, core::EnginePrimitive::Vec4f},
+		{ramses::EPropertyType::Int32, core::EnginePrimitive::Int32},
+		{ramses::EPropertyType::Int64, core::EnginePrimitive::Int64},
+		{ramses::EPropertyType::Vec2i, core::EnginePrimitive::Vec2i},
+		{ramses::EPropertyType::Vec3i, core::EnginePrimitive::Vec3i},
+		{ramses::EPropertyType::Vec4i, core::EnginePrimitive::Vec4i},
+		{ramses::EPropertyType::String, core::EnginePrimitive::String},
+		{ramses::EPropertyType::Bool, core::EnginePrimitive::Bool},
+		{ramses::EPropertyType::Struct, core::EnginePrimitive::Struct},
+		{ramses::EPropertyType::Array, core::EnginePrimitive::Array}};
 	interface.reserve(property->getChildCount());
 	for (int i{0}; i < property->getChildCount(); i++) {
 		auto child{property->getChild(i)};
@@ -59,18 +59,22 @@ void fillLuaScriptInterface(std::vector<raco::core::PropertyInterface>& interfac
 }
 }  // namespace
 
-CoreInterfaceImpl::CoreInterfaceImpl(BaseEngineBackend* backend) : backend_{backend}, logicEngine_(std::make_unique<rlogic::LogicEngine>()) {}
+CoreInterfaceImpl::CoreInterfaceImpl(BaseEngineBackend* backend) : backend_{backend} {}
 
-bool CoreInterfaceImpl::parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, raco::core::PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& outError) {
-	return raco::ramses_base::parseShaderText(backend_->internalScene(), vertexShader, geometryShader, fragmentShader, shaderDefines, outUniforms, outAttributes, outError);
+ramses::LogicEngine* CoreInterfaceImpl::logicEngine() {
+	return backend_->logicEngine();
 }
 
-std::tuple<rlogic::LuaConfig, bool> CoreInterfaceImpl::createFullLuaConfig(const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules) {
-	rlogic::LuaConfig luaConfig = createLuaConfig(stdModules);
+bool CoreInterfaceImpl::parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, core::PropertyInterfaceList& outUniforms, core::PropertyInterfaceList& outAttributes, std::string& outError) {
+	return ramses_base::parseShaderText(backend_->internalScene(), vertexShader, geometryShader, fragmentShader, shaderDefines, outUniforms, outAttributes, outError);
+}
+
+std::tuple<ramses::LuaConfig, bool> CoreInterfaceImpl::createFullLuaConfig(const std::vector<std::string>& stdModules, const data_storage::Table& modules) {
+	ramses::LuaConfig luaConfig = createLuaConfig(stdModules);
 
 	for (auto i = 0; i < modules.size(); ++i) {
 		if (auto moduleRef = modules.get(i)->asRef()) {
-			const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
+			const auto module = moduleRef->as<user_types::LuaScriptModule>();
 			if (module->isValid()) {
 				auto it = cachedModules_.find(module);
 				assert(it != cachedModules_.end());
@@ -90,15 +94,15 @@ std::tuple<rlogic::LuaConfig, bool> CoreInterfaceImpl::createFullLuaConfig(const
 	return {luaConfig, true};
 }
 
-bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& outError) {
+bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const data_storage::Table& modules, core::PropertyInterfaceList& outInputs, core::PropertyInterfaceList& outOutputs, std::string& outError) {
 	auto [luaConfig, valid] = createFullLuaConfig(stdModules, modules);
 	if (!valid) {
 		return false;
 	}
 
-	const auto script = logicEngine_->createLuaScript(luaScript, luaConfig, scriptName);
+	const auto script = logicEngine()->createLuaScript(luaScript, luaConfig, scriptName);
 	if (!script) {
-		outError = logicEngine_->getErrors().at(0).message;
+		outError = logicEngine()->getScene().getRamsesClient().getRamsesFramework().getLastError().value().message;
 		return false;
 	}
 
@@ -108,32 +112,24 @@ bool CoreInterfaceImpl::parseLuaScript(const std::string& luaScript, const std::
 	if (const auto outputs = script->getOutputs()) {
 		fillLuaScriptInterface(outOutputs, outputs);
 	}
-	auto status = logicEngine_->destroy(*script);
+	auto status = logicEngine()->destroy(*script);
 	if (!status) {
-		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{*logicEngine_});
+		auto error = logicEngine()->getScene().getRamsesClient().getRamsesFramework().getLastError().value();
+		LOG_ERROR(log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", error.message);
 	}
 	return true;
 }
 
-bool CoreInterfaceImpl::parseLuaInterface(const std::string& interfaceText, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, bool useModules, PropertyInterfaceList& outInputs, std::string& outError) {
-	rlogic::LuaInterface* interface = nullptr;
-	if (useModules) {
-		// New style creation function: must supply modules if interface text contains modules() statement
-		// used at feature level >= 5
-		auto [luaConfig, valid] = createFullLuaConfig(stdModules, modules);
-		if (!valid) {
-			return false;
-		}
-
-		interface =logicEngine_->createLuaInterface(interfaceText, "Stage::Preprocess", luaConfig);
-	} else {
-		// Old style creation function: doesn't generate error if interface text contains modules() statement
-		// used at feature level < 5
-		interface =logicEngine_->createLuaInterface(interfaceText, "Stage::Preprocess");
+bool CoreInterfaceImpl::parseLuaInterface(const std::string& interfaceText, const std::vector<std::string>& stdModules, const data_storage::Table& modules, PropertyInterfaceList& outInputs, std::string& outError) {
+	auto [luaConfig, valid] = createFullLuaConfig(stdModules, modules);
+	if (!valid) {
+		return false;
 	}
 
+	ramses::LuaInterface* interface = logicEngine()->createLuaInterface(interfaceText, "Stage::Preprocess", luaConfig);
+
 	if (!interface) {
-		outError =logicEngine_->getErrors().at(0).message;
+		outError = logicEngine()->getScene().getRamsesClient().getRamsesFramework().getLastError().value().message;
 		return false;
 	}
 
@@ -141,27 +137,28 @@ bool CoreInterfaceImpl::parseLuaInterface(const std::string& interfaceText, cons
 		fillLuaScriptInterface(outInputs, inputs);
 	}
 
-	auto status =logicEngine_->destroy(*interface);
+	auto status = logicEngine()->destroy(*interface);
 	if (!status) {
-		LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{backend_->logicEngine()});
+		auto error = logicEngine()->getScene().getRamsesClient().getRamsesFramework().getLastError().value();
+		LOG_ERROR(log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", error.message);
 	}
 	return true;
 }
 
-bool CoreInterfaceImpl::parseLuaScriptModule(raco::core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) {
-	rlogic::LuaConfig tempConfig = createLuaConfig(stdModules);
+bool CoreInterfaceImpl::parseLuaScriptModule(core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) {
+	ramses::LuaConfig tempConfig = createLuaConfig(stdModules);
 
-	if (auto tempModule = raco::ramses_base::ramsesLuaModule(luaScriptModule, logicEngine_.get(), tempConfig, moduleName, object->objectIDAsRamsesLogicID())) {
+	if (auto tempModule = ramses_base::ramsesLuaModule(luaScriptModule, logicEngine(), tempConfig, moduleName, object->objectIDAsRamsesLogicID())) {
 		cachedModules_[object] = tempModule;
 		return true;
 	} else {
-		outError = logicEngine_->getErrors().at(0).message;
+		outError = logicEngine()->getScene().getRamsesClient().getRamsesFramework().getLastError().value().message;
 		cachedModules_.erase(object);
 		return false;
 	}
 }
 
-void CoreInterfaceImpl::removeModuleFromCache(raco::core::SCEditorObject object) {
+void CoreInterfaceImpl::removeModuleFromCache(core::SCEditorObject object) {
 	cachedModules_.erase(object);
 }
 
@@ -171,28 +168,28 @@ void CoreInterfaceImpl::clearModuleCache() {
 
 bool CoreInterfaceImpl::extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) {
 	auto callback = [&moduleList](const std::string& module) { moduleList.emplace_back(module); };
-	auto extractStatus = backend_->logicEngine().extractLuaDependencies(luaScript, callback);
+	auto extractStatus = logicEngine()->extractLuaDependencies(luaScript, callback);
 	if (!extractStatus) {
-		outError = backend_->logicEngine().getErrors().at(0).message;
+		outError = logicEngine()->getScene().getRamsesClient().getRamsesFramework().getLastError().value().message;
 	}
 	return extractStatus;
 }
 
-std::string CoreInterfaceImpl::luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const {
-	static const std::unordered_map<raco::core::EnginePrimitive, std::string> nameMap =
-		{{raco::core::EnginePrimitive::Bool, "Bool"},
-			{raco::core::EnginePrimitive::Int32, "Int32"},
-			{raco::core::EnginePrimitive::Int64, "Int64"},
-			{raco::core::EnginePrimitive::Double, "Float"},
-			{raco::core::EnginePrimitive::String, "String"},
-			{raco::core::EnginePrimitive::Vec2f, "Vec2f"},
-			{raco::core::EnginePrimitive::Vec3f, "Vec3f"},
-			{raco::core::EnginePrimitive::Vec4f, "Vec4f"},
-			{raco::core::EnginePrimitive::Vec2i, "Vec2i"},
-			{raco::core::EnginePrimitive::Vec3i, "Vec3i"},
-			{raco::core::EnginePrimitive::Vec4i, "Vec4i"},
-			{raco::core::EnginePrimitive::Struct, "Struct"},
-			{raco::core::EnginePrimitive::Array, "Array"}};
+std::string CoreInterfaceImpl::luaNameForPrimitiveType(core::EnginePrimitive engineType) const {
+	static const std::unordered_map<core::EnginePrimitive, std::string> nameMap =
+		{{core::EnginePrimitive::Bool, "Bool"},
+			{core::EnginePrimitive::Int32, "Int32"},
+			{core::EnginePrimitive::Int64, "Int64"},
+			{core::EnginePrimitive::Double, "Float"},
+			{core::EnginePrimitive::String, "String"},
+			{core::EnginePrimitive::Vec2f, "Vec2f"},
+			{core::EnginePrimitive::Vec3f, "Vec3f"},
+			{core::EnginePrimitive::Vec4f, "Vec4f"},
+			{core::EnginePrimitive::Vec2i, "Vec2i"},
+			{core::EnginePrimitive::Vec3i, "Vec3i"},
+			{core::EnginePrimitive::Vec4i, "Vec4i"},
+			{core::EnginePrimitive::Struct, "Struct"},
+			{core::EnginePrimitive::Array, "Array"}};
 
 	auto it = nameMap.find(engineType);
 	if (it != nameMap.end()) {

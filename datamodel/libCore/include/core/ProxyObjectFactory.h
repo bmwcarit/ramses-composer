@@ -19,22 +19,23 @@ namespace raco::serialization::proxy {
 
 using namespace raco::data_storage;
 
-using raco::core::DisplayNameAnnotation;
-using raco::core::RangeAnnotation;
+using core::DisplayNameAnnotation;
+using core::RangeAnnotation;
 
-using raco::user_types::EngineTypeAnnotation;
-using raco::core::LinkStartAnnotation;
-using raco::core::LinkEndAnnotation;
-using raco::core::URIAnnotation;
-using raco::core::EnumerationAnnotation;
-using raco::core::ArraySemanticAnnotation;
-using raco::core::HiddenProperty;
-using raco::core::TagContainerAnnotation;
-using raco::core::UserTagContainerAnnotation;
-using raco::core::ExpectEmptyReference;
-using raco::core::RenderableTagContainerAnnotation;
-using raco::core::FeatureLevel;
-using raco::core::ReadOnlyAnnotation;
+using user_types::EngineTypeAnnotation;
+using core::LinkStartAnnotation;
+using core::LinkEndAnnotation;
+using core::URIAnnotation;
+using core::EnumerationAnnotation;
+using core::ArraySemanticAnnotation;
+using core::HiddenProperty;
+using core::TagContainerAnnotation;
+using core::UserTagContainerAnnotation;
+using core::ExpectEmptyReference;
+using core::RenderableTagContainerAnnotation;
+using core::FeatureLevel;
+using core::ReadOnlyAnnotation;
+using core::ResizableArray;
 
 template <typename U, typename T>
 struct tuple_has_type {};
@@ -44,7 +45,7 @@ struct tuple_has_type<U, std::tuple<T...>> : std::disjunction<std::is_same<U, T>
 };
 
 
-class ProxyObjectFactory : public raco::core::UserObjectFactoryInterface {
+class ProxyObjectFactory : public core::UserObjectFactoryInterface {
 public:
 	// The ProxyObjectFactory creates all objects and properties that are deserialized.
 	// These are then further used as input to the migration code.
@@ -147,7 +148,16 @@ public:
 		Property<SRenderBufferMS, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 
+		// BaseObject
+		// dynamic: metadata category tables:
+		Property<Table, ReadOnlyAnnotation>,
+
+		// Animation
+		Property<Array<SAnimationChannel>, DisplayNameAnnotation>,
+		Property<Array<SAnimationChannel>, DisplayNameAnnotation, ResizableArray>,
+
 		// EditorObject
+		Property<Array<SEditorObject>, ArraySemanticAnnotation, HiddenProperty>,
 		Property<Table, ArraySemanticAnnotation, HiddenProperty>,
 		Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation>,
 		Property<std::string, HiddenProperty>,
@@ -204,7 +214,10 @@ public:
 
 		// RenderPass
 		Property<SRenderTarget, DisplayNameAnnotation, ExpectEmptyReference>,
+		Property<SRenderTargetBase, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<SBaseCamera, DisplayNameAnnotation>,
+		Property<Array<SRenderLayer>, DisplayNameAnnotation, ExpectEmptyReference>,
+		Property<Array<SRenderLayer>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>,
 		Property<SRenderLayer, DisplayNameAnnotation>,
 		Property<SRenderLayer, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<int, DisplayNameAnnotation>,
@@ -218,6 +231,10 @@ public:
 		Property<int, LinkEndAnnotation>,
 
 		// RenderTarget
+		Property<Array<SRenderBuffer>, DisplayNameAnnotation, ExpectEmptyReference>,
+		Property<Array<SRenderBufferMS>, DisplayNameAnnotation, ExpectEmptyReference>,
+		Property<Array<SRenderBuffer>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>,
+		Property<Array<SRenderBufferMS>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>,
 		Property<SRenderBuffer, DisplayNameAnnotation>,
 		Property<SRenderBuffer, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<SRenderBufferMS, DisplayNameAnnotation, ExpectEmptyReference>,
@@ -241,6 +258,9 @@ public:
 		Property<Vec2f, DisplayNameAnnotation, LinkStartAnnotation>,
 
 		// Skin
+		Property<Array<SMeshNode>, DisplayNameAnnotation>,
+		Property<Array<SMeshNode>, DisplayNameAnnotation, ResizableArray>,
+		Property<Array<SNode>, DisplayNameAnnotation>,
 		Property<SMeshNode, DisplayNameAnnotation>,
 
 		// BlendOptions

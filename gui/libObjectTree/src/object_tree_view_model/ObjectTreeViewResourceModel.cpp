@@ -19,7 +19,7 @@
 
 namespace raco::object_tree::model {
 
-ObjectTreeViewResourceModel::ObjectTreeViewResourceModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes)
+ObjectTreeViewResourceModel::ObjectTreeViewResourceModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes)
 	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectStore, allowedCreatableUserTypes, true, true) {}
 
 

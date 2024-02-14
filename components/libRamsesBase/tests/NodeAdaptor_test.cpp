@@ -14,10 +14,10 @@
 #include "user_types/Node.h"
 
 using namespace raco;
-using raco::ramses_adaptor::NodeAdaptor;
-using raco::user_types::Node;
-using raco::user_types::SNode;
-using raco::core::ValueHandle;
+using ramses_adaptor::NodeAdaptor;
+using user_types::Node;
+using user_types::SNode;
+using core::ValueHandle;
 
 class NodeAdaptorTest : public RamsesBaseFixture<> {};
 
@@ -32,9 +32,7 @@ TEST_F(NodeAdaptorTest, constructor_sets_RamsesObject_name) {
 	SNode node{new Node{name}};
 	NodeAdaptor adaptor{&sceneContext, node};
 
-	const char* ramsesObjectName = adaptor.ramsesObject().getName();
-	EXPECT_EQ(sizeof(ramsesObjectName), sizeof(name));
-	EXPECT_TRUE(0 == std::memcmp(ramsesObjectName, name, sizeof(ramsesObjectName)));
+	EXPECT_TRUE(adaptor.ramsesObject().getName() == name);
 }
 
 TEST_F(NodeAdaptorTest, onDataChange_updatesTranslation) {
@@ -43,12 +41,8 @@ TEST_F(NodeAdaptorTest, onDataChange_updatesTranslation) {
 
 	dispatch();
 
-	auto engineNode{select<ramses::MeshNode>(*sceneContext.scene(), "SomeName")};
-    float x, y, z;
-	engineNode->getTranslation(x, y, z);
-    EXPECT_EQ(x, 1.0f);
-    EXPECT_EQ(y, 0.0f);
-    EXPECT_EQ(z, 0.0f);
+	auto engineNode{select<ramses::Node>(*sceneContext.scene(), "SomeName")};
+	EXPECT_EQ(ramses_adaptor::getRamsesTranslation(engineNode), glm::vec3(1.0, 0.0, 0.0));
 }
 
 
@@ -57,15 +51,15 @@ TEST_F(NodeAdaptorTest, context_node_name_change) {
 
 	dispatch();
 
-	auto nodes{select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Node)};
+	auto nodes{select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType::Node)};
 
 	EXPECT_EQ(nodes.size(), 1);
-	EXPECT_STREQ("Node Name", nodes[0]->getName());
-	EXPECT_EQ(select<rlogic::RamsesNodeBinding>(sceneContext.logicEngine(), "Node Name_NodeBinding")->getUserId(), node->objectIDAsRamsesLogicID());
+	EXPECT_TRUE("Node Name" == nodes[0]->getName());
+	EXPECT_EQ(select<ramses::NodeBinding>(sceneContext.logicEngine(), "Node Name_NodeBinding")->getUserId(), node->objectIDAsRamsesLogicID());
 
 	context.set({node, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	EXPECT_STREQ("Changed", nodes[0]->getName());
-	EXPECT_EQ(select<rlogic::RamsesNodeBinding>(sceneContext.logicEngine(), "Changed_NodeBinding")->getUserId(), node->objectIDAsRamsesLogicID());
+	EXPECT_TRUE("Changed" == nodes[0]->getName());
+	EXPECT_EQ(select<ramses::NodeBinding>(sceneContext.logicEngine(), "Changed_NodeBinding")->getUserId(), node->objectIDAsRamsesLogicID());
 }

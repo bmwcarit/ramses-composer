@@ -17,17 +17,12 @@ using namespace raco::user_types;
 
 class AnimationChannelAdaptorTest : public RamsesBaseFixture<> {};
 
-class AnimationChannelAdaptorTest_FL3 : public RamsesBaseFixture<> {
-public:
-	AnimationChannelAdaptorTest_FL3() : RamsesBaseFixture(false, static_cast<rlogic::EFeatureLevel>(3)) {}
-};
-
 TEST_F(AnimationChannelAdaptorTest, defaultConstruction) {
 	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays) {
@@ -36,14 +31,14 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays) {
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 2);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 }
 
 TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays_rename_obj) {
@@ -52,17 +47,17 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_dataArrays_rename_obj
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
 	context.set({animChannel, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 2);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 }
 
 TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_animAssigned_dataArrays_rename_obj) {
@@ -71,21 +66,21 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_validSampler_animAssigned_dataArra
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
-	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
+	context.set(ValueHandle(anim, {"animationChannels"})[0], animChannel);
 	dispatch();
 
 	context.set({animChannel, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Changed.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 2);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Changed.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 }
 
 TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_noDataArrays) {
@@ -94,13 +89,13 @@ TEST_F(AnimationChannelAdaptorTest, validAnim_invalidSampler_noDataArrays) {
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	context.set({animChannel, &raco::user_types::AnimationChannel::samplerIndex_}, -1);
+	context.set({animChannel, &user_types::AnimationChannel::samplerIndex_}, -1);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, invalidAnim_invalidSampler_noDataArrays) {
@@ -109,13 +104,13 @@ TEST_F(AnimationChannelAdaptorTest, invalidAnim_invalidSampler_noDataArrays) {
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "CesiumMilkTruck" / "CesiumMilkTruck.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	context.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, -1);
+	context.set({animChannel, &user_types::AnimationChannel::animationIndex_}, -1);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, noAnim_noDataArrays) {
@@ -124,10 +119,10 @@ TEST_F(AnimationChannelAdaptorTest, noAnim_noDataArrays) {
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "Duck.glb").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 0);
 }
 
 TEST_F(AnimationChannelAdaptorTest, interpolationTest_dynamicDataArrays) {
@@ -136,37 +131,37 @@ TEST_F(AnimationChannelAdaptorTest, interpolationTest_dynamicDataArrays) {
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	context.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 4);
+	context.set({animChannel, &user_types::AnimationChannel::animationIndex_}, 4);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 4);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 4);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	context.set({animChannel, &raco::user_types::AnimationChannel::animationIndex_}, 3);
+	context.set({animChannel, &user_types::AnimationChannel::animationIndex_}, 3);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 2);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentIn"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.tangentOut"), nullptr);
 }
 
 
@@ -177,18 +172,18 @@ TEST_F(AnimationChannelAdaptorTest, mesh_baked_flag_true_anim_data_gets_imported
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string()};
-	commandInterface.set({mesh, &raco::user_types::Mesh::uri_}, uriPath);
+	commandInterface.set({mesh, &user_types::Mesh::uri_}, uriPath);
 	dispatch();
 
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 2);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 }
 
 TEST_F(AnimationChannelAdaptorTest, component_type_array_valid) {
@@ -197,24 +192,12 @@ TEST_F(AnimationChannelAdaptorTest, component_type_array_valid) {
 	dispatch();
 
 	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
+	commandInterface.set({animChannel, &user_types::AnimationChannel::uri_}, uriPath);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 2);
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
-	ASSERT_NE(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
-	ASSERT_EQ(select<rlogic::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
-}
-
-TEST_F(AnimationChannelAdaptorTest_FL3, component_type_array_invalid_fl3) {
-	auto animChannel = context.createObject(AnimationChannel::typeDescription.typeName, "Animation Sampler Name");
-
-	dispatch();
-
-	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
-	commandInterface.set({animChannel, &raco::user_types::AnimationChannel::uri_}, uriPath);
-	dispatch();
-
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::DataArray>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::DataArray>().size(), 2);
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.keyframes")->getUserId(), animChannel->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps"), nullptr);
+	ASSERT_EQ(select<ramses::DataArray>(sceneContext.logicEngine(), "Animation Sampler Name.timestamps")->getUserId(), animChannel->objectIDAsRamsesLogicID());
 }

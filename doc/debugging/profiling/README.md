@@ -50,7 +50,7 @@ the Graphics memory section can provide a hint towards the video memory required
 Most hardware vendors provide specialized tools for GPU Debugging and profiling. To list a few examples:
 
 * [NVidia NSight](https://developer.nvidia.com/nsight-graphics)
-* [Intel GPA](https://www.intel.com/content/www/us/en/developer/tools/graphics-performance-analyzers/download.html)
 * [Snapdragon profiler](https://developer.qualcomm.com/software/snapdragon-profiler)
+* Intel GPA
 
 Those tools are very powerful and usually give device-specific hints about optimization potentials in your app.

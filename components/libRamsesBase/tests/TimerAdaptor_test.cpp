@@ -21,8 +21,8 @@ TEST_F(TimerAdaptorTest, defaultConstruction) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::TimerNode>().size(), 1);
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::TimerNode>().begin()->getUserId(), timer->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::TimerNode>().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::TimerNode>().begin()->getUserId(), timer->objectIDAsRamsesLogicID());
 }
 
 TEST_F(TimerAdaptorTest, renaming) {
@@ -33,10 +33,10 @@ TEST_F(TimerAdaptorTest, renaming) {
 	context.set({timer, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::TimerNode>().size(), 1);
-	ASSERT_EQ(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer"), nullptr);
-	ASSERT_NE(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Changed"), nullptr);
-	ASSERT_EQ(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Changed")->getUserId(), timer->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::TimerNode>().size(), 1);
+	ASSERT_EQ(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer"), nullptr);
+	ASSERT_NE(select<ramses::TimerNode>(sceneContext.logicEngine(), "Changed"), nullptr);
+	ASSERT_EQ(select<ramses::TimerNode>(sceneContext.logicEngine(), "Changed")->getUserId(), timer->objectIDAsRamsesLogicID());
 }
 
 TEST_F(TimerAdaptorTest, multipleTimers) {
@@ -46,19 +46,19 @@ TEST_F(TimerAdaptorTest, multipleTimers) {
 	auto timer2 = context.createObject(Timer::typeDescription.typeName, "Timer2");
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::TimerNode>().size(), 2);
-	ASSERT_NE(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer"), nullptr);
-	ASSERT_EQ(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer")->getUserId(), timer->objectIDAsRamsesLogicID());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::TimerNode>().size(), 2);
+	ASSERT_NE(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer"), nullptr);
+	ASSERT_EQ(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer")->getUserId(), timer->objectIDAsRamsesLogicID());
 
-	ASSERT_NE(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer2"), nullptr);
-	ASSERT_EQ(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer2")->getUserId(), timer2->objectIDAsRamsesLogicID());
+	ASSERT_NE(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer2"), nullptr);
+	ASSERT_EQ(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer2")->getUserId(), timer2->objectIDAsRamsesLogicID());
 
 	context.deleteObjects({timer2});
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::TimerNode>().size(), 1);
-	ASSERT_NE(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer"), nullptr);
-	ASSERT_EQ(select<rlogic::TimerNode>(sceneContext.logicEngine(), "Timer2"), nullptr);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::TimerNode>().size(), 1);
+	ASSERT_NE(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer"), nullptr);
+	ASSERT_EQ(select<ramses::TimerNode>(sceneContext.logicEngine(), "Timer2"), nullptr);
 }
 
 TEST_F(TimerAdaptorTest, InputZeroOutputNotZero) {

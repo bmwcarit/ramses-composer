@@ -66,7 +66,7 @@ protected:
 	std::unordered_map<std::string, std::unordered_set<typename Base::Callback*>> callbacks_;
 };
 
-class ProjectFileChangeMonitor : public GenericFileChangeMonitorImpl<raco::core::FileChangeMonitorInterface<std::function<void(void)>>> {
+class ProjectFileChangeMonitor : public GenericFileChangeMonitorImpl<core::FileChangeMonitorInterface<std::function<void(void)>>> {
 public:
 	ProjectFileChangeMonitor() : GenericFileChangeMonitorImpl() {}
 

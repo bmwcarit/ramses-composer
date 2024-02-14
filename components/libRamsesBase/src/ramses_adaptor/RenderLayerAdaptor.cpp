@@ -22,7 +22,7 @@
 namespace raco::ramses_adaptor {
 
 RenderLayerAdaptor::RenderLayerAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderLayer> editorObject)
-	: TypedObjectAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesRenderGroup(sceneAdaptor->scene())),
+	: TypedObjectAdaptor(sceneAdaptor, editorObject, ramses_base::ramsesRenderGroup(sceneAdaptor->scene(), editorObject->objectIDAsRamsesLogicID())),
 	  subscriptions_{sceneAdaptor->dispatcher()->registerOnObjectsLifeCycle([this](SEditorObject obj) { tagDirty(); }, [this](SEditorObject obj) { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::objectName_}, [this]() { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderLayer::renderableTags_}, [this]() { tagDirty(); }),
@@ -48,7 +48,7 @@ void RenderLayerAdaptor::buildRenderGroup(core::Errors* errors) {
 	std::vector<SEditorObject> topLevelNodes;
 	std::vector<user_types::SRenderLayer> layers;
 	for (auto const& child : sceneAdaptor_->project().instances()) {
-		if (!child->getParent() && child->as<raco::user_types::Node>()) {
+		if (!child->getParent() && child->as<user_types::Node>()) {
 			topLevelNodes.emplace_back(child);
 		}
 		if (auto layer = child->as<user_types::RenderLayer>()) {
@@ -58,11 +58,11 @@ void RenderLayerAdaptor::buildRenderGroup(core::Errors* errors) {
 
 	std::set<std::string> materialTags{editorObject()->materialFilterTags()};
 	
-	raco::user_types::ERenderLayerOrder sortOrder = static_cast<raco::user_types::ERenderLayerOrder>(*editorObject()->sortOrder_);
-	bool sceneGraphOrder = sortOrder == raco::user_types::ERenderLayerOrder::SceneGraph;
+	user_types::ERenderLayerOrder sortOrder = static_cast<user_types::ERenderLayerOrder>(*editorObject()->sortOrder_);
+	bool sceneGraphOrder = sortOrder == user_types::ERenderLayerOrder::SceneGraph;
 
 	int32_t orderIndex = 0;
-	rlogic::RamsesRenderGroupBindingElements bindingElements;
+	ramses::RenderGroupBindingElements bindingElements;
 	std::vector<ramses_base::RamsesRenderGroup> nestedGroups;
 
 	for (size_t index = 0; index < editorObject()->renderableTags_->size(); index++) {
@@ -77,7 +77,7 @@ void RenderLayerAdaptor::buildRenderGroup(core::Errors* errors) {
 			container = getRamsesObjectPointer();
 		} else {
 			orderIndex = editorObject()->renderableTags_->get(index)->asInt();
-			container = raco::ramses_base::ramsesRenderGroup(sceneAdaptor_->scene());
+			container = ramses_base::ramsesRenderGroup(sceneAdaptor_->scene(), editorObject()->objectIDAsRamsesLogicID());
 			container->setName((editorObject()->objectName() + "." + renderableTag).c_str());
 		}
 
@@ -91,7 +91,7 @@ void RenderLayerAdaptor::buildRenderGroup(core::Errors* errors) {
 		}
 	}
 
-	if (!sceneGraphOrder && this->sceneAdaptor_->featureLevel() >= rlogic::EFeatureLevel::EFeatureLevel_03 && !getRamsesObjectPointer()->empty()) {
+	if (!sceneGraphOrder && !getRamsesObjectPointer()->empty()) {
 		binding_ = ramses_base::ramsesRenderGroupBinding(&sceneAdaptor_->logicEngine(), getRamsesObjectPointer(), bindingElements, nestedGroups,
 			editorObject()->objectName() + "_Binding",
 			editorObject()->objectIDAsRamsesLogicID());
@@ -104,7 +104,7 @@ void RenderLayerAdaptor::buildRenderableOrder(core::Errors* errors, ramses_base:
 		bool currentActive = parentActive || core::Queries::hasObjectTag(obj->as<user_types::Node>(), tag);
 
 		if (currentActive) {
-			if (obj->isType<raco::user_types::MeshNode>()) {
+			if (obj->isType<user_types::MeshNode>()) {
 				if (core::Queries::isMeshNodeInMaterialFilter(obj->as<user_types::MeshNode>(), materialFilterTags, materialFilterExclusive)) {
 					auto adaptor = sceneAdaptor_->lookup<MeshNodeAdaptor>(obj);
 					if (sceneGraphOrder) {
@@ -112,7 +112,7 @@ void RenderLayerAdaptor::buildRenderableOrder(core::Errors* errors, ramses_base:
 							if (ramsesObject().getMeshNodeOrder(adaptor->getRamsesObjectPointer()) != orderIndex) {
 								const auto errorMsg = fmt::format("Mesh node '{}' has been added to render layer '{}' more than once with different priorities.", obj->objectName(), editorObject()->objectName());
 								errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, {editorObject()->shared_from_this(), &user_types::RenderLayer::renderableTags_}, errorMsg);
-								LOG_WARNING(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+								LOG_WARNING(log_system::RAMSES_ADAPTOR, errorMsg);
 							}
 						} else {
 							container->addMeshNode(adaptor->getRamsesObjectPointer(), orderIndex);
@@ -123,7 +123,7 @@ void RenderLayerAdaptor::buildRenderableOrder(core::Errors* errors, ramses_base:
 							})) {
 							const auto errorMsg = fmt::format("Mesh node '{}' has been added to render layer '{}' via multiple tags.", obj->objectName(), editorObject()->objectName());
 							errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::RenderLayer::renderableTags_}, errorMsg);
-							LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+							LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 						} else {
 							container->addMeshNode(adaptor->getRamsesObjectPointer(), orderIndex);
 						}
@@ -173,13 +173,13 @@ void RenderLayerAdaptor::addNestedLayers(core::Errors* errors, ramses_base::Rams
 			if (sceneGraphOrder) {
 				const auto errorMsg = fmt::format("Render layer '{}' is using ordering by 'Scene Graph' but contains render layers. The render layers will be ignored.", editorObject()->objectName());
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::RenderLayer::sortOrder_}, errorMsg);
-				LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+				LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 				return;
 			}
 			if (containsLayer(layers, layer, editorObject())) {
 				const auto errorMsg = fmt::format("Render layer '{}' contains itself.", editorObject()->objectName());
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, {editorObject()->shared_from_this(), &user_types::RenderLayer::renderableTags_}, errorMsg);
-				LOG_WARNING(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+				LOG_WARNING(log_system::RAMSES_ADAPTOR, errorMsg);
 			} else {
 				if (auto adaptor = sceneAdaptor_->lookup<RenderLayerAdaptor>(layer); adaptor != nullptr) {
 					if (sceneGraphOrder) {
@@ -187,7 +187,7 @@ void RenderLayerAdaptor::addNestedLayers(core::Errors* errors, ramses_base::Rams
 							if (ramsesObject().getRenderGroupOrder(adaptor->getRamsesObjectPointer()) != orderIndex) {
 								const auto errorMsg = fmt::format("Render layer '{}' has been added to render layer '{}' more than once with different priorities.", layer->objectName(), editorObject()->objectName());
 								errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::WARNING, {editorObject()->shared_from_this(), &user_types::RenderLayer::renderableTags_}, errorMsg);
-								LOG_WARNING(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+								LOG_WARNING(log_system::RAMSES_ADAPTOR, errorMsg);
 							}
 						} else {
 							container->addRenderGroup(adaptor->getRamsesObjectPointer(), orderIndex);
@@ -198,7 +198,7 @@ void RenderLayerAdaptor::addNestedLayers(core::Errors* errors, ramses_base::Rams
 							})) {
 							const auto errorMsg = fmt::format("Render layer '{}' has been added to render layer '{}' via multiple tags.", layer->objectName(), editorObject()->objectName());
 							errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::RenderLayer::renderableTags_}, errorMsg);
-							LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+							LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 						} else {
 							container->addRenderGroup(adaptor->getRamsesObjectPointer(), orderIndex);
 						}
@@ -221,16 +221,16 @@ std::vector<ExportInformation> RenderLayerAdaptor::getExportInformation() const 
 		return {};
 	}
 
-	return {ExportInformation{ramses::ERamsesObjectType_RenderGroup, getRamsesObjectPointer()->getName()}};
+	return {ExportInformation{ramses::ERamsesObjectType::RenderGroup, getRamsesObjectPointer()->getName()}};
 }
 
-void RenderLayerAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void RenderLayerAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	if (binding_) {
 		logicNodes.push_back(binding_.get());
 	}
 }
 
-const rlogic::Property* RenderLayerAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
+ramses::Property* RenderLayerAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
 	if (binding_ && propertyNamesVector.size() >= 2) {
 		return binding_->getInputs()->getChild("renderOrders")->getChild(propertyNamesVector[1]);
 	}

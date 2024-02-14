@@ -19,13 +19,13 @@
 namespace raco::ramses_adaptor {
 
 class SceneAdaptor;
-using VertexDataMap = std::unordered_map<std::string, raco::ramses_base::RamsesArrayResource>;
+using VertexDataMap = std::unordered_map<std::string, ramses_base::RamsesArrayResource>;
 
 class MeshAdaptor final : public UserTypeObjectAdaptor<user_types::Mesh> {
 public:
 	explicit MeshAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMesh mesh);
 
-	raco::ramses_base::RamsesArrayResource indicesPtr();
+	ramses_base::RamsesArrayResource indicesPtr();
 	const VertexDataMap& vertexData() const;
 	bool isValid();
 	
@@ -35,7 +35,7 @@ public:
 
 private:
 	VertexDataMap vertexDataMap_;
-	raco::ramses_base::RamsesArrayResource indices_;
+	ramses_base::RamsesArrayResource indices_;
 	core::FileChangeMonitor::UniqueListener meshFileChangeListener_;
 	components::Subscription subscription_;
 	components::Subscription nameSubscription_;

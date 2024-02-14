@@ -60,6 +60,8 @@ public:
 	explicit VecNTEditor(
 		PropertyBrowserItem* item,
 		QWidget* parent = nullptr);
+	bool eventFilter(QObject* watched, QEvent* event) override;
+	void displayCopyContextMenu(size_t spinboxIndex);
 
 public Q_SLOTS:
 	void setEnabled(bool val);

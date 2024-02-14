@@ -14,7 +14,7 @@
 #include "components/DataChangeDispatcher.h"
 #include "user_types/LuaScript.h"
 
-#include <ramses-logic/LuaScript.h>
+#include <ramses/client/logic/LuaScript.h>
 
 #include <memory>
 #include <vector>
@@ -24,8 +24,8 @@ namespace raco::ramses_adaptor {
 class LuaScriptAdaptor : public UserTypeObjectAdaptor<user_types::LuaScript>, public ILogicPropertyProvider {
 public:
 	explicit LuaScriptAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::LuaScript> editorObject);
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 
 	bool sync(core::Errors* errors) override;
@@ -37,7 +37,7 @@ private:
 	void setupInputValuesSubscription();
 	std::string generateRamsesObjectName() const;
 
-	rlogic::LuaScript* rlogicLuaScript() const {
+	ramses::LuaScript* rlogicLuaScript() const {
 		return luaScript_.get();
 	}
 

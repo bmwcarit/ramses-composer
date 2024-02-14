@@ -52,6 +52,7 @@ void LuaScript::updateFromExternalFile(BaseContext& context) {
 }
 
 void LuaScript::syncLuaScript(BaseContext& context, bool syncModules) {
+	// TODO(error) try to avoid unnecessary error item updates
 	context.errors().removeAll({shared_from_this()});
 
 	PropertyInterfaceList inputs{};

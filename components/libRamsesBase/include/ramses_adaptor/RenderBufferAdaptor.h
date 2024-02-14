@@ -12,7 +12,7 @@
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "user_types/RenderBuffer.h"
 #include <memory>
-#include <ramses-client-api/RenderBuffer.h>
+#include <ramses/client/RenderBuffer.h>
 
 namespace raco::ramses_adaptor {
 

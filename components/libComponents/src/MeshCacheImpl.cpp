@@ -50,31 +50,31 @@ void MeshCacheImpl::notify(const std::string& absPath) {
 	}
 }
 
-raco::core::SharedMeshData MeshCacheImpl::loadMesh(const raco::core::MeshDescriptor &descriptor) {
+core::SharedMeshData MeshCacheImpl::loadMesh(const core::MeshDescriptor &descriptor) {
 	auto *loader = getLoader(descriptor.absPath);
 	assert(loader != nullptr);
 	return loader->loadMesh(descriptor);
 }
 
-const raco::core::MeshScenegraph *raco::components::MeshCacheImpl::getMeshScenegraph(const std::string &absPath) {
+const core::MeshScenegraph *components::MeshCacheImpl::getMeshScenegraph(const std::string &absPath) {
 	auto *loader = getLoader(absPath);
 	assert(loader != nullptr);
 	return loader->getScenegraph(absPath);
 }
 
-std::string raco::components::MeshCacheImpl::getMeshError(const std::string &absPath) {
+std::string components::MeshCacheImpl::getMeshError(const std::string &absPath) {
 	auto *loader = getLoader(absPath);
 	assert(loader != nullptr);
 	return loader->getError();
 }
 
-int raco::components::MeshCacheImpl::getTotalMeshCount(const std::string &absPath) {
+int components::MeshCacheImpl::getTotalMeshCount(const std::string &absPath) {
 	auto *loader = getLoader(absPath);
 	assert(loader != nullptr);
 	return loader->getTotalMeshCount();
 }
 
-raco::core::SharedAnimationSamplerData MeshCacheImpl::getAnimationSamplerData(const std::string &absPath, int animIndex, int samplerIndex) {
+core::SharedAnimationSamplerData MeshCacheImpl::getAnimationSamplerData(const std::string &absPath, int animIndex, int samplerIndex) {
 	auto *loader = getLoader(absPath);
 	assert(loader != nullptr);
 	return loader->getAnimationSamplerData(absPath, animIndex, samplerIndex);
@@ -100,7 +100,7 @@ bool endsWith(std::string const &text, std::string const &ending) {
 	return 0 == text.compare(startPos, ending.length(), ending);
 }
 
-raco::core::MeshCacheEntry *MeshCacheImpl::getLoader(std::string absPath) {
+core::MeshCacheEntry *MeshCacheImpl::getLoader(std::string absPath) {
 	bool isGltfMesh = endsWith(absPath, ".gltf") || endsWith(absPath, ".glb");
 	bool isCTMMesh = endsWith(absPath, ".ctm");
 	if (isGltfMesh || isCTMMesh) {
@@ -112,9 +112,9 @@ raco::core::MeshCacheEntry *MeshCacheImpl::getLoader(std::string absPath) {
 		assert(callbacks_.find(absPath) != callbacks_.end());
 		if (meshCacheEntries_.count(absPath) == 0) {
 			if (isGltfMesh) {
-				meshCacheEntries_[absPath] = std::unique_ptr<raco::core::MeshCacheEntry>(new mesh_loader::glTFFileLoader(absPath));
+				meshCacheEntries_[absPath] = std::unique_ptr<core::MeshCacheEntry>(new mesh_loader::glTFFileLoader(absPath));
 			} else if (isCTMMesh) {
-				meshCacheEntries_[absPath] = std::unique_ptr<raco::core::MeshCacheEntry>(new mesh_loader::CTMFileLoader(absPath));
+				meshCacheEntries_[absPath] = std::unique_ptr<core::MeshCacheEntry>(new mesh_loader::CTMFileLoader(absPath));
 			}
 		}
 		return meshCacheEntries_[absPath].get();

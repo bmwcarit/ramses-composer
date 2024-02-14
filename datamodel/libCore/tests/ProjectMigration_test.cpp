@@ -10,6 +10,7 @@
 #include "core/Queries.h"
 
 #include "core/DynamicEditorObject.h"
+#include "core/ExternalReferenceAnnotation.h"
 #include "core/ProjectMigration.h"
 #include "core/ProjectMigrationToV23.h"
 #include "core/ProxyObjectFactory.h"
@@ -49,17 +50,17 @@ using namespace raco::core;
 const char testName_old[] = "Test";
 const char testName_new[] = "Test";
 
-static_assert(!std::is_same<raco::serialization::proxy::Proxy<testName_old>, raco::serialization::proxy::Proxy<testName_new>>::value);
+static_assert(!std::is_same<serialization::proxy::Proxy<testName_old>, serialization::proxy::Proxy<testName_new>>::value);
 
 struct MigrationTest : public TestEnvironmentCore {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	ramses_base::HeadlessEngineBackend backend;
 	raco::application::RaCoApplication application{backend};
 
 	// Check if the property types coming out of the migration code agree with the types
 	// in the current version of the user types.
 	// Failure indicates missing migration code.
-	void checkPropertyTypes(const raco::serialization::ProjectDeserializationInfoIR& deserializedIR) {
-		auto userTypesPropMap = raco::serialization::makeUserTypePropertyMap();
+	void checkPropertyTypes(const serialization::ProjectDeserializationInfoIR& deserializedIR) {
+		auto userTypesPropMap = serialization::makeUserTypePropertyMap();
 
 		for (const auto obj : deserializedIR.objects) {
 			const auto& typesMap = userTypesPropMap.at(obj->getTypeDescription().typeName);
@@ -78,16 +79,16 @@ struct MigrationTest : public TestEnvironmentCore {
 		EXPECT_TRUE(file.open(QIODevice::ReadOnly | QIODevice::Text));
 		auto document{QJsonDocument::fromJson(file.readAll())};
 		file.close();
-		auto fileVersion{raco::serialization::deserializeFileVersion(document)};
-		EXPECT_TRUE(fileVersion <= raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+		auto fileVersion{serialization::deserializeFileVersion(document)};
+		EXPECT_TRUE(fileVersion <= serialization::RAMSES_PROJECT_FILE_VERSION);
 		if (outFileVersion) {
 			*outFileVersion = fileVersion;
 		}
 
 		// Perform deserialization to IR and migration by hand to check output of migration code:
-		auto deserializedIR{raco::serialization::deserializeProjectToIR(document, filename.toStdString())};
-		auto& factory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
-		raco::serialization::migrateProject(deserializedIR, factory);
+		auto deserializedIR{serialization::deserializeProjectToIR(document, filename.toStdString())};
+		auto& factory{serialization::proxy::ProxyObjectFactory::getInstance()};
+		serialization::migrateProject(deserializedIR, factory);
 		checkPropertyTypes(deserializedIR);
 
 		LoadContext loadContext;
@@ -108,13 +109,13 @@ TEST_F(MigrationTest, migrate_from_V1) {
 TEST_F(MigrationTest, migrate_from_V9) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V9.rca").string()));
 
-	auto p = std::dynamic_pointer_cast<raco::user_types::PerspectiveCamera>(raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera"));
+	auto p = std::dynamic_pointer_cast<user_types::PerspectiveCamera>(core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera"));
 	ASSERT_EQ(p->viewport_->offsetX_.asInt(), 1);
 	ASSERT_EQ(p->viewport_->offsetY_.asInt(), 1);
 	ASSERT_EQ(p->viewport_->width_.asInt(), 1441);
 	ASSERT_EQ(p->viewport_->height_.asInt(), 721);
 
-	auto o = std::dynamic_pointer_cast<raco::user_types::OrthographicCamera>(raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera"));
+	auto o = std::dynamic_pointer_cast<user_types::OrthographicCamera>(core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera"));
 	ASSERT_EQ(o->viewport_->offsetX_.asInt(), 2);
 	ASSERT_EQ(o->viewport_->offsetY_.asInt(), 2);
 	ASSERT_EQ(o->viewport_->width_.asInt(), 1442);
@@ -124,7 +125,7 @@ TEST_F(MigrationTest, migrate_from_V9) {
 TEST_F(MigrationTest, migrate_from_V10) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V10.rca").string()));
 
-	auto meshnode = raco::core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<raco::user_types::MeshNode>();
+	auto meshnode = core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<user_types::MeshNode>();
 
 	ASSERT_TRUE(meshnode != nullptr);
 	auto options = meshnode->getMaterialOptionsHandle(0);
@@ -136,17 +137,17 @@ TEST_F(MigrationTest, migrate_from_V10) {
 	ASSERT_TRUE(meshnode->getMaterialPrivateHandle(0));
 	ASSERT_TRUE(meshnode->getMaterialPrivateHandle(0).asBool());
 
-	auto material = raco::core::Queries::findByName(racoproject->project()->instances(), "Material")->as<raco::user_types::Material>();
+	auto material = core::Queries::findByName(racoproject->project()->instances(), "Material")->as<user_types::Material>();
 
 	ASSERT_TRUE(material != nullptr);
 	ASSERT_TRUE(material->uniforms_->size() > 0);
 	for (size_t i = 0; i < material->uniforms_->size(); i++) {
-		auto engineType = material->uniforms_->get(i)->query<raco::user_types::EngineTypeAnnotation>()->type();
-		bool hasLinkAnno = material->uniforms_->get(i)->query<raco::core::LinkEndAnnotation>() != nullptr;
-		ASSERT_TRUE((raco::core::PropertyInterface::primitiveType(engineType) != raco::data_storage::PrimitiveType::Ref) == hasLinkAnno);
+		auto engineType = material->uniforms_->get(i)->query<user_types::EngineTypeAnnotation>()->type();
+		bool hasLinkAnno = material->uniforms_->get(i)->query<core::LinkEndAnnotation>() != nullptr;
+		ASSERT_TRUE((core::PropertyInterface::primitiveType(engineType) != data_storage::PrimitiveType::Ref) == hasLinkAnno);
 	}
 
-	ValueHandle uniforms{material, &raco::user_types::Material::uniforms_};
+	ValueHandle uniforms{material, &user_types::Material::uniforms_};
 	ASSERT_EQ(uniforms.get("scalar").asDouble(), 42.0);
 	ASSERT_EQ(uniforms.get("count_").asInt(), 42);
 	ASSERT_EQ(*uniforms.get("vec").asVec3f().x, 0.1);
@@ -157,7 +158,7 @@ TEST_F(MigrationTest, migrate_from_V10) {
 TEST_F(MigrationTest, migrate_from_V12) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V12.rca").string()));
 
-	auto pcam = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
+	auto pcam = core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<user_types::PerspectiveCamera>();
 	ASSERT_EQ(*pcam->viewport_->offsetX_, 1);
 	ASSERT_EQ(*pcam->viewport_->offsetY_, 3);  // linked
 	ASSERT_EQ(*pcam->viewport_->width_, 1441);
@@ -168,7 +169,7 @@ TEST_F(MigrationTest, migrate_from_V12) {
 	ASSERT_EQ(pcam->frustum_->get("fieldOfView")->asDouble(), 36.0);
 	ASSERT_EQ(pcam->frustum_->get("aspectRatio")->asDouble(), 3.0);
 
-	auto ocam = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
+	auto ocam = core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<user_types::OrthographicCamera>();
 	ASSERT_EQ(*ocam->viewport_->offsetX_, 2);
 	ASSERT_EQ(*ocam->viewport_->offsetY_, 3);  // linked
 	ASSERT_EQ(*ocam->viewport_->width_, 1442);
@@ -181,51 +182,51 @@ TEST_F(MigrationTest, migrate_from_V12) {
 	ASSERT_EQ(*ocam->frustum_->bottom_, -8.0);
 	ASSERT_EQ(*ocam->frustum_->top_, 12.0);
 
-	auto material = raco::core::Queries::findByName(racoproject->project()->instances(), "Material")->as<raco::user_types::Material>();
-	ASSERT_EQ(*material->options_->blendOperationColor_, ramses::EBlendOperation_Max);
-	ASSERT_EQ(*material->options_->blendOperationAlpha_, ramses::EBlendOperation_Add);
+	auto material = core::Queries::findByName(racoproject->project()->instances(), "Material")->as<user_types::Material>();
+	ASSERT_EQ(*material->options_->blendOperationColor_, static_cast<int>(user_types::EBlendOperation::Max));
+	ASSERT_EQ(*material->options_->blendOperationAlpha_, static_cast<int>(user_types::EBlendOperation::Add));
 
-	ASSERT_EQ(*material->options_->blendFactorSrcColor_, ramses::EBlendFactor_One);
-	ASSERT_EQ(*material->options_->blendFactorDestColor_, ramses::EBlendFactor_AlphaSaturate);
-	ASSERT_EQ(*material->options_->blendFactorSrcAlpha_, ramses::EBlendFactor_Zero);
-	ASSERT_EQ(*material->options_->blendFactorDestAlpha_, ramses::EBlendFactor_AlphaSaturate);
+	ASSERT_EQ(*material->options_->blendFactorSrcColor_, static_cast<int>(user_types::EBlendFactor::One));
+	ASSERT_EQ(*material->options_->blendFactorDestColor_, static_cast<int>(user_types::EBlendFactor::AlphaSaturate));
+	ASSERT_EQ(*material->options_->blendFactorSrcAlpha_, static_cast<int>(user_types::EBlendFactor::Zero));
+	ASSERT_EQ(*material->options_->blendFactorDestAlpha_, static_cast<int>(user_types::EBlendFactor::AlphaSaturate));
 
 	ASSERT_EQ(*material->options_->depthwrite_, false);
-	ASSERT_EQ(*material->options_->depthFunction_, ramses::EDepthFunc_Never);
-	ASSERT_EQ(*material->options_->cullmode_, ramses::ECullMode_FrontAndBackFacing);
+	ASSERT_EQ(*material->options_->depthFunction_, static_cast<int>(user_types::EDepthFunc::Never));
+	ASSERT_EQ(*material->options_->cullmode_, static_cast<int>(user_types::ECullMode::FrontAndBackFacing));
 
 	ASSERT_EQ(*material->options_->blendColor_->x, 1.0);
 	ASSERT_EQ(*material->options_->blendColor_->y, 2.0);
 	ASSERT_EQ(*material->options_->blendColor_->z, 3.0);
 	ASSERT_EQ(*material->options_->blendColor_->w, 4.0);
 
-	auto meshnode = raco::core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<raco::user_types::MeshNode>();
-	auto options = dynamic_cast<const raco::user_types::BlendOptions*>(&meshnode->materials_->get(0)->asTable().get("options")->asStruct());
+	auto meshnode = core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<user_types::MeshNode>();
+	auto options = dynamic_cast<const user_types::BlendOptions*>(&meshnode->materials_->get(0)->asTable().get("options")->asStruct());
 
-	ASSERT_EQ(*options->blendOperationColor_, ramses::EBlendOperation_Add);
-	ASSERT_EQ(*options->blendOperationAlpha_, ramses::EBlendOperation_Max);
+	ASSERT_EQ(*options->blendOperationColor_, static_cast<int>(user_types::EBlendOperation::Add));
+	ASSERT_EQ(*options->blendOperationAlpha_, static_cast<int>(user_types::EBlendOperation::Max));
 
-	ASSERT_EQ(*options->blendFactorSrcColor_, ramses::EBlendFactor_AlphaSaturate);
-	ASSERT_EQ(*options->blendFactorDestColor_, ramses::EBlendFactor_One);
-	ASSERT_EQ(*options->blendFactorSrcAlpha_, ramses::EBlendFactor_AlphaSaturate);
-	ASSERT_EQ(*options->blendFactorDestAlpha_, ramses::EBlendFactor_Zero);
+	ASSERT_EQ(*options->blendFactorSrcColor_, static_cast<int>(user_types::EBlendFactor::AlphaSaturate));
+	ASSERT_EQ(*options->blendFactorDestColor_, static_cast<int>(user_types::EBlendFactor::One));
+	ASSERT_EQ(*options->blendFactorSrcAlpha_, static_cast<int>(user_types::EBlendFactor::AlphaSaturate));
+	ASSERT_EQ(*options->blendFactorDestAlpha_, static_cast<int>(user_types::EBlendFactor::Zero));
 
 	ASSERT_EQ(*options->depthwrite_, false);
-	ASSERT_EQ(*options->depthFunction_, ramses::EDepthFunc_Never);
-	ASSERT_EQ(*options->cullmode_, ramses::ECullMode_FrontAndBackFacing);
+	ASSERT_EQ(*options->depthFunction_, static_cast<int>(user_types::EDepthFunc::Never));
+	ASSERT_EQ(*options->cullmode_, static_cast<int>(user_types::ECullMode::FrontAndBackFacing));
 
 	ASSERT_EQ(*options->blendColor_->x, 4.0);
 	ASSERT_EQ(*options->blendColor_->y, 3.0);
 	ASSERT_EQ(*options->blendColor_->z, 2.0);
 	ASSERT_EQ(*options->blendColor_->w, 1.0);
 
-	auto meshnode_no_mesh = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mesh")->as<raco::user_types::MeshNode>();
+	auto meshnode_no_mesh = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mesh")->as<user_types::MeshNode>();
 	ASSERT_EQ(meshnode_no_mesh->materials_->size(), 0);
 
-	auto meshnode_mesh_no_mat = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mesh_no_mat")->as<raco::user_types::MeshNode>();
+	auto meshnode_mesh_no_mat = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mesh_no_mat")->as<user_types::MeshNode>();
 	ASSERT_EQ(meshnode_mesh_no_mat->materials_->size(), 1);
 
-	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
+	auto lua = core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<user_types::LuaScript>();
 	checkLinks(*racoproject->project(), {{{lua, {"outputs", "int"}}, {pcam, {"viewport", "offsetY"}}},
 											{{lua, {"outputs", "float"}}, {pcam, {"frustum", "nearPlane"}}},
 											{{lua, {"outputs", "int"}}, {ocam, {"viewport", "offsetY"}}},
@@ -235,35 +236,35 @@ TEST_F(MigrationTest, migrate_from_V12) {
 TEST_F(MigrationTest, migrate_from_V13) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V13.rca").string()));
 
-	auto textureNotFlipped = raco::core::Queries::findByName(racoproject->project()->instances(), "DuckTextureNotFlipped")->as<raco::user_types::Texture>();
+	auto textureNotFlipped = core::Queries::findByName(racoproject->project()->instances(), "DuckTextureNotFlipped")->as<user_types::Texture>();
 	ASSERT_FALSE(*textureNotFlipped->flipTexture_);
 
-	auto textureFlipped = raco::core::Queries::findByName(racoproject->project()->instances(), "DuckTextureFlipped")->as<raco::user_types::Texture>();
+	auto textureFlipped = core::Queries::findByName(racoproject->project()->instances(), "DuckTextureFlipped")->as<user_types::Texture>();
 	ASSERT_TRUE(*textureFlipped->flipTexture_);
 }
 
 TEST_F(MigrationTest, migrate_from_V14) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V14.rca").string()));
 
-	auto camera = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
-	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
+	auto camera = core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<user_types::PerspectiveCamera>();
+	auto renderpass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
 	ASSERT_EQ(*renderpass->camera_, camera);
 
-	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<raco::user_types::Texture>();
-	auto mat_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<raco::user_types::Material>();
-	auto mat_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<raco::user_types::Material>();
+	auto texture = core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<user_types::Texture>();
+	auto mat_no_tex = core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<user_types::Material>();
+	auto mat_with_tex = core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<user_types::Material>();
 
 	ASSERT_EQ(mat_no_tex->uniforms_->get("u_Tex")->asRef(), nullptr);
 	ASSERT_EQ(mat_with_tex->uniforms_->get("u_Tex")->asRef(), texture);
 
-	auto buffer = create<raco::user_types::RenderBuffer>("buffer");
+	auto buffer = create<user_types::RenderBuffer>("buffer");
 	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
 	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
 
-	auto meshnode_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<raco::user_types::MeshNode>();
-	auto meshnode_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<raco::user_types::MeshNode>();
+	auto meshnode_no_tex = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<user_types::MeshNode>();
+	auto meshnode_with_tex = core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<user_types::MeshNode>();
 
 	ASSERT_EQ(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->asRef(), nullptr);
 	ASSERT_EQ(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->asRef(), texture);
@@ -277,25 +278,25 @@ TEST_F(MigrationTest, migrate_from_V14) {
 TEST_F(MigrationTest, migrate_from_V14b) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V14b.rca").string()));
 
-	auto camera = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
-	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
+	auto camera = core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<user_types::OrthographicCamera>();
+	auto renderpass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
 	ASSERT_EQ(*renderpass->camera_, camera);
 
-	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<raco::user_types::Texture>();
-	auto mat_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<raco::user_types::Material>();
-	auto mat_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<raco::user_types::Material>();
+	auto texture = core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<user_types::Texture>();
+	auto mat_no_tex = core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<user_types::Material>();
+	auto mat_with_tex = core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<user_types::Material>();
 
 	ASSERT_EQ(mat_no_tex->uniforms_->get("u_Tex")->asRef(), nullptr);
 	ASSERT_EQ(mat_with_tex->uniforms_->get("u_Tex")->asRef(), texture);
 
-	auto buffer = create<raco::user_types::RenderBuffer>("buffer");
+	auto buffer = create<user_types::RenderBuffer>("buffer");
 	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
 	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
 
-	auto meshnode_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<raco::user_types::MeshNode>();
-	auto meshnode_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<raco::user_types::MeshNode>();
+	auto meshnode_no_tex = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<user_types::MeshNode>();
+	auto meshnode_with_tex = core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<user_types::MeshNode>();
 
 	ASSERT_EQ(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->asRef(), nullptr);
 	ASSERT_EQ(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->asRef(), texture);
@@ -309,24 +310,24 @@ TEST_F(MigrationTest, migrate_from_V14b) {
 TEST_F(MigrationTest, migrate_from_V14c) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V14c.rca").string()));
 
-	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<raco::user_types::RenderPass>();
+	auto renderpass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
 	ASSERT_EQ(*renderpass->camera_, nullptr);
 
-	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<raco::user_types::Texture>();
-	auto mat_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<raco::user_types::Material>();
-	auto mat_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<raco::user_types::Material>();
+	auto texture = core::Queries::findByName(racoproject->project()->instances(), "Texture")->as<user_types::Texture>();
+	auto mat_no_tex = core::Queries::findByName(racoproject->project()->instances(), "mat_no_tex")->as<user_types::Material>();
+	auto mat_with_tex = core::Queries::findByName(racoproject->project()->instances(), "mat_with_tex")->as<user_types::Material>();
 
 	ASSERT_EQ(mat_no_tex->uniforms_->get("u_Tex")->asRef(), nullptr);
 	ASSERT_EQ(mat_with_tex->uniforms_->get("u_Tex")->asRef(), texture);
 
-	auto buffer = create<raco::user_types::RenderBuffer>("buffer");
+	auto buffer = create<user_types::RenderBuffer>("buffer");
 	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(texture));
 	ASSERT_TRUE(mat_no_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
 	ASSERT_TRUE(mat_with_tex->uniforms_->get("u_Tex")->canSetRef(buffer));
 
-	auto meshnode_no_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<raco::user_types::MeshNode>();
-	auto meshnode_with_tex = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<raco::user_types::MeshNode>();
+	auto meshnode_no_tex = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<user_types::MeshNode>();
+	auto meshnode_with_tex = core::Queries::findByName(racoproject->project()->instances(), "meshnode_with_tex")->as<user_types::MeshNode>();
 
 	ASSERT_EQ(meshnode_no_tex->getUniformContainer(0)->get("u_Tex")->asRef(), nullptr);
 	ASSERT_EQ(meshnode_with_tex->getUniformContainer(0)->get("u_Tex")->asRef(), texture);
@@ -340,12 +341,12 @@ TEST_F(MigrationTest, migrate_from_V14c) {
 TEST_F(MigrationTest, migrate_from_V16) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V16.rca").string()));
 
-	auto renderlayeropt = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerOptimized")->as<raco::user_types::RenderLayer>();
-	ASSERT_EQ(renderlayeropt->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
-	auto renderlayermanual = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<raco::user_types::RenderLayer>();
-	ASSERT_EQ(renderlayermanual->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::Manual));
-	auto renderlayerscenegraph = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerSceneGraph")->as<raco::user_types::RenderLayer>();
-	ASSERT_EQ(renderlayerscenegraph->sortOrder_.asInt(), static_cast<int>(raco::user_types::ERenderLayerOrder::SceneGraph));
+	auto renderlayeropt = core::Queries::findByName(racoproject->project()->instances(), "RenderLayerOptimized")->as<user_types::RenderLayer>();
+	ASSERT_EQ(renderlayeropt->sortOrder_.asInt(), static_cast<int>(user_types::ERenderLayerOrder::Manual));
+	auto renderlayermanual = core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<user_types::RenderLayer>();
+	ASSERT_EQ(renderlayermanual->sortOrder_.asInt(), static_cast<int>(user_types::ERenderLayerOrder::Manual));
+	auto renderlayerscenegraph = core::Queries::findByName(racoproject->project()->instances(), "RenderLayerSceneGraph")->as<user_types::RenderLayer>();
+	ASSERT_EQ(renderlayerscenegraph->sortOrder_.asInt(), static_cast<int>(user_types::ERenderLayerOrder::SceneGraph));
 }
 
 TEST_F(MigrationTest, migrate_from_V18) {
@@ -378,7 +379,7 @@ TEST_F(MigrationTest, migrate_from_V21_custom_paths) {
 	std::string scriptSubdirectory = "spts";
 	std::string shaderSubdirectory = "shds";
 
-	auto preferencesFile = raco::core::PathManager::preferenceFilePath();
+	auto preferencesFile = core::PathManager::preferenceFilePath();
 	if (preferencesFile.exists()) {
 		std::filesystem::remove(preferencesFile);
 	}
@@ -410,10 +411,10 @@ TEST_F(MigrationTest, migrate_from_V21_custom_paths) {
 TEST_F(MigrationTest, migrate_from_V23) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V23.rca").string()));
 
-	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
-	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
-	auto prefab_node = prefab->children_->asVector<SEditorObject>()[0]->as<raco::user_types::Node>();
-	auto inst_node = inst->children_->asVector<SEditorObject>()[0]->as<raco::user_types::Node>();
+	auto prefab = core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<user_types::Prefab>();
+	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
+	auto prefab_node = prefab->children_->asVector<SEditorObject>()[0]->as<user_types::Node>();
+	auto inst_node = inst->children_->asVector<SEditorObject>()[0]->as<user_types::Node>();
 
 	EXPECT_EQ(inst_node->objectID(), EditorObject::XorObjectIDs(prefab_node->objectID(), inst->objectID()));
 }
@@ -421,8 +422,8 @@ TEST_F(MigrationTest, migrate_from_V23) {
 TEST_F(MigrationTest, migrate_from_V29) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V29.rca").string()));
 
-	auto animation = raco::core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<raco::user_types::Animation>();
-	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
+	auto animation = core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<user_types::Animation>();
+	auto lua = core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<user_types::LuaScript>();
 
 	EXPECT_TRUE(lua->outputs_->hasProperty("flag"));
 	EXPECT_EQ(racoproject->project()->links().size(), 0);
@@ -435,11 +436,11 @@ TEST_F(MigrationTest, migrate_from_V29) {
 TEST_F(MigrationTest, migrate_V29_to_V33) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V29_tags.rca").string()));
 
-	auto node = raco::core::Queries::findByName(racoproject->project()->instances(), "Node")->as<raco::user_types::Node>();
-	auto mat_front = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_front")->as<raco::user_types::Material>();
-	auto mat_back = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_back")->as<raco::user_types::Material>();
+	auto node = core::Queries::findByName(racoproject->project()->instances(), "Node")->as<user_types::Node>();
+	auto mat_front = core::Queries::findByName(racoproject->project()->instances(), "mat_front")->as<user_types::Material>();
+	auto mat_back = core::Queries::findByName(racoproject->project()->instances(), "mat_back")->as<user_types::Material>();
 
-	auto renderlayermanual = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<raco::user_types::RenderLayer>();
+	auto renderlayermanual = core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<user_types::RenderLayer>();
 
 	EXPECT_EQ(node->tags_->asVector<std::string>(), std::vector<std::string>({"render_main"}));
 
@@ -459,31 +460,31 @@ TEST_F(MigrationTest, migrate_V30_to_V34) {
 	// So we use a V29 file instead.
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V29_renderlayer.rca").string()));
 
-	auto layer_excl = raco::core::Queries::findByName(racoproject->project()->instances(), "layer_exclusive")->as<raco::user_types::RenderLayer>();
-	auto layer_incl = raco::core::Queries::findByName(racoproject->project()->instances(), "layer_inclusive")->as<raco::user_types::RenderLayer>();
+	auto layer_excl = core::Queries::findByName(racoproject->project()->instances(), "layer_exclusive")->as<user_types::RenderLayer>();
+	auto layer_incl = core::Queries::findByName(racoproject->project()->instances(), "layer_inclusive")->as<user_types::RenderLayer>();
 
-	EXPECT_EQ(*layer_excl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Exclusive));
-	EXPECT_EQ(*layer_incl->materialFilterMode_, static_cast<int>(raco::user_types::ERenderLayerMaterialFilterMode::Inclusive));
+	EXPECT_EQ(*layer_excl->materialFilterMode_, static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Exclusive));
+	EXPECT_EQ(*layer_incl->materialFilterMode_, static_cast<int>(user_types::ERenderLayerMaterialFilterMode::Inclusive));
 }
 
 TEST_F(MigrationTest, migrate_from_V35) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V35.rca").string()));
 
-	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
-	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
-	auto global_lua = raco::core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<raco::user_types::LuaScript>();
+	auto prefab = core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<user_types::Prefab>();
+	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
+	auto global_lua = core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<user_types::LuaScript>();
 
-	auto prefab_lua_types = raco::select<raco::user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_types = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_array = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "array");
+	auto prefab_lua_types = raco::select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_array = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "array");
 
 	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
 
-	auto inst_lua_types = raco::select<raco::user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_types = raco::select<raco::user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_array = raco::select<raco::user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "array");
+	auto inst_lua_types = raco::select<user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = raco::select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_array = raco::select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "array");
 
 	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst->objectID()));
 
@@ -505,19 +506,19 @@ TEST_F(MigrationTest, migrate_from_V35) {
 TEST_F(MigrationTest, migrate_from_V35_extref) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V35_extref.rca").string()));
 
-	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
-	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
-	auto global_lua = raco::core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<raco::user_types::LuaScript>();
+	auto prefab = core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<user_types::Prefab>();
+	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
+	auto global_lua = core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<user_types::LuaScript>();
 
-	auto prefab_lua_types = raco::select<raco::user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_types = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_lua_types = raco::select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
 
 	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
 
-	auto inst_lua_types = raco::select<raco::user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_types = raco::select<raco::user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_lua_types = raco::select<user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = raco::select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
 
 	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst->objectID()));
 
@@ -534,12 +535,12 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "migrationTestData" / "V35_extref_nested.rca").string()), {});
 	auto racoproject = &application.activeRaCoProject();
 
-	auto prefab = raco::core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<raco::user_types::Prefab>();
-	auto inst = raco::core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<raco::user_types::PrefabInstance>();
-	auto global_lua = raco::core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<raco::user_types::LuaScript>();
+	auto prefab = core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<user_types::Prefab>();
+	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
+	auto global_lua = core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<user_types::LuaScript>();
 
-	auto prefab_lua_types = raco::select<raco::user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_types = raco::select<raco::user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_lua_types = raco::select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
 
 	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
@@ -547,9 +548,9 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 
 	auto inst_nested = Queries::findByName(inst->children_->asVector<SEditorObject>(), "inst_nested");
 
-	auto inst_lua_types = raco::select<raco::user_types::LuaScript>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_types = raco::select<raco::user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_array = raco::select<raco::user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "array");
+	auto inst_lua_types = raco::select<user_types::LuaScript>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = raco::select<user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_array = raco::select<user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "array");
 
 	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst_nested->objectID()));
 
@@ -570,38 +571,38 @@ TEST_F(MigrationTest, migrate_from_V39) {
 	auto instances = racoproject->project()->instances();
 	const auto DELTA = 0.001;
 
-	auto luascript = raco::core::Queries::findByName(instances, "LuaScript");
+	auto luascript = core::Queries::findByName(instances, "LuaScript");
 	ASSERT_NE(ValueHandle(luascript, {"inputs", "integer64"}).asInt64(), int64_t{0});
 
-	auto luascript1 = raco::core::Queries::findByName(instances, "LuaScript (1)");
+	auto luascript1 = core::Queries::findByName(instances, "LuaScript (1)");
 	ASSERT_NEAR(ValueHandle(luascript1, {"inputs", "vector3f", "x"}).asDouble(), 0.54897, DELTA);
 	ASSERT_NEAR(ValueHandle(luascript1, {"inputs", "vector3f", "y"}).asDouble(), 1.09794, DELTA);
 	ASSERT_NEAR(ValueHandle(luascript1, {"inputs", "vector3f", "z"}).asDouble(), 3.0, DELTA);
 
-	auto luainterface = raco::core::Queries::findByName(instances, "LuaInterface");
+	auto luainterface = core::Queries::findByName(instances, "LuaInterface");
 	ASSERT_EQ(ValueHandle(luainterface, {"inputs", "integer"}).asInt(), 2);
 
-	auto luainterface1 = raco::core::Queries::findByName(instances, "LuaInterface (1)");
+	auto luainterface1 = core::Queries::findByName(instances, "LuaInterface (1)");
 	ASSERT_EQ(ValueHandle(luainterface1, {"inputs", "integer"}).asInt(), 2);
 
-	auto luascript2 = raco::core::Queries::findByName(instances, "LuaScript (2)");
+	auto luascript2 = core::Queries::findByName(instances, "LuaScript (2)");
 	ASSERT_NEAR(ValueHandle(luascript2, {"outputs", "ovector3f", "x"}).asDouble(), 0.53866, DELTA);
 	ASSERT_NEAR(ValueHandle(luascript2, {"outputs", "ovector3f", "y"}).asDouble(), 1.07732, DELTA);
 	ASSERT_NEAR(ValueHandle(luascript2, {"outputs", "ovector3f", "z"}).asDouble(), 3.0, DELTA);
 
-	auto node = raco::core::Queries::findByName(instances, "Node");
+	auto node = core::Queries::findByName(instances, "Node");
 	ASSERT_TRUE(ValueHandle(node, {"visibility"}).asBool());
 	ASSERT_NEAR(ValueHandle(node, {"scaling", "x"}).asDouble(), 0.54897, DELTA);
 	ASSERT_NEAR(ValueHandle(node, {"scaling", "y"}).asDouble(), 1.09794, DELTA);
 	ASSERT_NEAR(ValueHandle(node, {"scaling", "z"}).asDouble(), 3.0, DELTA);
 
-	auto meshNode = raco::core::Queries::findByName(instances, "MeshNode");
+	auto meshNode = core::Queries::findByName(instances, "MeshNode");
 	ASSERT_TRUE(ValueHandle(meshNode, {"visibility"}).asBool());
 	ASSERT_NEAR(ValueHandle(meshNode, {"scaling", "x"}).asDouble(), 0.54897, DELTA);
 	ASSERT_NEAR(ValueHandle(meshNode, {"scaling", "y"}).asDouble(), 1.09794, DELTA);
 	ASSERT_NEAR(ValueHandle(meshNode, {"scaling", "z"}).asDouble(), 3.0, DELTA);
 
-	auto timer = raco::core::Queries::findByName(instances, "Timer");
+	auto timer = core::Queries::findByName(instances, "Timer");
 	ASSERT_EQ(ValueHandle(timer, {"inputs", "ticker_us"}).asInt64(), int64_t{0});
 	ASSERT_NE(ValueHandle(timer, {"outputs", "ticker_us"}).asInt64(), int64_t{0});
 
@@ -616,8 +617,8 @@ TEST_F(MigrationTest, migrate_from_V40) {
 	auto racoproject = &application.activeRaCoProject();
 	auto instances = racoproject->project()->instances();
 
-	auto node = raco::core::Queries::findByName(instances, "Node");
-	auto animation = raco::core::Queries::findByName(instances, "Animation");
+	auto node = core::Queries::findByName(instances, "Node");
+	auto animation = core::Queries::findByName(instances, "Animation");
 
 	checkLinks(*racoproject->project(), {{{animation, {"outputs", "Ch0.AnimationChannel"}}, {node, {"translation"}}, true}});
 }
@@ -625,8 +626,8 @@ TEST_F(MigrationTest, migrate_from_V40) {
 TEST_F(MigrationTest, migrate_from_V41) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V41.rca").string()));
 
-	auto start = raco::core::Queries::findByName(racoproject->project()->instances(), "start")->as<raco::user_types::LuaScript>();
-	auto end = raco::core::Queries::findByName(racoproject->project()->instances(), "end")->as<raco::user_types::LuaScript>();
+	auto start = core::Queries::findByName(racoproject->project()->instances(), "start")->as<user_types::LuaScript>();
+	auto end = core::Queries::findByName(racoproject->project()->instances(), "end")->as<user_types::LuaScript>();
 
 	checkLinks(*racoproject->project(), {{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false}});
 }
@@ -634,7 +635,7 @@ TEST_F(MigrationTest, migrate_from_V41) {
 TEST_F(MigrationTest, migrate_to_V43) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V41.rca").string()));
 
-	auto settings = raco::core::Queries::findByName(racoproject->project()->instances(), "V41")->as<raco::core::ProjectSettings>();
+	auto settings = core::Queries::findByName(racoproject->project()->instances(), "V41")->as<core::ProjectSettings>();
 
 	EXPECT_FALSE(settings->hasProperty("enableTimerFlag"));
 	EXPECT_FALSE(settings->hasProperty("runTimer"));
@@ -643,14 +644,14 @@ TEST_F(MigrationTest, migrate_to_V43) {
 TEST_F(MigrationTest, migrate_from_V43) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V43.rca").string()));
 
-	auto pcam = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
+	auto pcam = core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<user_types::PerspectiveCamera>();
 
 	ASSERT_EQ(pcam->frustum_->get("nearPlane")->asDouble(), 0.2);
 	ASSERT_EQ(pcam->frustum_->get("farPlane")->asDouble(), 42.0);  // linked
 	ASSERT_EQ(pcam->frustum_->get("fieldOfView")->asDouble(), 4.0);
 	ASSERT_EQ(pcam->frustum_->get("aspectRatio")->asDouble(), 5.0);
 
-	auto renderpass = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderPass")->as<raco::user_types::RenderPass>();
+	auto renderpass = core::Queries::findByName(racoproject->project()->instances(), "RenderPass")->as<user_types::RenderPass>();
 
 	EXPECT_EQ(*renderpass->enabled_, false);
 	EXPECT_EQ(*renderpass->renderOrder_, 7);
@@ -659,39 +660,41 @@ TEST_F(MigrationTest, migrate_from_V43) {
 	EXPECT_EQ(*renderpass->clearColor_->z, 3.0);
 	EXPECT_EQ(*renderpass->clearColor_->w, 4.0);
 
-	auto lua = raco::core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<raco::user_types::LuaScript>();
+	auto lua = core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<user_types::LuaScript>();
 	checkLinks(*racoproject->project(), {{{{lua, {"outputs", "float"}}, {pcam, {"frustum", "farPlane"}}}}});
 }
 
 TEST_F(MigrationTest, migrate_from_V44) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V44.rca").string()));
 
-	auto layer = raco::core::Queries::findByName(racoproject->project()->instances(), "MainRenderLayer")->as<raco::user_types::RenderLayer>();
+	auto layer = core::Queries::findByName(racoproject->project()->instances(), "MainRenderLayer")->as<user_types::RenderLayer>();
 
 	auto anno_red = layer->renderableTags_->get("red")->query<LinkEndAnnotation>();
 	EXPECT_TRUE(anno_red != nullptr);
-	EXPECT_EQ(*anno_red->featureLevel_, 3);
+	// migration to V2001 reset feature level to 1
+	EXPECT_EQ(*anno_red->featureLevel_, 1);
 	auto anno_green = layer->renderableTags_->get("green")->query<LinkEndAnnotation>();
 	EXPECT_TRUE(anno_green != nullptr);
-	EXPECT_EQ(*anno_green->featureLevel_, 3);
+	// migration to V2001 reset feature level to 1
+	EXPECT_EQ(*anno_green->featureLevel_, 1);
 }
 
 TEST_F(MigrationTest, migrate_from_V45) {
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V45.rca").string()));
 
-	auto perspCamera = raco::core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<raco::user_types::PerspectiveCamera>();
+	auto perspCamera = core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<user_types::PerspectiveCamera>();
 
 	EXPECT_EQ(*perspCamera->viewport_->get("width")->query<RangeAnnotation<int>>()->min_, 1);
 	EXPECT_EQ(*perspCamera->viewport_->get("height")->query<RangeAnnotation<int>>()->min_, 1);
 
-	auto orthoCamera = raco::core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<raco::user_types::OrthographicCamera>();
+	auto orthoCamera = core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<user_types::OrthographicCamera>();
 
 	EXPECT_EQ(*orthoCamera->viewport_->get("width")->query<RangeAnnotation<int>>()->min_, 1);
 	EXPECT_EQ(*orthoCamera->viewport_->get("height")->query<RangeAnnotation<int>>()->min_, 1);
 
-	auto renderTarget = raco::core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<raco::user_types::RenderTarget>();
+	auto renderTarget = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<user_types::RenderTarget>();
 
-	EXPECT_TRUE(renderTarget->buffer0_.query<ExpectEmptyReference>() != nullptr);
+	EXPECT_TRUE(renderTarget->buffers_.query<ExpectEmptyReference>() != nullptr);
 }
 
 TEST_F(MigrationTest, migrate_from_V50) {
@@ -699,26 +702,26 @@ TEST_F(MigrationTest, migrate_from_V50) {
 
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V50.rca").string()));
 
-	auto intf_scalar = raco::core::Queries::findByName(racoproject->project()->instances(), "intf-scalar")->as<raco::user_types::LuaInterface>();
-	auto intf_array = raco::core::Queries::findByName(racoproject->project()->instances(), "intf-array")->as<raco::user_types::LuaInterface>();
-	auto intf_struct = raco::core::Queries::findByName(racoproject->project()->instances(), "intf-struct")->as<raco::user_types::LuaInterface>();
+	auto intf_scalar = core::Queries::findByName(racoproject->project()->instances(), "intf-scalar")->as<user_types::LuaInterface>();
+	auto intf_array = core::Queries::findByName(racoproject->project()->instances(), "intf-array")->as<user_types::LuaInterface>();
+	auto intf_struct = core::Queries::findByName(racoproject->project()->instances(), "intf-struct")->as<user_types::LuaInterface>();
 
-	auto texture = raco::core::Queries::findByName(racoproject->project()->instances(), "texture");
+	auto texture = core::Queries::findByName(racoproject->project()->instances(), "texture");
 
-	auto node = raco::core::Queries::findByName(racoproject->project()->instances(), "Node");
-	auto meshnode_no_mat = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mat");
+	auto node = core::Queries::findByName(racoproject->project()->instances(), "Node");
+	auto meshnode_no_mat = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mat");
 
-	auto mat_scalar = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_scalar")->as<raco::user_types::Material>();
+	auto mat_scalar = core::Queries::findByName(racoproject->project()->instances(), "mat_scalar")->as<user_types::Material>();
 	EXPECT_EQ(ValueHandle(mat_scalar, {"uniforms", "i"}).asInt(), 2);
 	checkVec2iValue(ValueHandle(mat_scalar, {"uniforms", "iv2"}), {1, 2});
 
-	auto mat_array_link_array = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_array")->as<raco::user_types::Material>();
+	auto mat_array_link_array = core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_array")->as<user_types::Material>();
 	EXPECT_EQ(ValueHandle(mat_array_link_array, {"uniforms", "ivec", "1"}).asInt(), 1);
 	EXPECT_EQ(ValueHandle(mat_array_link_array, {"uniforms", "ivec", "2"}).asInt(), 2);
 
-	auto mat_array_link_member = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_member")->as<raco::user_types::Material>();
+	auto mat_array_link_member = core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_member")->as<user_types::Material>();
 
-	auto mat_struct = raco::core::Queries::findByName(racoproject->project()->instances(), "mat_struct")->as<raco::user_types::Material>();
+	auto mat_struct = core::Queries::findByName(racoproject->project()->instances(), "mat_struct")->as<user_types::Material>();
 	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_prims", "i"}).asInt(), 42);
 	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_prims", "iv2"}), {1, 2});
 
@@ -742,17 +745,17 @@ TEST_F(MigrationTest, migrate_from_V50) {
 	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "aivec2", "2"}), {3, 4});
 
 
-	auto meshnode_mat_scalar = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_scalar");
+	auto meshnode_mat_scalar = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_scalar");
 	EXPECT_EQ(ValueHandle(meshnode_mat_scalar, {"materials", "material", "uniforms", "i"}).asInt(), 2);
 	checkVec2iValue(ValueHandle(meshnode_mat_scalar, {"materials", "material", "uniforms", "iv2"}), {1, 2});
 
-	auto meshnode_mat_array_link_array = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_array");
+	auto meshnode_mat_array_link_array = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_array");
 	EXPECT_EQ(ValueHandle(meshnode_mat_array_link_array, {"materials", "material", "uniforms", "ivec", "1"}).asInt(), 1);
 	EXPECT_EQ(ValueHandle(meshnode_mat_array_link_array, {"materials", "material", "uniforms", "ivec", "2"}).asInt(), 2);
 
-	auto meshnode_mat_array_link_member = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_member");
+	auto meshnode_mat_array_link_member = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_member");
 
-	auto meshnode_mat_struct = raco::core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_struct");
+	auto meshnode_mat_struct = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_struct");
 	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "i"}).asInt(), 42);
 	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "iv2"}), {1, 2});
 
@@ -838,8 +841,8 @@ TEST_F(MigrationTest, migrate_from_V51_vec_struct_link_validity_update) {
 
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V51_link_vec_struct.rca").string()));
 
-	auto start = raco::core::Queries::findByName(racoproject->project()->instances(), "start")->as<raco::user_types::LuaInterface>();
-	auto end = raco::core::Queries::findByName(racoproject->project()->instances(), "end")->as<raco::user_types::LuaInterface>();
+	auto start = core::Queries::findByName(racoproject->project()->instances(), "start")->as<user_types::LuaInterface>();
+	auto end = core::Queries::findByName(racoproject->project()->instances(), "end")->as<user_types::LuaInterface>();
 
 	checkLinks(*racoproject->project(),
 		{{{start, {"inputs", "v3f"}}, {end, {"inputs", "s3f"}}, false, false},
@@ -933,6 +936,384 @@ TEST_F(MigrationTest, migrate_from_V52) {
 	EXPECT_EQ(settings->defaultResourceDirectories_->shaderSubdirectory_.query<core::URIAnnotation>()->getFolderTypeKey(), core::PathManager::FolderTypeKeys::Project);
 }
 
+
+TEST_F(MigrationTest, migrate_from_V54) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V54.rca").string()));
+
+	auto node = core::Queries::findByName(racoproject->project()->instances(), "Node")->as<user_types::Node>();
+	auto meshnode = core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<user_types::MeshNode>();
+	auto nodePrefab = core::Queries::findByName(racoproject->project()->instances(), "NodePrefab")->as<user_types::Node>();
+	auto prefab = core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<user_types::Prefab>();
+
+	EXPECT_EQ(node->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({meshnode}));
+	EXPECT_EQ(prefab->children_->asVector<SEditorObject>(), std::vector<SEditorObject>({nodePrefab}));
+
+	auto animation = core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<user_types::Animation>();
+	auto animationChannel = core::Queries::findByName(racoproject->project()->instances(), "AnimationChannel")->as<user_types::AnimationChannel>();
+	auto skin = core::Queries::findByName(racoproject->project()->instances(), "Skin")->as<user_types::Skin>();
+
+	auto renderBuffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	auto renderBufferMS = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+	auto renderLayer = core::Queries::findByName(racoproject->project()->instances(), "MainRenderLayer")->as<user_types::RenderLayer>();
+
+	auto renderTarget = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<user_types::RenderTarget>();
+	auto renderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
+
+	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannel>(), 
+		std::vector<user_types::SAnimationChannel>({animationChannel, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(skin->targets_->asVector<user_types::SMeshNode>(), std::vector<user_types::SMeshNode>({meshnode}));
+
+	EXPECT_EQ(renderTarget->buffers_->asVector<user_types::SRenderBuffer>(), 
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+
+	EXPECT_EQ(renderPass->layers_->asVector<user_types::SRenderLayer>(), 
+		std::vector<user_types::SRenderLayer>({renderLayer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+}
+
+TEST_F(MigrationTest, migrate_from_V55) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V55.rca").string()));
+
+	auto renderBuffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	auto renderBufferMS = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+
+	auto renderTarget = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<user_types::RenderTarget>();
+	auto renderTarget_MS = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget_MS")->as<user_types::RenderTargetMS>();
+	auto renderTarget_mixed = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget_mixed")->as<user_types::RenderTarget>();
+
+	auto mainRenderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
+	auto renderPass = core::Queries::findByName(racoproject->project()->instances(), "RenderPass")->as<user_types::RenderPass>();
+	auto renderPass_MS = core::Queries::findByName(racoproject->project()->instances(), "RenderPass_MS")->as<user_types::RenderPass>();
+	auto renderPass_mixed = core::Queries::findByName(racoproject->project()->instances(), "RenderPass_mixed")->as<user_types::RenderPass>();
+
+	EXPECT_EQ(*mainRenderPass->target_, nullptr);
+	EXPECT_EQ(*renderPass->target_, renderTarget);
+	EXPECT_EQ(*renderPass_MS->target_, renderTarget_MS);
+	EXPECT_EQ(*renderPass_mixed->target_, renderTarget_mixed);
+
+	EXPECT_EQ(renderTarget->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_MS->buffers_->asVector<user_types::SRenderBufferMS>(),
+		std::vector<user_types::SRenderBufferMS>({renderBufferMS, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_mixed->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+
+	EXPECT_EQ(renderTarget->userTags_->asVector<std::string>(), std::vector<std::string>({"cat"}));
+	EXPECT_EQ(renderTarget_MS->userTags_->asVector<std::string>(), std::vector<std::string>({"cat", "dog"}));
+	EXPECT_EQ(renderTarget_mixed->userTags_->asVector<std::string>(), std::vector<std::string>({"dog"}));
+}
+
+// The following tests verify the migration and fixup of the split of the render targets in the ->V56 migration:
+TEST_F(MigrationTest, migrate_from_V54_rendertarget_base) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V54-rendertarget-base.rca").string()));
+
+	auto renderBuffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	auto renderBufferMS = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+
+	auto renderTarget_normal = core::Queries::findByName(racoproject->project()->instances(), "rt-normal")->as<user_types::RenderTarget>();
+	auto renderTarget_multi = core::Queries::findByName(racoproject->project()->instances(), "rt-multi")->as<user_types::RenderTargetMS>();
+	auto renderTarget_mixed = core::Queries::findByName(racoproject->project()->instances(), "rt-mixed")->as<user_types::RenderTarget>();
+
+	auto mainRenderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
+	auto renderPass_normal = core::Queries::findByName(racoproject->project()->instances(), "rp-normal")->as<user_types::RenderPass>();
+	auto renderPass_multi = core::Queries::findByName(racoproject->project()->instances(), "rp-multi")->as<user_types::RenderPass>();
+	auto renderPass_mixed = core::Queries::findByName(racoproject->project()->instances(), "rp-mixed")->as<user_types::RenderPass>();
+
+	EXPECT_EQ(*mainRenderPass->target_, nullptr);
+	EXPECT_EQ(*renderPass_normal->target_, renderTarget_normal);
+	EXPECT_EQ(*renderPass_multi->target_, renderTarget_multi);
+	EXPECT_EQ(*renderPass_mixed->target_, renderTarget_mixed);
+
+	EXPECT_EQ(renderTarget_normal->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_multi->buffers_->asVector<user_types::SRenderBufferMS>(),
+		std::vector<user_types::SRenderBufferMS>({renderBufferMS, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_mixed->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+}
+
+TEST_F(MigrationTest, migrate_from_V54_rendertarget_extref) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V54-rendertarget-extref.rca").string()));
+
+	auto renderBuffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	auto renderBufferMS = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+
+	auto renderTarget_normal = core::Queries::findByName(racoproject->project()->instances(), "rt-normal")->as<user_types::RenderTarget>();
+	auto renderTarget_multi = core::Queries::findByName(racoproject->project()->instances(), "rt-multi")->as<user_types::RenderTargetMS>();
+	auto renderTarget_mixed = core::Queries::findByName(racoproject->project()->instances(), "rt-mixed")->as<user_types::RenderTarget>();
+	EXPECT_TRUE(renderTarget_normal->query<core::ExternalReferenceAnnotation>() != nullptr);
+	EXPECT_TRUE(renderTarget_multi->query<core::ExternalReferenceAnnotation>() != nullptr);
+	EXPECT_TRUE(renderTarget_mixed->query<core::ExternalReferenceAnnotation>() != nullptr);
+
+	auto mainRenderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
+	auto renderPass_normal = core::Queries::findByName(racoproject->project()->instances(), "rp-normal")->as<user_types::RenderPass>();
+	auto renderPass_multi = core::Queries::findByName(racoproject->project()->instances(), "rp-multi")->as<user_types::RenderPass>();
+	auto renderPass_mixed = core::Queries::findByName(racoproject->project()->instances(), "rp-mixed")->as<user_types::RenderPass>();
+
+	EXPECT_EQ(*mainRenderPass->target_, nullptr);
+	EXPECT_EQ(*renderPass_normal->target_, renderTarget_normal);
+	EXPECT_EQ(*renderPass_multi->target_, renderTarget_multi);
+	EXPECT_EQ(*renderPass_mixed->target_, renderTarget_mixed);
+
+	EXPECT_EQ(renderTarget_normal->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_multi->buffers_->asVector<user_types::SRenderBufferMS>(),
+		std::vector<user_types::SRenderBufferMS>({renderBufferMS, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_mixed->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+}
+
+TEST_F(MigrationTest, migrate_from_V54_rendertarget_extref_keepalive) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V54-rendertarget-extref-keepalive.rca").string()));
+
+	auto renderBuffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	auto renderBufferMS = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+
+	auto renderTarget_normal = core::Queries::findByName(racoproject->project()->instances(), "rt-normal")->as<user_types::RenderTarget>();
+	auto renderTarget_multi = core::Queries::findByName(racoproject->project()->instances(), "rt-multi")->as<user_types::RenderTargetMS>();
+	auto renderTarget_mixed = core::Queries::findByName(racoproject->project()->instances(), "rt-mixed")->as<user_types::RenderTarget>();
+	EXPECT_TRUE(renderTarget_normal->query<core::ExternalReferenceAnnotation>() != nullptr);
+	EXPECT_TRUE(renderTarget_multi->query<core::ExternalReferenceAnnotation>() != nullptr);
+	EXPECT_TRUE(renderTarget_mixed->query<core::ExternalReferenceAnnotation>() != nullptr);
+
+	auto mainRenderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
+	auto renderPass_normal = core::Queries::findByName(racoproject->project()->instances(), "rp-normal")->as<user_types::RenderPass>();
+	auto renderPass_multi = core::Queries::findByName(racoproject->project()->instances(), "rp-multi")->as<user_types::RenderPass>();
+	auto renderPass_mixed = core::Queries::findByName(racoproject->project()->instances(), "rp-mixed")->as<user_types::RenderPass>();
+
+	EXPECT_EQ(*mainRenderPass->target_, nullptr);
+	EXPECT_EQ(*renderPass_normal->target_, renderTarget_normal);
+	EXPECT_EQ(*renderPass_multi->target_, renderTarget_multi);
+	EXPECT_EQ(*renderPass_mixed->target_, renderTarget_mixed);
+
+	EXPECT_EQ(renderTarget_normal->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_multi->buffers_->asVector<user_types::SRenderBufferMS>(),
+		std::vector<user_types::SRenderBufferMS>({renderBufferMS, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTarget_mixed->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+}
+
+
+TEST_F(MigrationTest, migrate_from_V57) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V57.rca").string()));
+
+	auto settings = racoproject->project()->settings();
+	auto node = core::Queries::findByName(racoproject->project()->instances(), "Node")->as<user_types::Node>();
+	auto prefab = core::Queries::findByName(racoproject->project()->instances(), "Prefab")->as<user_types::Prefab>();
+
+	EXPECT_FALSE(settings->hasProperty("userTags"));
+	EXPECT_EQ(node->userTags_->asVector<std::string>(), std::vector<std::string>({"dog"}));
+	EXPECT_EQ(prefab->userTags_->asVector<std::string>(), std::vector<std::string>({"cat", "dog"}));
+}
+
+TEST_F(MigrationTest, migrate_from_V58) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V58.rca").string()));
+
+	auto node = core::Queries::findByName(racoproject->project()->instances(), "Node")->as<user_types::Node>();
+	auto meshnode = core::Queries::findByName(racoproject->project()->instances(), "MeshNode")->as<user_types::MeshNode>();
+
+	auto animation = core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<user_types::Animation>();
+	auto animationChannel = core::Queries::findByName(racoproject->project()->instances(), "AnimationChannel")->as<user_types::AnimationChannel>();
+	auto skin = core::Queries::findByName(racoproject->project()->instances(), "Skin")->as<user_types::Skin>();
+
+	auto renderBuffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	auto renderBufferMS = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+	auto renderLayer = core::Queries::findByName(racoproject->project()->instances(), "MainRenderLayer")->as<user_types::RenderLayer>();
+
+	auto renderTarget = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<user_types::RenderTarget>();
+	auto renderTargetMS = core::Queries::findByName(racoproject->project()->instances(), "RenderTargetMS")->as<user_types::RenderTargetMS>();
+	auto renderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
+
+	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannel>(),
+		std::vector<user_types::SAnimationChannel>({animationChannel, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(skin->targets_->asVector<user_types::SMeshNode>(), std::vector<user_types::SMeshNode>({meshnode}));
+
+	EXPECT_EQ(renderTarget->buffers_->asVector<user_types::SRenderBuffer>(),
+		std::vector<user_types::SRenderBuffer>({renderBuffer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(renderTargetMS->buffers_->asVector<user_types::SRenderBufferMS>(),
+		std::vector<user_types::SRenderBufferMS>({renderBufferMS, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+
+	EXPECT_EQ(renderPass->layers_->asVector<user_types::SRenderLayer>(),
+		std::vector<user_types::SRenderLayer>({renderLayer, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+}
+
+TEST_F(MigrationTest, migrate_from_V59) {
+	using namespace raco;
+
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V59.rca").string()));
+
+	auto intf_scalar = core::Queries::findByName(racoproject->project()->instances(), "intf-scalar")->as<user_types::LuaInterface>();
+	auto intf_array = core::Queries::findByName(racoproject->project()->instances(), "intf-array")->as<user_types::LuaInterface>();
+	auto intf_struct = core::Queries::findByName(racoproject->project()->instances(), "intf-struct")->as<user_types::LuaInterface>();
+
+	auto texture = core::Queries::findByName(racoproject->project()->instances(), "texture");
+
+	auto node = core::Queries::findByName(racoproject->project()->instances(), "Node");
+	auto meshnode_no_mat = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_mat");
+
+	auto mat_scalar = core::Queries::findByName(racoproject->project()->instances(), "mat_scalar")->as<user_types::Material>();
+	EXPECT_EQ(ValueHandle(mat_scalar, {"uniforms", "i"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(mat_scalar, {"uniforms", "iv2"}), {1, 2});
+
+	auto mat_array_link_array = core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_array")->as<user_types::Material>();
+	EXPECT_EQ(ValueHandle(mat_array_link_array, {"uniforms", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(mat_array_link_array, {"uniforms", "ivec", "2"}).asInt(), 2);
+
+	auto mat_array_link_member = core::Queries::findByName(racoproject->project()->instances(), "mat_array_link_member")->as<user_types::Material>();
+
+	auto mat_struct = core::Queries::findByName(racoproject->project()->instances(), "mat_struct")->as<user_types::Material>();
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_samplers", "s_texture"}).asRef(), texture);
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "nested", "prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "nested", "prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "a_s_prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "a_s_prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "ivec", "2"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "aivec2", "1"}), {1, 2});
+	checkVec2iValue(ValueHandle(mat_struct, {"uniforms", "s_a_prims", "aivec2", "2"}), {3, 4});
+
+	auto meshnode_mat_scalar = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_scalar");
+	EXPECT_EQ(ValueHandle(meshnode_mat_scalar, {"materials", "material", "uniforms", "i"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(meshnode_mat_scalar, {"materials", "material", "uniforms", "iv2"}), {1, 2});
+
+	auto meshnode_mat_array_link_array = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_array");
+	EXPECT_EQ(ValueHandle(meshnode_mat_array_link_array, {"materials", "material", "uniforms", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(meshnode_mat_array_link_array, {"materials", "material", "uniforms", "ivec", "2"}).asInt(), 2);
+
+	auto meshnode_mat_array_link_member = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_array_link_member");
+
+	auto meshnode_mat_struct = core::Queries::findByName(racoproject->project()->instances(), "meshnode_mat_struct");
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_samplers", "s_texture"}).asRef(), texture);
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "i"}).asInt(), 42);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "iv2"}), {1, 2});
+
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "ivec", "1"}).asInt(), 1);
+	EXPECT_EQ(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "ivec", "2"}).asInt(), 2);
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "aivec2", "1"}), {1, 2});
+	checkVec2iValue(ValueHandle(meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "aivec2", "2"}), {3, 4});
+
+	checkLinks(*racoproject->project(),
+		{{{intf_scalar, {"inputs", "bool"}}, {node, {"visibility"}}, true, false},
+			{{intf_scalar, {"inputs", "bool"}}, {meshnode_no_mat, {"visibility"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_scalar, {"uniforms", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector2f"}}, {mat_scalar, {"uniforms", "v2"}}, true, false},
+			{{intf_array, {"inputs", "fvec"}}, {mat_array_link_array, {"uniforms", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "float"}}, {mat_array_link_member, {"uniforms", "fvec", "5"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_array_link_member, {"uniforms", "avec3", "2"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "s_prims", "f"}}, true, false},
+
+			{{intf_array, {"inputs", "fvec"}}, {mat_struct, {"uniforms", "s_a_prims", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "s_a_prims", "avec3", "1"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "nested", "prims", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "nested", "prims", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "s_a_struct_prim", "prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "a_s_prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "a_s_prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {mat_struct, {"uniforms", "a_s_a_struct_prim", "1", "prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_scalar, {"materials", "material", "uniforms", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector2f"}}, {meshnode_mat_scalar, {"materials", "material", "uniforms", "v2"}}, true, false},
+			{{intf_array, {"inputs", "fvec"}}, {meshnode_mat_array_link_array, {"materials", "material", "uniforms", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_array_link_member, {"materials", "material", "uniforms", "fvec", "5"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_array_link_member, {"materials", "material", "uniforms", "avec3", "2"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_prims", "f"}}, true, false},
+
+			{{intf_array, {"inputs", "fvec"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "fvec"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_prims", "avec3", "1"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "nested", "prims", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "s_a_struct_prim", "prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_prims", "1", "v3"}}, true, false},
+
+			{{intf_scalar, {"inputs", "float"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "f"}}, true, false},
+			{{intf_scalar, {"inputs", "vector3f"}}, {meshnode_mat_struct, {"materials", "material", "uniforms", "a_s_a_struct_prim", "1", "prims", "1", "v3"}}, true, false}
+
+		});
+}
+
+TEST_F(MigrationTest, migrate_from_V60) {
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V60.rca").string()));
+
+	EXPECT_EQ(*racoproject->project()->settings()->featureLevel_, 1);
+
+	auto layer = core::Queries::findByName(racoproject->project()->instances(), "RenderLayerManual")->as<user_types::RenderLayer>();
+	auto anno_main = layer->renderableTags_->get("main")->query<LinkEndAnnotation>();
+	EXPECT_TRUE(anno_main != nullptr);
+	// migration to V2001 reset feature level to 1
+	EXPECT_EQ(*anno_main->featureLevel_, 1);
+
+	auto luaModule = core::Queries::findByName(racoproject->project()->instances(), "LuaScriptModule")->as<user_types::LuaScriptModule>();
+
+	auto luaScript = core::Queries::findByName(racoproject->project()->instances(), "LuaScript")->as<user_types::LuaScript>();
+	EXPECT_EQ(luaScript->luaModules_->get("coalas")->asRef(), luaModule);
+
+	auto luaInterface= core::Queries::findByName(racoproject->project()->instances(), "LuaInterface")->as<user_types::LuaInterface>();
+	EXPECT_EQ(luaInterface->luaModules_->get("coalas")->asRef(), luaModule);
+
+
+	auto renderpass = core::Queries::findByName(racoproject->project()->instances(), "RenderPass")->as<user_types::RenderPass>();
+	auto order_anno = renderpass->renderOrder_.query<LinkEndAnnotation>();
+	EXPECT_EQ(*order_anno->featureLevel_, 1);
+	auto clearColor_anno = renderpass->clearColor_.query<LinkEndAnnotation>();
+	EXPECT_EQ(*clearColor_anno->featureLevel_, 1);
+	auto enabled_anno = renderpass->enabled_.query<LinkEndAnnotation>();
+	EXPECT_EQ(*enabled_anno->featureLevel_, 1);
+	auto renderOnce_anno = renderpass->renderOnce_.query<LinkEndAnnotation>();
+	EXPECT_EQ(*renderOnce_anno->featureLevel_, 1);
+
+	auto meshnode = core::Queries::findByName(racoproject->project()->instances(), "meshnode_no_tex")->as<user_types::MeshNode>();
+	auto instanceCount_anno = meshnode->instanceCount_.query<LinkEndAnnotation>();
+	EXPECT_EQ(*instanceCount_anno->featureLevel_, 1);
+	auto meshnode_enabled_anno = meshnode->enabled_.query<LinkEndAnnotation>();
+	EXPECT_EQ(*meshnode_enabled_anno->featureLevel_, 1);
+}
+
 TEST_F(MigrationTest, migrate_from_current) {
 	// Check for changes in serialized JSON in newest version.
 	// Should detect changes in data model with missing migration code.
@@ -946,9 +1327,9 @@ TEST_F(MigrationTest, migrate_from_current) {
 
 	int fileVersion;
 	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "version-current.rca").string()), &fileVersion);
-	ASSERT_EQ(fileVersion, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+	ASSERT_EQ(fileVersion, serialization::RAMSES_PROJECT_FILE_VERSION);
 
-	ASSERT_EQ(racoproject->project()->featureLevel(), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
+	ASSERT_EQ(racoproject->project()->featureLevel(), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel));
 
 	// check that all user types present in file
 	auto& instances = racoproject->project()->instances();
@@ -956,7 +1337,7 @@ TEST_F(MigrationTest, migrate_from_current) {
 		auto name = item.first;
 		EXPECT_TRUE(std::find_if(instances.begin(), instances.end(), [name](SEditorObject obj) {
 			return name == obj->getTypeDescription().typeName;
-		}) != instances.end());
+		}) != instances.end()) << fmt::format("Type '{}' missing in version-current.rca", name);
 	}
 }
 
@@ -973,11 +1354,11 @@ TEST_F(MigrationTest, check_current_type_maps) {
 	auto document{QJsonDocument::fromJson(file.readAll())};
 	file.close();
 
-	auto fileUserPropTypeMap = raco::serialization::deserializeUserTypePropertyMap(document[raco::serialization::keys::USER_TYPE_PROP_MAP]);
-	auto fileStructTypeMap = raco::serialization::deserializeUserTypePropertyMap(document[raco::serialization::keys::STRUCT_PROP_MAP]);
+	auto fileUserPropTypeMap = serialization::deserializeUserTypePropertyMap(document[serialization::keys::USER_TYPE_PROP_MAP]);
+	auto fileStructTypeMap = serialization::deserializeUserTypePropertyMap(document[serialization::keys::STRUCT_PROP_MAP]);
 
-	auto currentUserPropTypeMap = raco::serialization::makeUserTypePropertyMap();
-	auto currentStructTypeMap = raco::serialization::makeStructPropertyMap();
+	auto currentUserPropTypeMap = serialization::makeUserTypePropertyMap();
+	auto currentStructTypeMap = serialization::makeStructPropertyMap();
 
 	EXPECT_EQ(fileUserPropTypeMap, currentUserPropTypeMap);
 	EXPECT_EQ(fileStructTypeMap, currentStructTypeMap);
@@ -988,7 +1369,7 @@ TEST_F(MigrationTest, check_proxy_factory_has_all_objects_types) {
 	// also have the corresponding proxy type added in the ProxyObjectFactory constructor.
 	// If this fails add the type in the ProxyObjectFactory constructor makeTypeMap call.
 
-	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& proxyFactory{serialization::proxy::ProxyObjectFactory::getInstance()};
 	auto& proxyTypeMap{proxyFactory.getTypes()};
 
 	for (auto& item : objectFactory()->getTypes()) {
@@ -1002,7 +1383,7 @@ TEST_F(MigrationTest, check_proxy_factory_has_all_dynamic_property_types) {
 	// have their corresponding properties added in ProxyObjectFactory::PropertyTypeMapType too.
 	// If this fails add the property in ProxyObjectFactory::PropertyTypeMapType.
 
-	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& proxyFactory{serialization::proxy::ProxyObjectFactory::getInstance()};
 	auto& userFactory{UserObjectFactory::getInstance()};
 	auto& proxyProperties{proxyFactory.getProperties()};
 
@@ -1011,11 +1392,12 @@ TEST_F(MigrationTest, check_proxy_factory_has_all_dynamic_property_types) {
 		EXPECT_TRUE(proxyProperties.find(name) != proxyProperties.end()) << fmt::format("property name: '{}'", name);
 	}
 }
+
 TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
 	// Check that the ProxyObjectFactory can create all statically known properties.
 	// If this fails add the failing property to the ProxyObjectFactory::PropertyTypeMapType.
 
-	auto& proxyFactory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& proxyFactory{serialization::proxy::ProxyObjectFactory::getInstance()};
 	auto& userFactory{UserObjectFactory::getInstance()};
 
 	for (auto& item : userFactory.getTypes()) {
@@ -1023,6 +1405,9 @@ TEST_F(MigrationTest, check_proxy_factory_can_create_all_static_properties) {
 		auto object = objectFactory()->createObject(name);
 		ASSERT_TRUE(object != nullptr);
 		for (size_t index = 0; index < object->size(); index++) {
+			if (object->get(index)->query<VolatileProperty>()) {
+				continue;
+			}
 			auto propTypeName = object->get(index)->typeName();
 			auto proxyProperty = proxyFactory.createValue(propTypeName);
 			ASSERT_TRUE(proxyProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);
@@ -1054,6 +1439,9 @@ TEST_F(MigrationTest, check_user_factory_can_create_all_static_properties) {
 		auto object = objectFactory()->createObject(name);
 		ASSERT_TRUE(object != nullptr);
 		for (size_t index = 0; index < object->size(); index++) {
+			if (object->get(index)->query<VolatileProperty>()) {
+				continue;
+			}
 			auto propTypeName = object->get(index)->typeName();
 			auto userProperty = userFactory.createValue(propTypeName);
 			ASSERT_TRUE(userProperty != nullptr) << fmt::format("property type name: '{}'", propTypeName);

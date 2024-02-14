@@ -59,7 +59,7 @@ namespace raco::application {
 
 using namespace raco::core;
 
-RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engineInterface, const UndoStack::Callback& callback, ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, LoadContext& loadContext)
+RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engineInterface, const UndoStack::Callback& callback, ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, LoadContext& loadContext, int fileVersion)
 	: recorder_{},
 	  errors_{&recorder_},
 	  project_{p},
@@ -79,12 +79,12 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	// TODO: remove this eventually when we are reasonably certain that no such projects have been encountered.
 	for (const auto& object : project_.instances()) {
 		if (object->isType<user_types::RenderPass>() &&
-			object->query<raco::core::ExternalReferenceAnnotation>()) {
+			object->query<core::ExternalReferenceAnnotation>()) {
 			throw std::runtime_error("project contains external reference RenderPass.");
 		}
 
 		if ((object->isType<user_types::PerspectiveCamera>() || object->isType<user_types::OrthographicCamera>()) &&
-			object->query<raco::core::ExternalReferenceAnnotation>()) {
+			object->query<core::ExternalReferenceAnnotation>()) {
 			if (!PrefabOperations::findContainingPrefab(object)) {
 				throw std::runtime_error("file contains external reference camera outside a prefab");
 			}
@@ -98,7 +98,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	}
 	// Needed because
 	// - link duplicates may have different link validity
-	// - we used to allow links between logicengine primitive Vec2f/... and structs with the same content properties 
+	// - we used to allow links between logicengine primitive Vec2f/... and structs with the same content properties
 	//   although they can't be linked in the logicengine.
 	context_->initLinkValidity();
 
@@ -113,7 +113,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 
 	// Push currently loading project on the project load stack to enable project loop detection to work.
 	loadContext.pathStack.emplace_back(file.toStdString());
-	context_->updateExternalReferences(loadContext);
+	context_->updateExternalReferences(loadContext, fileVersion);
 	loadContext.pathStack.pop_back();
 
 	undoStack_.reset();
@@ -124,7 +124,7 @@ RaCoProject::RaCoProject(const QString& file, Project& p, EngineInterface* engin
 	}
 	dirty_ = false;
 
-	tracePlayer_ = std::make_unique<raco::components::TracePlayer>(*project(), context_->uiChanges(), *undoStack());
+	tracePlayer_ = std::make_unique<components::TracePlayer>(*project(), context_->uiChanges(), *undoStack());
 }
 
 void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std::string& newPath) {
@@ -151,8 +151,8 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 			for (const auto& property : ValueTreeIteratorAdaptor(ValueHandle{object})) {
 				if (auto anno = property.query<URIAnnotation>(); anno && !anno->isProjectSubdirectoryURI()) {
 					auto uriPath = property.asString();
-					if (!uriPath.empty() && raco::utils::u8path(uriPath).is_relative()) {
-						context_->set(property, raco::utils::u8path(uriPath).rerootRelativePath(oldPath, newPath).string());
+					if (!uriPath.empty() && utils::u8path(uriPath).is_relative()) {
+						context_->set(property, utils::u8path(uriPath).rerootRelativePath(oldPath, newPath).string());
 					}
 				}
 			}
@@ -164,7 +164,7 @@ void RaCoProject::onAfterProjectPathChange(const std::string& oldPath, const std
 }
 
 void RaCoProject::generateProjectSubfolder(const std::string& subFolderPath) {
-	auto path = raco::utils::u8path(subFolderPath).normalizedAbsolutePath(project_.currentFolder());
+	auto path = utils::u8path(subFolderPath).normalizedAbsolutePath(project_.currentFolder());
 	if (!path.existsDirectory()) {
 		std::filesystem::create_directories(path);
 	}
@@ -187,54 +187,53 @@ void RaCoProject::applyDefaultCachedPaths() {
 
 	auto projectFolder = project_.currentFolder();
 	PathManager::setCachedPath(PathManager::FolderTypeKeys::Project, projectFolder);
-	PathManager::setCachedPath(PathManager::FolderTypeKeys::Image, raco::utils::u8path(defaultFolders->imageSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
-	PathManager::setCachedPath(PathManager::FolderTypeKeys::Mesh, raco::utils::u8path(defaultFolders->meshSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
-	PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, raco::utils::u8path(defaultFolders->scriptSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
-	PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, raco::utils::u8path(defaultFolders->interfaceSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
-	PathManager::setCachedPath(PathManager::FolderTypeKeys::Shader, raco::utils::u8path(defaultFolders->shaderSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+	PathManager::setCachedPath(PathManager::FolderTypeKeys::Image, utils::u8path(defaultFolders->imageSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+	PathManager::setCachedPath(PathManager::FolderTypeKeys::Mesh, utils::u8path(defaultFolders->meshSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+	PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, utils::u8path(defaultFolders->scriptSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+	PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, utils::u8path(defaultFolders->interfaceSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
+	PathManager::setCachedPath(PathManager::FolderTypeKeys::Shader, utils::u8path(defaultFolders->shaderSubdirectory_.asString()).normalizedAbsolutePath(projectFolder));
 }
 
-void RaCoProject::setupCachedPathSubscriptions(const raco::components::SDataChangeDispatcher& dataChangeDispatcher) {
+void RaCoProject::setupCachedPathSubscriptions(const components::SDataChangeDispatcher& dataChangeDispatcher) {
 	lifecycleSubscription_ = dataChangeDispatcher->registerOnObjectsLifeCycle([this, dataChangeDispatcher](SEditorObject obj) {
 		if (obj->isType<ProjectSettings>()) {
 			subscribeDefaultCachedPathChanges(dataChangeDispatcher);
-		} 
-	}, 
-	[](auto) {});
+		} },
+		[](auto) {});
 	subscribeDefaultCachedPathChanges(dataChangeDispatcher);
 }
 
-void RaCoProject::subscribeDefaultCachedPathChanges(const raco::components::SDataChangeDispatcher& dataChangeDispatcher) {
+void RaCoProject::subscribeDefaultCachedPathChanges(const components::SDataChangeDispatcher& dataChangeDispatcher) {
 	auto project = this->project();
 	auto settings = project_.settings();
 
 	imageSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_},
 		[project, settings]() {
-			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->imageSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
+			auto path = utils::u8path(settings->defaultResourceDirectories_->imageSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Image, path);
 		});
 
 	meshSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_},
 		[project, settings]() {
-			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->meshSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
+			auto path = utils::u8path(settings->defaultResourceDirectories_->meshSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Mesh, path);
 		});
 
 	scriptSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::scriptSubdirectory_},
 		[project, settings]() {
-			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->scriptSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
+			auto path = utils::u8path(settings->defaultResourceDirectories_->scriptSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Script, path);
 		});
 
 	interfaceSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::interfaceSubdirectory_},
 		[project, settings]() {
-			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->interfaceSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
+			auto path = utils::u8path(settings->defaultResourceDirectories_->interfaceSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Interface, path);
 		});
 
 	shaderSubdirectoryUpdateSubscription_ = dataChangeDispatcher->registerOn({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::shaderSubdirectory_},
 		[project, settings]() {
-			auto path = raco::utils::u8path(settings->defaultResourceDirectories_->shaderSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
+			auto path = utils::u8path(settings->defaultResourceDirectories_->shaderSubdirectory_.asString()).normalizedAbsolutePath(project->currentFolder());
 			PathManager::setCachedPath(PathManager::FolderTypeKeys::Shader, path);
 		});
 }
@@ -242,7 +241,21 @@ void RaCoProject::subscribeDefaultCachedPathChanges(const raco::components::SDat
 void RaCoProject::updateActiveFileListener() {
 	activeProjectFileChangeListener_ = activeProjectFileChangeMonitor_.registerFileChangedHandler(project_.currentPath(),
 		[this]() {
-			Q_EMIT activeProjectFileChanged();
+
+			const auto path = project_.currentPath();
+			const bool isPathInvalid = !path.empty() && (!utils::u8path(path).exists() || !utils::u8path(path).userHasReadAccess());
+
+			if (path.empty() || isPathInvalid) {
+				return;
+			}
+
+			const auto modifiedTime{std::filesystem::last_write_time(project_.currentPath())};
+			const auto deltaSeconds = std::chrono::duration_cast<std::chrono::seconds>(modifiedTime - lastModifiedTime_).count();
+
+			if (deltaSeconds > 0) {
+				// File was modified after this instance took its timestamp on load/save.
+				Q_EMIT activeProjectFileChanged();
+			}
 		});
 }
 
@@ -253,12 +266,12 @@ RaCoProject::~RaCoProject() {
 }
 
 std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool createDefaultScene, int featureLevel) {
-	LOG_INFO(raco::log_system::PROJECT, "Creating new project.");
+	LOG_INFO(log_system::PROJECT, "Creating new project.");
 	Project p{};
 	p.setCurrentPath(components::RaCoPreferences::instance().userProjectsDirectory.toStdString());
 
 	if (featureLevel == -1) {
-		featureLevel = static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
+		featureLevel = static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel);
 	}
 
 	LoadContext loadContext;
@@ -270,9 +283,10 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
 		app->externalProjects(),
 		app,
-		loadContext));
+		loadContext,
+		-1));
 
-	const auto& prefs = raco::components::RaCoPreferences::instance();
+	const auto& prefs = components::RaCoPreferences::instance();
 	auto settings = result->context_->createObject(ProjectSettings::typeDescription.typeName);
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::imageSubdirectory_}, prefs.imageSubdirectory.toStdString());
 	result->context_->set({settings, &ProjectSettings::defaultResourceDirectories_, &DefaultResourceDirectories::meshSubdirectory_}, prefs.meshSubdirectory.toStdString());
@@ -282,15 +296,17 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	result->context_->set({settings, &ProjectSettings::featureLevel_}, featureLevel);
 
 	if (createDefaultScene) {
-		auto sMeshNode = result->context_->createObject(raco::user_types::MeshNode::typeDescription.typeName, raco::components::Naming::format(raco::user_types::MeshNode::typeDescription.typeName));
-		auto sNode = result->context_->createObject(raco::user_types::Node::typeDescription.typeName, raco::components::Naming::format(raco::user_types::Node::typeDescription.typeName))->as<user_types::Node>();
-		auto sCamera = result->context_->createObject(raco::user_types::PerspectiveCamera::typeDescription.typeName, raco::components::Naming::format(raco::user_types::PerspectiveCamera::typeDescription.typeName))->as<user_types::PerspectiveCamera>();
-		auto sRenderPass = result->context_->createObject(raco::user_types::RenderPass::typeDescription.typeName, "MainRenderPass")->as<user_types::RenderPass>();
-		auto sRenderLayer = result->context_->createObject(raco::user_types::RenderLayer::typeDescription.typeName, "MainRenderLayer")->as<user_types::RenderLayer>();
+		auto sMeshNode = result->context_->createObject(user_types::MeshNode::typeDescription.typeName, components::Naming::format(user_types::MeshNode::typeDescription.typeName));
+		auto sNode = result->context_->createObject(user_types::Node::typeDescription.typeName, components::Naming::format(user_types::Node::typeDescription.typeName))->as<user_types::Node>();
+		auto sCamera = result->context_->createObject(user_types::PerspectiveCamera::typeDescription.typeName, components::Naming::format(user_types::PerspectiveCamera::typeDescription.typeName))->as<user_types::PerspectiveCamera>();
+		auto sRenderPass = result->context_->createObject(user_types::RenderPass::typeDescription.typeName, "MainRenderPass")->as<user_types::RenderPass>();
+		auto sRenderLayer = result->context_->createObject(user_types::RenderLayer::typeDescription.typeName, "MainRenderLayer")->as<user_types::RenderLayer>();
 
+		result->context_->set({sMeshNode, &user_types::MeshNode::scaling_}, std::array<double, 3>{2.0, 2.0, 2.0});
+		result->context_->set({sMeshNode, &user_types::MeshNode::instanceCount_}, -1);
 		result->context_->set({sRenderPass, &user_types::RenderPass::camera_}, sCamera);
-		result->context_->set({sRenderPass, &user_types::RenderPass::layer0_}, sRenderLayer);
-		result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Property<int, LinkEndAnnotation>>(0, LinkEndAnnotation(3)));
+		result->context_->set(ValueHandle(sRenderPass, &user_types::RenderPass::layers_)[0], sRenderLayer);
+		result->context_->addProperty({sRenderLayer, &user_types::RenderLayer::renderableTags_}, "render_main", std::make_unique<data_storage::Property<int, LinkEndAnnotation>>(0, LinkEndAnnotation()));
 
 		result->context_->set({sNode, &user_types::Node::tags_}, std::vector<std::string>({"render_main"}));
 		result->context_->set({sCamera, &user_types::Node::translation_, &Vec3f::z}, 10.0);
@@ -306,18 +322,18 @@ std::unique_ptr<RaCoProject> RaCoProject::createNew(RaCoApplication* app, bool c
 	return result;
 }
 
-QJsonDocument RaCoProject::loadFileDocument(const QFileInfo& fileInfo) {
-	const QString absPath = fileInfo.absoluteFilePath();
-
-	if (fileInfo.suffix().compare(raco::names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) != 0) {
-		throw std::runtime_error(fmt::format("Load file: wrong extension {}", fileInfo.filePath().toStdString()));
+QJsonDocument RaCoProject::loadJsonDocument(const QString& filename) {
+	QFileInfo path(filename);
+	QString absPath = path.absoluteFilePath();
+	if (path.suffix().compare(names::PROJECT_FILE_EXTENSION, Qt::CaseInsensitive) != 0) {
+		throw std::runtime_error(fmt::format("Load file: wrong extension {}", path.filePath().toStdString()));
 	}
 
-	if (!raco::utils::u8path(absPath.toStdString()).existsFile()) {
+	if (!utils::u8path(absPath.toStdString()).existsFile()) {
 		throw std::runtime_error(fmt::format("File not found {}", absPath.toLatin1()));
 	}
 
-	if (!raco::utils::u8path(absPath.toStdString()).userHasReadAccess()) {
+	if (!utils::u8path(absPath.toStdString()).userHasReadAccess()) {
 		throw std::runtime_error(fmt::format("Project file could not be read {}", absPath.toLatin1()));
 	}
 
@@ -333,8 +349,8 @@ QJsonDocument RaCoProject::loadFileDocument(const QFileInfo& fileInfo) {
 		throw std::runtime_error(fmt::format("File {} has invalid content", absPath.toLatin1()));
 	}
 
-	if (raco::utils::zip::isZipFile({fileContents.begin(), fileContents.begin() + 4})) {
-		auto unzippedProj = raco::utils::zip::zipToProject(fileContents, fileContents.size());
+	if (utils::zip::isZipFile({fileContents.begin(), fileContents.begin() + 4})) {
+		auto unzippedProj = utils::zip::zipToProject(fileContents, fileContents.size());
 
 		if (unzippedProj.success) {
 			fileContents = QByteArray(unzippedProj.payload.c_str());
@@ -347,25 +363,40 @@ QJsonDocument RaCoProject::loadFileDocument(const QFileInfo& fileInfo) {
 	if (document.isNull()) {
 		throw std::runtime_error("Loading JSON file resulted in a null document object");
 	}
+
 	return document;
 }
 
+int RaCoProject::preloadFeatureLevel(const QString& filename, int featureLevel) {
+	LOG_INFO(log_system::PROJECT, "Loading project from {}", filename.toLatin1());
+
+	QFileInfo path(filename);
+	QString absPath = path.absoluteFilePath();
+
+	auto document = loadJsonDocument(filename);
+
+	auto fileFeatureLevel = serialization::deserializeFeatureLevel(document);
+
+	return std::max(static_cast<int>(fileFeatureLevel), featureLevel);
+}
+
 std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, RaCoApplication* app, LoadContext& loadContext, bool logErrors, int featureLevel, bool generateNewObjectIDs) {
-	LOG_INFO(raco::log_system::PROJECT, "Loading project from {}", filename.toLatin1());
+	LOG_INFO(log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
-	QFileInfo fileInfo(filename);
-	const QString absPath = fileInfo.absoluteFilePath();
-	const auto document = loadFileDocument(filename);
+	QFileInfo path(filename);
+	QString absPath = path.absoluteFilePath();
 
-	auto fileVersion{raco::serialization::deserializeFileVersion(document)};
-	if (fileVersion > raco::serialization::RAMSES_PROJECT_FILE_VERSION) {
+	auto document = loadJsonDocument(filename);
+
+	auto fileVersion{serialization::deserializeFileVersion(document)};
+	if (fileVersion > serialization::RAMSES_PROJECT_FILE_VERSION) {
 		throw FutureFileVersion{fileVersion};
 	}
 	if (fileVersion == 0) {
 		throw std::runtime_error("File is not a RamsesComposer file.");
 	}
 
-	auto result{raco::serialization::deserializeProject(document, absPath.toStdString())};
+	auto result{serialization::deserializeProject(document, absPath.toStdString())};
 
 	for (const auto& instance : result.objects) {
 		instance->onAfterDeserialization();
@@ -382,18 +413,18 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		p.addLink(link);
 	}
 	for (auto [id, info] : result.externalProjectsMap) {
-		auto absPath = raco::utils::u8path(info.path).normalizedAbsolutePath(p.currentFolder());
+		auto absPath = utils::u8path(info.path).normalizedAbsolutePath(p.currentFolder());
 		p.addExternalProjectMapping(id, absPath.string(), info.name);
 	}
 	if (featureLevel != -1) {
-		if (featureLevel >= p.featureLevel() && featureLevel <= static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)) {
+		if (featureLevel >= p.featureLevel() && featureLevel <= static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)) {
 			p.setFeatureLevel(featureLevel);
 		} else {
 			if (featureLevel < p.featureLevel()) {
 				throw FeatureLevelLoadError(fmt::format("New Feature level {} smaller than project feature level {}.", featureLevel, p.featureLevel()),
 					featureLevel, p.featureLevel(), absPath.toStdString());
 			} else {
-				throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+				throw std::runtime_error(fmt::format("RamsesLogic feature level {} outside valid range ({} ... {})", featureLevel, static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)));
 			}
 		}
 	}
@@ -411,11 +442,12 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		[app]() { app->dataChangeDispatcher()->setUndoChanged(); },
 		app->externalProjects(),
 		app,
-		loadContext};
+		loadContext,
+		fileVersion};
 
 	for (const auto& [objectID, infoMessage] : result.migrationObjWarnings) {
 		if (const auto migratedObj = newProject->project()->getInstanceByID(objectID)) {
-			newProject->errors()->addError(raco::core::ErrorCategory::MIGRATION, ErrorLevel::WARNING, migratedObj, infoMessage);
+			newProject->errors()->addError(core::ErrorCategory::MIGRATION, ErrorLevel::WARNING, migratedObj, infoMessage);
 		}
 	}
 
@@ -426,7 +458,9 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		newProject->errors()->logAllErrors();
 	}
 
-	LOG_INFO(raco::log_system::PROJECT, "Finished loading project from {}", absPath.toLatin1());
+	LOG_INFO(log_system::PROJECT, "Finished loading project from {}", absPath.toLatin1());
+
+	newProject->lastModifiedTime_ = std::filesystem::last_write_time(absPath.toStdString());
 
 	return std::unique_ptr<RaCoProject>(newProject);
 }
@@ -624,7 +658,7 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 	for (const auto& [id, handles] : context_->modelChanges().getChangedValues()) {
 		for (const auto& handle : handles) {
 			if (!canReconstructPropertyPredicate(handle)) {
-				LOG_WARNING(raco::log_system::PROJECT, "serializeProject: optimization changed property {}; using non-optimized fallback instead.", handle);
+				LOG_WARNING(log_system::PROJECT, "serializeProject: optimization changed property {}; using non-optimized fallback instead.", handle);
 				lostData = true;
 			}
 		}
@@ -637,7 +671,7 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 			auto endID = link.end.object()->objectID();
 			auto endObj = project_.getInstanceByID(endID);
 			if (endObj && !canReconstructLinkPredicate(link)) {
-				LOG_WARNING(raco::log_system::PROJECT, "serializeProject: optimization removed link {}; using non-optimized fallback instead.", link);
+				LOG_WARNING(log_system::PROJECT, "serializeProject: optimization removed link {}; using non-optimized fallback instead.", link);
 				lostData = true;
 			}
 		}
@@ -664,7 +698,7 @@ QJsonDocument RaCoProject::serializeProject(const std::unordered_map<std::string
 bool RaCoProject::save(std::string& outError) {
 	outError.clear();
 	const auto path(project_.currentPath());
-	LOG_INFO(raco::log_system::PROJECT, "Saving project to {}", path);
+	LOG_INFO(log_system::PROJECT, "Saving project to {}", path);
 	QFile file{path.c_str()};
 	auto settings = project_.settings();
 	auto saveAsZip = *settings->saveAsZip_;
@@ -672,25 +706,23 @@ bool RaCoProject::save(std::string& outError) {
 
 	if (!file.open(flags)) {
 		std::string msg = fmt::format("Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
-		LOG_ERROR(raco::log_system::PROJECT, msg);
+		LOG_ERROR(log_system::PROJECT, msg);
 		outError = msg;
 		return false;
 	}
 
-	auto ramsesVersion = raco::ramses_base::getRamsesVersion();
-	auto ramsesLogicEngineVersion = raco::ramses_base::getLogicEngineVersion();
+	auto ramsesVersion = ramses_base::getRamsesVersion();
 
 	std::unordered_map<std::string, std::vector<int>> currentVersions = {
-		{raco::serialization::keys::FILE_VERSION, {raco::serialization::RAMSES_PROJECT_FILE_VERSION}},
-		{raco::serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
-		{raco::serialization::keys::RAMSES_LOGIC_ENGINE_VERSION, {static_cast<int>(ramsesLogicEngineVersion.major), static_cast<int>(ramsesLogicEngineVersion.minor), static_cast<int>(ramsesLogicEngineVersion.patch)}},
-		{raco::serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
+		{serialization::keys::FILE_VERSION, {serialization::RAMSES_PROJECT_FILE_VERSION}},
+		{serialization::keys::RAMSES_VERSION, {ramsesVersion.major, ramsesVersion.minor, ramsesVersion.patch}},
+		{serialization::keys::RAMSES_COMPOSER_VERSION, {RACO_VERSION_MAJOR, RACO_VERSION_MINOR, RACO_VERSION_PATCH}}};
 	auto projectFileData = serializeProject(currentVersions).toJson();
 
 	if (saveAsZip) {
-		auto zippedFile = (raco::utils::zip::projectToZip(projectFileData.constData(), (project_.currentFileName() + ".json").c_str()));
+		auto zippedFile = (utils::zip::projectToZip(projectFileData.constData(), (project_.currentFileName() + ".json").c_str()));
 		if (zippedFile.empty()) {
-			LOG_ERROR(raco::log_system::PROJECT, "Saving project failed: Error while zipping project file");
+			LOG_ERROR(log_system::PROJECT, "Saving project failed: Error while zipping project file");
 			return false;
 		}
 
@@ -702,16 +734,18 @@ bool RaCoProject::save(std::string& outError) {
 	file.write(projectFileData);
 	if (!file.flush() || file.error() != QFile::FileError::NoError) {
 		std::string msg = fmt::format("Saving project failed: Could not open file for writing: {} FileError {} {}", path, file.error(), file.errorString().toStdString());
-		LOG_ERROR(raco::log_system::PROJECT, msg);
+		LOG_ERROR(log_system::PROJECT, msg);
 		outError = msg;
 		return false;
 	}
 	file.close();
 
+	lastModifiedTime_ = std::filesystem::last_write_time(path);
+
 	generateAllProjectSubfolders();
 
 	dirty_ = false;
-	LOG_INFO(raco::log_system::PROJECT, "Finished saving project to {}", path);
+	LOG_INFO(log_system::PROJECT, "Finished saving project to {}", path);
 	Q_EMIT projectSuccessfullySaved();
 	return true;
 }
@@ -730,10 +764,10 @@ bool RaCoProject::saveAs(const QString& fileName, std::string& outError, bool se
 		// However the onAfterProjectPathChange will perform an unconditional undo stack push.
 		// This means that using the context in the operations below is OK as long as we perform the onAfterProjectPathChange afterwards.
 		if (setProjectName) {
-			auto projName = raco::utils::u8path(newPath).stem().string();
+			auto projName = utils::u8path(newPath).stem().string();
 			auto settings = project_.settings();
 			if (settings->objectName().empty()) {
-				context_->set({settings, &raco::core::EditorObject::objectName_}, projName);
+				context_->set({settings, &core::EditorObject::objectName_}, projName);
 			}
 		}
 		project_.setCurrentPath(newPath);
@@ -786,7 +820,7 @@ MeshCache* RaCoProject::meshCache() {
 	return meshCache_;
 }
 
-raco::components::TracePlayer& RaCoProject::tracePlayer() {
+components::TracePlayer& RaCoProject::tracePlayer() {
 	return *tracePlayer_;
 }
 

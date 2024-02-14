@@ -34,7 +34,7 @@ bool TextureExternalAdaptor::sync(core::Errors* errors) {
 	auto magSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_);
 	auto ramsesMagSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(magSamplMethod);
 
-	reset(ramsesTextureSamplerExternal(sceneAdaptor_->scene(), ramsesMinSamplMethod, ramsesMagSamplMethod));
+	reset(ramsesTextureSamplerExternal(sceneAdaptor_->scene(), ramsesMinSamplMethod, ramsesMagSamplMethod, {}, editorObject()->objectIDAsRamsesLogicID()));
 
 	tagDirty(false);
 	return true;

@@ -48,6 +48,66 @@ the elements of your scene. The elements can be rearranged by drag&drop. Multipl
 selected and cut/copied/pasted whenever possible. The order in the scene graph also determines
 the rendering order.
 
+__Objects filtering__: Ramses Composer supports objects filtering to help users to focus on the 
+objects they want to edit. These filters can be either simple or complex including keywords and 
+boolean operators. 
+
+Filter expressions are built up from individual search terms. Each search term is of the form
+`<term> = <keyword> <term_operator> <value>`. The keywords can be omitted. In this case the default 
+keyword will be taken from the filter combobox.  Additionally if the operator is also ommitted `=` is used as default operator.
+
+| Seach Term Forms | |
+|-|-| 
+| `<keyword> <term_operator> <value>` | general match | 
+| `<term_operator> <value>` | use filter combobox for keyword |
+| `<value>` | use filter combobox for keyword and `=` for operator |
+
+The keywords, operators, and values can be specified as follows:
+
+| KEYWORD  |                                                                | 
+| -------- | -------------------------------------------------------------- |
+| name     | sort by name                                                   |
+| type     | sort by object types (Node, LuaScript, PerspectiveCamera etc.) |
+| id       | sort by ids (each object has a unique ID)                      |
+| tag      | sort by user tags                                              |
+
+| Search Term Operators |                                                                |
+| -------- | -------------------------------------------------------------- |
+| =        | equal                                                          |
+| !=       | not equal                                                      |
+
+| Values  |                                                                               |
+| -------- | ---------------------------------------------------------------------------------------- |
+| string | unquoted string without special characters or spaces |
+| "string"       | use double quotes for EXACT match (case sensitive)                                       |
+| 'string'       | use single quotes for the items which contain WHITESPACEs or ROUNDED BRACKETS            |
+
+Individual search terms can be combined using `&` and `|` operators, see table below. The `|` operator may also be omitted, i.e. combining search terms using spaces  is equivalent to using `|`. The `&` operator has a higher preference than the `|` operator. Search terms can be grouped using `()` rounded brackets.
+
+| Combination Operators |                                                                |
+| -------- | -------------------------------------------------------------- |
+| &#124;   | logical OR                                                     |
+| &        | logical AND (has a priority over the OR operator)              |
+| ()       | use rounded brackets to group parts of an expression and prioritize their processing     |
+
+**Filter examples**
+
+	name = myName                              	show objects which CONTAIN myName in their names
+	type = "myType"                            	show objects which type is EXACTLY myType
+	id != 123-456-789                          	show objects which DO NOT CONTAIN 123-456-789 in their IDs
+	tag != "myTag"                             	show objects which tag is EXACTLY NOT myTag
+	name = name1 | name = name2                	show objects with names CONTAINING name1 OR name2
+	name = name1 & type = type1                	show objects with names CONTAINING name1 AND type CONTAINING type1
+	name = name1 & (type = type1 | id = myId)  	show objects with type CONTAINING type1 OR id CONTAINING myId which at the same time CONTAIN name1 in their names
+	name = "name(1)"                           	show objects with names EXACTLY name(1)
+	name = 'name(1)'                           	show objects with names CONTAINING name(1). Here the single quotes are IMPORTANT because the name contains rounded  brackets
+	!= myName                                  	show objects which DO NOT CONTAIN myName in their names
+	"myName"                                   	show objects which name is EXACTLY myName
+	!= name1 | != name2                        	show objects which DO NOT CONTAIN name1 OR name2 in their names
+	myTag                                      	show objects which CONTAIN myTag in their user tags
+	tag1 tag2                                  	show objects which CONTAIN tag1 OR tag2 in their user tags
+
+
 __Resources__: The resource view shows all the resources like meshes or textures used by the scene. By
 clicking on the column headers, it can be sorted by name or by type. It is possible to use resources
 which are included from other projects. Such external resources are colored in green.
@@ -124,7 +184,7 @@ and the RAMSES client.
 	-t, --trace-messages-ramses               	Enable trace-level Ramses log messages.
 	-f, --featurelevel <feature-level>        	RamsesLogic feature level (-1, 1 ... 2)
 	-r, --run <script-path>                   	Run Python script. Specify arguments for python script by writing '--' before arguments.
- 	-y, --pythonpath <python-path>				Directory to add to python module search path.
+ 	-y, --pythonpath <python-path>            	Directory to add to python module search path.
 
 ## Ramses Composer Headless
 

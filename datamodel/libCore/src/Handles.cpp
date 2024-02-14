@@ -12,6 +12,10 @@
 #include "core/Iterators.h"
 #include "core/PropertyDescriptor.h"
 
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+
 namespace raco::core {
 
 ValueHandle::ValueHandle(std::shared_ptr<EditorObject> object, std::initializer_list<std::string> names) : ValueHandle(object, std::vector<std::string>(names)) {}
@@ -49,7 +53,8 @@ ValueHandle ValueHandle::translatedHandle(const ValueHandle& handle, std::functi
 }
 
 PropertyDescriptor ValueHandle::getDescriptor() const {
-	return PropertyDescriptor(object_, getPropertyNamesVector());
+	auto propNames = getPropertyNamesVector();
+	return PropertyDescriptor(object_, {propNames.begin(), propNames.end()});
 }
 
 
@@ -167,6 +172,60 @@ bool ValueHandle::isVec4i() const {
 	return isStruct<Vec4i>();
 }
 
+template<>
+glm::vec2 ValueHandle::as<glm::vec2>() const {
+	if (isVec2f()) {
+		const auto& vec = asVec2f();
+		return {static_cast<float>(*vec.x), static_cast<float>(*vec.y)};
+	}
+	return {};
+}
+
+template <>
+glm::vec3 ValueHandle::as<glm::vec3>() const {
+	if (isVec3f()) {
+		const auto& vec = asVec3f();
+		return {static_cast<float>(*vec.x), static_cast<float>(*vec.y), static_cast<float>(*vec.z)};
+	}
+	return {};
+}
+
+template <>
+glm::vec4 ValueHandle::as<glm::vec4>() const {
+	if (isVec4f()) {
+		const auto& vec = asVec4f();
+		return {static_cast<float>(*vec.x), static_cast<float>(*vec.y), static_cast<float>(*vec.z), static_cast<float>(*vec.w)};
+	}
+	return {};
+}
+
+template <>
+glm::ivec2 ValueHandle::as<glm::ivec2>() const {
+	if (isVec2i()) {
+		const auto& vec = asVec2i();
+		return {*vec.i1_, *vec.i2_};
+	}
+	return {};
+}
+
+template <>
+glm::ivec3 ValueHandle::as<glm::ivec3>() const {
+	if (isVec3i()) {
+		const auto& vec = asVec3i();
+		return {*vec.i1_, *vec.i2_, *vec.i3_};
+	}
+	return {};
+}
+
+template <>
+glm::ivec4 ValueHandle::as<glm::ivec4>() const {
+	if (isVec4i()) {
+		const auto& vec = asVec4i();
+		return {*vec.i1_, *vec.i2_, *vec.i3_, *vec.i4_};
+	}
+	return {};
+}
+
 size_t ValueHandle::size() const {
 	if (indices_.empty()) {
 		return object_->size();
@@ -188,7 +247,7 @@ ValueHandle ValueHandle::operator[](size_t index) const {
 	return v;
 }
 
-bool ValueHandle::hasProperty(std::string name) const {
+bool ValueHandle::hasProperty(std::string_view name) const {
 	if (indices_.empty()) {
 		return object_->hasProperty(name);
 	}
@@ -199,7 +258,7 @@ bool ValueHandle::hasProperty(std::string name) const {
 	return false;
 }
 
-ValueHandle ValueHandle::get(std::string propertyName) const {
+ValueHandle ValueHandle::get(std::string_view propertyName) const {
 	ValueHandle v(object_, indices_);
 	size_t index = object()->index(propertyName);
 	v.indices_.emplace_back(index);
@@ -220,9 +279,9 @@ std::string ValueHandle::getPropName() const {
 	throw std::runtime_error("invalid property");
 }
 
-std::vector<std::string> ValueHandle::getPropertyNamesVector() const {
+std::vector<std::string_view> ValueHandle::getPropertyNamesVector() const {
 	if (!indices_.empty()) {
-		std::vector<std::string> result; 
+		std::vector<std::string_view> result;
 		ReflectionInterface* o = object_.get();
 		for (int i = 0; i < indices_.size() - 1; i++) {
 			result.emplace_back(o->name(indices_[i]));
@@ -313,8 +372,9 @@ ValueBase* ValueHandle::valueRef() const {
 				}
 				o = &v->getSubstructure();
 			}
-			v = (*o)[index];
-			if (!v) {
+			if (index < o->size()) {
+				v = (*o)[index];
+			} else {
 				return nullptr;
 			}
 		}

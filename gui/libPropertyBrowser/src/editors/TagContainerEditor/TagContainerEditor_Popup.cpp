@@ -178,7 +178,7 @@ namespace raco::property_browser {
 			availableTagsItemModel_->addTag(tag, listOfRenderLayerNames, forbiddenTags_.find(tag.toStdString()) == forbiddenTags_.end());
 		}
 		listOfAvailableTags_.setModel(availableTagsItemModel_);
-		if (tagType_ == raco::core::TagType::UserTags) {
+		if (tagType_ == core::TagType::UserTags) {
 			listOfAvailableTags_.header()->hideSection(1);
 		}
 
@@ -267,7 +267,7 @@ namespace raco::property_browser {
 				});
 				break;
 			}
-			case raco::core::TagType::UserTags: {
+			case core::TagType::UserTags: {
 				break;
 			}
 		}

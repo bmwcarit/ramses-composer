@@ -66,11 +66,12 @@ std::tuple<bool, std::string> Material::validateShader(BaseContext& context, con
 }
 
 void Material::updateFromExternalFile(BaseContext& context) {
-	context.errors().removeError(ValueHandle{shared_from_this()});
 	bool isUriDefinesValid = false;
 	const auto definesUriHandle = ValueHandle{shared_from_this(), &Material::uriDefines_};
-	if (uriDefines_.asString().empty() || (isUriDefinesValid = validateURI(context, definesUriHandle))) {
+	if (uriDefines_.asString().empty()) {
 		context.errors().removeError(definesUriHandle);
+	} else {
+		isUriDefinesValid = validateURI(context, definesUriHandle);
 	}
 
 	isShaderProgramValid_ = false;
@@ -90,7 +91,7 @@ void Material::updateFromExternalFile(BaseContext& context) {
 
 		std::string shaderDefines;
 		if (isUriDefinesValid) {
-			shaderDefines = {raco::utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriDefines_}))};
+			shaderDefines = {utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Material::uriDefines_}))};
 			// ramses treats the empty string as no shader defines should be loaded and only shows errors if the string contains at least a single charcater.
 			// We want to display errors when the file load was successful but the file is empty.
 			if (shaderDefines.empty()) {
@@ -102,8 +103,13 @@ void Material::updateFromExternalFile(BaseContext& context) {
 		isShaderProgramValid_ = context.engineInterface().parseShader(vertexShader, geometryShader, fragmentShader, shaderDefines, uniforms, attributes_, error);
 		if (!error.empty()) {
 			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, ValueHandle{shared_from_this()}, error);
+		} else {
+			context.errors().removeError(ValueHandle{shared_from_this()});
 		}
+	} else {
+		context.errors().removeError(ValueHandle{shared_from_this()});
 	}
+
 	if (!isShaderProgramValid_) {
 		attributes_.clear();
 	}
@@ -144,7 +150,7 @@ std::string Material::getShaderFileEnding(ShaderFileType shader, bool endsWithDo
 
 void Material::autofillShaderIfFileExists(BaseContext& context, const std::string& fileNameWithoutEnding, bool endsWithDotGlsl, ShaderFileType shaderType) {
 	auto fileName = fileNameWithoutEnding + getShaderFileEnding(shaderType, endsWithDotGlsl);
-	if (raco::utils::u8path(fileName).normalizedAbsolutePath(context.project()->currentFolder()).existsFile()) {
+	if (utils::u8path(fileName).normalizedAbsolutePath(context.project()->currentFolder()).existsFile()) {
 		ValueHandle handle;
 		switch (shaderType) {
 			case ShaderFileType::Vertex:

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "property_browser/PropertyBrowserModel.h"
+#include "property_browser/PropertyCopyPaste.h"
 #include "components/DataChangeDispatcher.h"
 #include "core/UserObjectFactoryInterface.h"
 #include "testing/TestEnvironmentCore.h"
@@ -18,18 +19,22 @@
 template <typename T>
 class EditorTestFixtureT : public TestEnvironmentCoreT<T> {
 public:
-	using DataChangeDispatcher = raco::components::DataChangeDispatcher;
+	using DataChangeDispatcher = components::DataChangeDispatcher;
 	int argc{0};
 	QApplication application{argc, nullptr};
 	std::shared_ptr<DataChangeDispatcher> dataChangeDispatcher;
-	raco::property_browser::PropertyBrowserModel model;
+	property_browser::PropertyBrowserModel model;
 
 	EditorTestFixtureT() : TestEnvironmentCoreT<T>{}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
-	EditorTestFixtureT(raco::core::UserObjectFactoryInterface* objectFactory) : TestEnvironmentCoreT<T>{objectFactory}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
+	EditorTestFixtureT(core::UserObjectFactoryInterface* objectFactory) : TestEnvironmentCoreT<T>{objectFactory}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
 
 	void dispatch() {
 		dataChangeDispatcher->dispatch(this->recorder.release());
 		application.processEvents();
+	}
+
+	static void pasteProperty(property_browser::PropertyBrowserItem* item, data_storage::ValueBase* value) {
+		property_browser::PropertyCopyPaste::pasteProperty(item, value);
 	}
 };
 

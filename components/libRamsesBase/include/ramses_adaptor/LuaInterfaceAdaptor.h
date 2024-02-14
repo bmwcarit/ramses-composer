@@ -13,7 +13,7 @@
 #include "components/DataChangeDispatcher.h"
 #include "user_types/LuaInterface.h"
 
-#include <ramses-logic/LuaInterface.h>
+#include <ramses/client/logic/LuaInterface.h>
 
 #include <memory>
 #include <vector>
@@ -24,8 +24,8 @@ class LuaInterfaceAdaptor : public UserTypeObjectAdaptor<user_types::LuaInterfac
 public:
 	explicit LuaInterfaceAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::LuaInterface> editorObject);
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 	std::vector<ExportInformation> getExportInformation() const override;
 

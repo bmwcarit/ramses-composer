@@ -281,17 +281,17 @@ std::optional<T> evaluateLuaExpression(QString expression, T min, T max) {
 	if (!luaL_dostring(l, ("return " + expression.toStdString()).c_str())) {
 		auto result = lua_tonumber(l, -1);
 		if (result < min) {
-			LOG_INFO(raco::log_system::PROPERTY_BROWSER, "Lua result {} is under numerical limit {} and will be clamped.", result, min);
+			LOG_INFO(log_system::PROPERTY_BROWSER, "Lua result {} is under numerical limit {} and will be clamped.", result, min);
 			result = min;
 		} else if (result > max) {
-			LOG_INFO(raco::log_system::PROPERTY_BROWSER, "Lua result {} is over numerical limit {} and will be clamped.", result, max);
+			LOG_INFO(log_system::PROPERTY_BROWSER, "Lua result {} is over numerical limit {} and will be clamped.", result, max);
 			result = max;
 		}
 
 		lua_close(l);
 		return (T)result;
 	} else {
-		LOG_INFO(raco::log_system::PROPERTY_BROWSER, "Could not evaluate Lua Expression: {}", lua_tostring(l, -1));
+		LOG_INFO(log_system::PROPERTY_BROWSER, "Could not evaluate Lua Expression: {}", lua_tostring(l, -1));
 		lua_close(l);
 		return {};
 	}

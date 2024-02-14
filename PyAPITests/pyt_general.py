@@ -39,8 +39,8 @@ class GeneralTests(unittest.TestCase):
     def test_reset_feature_levels(self):
         raco.reset(1)
         self.assertEqual(raco.projectFeatureLevel(), 1)
-        raco.reset(2)
-        self.assertEqual(raco.projectFeatureLevel(), 2)
+        raco.reset(raco.maxFeatureLevel())
+        self.assertEqual(raco.projectFeatureLevel(), raco.maxFeatureLevel())
 
     def test_load(self):
         raco.load(self.cwd() + "/../resources/example_scene.rca")
@@ -72,25 +72,37 @@ class GeneralTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             raco.load(self.cwd() + "/../resources/multi-file-zip.rca")
 
-    def test_load_feature_levels(self):
-        raco.load(self.cwd() + "/../resources/empty-fl1.rca")
+    def test_load_raco_1x_feature_levels(self):
+        raco.load(self.cwd() + "/../resources/empty-raco-1x-fl1.rca")
         self.assertEqual(raco.projectFeatureLevel(), 1)
 
-        raco.load(self.cwd() + "/../resources/empty-fl1.rca", 1)
+        raco.load(self.cwd() + "/../resources/empty-raco-1x-fl1.rca", 1)
         self.assertEqual(raco.projectFeatureLevel(), 1)
 
-        raco.load(self.cwd() + "/../resources/empty-fl1.rca", 2)
-        self.assertEqual(raco.projectFeatureLevel(), 2)
+        raco.load(self.cwd() + "/../resources/empty-raco-1x-fl1.rca", raco.maxFeatureLevel())
+        self.assertEqual(raco.projectFeatureLevel(), raco.maxFeatureLevel())
 
-        raco.load(self.cwd() + "/../resources/empty-fl2.rca")
-        self.assertEqual(raco.projectFeatureLevel(), 2)
-
-        with self.assertRaises(RuntimeError):
-            raco.load(self.cwd() + "/../resources/empty-fl2.rca", 1)
+        raco.load(self.cwd() + "/../resources/empty-raco-1x-fl2.rca")
         self.assertEqual(raco.projectFeatureLevel(), 1)
 
-        raco.load(self.cwd() + "/../resources/empty-fl2.rca", 2)
-        self.assertEqual(raco.projectFeatureLevel(), 2)
+        raco.load(self.cwd() + "/../resources/empty-raco-1x-fl2.rca", 1)
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+
+        raco.load(self.cwd() + "/../resources/empty-raco-1x-fl2.rca", raco.maxFeatureLevel())
+        self.assertEqual(raco.projectFeatureLevel(), raco.maxFeatureLevel())
+
+    def test_load_raco_2x_feature_levels(self):
+        raco.load(self.cwd() + "/../resources/empty-raco-2x-fl1.rca")
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+
+        raco.load(self.cwd() + "/../resources/empty-raco-2x-fl1.rca", 1)
+        self.assertEqual(raco.projectFeatureLevel(), 1)
+
+        raco.load(self.cwd() + "/../resources/empty-raco-2x-fl1.rca", raco.maxFeatureLevel())
+        self.assertEqual(raco.projectFeatureLevel(), raco.maxFeatureLevel())
+
+        # TODO check that feature level downgrade is not possible:
+        # currently can't be tested since max feature level is 1
 
     def test_save_check_object_id(self):
         objectInitID = self.findObjectByType("ProjectSettings").objectID()
@@ -138,8 +150,8 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(node.parent(), None)
         self.assertEqual(node.children(), [])
         self.assertTrue(node.objectID() != None)
-        self.assertEqual(dir(node), ['enabled', 'objectName', 'rotation', 'scaling', 'translation', 'visibility'])
-        self.assertEqual(node.keys(), ['objectName', 'visibility', 'enabled', 'translation', 'rotation', 'scaling'])
+        self.assertEqual(dir(node), ['enabled', 'metaData', 'objectName', 'rotation', 'scaling', 'translation', 'visibility'])
+        self.assertEqual(node.keys(), ['objectName', 'metaData', 'visibility', 'enabled', 'translation', 'rotation', 'scaling'])
 
         self.assertTrue(node.objectName, "my_node")
         self.assertTrue(node["objectName"], "my_node")
@@ -799,11 +811,11 @@ class GeneralTests(unittest.TestCase):
         self.assertEqual(end.inputs.in_float.value(), 2.0)
 
 
-    def test_feature_level_2_node_enabled(self):
+    def test_node_enabled(self):
         node = raco.create("Node", "node")
         self.assertEqual(node.enabled.value(), True)
 
-    def test_feature_level_2_perspective_camera_frustum(self):
+    def test_perspective_camera_frustum(self):
         camera = raco.create("PerspectiveCamera", "camera")
 
         self.assertEqual(camera.frustumType.value(), raco.EFrustumType.Aspect_FoV)
@@ -823,18 +835,18 @@ class GeneralTests(unittest.TestCase):
         camera.frustumType = raco.EFrustumType.Aspect_FoV
         self.assertEqual(camera.frustum.aspectRatio.value(), 3.0)
         
-    def test_feature_level_2_anchor_point(self):
+    def test_anchor_point(self):
         node = raco.create("Node", "node")
         anchor = raco.create("AnchorPoint", "test_anchor")
         
         anchor.node = node
         
-    def test_feature_level_2_renderpass_prop(self):
+    def test_renderpass_prop(self):
         renderpass = raco.create("RenderPass", "render_pass")
         self.assertEqual(renderpass.renderOnce.value(), False)
 
 
-    def test_feature_level_2_renderpass_link(self):
+    def test_renderpass_link(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
@@ -1122,16 +1134,17 @@ class GeneralTests(unittest.TestCase):
             raco.importGLTF("thisShouldNotExist.gltf")
 
     def test_get_mesh_metadata(self):
-        node = raco.create("Node", "node1")
-        self.assertEqual(None, node.metadata())
-
         mesh = raco.create("Mesh", "mesh1")
-        self.assertEqual(None, mesh.metadata())
+        with self.assertRaises(RuntimeError):
+            mesh.metadata()
+
+        self.assertFalse("gltfExtras" in mesh.metaData.keys())
 
         mesh.uri = self.cwd() + R"/../resources/meshes/CesiumMilkTruck/CesiumMilkTruck.gltf"
         mesh.bakeMeshes = False
         mesh.meshIndex = 1
-        self.assertEqual({'prop1': 'truck mesh property'}, mesh.metadata())
+        self.assertTrue("gltfExtras" in mesh.metaData.keys())
+        self.assertEqual(mesh.metaData.gltfExtras.prop1.value(), 'truck mesh property')
 
     def test_setTags(self):
         node = raco.create("Node", "node")
@@ -1172,7 +1185,7 @@ class GeneralTests(unittest.TestCase):
         texture.setUserTags(['foo', 'bar'])
         self.assertEqual(texture.getUserTags(), ['foo', 'bar'])
 
-    def test_feature_level_3_render_order(self):
+    def test_render_order(self):
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
         
@@ -1244,50 +1257,27 @@ class GeneralTests(unittest.TestCase):
     # Export with specified lua save mode, assert success and cleanup
     def export(self, name, save_mode):
         out_dir = self.cwd()
-        logic_file = os.path.join(out_dir, f'{name}.rlogic')
         ramses_file = os.path.join(out_dir, f'{name}.ramses')
-        if os.path.exists(logic_file):
-            os.remove(logic_file)
+        if os.path.exists(ramses_file):
+            os.remove(ramses_file)
         try:
-            raco.export(
-                ramses_file,
-                logic_file,
-                False,
-                save_mode)
-            self.assertEqual(os.path.exists(logic_file), True)
+            raco.export(ramses_file, False, save_mode)
+            self.assertEqual(os.path.exists(ramses_file), True)
         except RuntimeError:
             raise
         finally:
-            if os.path.exists(logic_file):
-                os.remove(logic_file)
             if os.path.exists(ramses_file):
                 os.remove(ramses_file)
 
-    def test_feature_level_2_export_lua_save_mode(self):
+    def test_export_lua_save_mode(self):
         # Add a lua script to project
         lua = raco.create("LuaScript", "lua")
         lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
 
-        # All available modes are supported starting from Feature Level 2
         self.export("lua_SourceCodeOnly", raco.ELuaSavingMode.SourceCodeOnly)
         self.export("lua_ByteCodeOnly", raco.ELuaSavingMode.ByteCodeOnly)
         self.export("lua_SourceAndByteCode", raco.ELuaSavingMode.SourceAndByteCode)
 
-    def test_feature_level_1_export_lua_save_mode(self):
-        raco.reset(1)
-
-        # Add a lua script to project
-        lua = raco.create("LuaScript", "lua")
-        lua.uri = self.cwd() + R"/../resources/scripts/types-scalar.lua"
-
-        # In Feature Level 1 only Source Code lua saving mode is supported
-        self.export("lua_SourceCodeOnly_FL1", raco.ELuaSavingMode.SourceCodeOnly)
-        # Ramses Logic treats SourceAndByteCode as SourceCodeOnly and exports successfully
-        self.export("lua_SourceAndByteCode_FL1", raco.ELuaSavingMode.SourceAndByteCode)
-
-        # Ramses Logic rejects ByteCodeOnly
-        with self.assertRaises(RuntimeError):
-            self.export("lua_ByteCodeOnly_FL1", raco.ELuaSavingMode.ByteCodeOnly)
             
     def test_resolveUriPropertyToAbsolutePath (self):
         # load scene to obtain known current project folder:
@@ -1307,3 +1297,28 @@ class GeneralTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             raco.resolveUriPropertyToAbsolutePath(lua.objectName)
+
+    def test_array_resize(self):
+        # grow
+        skin = raco.create("Skin", "skin")
+        self.assertEqual(len(skin.targets.keys()), 1)
+
+        skin.targets.resize(3)
+        self.assertEqual(len(skin.targets.keys()), 3)
+
+        # shrink
+        target = raco.create("RenderTarget", "target")
+        self.assertEqual(len(target.buffers.keys()), 1)
+
+        target.buffers.resize(3)
+        self.assertEqual(len(target.buffers.keys()), 3)
+
+        # invalid property
+        node = raco.create("Node", "node")
+        with self.assertRaises(RuntimeError):
+            node.translation.resize(1)
+
+        # not resizable
+        with self.assertRaises(RuntimeError):
+            skin.joints.resizeArray(2)
+

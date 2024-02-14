@@ -62,12 +62,9 @@ void TagDataCache::initCache(std::string_view referencingProperty, std::string_v
 					addReferencingObject(tag, instance);
 				}
 			}
-			core::ValueHandle referencingPropHandle{referencingObject, {std::string(referencingProperty)}};
 		}
-		if (tagType == TagType::UserTags || core::Queries::isUserTypeInTypeList(instance, TaggedObjectTypeList{})) {
-			core::Table const& tagContainer = instance->get(std::string(tagProperty))->asTable();
-			for (auto tagIndex = 0; tagIndex < tagContainer.size(); ++tagIndex) {
-				std::string const& tag = tagContainer.get(tagIndex)->asString();
+		if ((tagType == TagType::UserTags || core::Queries::isUserTypeInTypeList(instance, TaggedObjectTypeList{})) && instance->hasProperty(std::string(tagProperty))) {
+			for (const auto& tag : instance->get(std::string(tagProperty))->asTable().asVector<std::string>()) {
 				addTaggedObject(tag, instance);
 			}
 		}
@@ -112,8 +109,7 @@ std::set<user_types::SRenderPass> TagDataCache::allRenderPassesForObjectWithTags
 	} while (!newLayers.empty());
 	auto rps = core::Queries::filterByType<user_types::RenderPass>(project_->instances());
 	for (auto const& rp : rps) {
-		auto rprls = {rp->layer0_.asRef(), rp->layer1_.asRef(), rp->layer2_.asRef(), rp->layer3_.asRef(),
-			rp->layer4_.asRef(), rp->layer5_.asRef(), rp->layer6_.asRef(), rp->layer7_.asRef()};
+		auto rprls = rp->layers_->asVector<user_types::SRenderLayer>();
 		const bool isRenderPassUsingTags = std::any_of(rprls.begin(), rprls.end(), [&layers = std::as_const(allLayers), obj](user_types::SEditorObject const& rl) {
 			return rl != nullptr && (rl == obj || layers.find(rl->as<user_types::RenderLayer>()) != layers.end());
 		});

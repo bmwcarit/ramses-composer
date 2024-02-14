@@ -31,7 +31,7 @@ TEST_F(LuaScriptModuleTest, URI_emptyURI_error) {
 	ValueHandle uriHandle{module, {"uri"}};
 
 	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));
-	ASSERT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::WARNING);
+	ASSERT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::WARNING);
 }
 
 TEST_F(LuaScriptModuleTest, URI_setInvalidURI_error) {
@@ -40,7 +40,7 @@ TEST_F(LuaScriptModuleTest, URI_setInvalidURI_error) {
 	commandInterface.set(uriHandle, std::string("blah.lua"));
 
 	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));
-	ASSERT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::ERROR);
 }
 
 TEST_F(LuaScriptModuleTest, URI_setValidURI_noError) {

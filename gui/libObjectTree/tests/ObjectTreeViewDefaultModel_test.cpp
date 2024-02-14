@@ -29,20 +29,20 @@
 #include <core/PrefabOperations.h>
 
 using namespace raco::core;
-using namespace raco::object_tree::model;
+using namespace object_tree::model;
 using namespace raco::user_types;
 
 ObjectTreeViewDefaultModelTest::ObjectTreeViewDefaultModelTest()
-	: viewModel_{new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface(), application.dataChangeDispatcher(), externalProjectStore(),
-		  {raco::user_types::Animation::typeDescription.typeName,
-		raco::user_types::Node::typeDescription.typeName,
-		raco::user_types::MeshNode::typeDescription.typeName,
-		raco::user_types::PrefabInstance::typeDescription.typeName,
-		raco::user_types::OrthographicCamera::typeDescription.typeName,
-		raco::user_types::PerspectiveCamera::typeDescription.typeName,
-		raco::user_types::LuaScript::typeDescription.typeName,
-		raco::user_types::LuaInterface::typeDescription.typeName,
-		raco::user_types::Skin::typeDescription.typeName})} {
+	: viewModel_{new object_tree::model::ObjectTreeViewDefaultModel(&commandInterface(), application.dataChangeDispatcher(), externalProjectStore(),
+		  {user_types::Animation::typeDescription.typeName,
+		user_types::Node::typeDescription.typeName,
+		user_types::MeshNode::typeDescription.typeName,
+		user_types::PrefabInstance::typeDescription.typeName,
+		user_types::OrthographicCamera::typeDescription.typeName,
+		user_types::PerspectiveCamera::typeDescription.typeName,
+		user_types::LuaScript::typeDescription.typeName,
+		user_types::LuaInterface::typeDescription.typeName,
+		user_types::Skin::typeDescription.typeName})} {
 }
 
 
@@ -58,10 +58,12 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 				objValue = obj->objectName();
 				break;
 			}
-			case ObjectTreeViewDefaultModel::COLUMNINDEX_VISIBILITY: {
-				auto visibilityTreeValue = objTreeNode->getVisibility();
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_PREVIEW_VISIBILITY: {
+				auto visibilityTreeValue = objTreeNode->getPreviewVisibility();
 				auto visibilityObjValue = obj->get("visibility")->asBool() ? VisibilityState::Visible : VisibilityState::Invisible;
 				ASSERT_EQ(visibilityTreeValue, visibilityObjValue);	
+			} break;
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY: {
 			} break;
 			case (ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE): {
 				treeValue = objTreeNode->getRepresentedObject()->getTypeDescription().typeName;
@@ -80,7 +82,7 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 		    break;
 			case ObjectTreeViewDefaultModel::COLUMNINDEX_USERTAGS: {
 				auto treeValue = objTreeNode->getUserTags();
-				auto objValue = obj->userTags_->asVector<std::string>();
+				auto objValue = obj->as<BaseObject>()->userTags_->asVector<std::string>();
 				ASSERT_EQ(treeValue, objValue);
 			} 
 			break;
@@ -93,7 +95,7 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 	}
 }
 
-std::vector<raco::core::SEditorObject> ObjectTreeViewDefaultModelTest::createAllSceneGraphObjects() {
+std::vector<core::SEditorObject> ObjectTreeViewDefaultModelTest::createAllSceneGraphObjects() {
 	std::vector<SEditorObject> allSceneGraphNodes;
 	for (const auto &typeName : getTypes()) {
 		auto newNode = createNodes(typeName, {typeName});
@@ -105,11 +107,11 @@ std::vector<raco::core::SEditorObject> ObjectTreeViewDefaultModelTest::createAll
 	return allSceneGraphNodes;
 }
 
-std::vector<raco::core::SEditorObject> ObjectTreeViewDefaultModelTest::createAllResources() {
-	std::vector<raco::core::SEditorObject> allResources;
+std::vector<core::SEditorObject> ObjectTreeViewDefaultModelTest::createAllResources() {
+	std::vector<core::SEditorObject> allResources;
 	for (const auto &typeName : getTypes()) {
 		auto newNode = createNodes(typeName, {typeName});
-		if (raco::core::Queries::isResource(newNode.front())) {
+		if (core::Queries::isResource(newNode.front())) {
 			allResources.emplace_back(newNode.front());
 		}
 	}
@@ -988,7 +990,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedSceneGraphWithResour
 	auto meshNode = createNodes(MeshNode::typeDescription.typeName, {MeshNode::typeDescription.typeName}).front();
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 
-	commandInterface().set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	commandInterface().set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({meshNode}, true);
@@ -1002,7 +1004,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPr
 	auto prefabInstance = createNodes(PrefabInstance::typeDescription.typeName, {PrefabInstance::typeDescription.typeName}).front();
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
-	commandInterface().set(raco::core::ValueHandle{prefabInstance, {"template"}}, prefab);
+	commandInterface().set(core::ValueHandle{prefabInstance, {"template"}}, prefab);
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({prefabInstance}, true);
@@ -1014,7 +1016,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPr
 
 TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsLuaScriptIsAllowedAsExtRefOnTopLevel) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
-	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	luaScript->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({luaScript}, true);
@@ -1031,8 +1033,8 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsEx
 	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	moveScenegraphChildren({luaScript}, externalParentNode);
 
-	externalParentNode->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
-	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	externalParentNode->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
+	luaScript->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({luaScript}, true);
@@ -1047,7 +1049,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, AllowedObjsChildLuaScriptIsNotAllowedAsEx
 TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedAsChild) {
 	auto luaScript = createNodes(LuaScript::typeDescription.typeName, {LuaScript::typeDescription.typeName}).front();
 	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
-	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	luaScript->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({luaScript}, true);
@@ -1063,7 +1065,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, PasteLuaScriptAsExtRefNotAllowedWhenChild
 	auto externalParentNode = createNodes(Node::typeDescription.typeName, {"externalParentNode"}).front();
 	auto localParentNode = createNodes(Node::typeDescription.typeName, {"localParent"}).front();
 	moveScenegraphChildren({luaScript}, externalParentNode);
-	luaScript->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	luaScript->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({luaScript}, true);
@@ -1090,7 +1092,7 @@ TEST_F(ObjectTreeViewDefaultModelTest, CanNotMoveNodesInsidePrefabInstance) {
 	moveScenegraphChildren({node}, prefab);
 	dispatch();
 
-	commandInterface().set({prefabInstance, &raco::user_types::PrefabInstance::template_}, prefab);
+	commandInterface().set({prefabInstance, &user_types::PrefabInstance::template_}, prefab);
 	dispatch();
 
 	auto mimeData = viewModel_->mimeData({viewModel_->indexFromTreeNodeID(prefabInstance->children_->asVector<SEditorObject>().front()->objectID())});

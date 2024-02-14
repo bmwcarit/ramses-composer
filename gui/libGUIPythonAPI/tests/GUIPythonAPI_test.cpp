@@ -33,21 +33,21 @@ namespace py = pybind11;
 class GUIPythonTest : public RaCoApplicationTest {
 	public:
 		GUIPythonTest() {
-			objectTreeDockManager = new raco::object_tree::view::ObjectTreeDockManager();
-			objectTreeDock = std::make_unique<raco::object_tree::view::ObjectTreeDock>("Dock");
+			objectTreeDockManager = new object_tree::view::ObjectTreeDockManager();
+			objectTreeDock = std::make_unique<object_tree::view::ObjectTreeDock>("Dock");
 			objectTreeDockManager->addTreeDock(objectTreeDock.get());
-			objectTreeViewModel = new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface(), application.dataChangeDispatcher(), nullptr, {raco::user_types::Node::typeDescription.typeName});
-			objectTreeDock->setTreeView(new raco::object_tree::view::ObjectTreeView("TreeView", objectTreeViewModel));
+			objectTreeViewModel = new object_tree::model::ObjectTreeViewDefaultModel(&commandInterface(), application.dataChangeDispatcher(), nullptr, {user_types::Node::typeDescription.typeName});
+			objectTreeDock->setTreeView(new object_tree::view::ObjectTreeView("TreeView", objectTreeViewModel));
 
-			raco::python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
+			python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
 			pyGuard = std::make_unique<py::scoped_interpreter>();
-			raco::python_api::setup(&application);
+			python_api::setup(&application);
 			raco::gui_python_api::setupObjectTree(objectTreeDockManager);
 		}
 
-		raco::object_tree::model::ObjectTreeViewDefaultModel* objectTreeViewModel;
-		std::unique_ptr<raco::object_tree::view::ObjectTreeDock> objectTreeDock;
-		raco::object_tree::view::ObjectTreeDockManager* objectTreeDockManager;
+		object_tree::model::ObjectTreeViewDefaultModel* objectTreeViewModel;
+		std::unique_ptr<object_tree::view::ObjectTreeDock> objectTreeDock;
+		object_tree::view::ObjectTreeDockManager* objectTreeDockManager;
 
 		std::unique_ptr<py::scoped_interpreter> pyGuard;
 
@@ -59,7 +59,7 @@ class GUIPythonTest : public RaCoApplicationTest {
 		}
 	
 		std::string createNode(std::string name) {
-			auto obj = objectTreeViewModel->createNewObject(raco::user_types::Node::typeDescription.typeName, name);
+			auto obj = objectTreeViewModel->createNewObject(user_types::Node::typeDescription.typeName, name);
 			dispatch();
 			return obj->objectID();
 		}

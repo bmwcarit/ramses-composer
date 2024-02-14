@@ -20,6 +20,6 @@ class ErrorViewTest : public TestEnvironmentCore {
 protected:
 	int argc{0};
 	QApplication fakeApp_{argc, nullptr};
-	raco::components::SDataChangeDispatcher dataChangeDispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()};
-	raco::common_widgets::ErrorView errorView_{&commandInterface, dataChangeDispatcher_, true, nullptr};
+	components::SDataChangeDispatcher dataChangeDispatcher_{std::make_shared<components::DataChangeDispatcher>()};
+	common_widgets::ErrorView errorView_{&commandInterface, dataChangeDispatcher_, true, nullptr};
 };

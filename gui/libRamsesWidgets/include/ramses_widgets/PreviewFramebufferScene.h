@@ -40,26 +40,26 @@ public:
 
 private:
 	// Scene
-	raco::ramses_base::RamsesScene scene_;
-	raco::ramses_base::RamsesOrthographicCamera camera_;
+	ramses_base::RamsesScene scene_;
+	ramses_base::RamsesOrthographicCamera camera_;
 	std::shared_ptr<ramses::RenderGroup> renderGroup_;
 	std::shared_ptr<ramses::RenderPass> renderPass_;
-	raco::ramses_base::RamsesEffect effect_;
-	raco::ramses_base::RamsesEffect effectMS_;
-	raco::ramses_base::RamsesAppearance appearance_;
-	raco::ramses_base::RamsesAppearance appearanceMS_;
-	raco::ramses_base::RamsesArrayResource indexDataBuffer_;
-	raco::ramses_base::RamsesArrayResource vertexDataBuffer_;
-	raco::ramses_base::RamsesArrayResource uvDataBuffer_;
-	raco::ramses_base::RamsesGeometryBinding geometryBinding_;
-	raco::ramses_base::RamsesGeometryBinding geometryBindingMS_;
-	raco::ramses_base::RamsesMeshNode meshNode_;
+	ramses_base::RamsesEffect effect_;
+	ramses_base::RamsesEffect effectMS_;
+	ramses_base::RamsesAppearance appearance_;
+	ramses_base::RamsesAppearance appearanceMS_;
+	ramses_base::RamsesArrayResource indexDataBuffer_;
+	ramses_base::RamsesArrayResource vertexDataBuffer_;
+	ramses_base::RamsesArrayResource uvDataBuffer_;
+	ramses_base::RamsesGeometry geometry_;
+	ramses_base::RamsesGeometry geometryMS_;
+	ramses_base::RamsesMeshNode meshNode_;
 
 	// Offscreen texture and consumer
-	raco::ramses_base::RamsesTexture2D framebufferTexture_;
-	raco::ramses_base::RamsesTextureSampler sampler_;
-	raco::ramses_base::RamsesRenderBuffer renderbufferMS_;
-	raco::ramses_base::RamsesTextureSamplerMS samplerMS_;
+	ramses_base::RamsesTexture2D framebufferTexture_;
+	ramses_base::RamsesTextureSampler sampler_;
+	ramses_base::RamsesRenderBuffer renderbufferMS_;
+	ramses_base::RamsesTextureSamplerMS samplerMS_;
 	ramses::dataConsumerId_t framebufferSampleId_;
 
 	int currentSampleCount_ = 0;

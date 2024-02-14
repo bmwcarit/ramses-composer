@@ -15,19 +15,19 @@ class CTMimporter;
 
 namespace raco::mesh_loader {
 
-class CTMFileLoader : public raco::core::MeshCacheEntry {
+class CTMFileLoader : public core::MeshCacheEntry {
 public:
 	CTMFileLoader(std::string absPath);
 	virtual ~CTMFileLoader() = default;
 
-	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
+	core::SharedMeshData loadMesh(const core::MeshDescriptor& descriptor) override;
 	std::string getError() override;
 	void reset() override;
-	const raco::core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
+	const core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
 	int getTotalMeshCount() override;
-	raco::core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
+	core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 
-	raco::core::SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) override;
+	core::SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) override;
 
 private:
 	bool loadFile();

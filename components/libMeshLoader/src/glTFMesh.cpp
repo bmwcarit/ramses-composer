@@ -121,10 +121,14 @@ glTFMesh::glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sce
 	materials_ = {"material"};
 
 	// Add the vertices
-	attributes_.emplace_back(Attribute{
+	const auto& posAttribute = attributes_.emplace_back(Attribute{
 		ATTRIBUTE_POSITION,
 		VertexAttribDataType::VAT_Float3,
 		vertexBuffer});
+
+	// Build non-indexed triangle buffer to be used for picking in ramses
+	auto vertexData = reinterpret_cast<const glm::vec3 *>(posAttribute.data.data());
+	triangleBuffer_ = core::MeshData::buildTriangleBuffer(vertexData, indexBuffer_);
 
 	for (size_t index = 0; index < morphVertexBuffers.size(); index++) {
 		if (!morphVertexBuffers[index].empty()) {
@@ -257,6 +261,10 @@ MeshData::VertexAttribDataType glTFMesh::attribDataType(int attribute_index) con
 
 const char *glTFMesh::attribBuffer(int attribute_index) const {
 	return reinterpret_cast<const char *>(attributes_.at(attribute_index).data.data());
+}
+
+const std::vector<glm::vec3>& glTFMesh::triangleBuffer() const {
+	return triangleBuffer_;
 }
 
 void convertVectorWithTransformation(std::vector<float> vector, std::vector<float> &buffer, glm::dmat4 *trafoMatrix, double component_4) {

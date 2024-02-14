@@ -17,8 +17,8 @@ using namespace raco::core;
 
 class PathManagerTest : public RacoBaseTest<> {
 public:
-	raco::utils::u8path test_relative_path() const override {
-		return raco::utils::u8path{test_suite_name()} / test_case_name() / u8"滴滴启动纽交所退市 äüöß";
+	utils::u8path test_relative_path() const override {
+		return utils::u8path{test_suite_name()} / test_case_name() / u8"滴滴启动纽交所退市 äüöß";
 	}
 };
 
@@ -31,10 +31,10 @@ TEST_F(PathManagerTest, MigrationOldConfigfilesDoIfNewNotPresent) {
 	std::filesystem::create_directories(programPath);
 	std::filesystem::create_directories(legacyConfigFiles);
 
-	auto layout = raco::utils::u8path(makeFile("configfiles/layout.ini", ""));
-	auto preferences = raco::utils::u8path(makeFile("configfiles/preferences.ini", ""));
-	auto log1 = raco::utils::u8path(makeFile("configfiles/log1.log", ""));
-	auto log2 = raco::utils::u8path(makeFile("configfiles/log2.log", ""));
+	auto layout = utils::u8path(makeFile("configfiles/layout.ini", ""));
+	auto preferences = utils::u8path(makeFile("configfiles/preferences.ini", ""));
+	auto log1 = utils::u8path(makeFile("configfiles/log1.log", ""));
+	auto log2 = utils::u8path(makeFile("configfiles/log2.log", ""));
 
 	ASSERT_FALSE(appDataPath.existsDirectory());
 	ASSERT_TRUE(legacyConfigFiles.existsDirectory());
@@ -67,10 +67,10 @@ TEST_F(PathManagerTest, MigrationOldConfigfilesDoIfNewPresentEmptyFolder) {
 	std::filesystem::create_directories(programPath);
 	std::filesystem::create_directories(legacyConfigFiles);
 
-	auto layout = raco::utils::u8path(makeFile("configfiles/layout.ini", ""));
-	auto preferences = raco::utils::u8path(makeFile("configfiles/preferences.ini", ""));
-	auto log1 = raco::utils::u8path(makeFile("configfiles/log1.log", ""));
-	auto log2 = raco::utils::u8path(makeFile("configfiles/log2.log", ""));
+	auto layout = utils::u8path(makeFile("configfiles/layout.ini", ""));
+	auto preferences = utils::u8path(makeFile("configfiles/preferences.ini", ""));
+	auto log1 = utils::u8path(makeFile("configfiles/log1.log", ""));
+	auto log2 = utils::u8path(makeFile("configfiles/log2.log", ""));
 
 	ASSERT_TRUE(appDataPath.existsDirectory());
 	ASSERT_TRUE(legacyConfigFiles.existsDirectory());
@@ -106,10 +106,10 @@ TEST_F(PathManagerTest, MigrationOldConfigfilesDoNotIfNewAlreadyPresent) {
 
 	makeFile("AppData/custom.ini", "");
 
-	auto layout = raco::utils::u8path(makeFile("configfiles/layout.ini", ""));
-	auto preferences = raco::utils::u8path(makeFile("configfiles/preferences.ini", ""));
-	auto log1 = raco::utils::u8path(makeFile("configfiles/log1.log", ""));
-	auto log2 = raco::utils::u8path(makeFile("configfiles/log2.log", ""));
+	auto layout = utils::u8path(makeFile("configfiles/layout.ini", ""));
+	auto preferences = utils::u8path(makeFile("configfiles/preferences.ini", ""));
+	auto log1 = utils::u8path(makeFile("configfiles/log1.log", ""));
+	auto log2 = utils::u8path(makeFile("configfiles/log2.log", ""));
 
 	ASSERT_TRUE(appDataPath.existsDirectory());
 	ASSERT_TRUE(legacyConfigFiles.existsDirectory());

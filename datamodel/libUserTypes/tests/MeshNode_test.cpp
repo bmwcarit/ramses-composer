@@ -16,7 +16,7 @@ using namespace raco::user_types;
 
 class MeshNodeTest : public TestEnvironmentCore {
 protected:
-	void setMaterialOptions(raco::user_types::SMaterial& material) {
+	void setMaterialOptions(user_types::SMaterial& material) {
 		commandInterface.set({material, {"options", "blendOperationColor"}}, 3);
 		commandInterface.set({material, {"options", "blendOperationAlpha"}}, 2);
 		commandInterface.set({material, {"options", "blendFactorSrcColor"}}, 8);
@@ -241,12 +241,12 @@ void main() {
 	auto meshnode = create_meshnode("meshnode", mesh, material);
 	commandInterface.set(meshnode->getMaterialPrivateHandle(0), true);
 	
-	commandInterface.set(raco::core::ValueHandle{material, {"uniforms", "p", "x"}}, 0.5);
-	commandInterface.set(raco::core::ValueHandle{meshnode, {"materials", "material", "uniforms", "p", "x"}}, 2.0);
+	commandInterface.set(core::ValueHandle{material, {"uniforms", "p", "x"}}, 0.5);
+	commandInterface.set(core::ValueHandle{meshnode, {"materials", "material", "uniforms", "p", "x"}}, 2.0);
 	
 	commandInterface.set({material, &Material::uriFragment_}, altFragShader);
 
-	EXPECT_FALSE(raco::core::ValueHandle(meshnode, {"materials", "material", "uniforms"}).hasProperty("a"));
+	EXPECT_FALSE(core::ValueHandle(meshnode, {"materials", "material", "uniforms"}).hasProperty("a"));
 	// Check tha we keep the uniform value of the meshnode and don't copy the value from the material instead:
-	EXPECT_EQ(raco::core::ValueHandle(meshnode, {"materials", "material", "uniforms", "p", "x"}).asDouble(), 2.0);
+	EXPECT_EQ(core::ValueHandle(meshnode, {"materials", "material", "uniforms", "p", "x"}).asDouble(), 2.0);
 }

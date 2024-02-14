@@ -11,8 +11,8 @@
 
 #include "user_types/Enumerations.h"
 
-#include <ramses-client-api/AppearanceEnums.h>
-#include <ramses-client-api/TextureEnums.h>
+#include <ramses/framework/AppearanceEnums.h>
+#include <ramses/framework/TextureEnums.h>
 
 #include <map>
 #include <string>

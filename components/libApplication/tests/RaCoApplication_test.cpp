@@ -24,36 +24,45 @@
 #include "core/ProjectSettings.h"
 
 using raco::application::RaCoApplication;
-using raco::components::Naming;
+using components::Naming;
 
 class RaCoApplicationFixture : public RaCoApplicationTest {};
 
 TEST_F(RaCoApplicationFixture, feature_level_load_keep_file_featue_level) {
-	application.switchActiveRaCoProject({}, {}, true, 1);
+	application.switchActiveRaCoProject({}, {}, true, ramses_base::BaseEngineBackend::minFeatureLevel);
 	std::string msg;
 	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 
-	application.switchActiveRaCoProject({}, {}, true, 2);
-	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 2);
+	application.switchActiveRaCoProject({}, {}, true, ramses_base::BaseEngineBackend::maxFeatureLevel);
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), ramses_base::BaseEngineBackend::maxFeatureLevel);
 
 	application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false);
-	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 1);
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), ramses_base::BaseEngineBackend::minFeatureLevel);
 }
-
 TEST_F(RaCoApplicationFixture, feature_level_load_upgrade) {
-	application.switchActiveRaCoProject({}, {}, true, 1);
+	application.switchActiveRaCoProject({}, {}, true, ramses_base::BaseEngineBackend::minFeatureLevel);
 	std::string msg;
 	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 
-	application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false, 2);
+	application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false, ramses_base::BaseEngineBackend::maxFeatureLevel);
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), ramses_base::BaseEngineBackend::maxFeatureLevel);
 }
 
 TEST_F(RaCoApplicationFixture, feature_level_load_downgrade) {
-	application.switchActiveRaCoProject({}, {}, true, 2);
-	std::string msg;
-	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
+	if (ramses_base::BaseEngineBackend::minFeatureLevel < ramses_base::BaseEngineBackend::maxFeatureLevel) {
+		application.switchActiveRaCoProject({}, {}, true, ramses_base::BaseEngineBackend::maxFeatureLevel);
+		std::string msg;
+		ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 
-	EXPECT_THROW(application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false, 1), std::runtime_error);
+		EXPECT_THROW(application.switchActiveRaCoProject((test_path() / "project.rca").string().c_str(), {}, false, ramses_base::BaseEngineBackend::minFeatureLevel), std::runtime_error);
+	}
+}
+
+TEST_F(RaCoApplicationFixture, feature_level_load_downgrade_fl_upgrade_raco_major_version) {
+	application.switchActiveRaCoProject((test_path() / "empty-raco-1x-fl2.rca").string().c_str(), {}, false, 1);
+
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 1);
+	EXPECT_EQ(backend.featureLevel(), ramses::EFeatureLevel::EFeatureLevel_01);
 }
 
 TEST_F(RaCoApplicationFixture, exportNewProject) {
@@ -62,7 +71,6 @@ TEST_F(RaCoApplicationFixture, exportNewProject) {
 	std::string error;
 	auto success = application.exportProject(
 		(test_path() / "new.ramses").string().c_str(),
-		(test_path() / "new.logic").string().c_str(),
 		false,
 		error);
 	ASSERT_TRUE(success);
@@ -71,37 +79,33 @@ TEST_F(RaCoApplicationFixture, exportNewProject) {
 TEST_F(RaCoApplicationFixture, exportDuckProject) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto mesh = commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName, Naming::format("MeshDuck"));
+	auto mesh = commandInterface->createObject(user_types::Mesh::typeDescription.typeName, Naming::format("MeshDuck"));
 	commandInterface->set({mesh, {"uri"}}, std::string{(test_path() / "meshes" / "Duck.glb").string()});
 
-	auto material = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, Naming::format("MaterialDuck"));
+	auto material = commandInterface->createObject(user_types::Material::typeDescription.typeName, Naming::format("MaterialDuck"));
 	commandInterface->set({material, {"uriVertex"}}, (test_path() / "shaders" / "basic.vert").string());
 	commandInterface->set({material, {"uriFragment"}}, (test_path() / "shaders" / "basic.frag").string());
 
-	auto node = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, Naming::format("NodeDuck"));
-	auto meshNode = commandInterface->createObject(raco::user_types::MeshNode::typeDescription.typeName, Naming::format("MeshNodeDuck"));
+	auto node = commandInterface->createObject(user_types::Node::typeDescription.typeName, Naming::format("NodeDuck"));
+	auto meshNode = commandInterface->createObject(user_types::MeshNode::typeDescription.typeName, Naming::format("MeshNodeDuck"));
 	commandInterface->moveScenegraphChildren({meshNode}, node);
 
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
+	commandInterface->set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	commandInterface->set(core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 	commandInterface->set({meshNode, {"materials", "material", "private"}}, true);
 
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"materials", "material", "uniforms", "u_color", "x"}}, 1.0);
+	commandInterface->set(core::ValueHandle{meshNode, {"materials", "material", "uniforms", "u_color", "x"}}, 1.0);
 
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"translation", "y"}}, -2.0);
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"rotation", "x"}}, 90.0);
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"scaling", "x"}}, 20.0);
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"scaling", "y"}}, 20.0);
-	commandInterface->set(raco::core::ValueHandle{meshNode, {"scaling", "z"}}, 20.0);
+	commandInterface->set(core::ValueHandle{meshNode, {"translation", "y"}}, -2.0);
+	commandInterface->set(core::ValueHandle{meshNode, {"rotation", "x"}}, 90.0);
+	commandInterface->set(core::ValueHandle{meshNode, {"scaling", "x"}}, 20.0);
+	commandInterface->set(core::ValueHandle{meshNode, {"scaling", "y"}}, 20.0);
+	commandInterface->set(core::ValueHandle{meshNode, {"scaling", "z"}}, 20.0);
 
 	application.doOneLoop();
 
 	std::string error;
-	auto success = application.exportProject(
-		(test_path() / "new.ramses").string().c_str(),
-		(test_path() / "new.logic").string().c_str(),
-		true,
-		error);
+	auto success = application.exportProject((test_path() / "new.ramses").string().c_str(), true, error);
 	ASSERT_TRUE(success);
 }
 
@@ -109,35 +113,35 @@ TEST_F(RaCoApplicationFixture, export_interface_link_opt_1) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-1.rca").string()), {});
 
 	std::string error;
-	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-1.ramses").string(), (test_path() / "export-interface-link-opt-1.rlogic").string(), false, error, false));
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-1.ramses").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_2) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-2.rca").string()), {});
 
 	std::string error;
-	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-2.ramses").string(), (test_path() / "export-interface-link-opt-2.rlogic").string(), false, error, false));
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-2.ramses").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_3) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-3.rca").string()), {});
 
 	std::string error;
-	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-3.ramses").string(), (test_path() / "export-interface-link-opt-3.rlogic").string(), false, error, false));
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-3.ramses").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_link_opt_4) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-link-opt-4.rca").string()), {});
 
 	std::string error;
-	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), (test_path() / "export-interface-link-opt-4.rlogic").string(), false, error, false));
+	EXPECT_TRUE(application.exportProject((test_path() / "export-interface-link-opt-4.ramses").string(), false, error, false));
 }
 
 TEST_F(RaCoApplicationFixture, export_interface_opt_no_ending_link) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-opt-no-ending.rca").string()), {});
 
 	std::string message;
-	std::vector<raco::core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	std::vector<core::SceneBackendInterface::SceneItemDesc> sceneDescription;
 	auto sceneStatus = application.getExportSceneDescriptionAndStatus(sceneDescription, message);
 
 	EXPECT_TRUE(std::any_of(sceneDescription.begin(), sceneDescription.end(), [this](const auto& item) {
@@ -149,7 +153,7 @@ TEST_F(RaCoApplicationFixture, export_interface_opt_ending_valid) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-opt-ending-valid.rca").string()), {});
 
 	std::string message;
-	std::vector<raco::core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	std::vector<core::SceneBackendInterface::SceneItemDesc> sceneDescription;
 	auto sceneStatus = application.getExportSceneDescriptionAndStatus(sceneDescription, message);
 
 	EXPECT_FALSE(std::any_of(sceneDescription.begin(), sceneDescription.end(), [this](const auto& item) {
@@ -161,7 +165,7 @@ TEST_F(RaCoApplicationFixture, export_interface_opt_ending_invalid) {
 	application.switchActiveRaCoProject(QString::fromStdString((test_path() / "export-interface-opt-ending-invalid.rca").string()), {});
 
 	std::string message;
-	std::vector<raco::core::SceneBackendInterface::SceneItemDesc> sceneDescription;
+	std::vector<core::SceneBackendInterface::SceneItemDesc> sceneDescription;
 	auto sceneStatus = application.getExportSceneDescriptionAndStatus(sceneDescription, message);
 
 	EXPECT_TRUE(std::any_of(sceneDescription.begin(), sceneDescription.end(), [this](const auto& item) {
@@ -169,30 +173,13 @@ TEST_F(RaCoApplicationFixture, export_interface_opt_ending_invalid) {
 	}));
 }
 
-TEST_F(RaCoApplicationFixture, export_with_lua_save_mode_for_feature_level_1) {
-	// Feature Level 1 only supports ELuaSavingMode::SourceCodeOnly.
+TEST_F(RaCoApplicationFixture, export_with_lua_save_modes) {
 	application.switchActiveRaCoProject({}, {}, true, 1);
 	application.doOneLoop();
 
 	std::string error;
 	EXPECT_TRUE(application.exportProject(
-		(test_path() / "SourceCodeOnly.ramses").string(),
-		(test_path() / "SourceCodeOnly.logic").string(),
-		false,
-		error,
-		false,
-		raco::application::ELuaSavingMode::SourceCodeOnly));
-}
-
-TEST_F(RaCoApplicationFixture, export_with_lua_save_modes) {
-	// Feature Level 2 is required for all lua save modes.
-	application.switchActiveRaCoProject({}, {}, true, 2);
-	application.doOneLoop();
-
-	std::string error;
-	EXPECT_TRUE(application.exportProject(
 		(test_path() / "ByteCodeOnly.ramses").string(),
-		(test_path() / "ByteCodeOnly.logic").string(),
 		false,
 		error,
 		false,
@@ -200,7 +187,6 @@ TEST_F(RaCoApplicationFixture, export_with_lua_save_modes) {
 
 	EXPECT_TRUE(application.exportProject(
 		(test_path() / "SourceCodeOnly.ramses").string(),
-		(test_path() / "SourceCodeOnly.logic").string(),
 		false,
 		error,
 		false,
@@ -208,7 +194,6 @@ TEST_F(RaCoApplicationFixture, export_with_lua_save_modes) {
 
 	EXPECT_TRUE(application.exportProject(
 		(test_path() / "SourceAndByteCode.ramses").string(),
-		(test_path() / "SourceAndByteCode.logic").string(),
 		false,
 		error,
 		false,
@@ -220,14 +205,14 @@ TEST_F(RaCoApplicationFixture, cant_delete_ProjectSettings) {
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
 	ASSERT_EQ(application.activeRaCoProject().project()->instances().size(), 1);
-	EXPECT_TRUE(raco::select<raco::core::ProjectSettings>(application.activeRaCoProject().project()->instances()) != nullptr);
+	EXPECT_TRUE(raco::select<core::ProjectSettings>(application.activeRaCoProject().project()->instances()) != nullptr);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectNodeAmount) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -264,7 +249,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphVectorsGetLinked) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -278,13 +263,13 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshWithNegativeScaleWillBeIm
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/negativeScaleQuad.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
-	auto node = raco::core::ValueHandle(raco::core::Queries::findByName(raco::core::Queries::filterForNotResource(commandInterface->project()->instances()), "Quad"));
+	auto node = core::ValueHandle(core::Queries::findByName(core::Queries::filterForNotResource(commandInterface->project()->instances()), "Quad"));
 	constexpr auto DELTA = 0.0001;
 
 	ASSERT_NEAR(node.get("scaling").get("x").asDouble(), 3.0, DELTA);
@@ -295,9 +280,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshWithNegativeScaleWillBeIm
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCachedMeshPathGetsChanged) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-	raco::core::PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, {});
+	core::PathManager::setCachedPath(core::PathManager::FolderTypeKeys::Mesh, {});
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -305,14 +290,14 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCachedMeshPathGetsChanged) {
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
 
-	ASSERT_EQ(raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh), test_path() / "meshes/CesiumMilkTruck");
+	ASSERT_EQ(core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Mesh), test_path() / "meshes/CesiumMilkTruck");
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTruck) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -347,8 +332,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTru
 	auto projectInstances = commandInterface->project()->instances();
 	for (const auto& parentPair : parentMap) {
 		auto [expectedChildName, expectedParentName] = parentPair;
-		auto expectedChild = raco::core::Queries::findByName(raco::core::Queries::filterForNotResource(projectInstances), expectedChildName);
-		auto expectedParent = raco::core::Queries::findByName(raco::core::Queries::filterForNotResource(projectInstances), expectedParentName);
+		auto expectedChild = core::Queries::findByName(core::Queries::filterForNotResource(projectInstances), expectedChildName);
+		auto expectedParent = core::Queries::findByName(core::Queries::filterForNotResource(projectInstances), expectedParentName);
 		ASSERT_EQ(expectedChild->getParent(), expectedParent);
 	}
 }
@@ -356,17 +341,17 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectScenegraphStructureTru
 TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectRootNodeInsertion) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-	auto myRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
+	auto myRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, myRoot);
 
-	auto yup2Zup = raco::core::Queries::findByName(commandInterface->project()->instances(), "Yup2Zup");
-	auto meshSceneRoot = raco::core::Queries::findByName(commandInterface->project()->instances(), "CesiumMilkTruck.gltf");
+	auto yup2Zup = core::Queries::findByName(commandInterface->project()->instances(), "Yup2Zup");
+	auto meshSceneRoot = core::Queries::findByName(commandInterface->project()->instances(), "CesiumMilkTruck.gltf");
 	ASSERT_EQ(yup2Zup->getParent(), meshSceneRoot);
 	ASSERT_EQ(meshSceneRoot->getParent(), myRoot);
 }
@@ -375,24 +360,24 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectRootNodeRenaming) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/ToyCar/ToyCar.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
-	auto root = raco::core::Queries::findByName(commandInterface->project()->instances(), "ToyCar.gltf");
+	auto root = core::Queries::findByName(commandInterface->project()->instances(), "ToyCar.gltf");
 	ASSERT_NE(root, nullptr);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwice) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-	auto firstRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
-	auto secondRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
+	auto firstRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
+	auto secondRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -408,10 +393,10 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwice) {
 TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshesGetChangedBeforeSecondImport) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-	auto firstRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
-	auto secondRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
+	auto firstRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
+	auto secondRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -419,7 +404,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshe
 	auto [sceneGraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, firstRoot);
 
-	auto allMeshes = raco::core::Queries::filterByTypeName(commandInterface->project()->instances(), {raco::user_types::Mesh::typeDescription.typeName});
+	auto allMeshes = core::Queries::filterByTypeName(commandInterface->project()->instances(), {user_types::Mesh::typeDescription.typeName});
 	commandInterface->set({allMeshes[0], {"uri"}}, std::string("blah"));
 
 	commandInterface->set({allMeshes[1], {"bakeMeshes"}}, true);
@@ -439,10 +424,10 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButMeshe
 TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButAnimationChannelsGetChangedBeforeSecondImport) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
-	auto firstRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
-	auto secondRoot = commandInterface->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot");
+	auto firstRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
+	auto secondRoot = commandInterface->createObject(user_types::Node::typeDescription.typeName, "myRoot");
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -450,7 +435,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportSceneGraphTwiceButAnima
 	auto [sceneGraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	commandInterface->insertAssetScenegraph(sceneGraph, desc.absPath, firstRoot);
 
-	auto allAnimChannels = raco::core::Queries::filterByTypeName(commandInterface->project()->instances(), {raco::user_types::AnimationChannel::typeDescription.typeName});
+	auto allAnimChannels = core::Queries::filterByTypeName(commandInterface->project()->instances(), {user_types::AnimationChannel::typeDescription.typeName});
 	commandInterface->set({allAnimChannels[0], {"animationIndex"}}, 2);
 
 	commandInterface->set({allAnimChannels[1], {"samplerIndex"}}, 3);
@@ -465,7 +450,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnbakedMeshesGetTransformed) 
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -475,9 +460,9 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnbakedMeshesGetTransformed) 
 	application.dataChangeDispatcher()->dispatch(*application.activeRaCoProject().recorder());
 
 	auto instances = commandInterface->project()->instances();
-	auto yup2Zup = raco::core::ValueHandle{raco::core::Queries::findByName(instances, "Yup2Zup")};
-	auto node = raco::core::ValueHandle{raco::core::Queries::findByName(instances, "Node")};
-	auto node001 = raco::core::ValueHandle{raco::core::Queries::findByName(instances, "Node.001")};
+	auto yup2Zup = core::ValueHandle{core::Queries::findByName(instances, "Yup2Zup")};
+	auto node = core::ValueHandle{core::Queries::findByName(instances, "Node")};
+	auto node001 = core::ValueHandle{core::Queries::findByName(instances, "Node.001")};
 
 	constexpr auto DELTA = 0.0001;
 	ASSERT_NEAR(yup2Zup.get("rotation").get("x").asDouble(), 90.0, DELTA);
@@ -501,12 +486,12 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	auto truck = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, "truck");
-	auto glass = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, "glass");
-	auto windowTrim = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, "window_trim");
-	auto wheels = commandInterface->createObject(raco::user_types::Material::typeDescription.typeName, "wheels");
+	auto truck = commandInterface->createObject(user_types::Material::typeDescription.typeName, "truck");
+	auto glass = commandInterface->createObject(user_types::Material::typeDescription.typeName, "glass");
+	auto windowTrim = commandInterface->createObject(user_types::Material::typeDescription.typeName, "window_trim");
+	auto wheels = commandInterface->createObject(user_types::Material::typeDescription.typeName, "wheels");
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -514,7 +499,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
-	std::map<std::string, raco::core::SEditorObject> materialMap = {
+	std::map<std::string, core::SEditorObject> materialMap = {
 		{"Cesium_Milk_Truck_meshnode_0", truck},
 		{"Cesium_Milk_Truck_meshnode_1", glass},
 		{"Cesium_Milk_Truck_meshnode_2", windowTrim},
@@ -523,8 +508,8 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphCorrectAutomaticMaterialAssig
 	};
 
 	for (auto instance : application.activeRaCoProject().project()->instances()) {
-		if (instance->isType<raco::user_types::MeshNode>()) {
-			auto activeMaterial = raco::core::ValueHandle(instance).get("materials")[0].get("material").asRef();
+		if (instance->isType<user_types::MeshNode>()) {
+			auto activeMaterial = core::ValueHandle(instance).get("materials")[0].get("material").asRef();
 			auto expectedMaterial = materialMap[instance->objectName()];
 
 			ASSERT_EQ(activeMaterial, expectedMaterial);
@@ -536,7 +521,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnmarkedNodesDoNotGetImported
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -567,16 +552,16 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphUnmarkedNodesDoNotGetImported
 	// ---- Node.001
 	// ----- Wheels.001
 
-	ASSERT_EQ(raco::core::Queries::findByName(application.activeRaCoProject().project()->instances(), "Node.001"), nullptr);
-	ASSERT_EQ(raco::core::Queries::findByName(application.activeRaCoProject().project()->instances(), "Wheels.001"), nullptr);
-	ASSERT_EQ(raco::core::Queries::findByName(application.activeRaCoProject().project()->instances(), "Cesium_Milk_Truck")->children_.asTable().size(), 2);	
+	ASSERT_EQ(core::Queries::findByName(application.activeRaCoProject().project()->instances(), "Node.001"), nullptr);
+	ASSERT_EQ(core::Queries::findByName(application.activeRaCoProject().project()->instances(), "Wheels.001"), nullptr);
+	ASSERT_EQ(core::Queries::findByName(application.activeRaCoProject().project()->instances(), "Cesium_Milk_Truck")->children_->size(), 2);	
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphImportedAnimationDoesNotGetPartitioned) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/RiggedFigure/RiggedFigure.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -585,18 +570,18 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphImportedAnimationDoesNotGetPa
 
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
-	auto allAnims = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
+	auto allAnims = core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {user_types::Animation::typeDescription.typeName});
 
 	// 57 AnimationChannels in 1 Animation object
 	ASSERT_EQ(allAnims.size(), 1);
-	ASSERT_EQ(allAnims.front()->get("animationChannels")->asTable().size(), 57);
+	ASSERT_EQ(allAnims.front()->get("animationChannels")->asArray().size(), 57);
 }
 
 TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationsDoNotGetImported) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -606,7 +591,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationsDoNotGetI
 
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
-	auto allAnims = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
+	auto allAnims = core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {user_types::Animation::typeDescription.typeName});
 	ASSERT_TRUE(allAnims.empty());
 	ASSERT_TRUE(application.activeRaCoProject().project()->links().size() == 0);
 }
@@ -616,7 +601,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedNodesWillNotCreateL
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -635,7 +620,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationChannelsDo
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -649,13 +634,13 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphDeselectedAnimationChannelsDo
 
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
-	auto allAnimChannels = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::AnimationChannel::typeDescription.typeName});
+	auto allAnimChannels = core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {user_types::AnimationChannel::typeDescription.typeName});
 	ASSERT_TRUE(allAnimChannels.empty());
 
-	auto allAnims = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::Animation::typeDescription.typeName});
+	auto allAnims = core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {user_types::Animation::typeDescription.typeName});
 	ASSERT_EQ(allAnims.size(), 1);
 
-	auto& channels = allAnims.front()->get("animationChannels")->asTable();
+	auto& channels = allAnims.front()->get("animationChannels")->asArray();
 	for (auto i = 0; i < channels.size(); ++i) {
 		ASSERT_EQ(channels[i]->asRef(), nullptr);
 	}
@@ -689,7 +674,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshes) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/meshless.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -718,7 +703,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphWithNoMeshesAndNoNodes) {
 
 )");
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = nodeless;
 	desc.bakeAllSubmeshes = false;
 
@@ -731,7 +716,7 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselec
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 	commandInterface->deleteObjects(application.activeRaCoProject().project()->instances());
 
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
@@ -750,11 +735,11 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselec
 
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
-	auto allMeshNodes = raco::core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {raco::user_types::MeshNode::typeDescription.typeName});
+	auto allMeshNodes = core::Queries::filterByTypeName(application.activeRaCoProject().project()->instances(), {user_types::MeshNode::typeDescription.typeName});
 	ASSERT_EQ(allMeshNodes.size(), 5);
 
 	for (const auto& meshNode : allMeshNodes) {
-		auto referencingMesh = raco::core::ValueHandle(meshNode, {"mesh"}).asRef();
+		auto referencingMesh = core::ValueHandle(meshNode, {"mesh"}).asRef();
 		if (meshNode->objectName() == "Cesium_Milk_Truck_meshnode_0") {
 			ASSERT_EQ(referencingMesh, nullptr);
 		} else {
@@ -766,36 +751,36 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselec
 TEST_F(RaCoApplicationFixture, LuaScriptRuntimeErrorCausesInformationForAllScripts) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto const workingScript{ commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName) };
-	auto const runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
+	auto const workingScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	auto const runtimeErrorScript{commandInterface->createObject(user_types::LuaScript::typeDescription.typeName)};
 
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{ workingScript, {"uri"} }, test_path().append("scripts/SimpleScript.lua").string());
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(core::ValueHandle{ workingScript, {"uri"} }, test_path().append("scripts/SimpleScript.lua").string());
 
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(workingScript));
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(runtimeErrorScript));
 
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript, {"inputs"} }.get("choice"), 1);
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript, {"inputs"} }.get("choice"), 1);
 	application.doOneLoop();
 
 	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(runtimeErrorScript));
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript).level(), raco::core::ErrorLevel::ERROR);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript).level(), core::ErrorLevel::ERROR);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->getError(runtimeErrorScript).message().find("value") != std::string::npos);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(workingScript));
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(workingScript).level(), raco::core::ErrorLevel::INFORMATION);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(workingScript).level(), core::ErrorLevel::INFORMATION);
 	EXPECT_TRUE(application.activeRaCoProject().errors()->getError(workingScript).message().find("runtime error") != std::string::npos);
 }
 
 TEST_F(RaCoApplicationFixture, LuaScriptFixingRuntimeErrorRemovesLogicError) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto emptyScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"inputs"}}.get("choice"), 1);
+	auto emptyScript{commandInterface->createObject(user_types::LuaScript::typeDescription.typeName)};
+	auto runtimeErrorScript{commandInterface->createObject(user_types::LuaScript::typeDescription.typeName)};
+	commandInterface->set(core::ValueHandle{runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(core::ValueHandle{runtimeErrorScript, {"inputs"}}.get("choice"), 1);
 
 	application.doOneLoop();
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"inputs"}}.get("choice"), 0);
+	commandInterface->set(core::ValueHandle{runtimeErrorScript, {"inputs"}}.get("choice"), 0);
 	application.doOneLoop();
 
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(runtimeErrorScript));
@@ -805,59 +790,59 @@ TEST_F(RaCoApplicationFixture, LuaScriptFixingRuntimeErrorRemovesLogicError) {
 TEST_F(RaCoApplicationFixture, LuaScriptFixingRuntimeErrorDoesNotDeleteOtherErrors) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto emptyURIScript{ commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName) };
-	auto compileErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto runtimeErrorScript1{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto runtimeErrorScript2{ commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName) };
-	commandInterface->set(raco::core::ValueHandle{ compileErrorScript, {"uri"} }, test_path().append("scripts/compile-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"inputs"}}.get("choice"), 1);
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 0);
+auto emptyURIScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+auto compileErrorScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+auto runtimeErrorScript1{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+auto runtimeErrorScript2{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+commandInterface->set(core::ValueHandle{ compileErrorScript, {"uri"} }, test_path().append("scripts/compile-error.lua").string());
+commandInterface->set(core::ValueHandle{ runtimeErrorScript1, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
+commandInterface->set(core::ValueHandle{ runtimeErrorScript1, {"inputs"} }.get("choice"), 1);
+commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
+commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 0);
 
-	application.doOneLoop();
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::ERROR);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::INFORMATION);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(compileErrorScript).level(), raco::core::ErrorLevel::ERROR);
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"inputs"}}.get("choice"), 0);
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 1);
-	application.doOneLoop();
+application.doOneLoop();
+EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), core::ErrorLevel::ERROR);
+EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), core::ErrorLevel::INFORMATION);
+EXPECT_EQ(application.activeRaCoProject().errors()->getError(compileErrorScript).level(), core::ErrorLevel::ERROR);
+commandInterface->set(core::ValueHandle{ runtimeErrorScript1, {"inputs"} }.get("choice"), 0);
+commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 1);
+application.doOneLoop();
 
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::ERROR);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::INFORMATION);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(compileErrorScript).level(), raco::core::ErrorLevel::ERROR);
-	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(raco::core::ValueHandle(emptyURIScript, { "uri" })));
+EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), core::ErrorLevel::ERROR);
+EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), core::ErrorLevel::INFORMATION);
+EXPECT_EQ(application.activeRaCoProject().errors()->getError(compileErrorScript).level(), core::ErrorLevel::ERROR);
+EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(core::ValueHandle(emptyURIScript, { "uri" })));
 
-	commandInterface->set(raco::core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 0);
-	application.doOneLoop();
+commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 0);
+application.doOneLoop();
 }
 
 TEST_F(RaCoApplicationFixture, LuaScriptNewestRuntimeErrorGetsProperlyUpdated) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto runtimeErrorScript1{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto runtimeErrorScript2{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"inputs"}}.get("choice"), 1);
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"inputs"}}.get("choice"), 0);
+	auto runtimeErrorScript1{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	auto runtimeErrorScript2{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript1, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript1, {"inputs"} }.get("choice"), 1);
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 0);
 
 	application.doOneLoop();
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::ERROR);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::INFORMATION);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), core::ErrorLevel::ERROR);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), core::ErrorLevel::INFORMATION);
 
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript1, {"inputs"}}.get("choice"), 0);
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript1, {"inputs"} }.get("choice"), 0);
 
 	application.doOneLoop();
 	EXPECT_TRUE(application.activeRaCoProject().errors()->getAllErrors().empty());
 
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"inputs"}}.get("choice"), 1);
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 1);
 
 	application.doOneLoop();
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), raco::core::ErrorLevel::INFORMATION);
-	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), raco::core::ErrorLevel::ERROR);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript1).level(), core::ErrorLevel::INFORMATION);
+	EXPECT_EQ(application.activeRaCoProject().errors()->getError(runtimeErrorScript2).level(), core::ErrorLevel::ERROR);
 
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript2, {"inputs"}}.get("choice"), 0);
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript2, {"inputs"} }.get("choice"), 0);
 
 	application.doOneLoop();
 	EXPECT_TRUE(application.activeRaCoProject().errors()->getAllErrors().empty());
@@ -866,12 +851,12 @@ TEST_F(RaCoApplicationFixture, LuaScriptNewestRuntimeErrorGetsProperlyUpdated) {
 TEST_F(RaCoApplicationFixture, LuaScriptCompileErrorDoesNotCauseErrorForAllScripts) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto emptyScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto compileErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{compileErrorScript, {"uri"}}, test_path().append("scripts/compile-error.lua").string());
+	auto emptyScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	auto compileErrorScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	commandInterface->set(core::ValueHandle{ compileErrorScript, {"uri"} }, test_path().append("scripts/compile-error.lua").string());
 
 	application.doOneLoop();
-	
+
 	EXPECT_TRUE(application.activeRaCoProject().errors()->hasError(compileErrorScript));
 	EXPECT_FALSE(application.activeRaCoProject().errors()->hasError(emptyScript));
 }
@@ -879,12 +864,12 @@ TEST_F(RaCoApplicationFixture, LuaScriptCompileErrorDoesNotCauseErrorForAllScrip
 TEST_F(RaCoApplicationFixture, LuaScriptDeletingScriptWithRunTimeErrorUpdatesAllErrors) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 
-	auto emptyScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto runtimeErrorScript{commandInterface->createObject(raco::user_types::LuaScript::typeDescription.typeName)};
-	auto node{commandInterface->createObject(raco::user_types::Node::typeDescription.typeName)};
-	auto mesh{commandInterface->createObject(raco::user_types::Mesh::typeDescription.typeName)};
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"uri"}}, test_path().append("scripts/runtime-error.lua").string());
-	commandInterface->set(raco::core::ValueHandle{runtimeErrorScript, {"inputs"}}.get("choice"), 1);
+	auto emptyScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	auto runtimeErrorScript{ commandInterface->createObject(user_types::LuaScript::typeDescription.typeName) };
+	auto node{ commandInterface->createObject(user_types::Node::typeDescription.typeName) };
+	auto mesh{ commandInterface->createObject(user_types::Mesh::typeDescription.typeName) };
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript, {"uri"} }, test_path().append("scripts/runtime-error.lua").string());
+	commandInterface->set(core::ValueHandle{ runtimeErrorScript, {"inputs"} }.get("choice"), 1);
 
 	application.doOneLoop();
 
@@ -894,39 +879,71 @@ TEST_F(RaCoApplicationFixture, LuaScriptDeletingScriptWithRunTimeErrorUpdatesAll
 	// resources don't show Ramses Logic errors as of now
 	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(mesh));
 
-	commandInterface->deleteObjects({runtimeErrorScript});
+	commandInterface->deleteObjects({ runtimeErrorScript });
 
 	application.doOneLoop();
 	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(emptyScript));
 	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(node));
 	ASSERT_FALSE(application.activeRaCoProject().errors()->hasError(mesh));
 	// "empty URI" error
-	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(raco::core::ValueHandle{mesh, {"uri"}}));
+	ASSERT_TRUE(application.activeRaCoProject().errors()->hasError(core::ValueHandle{ mesh, {"uri"} }));
 }
 
 TEST_F(RaCoApplicationFixture, feature_level_copy_paste_downgrade) {
-	application.switchActiveRaCoProject({}, {}, false, 2);
-	auto* cmd =	application.activeRaCoProject().commandInterface();
-	auto node = cmd->createObject(raco::user_types::Node::typeDescription.typeName, "node");
-	std::string clipboard = cmd->copyObjects({node}, true);
+	if (ramses_base::BaseEngineBackend::minFeatureLevel < ramses_base::BaseEngineBackend::maxFeatureLevel) {
+		application.switchActiveRaCoProject({}, {}, false, ramses_base::BaseEngineBackend::maxFeatureLevel);
+		auto* cmd = application.activeRaCoProject().commandInterface();
+		auto node = cmd->createObject(user_types::Node::typeDescription.typeName, "node");
+		std::string clipboard = cmd->copyObjects({node}, true);
 
-	application.switchActiveRaCoProject({}, {}, false, 1);
-	cmd = application.activeRaCoProject().commandInterface();
-	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 1);
+		application.switchActiveRaCoProject({}, {}, false, ramses_base::BaseEngineBackend::minFeatureLevel);
+		cmd = application.activeRaCoProject().commandInterface();
+		EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), ramses_base::BaseEngineBackend::minFeatureLevel);
 
-	EXPECT_THROW(cmd->pasteObjects(clipboard), std::runtime_error);
+		EXPECT_THROW(cmd->pasteObjects(clipboard), std::runtime_error);
+	}
 }
 
 TEST_F(RaCoApplicationFixture, feature_level_copy_paste_upgrade) {
-	application.switchActiveRaCoProject({}, {}, false, 1);
+	application.switchActiveRaCoProject({}, {}, false, ramses_base::BaseEngineBackend::minFeatureLevel);
 	auto* cmd = application.activeRaCoProject().commandInterface();
-	auto node = cmd->createObject(raco::user_types::Node::typeDescription.typeName, "node");
+	auto node = cmd->createObject(user_types::Node::typeDescription.typeName, "node");
 	std::string clipboard = cmd->copyObjects({node}, true);
 
-	application.switchActiveRaCoProject({}, {}, false, 2);
+	application.switchActiveRaCoProject({}, {}, false, ramses_base::BaseEngineBackend::maxFeatureLevel);
 	cmd = application.activeRaCoProject().commandInterface();
-	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), 2);
+	EXPECT_EQ(application.activeRaCoProject().project()->featureLevel(), ramses_base::BaseEngineBackend::maxFeatureLevel);
 
 	auto pasted = cmd->pasteObjects(clipboard);
 	EXPECT_EQ(pasted.size(), 1);
+}
+
+TEST_F(RaCoApplicationFixture, add_external_project_valid_file) {
+	core::LoadContext loadContext;
+	loadContext.featureLevel = application.activeRaCoProject().project()->featureLevel();
+	loadContext.pathStack.emplace_back(application.activeRaCoProject().project()->currentPath());
+
+	application.externalProjects()->addExternalProject((test_path() / "export-interface-link-opt-1.rca").string(), loadContext);
+	EXPECT_TRUE(application.externalProjects()->isExternalProject((test_path() / "export-interface-link-opt-1.rca").string()));
+	EXPECT_FALSE(application.externalProjects()->getExternalProject((test_path() / "export-interface-link-opt-1.rca").string()) == nullptr);
+}
+
+TEST_F(RaCoApplicationFixture, add_external_project_directory) {
+	core::LoadContext loadContext;
+	loadContext.featureLevel = application.activeRaCoProject().project()->featureLevel();
+	loadContext.pathStack.emplace_back(application.activeRaCoProject().project()->currentPath());
+
+	application.externalProjects()->addExternalProject(test_path().string(), loadContext);
+	EXPECT_FALSE(application.externalProjects()->isExternalProject(test_path().string()));
+
+}
+
+TEST_F(RaCoApplicationFixture, add_external_project_no_such_file) {
+	core::LoadContext loadContext;
+	loadContext.featureLevel = application.activeRaCoProject().project()->featureLevel();
+	loadContext.pathStack.emplace_back(application.activeRaCoProject().project()->currentPath());
+
+	application.externalProjects()->addExternalProject((test_path() / "no-such-file.rca").string(), loadContext);
+	EXPECT_TRUE(application.externalProjects()->isExternalProject((test_path() / "no-such-file.rca").string()));
+	EXPECT_TRUE(application.externalProjects()->getExternalProject((test_path() / "no-such-file.rca").string()) == nullptr);
 }

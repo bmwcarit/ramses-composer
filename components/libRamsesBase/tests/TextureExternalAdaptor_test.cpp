@@ -16,7 +16,7 @@
 class TextureExternalAdaptorFixture : public RamsesBaseFixture<> {};
 
 TEST_F(TextureExternalAdaptorFixture, creation_sets_name) {
-    auto texture = create<raco::user_types::TextureExternal>("test");
+    auto texture = create<user_types::TextureExternal>("test");
 
     dispatch();
 
@@ -26,21 +26,21 @@ TEST_F(TextureExternalAdaptorFixture, creation_sets_name) {
 }
 
 TEST_F(TextureExternalAdaptorFixture, change_name) {
-	auto texture = create<raco::user_types::TextureExternal>("test");
+	auto texture = create<user_types::TextureExternal>("test");
 
 	dispatch();
 	{
-		auto engineSamplers{select<ramses::TextureSamplerExternal>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_TextureSamplerExternal)};
+		auto engineSamplers{select<ramses::TextureSamplerExternal>(*sceneContext.scene(), ramses::ERamsesObjectType::TextureSamplerExternal)};
 		EXPECT_EQ(engineSamplers.size(), 1);
-		EXPECT_STREQ("test", engineSamplers[0]->getName());
+		EXPECT_TRUE("test" == engineSamplers[0]->getName());
 	}
 
-	commandInterface.set({texture, &raco::user_types::TextureExternal::objectName_}, std::string("newName"));
+	commandInterface.set({texture, &user_types::TextureExternal::objectName_}, std::string("newName"));
 
 	dispatch();
 	{
-		auto engineSamplers{select<ramses::TextureSamplerExternal>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_TextureSamplerExternal)};
+		auto engineSamplers{select<ramses::TextureSamplerExternal>(*sceneContext.scene(), ramses::ERamsesObjectType::TextureSamplerExternal)};
 		EXPECT_EQ(engineSamplers.size(), 1);
-		EXPECT_STREQ("newName", engineSamplers[0]->getName());
+		EXPECT_TRUE("newName" == engineSamplers[0]->getName());
 	}
 }

@@ -31,7 +31,7 @@ TEST_F(SkinAdaptorTest, create_success) {
 
 	EXPECT_FALSE(commandInterface.errors().hasError({skin}));
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::SkinBinding>().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::SkinBinding>().size(), 1);
 }
 
 TEST_F(SkinAdaptorTest, error_no_meshnode) {
@@ -47,7 +47,7 @@ TEST_F(SkinAdaptorTest, error_no_meshnode) {
 
 	dispatch();
 	EXPECT_TRUE(commandInterface.errors().hasError({skin}));
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::SkinBinding>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::SkinBinding>().size(), 0);
 }
 
 TEST_F(SkinAdaptorTest, error_node_missing_end) {
@@ -63,7 +63,7 @@ TEST_F(SkinAdaptorTest, error_node_missing_end) {
 
 	dispatch();
 	EXPECT_TRUE(commandInterface.errors().hasError({skin}));
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::SkinBinding>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::SkinBinding>().size(), 0);
 }
 
 TEST_F(SkinAdaptorTest, error_node_missing_front) {
@@ -79,7 +79,7 @@ TEST_F(SkinAdaptorTest, error_node_missing_front) {
 
 	dispatch();
 	EXPECT_TRUE(commandInterface.errors().hasError({skin}));
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::SkinBinding>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::SkinBinding>().size(), 0);
 }
 
 TEST_F(SkinAdaptorTest, error_appearance_public) {
@@ -95,5 +95,5 @@ TEST_F(SkinAdaptorTest, error_appearance_public) {
 
 	dispatch();
 	EXPECT_TRUE(commandInterface.errors().hasError({skin}));
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::SkinBinding>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::SkinBinding>().size(), 0);
 }

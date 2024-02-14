@@ -13,41 +13,25 @@
 #include "ramses_adaptor/RenderBufferMSAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 
-
 namespace raco::ramses_adaptor {
-
-RenderTargetAdaptor::RenderTargetAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderTarget> editorObject)
-	: TypedObjectAdaptor(sceneAdaptor, editorObject, {}),
-	  subscriptions_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer0_}, [this]() { tagDirty();  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer1_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer2_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer3_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer4_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer5_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer6_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::buffer7_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS0_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS1_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS2_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS3_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS4_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS5_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS6_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderTarget::bufferMS7_}, [this]() { tagDirty(); })} {
+	
+template <typename RenderTargetClass, typename RenderBufferClass, typename RenderBufferAdaptorClass>
+RenderTargetAdaptorT<RenderTargetClass, RenderBufferClass, RenderBufferAdaptorClass>::RenderTargetAdaptorT(SceneAdaptor* sceneAdaptor, std::shared_ptr<RenderTargetClass> editorObject)
+	: TypedObjectAdaptor<RenderTargetClass, ramses::RenderTarget>(sceneAdaptor, editorObject, {}),
+	  subscription_{sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject, &RenderTargetClass::buffers_}, [this](auto) { this->tagDirty(); })} {
 }
 
-template <typename RenderBufferAdaptorClass>
-bool RenderTargetAdaptor::collectBuffers(std::vector<ramses_base::RamsesRenderBuffer>& buffers, const std::initializer_list<raco::core::SEditorObject>& userTypeBuffers, ramses::RenderTargetDescription& rtDesc, core::Errors* errors) {
+template <typename RenderTargetClass, typename RenderBufferClass, typename RenderBufferAdaptorClass>
+bool RenderTargetAdaptorT<RenderTargetClass, RenderBufferClass, RenderBufferAdaptorClass>::collectBuffers(std::vector<ramses_base::RamsesRenderBuffer>& buffers, const std::vector<std::shared_ptr<RenderBufferClass>>& userTypeBuffers, ramses::RenderTargetDescription& rtDesc, core::Errors* errors) {
 	bool hasEmptySlots = false;
 	for (int bufferSlotIndex = 0; bufferSlotIndex < userTypeBuffers.size(); ++bufferSlotIndex) {
 		const auto& buffer = userTypeBuffers.begin()[bufferSlotIndex];
-		if (auto adaptor = sceneAdaptor_->lookup<RenderBufferAdaptorClass>(buffer)) {
+		if (auto adaptor = this->sceneAdaptor_->template lookup<RenderBufferAdaptorClass>(buffer)) {
 			if (auto ramsesBuffer = adaptor->buffer()) {
-				auto status = rtDesc.addRenderBuffer(*ramsesBuffer);
-				if (status != ramses::StatusOK) {
-					LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, rtDesc.getStatusMessage(status));
-					errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {editorObject()->shared_from_this()},
-						rtDesc.getStatusMessage(status));
+				if (!rtDesc.addRenderBuffer(*ramsesBuffer)) {
+					auto errorMsg = this->sceneAdaptor_->scene()->getRamsesClient().getRamsesFramework().getLastError().value().message;
+					LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
+					errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {this->editorObject()->shared_from_this()}, errorMsg);
 				} else {
 					hasEmptySlots = buffers.size() != bufferSlotIndex;
 					buffers.emplace_back(ramsesBuffer);
@@ -58,32 +42,12 @@ bool RenderTargetAdaptor::collectBuffers(std::vector<ramses_base::RamsesRenderBu
 	return hasEmptySlots;
 }
 
-bool RenderTargetAdaptor::sync(core::Errors* errors) {
-	errors->removeError({editorObject()});
+template <typename RenderTargetClass, typename RenderBufferClass, typename RenderBufferAdaptorClass>
+bool RenderTargetAdaptorT<RenderTargetClass, RenderBufferClass, RenderBufferAdaptorClass>::sync(core::Errors* errors) {
+	errors->removeError({this->editorObject()});
 
 	std::vector<ramses_base::RamsesRenderBuffer> buffers;
-	std::vector<ramses_base::RamsesRenderBuffer> buffersMS;
 	ramses::RenderTargetDescription rtDesc;
-
-	std::initializer_list<raco::core::SEditorObject> usertypebuffers = {
-		*editorObject().get()->user_types::RenderTarget::buffer0_,
-		*editorObject().get()->user_types::RenderTarget::buffer1_,
-		*editorObject().get()->user_types::RenderTarget::buffer2_,
-		*editorObject().get()->user_types::RenderTarget::buffer3_,
-		*editorObject().get()->user_types::RenderTarget::buffer4_,
-		*editorObject().get()->user_types::RenderTarget::buffer5_,
-		*editorObject().get()->user_types::RenderTarget::buffer6_,
-		*editorObject().get()->user_types::RenderTarget::buffer7_};
-
-	std::initializer_list<raco::core::SEditorObject> usertypebuffersMS = {
-		*editorObject().get()->user_types::RenderTarget::bufferMS0_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS1_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS2_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS3_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS4_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS5_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS6_,
-		*editorObject().get()->user_types::RenderTarget::bufferMS7_};
 
 	// We cannot have any empty slots before color buffers in Ramses -
 	// the RenderTargetDescription::addRenderBuffer does not allow for it.
@@ -93,53 +57,37 @@ bool RenderTargetAdaptor::sync(core::Errors* errors) {
 	// This is a Ramses bug - see https://github.com/bmwcarit/ramses/issues/52
 	// If that occurs, refuse to create the render target to avoid any surprises for the user.
 
-	bool haveNormalBuffers = std::any_of(usertypebuffers.begin(), usertypebuffers.end(), [](auto object) {
-		return object != nullptr;
-	});
-	bool haveMSBuffers = std::any_of(usertypebuffersMS.begin(), usertypebuffersMS.end(), [](auto object) {
-		return object != nullptr;
-	});
-
-	if (haveNormalBuffers && haveMSBuffers) {
-		auto errorMsg = fmt::format("Cannot create render target '{}' - all buffers need to be either single-sample or multi-sample only.", editorObject()->objectName());
-		reset(nullptr);
-		LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
-		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()}, errorMsg);
-
-		tagDirty(false);
-		return true;
-	}
-
-	bool hasEmptySlotsNormal = collectBuffers<RenderBufferAdaptor>(buffers, usertypebuffers, rtDesc, errors);
-	bool hasEmptySlotsMS = collectBuffers<RenderBufferMSAdaptor>(buffersMS, usertypebuffersMS, rtDesc, errors);
-	bool hasEmptySlots = hasEmptySlotsNormal || hasEmptySlotsMS;
-
-	buffers.insert(buffers.end(), buffersMS.begin(), buffersMS.end());
+	auto userTypeBuffers = this->editorObject()->buffers_->template asVector<std::shared_ptr<RenderBufferClass>>();
+	bool hasEmptySlots = collectBuffers(buffers, userTypeBuffers, rtDesc, errors);
 
 	if (!buffers.empty() && !hasEmptySlots) {
-		reset(ramses_base::ramsesRenderTarget(sceneAdaptor_->scene(), rtDesc, buffers));
-	} else if (!errors->hasError({editorObject()})) {
+		this->reset(ramses_base::ramsesRenderTarget(this->sceneAdaptor_->scene(), rtDesc, buffers, this->editorObject()->objectIDAsRamsesLogicID()));
+	} else if (!errors->hasError({this->editorObject()})) {
 		std::string errorMsg;
 		if (buffers.empty()) {
-			errorMsg = fmt::format("Cannot create render target '{}' - its first buffer is not set or not valid.", editorObject()->objectName());			
+			errorMsg = fmt::format("Cannot create render target '{}' - its first buffer is not set or not valid.", this->editorObject()->objectName());
 		} else {
-			errorMsg = fmt::format("Cannot create render target '{}' - all buffers in it must be consecutive and valid buffers.", editorObject()->objectName());					
+			errorMsg = fmt::format("Cannot create render target '{}' - all buffers in it must be consecutive and valid buffers.", this->editorObject()->objectName());
 		}
-		reset(nullptr);
-		LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
-		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()}, errorMsg);
+		this->reset(nullptr);
+		LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
+		errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {this->editorObject()}, errorMsg);
 	}
 
-	tagDirty(false);
+	this->tagDirty(false);
 	return true;
 }
 
-std::vector<ExportInformation> RenderTargetAdaptor::getExportInformation() const {
-	if (getRamsesObjectPointer() == nullptr) {
+template <typename RenderTargetClass, typename RenderBufferClass, typename RenderBufferAdaptorClass>
+std::vector<ExportInformation> RenderTargetAdaptorT<RenderTargetClass, RenderBufferClass, RenderBufferAdaptorClass>::getExportInformation() const {
+	if (this->getRamsesObjectPointer() == nullptr) {
 		return {};
 	}
 
-	return {ExportInformation{ramsesObject().getType(), ramsesObject().getName()}};
+	return {ExportInformation{this->ramsesObject().getType(), this->ramsesObject().getName()}};
 }
+
+template class RenderTargetAdaptorT<user_types::RenderTarget, user_types::RenderBuffer, RenderBufferAdaptor>;
+template class RenderTargetAdaptorT<user_types::RenderTargetMS, user_types::RenderBufferMS, RenderBufferMSAdaptor>;
 
 };	// namespace raco::ramses_adaptor

@@ -31,10 +31,10 @@ class PrefabOperations {
 public:
 	static void globalPrefabUpdate(BaseContext& context, bool propagateMissingInterfaceProperties = false);
 
-	static raco::user_types::SPrefabInstance findContainingPrefabInstance(SEditorObject object);
-	static raco::user_types::SPrefabInstance findOuterContainingPrefabInstance(SEditorObject object);
+	static user_types::SPrefabInstance findContainingPrefabInstance(SEditorObject object);
+	static user_types::SPrefabInstance findOuterContainingPrefabInstance(SEditorObject object);
 
-	static raco::user_types::SPrefab findContainingPrefab(SEditorObject object);
+	static user_types::SPrefab findContainingPrefab(SEditorObject object);
 	
 	/**
 	 * @brief Check if an objects serves as an interface object in a PrefabInstance.
@@ -77,10 +77,10 @@ public:
 	static bool isPrefabInterfaceProperty(const PropertyDescriptor& prop);
 
 
-	static void prefabUpdateOrderDepthFirstSearch(raco::user_types::SPrefab current, std::vector<raco::user_types::SPrefab>& order);
+	static void prefabUpdateOrderDepthFirstSearch(user_types::SPrefab current, std::vector<user_types::SPrefab>& order);
 
 private:
-	static void updatePrefabInstance(BaseContext& context, const raco::user_types::SPrefab& prefab, raco::user_types::SPrefabInstance instance, bool instanceDirty, bool propagateMissingInterfaceProperties);
+	static void updatePrefabInstance(BaseContext& context, const user_types::SPrefab& prefab, user_types::SPrefabInstance instance, bool instanceDirty, bool propagateMissingInterfaceProperties);
 };
 
 }  // namespace raco::core

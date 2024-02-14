@@ -7,6 +7,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include "data_storage/Array.h"
 #include "data_storage/Value.h"
 
 #include "data_storage/AnnotationBase.h"
@@ -24,7 +25,7 @@ using namespace raco::data_storage;
 
 // Duplicate of Dummy class in MockUserTypes.h:
 // Dedpulicating this would need to create a new cmake library which seem overkill for a single helper class only used once here.
-class Dummy: public AnnotationBase {
+class Dummy : public AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"Dummy", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -42,9 +43,7 @@ public:
 		return *this;
 	}
 };
-TEST(PropertyTest, Scalar)
-{
-
+TEST(PropertyTest, Scalar) {
 	Property<bool, Dummy> bv{false, {}};
 	Property<int, Dummy> iv{0, {}};
 
@@ -62,7 +61,6 @@ TEST(PropertyTest, Scalar)
 	u = 3.0;
 }
 
-
 TEST(PropertyTest, Struct) {
 	SimpleStruct s;
 	s.bb = false;
@@ -74,6 +72,7 @@ TEST(PropertyTest, Struct) {
 
 	EXPECT_EQ(vs.type(), PrimitiveType::Struct);
 	EXPECT_EQ(vs.typeName(), "SimpleStruct::Dummy");
+	EXPECT_EQ(vs.baseTypeName(), "SimpleStruct");
 
 	EXPECT_THROW(vs.asBool(), std::runtime_error);
 	EXPECT_THROW(vs.as<bool>(), std::runtime_error);
@@ -118,4 +117,45 @@ TEST(PropertyTest, Struct) {
 	auto vsclone = vs.clone(nullptr);
 
 	EXPECT_TRUE(vs == *vsclone.get());
+}
+
+TEST(PropertyTest, Array) {
+	Property<Array<double>, Dummy> vad;
+
+	// ValueBase::type
+	EXPECT_EQ(vad.type(), PrimitiveType::Array);
+	// Array::elementType
+	EXPECT_EQ(vad->elementType(), PrimitiveType::Double);
+
+	// Value::baseTypeName
+	EXPECT_EQ(vad.baseTypeName(), "Array[Double]");
+	// Value::typeName
+	EXPECT_EQ(vad.typeName(), "Array[Double]::Dummy");
+
+	// Array::typeName
+	EXPECT_EQ(vad->typeName(), "Array[Double]");
+	// Array::elementTypeName
+	EXPECT_EQ(vad->elementTypeName(), "Double");
+}
+
+TEST(PropertyTest, ArrayNested) {
+	Property<Array<Array<double>>, Dummy> vaad;
+	auto prop1 = vaad->addProperty();
+
+	EXPECT_EQ(vaad.type(), PrimitiveType::Array);
+	EXPECT_EQ(vaad->elementType(), PrimitiveType::Array);
+
+	EXPECT_EQ(prop1->type(), PrimitiveType::Array);
+	EXPECT_EQ((*prop1)->elementType(), PrimitiveType::Double);
+
+	// Value::typeName
+	EXPECT_EQ(vaad.typeName(), "Array[Array[Double]]::Dummy");
+	// Value::baseTypeName
+	EXPECT_EQ(vaad.baseTypeName(), "Array[Array[Double]]");
+	// Array::typeName
+	EXPECT_EQ(vaad->typeName(), "Array[Array[Double]]");
+	// Array::elementTypeName
+	EXPECT_EQ(vaad->elementTypeName(), "Array[Double]");
+	EXPECT_EQ(prop1->typeName(), "Array[Double]");
+	EXPECT_EQ((*prop1)->elementTypeName(), "Double");
 }

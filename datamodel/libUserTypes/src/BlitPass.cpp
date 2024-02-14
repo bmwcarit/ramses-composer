@@ -40,14 +40,14 @@ void BlitPass::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle 
 void BlitPass::validateBufferCompatibility(BaseContext & context) {
 	ValueHandle sourceBufferHandle{shared_from_this(), &user_types::BlitPass::sourceRenderBufferMS_};
 	if (*sourceRenderBuffer_ && *sourceRenderBufferMS_) {
-		context.errors().addError(raco::core::ErrorCategory::GENERAL, ErrorLevel::WARNING, sourceBufferHandle, "Single-sample and multi-sample source buffer selected: Single-sample source buffer will be preferred.");
+		context.errors().addError(core::ErrorCategory::GENERAL, ErrorLevel::WARNING, sourceBufferHandle, "Single-sample and multi-sample source buffer selected: Single-sample source buffer will be preferred.");
 	} else {
 		context.errors().removeError(sourceBufferHandle);
 	}
 
 	ValueHandle targetBufferHandle{shared_from_this(), &user_types::BlitPass::targetRenderBufferMS_};
 	if (*targetRenderBuffer_ && *targetRenderBufferMS_) {
-		context.errors().addError(raco::core::ErrorCategory::GENERAL, ErrorLevel::WARNING, targetBufferHandle, "Single-sample and multi-sample target buffer selected: Single-sample target buffer will be preferred.");
+		context.errors().addError(core::ErrorCategory::GENERAL, ErrorLevel::WARNING, targetBufferHandle, "Single-sample and multi-sample target buffer selected: Single-sample target buffer will be preferred.");
 	} else {
 		context.errors().removeError(targetBufferHandle);
 	}

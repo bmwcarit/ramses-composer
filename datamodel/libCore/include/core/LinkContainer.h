@@ -53,7 +53,7 @@ struct LinkContainer {
 
 	// This map contains all links used by the project,
 	// using the link start object ID as the key value, for easier lookup.
-	// Mostly used for link-related functions in raco::core::Queries.
+	// Mostly used for link-related functions in core::Queries.
 	std::map<std::string, std::set<SLink>> linkStartPoints_;
 
 	// This map contains all links used by the project,

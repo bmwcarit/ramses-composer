@@ -19,18 +19,18 @@ namespace raco::ramses_adaptor {
 
 class AnimationChannelAdaptor final : public UserTypeObjectAdaptor<user_types::AnimationChannel> {
 public:
-	explicit AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimationChannel channel);
+	explicit AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnimationChannel channel);
 
 	bool sync(core::Errors* errors) override;
 
-	raco::ramses_base::RamsesAnimationChannelHandle handle() const;
+	ramses_base::RamsesAnimationChannelHandle handle() const;
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	raco::ramses_base::RamsesAnimationChannelHandle handle_;
+	ramses_base::RamsesAnimationChannelHandle handle_;
 
-	std::array<raco::components::Subscription, 4> subscriptions_;
-	raco::components::Subscription previewDirtySubscription_;
+	std::array<components::Subscription, 4> subscriptions_;
+	components::Subscription previewDirtySubscription_;
 };
 
 };	// namespace raco::ramses_adaptor

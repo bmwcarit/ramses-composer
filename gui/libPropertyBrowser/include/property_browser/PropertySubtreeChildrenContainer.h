@@ -19,17 +19,23 @@
 
 namespace raco::property_browser {
 
+class PropertySubtreeView;
+
 class PropertySubtreeChildrenContainer final : public QWidget {
 	Q_OBJECT
 public:
 	explicit PropertySubtreeChildrenContainer(PropertyBrowserItem* item, QWidget* parent);
+
 	void addWidget(QWidget* child);
-	void removeWidget(QWidget* child);
-	void insertWidget(size_t index, QWidget* child);
+	void deleteAllChildren();
+
+	std::vector<PropertySubtreeView*> getChildSubtreeViews() const;
+
 public Q_SLOTS:
 	void setOffset(int offset);
 
 private:
+	void removeWidget(QWidget* child);
 	PropertyBrowserVBoxLayout* layout_;
 };
 

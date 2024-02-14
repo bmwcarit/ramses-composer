@@ -12,6 +12,7 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Value.h"
 #include "data_storage/Table.h"
+#include "data_storage/Array.h"
 #include "core/BasicAnnotations.h"
 #include "core/CoreAnnotations.h"
 #include "core/FileChangeMonitor.h"
@@ -21,6 +22,10 @@
 #include <set>
 #include <stack>
 #include <iterator>
+
+namespace raco::serialization::proxy {
+class DynamicEditorObject;
+}
 
 namespace raco::core {
 
@@ -175,7 +180,7 @@ public:
 	// - have unique parent, i.e. can appear only once in tree
 	// - used to model both scenegraph children of nodes and prefab/prefab instance resource 
 	//   contents (offscreen buffers etc)
-	Property<Table, ArraySemanticAnnotation, HiddenProperty> children_{{}, {}, {}};
+	Property<Array<SEditorObject>, ArraySemanticAnnotation, HiddenProperty> children_{{}, {}, {}};
 
 	// Returns the object ID without braces or hyphens in a pair of separated hexadecimal numbers {id[0,15], id[16-31]}
 	std::pair<uint64_t, uint64_t> objectIDAsRamsesLogicID() const;
@@ -193,15 +198,12 @@ public:
 	void fillPropertyDescription() {
 		properties_.emplace_back("objectID", &objectID_);
 		properties_.emplace_back("objectName", &objectName_);
-		properties_.emplace_back("userTags", &userTags_);
 		properties_.emplace_back("children", &children_);
 	}
 
 
 	Property<std::string, HiddenProperty> objectID_{ std::string(), HiddenProperty() };
 	Property<std::string, DisplayNameAnnotation> objectName_;
-
-	Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation> userTags_{{}, {}, {}, {}, {"User Tags"}};
 
 	// Used to check back pointers in the unit tests.
 	const std::set<WEditorObject, std::owner_less<WEditorObject>>& referencesToThis() const;
@@ -212,6 +214,7 @@ protected:
 
 private:
 	friend class BaseContext;
+	friend class serialization::proxy::DynamicEditorObject;
 
 	mutable WEditorObject parent_;
 	

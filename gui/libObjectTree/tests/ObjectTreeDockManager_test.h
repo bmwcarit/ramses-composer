@@ -17,14 +17,14 @@
 
 class ObjectDefaultTreeDockManagerTest : public TestEnvironmentCore {
 protected:
-	raco::object_tree::view::ObjectTreeDockManager manager_;
+	object_tree::view::ObjectTreeDockManager manager_;
 	int argc = 0;
 	QApplication fakeApp_{argc, nullptr};	
-	raco::components::SDataChangeDispatcher dispatcher_{std::make_shared<raco::components::DataChangeDispatcher>()};
+	components::SDataChangeDispatcher dispatcher_{std::make_shared<components::DataChangeDispatcher>()};
 
-	std::unique_ptr<raco::object_tree::view::ObjectTreeDock> generateDockInManager() {
+	std::unique_ptr<object_tree::view::ObjectTreeDock> generateDockInManager() {
 		auto dockName = std::string("Dock").append(std::to_string(manager_.getTreeDockAmount()));
-		auto newDock = std::make_unique<raco::object_tree::view::ObjectTreeDock>(dockName.c_str());
+		auto newDock = std::make_unique<object_tree::view::ObjectTreeDock>(dockName.c_str());
 
 		manager_.addTreeDock(newDock.get());
 

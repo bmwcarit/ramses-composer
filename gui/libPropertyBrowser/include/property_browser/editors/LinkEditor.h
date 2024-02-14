@@ -79,8 +79,8 @@ private:
 		{LinkIcon::goToLeftRight, style::Icons::instance().goToLeftRight}
 	};
 
-	void addLinkEndpointMenuItems(const std::vector<core::SLink>& startingLinks, QMenu* endsMenu, QString& requestedLinkEndObj);
-	std::map<std::string, std::string> generateSortedLinkPoints(const std::vector<core::SLink> links);
+	void addLinkEndpointMenuItems(const std::vector<core::SLink>& startingLinks, QMenu* endsMenu, QString& requestedLinkEndObj, QString& requestedLinkEndObjProperty);
+	std::map<std::string, std::pair<std::string, std::string>> generateSortedLinkPoints(const std::vector<core::SLink> links);
 
 	bool validDropTarget_ { false };
 	PropertyBrowserItem* item_;

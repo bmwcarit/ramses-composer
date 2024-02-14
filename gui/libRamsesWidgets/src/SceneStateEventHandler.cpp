@@ -15,7 +15,7 @@
 
 using raco::log_system::RAMSES_BACKEND;
 
-#include <stdexcept>
+#include<stdexcept>
 #include <thread>
 
 namespace raco::ramses_widgets {
@@ -27,7 +27,7 @@ SceneStateEventHandler::SceneStateEventHandler(ramses::RamsesRenderer& renderer)
 void SceneStateEventHandler::framebufferPixelsRead(const uint8_t* pixelData, const uint32_t pixelDataSize, ramses::displayId_t displayId, ramses::displayBufferId_t displayBuffer, ramses::ERendererEventResult result) {
 	if (!screenshot_.empty()) {
 		screenshotSaved_ = false;
-		if (result == ramses::ERendererEventResult_OK) {
+		if (result == ramses::ERendererEventResult::Ok) {
 			std::vector<uint8_t> buffer;
 			buffer.insert(buffer.end(), &pixelData[0], &pixelData[pixelDataSize]);
 			screenshotSaved_ = ramses::RamsesUtils::SaveImageBufferToPng(screenshot_, buffer, screenshotWidth_, screenshotHeight_, true);
@@ -45,7 +45,7 @@ void SceneStateEventHandler::offscreenBufferLinked(ramses::displayBufferId_t off
 
 void SceneStateEventHandler::offscreenBufferCreated(ramses::displayId_t displayId, ramses::displayBufferId_t offscreenBufferId, ramses::ERendererEventResult result) {
 	LOG_TRACE(RAMSES_BACKEND, "offscreenBufferCreated({}, {}, {})", displayId, offscreenBufferId, result);
-	if (result == ramses::ERendererEventResult_OK) {
+	if (result == ramses::ERendererEventResult::Ok) {
 		offscreenBuffers_.insert(offscreenBufferId);
 	}
 }
@@ -57,7 +57,7 @@ void SceneStateEventHandler::offscreenBufferDestroyed(ramses::displayId_t displa
 
 void SceneStateEventHandler::displayCreated(ramses::displayId_t displayId, ramses::ERendererEventResult result) {
 	LOG_TRACE(RAMSES_BACKEND, "displayCreated({}, {})", displayId, result);
-	if (result == ramses::ERendererEventResult::ERendererEventResult_OK)
+	if (result == ramses::ERendererEventResult::Ok)
 		displays_.insert(displayId);
 }
 
@@ -76,8 +76,31 @@ void SceneStateEventHandler::sceneFlushed(ramses::sceneId_t sceneId, ramses::sce
 	scenes_[sceneId].version = sceneVersion;
 }
 
-void SceneStateEventHandler::waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state) {
-	waitUntilOrTimeout([&] { return scenes_[sceneId].state == state; });
+void SceneStateEventHandler::waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state, ECompareFunc compFunc) {
+	waitUntilOrTimeout([this, sceneId, state, compFunc] {
+		switch (compFunc) {
+			case ECompareFunc::LessEqual:
+				return scenes_[sceneId].state <= state;
+			case ECompareFunc::Equal:
+				return scenes_[sceneId].state == state;
+			case ECompareFunc::GreaterEqual:
+				return scenes_[sceneId].state >= state;
+			default:
+				return false;
+		}
+	});
+}
+
+void SceneStateEventHandler::objectsPicked(ramses::sceneId_t sceneId, const ramses::pickableObjectId_t* pickedObjects, size_t pickedObjectsCount) {
+	std::string ids;
+	std::vector<ramses::pickableObjectId_t> pickIds;
+	for (int index = 0; index < pickedObjectsCount; index++) {
+		ids.append(std::to_string(pickedObjects[index].getValue()));
+		ids.append(", ");
+		pickIds.emplace_back(pickedObjects[index]);
+	}
+	LOG_TRACE(RAMSES_BACKEND, "objectsPicked({})", ids);
+	Q_EMIT pickRequest(pickIds);
 }
 
 bool SceneStateEventHandler::waitForFlush(ramses::sceneId_t sceneId, ramses::sceneVersionTag_t sceneVersion) {

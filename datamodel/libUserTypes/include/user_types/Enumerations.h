@@ -141,9 +141,9 @@ extern std::map<int, std::string> enumDescriptionTextureMinSamplingMethod;
 extern std::map<int, std::string> enumDescriptionTextureMagSamplingMethod;
 
 
-// items match ramses::ETextureFormat
+// As of Ramses 28 the item do _not_ match ramses::ETextureFormat anymore!
+// You must use enumerationTranslationTextureFormat for translation.
 enum class ETextureFormat {
-	//Invalid = 0,
 	R8 = 1,
 	RG8 = 2,
 	RGB8 = 3,
@@ -167,7 +167,8 @@ enum class ETextureFormat {
 extern std::map<int, std::string> enumDescriptionTextureFormat;
 
 
-// items match ramses::ERenderBufferFormat
+// As of Ramses 28 the item do _not_ match ramses::ERenderBufferFormat anymore!
+// You must use enumerationTranslationRenderBufferFormat for translation.
 enum class ERenderBufferFormat {
 	RGBA4 = 0,
 	R8,
@@ -184,7 +185,9 @@ enum class ERenderBufferFormat {
 	RGBA32F,
 
 	Depth24,
-	Depth24_Stencil8
+	Depth24_Stencil8,
+	Depth16,
+	Depth32
 };
 extern std::map<int, std::string> enumDescriptionRenderBufferFormat;
 

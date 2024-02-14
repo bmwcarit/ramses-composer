@@ -9,12 +9,12 @@
  */
 #pragma once
 
-#include <QWidget>
-#include <QMetaObject>
-
 #include "core/SceneBackendInterface.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
+#include "property_browser/PropertySubtreeView.h"
+
+#include <QMenu>
 
 class QPushButton;
 
@@ -25,16 +25,6 @@ class ObjectTreeDockManager;
 namespace raco::property_browser {
 class PropertyBrowserItem;
 class PropertyBrowserModel;
-
-class PropertyBrowserView final : public QWidget {
-public:
-	explicit PropertyBrowserView(core::SceneBackendInterface* sceneBackend, PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent = nullptr);
-
-private:
-	QPoint verticalPivot_{0, 0};
-	QWidget* verticalPivotWidget_{nullptr};
-	core::SceneBackendInterface* sceneBackend_;
-};
 
 class PropertyBrowserWidget final : public QWidget {
 public:
@@ -48,28 +38,36 @@ public:
 	PropertyBrowserModel* model() const;
 
 public Q_SLOTS:
-	void setObjectFromObjectId(const QString& objectID);
-	void setObjects(const core::SEditorObjectSet& objects);
+	void setObjectFromObjectId(const QString& objectID, const QString& objectProperty);
+	void setObjects(const core::SEditorObjectSet& objects, const QString& property);
+	void highlightProperty(const QString& property);
 	void clear();
-	void setLockable(bool lockable);
+	void setLockable(bool lockable) const;
+
+private Q_SLOTS:
+	void showRefToThis();
 
 private:
+	void showScrollBar(bool isAlwaysOn);
 	void setLocked(bool locked);
 	void setObjectsImpl(const core::SEditorObjectSet& objects, bool forceExpandStateUpdate);
-	
+	std::string getObjectIdInPrefab() const;
+
 	components::SDataChangeDispatcher dispatcher_;
 	core::CommandInterface* commandInterface_;
 	core::SceneBackendInterface* sceneBackend_;
 	object_tree::view::ObjectTreeDockManager* treeDockManager_;
 	PropertyBrowserGridLayout layout_;
-	std::unique_ptr<PropertyBrowserView> propertyBrowser_{};
+	std::unique_ptr<PropertySubtreeView> propertyBrowser_{};
 	PropertyBrowserItem* rootItem_ = nullptr;
 	core::SEditorObjectSet currentObjects_;
-	components::Subscription subscription_;
+	components::Subscription lifecycleSubs_;
 	QWidget* emptyLabel_;
 	bool locked_;
 	PropertyBrowserModel* model_;
 	QPushButton* lockButton_;
+	QPushButton* refButton_;
+	QPushButton* prefabLookupButton_;
 };
 
 }  // namespace raco::property_browser

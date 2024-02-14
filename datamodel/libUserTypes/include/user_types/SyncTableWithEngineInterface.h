@@ -17,20 +17,20 @@
 
 namespace raco::user_types {
 
-using raco::core::PropertyInterface;
-using raco::core::PropertyInterfaceList;
+using core::PropertyInterface;
+using core::PropertyInterfaceList;
 
 // To cache properties nested inside Tables we use a /-separated property path as string.
-using OutdatedPropertiesStore = std::map<std::pair<std::string, raco::core::EnginePrimitive>,
-    std::unique_ptr<raco::data_storage::ValueBase>>;
+using OutdatedPropertiesStore = std::map<std::pair<std::string, core::EnginePrimitive>,
+    std::unique_ptr<data_storage::ValueBase>>;
 
-void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const raco::core::ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd);
+void syncTableWithEngineInterface(core::BaseContext& context, const PropertyInterfaceList& interface, const core::ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd);
 
-void syncTableWithEngineInterface(raco::core::BaseContext& context, const PropertyInterfaceList& interface, const raco::core::ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd,
-	std::function<const raco::data_storage::ValueBase*(const std::string& fullPropPath, raco::core::EnginePrimitive engineType)> cacheLookupFunc);
+void syncTableWithEngineInterface(core::BaseContext& context, const PropertyInterfaceList& interface, const core::ValueHandle& handle, OutdatedPropertiesStore& outdatedPropertiesStore, bool linkStart, bool linkEnd,
+	std::function<const data_storage::ValueBase*(const std::string& fullPropPath, core::EnginePrimitive engineType)> cacheLookupFunc);
 
 template <class... Args>
-raco::data_storage::ValueBase* createDynamicProperty(raco::core::EnginePrimitive type);
+data_storage::ValueBase* createDynamicProperty(core::EnginePrimitive type);
 
 std::string dataModelPropNameForLogicEnginePropName(const std::string& propName, size_t index);
 

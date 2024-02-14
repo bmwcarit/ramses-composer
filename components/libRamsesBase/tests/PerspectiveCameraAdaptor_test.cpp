@@ -14,9 +14,9 @@
 #include "user_types/PerspectiveCamera.h"
 
 using namespace raco;
-using raco::core::ValueHandle;
-using raco::user_types::LuaScript;
-using raco::user_types::PerspectiveCamera;
+using core::ValueHandle;
+using user_types::LuaScript;
+using user_types::PerspectiveCamera;
 
 class PerspectiveCameraAdaptorTest : public RamsesBaseFixture<> {};
 
@@ -24,7 +24,7 @@ TEST_F(PerspectiveCameraAdaptorTest, quaternion_link_camera_still_active) {
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
 	std::string uriPath{(test_path() / "script.lua").string()};
-	raco::utils::file::write(uriPath, R"(
+	utils::file::write(uriPath, R"(
 function interface(IN,OUT)
 	IN.in_value = Type:Vec4f()
 	OUT.out_value = Type:Vec4f()
@@ -48,7 +48,7 @@ end
 	commandInterface.set({camera, {"frustum", "aspectRatio"}}, 7.0);
 	dispatch();
 
-	auto cameras{select<ramses::PerspectiveCamera>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_PerspectiveCamera)};
+	auto cameras{select<ramses::PerspectiveCamera>(*sceneContext.scene(), ramses::ERamsesObjectType::PerspectiveCamera)};
 	ASSERT_EQ(cameras.size(), 1);
 	ASSERT_FLOAT_EQ(cameras.front()->getAspectRatio(), 7.0F);
 }
@@ -57,7 +57,7 @@ TEST_F(PerspectiveCameraAdaptorTest, bindingID) {
 	auto camera = commandInterface.createObject(PerspectiveCamera::typeDescription.typeName, "Camera");
 	dispatch();
 
-	auto cameras{select<rlogic::RamsesCameraBinding>(sceneContext.logicEngine(), "Camera_CameraBinding")};
+	auto cameras{select<ramses::CameraBinding>(sceneContext.logicEngine(), "Camera_CameraBinding")};
 	ASSERT_EQ(cameras->getUserId(), camera->objectIDAsRamsesLogicID());
 }
 
@@ -68,6 +68,6 @@ TEST_F(PerspectiveCameraAdaptorTest, bindingID_name_change) {
 	commandInterface.set({camera, &PerspectiveCamera::objectName_}, std::string("Changed"));
 	dispatch();
 
-	auto cameras{select<rlogic::RamsesCameraBinding>(sceneContext.logicEngine(), "Changed_CameraBinding")};
+	auto cameras{select<ramses::CameraBinding>(sceneContext.logicEngine(), "Changed_CameraBinding")};
 	ASSERT_EQ(cameras->getUserId(), camera->objectIDAsRamsesLogicID());
 }

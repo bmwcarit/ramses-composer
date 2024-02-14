@@ -21,7 +21,7 @@ using namespace raco::user_types;
 class ObjectTreeViewPrefabModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewPrefabModelTest() : ObjectTreeViewDefaultModelTest() {
-		viewModel_.reset(new raco::object_tree::model::ObjectTreeViewPrefabModel(&commandInterface(), application.dataChangeDispatcher(), externalProjectStore(),
+		viewModel_.reset(new object_tree::model::ObjectTreeViewPrefabModel(&commandInterface(), application.dataChangeDispatcher(), externalProjectStore(),
 			{
 				Prefab::typeDescription.typeName
 			}));
@@ -71,7 +71,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, TypesAllowedIntoIndexNode) {
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedOnTopLevel) {
 	for (const auto &typeName : getTypes()) {
 		auto newObj = commandInterface().createObject(typeName);
-		if (raco::core::Queries::isResource(newObj)) {
+		if (core::Queries::isResource(newObj)) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 		}
 	}
@@ -82,7 +82,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedUnderPref
 
 	for (const auto &typeName : getTypes()) {
 		auto newObj = commandInterface().createObject(typeName);
-		if (raco::core::Queries::isResource(newObj)) {
+		if (core::Queries::isResource(newObj)) {
 			ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(viewModel_->indexFromTreeNodeID(prefab->objectID()), newObj));
 		}
 	}
@@ -91,7 +91,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsResourcesAreNotAllowedUnderPref
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckSceneGraphObjectsOnTopLevel) {
 	for (const auto &typeName : getTypes()) {
 		auto newObj = commandInterface().createObject(typeName);
-		if (!raco::core::Queries::isResource(newObj)) {
+		if (!core::Queries::isResource(newObj)) {
 			if (typeName == Prefab::typeDescription.typeName) {
 				ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex({}, newObj));
 			} else {
@@ -107,7 +107,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsCheckExternalSceneGraphObjectsU
 
 	for (const auto &typeName : getTypes()) {
 		auto newObj = commandInterface().createObject(typeName);
-		if (!raco::core::Queries::isResource(newObj) && !raco::core::Queries::isProjectSettings(newObj)) {
+		if (!core::Queries::isResource(newObj) && !core::Queries::isProjectSettings(newObj)) {
 			if (newObj->as<Prefab>()) {
 				ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(prefabIndex, newObj));
 			} else {
@@ -129,7 +129,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedSceneGraphWithResourc
 	auto meshNode = createNodes(MeshNode::typeDescription.typeName, {MeshNode::typeDescription.typeName}).front();
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 
-	commandInterface().set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	commandInterface().set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({meshNode}, true);
@@ -144,7 +144,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedSceneGraphWithResourc
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
-	commandInterface().set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	commandInterface().set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
 	
 	auto copiedObjs = commandInterface().copyObjects({meshNode}, true);
@@ -158,7 +158,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabInstanceWithPre
 	auto prefabInstance = createNodes(PrefabInstance::typeDescription.typeName, {PrefabInstance::typeDescription.typeName}).front();
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
-	commandInterface().set(raco::core::ValueHandle{prefabInstance, {"template"}}, prefab);
+	commandInterface().set(core::ValueHandle{prefabInstance, {"template"}}, prefab);
 	dispatch();
 
 	auto cutObjs = commandInterface().cutObjects({prefabInstance}, true);
@@ -173,7 +173,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsAllowedInEmpt
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 	auto prefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
 
-	commandInterface().set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	commandInterface().set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
 
 	commandInterface().moveScenegraphChildren({meshNode}, prefab);
@@ -191,7 +191,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsNotAllowedUnd
 	auto mesh = createNodes(Mesh::typeDescription.typeName, {Mesh::typeDescription.typeName}).front();
 	auto prefabs = createNodes(Prefab::typeDescription.typeName, {"prefab", "prefab2"});
 
-	commandInterface().set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	commandInterface().set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
 	dispatch();
 
 	commandInterface().moveScenegraphChildren({meshNode}, prefabs.front());
@@ -206,7 +206,7 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsDeepCopiedPrefabIsNotAllowedUnd
 
 TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsNothingIsAllowedUnderExtRef) {
 	auto extRefPrefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
-	extRefPrefab->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	extRefPrefab->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 
 	viewModel_->buildObjectTree();
 	auto extRefPrefabIndex = viewModel_->indexFromTreeNodeID(extRefPrefab->objectID());
@@ -217,18 +217,18 @@ TEST_F(ObjectTreeViewPrefabModelTest, AllowedObjsNothingIsAllowedUnderExtRef) {
 	}
 
 	auto extRefGroupIndex = viewModel_->index(0, 0);
-	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
+	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), object_tree::model::ObjectTreeNodeType::ExtRefGroup);
 	ASSERT_FALSE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, commandInterface().createObject(Node::typeDescription.typeName)));
 	ASSERT_TRUE(viewModel_->isObjectAllowedIntoIndex(extRefGroupIndex, commandInterface().createObject(Prefab::typeDescription.typeName)));
 }
 
 TEST_F(ObjectTreeViewPrefabModelTest, CanNotDoAnythingButPasteWithExtRefGroup) {
 	auto extRefPrefab = createNodes(Prefab::typeDescription.typeName, {Prefab::typeDescription.typeName}).front();
-	extRefPrefab->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	extRefPrefab->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 
 	viewModel_->buildObjectTree();
 	auto extRefGroupIndex = viewModel_->index(0, 0);
-	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), raco::object_tree::model::ObjectTreeNodeType::ExtRefGroup);
+	ASSERT_EQ(viewModel_->indexToTreeNode(extRefGroupIndex)->getType(), object_tree::model::ObjectTreeNodeType::ExtRefGroup);
 
 	ASSERT_FALSE(viewModel_->canDeleteAtIndices({extRefGroupIndex}));
 	ASSERT_FALSE(viewModel_->canCopyAtIndices({extRefGroupIndex}));
@@ -267,9 +267,9 @@ TEST_F(ObjectTreeViewPrefabModelTest, DuplicationExtrefPrefabCanNotBeDuplicated)
 
 	moveScenegraphChildren(allSceneGraphNodes, extRefPrefab);
 
-	extRefPrefab->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+	extRefPrefab->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 	for (auto &node : allSceneGraphNodes) {
-		node->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>("differentProject"));
+		node->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>("differentProject"));
 	}
 
 	ASSERT_FALSE(viewModel_->canDuplicateAtIndices({viewModel_->indexFromTreeNodeID(extRefPrefab->objectID())}));

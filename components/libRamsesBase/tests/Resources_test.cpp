@@ -26,18 +26,18 @@ TEST_F(ResourcesAdaptorFixture, texture_name_change) {
 	dispatch();
 
 	{
-		auto engineTextures{select<ramses::TextureSampler>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_TextureSampler)};
+		auto engineTextures{select<ramses::TextureSampler>(*sceneContext.scene(), ramses::ERamsesObjectType::TextureSampler)};
 		EXPECT_EQ(engineTextures.size(), 1);
-		EXPECT_STREQ("texture name", engineTextures[0]->getName());
+		EXPECT_TRUE("texture name" == engineTextures[0]->getName());
 	}
 
 	context.set({texture, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
 	{
-		auto engineTextures{select<ramses::TextureSampler>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_TextureSampler)};
+		auto engineTextures{select<ramses::TextureSampler>(*sceneContext.scene(), ramses::ERamsesObjectType::TextureSampler)};
 		EXPECT_EQ(engineTextures.size(), 1);
-		EXPECT_STREQ("Changed", engineTextures[0]->getName());
+		EXPECT_TRUE("Changed" == engineTextures[0]->getName());
 	}
 }
 
@@ -46,9 +46,9 @@ TEST_F(ResourcesAdaptorFixture, texture_info_box) {
 	context.set({texture, {"uri"}}, (test_path() / "images" / "DuckCM.png").string());
 	dispatch();
 
-	auto infoBoxError = context.errors().getError(raco::core::ValueHandle{texture});
-	EXPECT_EQ(infoBoxError.category(), raco::core::ErrorCategory::GENERAL);
-	EXPECT_EQ(infoBoxError.level(), raco::core::ErrorLevel::INFORMATION);
+	auto infoBoxError = context.errors().getError(core::ValueHandle{texture});
+	EXPECT_EQ(infoBoxError.category(), core::ErrorCategory::GENERAL);
+	EXPECT_EQ(infoBoxError.level(), core::ErrorLevel::INFORMATION);
 	EXPECT_EQ(infoBoxError.message(), "Texture information\n\nWidth: 512 px\nHeight: 512 px\n\nPNG Bit depth: 8\n\nColor channel flow\nFile -> Ramses -> Shader\nRGBA -> RGBA -> RGBA");
 }
 
@@ -62,8 +62,8 @@ TEST_F(ResourcesAdaptorFixture, cube_map_info_box) {
 	context.set({cubemap, {"uriBottom"}}, (test_path() / "images" / "DuckCM.png").string());
 	dispatch();
 
-	auto infoBoxError = context.errors().getError(raco::core::ValueHandle{cubemap});
-	EXPECT_EQ(infoBoxError.category(), raco::core::ErrorCategory::GENERAL);
-	EXPECT_EQ(infoBoxError.level(), raco::core::ErrorLevel::INFORMATION);
+	auto infoBoxError = context.errors().getError(core::ValueHandle{cubemap});
+	EXPECT_EQ(infoBoxError.category(), core::ErrorCategory::GENERAL);
+	EXPECT_EQ(infoBoxError.level(), core::ErrorLevel::INFORMATION);
 	EXPECT_EQ(infoBoxError.message(), "CubeMap information\n\nWidth: 512 px\nHeight: 512 px\n\nPNG Bit depth: 8\n\nColor channel flow\nFile -> Ramses -> Shader\nRGBA -> RGBA -> RGBA");
 }

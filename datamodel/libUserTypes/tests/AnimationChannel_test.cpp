@@ -20,11 +20,6 @@ using namespace raco::user_types;
 
 class AnimationChannelTest : public TestEnvironmentCore {};
 
-class AnimationChannelTest_FL3 : public TestEnvironmentCoreT<::testing::Test> {
-public:
-	AnimationChannelTest_FL3() : TestEnvironmentCoreT(&UserObjectFactory::getInstance(), static_cast<rlogic::EFeatureLevel>(3)) {}
-};
-
 TEST_F(AnimationChannelTest, URI_setValidURI) {
 	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
 	ValueHandle m{animChannel};
@@ -57,7 +52,7 @@ TEST_F(AnimationChannelTest, URI_setValidURI_noAnims) {
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));
-	ASSERT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::WARNING);
+	ASSERT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::WARNING);
 }
 
 TEST_F(AnimationChannelTest, Inputs_setInvalidAnimationIndex_error) {
@@ -70,7 +65,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidAnimationIndex_error) {
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 
 	ASSERT_FALSE(commandInterface.errors().hasError(animIndexHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
@@ -82,7 +77,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidAnimationIndex_error) {
 
 	commandInterface.set(animIndexHandle, 0);
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 	ASSERT_FALSE(commandInterface.errors().hasError(animIndexHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 
@@ -93,7 +88,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidAnimationIndex_error) {
 
 	commandInterface.set(animIndexHandle, 0);
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 	ASSERT_FALSE(commandInterface.errors().hasError(animIndexHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 }
@@ -108,7 +103,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidSamplerIndex_noError) {
 	commandInterface.set(uriHandle, animChannelPath);
 
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 
 	ASSERT_FALSE(commandInterface.errors().hasError(animIndexHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
@@ -120,7 +115,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidSamplerIndex_noError) {
 
 	commandInterface.set(samplerIndexHandle, 0);
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 	ASSERT_FALSE(commandInterface.errors().hasError(animIndexHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 
@@ -131,7 +126,7 @@ TEST_F(AnimationChannelTest, Inputs_setInvalidSamplerIndex_noError) {
 
 	commandInterface.set(samplerIndexHandle, 0);
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 	ASSERT_FALSE(commandInterface.errors().hasError(animIndexHandle));
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 }
@@ -146,38 +141,23 @@ TEST_F(AnimationChannelTest, invalidAnim_weights_supported) {
 	ValueHandle samplerIndexHandle{animChannel, {"samplerIndex"}};
 	ValueHandle animHandle{animChannel};
 	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::INFORMATION);
+	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), core::ErrorLevel::INFORMATION);
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 }
-
-TEST_F(AnimationChannelTest_FL3, invalidAnim_weights_unsupported_fl3) {
-	auto animChannel{commandInterface.createObject(AnimationChannel::typeDescription.typeName)};
-	ValueHandle uriHandle{animChannel, {"uri"}};
-
-	std::string uriPath{(test_path() / "meshes" / "AnimatedMorphCube" / "AnimatedMorphCube.gltf").string()};
-	commandInterface.set({animChannel, {"uri"}}, uriPath);
-
-	ValueHandle samplerIndexHandle{animChannel, {"samplerIndex"}};
-	ValueHandle animHandle{animChannel};
-	ASSERT_TRUE(commandInterface.errors().hasError(animHandle));
-	ASSERT_EQ(commandInterface.errors().getError(animHandle).level(), raco::core::ErrorLevel::ERROR);
-	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
-}
-
 
 #if (!defined(__linux__))
 // awaitPreviewDirty does not work in Linux as expected. See RAOS-692
 
 TEST_F(AnimationChannelTest, validAnim_madeInvalid) {
 	auto animChannel = create<AnimationChannel>("anim_channel");
-	ValueHandle uriHandle{animChannel, &raco::user_types::AnimationChannel::uri_};
+	ValueHandle uriHandle{animChannel, &user_types::AnimationChannel::uri_};
 	
 	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 	ASSERT_FALSE(commandInterface.errors().hasError(uriHandle));
 
 	recorder.reset();
-	raco::utils::file::write(animChannelPath, "");
+	utils::file::write(animChannelPath, "");
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, animChannel));
 
 	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));

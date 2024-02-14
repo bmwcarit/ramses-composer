@@ -120,7 +120,9 @@ public:
 
 	// Extract scalar values directly
 
-	// Templated accessor; only works for scalar types: bool, int, int64_t, double, std::string
+	// Templated accessor
+	// - works for scalar types: bool, int, int64_t, double, std::string
+	// - use glm::vec2/3/4 and ivec2/3/4 template parameter to obtain Vec2/3/4f and Vec2/3/4i struct properties
 	template<typename T> T as() const;
 
 	bool asBool() const;
@@ -164,10 +166,10 @@ public:
 	// Access Table by index as array
 	ValueHandle operator[](size_t) const;
 
-	bool hasProperty(std::string name) const;
+	bool hasProperty(std::string_view name) const;
 
 	// For class type and Table properties access their members directly
-	ValueHandle get(std::string propertyName) const;
+	ValueHandle get(std::string_view propertyName) const;
 
 	template <class Anno>
 	AnnotationHandle<Anno> query() const
@@ -180,7 +182,7 @@ public:
 	// return last element of property names vector
 	std::string getPropName() const;
 
-	std::vector<std::string> getPropertyNamesVector() const;
+	std::vector<std::string_view> getPropertyNamesVector() const;
 
 	// Return '/'-separated property path starting at the root object
 	std::string getPropertyPath(bool useObjectID = false) const;
@@ -270,9 +272,9 @@ public:
 		return annotation_;
 	}
 
-	AnnotationValueHandle<AnnoType> get(std::string const& name)
+	AnnotationValueHandle<AnnoType> get(std::string_view name)
 	{
-		return { *this, name };
+		return { *this, std::string(name) };
 	}
 
 private:

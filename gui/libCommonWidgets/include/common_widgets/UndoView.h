@@ -20,14 +20,14 @@ namespace raco::common_widgets {
 
 class UndoView : public QWidget {
 public:
-	explicit UndoView(raco::core::UndoStack* undoStack, raco::components::SDataChangeDispatcher dispatcher, QWidget* parent);
+	explicit UndoView(core::UndoStack* undoStack, components::SDataChangeDispatcher dispatcher, QWidget* parent);
 
 protected:
 	void rebuild();
 
 private:
-	raco::components::Subscription sub_;
-	raco::core::UndoStack* undoStack_;
+	components::Subscription sub_;
+	core::UndoStack* undoStack_;
 	QListView* list_;
 	QStandardItemModel* model_;
 };

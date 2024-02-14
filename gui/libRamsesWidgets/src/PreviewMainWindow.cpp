@@ -22,15 +22,14 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QToolButton>
 #include <QHBoxLayout>
 
 
 namespace raco::ramses_widgets {
 
-PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ramses_adaptor::SceneBackend* sceneBackend, const QSize& sceneSize, raco::core::Project* project,
-	raco::components::SDataChangeDispatcher dispatcher, QWidget* parent)
+PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, ramses_adaptor::SceneBackend* sceneBackend, const QSize& sceneSize, core::Project* project,
+	components::SDataChangeDispatcher dispatcher, QWidget* parent)
 	: QMainWindow{parent},
 	  ui_{new Ui::PreviewMainWindow()},
 	  project_(project) {
@@ -116,6 +115,7 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		});
 		ui_->toolBar->insertWidget(ui_->actionSelectSizeMode, sizeMenuButton);
 	}
+
 	// MSAA button
 	{
 		auto* msaaMenu = new QMenu{ui_->toolBar};
@@ -146,39 +146,50 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, raco::ram
 		connect(ui_->actionSetMSAAx0, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
 			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_0X);
 			updateMsaaSelection(ui_->actionSetMSAAx0);
+			ui_->screenshotButton->setEnabled(true);
 		});
 		connect(ui_->actionSetMSAAx2, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
 			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_2X);
 			updateMsaaSelection(ui_->actionSetMSAAx2);
+			ui_->screenshotButton->setEnabled(false);
 		});
 		connect(ui_->actionSetMSAAx4, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
 			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_4X);
 			updateMsaaSelection(ui_->actionSetMSAAx4);
+			ui_->screenshotButton->setEnabled(false);
 		});
 		connect(ui_->actionSetMSAAx8, &QAction::triggered, this, [this, msaaMenuButton, updateMsaaSelection]() {
 			previewWidget_->setMsaaSampleRate(PreviewMultiSampleRate::MSAA_8X);
 			updateMsaaSelection(ui_->actionSetMSAAx8);
+			ui_->screenshotButton->setEnabled(false);
 		});
 		ui_->toolBar->insertWidget(ui_->actionSelectSizeMode, msaaMenuButton);
 	}
 
 	// Screenshot button
-	{
-		auto* screenshotButton = new QPushButton{};
-		screenshotButton->setIcon(style::Icons::instance().screenshot);
-		screenshotButton->setToolTip("Save Screenshot");
+	ui_->screenshotButton->setIcon(style::Icons::instance().screenshot);
+	ui_->screenshotButton->setToolTip("Save Screenshot (F12)");
+	connect(ui_->screenshotButton, &QPushButton::clicked, [this]() {
+		saveScreenshot();
+	});
 
+	// Refresh button
+	ui_->refreshButton->setIcon(style::Icons::instance().refresh);
+	ui_->refreshButton->setToolTip("Refresh");
+	connect(ui_->refreshButton, &QPushButton::clicked, [this]() {
+		previewWidget_->commit(true);
+	});
+
+	// Buttons layout
+	{
 		auto* stretchedWidget = new QWidget(ui_->toolBar);
 		auto* layout = new QHBoxLayout(stretchedWidget);
 		layout->setContentsMargins(0, 0, 0, 0);
 		layout->addStretch();
-		layout->addWidget(screenshotButton);
+		layout->addWidget(ui_->screenshotButton);
+		layout->addWidget(ui_->refreshButton);
 		stretchedWidget->setLayout(layout);
 		ui_->toolBar->addWidget(stretchedWidget);
-
-		connect(screenshotButton, &QPushButton::clicked, [this]() {
-			saveScreenshot();
-		});
 	}
 }
 
@@ -203,6 +214,11 @@ void PreviewMainWindow::commit(bool forceUpdate) {
 }
 
 void PreviewMainWindow::saveScreenshot() {
+	if (previewWidget_->getMsaaSampleRate() > MSAA_0X) {
+		QMessageBox::warning(this, "Could not save the screenshot", "Screenshots are only possible for non-MSAA buffers!", QMessageBox::Ok);
+		return;
+	}
+
 	const auto screenshotDir = components::RaCoPreferences::instance().screenshotDirectory.toStdString();
 	if (screenshotDir.empty()) {
 		QMessageBox::warning(this, "Could not save the screenshot", "Please make sure that the directory specified in \"File > Preferences > Screenshot Directory\" is not empty.", QMessageBox::Ok);
@@ -224,6 +240,11 @@ void PreviewMainWindow::saveScreenshot() {
 }
 
 void PreviewMainWindow::saveScreenshot(const std::string& fullPath) {
+	if (previewWidget_->getMsaaSampleRate() > MSAA_0X) {
+		throw std::runtime_error{"Could not save screenshot to \"" + fullPath + "\". Screenshots are only possible for non-MSAA buffers!"};
+		return;
+	}
+
 	const auto saved = previewWidget_->saveScreenshot(fullPath);
 	if (!saved) {
 		throw std::runtime_error {"Could not save screenshot to \"" + fullPath + "\". Please make sure that the path specified is correct and accessable."};

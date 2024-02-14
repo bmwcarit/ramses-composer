@@ -35,10 +35,6 @@ public:
 	bool isTristate() const {
 		return checkBox_->checkState() == Qt::CheckState::PartiallyChecked && checkBox_->isTristate();
 	}
-
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value) {
-		BoolEditor::pasteProperty(item, value);
-	}
 };
 
 class BoolEditorTest : public EditorTestFixture {
@@ -122,14 +118,14 @@ TEST_F(BoolEditorTest, paste_property_from_bool) {
 	dispatch();
 
 	Value<bool> value{true};
-	boolEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*node_1->visibility_, true);
 	EXPECT_EQ(*node_2->visibility_, true);
 
 	commandInterface.set(boolHandleNode_2, false);
 	dispatch();
 
-	boolEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*node_1->visibility_, true);
 	EXPECT_EQ(*node_2->visibility_, true);
 }
@@ -140,14 +136,14 @@ TEST_F(BoolEditorTest, paste_property_from_string) {
 	dispatch();
 
 	Value<std::string> value{"true"};
-	boolEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*node_1->visibility_, true);
 	EXPECT_EQ(*node_2->visibility_, true);
 
 	commandInterface.set(boolHandleNode_2, false);
 	dispatch();
 
-	boolEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*node_1->visibility_, true);
 	EXPECT_EQ(*node_2->visibility_, true);
 }

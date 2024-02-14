@@ -10,13 +10,18 @@
 #pragma once
 
 #include "ramses_adaptor/ObjectAdaptor.h"
+#include "ramses_adaptor/AbstractObjectAdaptor.h"
 
 namespace raco::ramses_adaptor {
 
 class SceneAdaptor;
 
+class AbstractSceneAdaptor;
+
 struct Factories {
 	static UniqueObjectAdaptor createAdaptor(SceneAdaptor* buildContext, core::SEditorObject obj);
+
+	static UniqueAbstractObjectAdaptor createAbstractAdaptor(AbstractSceneAdaptor* buildContext, core::SEditorObject obj);
 
 private:
 };

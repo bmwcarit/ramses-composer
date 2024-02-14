@@ -31,8 +31,8 @@
 
 class ObjectTreeViewDefaultModelTest : public RaCoApplicationTest {
 public:
-	std::vector<raco::core::SEditorObject> createNodes(const std::string &type, const std::vector<std::string> &nodeNames) {
-		std::vector<raco::core::SEditorObject> createdNodes;
+	std::vector<core::SEditorObject> createNodes(const std::string &type, const std::vector<std::string> &nodeNames) {
+		std::vector<core::SEditorObject> createdNodes;
 
 		for (const auto &name : nodeNames) {
 			createdNodes.emplace_back(commandInterface().createObject(type, name));
@@ -42,7 +42,7 @@ public:
 		return createdNodes;
 	}
 
-	void moveScenegraphChildren(std::vector<raco::core::SEditorObject> const &objects, raco::core::SEditorObject parent, int row = -1) {
+	void moveScenegraphChildren(std::vector<core::SEditorObject> const &objects, core::SEditorObject parent, int row = -1) {
 		viewModel_->moveScenegraphChildren(objects, parent, row);
 		application.dataChangeDispatcher()->dispatch(recorder().release());
 	}
@@ -53,7 +53,7 @@ public:
 		return delObjAmount;
 	}
 
-	std::string modelIndexToString(raco::object_tree::model::ObjectTreeViewDefaultModel &viewModel, const QModelIndex &currentIndex, Qt::ItemDataRole role = Qt::DisplayRole) {
+	std::string modelIndexToString(object_tree::model::ObjectTreeViewDefaultModel &viewModel, const QModelIndex &currentIndex, Qt::ItemDataRole role = Qt::DisplayRole) {
 		return viewModel.data((currentIndex), role).toString().toStdString();
 	}
 
@@ -64,7 +64,7 @@ public:
 	std::vector<std::string> getTypes() {
 		std::vector<std::string> names;
 		for (const auto &[typeName, typeInfo] : viewModel_->objectFactory()->getTypes()) {
-			if (viewModel_->objectFactory()->isUserCreatable(typeName, raco::ramses_base::BaseEngineBackend::maxFeatureLevel)) {
+			if (viewModel_->objectFactory()->isUserCreatable(typeName, ramses_base::BaseEngineBackend::maxFeatureLevel)) {
 				names.emplace_back(typeName);
 			}
 		}
@@ -77,12 +77,12 @@ protected:
 	QGuiApplication fakeGuiApp_{argc_, nullptr};
 
 	std::vector<std::string> nodeNames_;
-	std::unique_ptr<raco::object_tree::model::ObjectTreeViewDefaultModel> viewModel_;
+	std::unique_ptr<object_tree::model::ObjectTreeViewDefaultModel> viewModel_;
 
 	ObjectTreeViewDefaultModelTest();
 
-	void compareValuesInTree(const raco::core::SEditorObject &obj, const QModelIndex &objIndex, const raco::object_tree::model::ObjectTreeViewDefaultModel &viewModel);
+	void compareValuesInTree(const core::SEditorObject &obj, const QModelIndex &objIndex, const object_tree::model::ObjectTreeViewDefaultModel &viewModel);
 
-	std::vector<raco::core::SEditorObject> createAllSceneGraphObjects();
-	std::vector<raco::core::SEditorObject> createAllResources();
+	std::vector<core::SEditorObject> createAllSceneGraphObjects();
+	std::vector<core::SEditorObject> createAllResources();
 };

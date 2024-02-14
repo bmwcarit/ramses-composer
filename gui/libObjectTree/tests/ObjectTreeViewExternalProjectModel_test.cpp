@@ -46,12 +46,12 @@ public:
 class ObjectTreeViewExternalProjectModelTest : public ObjectTreeViewDefaultModelTest {
 protected:
 
-	raco::ramses_base::HeadlessEngineBackend otherBackend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	ramses_base::HeadlessEngineBackend otherBackend;
 	raco::application::RaCoApplication otherApplication{otherBackend};
 	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application};
 
-	void generateExternalProject(const std::vector<raco::core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
-		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication, true, static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
+	void generateExternalProject(const std::vector<core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
+		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication, true, static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel));
 
 		auto project = application.externalProjectsStore_.externalProjects_[projectPath]->project();
 		for (const auto &instance : instances) {
@@ -62,7 +62,7 @@ protected:
 
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, InstantiationNoLocalInstancesInModel) {
-	commandInterface().createObject(raco::user_types::Node::typeDescription.typeName);
+	commandInterface().createObject(user_types::Node::typeDescription.typeName);
 	externalProjectModel.triggerObjectTreeRebuilding();
 	ASSERT_TRUE(externalProjectModel.indexes().empty());
 }
@@ -82,9 +82,9 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectEmpty) {
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectTenTopLevelNodes) {
 	constexpr size_t CHILD_NODE_AMOUNT = 10;
 
-	std::vector<raco::core::SEditorObject> instances;
+	std::vector<core::SEditorObject> instances;
 	for (size_t i{0}; i < CHILD_NODE_AMOUNT; ++i) {
-		instances.emplace_back(std::make_shared<raco::user_types::Node>());
+		instances.emplace_back(std::make_shared<user_types::Node>());
 	}
 
 	generateExternalProject(instances);
@@ -97,10 +97,10 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectTenTopLevelNodes) {
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyParentsCreatedFirst) {
 	constexpr size_t NODE_AMOUNT = 5;
-	std::vector<raco::core::SEditorObject> instances;
+	std::vector<core::SEditorObject> instances;
 
 	for (size_t i{0}; i < NODE_AMOUNT; ++i) {
-		instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
+		instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
 	}
 
 	for (size_t i{0}; i < NODE_AMOUNT - 1; ++i) {
@@ -122,10 +122,10 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyParentsCre
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyChildrenCreatedFirst) {
 	constexpr size_t NODE_AMOUNT = 5;
-	std::vector<raco::core::SEditorObject> instances;
+	std::vector<core::SEditorObject> instances;
 
 	for (int i{NODE_AMOUNT - 1}; i >= 0; --i) {
-		instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
+		instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
 	}
 
 	for (size_t i{1}; i < NODE_AMOUNT; ++i) {
@@ -147,12 +147,12 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyChildrenCr
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyRetainChildrenOrder) {
 	constexpr size_t CHILD_NODE_AMOUNT = 3;
-	std::vector<raco::core::SEditorObject> instances;
+	std::vector<core::SEditorObject> instances;
 
-	auto rootNode = instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "myRoot"));
+	auto rootNode = instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "myRoot"));
 
 	for (size_t i{0}; i < CHILD_NODE_AMOUNT; ++i) {
-		auto childNode = instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(raco::user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
+		auto childNode = instances.emplace_back(otherApplication.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_" + std::to_string(i)));
 		otherApplication.activeRaCoProject().commandInterface()->moveScenegraphChildren({childNode}, rootNode, 0);
 	}
 
@@ -169,10 +169,10 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, LoadingProjectHierarchyRetainChil
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, CanCopyAtIndicesMultiSelection) {
 	std::string project1Path = "project1Path.rca";
-	auto project1Node = std::make_shared<raco::user_types::Node>();
+	auto project1Node = std::make_shared<user_types::Node>();
 	generateExternalProject({project1Node}, project1Path);
 
-	auto project2Node = std::make_shared<raco::user_types::Node>();
+	auto project2Node = std::make_shared<user_types::Node>();
 	std::string project2Path = "project2Path.rca";
 	generateExternalProject({project2Node}, project2Path);
 
@@ -205,7 +205,7 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, CanCopyAtIndicesMultiSelection) {
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, CanDeleteAtIndicesNever) {
 	std::string project1Path = "project1Path.rca";
-	auto project1Node = std::make_shared<raco::user_types::Node>();
+	auto project1Node = std::make_shared<user_types::Node>();
 	generateExternalProject({project1Node}, project1Path);
 
 	externalProjectModel.triggerObjectTreeRebuilding();
@@ -222,7 +222,7 @@ TEST_F(ObjectTreeViewExternalProjectModelTest, CanDeleteAtIndicesNever) {
 
 TEST_F(ObjectTreeViewExternalProjectModelTest, CanNeverDuplicate) {
 	std::string project1Path = "project1Path.rca";
-	auto project1Node = std::make_shared<raco::user_types::Node>();
+	auto project1Node = std::make_shared<user_types::Node>();
 	generateExternalProject({project1Node}, project1Path);
 
 	externalProjectModel.triggerObjectTreeRebuilding();

@@ -639,7 +639,7 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 
 	commandInterface.set(ValueHandle{linkRecipient, {"uri"}}, test_path().append("scripts/types-scalar.lua").string());
 	checkUndoRedo([this, linkBase, linkRecipient]() { commandInterface.addLink(ValueHandle{linkBase, {"outputs", "ofloat"}}, ValueHandle{linkRecipient, {"inputs", "float"}}); },
-		[this, linkBase, linkRecipient]() { 
+		[this, linkBase, linkRecipient]() {
 			checkLinks({{{linkBase, {"outputs", "ofloat"}}, {linkRecipient, {"inputs", "in_float"}}, false}});
 		},
 		[this, linkBase, linkRecipient]() {
@@ -650,10 +650,10 @@ TEST_F(UndoTest, link_input_changed_add_another_link) {
 
 TEST_F(UndoTest, lua_module_added) {
 	auto script = create<LuaScript>("script");
-	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(ValueHandle{script, &user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
 
 	auto module = create<LuaScriptModule>("module");
-	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{module, &user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
 
 	checkUndoRedo([this, script, module]() {
 		commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
@@ -674,13 +674,13 @@ TEST_F(UndoTest, lua_module_added) {
 
 TEST_F(UndoTest, lua_module_script_uri_changed) {
 	auto script = create<LuaScript>("script");
-	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(ValueHandle{script, &user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
 
 	auto module = create<LuaScriptModule>("module");
-	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{module, &user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
 	commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
 
-	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/types-scalar.lua").string()); },
+	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{script, &user_types::LuaScript::uri_}, test_path().append("scripts/types-scalar.lua").string()); },
 		[this, script]() {
 			ASSERT_FALSE(commandInterface.errors().hasError({script}));
 			auto coalasRef = ValueHandle{script, {"luaModules", "coalas"}}.asRef();
@@ -694,13 +694,13 @@ TEST_F(UndoTest, lua_module_script_uri_changed) {
 
 TEST_F(UndoTest, lua_module_script_module_made_invalid) {
 	auto script = create<LuaScript>("script");
-	commandInterface.set(ValueHandle{script, &raco::user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
+	commandInterface.set(ValueHandle{script, &user_types::LuaScript::uri_}, test_path().append("scripts/moduleDependency.lua").string());
 
 	auto module = create<LuaScriptModule>("module");
-	commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
+	commandInterface.set(ValueHandle{module, &user_types::LuaScriptModule::uri_}, test_path().append("scripts/moduleDefinition.lua").string());
 	commandInterface.set(ValueHandle{script, {"luaModules", "coalas"}}, module);
 
-	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, std::string()); },
+	checkUndoRedo([this, script, module]() { commandInterface.set(ValueHandle{module, &user_types::LuaScriptModule::uri_}, std::string()); },
 		[this, script]() {
 			ASSERT_FALSE(commandInterface.errors().hasError({script}));
 			ASSERT_FALSE(commandInterface.errors().hasError(ValueHandle{script, {"luaModules", "coalas"}}));
@@ -710,12 +710,12 @@ TEST_F(UndoTest, lua_module_script_module_made_invalid) {
 		[this, script, module]() {
 			ASSERT_FALSE(commandInterface.errors().hasError({script}));
 			ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{script, {"luaModules", "coalas"}}));
-			ASSERT_TRUE(commandInterface.errors().hasError({module, &raco::user_types::LuaScriptModule::uri_}));
+			ASSERT_TRUE(commandInterface.errors().hasError({module, &user_types::LuaScriptModule::uri_}));
 		});
 }
 
 TEST_F(UndoTest, link_quaternion_euler_change) {
-	raco::utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
+	utils::file::write((test_path() / "lua_script_out1.lua").string(), R"(
 function interface(IN,OUT)
 	IN.vec = Type:Vec4f()
 	OUT.vec = Type:Vec4f()
@@ -725,7 +725,7 @@ function run(IN,OUT)
 end
 )");
 
-	raco::utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
+	utils::file::write((test_path() / "lua_script_out2.lua").string(), R"(
 function interface(IN,OUT)
 	IN.vec = Type:Vec3f()
 	OUT.vec = Type:Vec3f()
@@ -759,12 +759,12 @@ end
 
 
 TEST_F(UndoTest, mesh_asset_with_anims_import_multiple_undo_redo) {
-	raco::core::MeshDescriptor desc;
+	core::MeshDescriptor desc;
 	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
 	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface.meshCache(), desc);
-	
+
 	commandInterface.insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
 	for (auto i = 0; i < 10; ++i) {
@@ -873,7 +873,7 @@ void main() {
 
 	undoStack.setIndex(preIndex);
 
-	raco::utils::file::write(fragShader.path.string(), altFragShaderText);
+	utils::file::write(fragShader.path.string(), altFragShaderText);
 
 	undoStack.setIndex(postIndex);
 
@@ -922,7 +922,7 @@ void main() {
 
 	size_t preIndex = undoStack.getIndex();
 
-	commandInterface.set(raco::core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}, 5.0);
+	commandInterface.set(core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}, 5.0);
 
 	size_t postIndex = undoStack.getIndex();
 
@@ -932,7 +932,7 @@ void main() {
 
 	undoStack.setIndex(preIndex);
 	undoStack.setIndex(postIndex);
-	ASSERT_NO_THROW((raco::core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}.asDouble()));	
+	ASSERT_NO_THROW((core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}.asDouble()));
 }
 
 #if (!defined(__linux__))
@@ -965,7 +965,7 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
 	recorder.reset();
-	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	utils::file::write(luaFile.path.string(), altLuaScript);
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
@@ -1017,7 +1017,7 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
 	recorder.reset();
-	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	utils::file::write(luaFile.path.string(), altLuaScript);
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
@@ -1033,7 +1033,7 @@ end
 	checkLinks({});
 	ASSERT_FALSE(commandInterface.errors().hasError({node}));
 
-	// redo #1 
+	// redo #1
 	commandInterface.undoStack().redo();
 	checkLinks({{sprop, eprop, false}});
 	ASSERT_TRUE(commandInterface.errors().hasError({node}));
@@ -1071,7 +1071,7 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
 	recorder.reset();
-	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	utils::file::write(luaFile.path.string(), altLuaScript);
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
@@ -1125,7 +1125,7 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("renamed"));
 
 	recorder.reset();
-	raco::utils::file::write(luaFile.path.string(), altLuaScript);
+	utils::file::write(luaFile.path.string(), altLuaScript);
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
@@ -1139,7 +1139,7 @@ end
 	auto [sprop, eprop] = link(lua, {"outputs", "renamed"}, node, {"translation"});
 	checkLinks({{sprop, eprop, true}});
 
-	raco::utils::file::write(luaFile.path.string(), origLuaScript);
+	utils::file::write(luaFile.path.string(), origLuaScript);
 	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
 
 	undoStack.undo();
@@ -1156,7 +1156,7 @@ TEST_F(UndoTest, add_remove_property_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
-	
+
 	checkUndoRedoMultiStep<2>(
 		{[this, tableHandle, refTarget]() {
 			 context.addProperty(tableHandle, "ref", std::make_unique<Value<SEditorObject>>(refTarget));
@@ -1276,7 +1276,7 @@ TEST_F(UndoTest, add_remove_property_struct_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setTable_with_ref) {
+TEST_F(UndoTest, set_table_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
@@ -1305,7 +1305,7 @@ TEST_F(UndoTest, setTable_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setArray_with_ref) {
+TEST_F(UndoTest, set_tableArray_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle arrayHandle{refSource, &ObjectWithTableProperty::array_};
@@ -1334,7 +1334,7 @@ TEST_F(UndoTest, setArray_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setStruct_with_ref) {
+TEST_F(UndoTest, set_struct_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithStructProperty>("sourceObject");
 	const ValueHandle structHandle{refSource, &ObjectWithStructProperty::s_};
@@ -1364,7 +1364,7 @@ TEST_F(UndoTest, setStruct_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setTable_nested_table_with_ref) {
+TEST_F(UndoTest, set_table_nested_table_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
@@ -1397,7 +1397,7 @@ TEST_F(UndoTest, setTable_nested_table_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setArray_nested_table_with_ref) {
+TEST_F(UndoTest, set_tableArray_nested_table_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::array_};
@@ -1430,7 +1430,7 @@ TEST_F(UndoTest, setArray_nested_table_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setTable_nested_struct_with_ref) {
+TEST_F(UndoTest, set_table_nested_struct_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::t_};
@@ -1463,7 +1463,7 @@ TEST_F(UndoTest, setTable_nested_struct_with_ref) {
 			}});
 }
 
-TEST_F(UndoTest, setArray_nested_struct_with_ref) {
+TEST_F(UndoTest, set_tableArray_nested_struct_with_ref) {
 	auto refTarget = create<Foo>("foo");
 	auto refSource = create<ObjectWithTableProperty>("sourceObject");
 	ValueHandle tableHandle{refSource, &ObjectWithTableProperty::array_};
@@ -1501,20 +1501,20 @@ TEST_F(UndoTest, referenced_object_moved_into_prefab) {
 	auto camera = create<PerspectiveCamera>("camera");
 
 	auto renderPass = create<RenderPass>("pass");
-	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &raco::user_types::RenderPass::camera_});
+	auto refTargets = core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &user_types::RenderPass::camera_});
 	ASSERT_EQ(refTargets, std::vector<SEditorObject>{camera});
 
-	commandInterface.set({renderPass, &raco::user_types::RenderPass::camera_}, camera);
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), camera);
+	commandInterface.set({renderPass, &user_types::RenderPass::camera_}, camera);
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), camera);
 
 	commandInterface.moveScenegraphChildren({camera}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), SEditorObject());
 
 	commandInterface.undoStack().undo();
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), camera);
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), camera);
 
 	commandInterface.undoStack().redo();
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), SEditorObject());
 }
 
 TEST_F(UndoTest, composite_single_op) {
@@ -1871,4 +1871,279 @@ TEST_F(UndoTest, set_multi_double_merge) {
 
 	EXPECT_EQ(index + 1, undoStack.getIndex());
 	EXPECT_EQ(size + 1, undoStack.size());
+}
+
+TEST_F(UndoTest, add_remove_property_array_double) {
+	Array<double> ad;
+	*ad.addProperty() = -1.0;
+	*ad.addProperty() = -2.0;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle tableHandle{obj, &ObjectWithArrays::table_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, &ad]() {
+			 context.addProperty(tableHandle, "array", std::make_unique<Value<Array<double>>>(ad));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "array");
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj]() {
+			 EXPECT_EQ(obj->table_->size(), 0);
+		 },
+			[this, obj, &ad]() {
+				EXPECT_EQ(obj->table_->size(), 1);
+				EXPECT_TRUE(obj->table_->get("array")->asArray() == ad);
+			},
+			[this, obj]() {
+				EXPECT_EQ(obj->table_->size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, add_remove_property_array_array_double) {
+	Array<double> ad;
+	*ad.addProperty() = -1.0;
+	*ad.addProperty() = -2.0;
+	Array<Array<double>> aad;
+	*aad.addProperty() = ad;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle tableHandle{obj, &ObjectWithArrays::table_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, &aad]() {
+			 context.addProperty(tableHandle, "array", std::make_unique<Value<Array<Array<double>>>>(aad));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "array");
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj]() {
+			 EXPECT_EQ(obj->table_->size(), 0);
+		 },
+			[this, obj, &aad]() {
+				EXPECT_EQ(obj->table_->size(), 1);
+				EXPECT_TRUE(obj->table_->get("array")->asArray() == aad);
+			},
+			[this, obj]() {
+				EXPECT_EQ(obj->table_->size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, add_remove_property_array_with_ref) {
+	auto refTarget = create<Node>("foo");
+	Array<SNode> aref;
+	*aref.addProperty() = refTarget;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle tableHandle{obj, &ObjectWithArrays::table_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, &aref]() {
+			 context.addProperty(tableHandle, "array", std::make_unique<Value<Array<SNode>>>(aref));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.removeProperty(tableHandle, "array");
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj, refTarget]() {
+			 EXPECT_EQ(obj->table_->size(), 0);
+			 EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+		 },
+			[this, obj, refTarget, &aref]() {
+				EXPECT_EQ(obj->table_->size(), 1);
+				ASSERT_EQ(refTarget->referencesToThis().size(), 1);
+				EXPECT_TRUE(obj->table_->get("array")->asArray() == aref);
+				EXPECT_EQ(refTarget->referencesToThis().begin()->lock(), obj);
+			},
+			[this, obj, refTarget]() {
+				EXPECT_EQ(obj->table_->size(), 0);
+				EXPECT_EQ(refTarget->referencesToThis().size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, set_array_elem_array_double) {
+	Array<double> ad;
+	*ad.addProperty() = -1.0;
+	*ad.addProperty() = -2.0;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle tableHandle{obj, &ObjectWithArrays::table_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, tableHandle, &ad]() {
+			 context.addProperty(tableHandle, "array", std::make_unique<Value<Array<double>>>(ad));
+			 this->undoStack.push("step 1");
+		 },
+			[this, tableHandle]() {
+				context.set(tableHandle.get("array")[0], 12.0);
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj]() {
+			 EXPECT_EQ(obj->table_->size(), 0);
+		 },
+			[this, obj, &ad]() {
+				EXPECT_EQ(obj->table_->size(), 1);
+				EXPECT_TRUE(obj->table_->get("array")->asArray() == ad);
+			},
+			[this, obj]() {
+				EXPECT_EQ(obj->table_->size(), 1);
+				EXPECT_EQ(obj->table_->get("array")->asArray().get(0)->asDouble(), 12.0);
+				EXPECT_EQ(obj->table_->get("array")->asArray().get(1)->asDouble(), -2.0);
+			}});
+}
+
+TEST_F(UndoTest, add_remove_array_element) {
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle arrayHandle{obj, &ObjectWithArrays::array_double_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, arrayHandle]() {
+			 context.addProperty(arrayHandle, {}, std::make_unique<Value<double>>(12.0));
+			 context.addProperty(arrayHandle, {}, std::make_unique<Value<double>>(3.0), 0);
+			 context.addProperty(arrayHandle, {}, std::make_unique<Value<double>>(15.0), -1);
+			 context.addProperty(arrayHandle, {}, std::make_unique<Value<double>>(17.0));
+			 this->undoStack.push("step 1");
+		 },
+			[this, arrayHandle]() {
+				context.removeProperty(arrayHandle, 1);
+				context.removeProperty(arrayHandle, "1");
+				context.removeAllProperties(arrayHandle);
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj]() {
+			 EXPECT_EQ(obj->array_double_->size(), 0);
+		 },
+			[this, obj]() {
+				EXPECT_EQ(obj->array_double_->size(), 4);
+				EXPECT_EQ(**obj->array_double_->get(0), 3.0);
+				EXPECT_EQ(**obj->array_double_->get(1), 12.0);
+				EXPECT_EQ(**obj->array_double_->get(2), 15.0);
+				EXPECT_EQ(**obj->array_double_->get(3), 17.0);
+			},
+			[this, obj]() {
+				EXPECT_EQ(obj->array_double_->size(), 0);
+			}});
+}
+
+TEST_F(UndoTest, set_array) {
+	Array<double> ad_1;
+	*ad_1.addProperty() = -1.0;
+	*ad_1.addProperty() = -2.0;
+
+	Array<double> ad_2;
+	*ad_2.addProperty() = 1.0;
+	*ad_2.addProperty() = 2.0;
+	*ad_2.addProperty() = 3.0;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle arrayHandle{obj, &ObjectWithArrays::array_double_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, arrayHandle, &ad_1]() {
+			 context.set(arrayHandle, ad_1);
+			 this->undoStack.push("step 1");
+		 },
+			[this, arrayHandle, &ad_2]() {
+				context.set(arrayHandle, ad_2);
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj]() {
+			 EXPECT_EQ(obj->array_double_->size(), 0);
+		 },
+			[this, obj, &ad_1]() {
+				EXPECT_TRUE(*obj->array_double_ == ad_1);
+			},
+			[this, obj, &ad_2]() {
+				EXPECT_TRUE(*obj->array_double_ == ad_2);
+			}});
+}
+
+TEST_F(UndoTest, set_array_ref) {
+	auto node_1 = create<Node>("node1");
+	auto node_2 = create<Node>("node2");
+	auto meshnode_1 = create<MeshNode>("meshnode1");
+	auto meshnode_2 = create<MeshNode>("meshnode2");
+	auto meshnode_3 = create<MeshNode>("meshnode3");
+
+	Array<SEditorObject> aref_nodes;
+	*aref_nodes.addProperty() = node_1;
+	*aref_nodes.addProperty() = node_2;
+
+	Array<SEditorObject> aref_meshnodes;
+	*aref_meshnodes.addProperty() = meshnode_1;
+	*aref_meshnodes.addProperty() = meshnode_2;
+	*aref_meshnodes.addProperty() = meshnode_3;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle arrayHandle{obj, &ObjectWithArrays::array_ref_};
+
+	checkUndoRedoMultiStep<2>(
+		{[this, arrayHandle, &aref_nodes]() {
+			 context.set(arrayHandle, aref_nodes);
+			 this->undoStack.push("step 1");
+		 },
+			[this, arrayHandle, &aref_meshnodes]() {
+				context.set(arrayHandle, aref_meshnodes);
+				this->undoStack.push("step 2");
+			}},
+		{[this, obj, node_1, node_2, meshnode_1, meshnode_2, meshnode_3]() {
+			 EXPECT_EQ(obj->array_ref_->size(), 0);
+			 EXPECT_EQ(node_1->referencesToThis().size(), 0);
+			 EXPECT_EQ(node_2->referencesToThis().size(), 0);
+			 EXPECT_EQ(meshnode_1->referencesToThis().size(), 0);
+			 EXPECT_EQ(meshnode_2->referencesToThis().size(), 0);
+			 EXPECT_EQ(meshnode_3->referencesToThis().size(), 0);
+		 },
+			[this, obj, node_1, node_2, meshnode_1, meshnode_2, meshnode_3, &aref_nodes]() {
+				EXPECT_TRUE(*obj->array_ref_ == aref_nodes);
+				EXPECT_EQ(node_1->referencesToThis().size(), 1);
+				EXPECT_EQ(node_1->referencesToThis().begin()->lock(), obj);
+				EXPECT_EQ(node_2->referencesToThis().size(), 1);
+				EXPECT_EQ(node_2->referencesToThis().begin()->lock(), obj);
+				EXPECT_EQ(meshnode_1->referencesToThis().size(), 0);
+				EXPECT_EQ(meshnode_2->referencesToThis().size(), 0);
+				EXPECT_EQ(meshnode_3->referencesToThis().size(), 0);
+			},
+			[this, obj, node_1, node_2, meshnode_1, meshnode_2, meshnode_3, &aref_meshnodes]() {
+				EXPECT_TRUE(*obj->array_ref_ == aref_meshnodes);
+				EXPECT_EQ(node_1->referencesToThis().size(), 0);
+				EXPECT_EQ(node_2->referencesToThis().size(), 0);
+				EXPECT_EQ(meshnode_1->referencesToThis().size(), 1);
+				EXPECT_EQ(meshnode_1->referencesToThis().begin()->lock(), obj);
+				EXPECT_EQ(meshnode_2->referencesToThis().size(), 1);
+				EXPECT_EQ(meshnode_2->referencesToThis().begin()->lock(), obj);
+				EXPECT_EQ(meshnode_3->referencesToThis().size(), 1);
+				EXPECT_EQ(meshnode_3->referencesToThis().begin()->lock(), obj);
+			}});
+}
+
+
+TEST_F(UndoTest, volatile_no_undo) {
+	auto node = create<Node>("node");
+
+	EXPECT_EQ(*node->visibility_, true);
+	EXPECT_EQ(*node->editorVisibility_, true);
+	
+	size_t preIndex = this->undoStack.getIndex();
+	commandInterface.set({node, &Node::visibility_}, false);
+	commandInterface.set({node, &Node::editorVisibility_}, false);
+
+	EXPECT_EQ(*node->visibility_, false);
+	EXPECT_EQ(*node->editorVisibility_, false);
+
+	size_t postIndex = this->undoStack.getIndex();
+	this->undoStack.setIndex(preIndex);
+
+	EXPECT_EQ(*node->visibility_, true);
+	EXPECT_EQ(*node->editorVisibility_, false);
+	
+	this->undoStack.setIndex(postIndex);
+
+	EXPECT_EQ(*node->visibility_, false);
+	EXPECT_EQ(*node->editorVisibility_, false);
 }

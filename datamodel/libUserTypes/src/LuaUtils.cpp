@@ -22,13 +22,13 @@ bool checkLuaModules(ValueHandle moduleTableHandle, Errors& errors) {
 	const Table& moduleTable = moduleTableHandle.constValueRef()->asTable();
 	for (auto i = 0; i < moduleTable.size(); ++i) {
 		if (auto moduleRef = moduleTable.get(i)->asRef()) {
-			const auto module = moduleRef->as<raco::user_types::LuaScriptModule>();
+			const auto module = moduleRef->as<user_types::LuaScriptModule>();
 			if (!module->isValid()) {
-				errors.addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
+				errors.addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Invalid LuaScriptModule '{}' assigned.", moduleRef->objectName()));
 				success = false;
 			}
 		} else {
-			errors.addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Required LuaScriptModule '{}' is unassigned.", moduleTable.name(i)));
+			errors.addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, moduleTableHandle[i], fmt::format("Required LuaScriptModule '{}' is unassigned.", moduleTable.name(i)));
 			success = false;
 		}
 	}
@@ -44,7 +44,7 @@ bool syncLuaModules(BaseContext& context, ValueHandle moduleHandle, const std::s
 
 	std::vector<std::string> redeclaredStandardModules;
 	for (const auto& dep : moduleDeps) {
-		if (raco::user_types::LuaScriptModule::LUA_STANDARD_MODULES.find(dep) != raco::user_types::LuaScriptModule::LUA_STANDARD_MODULES.end()) {
+		if (user_types::LuaScriptModule::LUA_STANDARD_MODULES.find(dep) != user_types::LuaScriptModule::LUA_STANDARD_MODULES.end()) {
 			redeclaredStandardModules.emplace_back(dep);
 		}
 	}
@@ -76,7 +76,7 @@ bool syncLuaModules(BaseContext& context, ValueHandle moduleHandle, const std::s
 	// Add new module properties
 	for (const auto& moduleName : moduleDeps) {
 		if (!moduleTable.hasProperty(moduleName)) {
-			std::unique_ptr<raco::data_storage::ValueBase> newValue = std::make_unique<Value<SLuaScriptModule>>();
+			std::unique_ptr<data_storage::ValueBase> newValue = std::make_unique<Value<SLuaScriptModule>>();
 			auto it = cachedModuleRefs.find(moduleName);
 			if (it != cachedModuleRefs.end()) {
 				std::string cachedRefID = it->second;

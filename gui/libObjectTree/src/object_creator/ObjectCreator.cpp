@@ -19,7 +19,7 @@
 
 namespace raco::object_tree::object_creator {
 
-raco::core::SEditorObject ObjectCreator::createNewObjectFromFile(const QFileInfo& fileInfo) {
+core::SEditorObject ObjectCreator::createNewObjectFromFile(const QFileInfo& fileInfo) {
 	const auto absolutePath = fileInfo.absoluteFilePath();
 	const auto relativePath{utils::u8path(absolutePath.toStdString()).normalizedRelativePath(utils::u8path(commandInterface_->project()->currentFolder())).string()};
 	const auto fileName = fileInfo.fileName();

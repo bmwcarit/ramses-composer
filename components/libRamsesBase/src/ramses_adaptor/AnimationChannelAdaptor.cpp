@@ -12,8 +12,9 @@
 #include "ramses_adaptor/MeshAdaptor.h"
 
 namespace {
+
 template <typename DataType>
-void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandle& handle, rlogic::LogicEngine* engine, const DataType& tangentInData, const DataType& outputData, const DataType& tangentOutData, const std::pair<uint64_t, uint64_t>& objectID) {
+void createRamsesDataArrays(const raco::ramses_base::RamsesAnimationChannelHandle& handle, ramses::LogicEngine* engine, const DataType& tangentInData, const DataType& outputData, const DataType& tangentOutData, const std::pair<uint64_t, uint64_t>& objectID) {
 	auto outputName = handle->name + ".keyframes";
 	auto tangentInName = handle->name + ".tangentIn";
 	auto tangentOutName = handle->name + ".tangentOut";
@@ -33,7 +34,7 @@ namespace raco::ramses_adaptor {
 
 using namespace raco::ramses_base;
 
-AnimationChannelAdaptor::AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimationChannel channel)
+AnimationChannelAdaptor::AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnimationChannel channel)
 	: UserTypeObjectAdaptor{sceneAdaptor, channel},
 	  subscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnimationChannel::objectName_}, [this]() { tagDirty(); }),
@@ -43,6 +44,24 @@ AnimationChannelAdaptor::AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, rac
 	  previewDirtySubscription_{sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })} {
 }
 
+std::vector<glm::vec3> convert_vec3(const std::vector<std::vector<float>>& data) {
+	std::vector<glm::vec3> result;
+	for (size_t index = 0; index < data.size(); index++) {
+		const auto& v = data[index];
+		result.emplace_back(glm::vec3(v[0], v[1], v[2]));
+	}
+	return result;
+}
+
+std::vector<glm::vec4> convert_vec4(const std::vector<std::vector<float>>& data) {
+	std::vector<glm::vec4> result;
+	for (size_t index = 0; index < data.size(); index++) {
+		const auto& v = data[index];
+		result.emplace_back(glm::vec4(v[0], v[1], v[2], v[3]));
+	}
+	return result;
+}
+
 bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 	handle_.reset();
@@ -50,43 +69,32 @@ bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 	if (auto animSampler = editorObject_->currentSamplerData_) {
 		auto objectID = editorObject_->objectIDAsRamsesLogicID();
 
-		handle_.reset(new raco::ramses_base::RamsesAnimationChannelData);
+		handle_.reset(new ramses_base::RamsesAnimationChannelData);
 		handle_->name = editorObject_->objectName();
-		handle_->keyframeTimes = ramsesDataArray(animSampler->input, &sceneAdaptor_->logicEngine(), handle_->name + ".timestamps", objectID);
+		handle_->keyframeTimes = ramsesDataArray(animSampler->timeStamps, &sceneAdaptor_->logicEngine(), handle_->name + ".timestamps", objectID);
 
-		std::map<raco::core::MeshAnimationInterpolation, rlogic::EInterpolationType> interpolationTypeMap = {
-			{raco::core::MeshAnimationInterpolation::Linear, rlogic::EInterpolationType::Linear},
-			{raco::core::MeshAnimationInterpolation::CubicSpline, rlogic::EInterpolationType::Cubic},
-			{raco::core::MeshAnimationInterpolation::Step, rlogic::EInterpolationType::Step},
-			{raco::core::MeshAnimationInterpolation::Linear_Quaternion, rlogic::EInterpolationType::Linear_Quaternions},
-			{raco::core::MeshAnimationInterpolation::CubicSpline_Quaternion, rlogic::EInterpolationType::Cubic_Quaternions}
+		std::map<core::MeshAnimationInterpolation, ramses::EInterpolationType> interpolationTypeMap = {
+			{core::MeshAnimationInterpolation::Linear, ramses::EInterpolationType::Linear},
+			{core::MeshAnimationInterpolation::CubicSpline, ramses::EInterpolationType::Cubic},
+			{core::MeshAnimationInterpolation::Step, ramses::EInterpolationType::Step},
+			{core::MeshAnimationInterpolation::Linear_Quaternion, ramses::EInterpolationType::Linear_Quaternions},
+			{core::MeshAnimationInterpolation::CubicSpline_Quaternion, ramses::EInterpolationType::Cubic_Quaternions}
 		};
 
 		handle_->interpolationType = interpolationTypeMap.at(animSampler->interpolation);
 
-		switch (animSampler->getOutputComponentType()) {
-			case raco::core::EnginePrimitive::Array: {
+		switch (animSampler->componentType) {
+			case core::EnginePrimitive::Array: {
 				// Morph target weights
-				// We can create DataArrays with std::vector<float> only with feature level >= 4, so we
-				// switch this off at smaller feature levels.
-				// Strictly this breaks backwards compatibility but morphing was not supported anyway so this should be OK.
-
-				if (sceneAdaptor_->featureLevel() >= 4) {
-					const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<std::vector<float>>();
-					createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
-				} else {
-					handle_.reset();
-				}
+				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), animSampler->tangentsIn, animSampler->keyFrames, animSampler->tangentsOut, objectID);
 				break;
 			}
-			case raco::core::EnginePrimitive::Vec3f: {
-				const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec3f>();
-				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
+			case core::EnginePrimitive::Vec3f: {
+				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), convert_vec3(animSampler->tangentsIn), convert_vec3(animSampler->keyFrames), convert_vec3(animSampler->tangentsOut), objectID);
 				break;
 			}
-			case raco::core::EnginePrimitive::Vec4f: {
-				const auto& [tangentInData, outputData, tangentOutData] = animSampler->getOutputData<rlogic::vec4f>();
-				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), tangentInData, outputData, tangentOutData, objectID);
+			case core::EnginePrimitive::Vec4f: {
+				createRamsesDataArrays(handle_, &sceneAdaptor_->logicEngine(), convert_vec4(animSampler->tangentsIn), convert_vec4(animSampler->keyFrames), convert_vec4(animSampler->tangentsOut), objectID);
 				break;
 			}
 			default:
@@ -98,7 +106,7 @@ bool AnimationChannelAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-raco::ramses_base::RamsesAnimationChannelHandle AnimationChannelAdaptor::handle() const {
+ramses_base::RamsesAnimationChannelHandle AnimationChannelAdaptor::handle() const {
 	return handle_;
 }
 
@@ -110,19 +118,19 @@ std::vector<ExportInformation> AnimationChannelAdaptor::getExportInformation() c
 	auto result = std::vector<ExportInformation>();
 
 	if (handle_->keyframeTimes != nullptr) {
-		result.emplace_back("DataArray", handle_->keyframeTimes->getName().data());
+		result.emplace_back("DataArray", handle_->keyframeTimes->getName());
 	}
 
 	if (handle_->animOutput != nullptr) {
-		result.emplace_back("DataArray", handle_->animOutput->getName().data());
+		result.emplace_back("DataArray", handle_->animOutput->getName());
 	}
 
 	if (handle_->tangentIn != nullptr) {
-		result.emplace_back("DataArray", handle_->tangentIn->getName().data());
+		result.emplace_back("DataArray", handle_->tangentIn->getName());
 	}
 
 	if (handle_->tangentOut != nullptr) {
-		result.emplace_back("DataArray", handle_->tangentOut->getName().data());
+		result.emplace_back("DataArray", handle_->tangentOut->getName());
 	}
 
 	return result;

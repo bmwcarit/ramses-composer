@@ -80,7 +80,7 @@ bool CommandInterface::canSetHandle(ValueHandle const& handle, PrimitiveType typ
 }
 
 
-bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
+bool CommandInterface::checkHandleForSet(ValueHandle const& handle, bool allowVolatile) {
 	if (!handle) {
 		throw std::runtime_error(fmt::format("Invalid property handle"));
 	}
@@ -91,18 +91,24 @@ bool CommandInterface::checkHandleForSet(ValueHandle const& handle) {
 		throw std::runtime_error(fmt::format("Property {} inaccessible at feature level {}", handle.getPropertyPath(), project()->featureLevel()));
 	}
 
-	if (Queries::isReadOnly(*project(), handle, false)) {
-		throw std::runtime_error(fmt::format("Property '{}' is read-only", handle.getPropertyPath()));
+	if (handle.query<VolatileProperty>()) {
+		if (!allowVolatile) {
+			return false;
+		}
+	} else {
+		if (Queries::isReadOnly(*project(), handle, false)) {
+			throw std::runtime_error(fmt::format("Property '{}' is read-only", handle.getPropertyPath()));
+		}
+		if (Queries::currentLinkState(*project(), handle) != Queries::CurrentLinkState::NOT_LINKED) {
+			throw std::runtime_error(fmt::format("Property '{}' is linked", handle.getPropertyPath()));
+		}
 	}
-	if (Queries::currentLinkState(*project(), handle) != Queries::CurrentLinkState::NOT_LINKED) {
-		throw std::runtime_error(fmt::format("Property '{}' is linked", handle.getPropertyPath()));
-	}
-
+	
 	return true;
 }
 
-bool CommandInterface::checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type) {
-	if (checkHandleForSet(handle)) {
+bool CommandInterface::checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type, bool allowVolatile) {
+	if (checkHandleForSet(handle, allowVolatile)) {
 		if (handle.type() != type) {
 			throw std::runtime_error(fmt::format("Property '{}' is a '{}' and not a '{}'", handle.getPropertyPath(), handle.type(), getTypeName(type)));
 		}
@@ -122,18 +128,20 @@ std::string CommandInterface::getMergeId(const std::set<ValueHandle>& handles) {
 }
 
 void CommandInterface::set(ValueHandle const& handle, bool const& value) {
-	if (checkScalarHandleForSet(handle, PrimitiveType::Bool) && handle.asBool() != value) {
+	if (checkScalarHandleForSet(handle, PrimitiveType::Bool, true) && handle.asBool() != value) {
 		context_->set(handle, value);
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
-			fmt::format("{}", handle.getPropertyPath(true)));
+		if (!handle.query<VolatileProperty>()) {
+			PrefabOperations::globalPrefabUpdate(*context_);
+			undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+				fmt::format("{}", handle.getPropertyPath(true)));
+		}
 	}
 }
 
 bool CommandInterface::canSet(ValueHandle const& handle, int const& value) const {
 	if (canSetHandle(handle, PrimitiveType::Int)) {
-		if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
-			auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
+		if (auto anno = handle.query<core::EnumerationAnnotation>()) {
+			auto description = user_types::enumerationDescription(static_cast<core::EUserTypeEnumerations>(anno->type_.asInt()));
 			if (description.find(value) == description.end()) {
 				return false;
 			}
@@ -144,26 +152,28 @@ bool CommandInterface::canSet(ValueHandle const& handle, int const& value) const
 }
 
 void CommandInterface::set(ValueHandle const& handle, int const& value) {
-	if (checkScalarHandleForSet(handle, PrimitiveType::Int) && handle.asInt() != value) {
-		if (auto anno = handle.query<raco::core::EnumerationAnnotation>()) {
-			auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
+	if (checkScalarHandleForSet(handle, PrimitiveType::Int, true) && handle.asInt() != value) {
+		if (auto anno = handle.query<core::EnumerationAnnotation>()) {
+			auto description = user_types::enumerationDescription(static_cast<core::EUserTypeEnumerations>(anno->type_.asInt()));
 			if (description.find(value) == description.end()) {
 				throw std::runtime_error(fmt::format("Value '{}' not in enumeration type", value));
 			}
 		}
 
 		context_->set(handle, value);
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
-			fmt::format("{}", handle.getPropertyPath(true)));
+		if (!handle.query<VolatileProperty>()) {
+			PrefabOperations::globalPrefabUpdate(*context_);
+			undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+				fmt::format("{}", handle.getPropertyPath(true)));
+		}
 	}
 }
 
 void CommandInterface::set(const std::set<ValueHandle>& handles, int value) {
 	if (std::all_of(handles.begin(), handles.end(), [this, value](auto handle) {
 			if (checkScalarHandleForSet(handle, PrimitiveType::Int)) {
-				if (auto anno = handle.template query<raco::core::EnumerationAnnotation>()) {
-					auto description = user_types::enumerationDescription(static_cast<raco::core::EUserTypeEnumerations>(anno->type_.asInt()));
+				if (auto anno = handle.template query<core::EnumerationAnnotation>()) {
+					auto description = user_types::enumerationDescription(static_cast<core::EUserTypeEnumerations>(anno->type_.asInt()));
 					if (description.find(value) == description.end()) {
 						throw std::runtime_error(fmt::format("Value '{}' not in enumeration type", value));
 						return false;
@@ -188,11 +198,13 @@ void CommandInterface::set(const std::set<ValueHandle>& handles, int value) {
 }
  
 void CommandInterface::set(ValueHandle const& handle, int64_t const& value) {
-	if (checkScalarHandleForSet(handle, PrimitiveType::Int64) && handle.asInt64() != value) {
+	if (checkScalarHandleForSet(handle, PrimitiveType::Int64, true) && handle.asInt64() != value) {
 		context_->set(handle, value);
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
-			fmt::format("{}", handle.getPropertyPath(true)));
+		if (!handle.query<VolatileProperty>()) {
+			PrefabOperations::globalPrefabUpdate(*context_);
+			undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+				fmt::format("{}", handle.getPropertyPath(true)));
+		}
 	}
 }
 
@@ -215,11 +227,13 @@ void CommandInterface::set(const std::set<ValueHandle>& handles, int64_t value) 
 }
 
 void CommandInterface::set(ValueHandle const& handle, double const& value) {
-	if (checkScalarHandleForSet(handle, PrimitiveType::Double) && handle.asDouble() != value) {
+	if (checkScalarHandleForSet(handle, PrimitiveType::Double, true) && handle.asDouble() != value) {
 		context_->set(handle, value);
-		PrefabOperations::globalPrefabUpdate(*context_);
-		undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
-			fmt::format("{}", handle.getPropertyPath(true)));
+		if (!handle.query<VolatileProperty>()) {
+			PrefabOperations::globalPrefabUpdate(*context_);
+			undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), value),
+				fmt::format("{}", handle.getPropertyPath(true)));
+		}
 	}
 }
 
@@ -242,14 +256,16 @@ void CommandInterface::set(const std::set<ValueHandle>& handles, double const& v
 }
 
 void CommandInterface::set(ValueHandle const& handle, std::string const& value) {
-	if (checkScalarHandleForSet(handle, PrimitiveType::String)) {
-		auto newValue = handle.query<URIAnnotation>() ? raco::utils::u8path::sanitizePathString(value) : value;
+	if (checkScalarHandleForSet(handle, PrimitiveType::String, true)) {
+		auto newValue = handle.query<URIAnnotation>() ? utils::u8path::sanitizePathString(value) : value;
 
 		if (handle.asString() != newValue) {
 			context_->set(handle, newValue);
-			PrefabOperations::globalPrefabUpdate(*context_);
-			undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), newValue),
-				fmt::format("{}", handle.getPropertyPath(true)));
+			if (!handle.query<VolatileProperty>()) {
+				PrefabOperations::globalPrefabUpdate(*context_);
+				undoStack_->push(fmt::format("Set property '{}' to {}", handle.getPropertyPath(), newValue),
+					fmt::format("{}", handle.getPropertyPath(true)));
+			}
 		}
 	}
 }
@@ -435,8 +451,7 @@ void CommandInterface::setRenderableTags(ValueHandle const& handle, std::vector<
 
 		data_storage::Table table;
 		for (auto const& p : renderableTags) {
-			// Note: render order is only linkable starting at feature level 3.
-			table.addProperty(p.first, new Property<int, LinkEndAnnotation>(p.second, {3}));
+			table.addProperty(p.first, new Property<int, LinkEndAnnotation>(p.second, {}));
 		}
 
 		if (!(handle.constValueRef()->asTable() == table)) {
@@ -448,6 +463,23 @@ void CommandInterface::setRenderableTags(ValueHandle const& handle, std::vector<
 	}
 }
 
+
+void CommandInterface::resizeArray(const ValueHandle& handle, size_t newSize) {
+	if (checkScalarHandleForSet(handle, PrimitiveType::Array)) {
+		if (handle.query<ArraySemanticAnnotation>()) {
+			throw std::runtime_error(fmt::format("Property '{}' has an ArraySemanticAnnotation and can't be resized.", handle.getPropertyPath()));
+		}
+		if (!handle.query<ResizableArray>()) {
+			throw std::runtime_error(fmt::format("Property '{}' is not a resizable array property.", handle.getPropertyPath()));
+		}
+
+		if (newSize != handle.size()) {
+			context_->resizeArray(handle, newSize);
+			PrefabOperations::globalPrefabUpdate(*context_);
+			undoStack_->push(fmt::format("Resize array property '{}' to size {}.", handle.getPropertyPath(), newSize));
+		}
+	}
+}
 
 SEditorObject CommandInterface::createObject(std::string type, std::string name, SEditorObject parent) {
 	if (context_->objectFactory()->isUserCreatable(type, project()->featureLevel())) {
@@ -521,7 +553,7 @@ size_t CommandInterface::moveScenegraphChildren(std::vector<SEditorObject> const
 	return moveableChildren.size();
 }
 
-void CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
+void CommandInterface::insertAssetScenegraph(const core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent) {
 	// TODO error checking: scenegraph is not checked
 	if (parent && !project()->isInstance(parent)) {
 		throw std::runtime_error(fmt::format("insertAssetScenegraph: parent object '{}' not in project", parent->objectName()));
@@ -530,7 +562,7 @@ void CommandInterface::insertAssetScenegraph(const raco::core::MeshScenegraph& s
 	context_->insertAssetScenegraph(scenegraph, absPath, parent);
 	PrefabOperations::globalPrefabUpdate(*context_);
 	undoStack_->push(fmt::format("Inserted assets from {}", absPath));
-	PathManager::setCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, raco::utils::u8path(absPath).parent_path().string());
+	PathManager::setCachedPath(core::PathManager::FolderTypeKeys::Mesh, utils::u8path(absPath).parent_path().string());
 }
 
 std::string CommandInterface::copyObjects(const std::vector<SEditorObject>& objects, bool deepCopy) {
@@ -635,6 +667,7 @@ void CommandInterface::removeLink(const PropertyDescriptor& end) {
 		throw std::runtime_error(fmt::format("Link end object '{}' not in project", end.object()->objectName()));
 	}
 
+	// Note: link removal from non-existing properties is legal since there may be invalid links ending on non-existing properties.
 	if (auto link = Queries::getLink(*context_->project(), end)) {
 		if (Queries::userCanRemoveLink(*context_->project(), end)) {
 			context_->removeLink(end);

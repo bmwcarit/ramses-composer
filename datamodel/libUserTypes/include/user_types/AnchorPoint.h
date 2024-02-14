@@ -58,7 +58,7 @@ public:
 
 class AnchorPoint : public BaseObject {
 public:
-	static inline const TypeDescriptor typeDescription = {"AnchorPoint", true, 2};
+	static inline const TypeDescriptor typeDescription = {"AnchorPoint", true};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}

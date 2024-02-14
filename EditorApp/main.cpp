@@ -33,6 +33,8 @@
 
 namespace py = pybind11;
 
+using namespace raco;
+
 void createStdOutConsole();
 
 #ifdef _WIN32
@@ -72,11 +74,6 @@ int main(int argc, char* argv[]) {
 		QStringList() << "c"
 					  << "console",
 		"Open with std out console.");
-	QCommandLineOption forwardCommandLineArgs(
-		QStringList() << "a"
-					  << "framework-arguments",
-		"Override arguments passed to the ramses framework.",
-		"default-args");
 	QCommandLineOption noDumpFileCheckOption(
 		QStringList() << "d"
 					  << "nodump",
@@ -86,6 +83,11 @@ int main(int argc, char* argv[]) {
 					  << "project",
 		"Load a scene from specified path.",
 		"project-path");
+	QCommandLineOption objectId(
+		QStringList() << "i"
+					  << "objectid",
+		"Select object with the given ID immediately after start.",
+		"object-id");
 	QCommandLineOption ramsesTraceLogMessageAction(
 		QStringList() << "t"
 					  << "trace-messages-ramses",
@@ -93,9 +95,9 @@ int main(int argc, char* argv[]) {
 	QCommandLineOption ramsesLogicFeatureLevel(
 		QStringList() << "f"
 					  << "featurelevel",
-		fmt::format("RamsesLogic feature level (-1, {} ... {})", static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)).c_str(),
+		fmt::format("RamsesLogic feature level (-1, {} ... {})", static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)).c_str(),
 		"feature-level",
-		QString::fromStdString(std::to_string(static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))));
+		QString::fromStdString(std::to_string(static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel))));
 	QCommandLineOption pyrunOption(
 		QStringList() << "r"
 					  << "run",
@@ -108,16 +110,18 @@ int main(int argc, char* argv[]) {
 		"python-path");
 
 	parser.addOption(consoleOption);
-	parser.addOption(forwardCommandLineArgs);
 	parser.addOption(noDumpFileCheckOption);
 	parser.addOption(loadProjectAction);
+	parser.addOption(objectId);
 	parser.addOption(ramsesTraceLogMessageAction);
 	parser.addOption(ramsesLogicFeatureLevel);
 	parser.addOption(pyrunOption);
 	parser.addOption(pythonPathOption);
 
+	ramses_base::addRamseFrameworkOptions(parser);
+
 	// apply global style, must be done before application instance
-	QApplication::setStyle(new raco::style::RaCoStyle());
+	QApplication::setStyle(new style::RaCoStyle());
 
 	// application must be instantiated before parsing command line
 	QApplication a(argc, argv);
@@ -147,15 +151,15 @@ int main(int argc, char* argv[]) {
 	parser.process(args);
 
 	bool noDumpFiles = parser.isSet(noDumpFileCheckOption);
-	raco::utils::crashdump::installCrashDumpHandler(noDumpFiles);
+	utils::crashdump::installCrashDumpHandler(noDumpFiles);
 
 	if (parser.isSet(consoleOption)) {
 		createStdOutConsole();
 	}
 
-	auto appDataPath = raco::utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
-	raco::core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
-	raco::log_system::init(raco::core::PathManager::logFileDirectory(), std::string(raco::core::PathManager::LOG_FILE_EDITOR_BASE_NAME), QCoreApplication::applicationPid());
+	auto appDataPath = utils::u8path(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString()).parent_path() / "RamsesComposer";
+	core::PathManager::init(QCoreApplication::applicationDirPath().toStdString(), appDataPath);
+	log_system::init(core::PathManager::logFileDirectory(), std::string(core::PathManager::LOG_FILE_EDITOR_BASE_NAME), QCoreApplication::applicationPid());
 
 	const QStringList positionalArgs = parser.positionalArguments();
 
@@ -168,16 +172,21 @@ int main(int argc, char* argv[]) {
 		projectFile = QFileInfo(positionalArgs.at(0)).absoluteFilePath();
 	}
 
+	QString objectToFocusId{};
+	if (parser.isSet(objectId)) {
+		objectToFocusId = parser.value(objectId);
+	}
+
 	int initialLoadFeatureLevel = -1;
-	raco::components::RaCoPreferences::init();
-	int newFileFeatureLevel = std::min<int>(raco::components::RaCoPreferences::instance().featureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel));
+	components::RaCoPreferences::init();
+	int newFileFeatureLevel = std::min<int>(components::RaCoPreferences::instance().featureLevel, static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel));
 
 	if (parser.isSet(ramsesLogicFeatureLevel)) {
 		initialLoadFeatureLevel = parser.value(ramsesLogicFeatureLevel).toInt();
 		if (!(initialLoadFeatureLevel == -1 ||
-			initialLoadFeatureLevel >= static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel) &&
-			initialLoadFeatureLevel <= static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel))) {
-			LOG_ERROR(raco::log_system::COMMON, fmt::format("RamsesLogic feature level {} outside valid range (-1, {} ... {})", initialLoadFeatureLevel, static_cast<int>(raco::ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel)));
+			initialLoadFeatureLevel >= static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel) &&
+			initialLoadFeatureLevel <= static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel))) {
+			LOG_ERROR(log_system::COMMON, fmt::format("RamsesLogic feature level {} outside valid range (-1, {} ... {})", initialLoadFeatureLevel, static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)));
 			exit(1);
         }
 	}
@@ -186,13 +195,13 @@ int main(int argc, char* argv[]) {
 	if (parser.isSet(pyrunOption)) {
 		QFileInfo path(parser.value(pyrunOption));
 		if (path.exists()) {
-			if (raco::utils::u8path(path.filePath().toStdString()).userHasReadAccess()) {
+			if (utils::u8path(path.filePath().toStdString()).userHasReadAccess()) {
 				pythonScriptPath = path.absoluteFilePath();
 			} else {
-				LOG_ERROR(raco::log_system::PYTHON, "Python script file could not be read {}", path.filePath().toStdString());
+				LOG_ERROR(log_system::PYTHON, "Python script file could not be read {}", path.filePath().toStdString());
 			}
 		} else {
-			LOG_ERROR(raco::log_system::PYTHON, "Python script file not found {}", path.filePath().toStdString());
+			LOG_ERROR(log_system::PYTHON, "Python script file not found {}", path.filePath().toStdString());
 		}
 	}
 
@@ -202,24 +211,27 @@ int main(int argc, char* argv[]) {
 	}
 
 	// set font, must be done after application instance
-	raco::style::RaCoStyle::installFont();
+	style::RaCoStyle::installFont();
 
-	auto ramsesCommandLineArgs = parser.value(forwardCommandLineArgs).toStdString();
-	int initialFeatureLevel = initialLoadFeatureLevel == -1 ? static_cast<int>(raco::ramses_base::BaseEngineBackend::maxFeatureLevel) : initialLoadFeatureLevel;
-	raco::ramses_widgets::RendererBackend rendererBackend{static_cast<rlogic::EFeatureLevel>(initialFeatureLevel), parser.isSet(forwardCommandLineArgs) ? ramsesCommandLineArgs : ""};
+	ramses::RamsesFrameworkConfig ramsesConfig(ramses_base::BaseEngineBackend::defaultRamsesFrameworkConfig());
+	for (auto category : ramses_base::ramsesLogCategories()) {
+		ramsesConfig.setLogLevel(category.toStdString(), ramses_base::getRamsesLogLevelFromArg(parser.value(category)));
+	}
+
+	ramses_widgets::RendererBackend rendererBackend(ramsesConfig);
 
 	std::unique_ptr<raco::application::RaCoApplication> app;
 
 	try {
 		app = std::make_unique<raco::application::RaCoApplication>(rendererBackend, raco::application::RaCoApplicationLaunchSettings(projectFile, true, parser.isSet(ramsesTraceLogMessageAction), newFileFeatureLevel, initialLoadFeatureLevel, true));
 	} catch (const raco::application::FutureFileVersion& error) {
-		LOG_ERROR(raco::log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, raco::serialization::RAMSES_PROJECT_FILE_VERSION);
+		LOG_ERROR(log_system::COMMON, "File load error: project file was created with newer file version {} but current file version is {}.", error.fileVersion_, serialization::RAMSES_PROJECT_FILE_VERSION);
 		app.reset();
-	} catch (const raco::core::ExtrefError& error) {
-		LOG_ERROR(raco::log_system::COMMON, "File Load Error: external reference update failed with error {}.", error.what());
+	} catch (const core::ExtrefError& error) {
+		LOG_ERROR(log_system::COMMON, "File Load Error: external reference update failed with error {}.", error.what());
 		app.reset();
 	} catch (const std::exception& error) {
-		LOG_ERROR(raco::log_system::COMMON, "File Load Error: {}", error.what());
+		LOG_ERROR(log_system::COMMON, "File Load Error: {}", error.what());
 		app.reset();
 	}
 
@@ -230,6 +242,9 @@ int main(int argc, char* argv[]) {
 		}
 
 		MainWindow w{app.get(), &rendererBackend, wPythonSearchPaths};
+		if (!objectToFocusId.isEmpty()) {
+			w.Q_EMIT focusRequestedForTreeDock(objectToFocusId, "");
+		}
 
 		if (!pythonScriptPath.isEmpty()) {
 			auto pythonScriptPathStr = pythonScriptPath.toStdString();
@@ -239,11 +254,11 @@ int main(int argc, char* argv[]) {
 				pos_argv_cp.emplace_back(s.c_str());
 			}
 
-			auto currentRunStatus = raco::python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath.toStdString(), wPythonSearchPaths, pos_argv_cp);
-			LOG_INFO(raco::log_system::PYTHON, currentRunStatus.stdOutBuffer);
+			auto currentRunStatus = python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath.toStdString(), wPythonSearchPaths, pos_argv_cp);
+			LOG_INFO(log_system::PYTHON, currentRunStatus.stdOutBuffer);
 
 			if (!currentRunStatus.stdErrBuffer.empty()) {
-				LOG_ERROR(raco::log_system::PYTHON, currentRunStatus.stdErrBuffer);
+				LOG_ERROR(log_system::PYTHON, currentRunStatus.stdErrBuffer);
 			}
 		}
 

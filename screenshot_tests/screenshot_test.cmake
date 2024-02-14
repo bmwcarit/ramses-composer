@@ -6,7 +6,7 @@ execute_process(
 	COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-	COMMAND ${VIEWER_EXE} exported/${TEST_NAME}.ramses exported/${TEST_NAME}.rlogic --exec-lua "rlogic.screenshot('actual/${TEST_NAME}.png')"
+	COMMAND ${VIEWER_EXE} --gui on --exec-lua "R.screenshot('actual/${TEST_NAME}.png')" exported/${TEST_NAME}.ramses
 	COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(

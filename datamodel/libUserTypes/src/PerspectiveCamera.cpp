@@ -30,11 +30,11 @@ void PerspectiveCamera::onAfterValueChanged(BaseContext& context, ValueHandle co
 void PerspectiveCamera::syncFrustum(BaseContext& context) {
 	ValueHandle frustumHandle{shared_from_this(), &PerspectiveCamera::frustum_};
 	if (!frustum_->hasProperty("nearPlane")) {
-		std::unique_ptr<raco::data_storage::ValueBase> near = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(0.1, DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), LinkEndAnnotation());
+		std::unique_ptr<data_storage::ValueBase> near = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(0.1, DisplayNameAnnotation("nearPlane"), RangeAnnotation<double>(0.1, 1.0), LinkEndAnnotation());
 		context.addProperty(frustumHandle, "nearPlane", std::move(near));
 	}
 	if (!frustum_->hasProperty("farPlane")) {
-		std::unique_ptr<raco::data_storage::ValueBase> far = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(1000.0, DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), LinkEndAnnotation());
+		std::unique_ptr<data_storage::ValueBase> far = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(1000.0, DisplayNameAnnotation("farPlane"), RangeAnnotation<double>(100.0, 10000.0), LinkEndAnnotation());
 		context.addProperty(frustumHandle, "farPlane", std::move(far));
 	}
 
@@ -57,7 +57,7 @@ void PerspectiveCamera::syncFrustum(BaseContext& context) {
 			context.removeProperty(frustumHandle, "bottomPlane");
 		}
 		if (!frustum_->hasProperty("fieldOfView")) {
-			std::unique_ptr<raco::data_storage::ValueBase> fov = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(35.0, DisplayNameAnnotation("fieldOfView"), RangeAnnotation<double>(10.0, 120.0), LinkEndAnnotation());
+			std::unique_ptr<data_storage::ValueBase> fov = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(35.0, DisplayNameAnnotation("fieldOfView"), RangeAnnotation<double>(10.0, 120.0), LinkEndAnnotation());
 			auto it = cachedFrustumValues_.find({"fieldOfView", EnginePrimitive::Double});
 			if (it != cachedFrustumValues_.end()) {
 				*fov = *it->second;
@@ -65,7 +65,7 @@ void PerspectiveCamera::syncFrustum(BaseContext& context) {
 			context.addProperty(frustumHandle, "fieldOfView", std::move(fov));
 		}
 		if (!frustum_->hasProperty("aspectRatio")) {
-			std::unique_ptr<raco::data_storage::ValueBase> aspect = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(1440.0 / 720.0, DisplayNameAnnotation("aspectRatio"), RangeAnnotation<double>(0.5, 4.0), LinkEndAnnotation());
+			std::unique_ptr<data_storage::ValueBase> aspect = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(1440.0 / 720.0, DisplayNameAnnotation("aspectRatio"), RangeAnnotation<double>(0.5, 4.0), LinkEndAnnotation());
 			auto it = cachedFrustumValues_.find({"aspectRatio", EnginePrimitive::Double});
 			if (it != cachedFrustumValues_.end()) {
 				*aspect = *it->second;
@@ -83,7 +83,7 @@ void PerspectiveCamera::syncFrustum(BaseContext& context) {
 			context.removeProperty(frustumHandle, "aspectRatio");
 		}
 		if (!frustum_->hasProperty("leftPlane")) {
-			std::unique_ptr<raco::data_storage::ValueBase> left = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(-10.0, DisplayNameAnnotation("leftPlane"), RangeAnnotation<double>(-1000.0, 0.0), LinkEndAnnotation());
+			std::unique_ptr<data_storage::ValueBase> left = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(-10.0, DisplayNameAnnotation("leftPlane"), RangeAnnotation<double>(-1000.0, 0.0), LinkEndAnnotation());
 			auto it = cachedFrustumValues_.find({"leftPlane", EnginePrimitive::Double});
 			if (it != cachedFrustumValues_.end()) {
 				*left = *it->second;
@@ -91,7 +91,7 @@ void PerspectiveCamera::syncFrustum(BaseContext& context) {
 			context.addProperty(frustumHandle, "leftPlane", std::move(left));
 		}
 		if (!frustum_->hasProperty("rightPlane")) {
-			std::unique_ptr<raco::data_storage::ValueBase> right = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(10.0, DisplayNameAnnotation("rightPlane"), RangeAnnotation<double>(0.0, 1000.0), LinkEndAnnotation());
+			std::unique_ptr<data_storage::ValueBase> right = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(10.0, DisplayNameAnnotation("rightPlane"), RangeAnnotation<double>(0.0, 1000.0), LinkEndAnnotation());
 			auto it = cachedFrustumValues_.find({"rightPlane", EnginePrimitive::Double});
 			if (it != cachedFrustumValues_.end()) {
 				*right = *it->second;
@@ -99,7 +99,7 @@ void PerspectiveCamera::syncFrustum(BaseContext& context) {
 			context.addProperty(frustumHandle, "rightPlane", std::move(right));
 		}
 		if (!frustum_->hasProperty("bottomPlane")) {
-			std::unique_ptr<raco::data_storage::ValueBase> bottom = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(-10.0, DisplayNameAnnotation("bottomPlane"), RangeAnnotation<double>(-1000.0, 0.0), LinkEndAnnotation());
+			std::unique_ptr<data_storage::ValueBase> bottom = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(-10.0, DisplayNameAnnotation("bottomPlane"), RangeAnnotation<double>(-1000.0, 0.0), LinkEndAnnotation());
 			auto it = cachedFrustumValues_.find({"bottomPlane", EnginePrimitive::Double});
 			if (it != cachedFrustumValues_.end()) {
 				*bottom = *it->second;
@@ -107,7 +107,7 @@ void PerspectiveCamera::syncFrustum(BaseContext& context) {
 			context.addProperty(frustumHandle, "bottomPlane", std::move(bottom));
 		}
 		if (!frustum_->hasProperty("topPlane")) {
-			std::unique_ptr<raco::data_storage::ValueBase> top = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(10.0, DisplayNameAnnotation("topPlane"), RangeAnnotation<double>(0.0, 1000.0), LinkEndAnnotation());
+			std::unique_ptr<data_storage::ValueBase> top = std::make_unique<Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>>(10.0, DisplayNameAnnotation("topPlane"), RangeAnnotation<double>(0.0, 1000.0), LinkEndAnnotation());
 			auto it = cachedFrustumValues_.find({"topPlane", EnginePrimitive::Double});
 			if (it != cachedFrustumValues_.end()) {
 				*top = *it->second;

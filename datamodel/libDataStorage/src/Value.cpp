@@ -26,7 +26,8 @@ static std::map<PrimitiveType, std::string>& primitiveTypeName() {
 		{PrimitiveType::String, "String"},
 
 		{PrimitiveType::Ref, "Ref"},
-		{PrimitiveType::Table, "Table"}};
+		{PrimitiveType::Table, "Table"},
+		{PrimitiveType::Array, "Array"}};
 	return primitiveTypeNameMap;
 };
 
@@ -79,6 +80,10 @@ std::unique_ptr<ValueBase> ValueBase::create(PrimitiveType type) {
 
 		case PrimitiveType::Struct:
 			throw std::runtime_error("ValueBase::create can't create generic Value<Struct>");
+			break;
+
+		case PrimitiveType::Array:
+			throw std::runtime_error("ValueBase::create can't create generic Value<Array>");
 			break;
 	}
 	return std::unique_ptr<ValueBase>();

@@ -165,8 +165,8 @@ public:
 	SEditorObject node_start;
 	SEditorObject node_end;
 
-	testing::MockFunction<void(const raco::core::LinkDescriptor&)> creationCallback{};
-	testing::MockFunction<void(const raco::core::LinkDescriptor&)> deletionCallback{};
+	testing::MockFunction<void(const core::LinkDescriptor&)> creationCallback{};
+	testing::MockFunction<void(const core::LinkDescriptor&)> deletionCallback{};
 };
 
 TEST_F(LifeCycleListenertest, generic) {

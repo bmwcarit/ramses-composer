@@ -9,12 +9,12 @@
  */
 #include "object_tree_view/ObjectTreeView.h"
 
+#include "ObjectTreeFilter.h"
 
 #include "components/RaCoPreferences.h"
 #include "core/EditorObject.h"
 #include "core/PathManager.h"
 #include "core/Project.h"
-#include "core/UserObjectFactoryInterface.h"
 #include "user_types/Node.h"
 
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
@@ -36,7 +36,7 @@
 
 namespace raco::object_tree::view {
 
-using namespace raco::object_tree::model;
+using namespace object_tree::model;
 
 ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultModel *viewModel, ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel, QWidget *parent)
 	: QTreeView(parent), treeModel_(viewModel), proxyModel_(sortFilterProxyModel), viewTitle_(viewTitle) {
@@ -74,17 +74,18 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 			return;
 		}
 
-		auto selectedObjects = indicesToSEditorObjects(selectedItemList.indexes());		
+		auto selectedObjects = indicesToSEditorObjects(selectedItemList.indexes());
 		for (const auto &selObj : selectedObjects) {
 			selectedItemIDs_.emplace(selObj->objectID());
 		}
 
-		auto deselectedObjects = indicesToSEditorObjects(deselectedItemList.indexes());		
+		auto deselectedObjects = indicesToSEditorObjects(deselectedItemList.indexes());
 		for (const auto &deselObj : deselectedObjects) {
 			selectedItemIDs_.erase(deselObj->objectID());
 		}
 
-		Q_EMIT newObjectTreeItemsSelected(getSelectedObjects());
+		Q_EMIT newObjectTreeItemsSelected(getSelectedObjects(), property_);
+		property_.clear();
 	});
 
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemExpansionStates);
@@ -107,6 +108,18 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	auto duplicateShortcut = new QShortcut({"Ctrl+D"}, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(duplicateShortcut, &QShortcut::activated, this, &ObjectTreeView::duplicateObjects);
+
+	auto isolateShortcut = new QShortcut({"Ctrl+I"}, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(isolateShortcut, &QShortcut::activated, this, &ObjectTreeView::isolateNodes);
+
+	auto hideShortcut = new QShortcut({"Ctrl+H"}, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(hideShortcut, &QShortcut::activated, this, &ObjectTreeView::hideNodes);
+
+	auto showAllShortcut = new QShortcut({"Ctrl+U"}, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(showAllShortcut, &QShortcut::activated, this, &ObjectTreeView::showAllNodes);
+
+	auto extrefPasteShortcut = new QShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_V, this, nullptr, nullptr, Qt::WidgetShortcut);
+	QObject::connect(extrefPasteShortcut, &QShortcut::activated, this, &ObjectTreeView::pasteAsExtRef);
 }
 
 core::SEditorObjectSet ObjectTreeView::getSelectedObjects() const {
@@ -210,11 +223,37 @@ void ObjectTreeView::deleteObjects() {
 	}
 }
 
-void raco::object_tree::view::ObjectTreeView::duplicateObjects() {
+void object_tree::view::ObjectTreeView::duplicateObjects() {
 	auto selectedIndices = getSelectedIndices(true);
 	if (!selectedIndices.isEmpty() && treeModel_->canDuplicateAtIndices(selectedIndices)) {
 		treeModel_->duplicateObjectsAtIndices(selectedIndices);
 	}
+}
+
+void ObjectTreeView::isolateNodes() {
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.isEmpty()) {
+		treeModel_->isolateNodes(selectedIndices);
+	}
+}
+
+void ObjectTreeView::hideNodes() {
+	auto selectedIndices = getSelectedIndices(true);
+	if (!selectedIndices.isEmpty()) {
+		treeModel_->hideNodes(selectedIndices);
+	}
+}
+
+void ObjectTreeView::pasteAsExtRef() {
+	std::string error;
+	if (!treeModel_->pasteObjectAtIndex({}, true, &error)) {
+		QMessageBox::warning(this, "Paste As External Reference",
+			fmt::format("Update of pasted external references failed!\n\n{}", error).c_str());
+	}
+}
+
+void ObjectTreeView::showAllNodes() {
+	treeModel_->showAllNodes();
 }
 
 void ObjectTreeView::selectObject(const QString &objectID) {
@@ -229,6 +268,10 @@ void ObjectTreeView::selectObject(const QString &objectID) {
 		selectionModel()->select(objectIndex, SELECTION_MODE);
 		scrollTo(objectIndex);
 	}
+}
+
+void ObjectTreeView::setPropertyToSelect(const QString &property) {
+	property_ = property;
 }
 
 void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
@@ -307,18 +350,26 @@ void ObjectTreeView::setFilterKeyColumn(int column) {
 	}
 }
 
-void ObjectTreeView::filterObjects(const QString &filterString) {
-	if (proxyModel_) {
-		auto filterStrings = filterString.split(" ", Qt::SkipEmptyParts);
-		for (auto &filterString : filterStrings) {
-			filterString = QRegularExpression::escape(filterString);
-		}
-		auto filterStringRegex = "(" + filterStrings.join("|") + ")";
+FilterResult ObjectTreeView::filterObjects(const QString &filterString) {
+	FilterResult filterResult = filterString.isEmpty() ? FilterResult::Success : FilterResult::Failed;
 
-		proxyModel_->setFilterRegularExpression(filterStringRegex);
-		restoreItemExpansionStates();
-		viewport()->update();
+	if (proxyModel_) {
+		proxyModel_->removeCustomFilter();
+
+		if (!filterString.isEmpty()) {
+			const auto input = filterString.toStdString();
+			ObjectTreeFilter objectTreeFilter;
+			objectTreeFilter.setDefaultFilterKeyColumn(proxyModel_->filterKeyColumn());
+			const auto filterFunction = objectTreeFilter.parse(input, filterResult);
+
+			if (filterFunction && filterResult != FilterResult::Failed) {
+				proxyModel_->setCustomFilter(filterFunction);
+				restoreItemExpansionStates();
+				viewport()->update();
+			}
+		}
 	}
+	return filterResult;
 }
 
 bool ObjectTreeView::hasProxyModel() const {
@@ -343,6 +394,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_));
 	auto prefabModel = (dynamic_cast<ObjectTreeViewPrefabModel *>(treeModel_));
 	auto resourceModel = (dynamic_cast<ObjectTreeViewResourceModel *>(treeModel_));
+	bool isScenegraphView = !(prefabModel || resourceModel || externalProjectModel);
 	bool canInsertMeshAsset = false;
 	bool haveCreatableTypes = false;
 
@@ -351,7 +403,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 			requestNewNode(typeName, "", insertionTargetIndex);
 		});
 		haveCreatableTypes = true;
-		if (typeName == raco::user_types::Node::typeDescription.typeName) {
+		if (typeName == user_types::Node::typeDescription.typeName) {
 			canInsertMeshAsset = true;
 		}
 	}
@@ -360,7 +412,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		treeViewMenu->addSeparator();
 
 		auto actionImport = treeViewMenu->addAction("Import glTF Assets...", [this, insertionTargetIndex]() {
-			auto sceneFolder = raco::core::PathManager::getCachedPath(raco::core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
+			auto sceneFolder = core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Mesh, treeModel_->project()->currentFolder());
 			auto file = QFileDialog::getOpenFileName(this, "Load Asset File", QString::fromStdString(sceneFolder.string()), "glTF files (*.gltf *.glb);; All files (*.*)");
 			if (!file.isEmpty()) {
 				treeModel_->importMeshScenegraph(file, insertionTargetIndex);
@@ -439,15 +491,28 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		auto actionDeleteUnrefResources = treeViewMenu->addAction("Delete Unused Resources", [this] { treeModel_->deleteUnusedResources(); });
 		actionDeleteUnrefResources->setEnabled(treeModel_->canDeleteUnusedResources());
 
+		if (isScenegraphView) {
+			treeViewMenu->addSeparator();
+			 treeViewMenu->addAction("Isolate Subtree", [this] () {
+					isolateNodes();
+				},
+				QKeySequence("Ctrl+I"));
+
+			 treeViewMenu->addAction(
+				"Hide Subtree", [this]() {
+					hideNodes();
+				},
+				QKeySequence("Ctrl+H"));
+
+			 treeViewMenu->addAction(
+				"Show All Nodes", [this]() {
+					showAllNodes();
+				},
+				QKeySequence("Ctrl+U"));
+		}
+
 		treeViewMenu->addSeparator();
-		auto extrefPasteAction = treeViewMenu->addAction(
-			"Paste As External Reference", [this]() {
-				std::string error;
-				if (!treeModel_->pasteObjectAtIndex({}, true, &error)) {
-					QMessageBox::warning(this, "Paste As External Reference",
-						fmt::format("Update of pasted external references failed!\n\n{}", error).c_str());
-				}
-			});
+		auto extrefPasteAction = treeViewMenu->addAction("Paste As External Reference", this, &ObjectTreeView::pasteAsExtRef);
 
 		// Pasting extrefs will ignore the current selection and always paste on top level.
 		extrefPasteAction->setEnabled(treeModel_->canPasteIntoIndex({}, pasteObjects, sourceProjectTopLevelObjectIds, true));
@@ -456,7 +521,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	if (externalProjectModel) {
 		treeViewMenu->addSeparator();
 		treeViewMenu->addAction("Add Project...", [this, externalProjectModel]() {
-			auto projectFile = QFileDialog::getOpenFileName(this, tr("Import Project"), raco::components::RaCoPreferences::instance().userProjectsDirectory, tr("Ramses Composer Assembly (*.rca);; All files (*.*)"));
+			auto projectFile = QFileDialog::getOpenFileName(this, tr("Import Project"), components::RaCoPreferences::instance().userProjectsDirectory, tr("Ramses Composer Assembly (*.rca);; All files (*.*)"));
 			if (projectFile.isEmpty()) {
 				return;
 			}
@@ -471,19 +536,28 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 
 		auto actionCloseImportedProject = treeViewMenu->addAction("Remove Project", [this, selectedItemIndices, externalProjectModel]() { externalProjectModel->removeProjectsAtIndices(selectedItemIndices); });
 		actionCloseImportedProject->setEnabled(externalProjectModel->canRemoveProjectsAtIndices(selectedItemIndices));
-
 	}
 
-	auto paths = externalProjectModel->externalProjectPathsAtIndices(selectedItemIndices);
-	auto actionOpenProject = treeViewMenu->addAction("Open External Projects", [this, paths, externalProjectModel]() {
-		if (!paths.empty()) {
-			auto appPath = QCoreApplication::applicationFilePath();
-			for (auto projectPath : paths) {
-				QProcess::startDetached(appPath, QStringList(QString::fromStdString(projectPath)));
+	std::map<std::string, std::string> externalProjects;
+	for (const auto &index : selectedItemIndices) {
+		const auto path = treeModel_->externalProjectPathAtIndex(index);
+		if (!path.empty() && externalProjects.find(path) == externalProjects.end()) {
+			const auto id = treeModel_->objectIdAtIndex(index);
+			if (!id.empty()) {
+				externalProjects[path] = id;
+			}
+		}
+	}
+
+	const auto actionOpenProject = treeViewMenu->addAction("Open External Projects", [this, externalProjects]() {
+		if (!externalProjects.empty()) {
+			const auto appPath = QCoreApplication::applicationFilePath();
+			for (const auto [path, id] : externalProjects) {
+				QProcess::startDetached(appPath, {QString::fromStdString(path), "-i", QString::fromStdString(id)});
 			}
 		}
 	});
-	actionOpenProject->setEnabled(!paths.empty());
+	actionOpenProject->setEnabled(!externalProjects.empty());
 
 	return treeViewMenu;
 }
@@ -506,7 +580,7 @@ void ObjectTreeView::mousePressEvent(QMouseEvent *event) {
 	QTreeView::mousePressEvent(event);
 	if (!indexAt(event->pos()).isValid()) {
 		resetSelection();
-		Q_EMIT newObjectTreeItemsSelected({});
+		Q_EMIT newObjectTreeItemsSelected({}, {});
 	}
 }
 

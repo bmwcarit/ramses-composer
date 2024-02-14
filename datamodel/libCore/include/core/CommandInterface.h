@@ -56,6 +56,8 @@ public:
 	EngineInterface& engineInterface() const;
 	UndoStack& undoStack();
 
+	bool canSetHandle(ValueHandle const& handle) const;
+
 	bool canSet(ValueHandle const& handle, int const& value) const;
 
 	// Basic property changes
@@ -103,6 +105,17 @@ public:
 	// @param renderableTags tag name -> order index map
 	void setRenderableTags(ValueHandle const& handle, std::vector<std::pair<std::string, int>> const& renderableTags);
 
+	/**
+	 * @brief Resize Array property and initialize new entries to empty references.
+	 *
+	 * Properties with a ArraySemanticAnnotation may not be resized since they must not contain empty references.
+	 * 
+	 * @param handle Handle for a property of PrimitiveType::Array
+	 * @param newSize New size for array.
+	 */
+	void resizeArray(const ValueHandle& handle, size_t newSize);
+
+
 	// Object creation/deletion
 	SEditorObject createObject(std::string type, std::string name = std::string(), SEditorObject parent = nullptr);
 
@@ -121,7 +134,7 @@ public:
 	size_t moveScenegraphChildren(std::vector<SEditorObject> const& objects, SEditorObject const& newParent, int insertBeforeIndex = -1);
 
 	// Calls Context::insertAssetScenegraph and generates a composite undo command.
-	void insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
+	void insertAssetScenegraph(const core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	/**
 	 * Creates a serialized representation of all given [EditorObject]'s and their appropriate dependencies.
@@ -182,11 +195,10 @@ public:
 	void executeCompositeCommand(std::function<void()> compositeCommand, const std::string& description);
 
 private:
-	bool canSetHandle(ValueHandle const& handle) const;
 	bool canSetHandle(ValueHandle const& handle, PrimitiveType type) const;
 
-	bool checkHandleForSet(ValueHandle const& handle);
-	bool checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type);
+	bool checkHandleForSet(ValueHandle const& handle, bool allowVolatile = false);
+	bool checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type, bool allowVolatile = false);
 
 	static std::string getMergeId(const std::set<ValueHandle>& handles);
 

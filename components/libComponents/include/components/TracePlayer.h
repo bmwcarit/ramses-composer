@@ -85,14 +85,14 @@ public:
 	core::DataChangeRecorder& uiChanges() const;
 
 private:
-	raco::core::SEditorObject findLua(const std::string& luaObjName, bool logErrors = true);
+	core::SEditorObject findLua(const std::string& luaObjName, bool logErrors = true);
 	QJsonObject parseFrame(int frameIndex);
 	QJsonObject parseSceneData(const QJsonObject& qjFrame, int frameIndex = -1);
 	QJsonObject parseTracePlayerData(const QJsonObject& qjFrame, int frameIndex = -1);
 	int parseTimestamp(const QJsonObject& qjTracePlayerData, int frameIndex = -1);
 	bool parseFrameAndUpdateLua();
-	void updateLua(const QJsonValue& jsonChild, std::vector<std::string>& keysChain, const raco::core::SEditorObject& lua);
-	void updateLuaProperty(const raco::core::SEditorObject& lua, const std::vector<std::string>& keysChain, const QJsonValue& jsonChild, bool logErrors = true);
+	void updateLua(const QJsonValue& jsonChild, std::vector<std::string>& keysChain, const core::SEditorObject& lua);
+	void updateLuaProperty(const core::SEditorObject& lua, const std::vector<std::string>& keysChain, const QJsonValue& jsonChild, bool logErrors = true);
 	std::string streamKeysChain(const std::vector<std::string>& keysChain) const;
 	void qjParseErrMsg(const QJsonParseError& qjParseError, const std::string& fileName);
 	void clearError(const std::string& msg, core::ErrorLevel level);
@@ -106,7 +106,7 @@ private:
 	void makeFramesConsistent();
 	QJsonValue deepAddMissingProperties(const QJsonValue& qjPrev, const QJsonValue& qjCurr, std::vector<std::string>& propertyPath, int index);
 	QJsonValue buildFullFrameFromLua(std::unordered_set<core::SEditorObject> const& sceneLuaList);
-	QJsonValue deepCopyFromLua(raco::core::ValueHandle const& luaValHandle);
+	QJsonValue deepCopyFromLua(core::ValueHandle const& luaValHandle);
 	void rebuildFrameSceneData(int index, const QJsonValue& qjPrev, const QJsonValue& qjCurr);
 	void readLinesForNextFrame();
 	int getPropertyLineNumber(const QString& propertyKey);

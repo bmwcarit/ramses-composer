@@ -17,6 +17,7 @@
 #include "core/Link.h"
 #include "core/ProxyObjectFactory.h"
 #include "core/ProxyTypes.h"
+#include "data_storage/Array.h"
 
 #include "log_system/log.h"
 
@@ -31,14 +32,14 @@
 
 namespace raco::serialization {
 
-void linkReplaceEndIfMatching(raco::core::SLink& link, const std::string& oldProp, const std::vector<std::string>& newEndProp) {
+void linkReplaceEndIfMatching(core::SLink& link, const std::string& oldProp, const std::vector<std::string>& newEndProp) {
 	if (link->compareEndPropertyNames({oldProp})) {
-		link->endProp_->set<std::string>(newEndProp);
+		link->endProp_->set(newEndProp);
 	}
 };
 
 template <class... Args>
-raco::data_storage::ValueBase* createDynamicProperty_V11(raco::core::EnginePrimitive type) {
+data_storage::ValueBase* createDynamicProperty_V11(core::EnginePrimitive type) {
 	using namespace raco::serialization::proxy;
 	using namespace raco::data_storage;
 	using namespace raco::core;
@@ -96,7 +97,7 @@ raco::data_storage::ValueBase* createDynamicProperty_V11(raco::core::EnginePrimi
 }
 
 template <class... Args>
-raco::data_storage::ValueBase* createDynamicProperty_V36(raco::core::EnginePrimitive type) {
+data_storage::ValueBase* createDynamicProperty_V36(core::EnginePrimitive type) {
 	using namespace raco::serialization::proxy;
 	using namespace raco::data_storage;
 	using namespace raco::core;
@@ -157,7 +158,7 @@ raco::data_storage::ValueBase* createDynamicProperty_V36(raco::core::EnginePrimi
 }
 
 template <class... Args>
-raco::data_storage::ValueBase* createDynamicProperty_V51(core::EnginePrimitive type) {
+data_storage::ValueBase* createDynamicProperty_V51(core::EnginePrimitive type) {
 	using namespace raco::serialization::proxy;
 	using namespace raco::data_storage;
 	using namespace raco::core;
@@ -224,9 +225,9 @@ raco::data_storage::ValueBase* createDynamicProperty_V51(core::EnginePrimitive t
 	return nullptr;
 }
 
-raco::data_storage::Table* findItemByValue(raco::data_storage::Table& table, raco::core::SEditorObject obj) {
+data_storage::Table* findItemByValue(data_storage::Table& table, core::SEditorObject obj) {
 	for (size_t i{0}; i < table.size(); i++) {
-		raco::data_storage::Table& item = table.get(i)->asTable();
+		data_storage::Table& item = table.get(i)->asTable();
 		if (item.get(1)->asRef() == obj) {
 			return &item;
 		}
@@ -234,10 +235,10 @@ raco::data_storage::Table* findItemByValue(raco::data_storage::Table& table, rac
 	return nullptr;
 }
 
-void insertPrefabInstancesRecursive(raco::serialization::proxy::SEditorObject inst, std::vector<raco::serialization::proxy::SEditorObject>& sortedInstances) {
+void insertPrefabInstancesRecursive(serialization::proxy::SEditorObject inst, std::vector<serialization::proxy::SEditorObject>& sortedInstances) {
 	if (std::find(sortedInstances.begin(), sortedInstances.end(), inst) == sortedInstances.end()) {
 		if (auto prefab = inst->get("template")->asRef()) {
-			for (auto prefabChild : raco::core::TreeIteratorAdaptor(prefab)) {
+			for (auto prefabChild : core::TreeIteratorAdaptor(prefab)) {
 				if (prefabChild->serializationTypeName() == "PrefabInstance") {
 					insertPrefabInstancesRecursive(prefabChild, sortedInstances);
 				}
@@ -316,7 +317,7 @@ std::string generateInterfaceTable(const data_storage::Table& table, int depth, 
 	return result;
 }
 
-std::string generateInterfaceScript(raco::serialization::proxy::SEditorObject object) {
+std::string generateInterfaceScript(serialization::proxy::SEditorObject object) {
 	return fmt::format(R"___(function interface(INOUT)
 {}
 end
@@ -327,10 +328,10 @@ end
 void createInterfaceProperties(const data_storage::Table& scriptTable, data_storage::Table& interfaceTable) {
 	for (size_t i = 0; i < scriptTable.size(); i++) {
 		auto anno = scriptTable.get(i)->query<user_types::EngineTypeAnnotation>();
-		if (raco::core::PropertyInterface::primitiveType(anno->type()) == PrimitiveType::Ref) {
+		if (core::PropertyInterface::primitiveType(anno->type()) == PrimitiveType::Ref) {
 			interfaceTable.addProperty(scriptTable.name(i), createDynamicProperty_V36<>(anno->type()), -1);
 		} else {
-			interfaceTable.addProperty(scriptTable.name(i), createDynamicProperty_V36<raco::core::LinkStartAnnotation, raco::core::LinkEndAnnotation>(anno->type()), -1);
+			interfaceTable.addProperty(scriptTable.name(i), createDynamicProperty_V36<core::LinkStartAnnotation, core::LinkEndAnnotation>(anno->type()), -1);
 		}
 
 		if (scriptTable.get(i)->type() == PrimitiveType::Table) {
@@ -341,14 +342,14 @@ void createInterfaceProperties(const data_storage::Table& scriptTable, data_stor
 	}
 }
 
-raco::serialization::proxy::SDynamicEditorObject createInterfaceObjectV36(raco::serialization::proxy::ProxyObjectFactory& factory, raco::serialization::ProjectDeserializationInfoIR& deserializedIR, std::vector<raco::core::SLink>& createdLinks, raco::serialization::proxy::SDynamicEditorObject& script, std::string& interfaceObjID, const raco::utils::u8path& intfRelPath, const raco::core::SEditorObject& parentObj) {
+serialization::proxy::SDynamicEditorObject createInterfaceObjectV36(serialization::proxy::ProxyObjectFactory& factory, serialization::ProjectDeserializationInfoIR& deserializedIR, std::vector<core::SLink>& createdLinks, serialization::proxy::SDynamicEditorObject& script, std::string& interfaceObjID, const utils::u8path& intfRelPath, const core::SEditorObject& parentObj) {
 	using namespace raco::serialization::proxy;
 
 	auto interfaceObj = std::dynamic_pointer_cast<DynamicEditorObject>(factory.createObject("LuaInterface", script->objectName(), interfaceObjID));
 	interfaceObj->addProperty("uri", new Property<std::string, URIAnnotation, DisplayNameAnnotation>{intfRelPath.string(), {"Lua interface files(*.lua)"}, DisplayNameAnnotation("URI")}, -1);
 
-	if (auto anno = script->query<raco::core::ExternalReferenceAnnotation>()) {
-		interfaceObj->addAnnotation(std::make_shared<raco::core::ExternalReferenceAnnotation>(*anno->projectID_));
+	if (auto anno = script->query<core::ExternalReferenceAnnotation>()) {
+		interfaceObj->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>(*anno->projectID_));
 	}
 
 	auto newIntfInputs = interfaceObj->addProperty("luaInputs", new Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation>{{}, DisplayNameAnnotation("Inputs"), {}, {}}, -1);
@@ -356,12 +357,12 @@ raco::serialization::proxy::SDynamicEditorObject createInterfaceObjectV36(raco::
 
 	deserializedIR.objects.emplace_back(interfaceObj);
 
-	auto prop = parentObj->children_->addProperty(PrimitiveType::Ref, -1);
+	auto prop = parentObj->children_->addProperty(-1);
 	*prop = interfaceObj;
 
-	createdLinks.emplace_back(std::make_shared<raco::core::Link>(
-		raco::core::PropertyDescriptor(interfaceObj, {"luaInputs"}),
-		raco::core::PropertyDescriptor(script, {"luaInputs"}),
+	createdLinks.emplace_back(std::make_shared<core::Link>(
+		core::PropertyDescriptor(interfaceObj, {"luaInputs"}),
+		core::PropertyDescriptor(script, {"luaInputs"}),
 		true));
 
 	{
@@ -384,7 +385,7 @@ raco::serialization::proxy::SDynamicEditorObject createInterfaceObjectV36(raco::
 	return interfaceObj;
 }
 
-void splitUniformName(std::string uniformName, raco::core::EnginePrimitive componentType,
+void splitUniformName(std::string uniformName, core::EnginePrimitive componentType,
 	std::vector<std::string>& names,
 	std::vector<core::EnginePrimitive>& types) {
 	auto dotPos = uniformName.find('.');
@@ -443,7 +444,7 @@ void replaceUniforms_V51(core::Table& uniforms) {
 			for (int depth = 0; depth < names.size(); depth++) {
 				core::ValueBase* newProp;
 				if (!container->hasProperty(names[depth])) {
-					newProp = container->addProperty(names[depth], createDynamicProperty_V51<raco::core::LinkEndAnnotation>(types[depth]), -1);
+					newProp = container->addProperty(names[depth], createDynamicProperty_V51<core::LinkEndAnnotation>(types[depth]), -1);
 				} else {
 					newProp = container->get(names[depth]);
 				}
@@ -462,6 +463,22 @@ void replaceUniforms_V51(core::Table& uniforms) {
 	}
 }
 
+/**
+ * @brief Recreate the EditorObject::parent_ and referencesToThis_ pointers in all objects
+ *
+ * Use this after changing the pointer structure of the deserialized objects, i.e. when
+ * changing any reference properties.
+ */
+void recreateBackPointers(serialization::ProjectDeserializationInfoIR& deserializedIR) {
+	for (const auto& obj : deserializedIR.objects) {
+		obj->resetBackPointers();
+	}
+	for (const auto& obj : deserializedIR.objects) {
+		obj->onAfterDeserialization();
+	}
+}
+
+
 // Limitations
 // - Annotations and links are handled as static classes:
 //   we can't change the class definition in a way that prevents deserialization of the old annotation: this means that
@@ -471,13 +488,13 @@ void replaceUniforms_V51(core::Table& uniforms) {
 // - If the need arises to migrate the annotationns we would need to create proxy types for them in the same
 //   way currently done for the Struct PrimitiveTypes.
 
-void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory) {
+void migrateProject(ProjectDeserializationInfoIR& deserializedIR, serialization::proxy::ProxyObjectFactory& factory) {
 	using namespace raco::data_storage;
 	using namespace raco::serialization::proxy;
 
 	if (deserializedIR.fileVersion < 2) {
 		auto settingsID = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-		auto settings = std::make_shared<raco::serialization::proxy::ProjectSettings>("", settingsID);
+		auto settings = std::make_shared<serialization::proxy::ProjectSettings>("", settingsID);
 		deserializedIR.objects.emplace_back(settings);
 	}
 
@@ -531,9 +548,9 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				auto* uniforms = &dynObj->get("uniforms")->asTable();
 
 				for (size_t i = 0; i < uniforms->size(); i++) {
-					auto engineType = uniforms->get(i)->query<raco::user_types::EngineTypeAnnotation>()->type();
-					if (raco::core::PropertyInterface::primitiveType(engineType) != PrimitiveType::Ref) {
-						auto newValue = createDynamicProperty_V11<raco::core::LinkEndAnnotation>(engineType);
+					auto engineType = uniforms->get(i)->query<user_types::EngineTypeAnnotation>()->type();
+					if (core::PropertyInterface::primitiveType(engineType) != PrimitiveType::Ref) {
+						auto newValue = createDynamicProperty_V11<core::LinkEndAnnotation>(engineType);
 						*newValue = *uniforms->get(i);
 						uniforms->replaceProperty(i, newValue);
 					}
@@ -548,7 +565,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			auto instanceType = dynObj->serializationTypeName();
 
 			if (instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera") {
-				auto viewport = new Property<raco::serialization::proxy::CameraViewport, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Viewport"}, {}};
+				auto viewport = new Property<serialization::proxy::CameraViewport, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Viewport"}, {}};
 				(*viewport)->addProperty("offsetX", dynObj->extractProperty("viewPortOffsetX"), -1);
 				(*viewport)->addProperty("offsetY", dynObj->extractProperty("viewPortOffsetY"), -1);
 				(*viewport)->addProperty("width", dynObj->extractProperty("viewPortWidth"), -1);
@@ -557,7 +574,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			}
 
 			if (instanceType == "PerspectiveCamera") {
-				auto frustum = new Property<raco::serialization::proxy::PerspectiveFrustum, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Frustum"}, {}};
+				auto frustum = new Property<serialization::proxy::PerspectiveFrustum, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Frustum"}, {}};
 				(*frustum)->addProperty("nearPlane", dynObj->extractProperty("near"), -1);
 				(*frustum)->addProperty("farPlane", dynObj->extractProperty("far"), -1);
 				(*frustum)->addProperty("fieldOfView", dynObj->extractProperty("fov"), -1);
@@ -566,7 +583,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			}
 
 			if (instanceType == "OrthographicCamera") {
-				auto frustum = new Property<raco::serialization::proxy::OrthographicFrustum, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Frustum"}, {}};
+				auto frustum = new Property<serialization::proxy::OrthographicFrustum, DisplayNameAnnotation, LinkEndAnnotation>{{}, {"Frustum"}, {}};
 				(*frustum)->addProperty("nearPlane", dynObj->extractProperty("near"), -1);
 				(*frustum)->addProperty("farPlane", dynObj->extractProperty("far"), -1);
 				(*frustum)->addProperty("leftPlane", dynObj->extractProperty("left"), -1);
@@ -577,7 +594,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			}
 
 			if (instanceType == "Material") {
-				auto options = new Property<raco::serialization::proxy::BlendOptions, DisplayNameAnnotation>{{}, {"Options"}};
+				auto options = new Property<serialization::proxy::BlendOptions, DisplayNameAnnotation>{{}, {"Options"}};
 				(*options)->addProperty("blendOperationColor", dynObj->extractProperty("blendOperationColor"), -1);
 				(*options)->addProperty("blendOperationAlpha", dynObj->extractProperty("blendOperationAlpha"), -1);
 				(*options)->addProperty("blendFactorSrcColor", dynObj->extractProperty("blendFactorSrcColor"), -1);
@@ -598,7 +615,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 					Table& matCont = materials.get(i)->asTable();
 					Table& optionsCont = matCont.get("options")->asTable();
 
-					auto options = new Property<raco::serialization::proxy::BlendOptions, DisplayNameAnnotation>{{}, {"Options"}};
+					auto options = new Property<serialization::proxy::BlendOptions, DisplayNameAnnotation>{{}, {"Options"}};
 					(*options)->addProperty("blendOperationColor", optionsCont.get("blendOperationColor")->clone({}), -1);
 					(*options)->addProperty("blendOperationAlpha", optionsCont.get("blendOperationAlpha")->clone({}), -1);
 					(*options)->addProperty("blendFactorSrcColor", optionsCont.get("blendFactorSrcColor")->clone({}), -1);
@@ -662,9 +679,9 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 			auto migrateUniforms = [](Table& uniforms) {
 				for (size_t i = 0; i < uniforms.size(); i++) {
-					auto engineType = uniforms.get(i)->query<raco::user_types::EngineTypeAnnotation>()->type();
-					if (engineType == raco::core::EnginePrimitive::TextureSampler2D) {
-						auto newValue = ProxyObjectFactory::staticCreateProperty<STextureSampler2DBase, raco::user_types::EngineTypeAnnotation>({}, {engineType});
+					auto engineType = uniforms.get(i)->query<user_types::EngineTypeAnnotation>()->type();
+					if (engineType == core::EnginePrimitive::TextureSampler2D) {
+						auto newValue = ProxyObjectFactory::staticCreateProperty<STextureSampler2DBase, user_types::EngineTypeAnnotation>({}, {engineType});
 						*newValue = uniforms.get(i)->asRef();
 						uniforms.replaceProperty(i, newValue);
 					}
@@ -711,7 +728,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 			if (instanceType == "Node" || instanceType == "MeshNode" || instanceType == "PrefabInstance") {
 				if (!dynObj->getParent()) {
-					auto tags = new Property<Table, raco::core::ArraySemanticAnnotation, raco::core::TagContainerAnnotation, DisplayNameAnnotation>{{}, {}, {}, {"Tags"}};
+					auto tags = new Property<Table, core::ArraySemanticAnnotation, core::TagContainerAnnotation, DisplayNameAnnotation>{{}, {}, {}, {"Tags"}};
 					tags->set(std::vector<std::string>({"render_main"}));
 					dynObj->addProperty("tags", tags, -1);
 				}
@@ -721,16 +738,16 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		SDynamicEditorObject camera = perspCamera ? perspCamera : orthoCamera;
 
 		auto layerID = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-		auto mainLayer = std::make_shared<raco::serialization::proxy::RenderLayer>("MainRenderLayer", layerID);
-		auto renderableTagsProp = new Property<Table, raco::core::RenderableTagContainerAnnotation, DisplayNameAnnotation>{{}, {}, {"Renderable Tags"}};
+		auto mainLayer = std::make_shared<serialization::proxy::RenderLayer>("MainRenderLayer", layerID);
+		auto renderableTagsProp = new Property<Table, core::RenderableTagContainerAnnotation, DisplayNameAnnotation>{{}, {}, {"Renderable Tags"}};
 		(*renderableTagsProp)->addProperty("render_main", std::make_unique<data_storage::Value<int>>(0));
 		mainLayer->addProperty("renderableTags", renderableTagsProp, -1);
-		mainLayer->addProperty("sortOrder", new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{2, {"Render Order"}, raco::core::EUserTypeEnumerations::RenderLayerOrder}, -1);
+		mainLayer->addProperty("sortOrder", new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{2, {"Render Order"}, core::EUserTypeEnumerations::RenderLayerOrder}, -1);
 
 		auto passID = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-		auto mainPass = std::make_shared<raco::serialization::proxy::RenderPass>("MainRenderPass", passID);
+		auto mainPass = std::make_shared<serialization::proxy::RenderPass>("MainRenderPass", passID);
 
-		ValueBase* cameraProp = new Property<raco::serialization::proxy::SBaseCamera, DisplayNameAnnotation>{{}, {"Camera"}};
+		ValueBase* cameraProp = new Property<serialization::proxy::SBaseCamera, DisplayNameAnnotation>{{}, {"Camera"}};
 		if (camera) {
 			*cameraProp = camera;
 		}
@@ -864,8 +881,8 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				// The old resource folder settings from the RaCoPreferences are transferred into the ProjectSettings
 				// We do not have access to the RaCoPreferences class here, however, we can just parse the ini file directly instead.
 				const std::string projectSubdirectoryFilter = "projectSubDir";
-				auto settings = raco::core::PathManager::preferenceSettings();
-				auto resourceFolders = new Property<raco::serialization::proxy::DefaultResourceDirectories, DisplayNameAnnotation>{{}, {"Default Resource Folders"}};
+				auto settings = core::PathManager::preferenceSettings();
+				auto resourceFolders = new Property<serialization::proxy::DefaultResourceDirectories, DisplayNameAnnotation>{{}, {"Default Resource Folders"}};
 				(*resourceFolders)->addProperty("imageSubdirectory", new Property<std::string, DisplayNameAnnotation, URIAnnotation>{settings.value("imageSubdirectory", "images").toString().toStdString(), {"Images"}, {projectSubdirectoryFilter}}, -1);
 				(*resourceFolders)->addProperty("meshSubdirectory", new Property<std::string, DisplayNameAnnotation, URIAnnotation>{settings.value("meshSubdirectory", "meshes").toString().toStdString(), {"Meshes"}, {projectSubdirectoryFilter}}, -1);
 				(*resourceFolders)->addProperty("scriptSubdirectory", new Property<std::string, DisplayNameAnnotation, URIAnnotation>{settings.value("scriptSubdirectory", "scripts").toString().toStdString(), {"Scripts"}, {projectSubdirectoryFilter}}, -1);
@@ -898,9 +915,9 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 			if (auto prefabInst = findContainingPrefabInstance(dynObj)) {
 				if (auto prefab = prefabInst->get("template")->asRef()) {
-					if (prefab->query<raco::core::ExternalReferenceAnnotation>()) {
+					if (prefab->query<core::ExternalReferenceAnnotation>()) {
 						for (size_t propIndex = 0; propIndex < dynObj->size(); propIndex++) {
-							if (dynObj->get(propIndex)->query<raco::core::URIAnnotation>()) {
+							if (dynObj->get(propIndex)->query<core::URIAnnotation>()) {
 								const auto& propName = dynObj->name(propIndex);
 
 								SEditorObject prefabObj = dynObj;
@@ -916,7 +933,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 								auto& prefabInstPropValue = dynObj->get(propIndex)->asString();
 								const auto& prefabPropValue = prefabObj->get(propName)->asString();
 								if (prefabInstPropValue != prefabPropValue) {
-									LOG_WARNING(raco::log_system::DESERIALIZATION, "Rewrite URI property '{}.{}': '{}' -> '{}' in project '{}'",
+									LOG_WARNING(log_system::DESERIALIZATION, "Rewrite URI property '{}.{}': '{}' -> '{}' in project '{}'",
 										dynObj->objectName(), propName,
 										prefabInstPropValue, prefabPropValue,
 										deserializedIR.currentPath);
@@ -943,7 +960,10 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		}
 
 		for (auto instance : sortedInstances) {
-			const Table& instMapTable = instance->get("mapToInstance")->asTable();
+			auto dynInst = std::dynamic_pointer_cast<DynamicEditorObject>(instance);
+
+			auto oldProp = dynInst->extractProperty("mapToInstance");
+			const Table& instMapTable = oldProp->asTable();
 
 			for (size_t index = 0; index < instMapTable.size(); index++) {
 				const Table& item = instMapTable.get(index)->asTable();
@@ -952,9 +972,6 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				auto instChildID = EditorObject::XorObjectIDs(prefabChild->objectID(), instance->objectID());
 				instChild->objectID_ = instChildID;
 			}
-
-			auto dynInst = std::dynamic_pointer_cast<DynamicEditorObject>(instance);
-			dynInst->removeProperty("mapToInstance");
 		}
 	}
 
@@ -1019,7 +1036,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 					auto oldProp = dynObj->extractProperty("invertMaterialFilter");
 					// 1 -> Exclusive, 0 -> Inclusive
 					int newValue = oldProp->asBool() ? 1 : 0;
-					auto newProp = new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{newValue, {"Material Filter Mode"}, raco::core::EUserTypeEnumerations::RenderLayerMaterialFilterMode};
+					auto newProp = new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{newValue, {"Material Filter Mode"}, core::EUserTypeEnumerations::RenderLayerMaterialFilterMode};
 					dynObj->addProperty("materialFilterMode", newProp, -1);
 				}
 			}
@@ -1046,7 +1063,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		auto scriptRelPath = utils::u8path("interfaces");
 		std::filesystem::create_directories(projectPath / scriptRelPath);
 
-		std::vector<raco::core::SLink> createdLinks;
+		std::vector<core::SLink> createdLinks;
 
 		// Prefab pass 1:
 		// Generate file names for the interface script we need to generate
@@ -1062,7 +1079,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				for (auto child : dynObj->children_->asVector<SEditorObject>()) {
 					if (child->serializationTypeName() == "LuaScript") {
 						auto prefabScript = std::dynamic_pointer_cast<DynamicEditorObject>(child);
-						if (!prefabScript->query<raco::core::ExternalReferenceAnnotation>()) {
+						if (!prefabScript->query<core::ExternalReferenceAnnotation>()) {
 							auto interfaceText = generateInterfaceScript(prefabScript);
 							utils::u8path path(prefabScript->get("uri")->asString());
 							scriptNameToTextToIDMap[path.stem().string()][interfaceText].insert(prefabScript->objectID());
@@ -1095,14 +1112,14 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 
 						utils::u8path intfRelPath;
 
-						if (!prefabScript->query<raco::core::ExternalReferenceAnnotation>()) {
+						if (!prefabScript->query<core::ExternalReferenceAnnotation>()) {
 							auto it = interfacePaths.find(prefabScript->objectID());
 							assert(it != interfacePaths.end());
 							intfRelPath = it->second;
 							auto interfaceText = generateInterfaceScript(prefabScript);
 							auto intfAbsPath = projectPath / intfRelPath;
-							LOG_INFO(raco::log_system::DESERIALIZATION, "Writing generated interface file {} -> {}", prefabScript->objectName(), intfAbsPath.string());
-							raco::utils::file::write(intfAbsPath, interfaceText);
+							LOG_INFO(log_system::DESERIALIZATION, "Writing generated interface file {} -> {}", prefabScript->objectName(), intfAbsPath.string());
+							utils::file::write(intfAbsPath, interfaceText);
 						}
 
 						auto interfaceObjID = EditorObject::XorObjectIDs(prefabScript->objectID(), "00000000-0000-0000-0000-000000000001");
@@ -1143,7 +1160,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 		std::copy(createdLinks.begin(), createdLinks.end(), std::back_inserter(deserializedIR.links));
 
 		for (const auto& obj : deserializedIR.objects) {
-			auto dynObj = std::dynamic_pointer_cast<raco::serialization::proxy::DynamicEditorObject>(obj);
+			auto dynObj = std::dynamic_pointer_cast<serialization::proxy::DynamicEditorObject>(obj);
 			dynObj->onAfterDeserialization();
 		}
 	}
@@ -1167,14 +1184,14 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				if (stringIt != newPropertyStrings.end()) {
 					auto newlinkStartProps = stringIt->second;
 					newlinkStartProps.insert(newlinkStartProps.end(), linkStartProps.begin() + 1, linkStartProps.end());
-					link->startProp_->set<std::string>(newlinkStartProps);
+					link->startProp_->set(newlinkStartProps);
 				}
 
 				stringIt = newPropertyStrings.find(linkEndProps.front());
 				if (stringIt != newPropertyStrings.end()) {
 					auto newlinkEndProps = stringIt->second;
 					newlinkEndProps.insert(newlinkEndProps.end(), linkEndProps.begin() + 1, linkEndProps.end());
-					link->endProp_->set<std::string>(newlinkEndProps);
+					link->endProp_->set(newlinkEndProps);
 				}
 			}
 		}
@@ -1220,7 +1237,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			auto linkStartProps = link->startPropertyNamesVector();
 			if (linkStartProps.at(0) == "animationOutputs") {
 				linkStartProps[0] = "outputs";
-				link->startProp_->set<std::string>(linkStartProps);
+				link->startProp_->set(linkStartProps);
 			}
 		}
 
@@ -1364,7 +1381,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 				newLinkEndProps.insert(newLinkEndProps.end(), names.begin(), names.end());
 				newLinkEndProps.insert(newLinkEndProps.end(), linkEndProps.begin() + numPrefixComponents + 1, linkEndProps.end());
 
-				link->endProp_->set<std::string>(newLinkEndProps);
+				link->endProp_->set(newLinkEndProps);
 			}
 		};
 
@@ -1427,6 +1444,305 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serializ
 			}
 		}
 	}
-}
 
+	// File version 55: conversion of user types from Table and fixed properties to Array properties
+	// Migration of EditorObject::children property from Table -> Array type is done implicitly by the deserialization
+	// since we can't change the types of EditorObject properties in the migration.
+	if (deserializedIR.fileVersion < 55) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			if (instanceType == "RenderPass") {
+				auto newProperty = dynObj->addProperty("layers", new Property<Array<SRenderLayer>, DisplayNameAnnotation, ExpectEmptyReference>({}, {"Layers"}, {}), -1);
+
+				for (auto propName : {"layer0", "layer1", "layer2", "layer3", "layer4", "layer5", "layer6", "layer7"}) {
+					if (dynObj->hasProperty(propName)) {
+						auto oldLayer = dynObj->extractProperty(propName);
+						*newProperty->asArray().addProperty() = oldLayer->asRef();
+					} else {
+						*newProperty->asArray().addProperty() = SRenderLayer();
+					}
+				}
+			}
+
+			if (instanceType == "RenderTarget") {
+				auto newBuffers = dynObj->addProperty("buffers", new Property<Array<SRenderBuffer>, DisplayNameAnnotation, ExpectEmptyReference>({}, {"Buffers"}, {}), -1);
+				for (auto propName : {"buffer0", "buffer1", "buffer2", "buffer3", "buffer4", "buffer5", "buffer6", "buffer7"}) {
+					if (dynObj->hasProperty(propName)) {
+						auto oldProp = dynObj->extractProperty(propName);
+						*newBuffers->asArray().addProperty() = oldProp->asRef();
+					} else {
+						*newBuffers->asArray().addProperty() = SRenderBuffer();
+					}
+				}
+
+				auto newBuffersMS = dynObj->addProperty("buffersMS", new Property<Array<SRenderBufferMS>, DisplayNameAnnotation, ExpectEmptyReference>({}, {"Buffers (Multisampled)"}, {}), -1);
+				for (auto propName : {"bufferMS0", "bufferMS1", "bufferMS2", "bufferMS3", "bufferMS4", "bufferMS5", "bufferMS6", "bufferMS7"}) {
+					if (dynObj->hasProperty(propName)) {
+						auto oldProp = dynObj->extractProperty(propName);
+						*newBuffersMS->asArray().addProperty() = oldProp->asRef();
+					} else {
+						*newBuffersMS->asArray().addProperty() = SRenderBufferMS();
+					}
+				}
+			}
+
+			if (instanceType == "Animation") {
+				if (dynObj->hasProperty("animationChannels")) {
+					auto oldChannels = dynObj->extractProperty("animationChannels");
+					auto newChannels = dynObj->addProperty("animationChannels", new Property<Array<SAnimationChannel>, DisplayNameAnnotation>({}, {"Animation Channels"}), -1);
+
+					Table& oldTable = oldChannels->asTable();
+					for (size_t i = 0; i < oldTable.size(); i++) {
+						*newChannels->asArray().addProperty() = oldTable.get(i)->asRef();
+					}
+				}
+			}
+
+			if (instanceType == "Skin") {
+				if (dynObj->hasProperty("targets")) {
+					auto oldTargets = dynObj->extractProperty("targets");
+					auto newTargets = dynObj->addProperty("targets", new Property<Array<SMeshNode>, DisplayNameAnnotation>({}, {"Target MeshNodes"}), -1);
+
+					Table& oldTable = oldTargets->asTable();
+					for (size_t i = 0; i < oldTable.size(); i++) {
+						*newTargets->asArray().addProperty() = oldTable.get(i)->asRef();
+					}
+				}
+
+				if (dynObj->hasProperty("joints")) {
+					auto oldJoints = dynObj->extractProperty("joints");
+					auto newJoints = dynObj->addProperty("joints", new Property<Array<SNode>, DisplayNameAnnotation>({}, {"Joint Nodes"}), -1);
+
+					Table& oldTable = oldJoints->asTable();
+					for (size_t i = 0; i < oldTable.size(); i++) {
+						*newJoints->asArray().addProperty() = oldTable.get(i)->asRef();
+					}
+				}
+			}
+		}
+	}
+
+	// File version 56 : Split RenderTarget into RenderTarget and RenderTargetMS classes
+	if (deserializedIR.fileVersion < 56) {
+		std::vector<SDynamicEditorObject> toRemove;
+
+		// Pass 1: change type of RenderPass target property
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "RenderPass") {
+				if (dynObj->hasProperty("target")) {
+					auto oldProp = dynObj->extractProperty("target");
+					auto newProp = dynObj->addProperty("target", new Property<SRenderTargetBase, DisplayNameAnnotation, ExpectEmptyReference>({}, {"Target"}, {"Default Framebuffer"}), -1);
+					*newProp = *oldProp;
+				}
+			}
+		}
+
+		// Pass 2: split RenderTargets
+		// if this creates mew RenderTargMS objects the RenderPasses target properties must be changed, but we can't do this in
+		// a single pass since we need to change the target property type before we can set it to a RenderTargetMS.
+
+		// Iterate over copy of the objects since we create additional objects leading to iterator invalidation otherwise.
+		auto objectsCopy = deserializedIR.objects;
+		for (const auto& dynObj : objectsCopy) {
+			if (dynObj->serializationTypeName() == "RenderTarget") {
+				bool hasNormalBuffers = false;
+				bool hasMSBuffers = false;
+				if (dynObj->hasProperty("buffers")) {
+					auto array_ptr = dynamic_cast<data_storage::Array<SRenderBuffer>*>(&dynObj->get("buffers")->asArray());
+					auto buffers = array_ptr->asVector<SRenderBuffer>();
+					hasNormalBuffers = std::any_of(buffers.begin(), buffers.end(), [](auto object) {
+						return object != nullptr;
+					});
+				}
+
+				if (dynObj->hasProperty("buffersMS")) {
+					auto array_ptr = dynamic_cast<data_storage::Array<SRenderBufferMS>*>(&dynObj->get("buffersMS")->asArray());
+					auto buffers = array_ptr->asVector<SRenderBufferMS>();
+					hasMSBuffers = std::any_of(buffers.begin(), buffers.end(), [](auto object) {
+						return object != nullptr;
+					});
+				}
+
+				if (!hasMSBuffers && dynObj->hasProperty("buffersMS")) {
+					dynObj->removeProperty("buffersMS");
+				}
+
+				if (hasNormalBuffers && hasMSBuffers && dynObj->hasProperty("buffersMS")) {
+					dynObj->removeProperty("buffersMS");
+					deserializedIR.migrationObjWarnings[dynObj->objectID()] = fmt::format("RenderTarget object '{}' has both non-empty buffer and bufferMS properties: it will be converted to a RenderTarget losing the bufferMS properties.", dynObj->objectName());
+				}
+
+				// !!! Wrong !!!
+				// The save file optimization may have removed buffer references if the RenderTarget is an external reference.
+				// In this case the check below may be wrong, i.e. different than without the save file optimization.
+				// Since the information needed to make the correct decision is not present in the file we can't make 
+				// the right choice here in all cases.
+				// Instead the external reference update itself contains fixup code for this case.
+
+				if (!hasNormalBuffers && hasMSBuffers) {
+					// Replace the object by a RenderTargetMS with same object id and property values
+					auto targetMS = std::dynamic_pointer_cast<DynamicEditorObject>(factory.createObject("RenderTargetMS", dynObj->objectName(), dynObj->objectID()));
+
+					if (auto anno = dynObj->query<core::ExternalReferenceAnnotation>()) {
+						targetMS->addAnnotation(std::make_shared<core::ExternalReferenceAnnotation>(*anno->projectID_));
+					}
+
+					if (dynObj->hasProperty("userTags")) {
+						targetMS->addProperty("userTags", dynObj->extractProperty("userTags"), -1);
+					}
+
+					targetMS->addProperty("buffers", dynObj->extractProperty("buffersMS"), -1);
+
+					deserializedIR.objects.emplace_back(targetMS);
+					toRemove.emplace_back(dynObj);
+
+					// Point references to the RenderTarget to the new RenderTargetMS instead:
+					for (auto wobj : dynObj->referencesToThis()) {
+						if (auto obj = wobj.lock()) {
+							assert(obj->serializationTypeName() == "RenderPass");
+							if (obj->hasProperty("target")) {
+								*obj->get("target") = targetMS;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for (auto obj : toRemove) {
+			auto it = std::find(deserializedIR.objects.begin(), deserializedIR.objects.end(), obj);
+			assert(it != deserializedIR.objects.end());
+			deserializedIR.objects.erase(it);
+		}
+
+		// We need to update the back and parent pointers since we change the pointer structure above:
+		recreateBackPointers(deserializedIR);
+	}
+
+	// File version 58: Removed userTags property from ProjectSettings
+	if (deserializedIR.fileVersion < 58) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "ProjectSettings") {
+				if (dynObj->hasProperty("userTags")) {
+					dynObj->removeProperty("userTags");
+				}
+			}
+		}
+	}
+
+	if (deserializedIR.fileVersion < 59) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			if (instanceType == "RenderPass") {
+				if (dynObj->hasProperty("layers")) {
+					auto oldProp = dynObj->extractProperty("layers");
+					auto newProp = dynObj->addProperty("layers", new Property<Array<SRenderLayer>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>({}, {"Layers"}, {}, {}), -1);
+					*newProp = *oldProp;
+				}
+			}
+
+			if (instanceType == "RenderTarget") {
+				if (dynObj->hasProperty("buffers")) {
+					auto oldProp = dynObj->extractProperty("buffers");
+					auto newProp = dynObj->addProperty("buffers", new Property<Array<SRenderBuffer>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>({}, {"Buffers"}, {}, {}), -1);
+					*newProp = *oldProp;
+				}
+			}
+
+			if (instanceType == "RenderTargetMS") {
+				if (dynObj->hasProperty("buffers")) {
+					auto oldProp = dynObj->extractProperty("buffers");
+					auto newProp = dynObj->addProperty("buffers", new Property<Array<SRenderBufferMS>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>({}, {"Buffers"}, {}, {}), -1);
+					*newProp = *oldProp;
+				}
+			}
+
+			if (instanceType == "Animation") {
+				if (dynObj->hasProperty("animationChannels")) {
+					auto oldProp = dynObj->extractProperty("animationChannels");
+					auto newProp = dynObj->addProperty("animationChannels", new Property<Array<SAnimationChannel>, DisplayNameAnnotation, ResizableArray>({}, {"Animation Channels"}, {}), -1);
+					*newProp = *oldProp;
+				}
+			}
+
+			if (instanceType == "Skin") {
+				if (dynObj->hasProperty("targets")) {
+					auto oldProp = dynObj->extractProperty("targets");
+					auto newProp = dynObj->addProperty("targets", new Property<Array<SMeshNode>, DisplayNameAnnotation, ResizableArray>({}, {"Target MeshNodes"}, {}), -1);
+					*newProp = *oldProp;
+				}
+			}
+		}
+	}
+
+	// Migration from version 60 -> 2001 (RaCo 2.x)
+	// - feature level reset
+	if (deserializedIR.fileVersion > 60 && deserializedIR.fileVersion < 2001) {
+		throw std::runtime_error("non-migratable file version");
+	}
+	if (deserializedIR.fileVersion <= 60) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			// reset ProjectSettings feature level to 1
+			if (instanceType == "ProjectSettings") {
+				if (dynObj->hasProperty("featureLevel")) {
+					*dynObj->get("featureLevel") = 1;
+				}
+			}
+
+			// remove FeatureLevel annotation from Node::enabled property
+			if (instanceType == "Node" || instanceType == "MeshNode" || instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera" || instanceType == "PrefabInstance") {
+				if (dynObj->hasProperty("enabled")) {
+					auto oldProp = dynObj->extractProperty("enabled");
+					dynObj->addProperty("enabled", new Property<bool, DisplayNameAnnotation, LinkEndAnnotation>{oldProp->asBool(), DisplayNameAnnotation("Enabled"), {}}, -1);
+				}
+			}
+
+			// remove FeatureLevel annotation from PerspectiveCamera::frustumType property
+			if (instanceType == "PerspectiveCamera") {
+				if (dynObj->hasProperty("frustumType")) {
+					auto oldProp = dynObj->extractProperty("frustumType");
+					dynObj->addProperty("frustumType", new Property<int, DisplayNameAnnotation, EnumerationAnnotation>{oldProp->asInt(), {"Frustum Type"}, {core::EUserTypeEnumerations::FrustumType}}, -1);
+				}
+			}
+
+			// remove FeatureLevel annotation from RenderPass::renderOnce property
+			if (instanceType == "RenderPass") {
+				if (dynObj->hasProperty("renderOnce")) {
+					auto oldProp = dynObj->extractProperty("renderOnce");
+					dynObj->addProperty("renderOnce", new Property<bool, DisplayNameAnnotation, LinkEndAnnotation>{oldProp->asBool(), {"Render Once"}, {}}, -1);
+				}
+			}
+
+			// remove FeatureLevel annotation from LuaInterface luaModules and stdModules properties
+			if (instanceType == "LuaInterface") {
+				if (dynObj->hasProperty("luaModules")) {
+					auto oldProp = dynObj->extractProperty("luaModules");
+					auto newProp = dynObj->addProperty("luaModules", new Property<Table, DisplayNameAnnotation>{{}, DisplayNameAnnotation("Modules")}, -1);
+					*newProp = *oldProp;
+				}
+				if (dynObj->hasProperty("stdModules")) {
+					auto oldProp = dynObj->extractProperty("stdModules");
+					auto newProp = dynObj->addProperty("stdModules", new Property<LuaStandardModuleSelection, DisplayNameAnnotation>{{}, {"Standard Modules"}}, -1);
+					*newProp = *oldProp;
+				}
+			}
+
+			// reset feature level in LinkEndAnnotation of renderableTags child properties to 1
+			if (instanceType == "RenderLayer") {
+				if (dynObj->hasProperty("renderableTags")) {
+					auto& tags = dynObj->get("renderableTags")->asTable();
+					for (size_t i = 0; i < tags.size(); i++) {
+						auto anno = tags.get(i)->query<LinkEndAnnotation>();
+						anno->featureLevel_ = 1;
+					}
+				}
+			}
+		}
+	}
+}	
+	
 }  // namespace raco::serialization

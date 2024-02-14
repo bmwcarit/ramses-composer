@@ -24,9 +24,9 @@
 #include "user_types/MeshNode.h"
 #include "user_types/Node.h"
 
-using raco::core::CommandInterface;
-using raco::core::ValueHandle;
-using raco::property_browser::PropertyBrowserItem;
+using core::CommandInterface;
+using core::ValueHandle;
+using property_browser::PropertyBrowserItem;
 
 struct TestParam {
 	std::string testName;
@@ -81,59 +81,59 @@ TEST_P(PrimitiveEditorDataChangeFixture, noValueChangeRecorded_onForeignSet) {
 	delete editor;
 }
 
-using raco::user_types::Material;
-using raco::user_types::MeshNode;
-using raco::user_types::Mesh;
-using raco::user_types::Node;
+using user_types::Material;
+using user_types::MeshNode;
+using user_types::Mesh;
+using user_types::Node;
 INSTANTIATE_TEST_SUITE_P(
 	PrimitiveEditorsDataChangeTest,
 	PrimitiveEditorDataChangeFixture,
 	::testing::Values(
 		TestParam{
 			"BoolEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::BoolEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::BoolEditor(item, nullptr); },
 			Node::typeDescription.typeName,
 			{"visibility"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, false); }},
 		TestParam{
 			"DoubleEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::DoubleEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::DoubleEditor(item, nullptr); },
 			Node::typeDescription.typeName,
 			{"translation", "x"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, 5.0); }},
 		TestParam{
 			"EnumerationEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::EnumerationEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::EnumerationEditor(item, nullptr); },
 			Material::typeDescription.typeName,
 			{"options", "blendOperationColor"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, 4); }},
 		TestParam{
 			"IntEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::IntEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::IntEditor(item, nullptr); },
 			MeshNode::typeDescription.typeName,
 			{"instanceCount"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, 4); }},
 		TestParam{
 			"RefEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::RefEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::RefEditor(item, nullptr); },
 			MeshNode::typeDescription.typeName,
 			{"mesh"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, commandInterface.createObject(Mesh::typeDescription.typeName)); }},
 		TestParam{
 			"StringEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::StringEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::StringEditor(item, nullptr); },
 			Node::typeDescription.typeName,
 			{"objectName"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, std::string{"New Object Name"}); }},
 		TestParam{
 			"URIEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::URIEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::URIEditor(item, nullptr); },
 			Material::typeDescription.typeName,
 			{"uriVertex"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, std::string{"some_uri"}); }},
 		TestParam{
 			"VecNTEditor",
-			[](PropertyBrowserItem* item) -> QWidget* { return new raco::property_browser::Vec3fEditor(item, nullptr); },
+			[](PropertyBrowserItem* item) -> QWidget* { return new property_browser::Vec3fEditor(item, nullptr); },
 			Node::typeDescription.typeName,
 			{"translation"},
 			[](CommandInterface& commandInterface, const ValueHandle& handle) { commandInterface.set(handle, 5.0); },

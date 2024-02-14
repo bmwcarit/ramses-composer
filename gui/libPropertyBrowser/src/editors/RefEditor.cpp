@@ -140,7 +140,7 @@ RefEditor::RefEditor(
 	QObject::connect(currentRef_, &QLineEdit::customContextMenuRequested, this, &RefEditor::createCustomContextMenu);
 
 	QObject::connect(goToRefObjectButton_, &QPushButton::clicked, [this, item]() {
-		item->model()->Q_EMIT objectSelectionRequested(ref_->items().at(ref_->currentIndex()).objId);
+		item->model()->Q_EMIT selectionRequested(ref_->items().at(ref_->currentIndex()).objId);
 	});
 
 	QObject::connect(ref_, &PropertyBrowserRef::indexChanged, [this](auto index) {
@@ -176,7 +176,8 @@ void RefEditor::updateRef() {
 
 bool RefEditor::unexpectedEmptyReference() const noexcept {
 	return std::any_of(item_->valueHandles().begin(), item_->valueHandles().end(), [this](const core::ValueHandle& handle) {
-		return handle.asRef() == nullptr && !handle.query<core::ExpectEmptyReference>();
+		return handle.asRef() == nullptr && !(handle.query<core::ExpectEmptyReference>() || 
+		handle.parent().isProperty() && handle.parent().type() == data_storage::PrimitiveType::Array && handle.parent().query<core::ExpectEmptyReference>());
 	});
 }
 

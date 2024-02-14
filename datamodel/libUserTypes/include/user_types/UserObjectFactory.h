@@ -24,6 +24,9 @@ class DefaultResourceDirectories;
 
 namespace raco::user_types {
 
+class AnimationChannel;
+using SAnimationChannel = std::shared_ptr<AnimationChannel>;
+
 class Mesh;
 using SMesh = std::shared_ptr<Mesh>;
 
@@ -57,8 +60,8 @@ using SRenderBufferMS = std::shared_ptr<RenderBufferMS>;
 class RenderLayer;
 using SRenderLayer = std::shared_ptr<RenderLayer>;
 
-class RenderTarget;
-using SRenderTarget= std::shared_ptr<RenderTarget>;
+class RenderTargetBase;
+using SRenderTargetBase = std::shared_ptr<RenderTargetBase>;
 
 class Prefab;
 using SPrefab = std::shared_ptr<Prefab>;
@@ -84,7 +87,7 @@ struct tuple_has_type<U, std::tuple<T...>> : std::disjunction<std::is_same<U, T>
 };
 
 
-class UserObjectFactory : public raco::core::UserObjectFactoryInterface {
+class UserObjectFactory : public core::UserObjectFactoryInterface {
 public:
 	// Master list of all Property<T, Args...> types that can be deserialized.
 	// Contains
@@ -96,6 +99,11 @@ public:
 	// - this only contains properties of the current data model unlike ProxyObjectFactory::PropertyTypeMapType
 	//   which contains in addition properties contained in old data model version to make sure
 	//   these can be deserialized as input for the migration code.
+	// 
+	// Constraints:
+	// - the annotation types in a Property should always be given in alphabetical order to ensure
+	//   that we don't create multiple different types with the same semantic content.
+	//
 
 	using PropertyTypeMapType = std::tuple<
 		Property<std::string, URIAnnotation>,
@@ -183,7 +191,15 @@ public:
 		Property<SRenderBufferMS, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 		Property<SCubeMap, EngineTypeAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
 
+		// BaseObject
+		// dynamic: metadata category tables:
+		Property<Table, ReadOnlyAnnotation>,
+
+		// Animation
+		Property<Array<SAnimationChannel>, DisplayNameAnnotation, ResizableArray>,
+
 		// EditorObject
+		Property<Array<SEditorObject>, ArraySemanticAnnotation, HiddenProperty>,
 		Property<Table, ArraySemanticAnnotation, HiddenProperty>,
 		Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation>,
 		Property<std::string, HiddenProperty>,
@@ -193,7 +209,6 @@ public:
 		Property<Table, ArraySemanticAnnotation, TagContainerAnnotation, DisplayNameAnnotation>,
 		Property<Table, ArraySemanticAnnotation, HiddenProperty, TagContainerAnnotation, DisplayNameAnnotation>,
 		Property<bool, DisplayNameAnnotation, LinkEndAnnotation>,
-		Property<bool, DisplayNameAnnotation, LinkEndAnnotation, FeatureLevel>,
 		Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation>,
 
 		// MeshNode
@@ -216,8 +231,6 @@ public:
 
 		// LuaInterface
 		Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation>,
-		Property<Table, DisplayNameAnnotation, FeatureLevel>,
-		Property<LuaStandardModuleSelection, DisplayNameAnnotation, FeatureLevel>,
 
 		// BaseCamera
 		Property<CameraViewport, DisplayNameAnnotation, LinkEndAnnotation>,
@@ -226,7 +239,6 @@ public:
 		Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>,
 
 		// PerspectiveCamera
-		Property<int, DisplayNameAnnotation, EnumerationAnnotation, FeatureLevel>,
 
 		// PerspectiveFrustum
 		Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation>,
@@ -238,8 +250,9 @@ public:
 		Property<int, RangeAnnotation<int>, DisplayNameAnnotation>,
 
 		// RenderPass
-		Property<SRenderTarget, DisplayNameAnnotation, ExpectEmptyReference>,
+		Property<SRenderTargetBase, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<SBaseCamera, DisplayNameAnnotation>,
+		Property<Array<SRenderLayer>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>,
 		Property<SRenderLayer, DisplayNameAnnotation>,
 		Property<SRenderLayer, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<int, DisplayNameAnnotation>,
@@ -253,13 +266,17 @@ public:
 		Property<int, LinkEndAnnotation>,
 
 		// RenderTarget
+		Property<Array<SRenderBuffer>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>,
+		Property<Array<SRenderBufferMS>, DisplayNameAnnotation, ExpectEmptyReference, ResizableArray>,
 		Property<SRenderBuffer, DisplayNameAnnotation>,
 		Property<SRenderBuffer, DisplayNameAnnotation, ExpectEmptyReference>,
 		Property<SRenderBufferMS, DisplayNameAnnotation, ExpectEmptyReference>,
 
 		// Skin
+		Property<Array<SMeshNode>, DisplayNameAnnotation, ResizableArray>,
+		Property<Array<SNode>, DisplayNameAnnotation>,
 		Property<SMeshNode, DisplayNameAnnotation>,
-
+		
 		// Texture
 		Property<std::string, URIAnnotation, DisplayNameAnnotation>,
 
@@ -320,6 +337,10 @@ protected:
 	template<class T>
 	void addType() {
 		types_[T::typeDescription.typeName] = {T::typeDescription, createObjectInternal<T>, createValueInternal<T>};
+	}
+	template <class T>
+	void addProperty() {
+		properties_[T().typeName()] = []() { return new T(); };
 	}
 
 	UserObjectFactory();

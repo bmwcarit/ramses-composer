@@ -12,8 +12,8 @@
 #include "user_types/Node.h"
 
 TEST_F(ErrorViewTest, ErrorViewWorksWithObjectValueHandle) {
-	auto node = commandInterface.createObject(raco::user_types::Node::typeDescription.typeName);
-	commandInterface.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, {node}, "Object Error");
+	auto node = commandInterface.createObject(user_types::Node::typeDescription.typeName);
+	commandInterface.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {node}, "Object Error");
 	dataChangeDispatcher_->dispatch(recorder);
 	// no crash
 	ASSERT_EQ(commandInterface.errors().getAllErrors().size(), 1);
@@ -24,24 +24,24 @@ TEST_F(ErrorViewTest, ErrorViewWorksWithObjectValueHandle) {
 }
 
 TEST_F(ErrorViewTest, ErrorViewWorksWithPropertyValueHandle) {
-	auto node = commandInterface.createObject(raco::user_types::Node::typeDescription.typeName);
-	commandInterface.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, raco::core::ValueHandle{node}.get("rotation"), "Property Error");
+	auto node = commandInterface.createObject(user_types::Node::typeDescription.typeName);
+	commandInterface.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, core::ValueHandle{node}.get("rotation"), "Property Error");
 	dataChangeDispatcher_->dispatch(recorder);
 	// no crash
 	ASSERT_EQ(commandInterface.errors().getAllErrors().size(), 1);
 
-	commandInterface.errors().removeError(raco::core::ValueHandle{node}.get("rotation"));
+	commandInterface.errors().removeError(core::ValueHandle{node}.get("rotation"));
 	dataChangeDispatcher_->dispatch(recorder);
 	ASSERT_TRUE(commandInterface.errors().getAllErrors().empty());
 }
 
 TEST_F(ErrorViewTest, ErrorViewWorksWithProjectGlobalValueHandle) {
-	commandInterface.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, raco::core::ValueHandle{}, "Project-Global Error");
+	commandInterface.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, core::ValueHandle{}, "Project-Global Error");
 	dataChangeDispatcher_->dispatch(recorder);
 	// no crash
 	ASSERT_EQ(commandInterface.errors().getAllErrors().size(), 1);
 
-	commandInterface.errors().removeError(raco::core::ValueHandle{});
+	commandInterface.errors().removeError(core::ValueHandle{});
 	dataChangeDispatcher_->dispatch(recorder);
 	ASSERT_TRUE(commandInterface.errors().getAllErrors().empty());
 }

@@ -16,7 +16,7 @@
 
 namespace raco::common_widgets {
 
-UndoView::UndoView(raco::core::UndoStack* undoStack, raco::components::SDataChangeDispatcher dispatcher, QWidget* parent) : QWidget{parent}, undoStack_{undoStack}, sub_{dispatcher->registerOnUndoChanged([this]() { rebuild(); })} {
+UndoView::UndoView(core::UndoStack* undoStack, components::SDataChangeDispatcher dispatcher, QWidget* parent) : QWidget{parent}, undoStack_{undoStack}, sub_{dispatcher->registerOnUndoChanged([this]() { rebuild(); })} {
 	auto* layout{new NoContentMarginsLayout<QGridLayout>{this}};
 	list_ = new QListView{this};
 	model_ = new QStandardItemModel{list_};

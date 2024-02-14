@@ -18,7 +18,7 @@
 #include "user_types/Enumerations.h"
 #include "utils/FileUtils.h"
 
-#include <ramses-client-api/MipLevelData.h>
+#include <ramses/client/MipLevelData.h>
 
 #include <fstream>
 #include <vector>
@@ -55,14 +55,14 @@ CubeMapAdaptor::CubeMapAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_
 			  tagDirty();
 		  })} {}
 
-raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors* errors) {
+ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors* errors) {
 	if (*editorObject()->mipmapLevel_ < 1 || *editorObject()->mipmapLevel_ > 4) {
 		return fallbackCube();
 	}
 
 	std::vector<std::map<std::string, std::vector<unsigned char>>> rawMipDatas;
 	std::vector<ramses::CubeMipLevelData> mipDatas;
-	raco::ramses_base::PngDecodingInfo decodingInfo;
+	ramses_base::PngDecodingInfo decodingInfo;
 
 	auto mipMapsOk = true;
 	for (auto level = 1; level <= *editorObject()->mipmapLevel_; ++level) {
@@ -78,13 +78,13 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors*
 
 	for (auto& mipData : rawMipDatas) {
 		// Order: +X, -X, +Y, -Y, +Z, -Z
-		mipDatas.emplace_back(ramses::CubeMipLevelData(static_cast<uint32_t>(mipData["uriRight"].size()),
-			mipData["uriRight"].data(),
-			mipData["uriLeft"].data(),
-			mipData["uriTop"].data(),
-			mipData["uriBottom"].data(),
-			mipData["uriFront"].data(),
-			mipData["uriBack"].data()));
+		mipDatas.emplace_back(ramses::CubeMipLevelData{
+			{reinterpret_cast<std::byte*>(mipData["uriRight"].data()), reinterpret_cast<std::byte*>(mipData["uriRight"].data()) + mipData["uriRight"].size()},
+			{reinterpret_cast<std::byte*>(mipData["uriLeft"].data()), reinterpret_cast<std::byte*>(mipData["uriLeft"].data()) + mipData["uriLeft"].size()},
+			{reinterpret_cast<std::byte*>(mipData["uriTop"].data()), reinterpret_cast<std::byte*>(mipData["uriTop"].data()) + mipData["uriTop"].size()},
+			{reinterpret_cast<std::byte*>(mipData["uriBottom"].data()), reinterpret_cast<std::byte*>(mipData["uriBottom"].data()) + mipData["uriBottom"].size()},
+			{reinterpret_cast<std::byte*>(mipData["uriFront"].data()), reinterpret_cast<std::byte*>(mipData["uriFront"].data()) + mipData["uriFront"].size()},
+			{reinterpret_cast<std::byte*>(mipData["uriBack"].data()), reinterpret_cast<std::byte*>(mipData["uriBack"].data()) + mipData["uriBack"].size()}});
 	}
 
 	auto format = static_cast<user_types::ETextureFormat>((*editorObject()->textureFormat_));
@@ -101,10 +101,10 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors*
 
 	errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {editorObject()->shared_from_this()}, infoText);
 
-	return raco::ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramsesFormat, decodingInfo.width, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache);
+	return ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramsesFormat, decodingInfo.width, mipDatas, *editorObject()->generateMipmaps_, {}, {}, editorObject()->objectIDAsRamsesLogicID());
 }
 
-raco::ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
+ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
 	std::map<std::string, std::vector<unsigned char>> data;
 
 	data["uriRight"] = TextureSamplerAdaptor::getFallbackTextureData(false);
@@ -113,29 +113,30 @@ raco::ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
 	data["uriBottom"] = TextureSamplerAdaptor::getFallbackTextureData(false);
 	data["uriFront"] = TextureSamplerAdaptor::getFallbackTextureData(false);
 	data["uriBack"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-
-	ramses::CubeMipLevelData mipData = ramses::CubeMipLevelData((uint32_t)data["uriRight"].size(),
-		data["uriRight"].data(),
-		data["uriLeft"].data(),
-		data["uriTop"].data(),
-		data["uriBottom"].data(),
-		data["uriFront"].data(),
-		data["uriBack"].data());
-
-	return raco::ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, TextureSamplerAdaptor::FALLBACK_TEXTURE_SIZE_PX, 1u, &mipData, *editorObject()->generateMipmaps_, {}, ramses::ResourceCacheFlag_DoNotCache);
+	
+	std::vector<ramses::CubeMipLevelData> mipDatas;
+	mipDatas.emplace_back(ramses::CubeMipLevelData{
+		{reinterpret_cast<std::byte*>(data["uriRight"].data()), reinterpret_cast<std::byte*>(data["uriRight"].data()) + data["uriRight"].size()},
+		{reinterpret_cast<std::byte*>(data["uriLeft"].data()), reinterpret_cast<std::byte*>(data["uriLeft"].data()) + data["uriLeft"].size()},
+		{reinterpret_cast<std::byte*>(data["uriTop"].data()), reinterpret_cast<std::byte*>(data["uriTop"].data()) + data["uriTop"].size()},
+		{reinterpret_cast<std::byte*>(data["uriBottom"].data()), reinterpret_cast<std::byte*>(data["uriBottom"].data()) + data["uriBottom"].size()},
+		{reinterpret_cast<std::byte*>(data["uriFront"].data()), reinterpret_cast<std::byte*>(data["uriFront"].data()) + data["uriFront"].size()},
+		{reinterpret_cast<std::byte*>(data["uriBack"].data()), reinterpret_cast<std::byte*>(data["uriBack"].data()) + data["uriBack"].size()}});
+	
+	return ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, TextureSamplerAdaptor::FALLBACK_TEXTURE_SIZE_PX, mipDatas, *editorObject()->generateMipmaps_, {}, {}, editorObject()->objectIDAsRamsesLogicID());
 }
 
 std::string CubeMapAdaptor::createDefaultTextureDataName() {
 	return this->editorObject()->objectName() + "_TextureCube";
 }
 
-std::map<std::string, std::vector<unsigned char>> CubeMapAdaptor::generateMipmapData(core::Errors* errors, int level, raco::ramses_base::PngDecodingInfo& decodingInfo) {
+std::map<std::string, std::vector<unsigned char>> CubeMapAdaptor::generateMipmapData(core::Errors* errors, int level, ramses_base::PngDecodingInfo& decodingInfo) {
 	std::map<std::string, std::vector<unsigned char>> data;
 	auto mipmapOk = true;
 
 	for (const std::string &propName : {"uriRight", "uriLeft", "uriTop", "uriBottom", "uriFront", "uriBack", }) {
 		auto uriPropName = (level > 1) ? fmt::format("level{}{}", level, propName) : propName;
-		data[propName] = raco::ramses_base::decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo);
+		data[propName] = ramses_base::decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo);
 
 		if (data[propName].empty()) {
 			mipmapOk = false;
@@ -151,7 +152,7 @@ std::map<std::string, std::vector<unsigned char>> CubeMapAdaptor::generateMipmap
 
 bool CubeMapAdaptor::sync(core::Errors* errors) {
 	errors->removeError({editorObject()->shared_from_this()});
-	errors->removeError({editorObject()->shared_from_this(), &raco::user_types::CubeMap::textureFormat_});
+	errors->removeError({editorObject()->shared_from_this(), &user_types::CubeMap::textureFormat_});
 
 	textureData_.reset();
 
@@ -172,13 +173,15 @@ bool CubeMapAdaptor::sync(core::Errors* errors) {
 		auto magSamplMethod = static_cast<user_types::ETextureSamplingMethod>(*editorObject()->magSamplingMethod_);
 		auto ramsesMagSamplMethod = ramses_base::enumerationTranslationTextureSamplingMethod.at(magSamplMethod);
 
-		auto textureSampler = raco::ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
+		auto textureSampler = ramses_base::ramsesTextureSampler(sceneAdaptor_->scene(),
 			ramsesWrapUMode,
 			ramsesWrapVMode,
 			ramsesMinSamplMethod,
 			ramsesMagSamplMethod,
 			textureData_,
-			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));
+			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1),
+			{},
+			editorObject()->objectIDAsRamsesLogicID());
 		reset(std::move(textureSampler));
 	} else {
 		reset(nullptr);

@@ -16,9 +16,9 @@ namespace raco::ramses_adaptor {
 
 using namespace raco::ramses_base;
 
-TimerAdaptor::TimerAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::STimer timer)
+TimerAdaptor::TimerAdaptor(SceneAdaptor* sceneAdaptor, user_types::STimer timer)
 	: UserTypeObjectAdaptor{sceneAdaptor, timer},
-	  timerNode_{raco::ramses_base::ramsesTimer(&sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID())},
+	  timerNode_{ramses_base::ramsesTimer(&sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID())},
 	  dirtySubscription_{
 		  sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })},
 	  nameSubscription_{
@@ -26,11 +26,11 @@ TimerAdaptor::TimerAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::STimer 
 	  inputSubscription_{
 		  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject_, &user_types::Timer::inputs_}, [this](auto) { tagDirty(); })} {}
 
-void TimerAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void TimerAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	logicNodes.emplace_back(timerNode_.get());
 }
 
-const rlogic::Property* TimerAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
+ramses::Property* TimerAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
 	if (timerNode_) {
 		const auto& propGroup = propertyNamesVector.front();
 		if (propGroup == "inputs") {
@@ -54,7 +54,7 @@ bool TimerAdaptor::sync(core::Errors* errors) {
 	errors->removeError({editorObject_->shared_from_this()});
 
 	if (timerNode_->getName() != editorObject_->objectName()) {
-		timerNode_ = raco::ramses_base::ramsesTimer(&sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
+		timerNode_ = ramses_base::ramsesTimer(&sceneAdaptor_->logicEngine(), editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 	}
 
 	timerNode_->getInputs()->getChild("ticker_us")->set(editorObject_->inputs_->get("ticker_us")->asInt64());
@@ -73,7 +73,7 @@ std::vector<ExportInformation> TimerAdaptor::getExportInformation() const {
 		return {};
 	}
 
-	return {ExportInformation{"Timer", timerNode_->getName().data()}};
+	return {ExportInformation{"Timer", timerNode_->getName()}};
 }
 
 };	// namespace raco::ramses_adaptor

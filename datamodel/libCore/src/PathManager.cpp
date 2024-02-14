@@ -25,17 +25,24 @@
 
 namespace raco::core {
 
-using u8path = raco::utils::u8path;
+using u8path = utils::u8path;
 
 u8path PathManager::basePath_;
 u8path PathManager::appDataBasePath_;
 u8path PathManager::executableDirectory_;
+u8path PathManager::defaultResourceDirectory_;
 
 void PathManager::init(const u8path& executableDirectory, const u8path& appDataDirectory) {
 	executableDirectory_ = executableDirectory.normalized();
 	basePath_ = executableDirectory.normalized().parent_path().parent_path();
 	appDataBasePath_ = appDataDirectory.normalized();
 	migrateLegacyConfigDirectory();
+
+	defaultResourceDirectory_ = basePath_ / DEFAULT_PROJECT_SUB_DIRECTORY;
+}
+
+void PathManager::setDefaultResourceDirectory(const u8path& resourceDirectory) {
+	defaultResourceDirectory_ = resourceDirectory;
 }
 
 u8path PathManager::executableDirectory() {
@@ -55,7 +62,7 @@ u8path PathManager::legacyConfigDirectory() {
 }
 
 u8path PathManager::defaultResourceDirectory() {
-	return defaultBaseDirectory() / DEFAULT_PROJECT_SUB_DIRECTORY;
+	return defaultResourceDirectory_;
 }
 
 u8path PathManager::logFileDirectory() {
@@ -105,15 +112,15 @@ u8path PathManager::defaultProjectFallbackPath() {
 }
 
 QSettings PathManager::layoutSettings() {
-	return QSettings(raco::core::PathManager::layoutFilePath().string().c_str(), QSettings::IniFormat);
+	return QSettings(core::PathManager::layoutFilePath().string().c_str(), QSettings::IniFormat);
 }
 
 QSettings PathManager::recentFilesStoreSettings() {
-	return QSettings(raco::core::PathManager::recentFilesStorePath().string().c_str(), QSettings::IniFormat);
+	return QSettings(core::PathManager::recentFilesStorePath().string().c_str(), QSettings::IniFormat);
 }
 
 QSettings PathManager::preferenceSettings() {
-	return QSettings(raco::core::PathManager::preferenceFilePath().string().c_str(), QSettings::IniFormat);
+	return QSettings(core::PathManager::preferenceFilePath().string().c_str(), QSettings::IniFormat);
 }
 
 const u8path& PathManager::getCachedPath(FolderTypeKeys key, const u8path& fallbackPath) {

@@ -11,7 +11,6 @@
 #include "data_storage/Value.h"
 
 #include <algorithm>
-#include <cassert>
 #include <tuple>
 
 namespace raco::data_storage {
@@ -22,7 +21,7 @@ Table::Table(const Table& other, std::function<SEditorObject(SEditorObject)>* tr
 	}
 }
 
-ValueBase* Table::get(std::string const& propertyName) {
+ValueBase* Table::get(std::string_view propertyName) {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&propertyName](auto const& item) {
 			return item.first == propertyName;
@@ -30,17 +29,17 @@ ValueBase* Table::get(std::string const& propertyName) {
 	if (it != properties_.end()) {
 		return it->second.get();
 	}
-	return nullptr;
+	throw std::out_of_range("Table::get: property doesn't exist.");
 }
 
 ValueBase* Table::get(size_t index) {
 	if (index < properties_.size()) {
 		return properties_[index].second.get();
 	}
-	return nullptr;
+	throw std::out_of_range("Table::name: index out of range");
 }
 
-const ValueBase* Table::get(std::string const& propertyName) const {
+const ValueBase* Table::get(std::string_view propertyName) const {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&propertyName](auto const& item) {
 			return item.first == propertyName;
@@ -48,14 +47,14 @@ const ValueBase* Table::get(std::string const& propertyName) const {
 	if (it != properties_.end()) {
 		return it->second.get();
 	}
-	return nullptr;
+	throw std::out_of_range("Table::get: property doesn't exist.");
 }
 
 const ValueBase* Table::get(size_t index) const {
 	if (index < properties_.size()) {
 		return properties_[index].second.get();
 	}
-	return nullptr;
+	throw std::out_of_range("Table::name: index out of range");
 }
 
 
@@ -64,11 +63,13 @@ size_t Table::size() const {
 }
 
 const std::string& Table::name(size_t index) const {
-	assert(index < properties_.size());
+	if (index >= properties_.size()) {
+		throw std::out_of_range("Table::name: index out of range");
+	}
 	return properties_[index].first;
 }
 
-int Table::index(std::string const& propertyName) const {
+int Table::index(std::string_view propertyName) const {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&propertyName](auto const& item) {
 			return item.first == propertyName;
@@ -80,37 +81,43 @@ int Table::index(std::string const& propertyName) const {
 }
 
 
-ValueBase *Table::addProperty(std::string const &name, PrimitiveType type)
+ValueBase *Table::addProperty(std::string_view name, PrimitiveType type)
 {
 	properties_.emplace_back(std::make_pair(name, ValueBase::create(type)));
 	return properties_.back().second.get();
 }
 
-ValueBase* Table::addProperty(std::string const& name, ValueBase* property, int index_before) {
-	assert(index_before >= -1 && index_before <= static_cast<int>(properties_.size()));
+ValueBase* Table::addProperty(std::string_view name, ValueBase* property, int index_before) {
+	if (index_before < -1 || index_before > static_cast<int>(properties_.size())) {
+		throw std::out_of_range("Table::addProperty: index out of range");
+	}
 
 	if (index_before == -1) {
 		properties_.emplace_back(std::make_pair(name, std::unique_ptr<ValueBase>(property)));
 		return properties_.back().second.get();
 	}
 
-	return properties_.insert(properties_.begin() + index_before, std::make_pair(name, std::unique_ptr<ValueBase>(property)))->second.get();
+	return properties_.insert(properties_.begin() + index_before, std::make_pair(std::string(name), std::unique_ptr<ValueBase>(property)))->second.get();
 }
 
-ValueBase* Table::addProperty(const std::string& name, std::unique_ptr<ValueBase>&& property, int index_before) {
-	assert(index_before >= -1 && index_before <= static_cast<int>(properties_.size()));
+ValueBase* Table::addProperty(std::string_view name, std::unique_ptr<ValueBase>&& property, int index_before) {
+	if (index_before < -1 || index_before > static_cast<int>(properties_.size())) {
+		throw std::out_of_range("Table::addProperty: index out of range");
+	}
 
 	if (index_before == -1) {
 		properties_.emplace_back(std::make_pair(name, std::move(property)));
 		return properties_.back().second.get();
 	}
 
-	return properties_.insert(properties_.begin() + index_before, std::make_pair(name, std::move(property)))->second.get();
+	return properties_.insert(properties_.begin() + index_before, std::make_pair(std::string(name), std::move(property)))->second.get();
 }
 
 
 ValueBase* Table::addProperty(PrimitiveType type, int index_before) {
-	assert(index_before >= -1 && index_before <= static_cast<int>(properties_.size()));
+	if (index_before < -1 || index_before > static_cast<int>(properties_.size())) {
+		throw std::out_of_range("Table::addProperty: index out of range");
+	}
 
 	if (index_before == -1) {
 		properties_.emplace_back(std::make_pair(std::string(), ValueBase::create(type)));
@@ -125,7 +132,9 @@ ValueBase* Table::addProperty(ValueBase* property, int index_before) {
 }
 
 ValueBase* Table::addProperty(std::unique_ptr<ValueBase>&& property, int index_before) {
-	assert(index_before >= -1 && index_before <= static_cast<int>(properties_.size()));
+	if (index_before < -1 || index_before > static_cast<int>(properties_.size())) {
+		throw std::out_of_range("Table::addProperty: index out of range");
+	}
 
 	if (index_before == -1) {
 		properties_.emplace_back(std::make_pair(std::string(), std::move(property)));
@@ -136,18 +145,20 @@ ValueBase* Table::addProperty(std::unique_ptr<ValueBase>&& property, int index_b
 }
 
 void Table::removeProperty(size_t index) {
-	assert(index < properties_.size());
+	if (index >= properties_.size()) {
+		throw std::out_of_range("Table::name: index out of range");
+	}
 	properties_.erase(properties_.begin() + index);
 }
 
-void Table::removeProperty(std::string const &propertyName) {
+void Table::removeProperty(std::string_view propertyName) {
 	int ind = index(propertyName);
 	if (ind != -1) {
 		removeProperty(ind);
 	}
 }
 
-void Table::renameProperty(const std::string& oldName, const std::string& newName) {
+void Table::renameProperty(std::string_view oldName, std::string_view newName) {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&oldName](auto const& item) {
 			return item.first == oldName;
@@ -163,7 +174,7 @@ void Table::replaceProperty(size_t index, ValueBase* property) {
 	}
 }
 
-void Table::replaceProperty(const std::string& name, ValueBase* property) {
+void Table::replaceProperty(std::string_view name, ValueBase* property) {
 	int ind = index(name);
 	if (ind != -1) {
 		replaceProperty(ind, property);

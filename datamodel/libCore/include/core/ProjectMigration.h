@@ -101,10 +101,41 @@ namespace raco::serialization {
  * 53: Added the 'folderTypeKey' property to the URIAnnotation
  * 54: Added color write mask, stencilOptions, and scissorOptions properties to the BlendOptions struct type.
  *     Added ColorWriteMask, ScissorOptions, and StencilOptions struct types.
-*/
+ * 55: Conversion of user types from Table and fixed properties to Array properties
+ *     - Change EditorObject::children property from a Table to an Array<SEditorObject>
+ *     - Converted fixed number of ref properties into Arrays in
+ *       - RenderPass layers properties
+ *	     - RenderTarget buffers and bufferMSs properties
+ *     - Converted Tables into Array in
+ *       - AnimationChannel animationChannels property
+ *       - Skin targets and joints properties
+ * 56: Split RenderTarget into RenderTarget and RenderTargetMS classes and
+ *     change target property in RenderPass from RenderTarget to RenderTargetBase reference type
+ * 57: Added 'metadata' property to BaseObject
+ * 58: Removed userTags property from ProjectSettings
+ * 59: Added ResizableArray annotation to the following properties
+ *     - RenderPass layers
+ *     - RenderTarget & RenderTargeMS buffers
+ *     - Animation animationChannels
+ *     - Skin targets (but not joints)
+ * 60: Converted Link::startProp and endProp properties from Table to Array<std::string>
+ *
+ * RaCo 2.x file versions
+ * 2001: follows version 60; first RaCo 2.x file version;
+ *		 - feature level reset to Ramses 28 feature level 1: removing feature levels in
+ *         - Skin and AnchorPoint typeDescription
+ *		   - LuaInterface: luaModules, stdModules properties: removed FeatureLevel annotation
+ *		   - MeshNode::instanceCount reset LinkEndAnnotation
+ *         - Node::enabled: reset LinkEndAnnotation and removed FeatureLevel Annotation
+ *         - PerspectiveCamera::frustumType removed FeatureLevel Annotation
+ *         - RenderPass: 
+ *           reset LinkEndAnnotation in enabled, renderOrder, clearColor properties
+ *           reset LinkEndAnnotation and removed FeatureLevel annotation in renderOnce property
+ *		   - RenderLayer::renderableTags child properties: reset LinkEndAnnotation
+ */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 54;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 2001;
 
-void migrateProject(ProjectDeserializationInfoIR& deserializedIR, raco::serialization::proxy::ProxyObjectFactory& factory);
+void migrateProject(ProjectDeserializationInfoIR& deserializedIR, serialization::proxy::ProxyObjectFactory& factory);
 
 }  // namespace raco::serialization

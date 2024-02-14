@@ -25,7 +25,6 @@ namespace raco::core {
 
 namespace raco::property_browser {
 class PropertyBrowserItem;
-class TagDataCache;
 
 class TagContainerEditor : public PropertyEditor {
 	Q_OBJECT
@@ -48,7 +47,6 @@ private:
 	QPushButton* editButton_{};
 	QLabel* renderedBy_ {};
 
-	//std::unique_ptr<TagDataCache> tagDataCache_;
 	std::array<components::Subscription, 14> renderLayerSubscriptions_;
 	std::vector<components::Subscription> materialPropertySubscriptions_;
 };

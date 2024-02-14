@@ -88,21 +88,36 @@ public:
 	// Identical types are dynamically enforced at runtime.
 	void set(ValueHandle const& handle, StructBase const& value);
 
+	// Set Array property to array value.
+	// Type safety of the value array is dynamically enforced at runtime.
+	void set(ValueHandle const& handle, ArrayBase const& value);
+
 	template <typename AnnoType, typename T>
 	void set(AnnotationValueHandle<AnnoType> const& handle, T const& value);
 
-	// Add property to Table
+	// Add property to Table or Array property
+	// For an Array property the name is ignored and the type of the newProperty must be the element type of the array.
+	// For a Table property the name may be empty only if the property carries a ArraySemanticAnnotation.
 	ValueBase* addProperty(const ValueHandle& handle, std::string name, std::unique_ptr<ValueBase>&& newProperty, int indexBefore = -1);
 
-	// Remove property from Table
+	// Remove property from a Table or Array property
 	void removeProperty(const ValueHandle& handle, size_t index);
 	void removeProperty(const ValueHandle& handle, const std::string& name);
 	
-	// Remove all properties from Table
+	// Remove all properties from a Table or Array property.
 	void removeAllProperties(const ValueHandle &handle);
 
 	void swapProperties(const ValueHandle& handle, size_t index_1, size_t index_2);
 
+	/**
+	 * @brief Resize Array property and initialize new entries to empty references.
+	 * 
+	 * @param handle Handle for a property of PrimitiveType::Array
+	 * @param newSize New size for array.
+	*/
+	void resizeArray(const ValueHandle& handle, size_t newSize);
+
+	
 	// Object creation/deletion
 	SEditorObject createObject(std::string type, std::string name = std::string(), std::string id = std::string());
 
@@ -149,7 +164,7 @@ public:
 	// Import scenegraph as a hierarchy of EditorObjects and move that scenegraph root noder under parent.
 	// This includes generating Mesh resources, Nodes and MeshNodes as well as searching for already created Materials.
 	// If parent is invalid, the mesh scenegraph root node will be the project's scenegraph root node.
-	void insertAssetScenegraph(const raco::core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
+	void insertAssetScenegraph(const core::MeshScenegraph& scenegraph, const std::string& absPath, SEditorObject const& parent);
 
 	// Link operations
 	SLink addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak = false);
@@ -158,7 +173,7 @@ public:
 	void performExternalFileReload(const std::vector<SEditorObject>& objects);
 
 	// @exception ExtrefError
-	void updateExternalReferences(LoadContext& loadContext);
+	void updateExternalReferences(LoadContext& loadContext, int fileVersion = -1);
 
 	void initBrokenLinkErrors();
 
@@ -177,7 +192,7 @@ public:
 	void initLinkValidity();
 
 
-	static void generateNewObjectIDs(std::vector<raco::core::SEditorObject>& newObjects);
+	static void generateNewObjectIDs(std::vector<core::SEditorObject>& newObjects);
 
 private:
 	friend class UndoStack;
@@ -186,11 +201,11 @@ private:
 	friend class PrefabOperations;
 	friend class ExtrefOperations;
 
-	void rerootRelativePaths(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization);
-	bool extrefPasteDiscardObject(SEditorObject editorObject, raco::serialization::ObjectsDeserialization& deserialization);
-	void adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization, bool pasteAsExtref);
+	void rerootRelativePaths(std::vector<SEditorObject>& newObjects, serialization::ObjectsDeserialization& deserialization);
+	bool extrefPasteDiscardObject(SEditorObject editorObject, serialization::ObjectsDeserialization& deserialization);
+	void adjustExtrefAnnotationsForPaste(std::vector<SEditorObject>& newObjects, serialization::ObjectsDeserialization& deserialization, bool pasteAsExtref);
 	
-	static void restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, raco::serialization::ObjectsDeserialization& deserialization);
+	static void restoreReferences(const Project& project, std::vector<SEditorObject>& newObjects, serialization::ObjectsDeserialization& deserialization);
 
 	// Should only be used from the Undo system
 	bool deleteWithVolatileSideEffects(Project* project, const SEditorObjectSet& objects, Errors& errors, bool gcExternalProjectMap = true);

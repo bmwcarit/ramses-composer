@@ -13,7 +13,12 @@
   <property name="contextMenuPolicy">
    <enum>Qt::NoContextMenu</enum>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QPushButton" name="screenshotButton">
+   </widget>
+   <widget class="QPushButton" name="refreshButton">
+   </widget>
+  </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="contextMenuPolicy">
     <enum>Qt::NoContextMenu</enum>

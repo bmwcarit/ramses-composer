@@ -19,7 +19,7 @@
 namespace raco::ramses_adaptor {
 
 PerspectiveCameraAdaptor::PerspectiveCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::PerspectiveCamera> editorObject)
-	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesPerspectiveCamera(sceneAdaptor->scene())),
+	: SpatialAdaptor(sceneAdaptor, editorObject, ramses_base::ramsesPerspectiveCamera(sceneAdaptor->scene(), editorObject->objectIDAsRamsesLogicID())),
 
 	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::PerspectiveCamera::viewport_}, [this](auto) {
 		  tagDirty();
@@ -34,7 +34,7 @@ PerspectiveCameraAdaptor::~PerspectiveCameraAdaptor() {
 
 bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 	SpatialAdaptor::sync(errors);
-	if (*editorObject_->frustumType_ == static_cast<int>(raco::user_types::EFrustumType::Aspect_FieldOfView)) {
+	if (*editorObject_->frustumType_ == static_cast<int>(user_types::EFrustumType::Aspect_FieldOfView)) {
 		(*ramsesObject()).setFrustum(
 			static_cast<float>(editorObject()->frustum_->get("fieldOfView")->asDouble()), 
 			static_cast<float>(editorObject()->frustum_->get("aspectRatio")->asDouble()),
@@ -49,7 +49,7 @@ bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 			static_cast<float>(editorObject()->frustum_->get("nearPlane")->asDouble()),
 			static_cast<float>(editorObject()->frustum_->get("farPlane")->asDouble()));
 	}
-	cameraBinding_ = raco::ramses_base::ramsesCameraBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), *editorObject_->frustumType_ == static_cast<int>(raco::user_types::EFrustumType::Planes));
+	cameraBinding_ = ramses_base::ramsesCameraBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), *editorObject_->frustumType_ == static_cast<int>(user_types::EFrustumType::Planes));
 
 	BaseCameraAdaptorHelpers::sync(editorObject(), ramsesObject().get(), cameraBinding_.get(), errors);
 
@@ -62,7 +62,7 @@ bool PerspectiveCameraAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-const rlogic::Property* PerspectiveCameraAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
+ramses::Property* PerspectiveCameraAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
 	if (auto p = BaseCameraAdaptorHelpers::getProperty(cameraBinding_.get(), propertyNamesVector)) {
 		return p;
 	}
@@ -72,27 +72,27 @@ const rlogic::Property* PerspectiveCameraAdaptor::getProperty(const std::vector<
 	return SpatialAdaptor::getProperty(propertyNamesVector);
 }
 
-void PerspectiveCameraAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void PerspectiveCameraAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	SpatialAdaptor::getLogicNodes(logicNodes);
 	logicNodes.push_back(cameraBinding_.get());
 }
 
-raco::ramses_base::RamsesCameraBinding PerspectiveCameraAdaptor::cameraBinding() {
+ramses_base::RamsesCameraBinding PerspectiveCameraAdaptor::cameraBinding() {
 	return cameraBinding_;
 }
 
 std::vector<ExportInformation> PerspectiveCameraAdaptor::getExportInformation() const {
 	auto result = std::vector<ExportInformation>();
 	if (getRamsesObjectPointer() != nullptr) {
-		result.emplace_back(ramses::ERamsesObjectType_PerspectiveCamera, ramsesObject().getName());
+		result.emplace_back(ramses::ERamsesObjectType::PerspectiveCamera, ramsesObject().getName());
 	}
 
 	if (nodeBinding() != nullptr) {
-		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+		result.emplace_back("NodeBinding", nodeBinding()->getName());
 	}
 
 	if (cameraBinding_) {
-		result.emplace_back("CameraBinding", cameraBinding_->getName().data());
+		result.emplace_back("CameraBinding", cameraBinding_->getName());
 	}
 
 	return result;

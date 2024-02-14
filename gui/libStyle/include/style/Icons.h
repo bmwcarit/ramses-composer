@@ -79,6 +79,8 @@ public:
 	const QIcon visibilityDisabled{makeDisabled(":visibilityDisabledIcon")};
 	const QIcon visibilityOn{makeDisabled(":visibilityOnIcon")};
 	const QIcon visibilityOff{makeDisabled(":visibilityOffIcon")};
+	const QIcon abstractSceneView{":abstractSceneViewIcon"};
+	const QIcon prefabLookup{":prefabLookupIcon"};
 
 	static const Icons &instance();
 	static QIcon makeDisabled(const QString &name);

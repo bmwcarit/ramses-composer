@@ -11,12 +11,12 @@
 #include "ObjectTreeViewMultipleModels_test.h"
 
 using namespace raco::core;
-using namespace raco::object_tree::model;
+using namespace object_tree::model;
 using namespace raco::user_types;
 
 
 TEST_F(ObjectTreeViewMultipleModelsTest, MoveTopLevelNodeUnderPrefab) {
-	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
+	auto node = createNodes(user_types::Node::typeDescription.typeName, {"Node"}).front();
 	moveScenegraphChildren({node}, prefab_);
 
 	auto *prefabNode = prefabModel_.indexToTreeNode(prefabModel_.index(0, 0, {}));
@@ -28,7 +28,7 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MoveTopLevelNodeUnderPrefab) {
 }
 
 TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToTopLevel) {
-	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
+	auto node = createNodes(user_types::Node::typeDescription.typeName, {"Node"}).front();
 	moveScenegraphChildren({node}, prefab_);
 	moveScenegraphChildren({node}, nullptr);
 
@@ -42,8 +42,8 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToTopLevel) {
 
 
 TEST_F(ObjectTreeViewMultipleModelsTest, MoveChildNodeUnderPrefab) {
-	auto nodeParent = createNodes(raco::user_types::Node::typeDescription.typeName, {"NodeParent"}).front();
-	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
+	auto nodeParent = createNodes(user_types::Node::typeDescription.typeName, {"NodeParent"}).front();
+	auto node = createNodes(user_types::Node::typeDescription.typeName, {"Node"}).front();
 	moveScenegraphChildren({node}, nodeParent);
 	moveScenegraphChildren({node}, prefab_);
 
@@ -59,8 +59,8 @@ TEST_F(ObjectTreeViewMultipleModelsTest, MoveChildNodeUnderPrefab) {
 }
 
 TEST_F(ObjectTreeViewMultipleModelsTest, MovePrefabNodeToNodeParent) {
-	auto nodeParent = createNodes(raco::user_types::Node::typeDescription.typeName, {"NodeParent"}).front();
-	auto node = createNodes(raco::user_types::Node::typeDescription.typeName, {"Node"}).front();
+	auto nodeParent = createNodes(user_types::Node::typeDescription.typeName, {"NodeParent"}).front();
+	auto node = createNodes(user_types::Node::typeDescription.typeName, {"Node"}).front();
 	moveScenegraphChildren({node}, prefab_);
 	moveScenegraphChildren({node}, nodeParent);
 

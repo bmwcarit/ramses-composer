@@ -12,7 +12,7 @@
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "user_types/TextureExternal.h"
 
-#include <ramses-client-api/TextureSamplerExternal.h>
+#include <ramses/client/TextureSamplerExternal.h>
 
 #include <memory>
 

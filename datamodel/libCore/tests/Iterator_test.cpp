@@ -41,7 +41,7 @@ TEST(IteratorTest, ObjectTree) {
 	}
 	EXPECT_EQ(children, std::vector<SEditorObject>({node}));
 
-	ValueBase* prop = node->children_->addProperty(PrimitiveType::Ref);
+	ValueBase* prop = node->children_->addProperty();
 	*prop = child_a;
 
 	children.clear();
@@ -76,8 +76,9 @@ TEST(IteratorTest, Property) {
 	std::vector<ValueHandle> refHandles{
 		{node, {"objectID"}},
 		{node, {"objectName"}},
-		{node, {"userTags"}},
 		{node, {"children"}},
+		{node, {"userTags"}},
+		{node, {"metaData"}},
 		{node, {"tags"}},
 		{node, {"visibility"}},
 		{node, {"enabled"}},
@@ -92,7 +93,8 @@ TEST(IteratorTest, Property) {
 		{node, {"scaling"}},
 		{node, {"scaling", "x"}},
 		{node, {"scaling", "y"}},
-		{node, {"scaling", "z"}}};
+		{node, {"scaling", "z"}},
+		{node, {"editorVisibility"}}};
 	EXPECT_EQ(handles, refHandles);
 
 	handles.clear();

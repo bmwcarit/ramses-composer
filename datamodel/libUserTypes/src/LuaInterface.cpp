@@ -50,6 +50,7 @@ void LuaInterface::updateFromExternalFile(BaseContext& context) {
 }
 
 void LuaInterface::syncLuaScript(BaseContext& context, bool syncModules) {
+	// TODO(error) try to avoid unnecessary error item updates
 	context.errors().removeAll({shared_from_this()});
 
 	PropertyInterfaceList inputs{};
@@ -59,21 +60,17 @@ void LuaInterface::syncLuaScript(BaseContext& context, bool syncModules) {
 
 		std::string error{};
 		bool success = true;
-		
-		if (context.project()->featureLevel() >= 5) {
-			if (syncModules) {
-				success = syncLuaModules(context, ValueHandle{shared_from_this(), &LuaInterface::luaModules_}, luaInterface, cachedModuleRefs_, error);
-			}
 
-			if (success) {
-				success = checkLuaModules(ValueHandle{shared_from_this(), &LuaInterface::luaModules_}, context.errors());
-			}
+		if (syncModules) {
+			success = syncLuaModules(context, ValueHandle{shared_from_this(), &LuaInterface::luaModules_}, luaInterface, cachedModuleRefs_, error);
+		}
 
-			if (success) {
-				success = context.engineInterface().parseLuaInterface(luaInterface, stdModules_->activeModules(), *luaModules_, true, inputs, error);
-			}
-		} else {
-			success = context.engineInterface().parseLuaInterface(luaInterface, {}, *luaModules_, false, inputs, error);
+		if (success) {
+			success = checkLuaModules(ValueHandle{shared_from_this(), &LuaInterface::luaModules_}, context.errors());
+		}
+
+		if (success) {
+			success = context.engineInterface().parseLuaInterface(luaInterface, stdModules_->activeModules(), *luaModules_, inputs, error);
 		}
 
 		if (!success) {

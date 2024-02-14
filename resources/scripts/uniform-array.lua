@@ -1,5 +1,6 @@
 
 function interface(INOUT)
+	INOUT.bvec = Type:Array(3, Type:Bool())
 	INOUT.ivec = Type:Array(2, Type:Int32())
 	INOUT.fvec = Type:Array(5, Type:Float())
 	

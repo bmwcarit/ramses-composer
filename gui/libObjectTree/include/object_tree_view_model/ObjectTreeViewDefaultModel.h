@@ -44,7 +44,8 @@ class ObjectTreeViewDefaultModel : public QAbstractItemModel {
 public:
 	enum ColumnIndex {
 		COLUMNINDEX_NAME,
-		COLUMNINDEX_VISIBILITY,
+		COLUMNINDEX_PREVIEW_VISIBILITY,
+		COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY,
 		COLUMNINDEX_TYPE,
 		// invisible column that is used for ID-based filtering in the tree views
 		COLUMNINDEX_ID,
@@ -54,7 +55,7 @@ public:
 		COLUMNINDEX_COLUMN_COUNT
 	};
 
-	ObjectTreeViewDefaultModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string> &allowedCreatableUserTypes,
+	ObjectTreeViewDefaultModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string> &allowedCreatableUserTypes,
 		bool groupExternalReferences = false, bool groupByType = false);
 	
 	int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -83,8 +84,10 @@ public:
 
 	core::UserObjectFactoryInterface* objectFactory() const;
 	core::Project* project() const;
-
-	std::set<std::string> externalProjectPathsAtIndices(const QModelIndexList& indices);
+	
+	std::string objectIdAtIndex(const QModelIndex& index) const;
+	std::string externalProjectPathAtIndex(const QModelIndex& index) const;
+	std::set<std::string> externalProjectPathsAtIndices(const QModelIndexList& indices) const;
 
 	void setAcceptableFileExtensions(const QStringList& extensions);
 	void setAcceptLuaModules(bool accept);
@@ -129,6 +132,10 @@ public Q_SLOTS:
 	void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex);
 	void deleteUnusedResources();
 
+	void isolateNodes(const QModelIndexList& indices);
+	void hideNodes(const QModelIndexList& indices);
+	void showAllNodes();
+
 protected:
 	components::SDataChangeDispatcher dispatcher_;
 	std::unique_ptr<ObjectTreeNode> invisibleRootNode_;
@@ -141,6 +148,7 @@ protected:
 	components::Subscription objectNameSubscription_;
 	components::Subscription visibilitySubscription_;
 	components::Subscription enabledSubscription_;
+	components::Subscription editorVisibilitySubscription_;
 	components::Subscription childrenSubscription_;
 	components::Subscription rootOrderSubscription_;
 	components::Subscription lifeCycleSubscription_;
@@ -161,38 +169,39 @@ protected:
 	void updateTreeIndexes();
 
 	QVariant getNodeIcon(ObjectTreeNode* treeNode) const;
-	QVariant getVisibilityIcon(ObjectTreeNode* treeNode) const;
+	QVariant getPreviewVisibilityIcon(ObjectTreeNode* treeNode) const;
+	QVariant getAbstractViewVisibilityIcon(ObjectTreeNode* treeNode) const;
 
 	static inline constexpr const char* OBJECT_EDITOR_ID_MIME_TYPE = "application/editorobject.id";
 
 	const std::map<std::string, QIcon> typeIconMap{
-		{"PerspectiveCamera", raco::style::Icons::instance().typeCamera},
-		{"OrthographicCamera", raco::style::Icons::instance().typeCamera},
-		{"Texture", raco::style::Icons::instance().typeTexture},
-		{"TextureExternal", raco::style::Icons::instance().typeTexture},
-		{"CubeMap", raco::style::Icons::instance().typeCubemap},
-		{"LuaScript", raco::style::Icons::instance().typeLuaScript},
-		{"LuaInterface", raco::style::Icons::instance().typeLuaInterface},
-		{"Material", raco::style::Icons::instance().typeMaterial},
-		{"Mesh", raco::style::Icons::instance().typeMesh},
-		{"MeshNode", raco::style::Icons::instance().typeMesh},
-		{"Node", raco::style::Icons::instance().typeNode},
-		{"Prefab", raco::style::Icons::instance().typePrefabInternal},
-		{"ExtrefPrefab", raco::style::Icons::instance().typePrefabExternal},
-		{"PrefabInstance", raco::style::Icons::instance().typePrefabInstance},
-		{"LuaScriptModule", raco::style::Icons::instance().typeLuaScriptModule},
-		{"AnimationChannel", raco::style::Icons::instance().typeAnimationChannel},
-		{"Animation", raco::style::Icons::instance().typeAnimation},
-		{"Timer", raco::style::Icons::instance().typeTimer},
-		{"AnchorPoint", raco::style::Icons::instance().typeAnchorPoint},
-		{"BlitPass", raco::style::Icons::instance().typeBlitPass},
-		{"Skin", raco::style::Icons::instance().typeSkin}
+		{"PerspectiveCamera", style::Icons::instance().typeCamera},
+		{"OrthographicCamera", style::Icons::instance().typeCamera},
+		{"Texture", style::Icons::instance().typeTexture},
+		{"TextureExternal", style::Icons::instance().typeTexture},
+		{"CubeMap", style::Icons::instance().typeCubemap},
+		{"LuaScript", style::Icons::instance().typeLuaScript},
+		{"LuaInterface", style::Icons::instance().typeLuaInterface},
+		{"Material", style::Icons::instance().typeMaterial},
+		{"Mesh", style::Icons::instance().typeMesh},
+		{"MeshNode", style::Icons::instance().typeMesh},
+		{"Node", style::Icons::instance().typeNode},
+		{"Prefab", style::Icons::instance().typePrefabInternal},
+		{"ExtrefPrefab", style::Icons::instance().typePrefabExternal},
+		{"PrefabInstance", style::Icons::instance().typePrefabInstance},
+		{"LuaScriptModule", style::Icons::instance().typeLuaScriptModule},
+		{"AnimationChannel", style::Icons::instance().typeAnimationChannel},
+		{"Animation", style::Icons::instance().typeAnimation},
+		{"Timer", style::Icons::instance().typeTimer},
+		{"AnchorPoint", style::Icons::instance().typeAnchorPoint},
+		{"BlitPass", style::Icons::instance().typeBlitPass},
+		{"Skin", style::Icons::instance().typeSkin}
 	};
 
 	const std::map<VisibilityState, QIcon> visibilityIconMap_{
-		{VisibilityState::Disabled, raco::style::Icons::instance().visibilityDisabled},
-		{VisibilityState::Visible, raco::style::Icons::instance().visibilityOn},
-		{VisibilityState::Invisible, raco::style::Icons::instance().visibilityOff},
+		{VisibilityState::Disabled, style::Icons::instance().visibilityDisabled},
+		{VisibilityState::Visible, style::Icons::instance().visibilityOn},
+		{VisibilityState::Invisible, style::Icons::instance().visibilityOff},
 	};
 
 	QStringList acceptableFileExtensions_;

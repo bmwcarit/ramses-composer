@@ -10,8 +10,8 @@
 #pragma once
 
 #include "core/Link.h"
-#include <ramses-logic/LogicEngine.h>
-#include <ramses-logic/Property.h>
+#include <ramses/client/logic/LogicEngine.h>
+#include <ramses/client/logic/Property.h>
 #include "components/DataChangeDispatcher.h"
 #include <vector>
 
@@ -22,11 +22,11 @@ class SceneAdaptor;
 class LinkAdaptor {
 public:
 	struct EngineLink {
-		const rlogic::Property* origin;
-		const rlogic::Property* dest;
+		ramses::Property* origin;
+		ramses::Property* dest;
 	};
 	using UniqueEngineLink = std::unique_ptr<EngineLink, std::function<void(EngineLink*)>>;
-	using SLink = raco::core::SLink;
+	using SLink = core::SLink;
 
 	explicit LinkAdaptor(const core::LinkDescriptor& link, SceneAdaptor* sceneAdaptor);
 	~LinkAdaptor() {}

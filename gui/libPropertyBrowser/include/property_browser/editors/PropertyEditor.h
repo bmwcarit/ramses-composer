@@ -14,43 +14,24 @@
 #include <QWidget>
 #include <iostream>
 
+class QMenu;
+
 namespace raco::property_browser {
 
 class PropertyBrowserItem;
 
 class PropertyEditor : public QWidget {
 public:
-	explicit PropertyEditor(
-		PropertyBrowserItem* item,
-		QWidget* parent = nullptr);
-
-	bool canCopyValue();
-	bool canPasteValue();
-
-	void pasteValue();
-	virtual void copyValue();
+	explicit PropertyEditor(PropertyBrowserItem* item, QWidget* parent = nullptr);
+	bool eventFilter(QObject* watched, QEvent* event) override;
+	virtual void displayCopyContextMenu();
 
 protected:
+	bool canDisplayCopyDialog = false;
 	PropertyBrowserItem* item_;
+	QMenu* propertyMenu_{nullptr};
 
-	// Made protected to enable unit testing:
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value);
-
-private:
-	static void pasteInt(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteInt64(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteDouble(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteBool(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteString(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteRef(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteStruct(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pasteTable(PropertyBrowserItem* item, core::ValueBase* value);
-
-	static bool isVector(PropertyBrowserItem* item);
-	static bool isVector(core::ValueBase* value);
-	template <typename T>
-	static void pasteVector(PropertyBrowserItem* item, core::ValueBase* value);
-	static void pastePropertyOfSameType(PropertyBrowserItem* item, data_storage::ValueBase* value);
+	virtual void menuCopyAction();
 };
 
 }  // namespace raco::property_browser

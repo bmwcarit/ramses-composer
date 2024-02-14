@@ -18,7 +18,7 @@ class ObjectTreeViewPrefabModel : public ObjectTreeViewDefaultModel {
 	Q_OBJECT
 
 public:
-	ObjectTreeViewPrefabModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
+	ObjectTreeViewPrefabModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
 
 	QVariant data(const QModelIndex& index, int role) const override;
 };

@@ -28,13 +28,14 @@ class UndoHelpers {
 public:
 	static void updateSingleValue(const ValueBase *src, ValueBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
 
-	static void callOnBeforeRemoveReferenceHandler(raco::data_storage::Table *dest, const size_t &index, raco::core::ValueHandle &destHandle);
+	static void callOnBeforeRemoveReferenceHandler(ReflectionInterface *dest, const size_t &index, core::ValueHandle &destHandle);
 
 	static void updateEditorObject(const EditorObject *src, SEditorObject dest, translateRefFunc translateRef, excludePropertyPredicateFunc excludeIf, UserObjectFactoryInterface &factory, DataChangeRecorder *outChanges, bool invokeHandler, bool updateObjectAnnotations = true);
 	static void updateMissingTableProperties(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
 
 private:
 	static void updateTableAsArray(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
+	static void updateArray(const ArrayBase *src, ArrayBase *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandle);
 	static void updateStruct(const ClassWithReflectedMembers *src, ClassWithReflectedMembers *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
 	static void updateTableByName(const Table *src, Table *dest, ValueHandle destHandle, translateRefFunc translateRef, DataChangeRecorder *outChanges, bool invokeHandler);
 };
@@ -73,6 +74,8 @@ public:
 	 * @param abort Signals that the composite operation failed.
 	*/
 	void endCompositeCommand(const std::string &description, bool abort = false);
+
+	int depth() const;
 
 	// Number of entries on the undo stack
 	size_t size() const;

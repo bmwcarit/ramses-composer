@@ -14,7 +14,7 @@
 #include "components/DataChangeDispatcher.h"
 #include "user_types/LuaScriptModule.h"
 
-#include <ramses-logic/LuaScript.h>
+#include <ramses/client/logic/LuaScript.h>
 
 #include <memory>
 #include <vector>
@@ -23,7 +23,7 @@ namespace raco::ramses_adaptor {
 
 class LuaScriptModuleAdaptor : public UserTypeObjectAdaptor<user_types::LuaScriptModule> {
 public:
-	explicit LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SLuaScriptModule editorObject);
+	explicit LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, user_types::SLuaScriptModule editorObject);
 
 	bool sync(core::Errors* errors) override;
 	std::vector<ExportInformation> getExportInformation() const override;

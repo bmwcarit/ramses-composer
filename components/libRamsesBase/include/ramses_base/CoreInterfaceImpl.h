@@ -19,33 +19,27 @@
 namespace raco::ramses_base {
 class BaseEngineBackend;
 
-class CoreInterfaceImpl final : public raco::core::EngineInterface {
+class CoreInterfaceImpl final : public core::EngineInterface {
 public:
 	explicit CoreInterfaceImpl(BaseEngineBackend* backend);
-	bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, raco::core::PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& error) override;
-	bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, raco::core::PropertyInterfaceList& outInputs, raco::core::PropertyInterfaceList& outOutputs, std::string& error) override;
-	bool parseLuaInterface(const std::string& interfaceText, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, bool useModules, PropertyInterfaceList& outInputs, std::string& outError) override;
-	bool parseLuaScriptModule(raco::core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) override;
+	bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, core::PropertyInterfaceList& outUniforms, core::PropertyInterfaceList& outAttributes, std::string& error) override;
+	bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const data_storage::Table& modules, core::PropertyInterfaceList& outInputs, core::PropertyInterfaceList& outOutputs, std::string& error) override;
+	bool parseLuaInterface(const std::string& interfaceText, const std::vector<std::string>& stdModules, const data_storage::Table& modules, PropertyInterfaceList& outInputs, std::string& outError) override;
+	bool parseLuaScriptModule(core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) override;
 	bool extractLuaDependencies(const std::string& luaScript, std::vector<std::string>& moduleList, std::string& outError) override;
-	std::string luaNameForPrimitiveType(raco::core::EnginePrimitive engineType) const override;
+	std::string luaNameForPrimitiveType(core::EnginePrimitive engineType) const override;
 
-	void removeModuleFromCache(raco::core::SCEditorObject object) override;
+	void removeModuleFromCache(core::SCEditorObject object) override;
 	void clearModuleCache() override;
 
 private:
-	std::tuple<rlogic::LuaConfig, bool> createFullLuaConfig(const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules);
+	ramses::LogicEngine* logicEngine();
 
-	typedef std::unique_ptr<rlogic::LogicEngine> UniqueLogicEngine;
+	std::tuple<ramses::LuaConfig, bool> createFullLuaConfig(const std::vector<std::string>& stdModules, const data_storage::Table& modules);
 
 	BaseEngineBackend* backend_;
 
-	// Second LogicEngine instance only used for LuaScript/Interface/Module parsing.
-	// This LogicEngine will always be at feature level 1 which is OK as long as we only use it for 
-	// script parsing and the LogicEngine doesn't introduce changes to the script parsing at higher
-	// feature levels.
-	UniqueLogicEngine logicEngine_;
-
-	std::map<raco::core::SCEditorObject, ramses_base::RamsesLuaModule> cachedModules_;
+	std::map<core::SCEditorObject, ramses_base::RamsesLuaModule> cachedModules_;
 };
 
 }  // namespace raco::ramses_base

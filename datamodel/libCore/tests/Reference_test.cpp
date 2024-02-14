@@ -9,6 +9,7 @@
  */
 #include "core/BasicTypes.h"
 #include "data_storage/Value.h"
+#include "data_storage/Array.h"
 
 #include "testing/TestUtil.h"
 
@@ -193,3 +194,39 @@ TEST(ReferenceTest, TypeEquality) {
 	EXPECT_TRUE(ValueBase::classesEqual(pnodehidden, *pnodehidden_clone));
 }
 
+
+TEST(ReferenceTest, Array) {
+	SNode node{new Node("node")};
+	SNode node_b{new Node("node b")};
+	SMeshNode meshnode{new MeshNode("meshnode")};
+	SMeshNode meshnode_b{new MeshNode("meshnode b")};
+	SMesh mesh{new Mesh("mesh")};
+
+	Value<Array<SNode>> anode;
+	Value<Array<SNode>> anode_2;
+	Value<Array<SMeshNode>> ameshnode;
+
+	auto node_elem_1 = anode->addProperty();
+	*node_elem_1 = node;
+	EXPECT_EQ(anode->size(), 1);
+	EXPECT_EQ((*anode)[0]->asRef(), node);
+	
+	*node_elem_1 = meshnode;
+
+	auto meshnode_elem_1 = ameshnode->addProperty();
+	*meshnode_elem_1 = meshnode;
+	
+	// Assigning wrong type:
+	// statically known wrong type -> doesn't compile:
+	//*meshnode_elem_1 = node;
+	// ValueBase::operator=
+	EXPECT_THROW(*static_cast<ValueBase*>(meshnode_elem_1) = node, std::runtime_error);
+
+
+	EXPECT_EQ(anode_2->size(), 0);
+	anode_2 = anode;
+	EXPECT_EQ(anode_2->size(), 1);
+	EXPECT_EQ((*anode_2)[0]->asRef(), meshnode);
+
+	EXPECT_THROW(ameshnode = anode, std::runtime_error);
+}

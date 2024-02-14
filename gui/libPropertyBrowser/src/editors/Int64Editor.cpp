@@ -78,6 +78,11 @@ Int64Editor::Int64Editor(
 
 	stack_->setCurrentWidget(slider);
 	layout->addWidget(stack_);
+
+	// eventFilter to capture right click for showing copy dialog.
+	installEventFilter(this);
+	canDisplayCopyDialog = true;
+	setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
 }
 
 void Int64Editor::setValueToControls(Int64Slider* slider, Int64SpinBox* spinBox) const {

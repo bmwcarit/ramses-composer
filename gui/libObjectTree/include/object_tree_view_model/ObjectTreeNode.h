@@ -56,7 +56,9 @@ public:
 	std::string getTypeName() const;
 	std::string getExternalProjectName() const;
 	std::string getExternalProjectPath() const;
-	VisibilityState getVisibility() const;
+	VisibilityState getPreviewVisibility() const;
+	VisibilityState getAbstractViewVisibility() const;
+
 	void setBelongsToExternalProject(const std::string &path, const std::string &name);
 
 protected:

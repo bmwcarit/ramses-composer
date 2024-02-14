@@ -106,23 +106,23 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_up) {
 	commandInterface.set({ start, {"inputs", "string"} }, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
-	auto endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto startEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto midEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
+	auto endEngineObject = select<ramses::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject == nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 0.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 0);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{ 0 });
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), false);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string());
@@ -135,23 +135,23 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_up) {
 
 	dispatch();
 
-	startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
-	endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
+	startEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	midEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
+	endEngineObject = select<ramses::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 1.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 2.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 3.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 4.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 2.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 3.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 4.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 5);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{ 6 });
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 7);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 8);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 9);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 7);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 8);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 9);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string("asdf"));
@@ -178,23 +178,23 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_same) {
 	commandInterface.set({ start, {"inputs", "string"} }, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
-	auto endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto startEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto midEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
+	auto endEngineObject = select<ramses::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject == nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 0.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 0);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{ 0 });
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), false);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string());
@@ -207,24 +207,24 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_same) {
 
 	dispatch();
 
-	startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
-	endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
+	startEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	midEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
+	endEngineObject = select<ramses::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 1.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 2.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 3.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 4.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 2.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 3.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 4.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 5);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{ 6 });
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 7);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 8);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 9);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 7);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 8);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 9);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string("asdf"));
@@ -243,10 +243,10 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_down) {
 	commandInterface.set({ start_b, {"inputs", "float"} }, 2.0);
 
 	dispatch();
-	auto startAEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_a").c_str());
-	auto startBEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_b").c_str());
-	auto midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
-	auto endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto startAEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start_a").c_str());
+	auto startBEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start_b").c_str());
+	auto midEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
+	auto endEngineObject = select<ramses::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startAEngineObject == nullptr);
 	ASSERT_TRUE(startBEngineObject == nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);
@@ -258,10 +258,10 @@ TEST_F(LuaLinkOptimizationFixture, link_opt_level_down) {
 
 	dispatch();
 
-	startAEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_a").c_str());
-	startBEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start_b").c_str());
-	midEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
-	endEngineObject = select<rlogic::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
+	startAEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start_a").c_str());
+	startBEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start_b").c_str());
+	midEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("mid").c_str());
+	endEngineObject = select<ramses::LuaScript>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startAEngineObject != nullptr);
 	ASSERT_TRUE(startBEngineObject != nullptr);
 	ASSERT_TRUE(midEngineObject == nullptr);

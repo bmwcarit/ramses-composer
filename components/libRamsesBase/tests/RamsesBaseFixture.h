@@ -14,12 +14,12 @@
 #include "testing/RacoBaseTest.h"
 #include "testing/TestEnvironmentCore.h"
 #include "user_types/UserObjectFactory.h"
-#include <ramses-client-api/SceneObjectIterator.h>
-#include <ramses-logic/LogicEngine.h>
+#include <ramses/client/SceneObjectIterator.h>
+#include <ramses/client/logic/LogicEngine.h>
 #include <type_traits>
 
 template <typename T = ramses::RamsesObject, bool StrictTypeMatch = true>
-inline std::vector<T*> select(const ramses::Scene& scene, ramses::ERamsesObjectType type = ramses::ERamsesObjectType_RamsesObject) {
+inline std::vector<T*> select(const ramses::Scene& scene, ramses::ERamsesObjectType type = ramses::ERamsesObjectType::RamsesObject) {
 	std::vector<T*> result{};
 	auto it = ramses::SceneObjectIterator{scene, type};
 	while (auto object = it.getNext()) {
@@ -35,13 +35,13 @@ inline std::vector<T*> select(const ramses::Scene& scene, ramses::ERamsesObjectT
 }
 
 template <typename T>
-inline const T* select(const rlogic::LogicEngine& engine, const char* name) {
-	return engine.findByName<T>(name);
+inline const T* select(const ramses::LogicEngine& engine, const char* name) {
+	return engine.findObject<T>(name);
 }
 
 template <typename T = ramses::RamsesObject>
 inline const T* select(const ramses::Scene& scene, const char* name) {
-	auto result = static_cast<const T*>(scene.findObjectByName(name));
+	auto result = scene.findObject<T>(name);
 	EXPECT_TRUE(result != nullptr);
 	return result;
 }
@@ -53,15 +53,15 @@ inline std::vector<ramses::RamsesObject*> select_all(const ramses::Scene& scene)
 template <class BaseClass = ::testing::Test>
 class RamsesBaseFixture : public TestEnvironmentCoreT<BaseClass> {
 public:
-	using DataChangeDispatcher = raco::components::DataChangeDispatcher;
+	using DataChangeDispatcher = components::DataChangeDispatcher;
 
-	RamsesBaseFixture(bool optimizeForExport = false, rlogic::EFeatureLevel featureLevel = raco::ramses_base::BaseEngineBackend::maxFeatureLevel)
-		: TestEnvironmentCoreT<BaseClass>(&raco::user_types::UserObjectFactory::getInstance(), featureLevel),
+	RamsesBaseFixture(bool optimizeForExport = false, ramses::EFeatureLevel featureLevel = ramses_base::BaseEngineBackend::maxFeatureLevel)
+		: TestEnvironmentCoreT<BaseClass>(&user_types::UserObjectFactory::getInstance(), featureLevel),
 		  dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()},
-		  sceneContext{&this->backend.client(), &this->backend.logicEngine(), ramses::sceneId_t{1u}, &this->project, dataChangeDispatcher, &this->errors, optimizeForExport} {}
+		  sceneContext{&this->backend.client(), ramses::sceneId_t{1u}, &this->project, dataChangeDispatcher, &this->errors, optimizeForExport} {}
 
 	std::shared_ptr<DataChangeDispatcher> dataChangeDispatcher;
-	raco::ramses_adaptor::SceneAdaptor sceneContext;
+	ramses_adaptor::SceneAdaptor sceneContext;
 
 	bool dispatch() {
 		auto dataChanges = this->recorder.release();
@@ -73,9 +73,9 @@ public:
 
 protected:
 	template <typename RamsesType>
-	bool isRamsesNameInArray(const char* name, const std::vector<RamsesType*>& arrayOfArrays) {
+	bool isRamsesNameInArray(std::string_view name, const std::vector<RamsesType*>& arrayOfArrays) {
 		return std::find_if(arrayOfArrays.begin(), arrayOfArrays.end(), [name](RamsesType* array) {
-			return std::strcmp(array->getName(), name) == 0;
+			return array->getName() == name;
 		}) != arrayOfArrays.end();
 	};
 };

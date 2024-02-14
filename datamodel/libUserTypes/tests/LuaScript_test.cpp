@@ -79,7 +79,7 @@ TEST_F(LuaScriptTest, URI_sanitizeSlashes) {
 #endif
 	commandInterface.set({script, {"uri"}}, unsanitizedPath);
 
-	ASSERT_EQ(raco::core::ValueHandle(script, {"uri"}).asString(), sanitizedPath);
+	ASSERT_EQ(core::ValueHandle(script, {"uri"}).asString(), sanitizedPath);
 }
 
 TEST_F(LuaScriptTest, URI_sanitizeNetworkPath) {
@@ -93,7 +93,7 @@ TEST_F(LuaScriptTest, URI_sanitizeNetworkPath) {
 #endif
 	commandInterface.set({script, {"uri"}}, unsanitizedPath);
 
-	ASSERT_EQ(raco::core::ValueHandle(script, {"uri"}).asString(), sanitizedPath);
+	ASSERT_EQ(core::ValueHandle(script, {"uri"}).asString(), sanitizedPath);
 }
 
 TEST_F(LuaScriptTest, inputs_are_correctly_built) {
@@ -325,7 +325,7 @@ TEST_F(LuaScriptTest, modules_in_uri_are_rejected) {
 	commandInterface.set(s.get("uri"), test_path().append("scripts/moduleDefinition.lua").string());
 
 	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
-	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError({newScript}).level(), core::ErrorLevel::ERROR);
 	ASSERT_EQ(newScript->luaModules_->size(), 0);
 }
 
@@ -420,21 +420,21 @@ return anothermodule
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
-	commandInterface.set({modules[0], &raco::user_types::LuaScriptModule::uri_}, moduleFile1);
+	commandInterface.set({modules[0], &user_types::LuaScriptModule::uri_}, moduleFile1);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
-	commandInterface.set({modules[1], &raco::user_types::LuaScriptModule::uri_}, moduleFile2);
+	commandInterface.set({modules[1], &user_types::LuaScriptModule::uri_}, moduleFile2);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("module")));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("anothermodule")));
 
-	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, moduleFile3);
+	commandInterface.set({modules[2], &user_types::LuaScriptModule::uri_}, moduleFile3);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
@@ -445,7 +445,7 @@ return anothermodule
 	ASSERT_EQ(newScript->inputs_->propertyNames(), std::vector<std::string>({"aa", "abc", "ff", "za", "zz"}));
 	ASSERT_EQ(newScript->outputs_->propertyNames(), std::vector<std::string>({"aa", "e", "zz", "zzz"}));
 
-	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, std::string());
+	commandInterface.set({modules[2], &user_types::LuaScriptModule::uri_}, std::string());
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
@@ -517,9 +517,9 @@ return anothermodule
 	commandInterface.set(s.get("luaModules").get("coalas"), modules[0]);
 	commandInterface.set(s.get("luaModules").get("module"), modules[1]);
 	commandInterface.set(s.get("luaModules").get("anothermodule"), modules[2]);
-	commandInterface.set({modules[0], &raco::user_types::LuaScriptModule::uri_}, moduleFile1);
-	commandInterface.set({modules[1], &raco::user_types::LuaScriptModule::uri_}, moduleFile2);
-	commandInterface.set({modules[2], &raco::user_types::LuaScriptModule::uri_}, moduleFile3);
+	commandInterface.set({modules[0], &user_types::LuaScriptModule::uri_}, moduleFile1);
+	commandInterface.set({modules[1], &user_types::LuaScriptModule::uri_}, moduleFile2);
+	commandInterface.set({modules[2], &user_types::LuaScriptModule::uri_}, moduleFile3);
 
 	commandInterface.set(s.get("uri"), scriptFile2);
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
@@ -587,7 +587,7 @@ local coalaModule = {}
 return coalaModule
 )");
 
-	commandInterface.set(raco::core::ValueHandle{module, &raco::user_types::LuaScriptModule::uri_}, moduleFile);
+	commandInterface.set(core::ValueHandle{module, &user_types::LuaScriptModule::uri_}, moduleFile);
 	commandInterface.set(scriptUri, scriptFile);
 	ASSERT_TRUE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(newScript->luaModules_->propertyNames().empty());
@@ -665,13 +665,13 @@ return what
 )");
 
 	commandInterface.set(scriptUri, scriptFile);
-	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(core::ValueHandle{moduleInvalid, &user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
-	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), core::ErrorLevel::ERROR);
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).message(), "Invalid LuaScriptModule 'invalid' assigned.");
 
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
@@ -701,18 +701,18 @@ return what
 )");
 
 	commandInterface.set(scriptUri, scriptFile);
-	commandInterface.set(raco::core::ValueHandle{moduleInvalid1, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
-	commandInterface.set(raco::core::ValueHandle{moduleInvalid2, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(core::ValueHandle{moduleInvalid1, &user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(core::ValueHandle{moduleInvalid2, &user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid1);
 	commandInterface.set(s.get("luaModules").get("test"), moduleInvalid2);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("coalas")));
-	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).level(), core::ErrorLevel::ERROR);
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("coalas")).message(), "Invalid LuaScriptModule 'invalid1' assigned.");
 
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
-	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("test")).level(), raco::core::ErrorLevel::ERROR);
+	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("test")).level(), core::ErrorLevel::ERROR);
 	ASSERT_EQ(commandInterface.errors().getError(s.get("luaModules").get("test")).message(), "Invalid LuaScriptModule 'invalid2' assigned.");
 }
 
@@ -746,8 +746,8 @@ return coalaModule
 )");
 
 	commandInterface.set(scriptUri, scriptFile);
-	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleValidFile);
-	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(core::ValueHandle{moduleValid, &user_types::LuaScriptModule::uri_}, moduleValidFile);
+	commandInterface.set(core::ValueHandle{moduleInvalid, &user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleValid);
 	commandInterface.set(s.get("luaModules").get("test"), moduleValid);
@@ -764,7 +764,7 @@ return coalaModule
 	ASSERT_FALSE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
 
 	// make invalid by changing URIs
-	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(core::ValueHandle{moduleValid, &user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 
 	ASSERT_FALSE(commandInterface.errors().hasError({newScript}));
 	ASSERT_TRUE(commandInterface.errors().hasError(s.get("luaModules").get("test")));
@@ -801,8 +801,8 @@ return coalaModule
 )");
 
 	commandInterface.set(scriptUri, scriptFile);
-	commandInterface.set(raco::core::ValueHandle{moduleValid, &raco::user_types::LuaScriptModule::uri_}, moduleValidFile);
-	commandInterface.set(raco::core::ValueHandle{moduleInvalid, &raco::user_types::LuaScriptModule::uri_}, moduleInvalidFile);
+	commandInterface.set(core::ValueHandle{moduleValid, &user_types::LuaScriptModule::uri_}, moduleValidFile);
+	commandInterface.set(core::ValueHandle{moduleInvalid, &user_types::LuaScriptModule::uri_}, moduleInvalidFile);
 
 	commandInterface.set(s.get("luaModules").get("coalas"), moduleInvalid);
 	commandInterface.set(s.get("luaModules").get("test"), moduleValid);

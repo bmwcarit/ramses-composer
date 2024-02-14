@@ -11,8 +11,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 raco_find_qt_components(Core)
 
 add_library(libLodepng
-    ../../third_party/ramses-logic/external/ramses/external/lodepng/lodepng.h
-    ../../third_party/ramses-logic/external/ramses/external/lodepng/lodepng.cpp
+    ../../third_party/ramses/external/lodepng/lodepng.h
+    ../../third_party/ramses/external/lodepng/lodepng.cpp
 )
 
 set_target_properties(libLodepng PROPERTIES FOLDER third_party/libLodepng)
@@ -23,10 +23,19 @@ add_library(libRamsesBase
     include/ramses_base/CoreInterfaceImpl.h src/ramses_base/CoreInterfaceImpl.cpp
     include/ramses_base/EnumerationTranslations.h src/ramses_base/EnumerationTranslations.cpp
     include/ramses_base/HeadlessEngineBackend.h src/ramses_base/HeadlessEngineBackend.cpp
-    include/ramses_base/LogicEngine.h
     include/ramses_base/RamsesHandles.h
     include/ramses_base/RamsesFormatter.h
     include/ramses_base/Utils.h src/ramses_base/Utils.cpp
+
+    include/ramses_adaptor/AbstractSceneAdaptor.h src/ramses_adaptor/AbstractSceneAdaptor.cpp
+    include/ramses_adaptor/AbstractMeshAdaptor.h src/ramses_adaptor/AbstractMeshAdaptor.cpp
+    include/ramses_adaptor/AbstractMeshNodeAdaptor.h src/ramses_adaptor/AbstractMeshNodeAdaptor.cpp
+    include/ramses_adaptor/AbstractNodeAdaptor.h src/ramses_adaptor/AbstractNodeAdaptor.cpp
+    include/ramses_adaptor/AbstractObjectAdaptor.h src/ramses_adaptor/AbstractObjectAdaptor.cpp
+    include/ramses_adaptor/ClearDepthObject.h src/ramses_adaptor/ClearDepthObject.cpp
+    include/ramses_adaptor/InfiniteGrid.h src/ramses_adaptor/InfiniteGrid.cpp
+    include/ramses_adaptor/CameraController.h src/ramses_adaptor/CameraController.cpp
+    include/ramses_adaptor/Gizmos.h src/ramses_adaptor/Gizmos.cpp
 
     include/ramses_adaptor/AnchorPointAdaptor.h src/ramses_adaptor/AnchorPointAdaptor.cpp
     include/ramses_adaptor/AnimationAdaptor.h src/ramses_adaptor/AnimationAdaptor.cpp
@@ -35,6 +44,7 @@ add_library(libRamsesBase
     include/ramses_adaptor/BuildOptions.h
     include/ramses_adaptor/BlitPassAdaptor.h src/ramses_adaptor/BlitPassAdaptor.cpp
     include/ramses_adaptor/CubeMapAdaptor.h src/ramses_adaptor/CubeMapAdaptor.cpp
+    include/ramses_adaptor/DefaultRamsesObjects.h src/ramses_adaptor/DefaultRamsesObjects.cpp
     include/ramses_adaptor/Factories.h src/ramses_adaptor/Factories.cpp
     include/ramses_adaptor/LinkAdaptor.h src/ramses_adaptor/LinkAdaptor.cpp
     include/ramses_adaptor/LuaInterfaceAdaptor.h src/ramses_adaptor/LuaInterfaceAdaptor.cpp
@@ -65,23 +75,25 @@ target_include_directories(libRamsesBase
     PUBLIC
         include/
     PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/ramses-logic/external/ramses/external/lodepng>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/ramses/external/lodepng>
 )
 enable_warnings_as_errors(libRamsesBase)
+
+set_target_properties(libRamsesBase PROPERTIES AUTOMOC TRUE)
 
 # At this point we don't know yet if we will link against ramses-client-only or ramses with renderer
 # thus we link against the ramses interfaces and ramses-logic-static which also links against ramses interfaces (see CMakeLists.txt in third_party folder)
 # The actuall dynamic ramses lib is linked by the headless executable (client-only) and preview widget (with renderer).
 target_link_libraries(libRamsesBase
 PUBLIC
-    ramses-client-api
-    ramses-framework-api
-    ramses-logic-api
+    raco::ramses-lib-client-only
     raco::UserTypes
     raco::Components
+    Qt5::Core
 PRIVATE
     raco::Utils
     raco::LogSystem
+    raco::MeshLoader
     libLodepng
 )
 add_library(raco::RamsesBase ALIAS libRamsesBase)

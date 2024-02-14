@@ -12,6 +12,8 @@ set(LIB_NAME libObjectTree)
 raco_find_qt_components(Widgets)
 
 add_library(libObjectTree 
+    include/object_tree_view/FilterResult.h
+    src/object_tree_view/ObjectTreeFilter.h src/object_tree_view/ObjectTreeFilter.cpp
     include/object_tree_view/ObjectTreeDock.h src/object_tree_view/ObjectTreeDock.cpp
     include/object_tree_view/ObjectTreeDockManager.h src/object_tree_view/ObjectTreeDockManager.cpp
     include/object_tree_view/ObjectTreeView.h src/object_tree_view/ObjectTreeView.cpp
@@ -28,6 +30,8 @@ add_library(libObjectTree
 target_include_directories(libObjectTree
     PUBLIC
         include/
+    PRIVATE
+        src/
 )
 
 enable_warnings_as_errors(libObjectTree)
@@ -44,6 +48,8 @@ target_link_libraries(libObjectTree
         raco::Style
         Qt5::Widgets
         qtadvanceddocking
+    PRIVATE
+		Boost::spirit
 )
 
 add_library(raco::ObjectTree ALIAS libObjectTree)

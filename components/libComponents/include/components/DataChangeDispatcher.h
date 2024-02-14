@@ -129,8 +129,8 @@ public:
 	// This will regisiter a callback which is invoked by dispatch() after all other changes have been dispatched.
 	Subscription registerOnAfterDispatch(Callback callback);
 
-	void registerBulkChangeCallback(BulkChangeCallback callback);
-	void resetBulkChangeCallback();
+	void addBulkChangeCallback(uint64_t ID, BulkChangeCallback callback);
+	void removeBulkChangeCallback(uint64_t ID);
 
 	void dispatch(const core::DataChangeRecorder& dataChanges);
 
@@ -179,7 +179,7 @@ private:
 
 	std::set<std::weak_ptr<UndoListener>, std::owner_less<std::weak_ptr<UndoListener>>> onAfterDispatchListeners_{};
 
-	BulkChangeCallback bulkChangeCallback_;
+	std::map<uint64_t, BulkChangeCallback> bulkChangeCallbacks_;
 };
 
 using SDataChangeDispatcher = std::shared_ptr<DataChangeDispatcher>;

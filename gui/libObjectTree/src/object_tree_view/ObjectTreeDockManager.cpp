@@ -45,6 +45,10 @@ void ObjectTreeDockManager::setFocusedDock(ObjectTreeDock* dock) {
 }
 
 void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& objectID) {
+	selectObjectAndPropertyAcrossAllTreeDocks(objectID, {});
+}
+
+void ObjectTreeDockManager::selectObjectAndPropertyAcrossAllTreeDocks(const QString& objectID, const QString& objectProperty) {
 	// always favor the first created active tree view of any type (e.g. the first "Scene Graph", the first "Resources")
 	std::set<QString> viewTitles;
 
@@ -53,6 +57,7 @@ void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& object
 			auto viewTitle = activeTreeView->getViewTitle();
 
 			if (activeTreeView->canProgrammaticallyGoToObject() && viewTitles.count(viewTitle) == 0) {
+				activeTreeView->setPropertyToSelect(objectProperty);
 				activeTreeView->selectObject(objectID);
 				activeTreeView->expandAllParentsOfObject(objectID);
 				viewTitles.insert(viewTitle);
@@ -90,7 +95,7 @@ bool ObjectTreeDockManager::docksContainObject(const QString& objID) const {
 std::vector<core::SEditorObject> ObjectTreeDockManager::getSelection() const {
 	auto activeDockWhichHasSelection = getActiveDockWithSelection();
 	if (activeDockWhichHasSelection == nullptr || activeDockWhichHasSelection->windowTitle().toStdString() == "Project Browser") {
-		return std::vector<raco::core::SEditorObject>();
+		return std::vector<core::SEditorObject>();
 	}
 
 	return activeDockWhichHasSelection->getActiveTreeView()->getSortedSelectedEditorObjects();
@@ -103,12 +108,12 @@ void ObjectTreeDockManager::connectTreeDockSignals(ObjectTreeDock* dock) {
 		Q_EMIT selectionCleared();
 	});
 
-	QObject::connect(dock, &ObjectTreeDock::newObjectTreeItemsSelected, [this](auto& objects, auto* selectionSrcDock) {
+	QObject::connect(dock, &ObjectTreeDock::newObjectTreeItemsSelected, [this](auto& objects, auto* selectionSrcDock, auto& property) {
 		setFocusedDock(selectionSrcDock);
 		if (objects.empty()) {
 			Q_EMIT selectionCleared();
 		} else {
-			Q_EMIT newObjectTreeItemsSelected(objects);
+			Q_EMIT newObjectTreeItemsSelected(objects, property);
 		}
 	});
 	QObject::connect(dock, &ObjectTreeDock::dockSelectionFocusRequested, this, &ObjectTreeDockManager::setFocusedDock);

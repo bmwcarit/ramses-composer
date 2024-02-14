@@ -12,7 +12,9 @@
 #include "core/CoreAnnotations.h"
 #include "core/BasicAnnotations.h"
 #include "core/BasicTypes.h"
+#include "core/UserObjectFactoryInterface.h"
 #include "data_storage/Value.h"
+#include "user_types/UserObjectFactory.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -38,10 +40,10 @@ using SDynamicEditorObject = std::shared_ptr<DynamicEditorObject>;
 
 namespace raco::serialization {
 
-using raco::data_storage::ClassWithReflectedMembers;
-using raco::data_storage::PrimitiveType;
-using raco::data_storage::ReflectionInterface;
-using raco::data_storage::ValueBase;
+using data_storage::ClassWithReflectedMembers;
+using data_storage::PrimitiveType;
+using data_storage::ReflectionInterface;
+using data_storage::ValueBase;
 using SReflectionInterface = std::shared_ptr<ReflectionInterface>;
 
 struct ExternalProjectInfo {
@@ -51,22 +53,22 @@ struct ExternalProjectInfo {
 
 bool operator==(const ExternalProjectInfo& lhs, const ExternalProjectInfo& rhs);
 
-std::string serializeProperty(const raco::core::Project& project, const raco::data_storage::ValueBase& value);
+std::string serializeProperty(const core::Project& project, const data_storage::ValueBase& value);
 
-std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo = true);
+std::string serializeObjects(const std::vector<core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo = true);
 
 QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& fileVersions, int featureLevel, const std::vector<SReflectionInterface>& instances, const std::vector<SReflectionInterface>& links, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap);
 
-using References = std::map<raco::data_storage::ValueBase*, std::string>;
+using References = std::map<data_storage::ValueBase*, std::string>;
 struct ObjectDeserialization {
-	raco::core::SEditorObject object;
+	core::SEditorObject object;
 	References references;
 };
 struct ObjectsDeserialization {
-	std::vector<raco::core::SEditorObject> objects;
+	std::vector<core::SEditorObject> objects;
 	// object ids of the top-level (no parents) objects
 	std::set<std::string> rootObjectIDs;
-	std::vector<raco::core::SLink> links;
+	std::vector<core::SLink> links;
 	References references;
 	int featureLevel;
 	std::string originFolder;
@@ -100,7 +102,6 @@ inline bool operator==(const DeserializedVersion& lhVersion, const DeserializedV
 struct ProjectVersionInfo {
 	DeserializedVersion raCoVersion;
 	DeserializedVersion ramsesVersion;
-	DeserializedVersion ramsesLogicEngineVersion;
 };
 
 template <class SharedPtrEditorObjectType, class SharedPtrLinkType>
@@ -119,21 +120,27 @@ struct GenericProjectDeserializationInfo {
 	static constexpr int NO_VERSION = -1;
 };
 
-using ProjectDeserializationInfo = GenericProjectDeserializationInfo<raco::core::SEditorObject, raco::core::SLink>;
-using ProjectDeserializationInfoIR = GenericProjectDeserializationInfo<raco::serialization::proxy::SDynamicEditorObject, raco::core::SLink>;
+using ProjectDeserializationInfo = GenericProjectDeserializationInfo<core::SEditorObject, core::SLink>;
+using ProjectDeserializationInfoIR = GenericProjectDeserializationInfo<serialization::proxy::SDynamicEditorObject, core::SLink>;
 
 
 int deserializeFileVersion(const QJsonDocument& document);
+
+/**
+ * @brief Returns the migrated feature level from a Json document for a .rca project file.
+ * 
+ * The return value includes the feature level reset at major versions.
+*/
 int deserializeFeatureLevel(const QJsonDocument& document);
 ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document);
 
-std::unique_ptr<ValueBase> deserializeProperty(const raco::core::Project& project, const std::string& json);
+std::unique_ptr<ValueBase> deserializeProperty(const core::Project& project, const std::string& json);
 
-std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo = true);
+std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo = true, core::UserObjectFactoryInterface& factory = user_types::UserObjectFactory::getInstance());
 
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& jsonDocument, const std::string& filename);
 
-std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMap();
+std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMap(core::UserObjectFactoryInterface& objectFactory = user_types::UserObjectFactory::getInstance());
 std::map<std::string, std::map<std::string, std::string>> makeStructPropertyMap();
 std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePropertyMap(const QVariant& container);
 
@@ -143,7 +150,7 @@ namespace test_helpers {
 
 std::string serializeObject(const SReflectionInterface& object, const std::string& projectPath = {});
 
-ObjectDeserialization deserializeObject(const std::string& json);
+ObjectDeserialization deserializeObject(const std::string& json, core::UserObjectFactoryInterface& objectFactory = user_types::UserObjectFactory::getInstance());
 
 
 }  // namespace test_helpers

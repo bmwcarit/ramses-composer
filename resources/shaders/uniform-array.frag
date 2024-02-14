@@ -4,6 +4,7 @@ precision mediump float;
 
 uniform float scalar;
 
+uniform bool bvec[3];
 uniform int ivec[2];
 uniform float fvec[5];
 

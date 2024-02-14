@@ -537,7 +537,7 @@ TEST_F(PrefabTest, delete_prefab_with_node_with_meshnode_while_instance_exists) 
 }
 
 TEST_F(PrefabTest, update_inst_from_prefab_after_remove_link) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	ramses_base::HeadlessEngineBackend backend;
 	raco::application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
@@ -661,7 +661,7 @@ end
 	// Use context here to perform prefab update only after both operations are complete
 	context.moveScenegraphChildren({meshnode}, prefab);
 	context.deleteObjects({node});
-	raco::core::PrefabOperations::globalPrefabUpdate(context);
+	core::PrefabOperations::globalPrefabUpdate(context);
 
 	EXPECT_EQ(inst->children_->size(), 2);
 	inst_meshnode = raco::select<MeshNode>(inst->children_->asVector<SEditorObject>());
@@ -922,7 +922,7 @@ TEST_F(PrefabTest, ref_invalid_outside_to_rw_inside_prefab_instance) {
 	auto meshnode_inst = inst->children_->asVector<SEditorObject>().front();
 	ASSERT_TRUE(meshnode_inst != nullptr);
 
-	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*cmd.project(), ValueHandle(skin, &Skin::targets_)[0]);
+	auto refTargets = core::Queries::findAllValidReferenceTargets(*cmd.project(), ValueHandle(skin, &Skin::targets_)[0]);
 	ASSERT_TRUE(refTargets.empty());
 }
 
@@ -933,17 +933,17 @@ TEST_F(PrefabTest, objects_in_prefab_not_refable_outside_prefab) {
 	commandInterface.moveScenegraphChildren({camera}, prefab);
 	auto renderPass = create<RenderPass>("pass");
 
-	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &raco::user_types::RenderPass::camera_});
+	auto refTargets = core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &user_types::RenderPass::camera_});
 	ASSERT_TRUE(refTargets.empty());
 
-	ASSERT_THROW(commandInterface.set({renderPass, &raco::user_types::RenderPass::camera_}, camera), std::runtime_error);
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
+	ASSERT_THROW(commandInterface.set({renderPass, &user_types::RenderPass::camera_}, camera), std::runtime_error);
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), SEditorObject());
 
 	auto inst = create<PrefabInstance>("inst");
 	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
 	auto cameraInst = inst->children_->asVector<SEditorObject>().front();
 
-	refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &raco::user_types::RenderPass::camera_});
+	refTargets = core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &user_types::RenderPass::camera_});
 	ASSERT_EQ(refTargets, std::vector<SEditorObject>{cameraInst});
 }
 
@@ -952,21 +952,21 @@ TEST_F(PrefabTest, objects_in_prefab_not_refable_when_moved_into_prefab) {
 	auto camera = create<PerspectiveCamera>("camera");
 
 	auto renderPass = create<RenderPass>("pass");
-	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &raco::user_types::RenderPass::camera_});
+	auto refTargets = core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {renderPass, &user_types::RenderPass::camera_});
 	ASSERT_EQ(refTargets, std::vector<SEditorObject>{camera});
 
-	commandInterface.set({renderPass, &raco::user_types::RenderPass::camera_}, camera);
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), camera);
+	commandInterface.set({renderPass, &user_types::RenderPass::camera_}, camera);
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), camera);
 
 	commandInterface.moveScenegraphChildren({camera}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), SEditorObject());
 
 	auto inst = create<PrefabInstance>("inst");
 	commandInterface.set({inst, &PrefabInstance::template_}, prefab);
 	auto cameraInst = inst->children_->asVector<SEditorObject>().front();
-	commandInterface.set({renderPass, &raco::user_types::RenderPass::camera_}, cameraInst);
+	commandInterface.set({renderPass, &user_types::RenderPass::camera_}, cameraInst);
 
-	ASSERT_EQ(raco::core::ValueHandle(renderPass, &raco::user_types::RenderPass::camera_).asRef(), cameraInst);
+	ASSERT_EQ(core::ValueHandle(renderPass, &user_types::RenderPass::camera_).asRef(), cameraInst);
 }
 
 
@@ -976,18 +976,18 @@ TEST_F(PrefabTest, objects_outside_prefab_refable_inside_prefab) {
 	commandInterface.moveScenegraphChildren({meshNode}, prefab);
 
 	auto mesh = create<Mesh>("mesh");
-	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {meshNode, &raco::user_types::MeshNode::mesh_});
+	auto refTargets = core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {meshNode, &user_types::MeshNode::mesh_});
 	ASSERT_EQ(refTargets, std::vector<SEditorObject>{mesh});
 
-	commandInterface.set({meshNode, &raco::user_types::MeshNode::mesh_}, mesh);
-	ASSERT_EQ(raco::core::ValueHandle(meshNode, &raco::user_types::MeshNode::mesh_).asRef(), mesh);
+	commandInterface.set({meshNode, &user_types::MeshNode::mesh_}, mesh);
+	ASSERT_EQ(core::ValueHandle(meshNode, &user_types::MeshNode::mesh_).asRef(), mesh);
 }
 
 TEST_F(PrefabTest, prefab_is_valid_ref_target_for_prefabinstance) {
 	auto prefab = create<Prefab>("prefab");
 	auto inst = create<PrefabInstance>("inst");
 
-	auto refTargets = raco::core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {inst, &raco::user_types::PrefabInstance::template_});
+	auto refTargets = core::Queries::findAllValidReferenceTargets(*commandInterface.project(), {inst, &user_types::PrefabInstance::template_});
 	ASSERT_EQ(refTargets, std::vector<SEditorObject>{prefab});
 }
 
@@ -1011,7 +1011,7 @@ TEST_F(PrefabTest, link_strong_to_weak_transition) {
 	// Use context here to perform prefab update only after both operations are complete
 	context.removeLink({end, {"inputs", "float"}});
 	context.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
-	raco::core::PrefabOperations::globalPrefabUpdate(context);
+	core::PrefabOperations::globalPrefabUpdate(context);
 
 	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, true},
 		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, true, true}});
@@ -1041,7 +1041,7 @@ TEST_F(PrefabTest, link_strong_valid_to_weak_invalid_transition) {
 	context.removeLink({end, {"inputs", "float"}});
 	context.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}}, true);
 	context.set(ValueHandle{end, {"uri"}}, (test_path() / "scripts/SimpleScript.lua").string());
-	raco::core::PrefabOperations::globalPrefabUpdate(context);
+	core::PrefabOperations::globalPrefabUpdate(context);
 
 	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, false, true},
 		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, false, true}});
@@ -1052,7 +1052,7 @@ TEST_F(PrefabTest, link_strong_valid_to_weak_invalid_transition) {
 
 
 TEST_F(PrefabTest, prefab_update_from_optimized_saved_file) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	ramses_base::HeadlessEngineBackend backend;
 
 	std::string root_id;
 	std::string node_id;
@@ -1119,4 +1119,20 @@ TEST_F(PrefabTest, prefab_update_from_optimized_saved_file) {
 		EXPECT_EQ(count_id_func(project, node_id), 1);
 		EXPECT_EQ(count_id_func(project, lua_id), 1);
 	}
+}
+
+
+TEST_F(PrefabTest, set_volatile_not_propagated) {
+	auto prefab = create<Prefab>("prefab");
+	auto node = create<Node>("node", prefab);
+	auto inst = create_prefabInstance("inst", prefab);
+	auto inst_node = inst->children_->get(0)->asRef()->as<user_types::Node>();
+
+	EXPECT_EQ(*node->editorVisibility_, true);
+	EXPECT_EQ(*inst_node->editorVisibility_, true);
+
+	commandInterface.set({node, &Node::editorVisibility_}, false);
+
+	EXPECT_EQ(*node->editorVisibility_, false);
+	EXPECT_EQ(*inst_node->editorVisibility_, true);
 }

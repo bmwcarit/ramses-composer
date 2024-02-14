@@ -24,7 +24,7 @@ class Model;
 
 namespace raco::mesh_loader {
 
-class glTFMesh : public raco::core::MeshData {
+class glTFMesh : public core::MeshData {
 public:
 	glTFMesh(const tinygltf::Model &scene, const core::MeshScenegraph &sceneGraph, const core::MeshDescriptor &descriptor);
 
@@ -46,6 +46,8 @@ public:
 	uint32_t attribElementCount(int attribute_index) const override;
 	VertexAttribDataType attribDataType(int attribute_index) const override;
 	const char* attribBuffer(int attribute_index) const override;
+
+	const std::vector<glm::vec3>& triangleBuffer() const override;
 
 private:
 	struct Attribute {
@@ -78,6 +80,8 @@ private:
 	std::vector<std::string> materials_;
 
 	std::map<std::string, std::string> metadata_;
+
+	std::vector<glm::vec3> triangleBuffer_;
 };
 
 }  // namespace raco::mesh_loader

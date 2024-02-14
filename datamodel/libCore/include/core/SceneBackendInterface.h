@@ -19,7 +19,7 @@ namespace raco::core {
 	public:
 		struct SceneItemDesc {
 		public:
-			SceneItemDesc(const std::string& type, const std::string& name, int parentIndex) : type_(type), objectName_(name), parentIndex_(parentIndex) {}
+			SceneItemDesc(const std::string& type, std::string_view name, int parentIndex) : type_(type), objectName_(name), parentIndex_(parentIndex) {}
 
 			std::string type_;
 			std::string objectName_;

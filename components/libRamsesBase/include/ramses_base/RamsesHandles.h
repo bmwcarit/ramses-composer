@@ -12,54 +12,54 @@
 
 #include "log_system/log.h"
 #include "ramses_base/Utils.h"
-#include "ramses_base/LogicEngineFormatter.h"
 
-#include <ramses-utils.h>
+#include <ramses/client/ramses-utils.h>
 
 #include <memory>
-#include <ramses-client-api/Appearance.h>
-#include <ramses-client-api/ArrayResource.h>
-#include <ramses-client-api/AttributeInput.h>
-#include <ramses-client-api/BlitPass.h>
-#include <ramses-client-api/Camera.h>
-#include <ramses-client-api/Effect.h>
-#include <ramses-client-api/EffectDescription.h>
-#include <ramses-client-api/GeometryBinding.h>
-#include <ramses-client-api/MeshNode.h>
-#include <ramses-client-api/Node.h>
-#include <ramses-client-api/OrthographicCamera.h>
-#include <ramses-client-api/PerspectiveCamera.h>
-#include <ramses-client-api/RamsesClient.h>
-#include <ramses-client-api/RenderBuffer.h>
-#include <ramses-client-api/RenderGroup.h>
-#include <ramses-client-api/RenderPass.h>
-#include <ramses-client-api/RenderTarget.h>
-#include <ramses-client-api/RenderTargetDescription.h>
-#include <ramses-client-api/Scene.h>
-#include <ramses-client-api/Texture2D.h>
-#include <ramses-client-api/TextureCube.h>
-#include <ramses-client-api/TextureSampler.h>
-#include <ramses-client-api/TextureSamplerMS.h>
-#include <ramses-client-api/TextureSamplerExternal.h>
-#include <ramses-client-api/UniformInput.h>
+#include <ramses/client/Appearance.h>
+#include <ramses/client/ArrayResource.h>
+#include <ramses/client/AttributeInput.h>
+#include <ramses/client/BlitPass.h>
+#include <ramses/client/Camera.h>
+#include <ramses/client/Effect.h>
+#include <ramses/client/EffectDescription.h>
+#include <ramses/client/Geometry.h>
+#include <ramses/client/MeshNode.h>
+#include <ramses/client/Node.h>
+#include <ramses/client/OrthographicCamera.h>
+#include <ramses/client/PerspectiveCamera.h>
+#include <ramses/client/PickableObject.h>
+#include <ramses/client/RamsesClient.h>
+#include <ramses/client/RenderBuffer.h>
+#include <ramses/client/RenderGroup.h>
+#include <ramses/client/RenderPass.h>
+#include <ramses/client/RenderTarget.h>
+#include <ramses/client/RenderTargetDescription.h>
+#include <ramses/client/Scene.h>
+#include <ramses/client/Texture2D.h>
+#include <ramses/client/TextureCube.h>
+#include <ramses/client/TextureSampler.h>
+#include <ramses/client/TextureSamplerMS.h>
+#include <ramses/client/TextureSamplerExternal.h>
+#include <ramses/client/UniformInput.h>
 
-#include <ramses-logic/AnchorPoint.h>
-#include <ramses-logic/AnimationNode.h>
-#include <ramses-logic/DataArray.h>
-#include <ramses-logic/LogicEngine.h>
-#include <ramses-logic/LuaScript.h>
-#include <ramses-logic/LuaInterface.h>
-#include <ramses-logic/LuaModule.h>
-#include <ramses-logic/TimerNode.h>
-#include <ramses-logic/RamsesAppearanceBinding.h>
-#include <ramses-logic/RamsesCameraBinding.h>
-#include <ramses-logic/RamsesMeshNodeBinding.h>
-#include <ramses-logic/RamsesNodeBinding.h>
-#include <ramses-logic/RamsesRenderPassBinding.h>
-#include <ramses-logic/RamsesRenderGroupBinding.h>
-#include <ramses-logic/RamsesRenderGroupBindingElements.h>
-#include <ramses-logic/AnimationNodeConfig.h>
-#include <ramses-logic/SkinBinding.h>
+#include <ramses/client/logic/AnchorPoint.h>
+#include <ramses/client/logic/AnimationNode.h>
+#include <ramses/client/logic/DataArray.h>
+#include <ramses/client/logic/LogicEngine.h>
+#include <ramses/client/logic/LuaScript.h>
+#include <ramses/client/logic/LuaInterface.h>
+#include <ramses/client/logic/LuaModule.h>
+#include <ramses/client/logic/TimerNode.h>
+#include <ramses/client/logic/AppearanceBinding.h>
+#include <ramses/client/logic/CameraBinding.h>
+#include <ramses/client/logic/MeshNodeBinding.h>
+#include <ramses/client/logic/NodeBinding.h>
+#include <ramses/client/logic/RenderPassBinding.h>
+#include <ramses/client/logic/RenderGroupBinding.h>
+#include <ramses/client/logic/RenderGroupBindingElements.h>
+#include <ramses/client/logic/AnimationNodeConfig.h>
+#include <ramses/client/logic/SkinBinding.h>
 
 #include <map>
 #include <stdexcept>
@@ -77,45 +77,48 @@ using RamsesRenderTarget = RamsesHandle<ramses::RenderTarget>;
 using RamsesTextureSampler = RamsesHandle<ramses::TextureSampler>;
 using RamsesTextureSamplerMS = RamsesHandle<ramses::TextureSamplerMS>;
 using RamsesTextureSamplerExternal = RamsesHandle<ramses::TextureSamplerExternal>;
-using RamsesTimerNode = RamsesHandle<rlogic::TimerNode>;
-using RamsesLuaModule = RamsesHandle<rlogic::LuaModule>;
-using RamsesLuaScript = RamsesHandle<rlogic::LuaScript>;
-using RamsesLuaInterface = RamsesHandle<rlogic::LuaInterface>;
-using RamsesAnchorPoint = RamsesHandle<rlogic::AnchorPoint>;
-using RamsesSkinBinding = RamsesHandle<rlogic::SkinBinding>;
+using RamsesTimerNode = RamsesHandle<ramses::TimerNode>;
+using RamsesLuaModule = RamsesHandle<ramses::LuaModule>;
+using RamsesLuaScript = RamsesHandle<ramses::LuaScript>;
+using RamsesLuaInterface = RamsesHandle<ramses::LuaInterface>;
+using RamsesAnchorPoint = RamsesHandle<ramses::AnchorPoint>;
+using RamsesSkinBinding = RamsesHandle<ramses::SkinBinding>;
+using RamsesPickableObject = RamsesHandle<ramses::PickableObject>;
 
 	/** RESOURCE HANDLES */
 using RamsesEffect = RamsesHandle<ramses::Effect>;
 using RamsesArrayResource = RamsesHandle<ramses::ArrayResource>;
+using RamsesArrayBuffer = RamsesHandle<ramses::ArrayBuffer>;
 using RamsesTexture2D = RamsesHandle<ramses::Texture2D>;
 using RamsesTextureCube = RamsesHandle<ramses::TextureCube>;
 using RamsesBlitPass = RamsesHandle<ramses::BlitPass>;
 
-template <typename OwnerType, typename RamsesType>
-void destroyRamsesObject(OwnerType* owner, RamsesType* obj) {
+template <typename RamsesType>
+void destroyRamsesObject(ramses::Scene* owner, RamsesType* obj) {
 	if (obj) {
-		auto status = owner->destroy(*obj);
-		if (ramses::StatusOK != status) {
-			LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting Ramses object failed: {}", owner->getStatusMessage(status));
+		if (!owner->destroy(*obj)) {
+			auto error = owner->getRamsesClient().getRamsesFramework().getLastError().value();
+			LOG_ERROR(log_system::RAMSES_BACKEND, "Deleting Ramses object failed: {}", error.message);
 			assert(false);
 			exit(1);
 		}
 	}
 }
 
-template <typename RamsesType, typename OwnerType>
-constexpr RamsesObjectDeleter createRamsesObjectDeleter(OwnerType* owner) {
+template <typename RamsesType>
+constexpr RamsesObjectDeleter createRamsesObjectDeleter(ramses::Scene* owner) {
 	return [owner](ramses::RamsesObject* obj) {
 		destroyRamsesObject(owner, static_cast<RamsesType*>(obj));
 	};
 }
 
 template <typename LogicType>
-void destroyLogicObject(rlogic::LogicEngine* logicengine, LogicType* obj) {
+void destroyLogicObject(ramses::LogicEngine* logicengine, LogicType* obj) {
 	if (obj) {
 		auto status = logicengine->destroy(*obj);
 		if (!status) {
-			LOG_ERROR(raco::log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", LogicEngineErrors{*logicengine});
+			auto error = logicengine->getScene().getRamsesClient().getRamsesFramework().getLastError().value();
+			LOG_ERROR(log_system::RAMSES_BACKEND, "Deleting LogicEngine object failed: {}", error.message);
 			assert(false);
 			exit(1);
 		}
@@ -124,8 +127,12 @@ void destroyLogicObject(rlogic::LogicEngine* logicengine, LogicType* obj) {
 
 
 struct RamsesAppearanceHandle {
-	RamsesAppearanceHandle(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect)
-		: appearance_(scene->createAppearance(*effect)), scene_(scene), trackedEffect_(effect) {}
+	RamsesAppearanceHandle(ramses::Scene* scene, ramses_base::RamsesEffect effect, const std::pair<uint64_t, uint64_t>& objectID)
+		: appearance_(scene->createAppearance(*effect)), scene_(scene), trackedEffect_(effect) {
+		if (appearance_) {
+			appearance_->setUserId(objectID.first, objectID.second);
+		}
+	}
 
 	~RamsesAppearanceHandle() {
 		destroyRamsesObject(scene_, appearance_);
@@ -143,7 +150,7 @@ struct RamsesAppearanceHandle {
 		return appearance_;
 	}
 
-	void replaceTrackedSamplers(std::vector<raco::ramses_base::RamsesTextureSampler>& newSamplers, std::vector<raco::ramses_base::RamsesTextureSamplerMS>& newSamplersMS, std::vector<raco::ramses_base::RamsesTextureSamplerExternal>& newSamplersExternal) {
+	void replaceTrackedSamplers(std::vector<ramses_base::RamsesTextureSampler>& newSamplers, std::vector<ramses_base::RamsesTextureSamplerMS>& newSamplersMS, std::vector<ramses_base::RamsesTextureSamplerExternal>& newSamplersExternal) {
 		trackedSamplers_ = newSamplers;
 		trackedSamplersMS_ = newSamplersMS;
 		trackedSamplersExternal_ = newSamplersExternal;
@@ -164,90 +171,108 @@ private:
 	RamsesEffect trackedEffect_;
 
 	// Samplers currently in use by the appearance_. Needed to keep the samplers alive in ramses.
-	std::vector<raco::ramses_base::RamsesTextureSampler> trackedSamplers_;
-	std::vector<raco::ramses_base::RamsesTextureSamplerMS> trackedSamplersMS_;
-	std::vector<raco::ramses_base::RamsesTextureSamplerExternal> trackedSamplersExternal_;
+	std::vector<ramses_base::RamsesTextureSampler> trackedSamplers_;
+	std::vector<ramses_base::RamsesTextureSamplerMS> trackedSamplersMS_;
+	std::vector<ramses_base::RamsesTextureSamplerExternal> trackedSamplersExternal_;
 };
 
 using RamsesAppearance = std::shared_ptr<RamsesAppearanceHandle>;
 
-inline RamsesAppearance ramsesAppearance(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect) {
-	return std::make_shared<RamsesAppearanceHandle>(scene, effect);
+inline RamsesAppearance ramsesAppearance(ramses::Scene* scene, ramses_base::RamsesEffect effect, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesAppearanceHandle>(scene, effect, objectID);
 }
 
 inline RamsesScene ramsesScene(ramses::sceneId_t id, ramses::RamsesClient* client) {
-	return {client->createScene(id), createRamsesObjectDeleter<ramses::Scene>(client)};
+	return {
+		client->createScene(ramses::SceneConfig(id, ramses::EScenePublicationMode::LocalAndRemote)),
+	
+		[client](ramses::Scene* obj) {
+			if (obj) {
+				if (!client->destroy(*obj)) {
+					auto error = client->getRamsesFramework().getLastError().value();
+					LOG_ERROR(log_system::RAMSES_BACKEND, "Deleting Ramses object failed: {}", error.message);
+					assert(false);
+					exit(1);
+				}
+			}
+		}};
 }
 
-struct RamsesGeometryBindingHandle {
-	RamsesGeometryBindingHandle(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect)
-		: geometryBinding_(scene->createGeometryBinding(*effect)), scene_(scene), trackedEffect_(effect) {
+struct RamsesGeometryHandle {
+	RamsesGeometryHandle(ramses::Scene* scene, ramses_base::RamsesEffect effect, const std::pair<uint64_t, uint64_t>& objectID)
+		: geometry_(scene->createGeometry(*effect)), scene_(scene), trackedEffect_(effect) {
+		if (geometry_) {
+			geometry_->setUserId(objectID.first, objectID.second);
+		}
 	}
 
-	~RamsesGeometryBindingHandle() {
-		destroyRamsesObject(scene_, geometryBinding_);
+	~RamsesGeometryHandle() {
+		destroyRamsesObject(scene_, geometry_);
 	}
 
-	ramses::GeometryBinding& operator*() {
-		return *geometryBinding_;
+	ramses::Geometry& operator*() {
+		return *geometry_;
 	}
 
-	ramses::GeometryBinding* operator->() {
-		return geometryBinding_;
+	ramses::Geometry* operator->() {
+		return geometry_;
 	}
 
 	void setIndices(RamsesArrayResource indexBuffer) {
-		auto status = geometryBinding_->setIndices(*indexBuffer);
-		if (status == ramses::StatusOK) {
+		if (geometry_->setIndices(*indexBuffer)) {
 			trackedMeshIndices_ = indexBuffer;
 		} else {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, geometryBinding_->getStatusMessage(status));
+			auto error = scene_->getRamsesClient().getRamsesFramework().getLastError().value();
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, error.message);
 		}
 	}
 
 	void addAttributeBuffer(const ramses::AttributeInput& attribInput, RamsesArrayResource attributeBuffer) {
-		auto status = geometryBinding_->setInputBuffer(attribInput, *attributeBuffer);
-		if (status == ramses::StatusOK) {
+		if (geometry_->setInputBuffer(attribInput, *attributeBuffer)) {
 			trackedMeshVertexData_.emplace_back(attributeBuffer);
 		} else {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, geometryBinding_->getStatusMessage(status));
+			auto error = scene_->getRamsesClient().getRamsesFramework().getLastError().value();
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, error.message);
 		}
 	}
 
 private:
-	// The geometryBinding_ is owned by this class.
-	ramses::GeometryBinding* geometryBinding_;
+	// The geometry_ is owned by this class.
+	ramses::Geometry* geometry_;
 
-	// Kept for reference; needed to destroy the GeometryBinding pointer in ramses.
+	// Kept for reference; needed to destroy the Geometry pointer in ramses.
 	ramses::Scene* scene_;
 
-	// Effect currently used by the geometryBinding_. Needed to keep the effect alive in ramses.
+	// Effect currently used by the geometry_. Needed to keep the effect alive in ramses.
 	RamsesEffect trackedEffect_;
 
-	// Attribute buffers currently used by the geometryBinding_. Needed to keep the buffers alive in ramses.
-	std::vector<raco::ramses_base::RamsesArrayResource> trackedMeshVertexData_;
+	// Attribute buffers currently used by the geometry_. Needed to keep the buffers alive in ramses.
+	std::vector<ramses_base::RamsesArrayResource> trackedMeshVertexData_;
 	
-	// Index buffer currently used by the geometryBinding_. Needed to keep the buffer alive in ramses.
-	raco::ramses_base::RamsesArrayResource trackedMeshIndices_;
+	// Index buffer currently used by the geometry_. Needed to keep the buffer alive in ramses.
+	ramses_base::RamsesArrayResource trackedMeshIndices_;
 };
 
-using RamsesGeometryBinding = std::shared_ptr<RamsesGeometryBindingHandle>;
+using RamsesGeometry = std::shared_ptr<RamsesGeometryHandle>;
 
-inline RamsesGeometryBinding ramsesGeometryBinding(ramses::Scene* scene, raco::ramses_base::RamsesEffect effect) {
-	return std::make_shared<RamsesGeometryBindingHandle>(scene, effect);
+inline RamsesGeometry ramsesGeometry(ramses::Scene* scene, ramses_base::RamsesEffect effect, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesGeometryHandle>(scene, effect, objectID);
 }
 
 template<typename RamsesType, auto PToM>
 struct RamsesWrapper {
-	RamsesWrapper(ramses::Scene* scene)
-		: ramsesObject_((scene->*PToM)(nullptr)), scene_(scene) {
+	RamsesWrapper(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID)
+		: ramsesObject_((scene->*PToM)({})), scene_(scene) {
+		if (ramsesObject_) {
+			ramsesObject_->setUserId(objectID.first, objectID.second);
+		}
 	}
 
 	~RamsesWrapper() {
 		destroyRamsesObject(scene_, ramsesObject_);
 	}
 
-	const char* getName() const {
+	std::string_view getName() const {
 		return ramsesObject_->getName();
 	}
 
@@ -278,35 +303,38 @@ private:
 using RamsesNodeHandle = RamsesWrapper<ramses::Node, &ramses::Scene::createNode>;
 using RamsesNode = std::shared_ptr<RamsesNodeHandle>;
 
-inline RamsesNode ramsesNode(ramses::Scene* scene) {
-	return std::make_shared<RamsesNodeHandle>(scene);
+inline RamsesNode ramsesNode(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesNodeHandle>(scene, objectID);
 }
 
 using RamsesOrthographicCameraHandle = RamsesWrapper<ramses::OrthographicCamera, &ramses::Scene::createOrthographicCamera>;
 using RamsesOrthographicCamera = std::shared_ptr<RamsesOrthographicCameraHandle>;
 
-inline RamsesOrthographicCamera ramsesOrthographicCamera(ramses::Scene* scene) {
-	return std::make_shared<RamsesOrthographicCameraHandle>(scene);
+inline RamsesOrthographicCamera ramsesOrthographicCamera(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesOrthographicCameraHandle>(scene, objectID);
 }
 
 using RamsesPerspectiveCameraHandle = RamsesWrapper<ramses::PerspectiveCamera, &ramses::Scene::createPerspectiveCamera>;
 using RamsesPerspectiveCamera = std::shared_ptr<RamsesPerspectiveCameraHandle>;
 
-inline RamsesPerspectiveCamera ramsesPerspectiveCamera(ramses::Scene* scene) {
-	return std::make_shared<RamsesPerspectiveCameraHandle>(scene);
+inline RamsesPerspectiveCamera ramsesPerspectiveCamera(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesPerspectiveCameraHandle>(scene, objectID);
 }
 
 
 struct RamsesMeshNodeHandle {
-	RamsesMeshNodeHandle(ramses::Scene* scene) 
+	RamsesMeshNodeHandle(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID) 
 	: meshnode_(scene->createMeshNode()), scene_(scene) {
+		if (meshnode_) {
+			meshnode_->setUserId(objectID.first, objectID.second);
+		}
 	}
 	
 	~RamsesMeshNodeHandle() {
 		destroyRamsesObject(scene_, meshnode_);
 	}
 
-	const char* getName() const {
+	std::string_view getName() const {
 		return meshnode_->getName();
 	}
 
@@ -325,7 +353,7 @@ struct RamsesMeshNodeHandle {
 	void removeAppearanceAndGeometry() {
 		meshnode_->removeAppearanceAndGeometry();
 		trackedAppearance_.reset();
-		trackedGeometryBinding_.reset();
+		trackedGeometry_.reset();
 	}
 
 	void setAppearance(RamsesAppearance appearance) {
@@ -333,9 +361,9 @@ struct RamsesMeshNodeHandle {
 		trackedAppearance_ = appearance;
 	}
 
-	void setGeometryBinding(RamsesGeometryBinding geometryBinding) {
-		meshnode_->setGeometryBinding(**geometryBinding);
-		trackedGeometryBinding_ = geometryBinding;
+	void setGeometry(RamsesGeometry geometry) {
+		meshnode_->setGeometry(**geometry);
+		trackedGeometry_ = geometry;
 	}
 
 private:
@@ -348,28 +376,32 @@ private:
 	// Appearance currently used by the meshnode_. Needed to keep the Appearance alive in ramses.
 	RamsesAppearance trackedAppearance_;
 
-	// GeometryBinding currently used by the meshnode_. Needed to keep the GeometryBinding alive in ramses.
-	RamsesGeometryBinding trackedGeometryBinding_;
+	// Geometry currently used by the meshnode_. Needed to keep the Geometry alive in ramses.
+	RamsesGeometry trackedGeometry_;
 };
 
 using RamsesMeshNode = std::shared_ptr<RamsesMeshNodeHandle>;
 
-inline RamsesMeshNode ramsesMeshNode(ramses::Scene* scene) {
-	return std::make_shared<RamsesMeshNodeHandle>(scene);
+inline RamsesMeshNode ramsesMeshNode(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesMeshNodeHandle>(scene, objectID);
 }
 
 struct RamsesRenderGroupHandle;
 using RamsesRenderGroup = std::shared_ptr<RamsesRenderGroupHandle>;
 
 struct RamsesRenderGroupHandle {
-	RamsesRenderGroupHandle(ramses::Scene* scene)
-		: renderGroup_(scene->createRenderGroup()), scene_(scene) {}
+	RamsesRenderGroupHandle(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID)
+		: renderGroup_(scene->createRenderGroup()), scene_(scene) {
+		if (renderGroup_) {
+			renderGroup_->setUserId(objectID.first, objectID.second);
+		}
+	}
 
 	~RamsesRenderGroupHandle() {
 		destroyRamsesObject(scene_, renderGroup_);
 	}
 
-	const char* getName() const {
+	std::string_view getName() const {
 		return renderGroup_->getName();
 	}
 
@@ -449,21 +481,29 @@ private:
 	std::map<RamsesRenderGroup, int> trackedGroups_;
 };
 
-inline RamsesRenderGroup ramsesRenderGroup(ramses::Scene* scene) {
-	return std::make_shared<RamsesRenderGroupHandle>(scene);
+inline RamsesRenderGroup ramsesRenderGroup(ramses::Scene* scene, const std::pair<uint64_t, uint64_t>& objectID) {
+	return std::make_shared<RamsesRenderGroupHandle>(scene, objectID);
 }
 
 inline RamsesRenderBuffer ramsesRenderBuffer(ramses::Scene* scene,
-	uint32_t width, uint32_t height, ramses::ERenderBufferType type, ramses::ERenderBufferFormat format, ramses::ERenderBufferAccessMode accessMode, uint32_t sampleCount = 0u, const char* name = nullptr) {
-	return {scene->createRenderBuffer(width, height, type, format, accessMode, sampleCount, name),
-		createRamsesObjectDeleter<ramses::RenderBuffer>(scene)};
+	uint32_t width, uint32_t height, ramses::ERenderBufferFormat format, ramses::ERenderBufferAccessMode accessMode, uint32_t sampleCount, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto buffer{scene->createRenderBuffer(width, height, format, accessMode, sampleCount, name)};
+	if (buffer) {
+		buffer->setUserId(objectID.first, objectID.second);
+	}
+
+	return {buffer, createRamsesObjectDeleter<ramses::RenderBuffer>(scene)};
 }
 
 struct RamsesRenderPassHandle {
-	RamsesRenderPassHandle(std::shared_ptr<ramses::RenderPass> renderPass)
-		: renderPass_(renderPass) {}
+	RamsesRenderPassHandle(std::shared_ptr<ramses::RenderPass> renderPass, const std::pair<uint64_t, uint64_t>& objectID)
+		: renderPass_(renderPass) {
+		if (renderPass_) {
+			renderPass_->setUserId(objectID.first, objectID.second);
+		}
+	}
 
-	const char* getName() const {
+	std::string_view getName() const {
 		return renderPass_->getName();
 	}
 
@@ -480,8 +520,8 @@ struct RamsesRenderPassHandle {
 		trackedRenderGroups_.clear();
 	}
 
-	void addRenderGroup(RamsesRenderGroup renderGroup) {
-		renderPass_->addRenderGroup(**renderGroup);
+	void addRenderGroup(RamsesRenderGroup renderGroup, int32_t order = 0) {
+		renderPass_->addRenderGroup(**renderGroup, order);
 		trackedRenderGroups_.insert(renderGroup);
 	}
 
@@ -496,7 +536,7 @@ private:
 using RamsesRenderPass = std::shared_ptr<RamsesRenderPassHandle>;
 
 template <typename CameraHandleType>
-inline std::shared_ptr<ramses::RenderPass> ramsesRenderPassInternal(ramses::Scene* scene, CameraHandleType camera, RamsesRenderTarget target, const char* name = nullptr) {
+inline std::shared_ptr<ramses::RenderPass> ramsesRenderPassInternal(ramses::Scene* scene, CameraHandleType camera, RamsesRenderTarget target, std::string_view name) {
 	if (!camera) {
 		return {};
 	}
@@ -511,122 +551,192 @@ inline std::shared_ptr<ramses::RenderPass> ramsesRenderPassInternal(ramses::Scen
 }
 
 template <typename CameraHandleType>
-inline RamsesRenderPass ramsesRenderPass(ramses::Scene* scene, CameraHandleType camera, RamsesRenderTarget target, const char* name = nullptr) {
+inline RamsesRenderPass ramsesRenderPass(ramses::Scene* scene, CameraHandleType camera, RamsesRenderTarget target, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
 	if (!camera) {
 		return {};
 	}
-	return std::make_shared<RamsesRenderPassHandle>(ramsesRenderPassInternal(scene, camera, target, name));
+	return std::make_shared<RamsesRenderPassHandle>(ramsesRenderPassInternal(scene, camera, target, name), objectID);
 }
 
-inline RamsesRenderTarget ramsesRenderTarget(ramses::Scene* scene, const ramses::RenderTargetDescription& rtDesc, const std::vector<RamsesRenderBuffer>& buffers) {
+inline RamsesRenderTarget ramsesRenderTarget(ramses::Scene* scene, const ramses::RenderTargetDescription& rtDesc, const std::vector<RamsesRenderBuffer>& buffers, const std::pair<uint64_t, uint64_t>& objectID) {
 	if (buffers.empty()) {
 		return nullptr;
 	}
 
+	auto target{scene->createRenderTarget(rtDesc)};
+	if (target) {
+		target->setUserId(objectID.first, objectID.second);
+	}
 	return {
-		scene->createRenderTarget(rtDesc),
+		target,
 		[scene, forceCopy = buffers](ramses::RamsesObject* obj) {
 			destroyRamsesObject(scene, static_cast<ramses::RenderTarget*>(obj));
 		}};
 }
 
-inline RamsesArrayResource ramsesArrayResource(ramses::Scene* scene, ramses::EDataType type, uint32_t numElements, const void* arrayData, const char* name = nullptr) {
-	RamsesArrayResource result{scene->createArrayResource(type, numElements, arrayData), createRamsesObjectDeleter<ramses::ArrayResource>(scene)};
-	result->setName(name);
+template<typename T>
+inline RamsesArrayResource ramsesArrayResource(ramses::Scene* scene, const std::vector<T>& data, std::string_view name = {}) {
+	return {
+		scene->createArrayResource<T>(data.size(), data.data(), name),
+		createRamsesObjectDeleter<ramses::ArrayResource>(scene)};
+}
+
+template <typename T>
+inline RamsesArrayResource ramsesArrayResource(ramses::Scene* scene, uint32_t numElements, const T* arrayData, std::string_view name = {}) {
+	return {
+		scene->createArrayResource(numElements, arrayData, name),
+		createRamsesObjectDeleter<ramses::ArrayResource>(scene)};
+}
+
+template<typename T>
+inline RamsesArrayBuffer ramsesArrayBuffer(ramses::Scene* scene, ramses::EDataType type, uint32_t numElements, const T* arrayData, std::string_view name = {}) {
+	RamsesArrayBuffer result{scene->createArrayBuffer(type, numElements), createRamsesObjectDeleter<ramses::ArrayResource>(scene)};
+	auto status = result->setName(name);
+	status = result->updateData(0, numElements, arrayData);
 	return result;
 }
 
+template<typename CameraHandleType>
+inline RamsesPickableObject ramsesPickableObject(ramses::Scene* scene, RamsesArrayBuffer geometryBuffer, ramses::pickableObjectId_t pickId, CameraHandleType camera) {
+	if (!camera) {
+		return {};
+	}
+
+	RamsesPickableObject object{
+		scene->createPickableObject(*geometryBuffer.get(), pickId),
+		[scene, forceBufferCopy = geometryBuffer, forceCameraCopy = camera](ramses::RamsesObject* object) {
+			destroyRamsesObject(scene, static_cast<ramses::PickableObject*>(object));
+		}};
+
+	if (object) {
+		object->setCamera(**camera);
+	}
+	return object;
+}
+
+
 template <typename RamsesTexture>
-inline RamsesTextureSampler ramsesTextureSampler(ramses::Scene* scene, ramses::ETextureAddressMode wrapUMode, ramses::ETextureAddressMode wrapVMode, ramses::ETextureSamplingMethod minSamplingMethod, ramses::ETextureSamplingMethod magSamplingMethod, RamsesTexture texture, uint32_t anisotropyLevel, const char* name = nullptr) {
-	auto ptr = scene->createTextureSampler(wrapUMode, wrapVMode, minSamplingMethod, magSamplingMethod, *texture, anisotropyLevel, name);
-	return {ptr,
+inline RamsesTextureSampler ramsesTextureSampler(ramses::Scene* scene, ramses::ETextureAddressMode wrapUMode, ramses::ETextureAddressMode wrapVMode, ramses::ETextureSamplingMethod minSamplingMethod, ramses::ETextureSamplingMethod magSamplingMethod, RamsesTexture texture, uint32_t anisotropyLevel, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto sampler = scene->createTextureSampler(wrapUMode, wrapVMode, minSamplingMethod, magSamplingMethod, *texture, anisotropyLevel, name);
+	if (sampler) {
+		sampler->setUserId(objectID.first, objectID.second);
+	}
+	return {sampler,
 		[scene, forceCopy = texture](ramses::RamsesObject* obj) {
-			auto status = scene->destroy(*static_cast<ramses::TextureSampler*>(obj));
-			if (ramses::StatusOK != status) {
-				throw std::runtime_error(obj->getStatusMessage(status));
+			if (!scene->destroy(*static_cast<ramses::TextureSampler*>(obj))) {
+				auto error = scene->getRamsesClient().getRamsesFramework().getLastError().value();
+				throw std::runtime_error(error.message);
 			}
 		}};
 }
 
-inline RamsesTextureSamplerMS ramsesTextureSamplerMS(ramses::Scene* scene, RamsesRenderBuffer buffer, const char* name = nullptr) {
-	auto ptr = scene->createTextureSamplerMS(*buffer, name);
+inline RamsesTextureSamplerMS ramsesTextureSamplerMS(ramses::Scene* scene, RamsesRenderBuffer buffer, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto sampler = scene->createTextureSamplerMS(*buffer, name);
+	if (sampler) {
+		sampler->setUserId(objectID.first, objectID.second);
+	}
 	return {
-		ptr,
+		sampler,
 		[scene, forceCopy = buffer](ramses::RamsesObject* buffer) {
 			destroyRamsesObject(scene, static_cast<ramses::RenderBuffer*>(buffer));
 		}};
 }
 
-inline RamsesTextureSamplerExternal ramsesTextureSamplerExternal(ramses::Scene* scene, ramses::ETextureSamplingMethod minSamplingMethod, ramses::ETextureSamplingMethod magSamplingMethod, const char* name = nullptr) {
+inline RamsesTextureSamplerExternal ramsesTextureSamplerExternal(ramses::Scene* scene, ramses::ETextureSamplingMethod minSamplingMethod, ramses::ETextureSamplingMethod magSamplingMethod, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto sampler{scene->createTextureSamplerExternal(minSamplingMethod, magSamplingMethod, name)};
+	if (sampler) {
+		sampler->setUserId(objectID.first, objectID.second);
+	}
+
 	return {
-		scene->createTextureSamplerExternal(minSamplingMethod, magSamplingMethod, name),
+		sampler,
 		createRamsesObjectDeleter<ramses::TextureSamplerExternal>(scene)
 	};
 }
 
 /** RESOURCE FACTORIES */
 
-inline RamsesEffect ramsesEffect(ramses::Scene* scene, const ramses::EffectDescription& description, const char* name = nullptr) {
-	return {scene->createEffect(description, ramses::ResourceCacheFlag_DoNotCache, name), createRamsesObjectDeleter<ramses::Effect>(scene)};
+inline RamsesEffect ramsesEffect(ramses::Scene* scene, const ramses::EffectDescription& description, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto effect{scene->createEffect(description, name)};
+	if (effect) {
+		effect->setUserId(objectID.first, objectID.second);
+	}
+
+	return {effect, createRamsesObjectDeleter<ramses::Effect>(scene)};
 }
 
 inline RamsesTexture2D ramsesTexture2D(ramses::Scene* scene,
 	ramses::ETextureFormat format,
 	uint32_t width,
 	uint32_t height,
-	uint32_t mipMapCount,
-	const ramses::MipLevelData mipLevelData[],
+	const std::vector<ramses::MipLevelData>& mipLevelData,
 	bool generateMipChain,
 	const ramses::TextureSwizzle& swizzle,
-	ramses::resourceCacheFlag_t cacheFlag,
-	const char* name = nullptr) {
-	return {scene->createTexture2D(format, width, height, mipMapCount, mipLevelData, generateMipChain, swizzle, cacheFlag, name), createRamsesObjectDeleter<ramses::Texture2D>(scene)};
+	std::string_view name,
+	const std::pair<uint64_t, uint64_t>& objectID) {
+	auto texture{scene->createTexture2D(format, width, height, mipLevelData, generateMipChain, swizzle, name)};
+	if (texture) {
+		texture->setUserId(objectID.first, objectID.second);
+	}
+
+	return {texture, createRamsesObjectDeleter<ramses::Texture2D>(scene)};
 }
 
-inline RamsesTexture2D ramsesTexture2DFromPng(ramses::Scene* scene, const std::string& uri) {
-	return {ramses::RamsesUtils::CreateTextureResourceFromPng(uri.c_str(), *scene),
-		createRamsesObjectDeleter<ramses::Texture2D>(scene)};
+inline RamsesTexture2D ramsesTexture2DFromPng(ramses::Scene* scene, const std::string& uri, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto texture{ramses::RamsesUtils::CreateTextureResourceFromPng(uri.c_str(), *scene)};
+	if (texture) {
+		texture->setUserId(objectID.first, objectID.second);
+	}
+	return {texture, createRamsesObjectDeleter<ramses::Texture2D>(scene)};
 }
 
-inline RamsesTexture2D ramsesTexture2DFromPngBuffer(ramses::Scene* scene, const std::vector<unsigned char>& pngData) {
-	return {ramses::RamsesUtils::CreateTextureResourceFromPngBuffer(pngData, *scene),
-		createRamsesObjectDeleter<ramses::Texture2D>(scene)};
+inline RamsesTexture2D ramsesTexture2DFromPngBuffer(ramses::Scene* scene, const std::vector<unsigned char>& pngData, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto texture{ramses::RamsesUtils::CreateTextureResourceFromPngBuffer(pngData, *scene)};
+	if (texture) {
+		texture->setUserId(objectID.first, objectID.second);
+	}
+	return {texture, createRamsesObjectDeleter<ramses::Texture2D>(scene)};
 }
 
 inline RamsesTextureCube ramsesTextureCube(ramses::Scene* scene,
 	ramses::ETextureFormat format,
 	uint32_t width,
-	uint32_t mipMapCount,
-	const ramses::CubeMipLevelData mipLevelData[],
+	const std::vector<ramses::CubeMipLevelData>& mipLevelData,
 	bool generateMipChain,
 	const ramses::TextureSwizzle& swizzle,
-	ramses::resourceCacheFlag_t cacheFlag,
-	const char* name = nullptr) {
-	return {scene->createTextureCube(format, width, mipMapCount, mipLevelData, generateMipChain, swizzle, cacheFlag, name),
-		createRamsesObjectDeleter<ramses::TextureCube>(scene)};
+	std::string_view name,
+	const std::pair<uint64_t, uint64_t>& objectID) {
+	auto texture{scene->createTextureCube(format, width, mipLevelData, generateMipChain, swizzle, name)};
+	if (texture) {
+		texture->setUserId(objectID.first, objectID.second);
+	}
+	return {texture, createRamsesObjectDeleter<ramses::TextureCube>(scene)};
 }
 
-inline RamsesBlitPass ramsesBlitPass(ramses::Scene* scene, RamsesRenderBuffer source, RamsesRenderBuffer dest,
-	const char* name = nullptr) {
+inline RamsesBlitPass ramsesBlitPass(ramses::Scene* scene, RamsesRenderBuffer source, RamsesRenderBuffer dest, std::string_view name, const std::pair<uint64_t, uint64_t>& objectID) {
+	auto blitpass{scene->createBlitPass(*source, *dest, name)};
+	if (blitpass) {
+		blitpass->setUserId(objectID.first, objectID.second);
+	}
 	return {
-		scene->createBlitPass(*source, *dest, name),
+		blitpass,
 		[scene, forceSourceCopy = source, forceDestCopy = dest](ramses::RamsesObject* object) {
 			destroyRamsesObject(scene, static_cast<ramses::BlitPass*>(object));
 		}};
 }
 
-using RamsesAppearanceBinding = std::shared_ptr<rlogic::RamsesAppearanceBinding>;
-using UniqueRamsesDataArray = std::unique_ptr<rlogic::DataArray, std::function<void(rlogic::DataArray*)>>;
-using RamsesMeshNodeBinding = std::shared_ptr<rlogic::RamsesMeshNodeBinding>;
-using RamsesNodeBinding = std::shared_ptr<rlogic::RamsesNodeBinding>;
-using RamsesCameraBinding = std::shared_ptr<rlogic::RamsesCameraBinding>;
-using UniqueRamsesRenderPassBinding = std::unique_ptr<rlogic::RamsesRenderPassBinding, std::function<void(rlogic::RamsesRenderPassBinding*)>>;
-using RamsesRenderGroupBinding = std::shared_ptr<rlogic::RamsesRenderGroupBinding>;
+using RamsesAppearanceBinding = std::shared_ptr<ramses::AppearanceBinding>;
+using UniqueRamsesDataArray = std::unique_ptr<ramses::DataArray, std::function<void(ramses::DataArray*)>>;
+using RamsesMeshNodeBinding = std::shared_ptr<ramses::MeshNodeBinding>;
+using RamsesNodeBinding = std::shared_ptr<ramses::NodeBinding>;
+using RamsesCameraBinding = std::shared_ptr<ramses::CameraBinding>;
+using UniqueRamsesRenderPassBinding = std::unique_ptr<ramses::RenderPassBinding, std::function<void(ramses::RenderPassBinding*)>>;
+using RamsesRenderGroupBinding = std::shared_ptr<ramses::RenderGroupBinding>;
 
 
-inline RamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t> &objectID) {
-	RamsesAppearanceBinding binding{logicEngine->createRamsesAppearanceBinding(appearance, name),
-		[logicEngine](rlogic::RamsesAppearanceBinding* binding) {
+inline RamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t> &objectID) {
+	RamsesAppearanceBinding binding{logicEngine->createAppearanceBinding(appearance, name),
+		[logicEngine](ramses::AppearanceBinding* binding) {
 			destroyLogicObject(logicEngine, binding);
 		}};
 
@@ -638,9 +748,9 @@ inline RamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appea
 }
 
 template<typename NodeHandleType>
-inline RamsesNodeBinding ramsesNodeBinding(NodeHandleType node, rlogic::LogicEngine* logicEngine, rlogic::ERotationType rotationType, const std::pair<uint64_t, uint64_t>& objectID) {
-	RamsesNodeBinding binding{logicEngine->createRamsesNodeBinding(**node, rotationType), 
-		[logicEngine, forceNodeCopy = node](rlogic::RamsesNodeBinding* binding) {
+inline RamsesNodeBinding ramsesNodeBinding(NodeHandleType node, ramses::LogicEngine* logicEngine, ramses::ERotationType rotationType, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesNodeBinding binding{logicEngine->createNodeBinding(**node, rotationType), 
+		[logicEngine, forceNodeCopy = node](ramses::NodeBinding* binding) {
 				destroyLogicObject(logicEngine, binding);
 			}};
 
@@ -651,9 +761,9 @@ inline RamsesNodeBinding ramsesNodeBinding(NodeHandleType node, rlogic::LogicEng
 	return binding;
 }
 
-inline RamsesMeshNodeBinding ramsesMeshNodeBinding(RamsesMeshNode meshnode, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	RamsesMeshNodeBinding binding{logicEngine->createRamsesMeshNodeBinding(**meshnode, name),
-		[logicEngine, forceNodeCopy = meshnode](rlogic::RamsesMeshNodeBinding* binding) {
+inline RamsesMeshNodeBinding ramsesMeshNodeBinding(RamsesMeshNode meshnode, ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesMeshNodeBinding binding{logicEngine->createMeshNodeBinding(**meshnode, name),
+		[logicEngine, forceNodeCopy = meshnode](ramses::MeshNodeBinding* binding) {
 			destroyLogicObject(logicEngine, binding);
 		}};
 
@@ -665,8 +775,8 @@ inline RamsesMeshNodeBinding ramsesMeshNodeBinding(RamsesMeshNode meshnode, rlog
 }
 
 template <typename T>
-inline UniqueRamsesDataArray ramsesDataArray(const std::vector<T>& vec, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	UniqueRamsesDataArray array{logicEngine->createDataArray(vec, name), [logicEngine](rlogic::DataArray* array) {
+inline UniqueRamsesDataArray ramsesDataArray(const std::vector<T>& vec, ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	UniqueRamsesDataArray array{logicEngine->createDataArray(vec, name), [logicEngine](ramses::DataArray* array) {
 				destroyLogicObject(logicEngine, array);
 			}};
 
@@ -678,10 +788,10 @@ inline UniqueRamsesDataArray ramsesDataArray(const std::vector<T>& vec, rlogic::
 }
 
 template <typename CameraHandleType>
-inline RamsesCameraBinding ramsesCameraBinding(CameraHandleType camera, rlogic::LogicEngine* logicEngine, const std::pair<uint64_t, uint64_t>& objectID, bool frustumPlanes) {
+inline RamsesCameraBinding ramsesCameraBinding(CameraHandleType camera, ramses::LogicEngine* logicEngine, const std::pair<uint64_t, uint64_t>& objectID, bool frustumPlanes) {
 	RamsesCameraBinding binding{
-		frustumPlanes ? logicEngine->createRamsesCameraBindingWithFrustumPlanes(**camera) : logicEngine->createRamsesCameraBinding(**camera), 
-		[logicEngine, forceCameraCopy = camera](rlogic::RamsesCameraBinding* binding) {
+		frustumPlanes ? logicEngine->createCameraBindingWithFrustumPlanes(**camera) : logicEngine->createCameraBinding(**camera), 
+		[logicEngine, forceCameraCopy = camera](ramses::CameraBinding* binding) {
 				destroyLogicObject(logicEngine, binding);
 			}};
 
@@ -692,8 +802,8 @@ inline RamsesCameraBinding ramsesCameraBinding(CameraHandleType camera, rlogic::
 	return binding;
 }
 
-inline UniqueRamsesRenderPassBinding ramsesRenderPassBinding(ramses::RenderPass& renderpass, rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	UniqueRamsesRenderPassBinding binding{logicEngine->createRamsesRenderPassBinding(renderpass, name), [logicEngine](rlogic::RamsesRenderPassBinding* binding) {
+inline UniqueRamsesRenderPassBinding ramsesRenderPassBinding(ramses::RenderPass& renderpass, ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	UniqueRamsesRenderPassBinding binding{logicEngine->createRenderPassBinding(renderpass, name), [logicEngine](ramses::RenderPassBinding* binding) {
 										  destroyLogicObject(logicEngine, binding);
 									  }};
 
@@ -705,8 +815,8 @@ inline UniqueRamsesRenderPassBinding ramsesRenderPassBinding(ramses::RenderPass&
 }
 
 
-inline RamsesTimerNode ramsesTimer(rlogic::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	RamsesTimerNode node{logicEngine->createTimerNode(name), [logicEngine](rlogic::TimerNode* timer) {
+inline RamsesTimerNode ramsesTimer(ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesTimerNode node{logicEngine->createTimerNode(name), [logicEngine](ramses::TimerNode* timer) {
 				destroyLogicObject(logicEngine, timer);
 			}};
 
@@ -717,10 +827,10 @@ inline RamsesTimerNode ramsesTimer(rlogic::LogicEngine* logicEngine, const std::
 	return node;
 }
 
-inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, rlogic::LogicEngine* logicEngine, rlogic::LuaConfig& config, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, ramses::LogicEngine* logicEngine, ramses::LuaConfig& config, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 
 	RamsesLuaModule module{
-		logicEngine->createLuaModule(luaContent, config, name), [logicEngine](rlogic::LuaModule* module) {
+		logicEngine->createLuaModule(luaContent, config, name), [logicEngine](ramses::LuaModule* module) {
 			destroyLogicObject(logicEngine, module);
 		}};
 
@@ -731,10 +841,10 @@ inline RamsesLuaModule ramsesLuaModule(const std::string& luaContent, rlogic::Lo
 	return module;
 }
 
-inline RamsesLuaScript ramsesLuaScript(rlogic::LogicEngine* logicEngine, const std::string& scriptText, rlogic::LuaConfig& config, std::vector<raco::ramses_base::RamsesLuaModule> modules, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+inline RamsesLuaScript ramsesLuaScript(ramses::LogicEngine* logicEngine, const std::string& scriptText, ramses::LuaConfig& config, std::vector<ramses_base::RamsesLuaModule> modules, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	RamsesLuaScript script{
 		logicEngine->createLuaScript(scriptText, config, name), 
-		[logicEngine, forceCopy = modules](rlogic::LuaScript* script) {
+		[logicEngine, forceCopy = modules](ramses::LuaScript* script) {
 			destroyLogicObject(logicEngine, script);
 		}};
 
@@ -745,29 +855,11 @@ inline RamsesLuaScript ramsesLuaScript(rlogic::LogicEngine* logicEngine, const s
 	return script;
 }
 
-
-/// Old style creation function: doesn't generate error if interface text contains modules() statement
-/// used at feature level < 5
-inline RamsesLuaInterface ramsesLuaInterface(rlogic::LogicEngine* logicEngine, const std::string& interfaceText, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	RamsesLuaInterface interface {
-		logicEngine->createLuaInterface(interfaceText, name),
-			[logicEngine](rlogic::LuaInterface* interface) {
-				destroyLogicObject(logicEngine, interface);
-			}
-	};
-
-	if (interface) {
-		interface->setUserId(objectID.first, objectID.second);
-	}
-	return interface;
-}
-
-/// New style creation function: must supply modules if interface text contains modules() statement
-/// used at feature level >= 5
-inline RamsesLuaInterface ramsesLuaInterface(rlogic::LogicEngine* logicEngine, const std::string& interfaceText, rlogic::LuaConfig& config, std::vector<raco::ramses_base::RamsesLuaModule> modules, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+/// Note that caller must supply modules if interface text contains modules() statement
+inline RamsesLuaInterface ramsesLuaInterface(ramses::LogicEngine* logicEngine, const std::string& interfaceText, ramses::LuaConfig& config, std::vector<ramses_base::RamsesLuaModule> modules, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	RamsesLuaInterface interface{
 		logicEngine->createLuaInterface(interfaceText, name, config),
-		[logicEngine, forceCopy = modules](rlogic::LuaInterface* interface) {
+		[logicEngine, forceCopy = modules](ramses::LuaInterface* interface) {
 			destroyLogicObject(logicEngine, interface);
 		}};
 
@@ -779,7 +871,7 @@ inline RamsesLuaInterface ramsesLuaInterface(rlogic::LogicEngine* logicEngine, c
 
 struct RamsesAnimationChannelData {
 	std::string name;
-	rlogic::EInterpolationType interpolationType;
+	ramses::EInterpolationType interpolationType;
 	UniqueRamsesDataArray keyframeTimes;
 	UniqueRamsesDataArray animOutput;
 	UniqueRamsesDataArray tangentIn;
@@ -789,7 +881,7 @@ struct RamsesAnimationChannelData {
 using RamsesAnimationChannelHandle = RamsesHandle<RamsesAnimationChannelData>;
 
 struct RamsesAnimationNodeHandle {
-	RamsesAnimationNodeHandle(rlogic::LogicEngine* logicEngine, rlogic::AnimationNode* ramsesAnimationNode, std::vector<RamsesAnimationChannelHandle> channelHandles, const std::pair<uint64_t, uint64_t>& objectID) 
+	RamsesAnimationNodeHandle(ramses::LogicEngine* logicEngine, ramses::AnimationNode* ramsesAnimationNode, std::vector<RamsesAnimationChannelHandle> channelHandles, const std::pair<uint64_t, uint64_t>& objectID) 
 	: logicEngine_(logicEngine), animationNode_(ramsesAnimationNode), trackedAnimationChannels_(channelHandles) {
 		if (animationNode_) {
 			animationNode_->setUserId(objectID.first, objectID.second);
@@ -800,15 +892,15 @@ struct RamsesAnimationNodeHandle {
 		destroyLogicObject(logicEngine_, animationNode_);
 	}
 
-	rlogic::AnimationNode& operator*() {
+	ramses::AnimationNode& operator*() {
 		return *animationNode_;
 	}
 
-	rlogic::AnimationNode* operator->() {
+	ramses::AnimationNode* operator->() {
 		return animationNode_;
 	}
 
-	rlogic::AnimationNode* get() {
+	ramses::AnimationNode* get() {
 		return animationNode_;
 	}
 
@@ -818,10 +910,10 @@ struct RamsesAnimationNodeHandle {
 
 private:
 	// Kept for reference. Needed to destroy the animation node.
-	rlogic::LogicEngine* logicEngine_;
+	ramses::LogicEngine* logicEngine_;
 
 	// The animation node is owned by this class.
-	rlogic::AnimationNode* animationNode_;
+	ramses::AnimationNode* animationNode_;
 
 	// AnimationChannels currently used by the animation node. Needed to keep the effect alive in ramses.
 	// May contain nullptrs;
@@ -831,7 +923,7 @@ private:
 using RamsesAnimationNode = std::shared_ptr<RamsesAnimationNodeHandle>;
 
 
-inline RamsesAnimationNode ramsesAnimationNode(rlogic::LogicEngine* logicEngine, const rlogic::AnimationNodeConfig &config, 
+inline RamsesAnimationNode ramsesAnimationNode(ramses::LogicEngine* logicEngine, const ramses::AnimationNodeConfig &config, 
 std::vector<RamsesAnimationChannelHandle> channelHandles, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	if (channelHandles.empty()) {
 		return {};
@@ -846,10 +938,10 @@ std::vector<RamsesAnimationChannelHandle> channelHandles, const std::string& nam
 
 
 
-inline RamsesAnchorPoint ramsesAnchorPoint(rlogic::LogicEngine* logicEngine, RamsesNodeBinding nodeBinding, RamsesCameraBinding cameraBinding, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+inline RamsesAnchorPoint ramsesAnchorPoint(ramses::LogicEngine* logicEngine, RamsesNodeBinding nodeBinding, RamsesCameraBinding cameraBinding, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	RamsesAnchorPoint object(
 		logicEngine->createAnchorPoint(*nodeBinding, *cameraBinding, name),
-			[logicEngine, forceNodeBindingCopy = nodeBinding, forceCameraBdingingCopy = cameraBinding](rlogic::AnchorPoint* object) {
+			[logicEngine, forceNodeBindingCopy = nodeBinding, forceCameraBdingingCopy = cameraBinding](ramses::AnchorPoint* object) {
 			destroyLogicObject(logicEngine, object);
 		});
 
@@ -860,20 +952,20 @@ inline RamsesAnchorPoint ramsesAnchorPoint(rlogic::LogicEngine* logicEngine, Ram
 	return object;
 }
 
-inline RamsesSkinBinding ramsesSkinBinding(rlogic::LogicEngine* logicEngine, 
+inline RamsesSkinBinding ramsesSkinBinding(ramses::LogicEngine* logicEngine, 
 	std::vector<RamsesNodeBinding> joints,
-	std::vector<std::array<float, 16>>& inverseBindMatrices,
+	std::vector<glm::mat4x4>& inverseBindMatrices,
 	RamsesAppearanceBinding& appearanceBinding,
 	ramses::UniformInput& jointMatInput,
 	const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 
-	std::vector<const rlogic::RamsesNodeBinding*> nodeBindings;
+	std::vector<const ramses::NodeBinding*> nodeBindings;
 	for (const auto& binding : joints) {
 		nodeBindings.emplace_back(binding.get());
 	}
 
 	RamsesSkinBinding object(logicEngine->createSkinBinding(nodeBindings, inverseBindMatrices, *appearanceBinding, jointMatInput, name),
-		[logicEngine, forceJointsCopy = joints, forceAppearanceBindingCopy = appearanceBinding](rlogic::SkinBinding* object) {
+		[logicEngine, forceJointsCopy = joints, forceAppearanceBindingCopy = appearanceBinding](ramses::SkinBinding* object) {
 			destroyLogicObject(logicEngine, object);
 		});
 
@@ -884,9 +976,9 @@ inline RamsesSkinBinding ramsesSkinBinding(rlogic::LogicEngine* logicEngine,
 	return object;
 }
 
-inline RamsesRenderGroupBinding ramsesRenderGroupBinding(rlogic::LogicEngine* logicEngine, RamsesRenderGroup renderGroup, const rlogic::RamsesRenderGroupBindingElements& elements, std::vector<RamsesRenderGroup> nestedGroups, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
-	RamsesRenderGroupBinding binding{logicEngine->createRamsesRenderGroupBinding(**renderGroup, elements, name), 
-		[logicEngine, forceRenderGroupCopy = renderGroup, forceNestedGroupCopy = nestedGroups](rlogic::RamsesRenderGroupBinding* binding) {
+inline RamsesRenderGroupBinding ramsesRenderGroupBinding(ramses::LogicEngine* logicEngine, RamsesRenderGroup renderGroup, const ramses::RenderGroupBindingElements& elements, std::vector<RamsesRenderGroup> nestedGroups, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesRenderGroupBinding binding{logicEngine->createRenderGroupBinding(**renderGroup, elements, name), 
+		[logicEngine, forceRenderGroupCopy = renderGroup, forceNestedGroupCopy = nestedGroups](ramses::RenderGroupBinding* binding) {
 			destroyLogicObject(logicEngine, binding);
 		}};
 

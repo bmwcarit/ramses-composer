@@ -9,19 +9,16 @@
  */
 #include "user_types/Mesh.h"
 
+#include "Validation.h"
 #include "core/Context.h"
 #include "core/Errors.h"
 #include "core/MeshCacheInterface.h"
 #include "core/PathQueries.h"
 #include "core/Project.h"
-#include "Validation.h"
 
 namespace raco::user_types {
 
 void Mesh::updateFromExternalFile(BaseContext& context) {
-	context.errors().removeError(ValueHandle{shared_from_this()});
-	metaData_.clear();
-
 	MeshDescriptor desc;
 	desc.absPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &Mesh::uri_});
 	desc.bakeAllSubmeshes = bakeMeshes_.asBool();
@@ -35,25 +32,30 @@ void Mesh::updateFromExternalFile(BaseContext& context) {
 			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, {shared_from_this()}, errorMessage);
 		}
 	} else {
+		context.errors().removeError(ValueHandle{shared_from_this()});
 		mesh_.reset();
 	}
+
+	ValueHandle metaDataHandle(shared_from_this(), &Mesh::metaData_);
+
+	std::map<std::string, std::string> currentMetaData;
 
 	if (mesh_) {
 		std::string infoText;
 		auto selectedMesh = mesh_.get();
 
-		static std::map<raco::core::MeshData::VertexAttribDataType, std::string> formatDescription = {
-			{raco::core::MeshData::VertexAttribDataType::VAT_Float, "float"},
-			{raco::core::MeshData::VertexAttribDataType::VAT_Float2, "vec2"},
-			{raco::core::MeshData::VertexAttribDataType::VAT_Float3, "vec3"},
-			{raco::core::MeshData::VertexAttribDataType::VAT_Float4, "vec4"},
+		static std::map<core::MeshData::VertexAttribDataType, std::string> formatDescription = {
+			{core::MeshData::VertexAttribDataType::VAT_Float, "float"},
+			{core::MeshData::VertexAttribDataType::VAT_Float2, "vec2"},
+			{core::MeshData::VertexAttribDataType::VAT_Float3, "vec3"},
+			{core::MeshData::VertexAttribDataType::VAT_Float4, "vec4"},
 		};
 
 		infoText += "Mesh information\n\n";
 
 		infoText += fmt::format("Triangles: {}\n", selectedMesh->numTriangles());
 		infoText += fmt::format("Vertices: {}\n", selectedMesh->numVertices());
-		//infoText += fmt::format("Submeshes: {}\n", selectedMesh->numSubmeshes());
+		// infoText += fmt::format("Submeshes: {}\n", selectedMesh->numSubmeshes());
 		infoText += fmt::format("Total Asset File Meshes: {}\n", context.meshCache()->getTotalMeshCount(desc.absPath));
 		infoText += "\nAttributes:";
 
@@ -61,21 +63,51 @@ void Mesh::updateFromExternalFile(BaseContext& context) {
 			infoText += fmt::format("\nin {} {};", formatDescription[selectedMesh->attribDataType(i)], selectedMesh->attribName(i));
 		}
 
-		metaData_ = selectedMesh->getMetadata();
-		if (!metaData_.empty()) {
+		currentMetaData = selectedMesh->getMetadata();
+		if (!currentMetaData.empty()) {
 			infoText += "\n\nMetadata:";
 
-			for (const auto& [key, value] : metaData_) {
+			for (const auto& [key, value] : currentMetaData) {
 				infoText.append(fmt::format("\n{}: {}", key, value));
 			}
 		}
 
 		if (!infoText.empty()) {
 			context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::INFORMATION, ValueHandle{shared_from_this()}, infoText);
+		} else {
+			context.errors().removeError(ValueHandle{shared_from_this()});
 		}
+
+		Table meshInfo;
+		meshInfo.addProperty("triangles", new Value<int>(selectedMesh->numTriangles()));
+		meshInfo.addProperty("vertices", new Value<int>(selectedMesh->numVertices()));
+		if (!metaDataHandle.hasProperty(MetaDataCategories::MESH_INFO)) {
+			context.addProperty(metaDataHandle, MetaDataCategories::MESH_INFO, std::make_unique<Property<Table, ReadOnlyAnnotation>>());
+		}
+		context.set(metaDataHandle.get(MetaDataCategories::MESH_INFO), meshInfo);
 
 		ValueHandle matnames_handle{shared_from_this(), &Mesh::materialNames_};
 		context.set(matnames_handle, std::vector<std::string>{"material"});
+	} else {
+		if (metaDataHandle.hasProperty(MetaDataCategories::MESH_INFO)) {
+			context.removeProperty(metaDataHandle, MetaDataCategories::MESH_INFO);
+		}
+	}
+
+	if (!currentMetaData.empty()) {
+		Table extrasTable;
+		for (const auto& [key, value] : currentMetaData) {
+			extrasTable.addProperty(key, new Value<std::string>(value));
+		}
+
+		if (!metaDataHandle.hasProperty(MetaDataCategories::GLTF_EXTRAS)) {
+			context.addProperty(metaDataHandle, MetaDataCategories::GLTF_EXTRAS, std::make_unique<Property<Table, ReadOnlyAnnotation>>());
+		}
+		context.set(metaDataHandle.get(MetaDataCategories::GLTF_EXTRAS), extrasTable);
+	} else {
+		if (metaDataHandle.hasProperty(MetaDataCategories::GLTF_EXTRAS)) {
+			context.removeProperty(metaDataHandle, MetaDataCategories::GLTF_EXTRAS);
+		}
 	}
 
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());

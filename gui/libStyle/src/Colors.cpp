@@ -29,7 +29,10 @@ Colors::Colors() noexcept {
 		{Colormap::errorColorLight, QColor(255, 120, 120)},
 		{Colormap::dockTitleBackground, QColor(0, 0, 0)},
 		{Colormap::externalReference, QColor(170, 250, 70)},
-		{Colormap::externalReferenceDisabled, QColor(115, 195, 15)}};
+		{Colormap::externalReferenceDisabled, QColor(115, 195, 15)},
+
+		{Colormap::abstractSceneViewBackground, QColor(20, 20, 20)}
+	};
 
 	for (const auto& [key, value] : colors_) {
 		brushes_[key] = QBrush(value);

@@ -29,7 +29,7 @@
 
 namespace raco::common_widgets {
 
-using RaCoPreferences = raco::components::RaCoPreferences;
+using RaCoPreferences = components::RaCoPreferences;
 
 PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 	auto layout = new QVBoxLayout{this};
@@ -63,9 +63,9 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 	}
 
 	featureLevelEdit_ = new QSpinBox(this);
-	featureLevelEdit_->setRange(raco::application::RaCoApplication::minFeatureLevel(), raco::application::RaCoApplication::maxFeatureLevel());
+	featureLevelEdit_->setRange(application::RaCoApplication::minFeatureLevel(), application::RaCoApplication::maxFeatureLevel());
 	featureLevelEdit_->setValue(RaCoPreferences::instance().featureLevel);
-	featureLevelEdit_->setToolTip(QString::fromStdString(raco::application::RaCoApplication::featureLevelDescriptions()));
+	featureLevelEdit_->setToolTip(QString::fromStdString(application::RaCoApplication::featureLevelDescriptions()));
 	formLayout->addRow("New Project Feature Level", featureLevelEdit_);
 
 	QObject::connect(featureLevelEdit_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() {
@@ -121,7 +121,7 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
 	QObject::connect(cancelButton, &QPushButton::clicked, this, &PreferencesView::close);
 	auto saveButton{new QPushButton{"Save", buttonBox}};
-	saveButton->setDisabled(raco::utils::u8path(RaCoPreferences::instance().userProjectsDirectory.toStdString()).existsDirectory());
+	saveButton->setDisabled(utils::u8path(RaCoPreferences::instance().userProjectsDirectory.toStdString()).existsDirectory());
 	QObject::connect(this, &PreferencesView::dirtyChanged, saveButton, &QPushButton::setEnabled);
 	QObject::connect(saveButton, &QPushButton::clicked, this, &PreferencesView::save);
 	buttonBox->addButton(cancelButton, QDialogButtonBox::RejectRole);
@@ -130,7 +130,7 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 }
 
 void PreferencesView::save() {
-	auto newUserProjectPath = raco::utils::u8path(userProjectEdit_->text().toStdString());
+	auto newUserProjectPath = utils::u8path(userProjectEdit_->text().toStdString());
 	auto newUserProjectPathString = QString::fromStdString(newUserProjectPath.string());
 
 	if (!newUserProjectPath.existsDirectory()) {
@@ -158,8 +158,8 @@ void PreferencesView::save() {
 	prefs.screenshotDirectory = screenshotDirectoryEdit_->text();
 
 	if (!prefs.save()) {
-		LOG_ERROR(raco::log_system::COMMON, "Saving settings failed: {}", raco::core::PathManager::preferenceFilePath().string());
-		QMessageBox::critical(this, "Saving settings failed", QString("Settings could not be saved. Check whether the application can write to its config directory.\nFile: ") + QString::fromStdString(raco::core::PathManager::preferenceFilePath().string()));
+		LOG_ERROR(log_system::COMMON, "Saving settings failed: {}", core::PathManager::preferenceFilePath().string());
+		QMessageBox::critical(this, "Saving settings failed", QString("Settings could not be saved. Check whether the application can write to its config directory.\nFile: ") + QString::fromStdString(core::PathManager::preferenceFilePath().string()));
 	}
 	Q_EMIT dirtyChanged(false);
 	

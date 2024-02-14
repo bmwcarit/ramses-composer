@@ -47,9 +47,9 @@ public:
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string{}, {"Lua interface files(*.lua);; All files (*.*)", core::PathManager::FolderTypeKeys::Interface}, DisplayNameAnnotation("URI")};
 
-	Property<LuaStandardModuleSelection, DisplayNameAnnotation, FeatureLevel> stdModules_{{}, {"Standard Modules"}, FeatureLevel{5}};
+	Property<LuaStandardModuleSelection, DisplayNameAnnotation> stdModules_{{}, {"Standard Modules"}};
 
-	Property<Table, DisplayNameAnnotation, FeatureLevel> luaModules_{{}, DisplayNameAnnotation("Modules"), FeatureLevel{5}};
+	Property<Table, DisplayNameAnnotation> luaModules_{{}, DisplayNameAnnotation("Modules")};
 
 	Property<Table, DisplayNameAnnotation, LinkStartAnnotation, LinkEndAnnotation> inputs_{{}, DisplayNameAnnotation("Inputs"), {}, {}};
 

@@ -21,16 +21,16 @@
 
 namespace raco::user_types {
 
-inline bool validateURI(raco::core::BaseContext& context, const raco::core::ValueHandle& handle) {
-	using raco::core::ErrorCategory;
-	using raco::core::ErrorLevel;
+inline bool validateURI(core::BaseContext& context, const core::ValueHandle& handle) {
+	using core::ErrorCategory;
+	using core::ErrorLevel;
 
-	auto uriPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), handle);
+	auto uriPath = core::PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), handle);
 
 	if (handle.asString().empty()) {
 		context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::WARNING, handle, "Empty URI.");
 		return false;
-	} else if (!raco::utils::u8path(uriPath).exists(context.isUriValidationCaseSensitive())) {
+	} else if (!utils::u8path(uriPath).exists(context.isUriValidationCaseSensitive())) {
 		context.errors().addError(ErrorCategory::FILESYSTEM, ErrorLevel::ERROR, handle, "File not found.");
 		return false;
 	} else {
@@ -40,7 +40,7 @@ inline bool validateURI(raco::core::BaseContext& context, const raco::core::Valu
 }
 
 template <typename... Args>
-inline bool validateURIs(raco::core::BaseContext& context, Args... args) {
+inline bool validateURIs(core::BaseContext& context, Args... args) {
 	return (validateURI(context, args) & ...) > 0;
 }
 

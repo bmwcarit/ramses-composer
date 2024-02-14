@@ -23,21 +23,23 @@
 #include <unordered_map>
 #include <vector>
 
+#include <glm/mat4x4.hpp>
+
 namespace raco::core {
 
 // Single mesh that can be handed over to Ramses.
 // May contain only part of an entire file; see MeshCacheEntry.
 class MeshData {
 public:
-	static constexpr const char* ATTRIBUTE_POSITION {"a_Position"};
-	static constexpr const char* ATTRIBUTE_NORMAL   {"a_Normal"};
-	static constexpr const char* ATTRIBUTE_TANGENT  {"a_Tangent"};
+	static constexpr const char* ATTRIBUTE_POSITION{"a_Position"};
+	static constexpr const char* ATTRIBUTE_NORMAL{"a_Normal"};
+	static constexpr const char* ATTRIBUTE_TANGENT{"a_Tangent"};
 	static constexpr const char* ATTRIBUTE_BITANGENT{"a_Bitangent"};
-	static constexpr const char* ATTRIBUTE_UVMAP    {"a_TextureCoordinate"};
-	static constexpr const char* ATTRIBUTE_UVWMAP   {"a_TextureCoordinate"};
-	static constexpr const char* ATTRIBUTE_COLOR    {"a_Color"};
-	static constexpr const char* ATTRIBUTE_WEIGHTS  {"a_Weights"};
-	static constexpr const char* ATTRIBUTE_JOINTS   {"a_Joints"};
+	static constexpr const char* ATTRIBUTE_UVMAP{"a_TextureCoordinate"};
+	static constexpr const char* ATTRIBUTE_UVWMAP{"a_TextureCoordinate"};
+	static constexpr const char* ATTRIBUTE_COLOR{"a_Color"};
+	static constexpr const char* ATTRIBUTE_WEIGHTS{"a_Weights"};
+	static constexpr const char* ATTRIBUTE_JOINTS{"a_Joints"};
 
 	struct IndexBufferRangeInfo {
 		uint32_t start;
@@ -68,9 +70,16 @@ public:
 	virtual std::string attribName(int attribIndex) const = 0;
 	//! Size of the attribute buffer in bytes.
 	virtual uint32_t attribDataSize(int attribIndex) const = 0;
-	virtual uint32_t attribElementCount(int attribIndex) const  = 0;
+	virtual uint32_t attribElementCount(int attribIndex) const = 0;
 	virtual VertexAttribDataType attribDataType(int attribIndex) const = 0;
 	virtual const char* attribBuffer(int attribIndex) const = 0;
+
+	/**
+	 * @brief Non-indexed triangle buffer that can be used for picking in ramses.
+	 *
+	 * @return Return vector of vertices forming triangles. Each 3 consecutive entries form one triangle.
+	 */
+	virtual const std::vector<glm::vec3>& triangleBuffer() const = 0;
 
 	int attribIndex(const std::string& name) const {
 		for (uint32_t i{0}; i < numAttributes(); i++) {
@@ -79,6 +88,23 @@ public:
 			}
 		}
 		return -1;
+	}
+
+	/**
+	 * @brief build non-interleaved triangle buffer from the index and vertex buffer data
+	*/
+	static std::vector<glm::vec3> buildTriangleBuffer(const glm::vec3* vertices, const std::vector<uint32_t>& indices) {
+		std::vector<glm::vec3> triangleBuffer;
+
+		// Build non-indexed triangle buffer to be used for picking in ramses
+		auto numTriangles = indices.size() / 3;
+		for (size_t index = 0; index < numTriangles; index++) {
+			triangleBuffer.insert(triangleBuffer.end(),
+				{vertices[indices[3 * index]],
+					vertices[indices[3 * index + 1]],
+					vertices[indices[3 * index + 2]]});
+		}
+		return triangleBuffer;
 	}
 };
 
@@ -90,7 +116,7 @@ using SharedMeshData = std::shared_ptr<MeshData>;
 struct SkinData {
 	static constexpr const char* INV_BIND_MATRICES_UNIFORM_NAME = "u_jointMat";
 
-	std::vector<std::array<float, 16>> inverseBindMatrices;
+	std::vector<glm::mat4x4> inverseBindMatrices;
 
 	size_t numSkins;
 };
@@ -108,123 +134,22 @@ enum class MeshAnimationInterpolation {
 // Animation sampler data holder - currently created using MeshCache::getAnimationSamplerData()
 struct AnimationSamplerData {
 	MeshAnimationInterpolation interpolation;
-	std::vector<float> input;
-	std::vector<std::vector<float>> output;
+	EnginePrimitive componentType;
 
-	EnginePrimitive getOutputComponentType() const {
-		assert(!output.empty());
-		switch (output.front().size()) {
-			case 1:
-				return EnginePrimitive::Array;
-				break;
-			case 3:
-				return EnginePrimitive::Vec3f;
-				break;
-			case 4:
-				return EnginePrimitive::Vec4f;
-				break;
-			default:
-				assert(false);
-		}
-		return EnginePrimitive::Undefined;
-	}
+	std::vector<float> timeStamps;
+	
+	// TODO the supported data types are currently restricted to float types only,
+	// although the logicengine also allows ints.
+	std::vector<std::vector<float>> keyFrames;
+	std::vector<std::vector<float>> tangentsIn;
+	std::vector<std::vector<float>> tangentsOut;
 
 	size_t getOutputComponentSize() {
-		if (output.empty()) {
-			return 0;
-		}
-		if (output.front().size() == 1) {
-			return output.size() / input.size();
-		}
-		return output.front().size();
-	}
-
-	template <typename DataType>
-	std::array<std::vector<DataType>, 3> getOutputData() {
-		// Note: Used to be used for morph targets, but wrong:
-		static_assert(!std::is_same_v<DataType, std::array<float, 2>>);
-
-		std::array<std::vector<DataType>, 3> outputData;
-		auto animInterpolationIsCubic = (interpolation == raco::core::MeshAnimationInterpolation::CubicSpline) || (interpolation == raco::core::MeshAnimationInterpolation::CubicSpline_Quaternion);
-
-		auto& tangentInData = outputData[0];
-		auto& transformedData = outputData[1];
-		auto& tangentOutData = outputData[2];
-
-
-		if (!animInterpolationIsCubic) {
-			if constexpr (std::is_same_v<DataType, std::vector<float>>) {
-				// Morph targets:
-				// output buffer has input.size() * number(morph targets) element vectors of size 1
-				// we need to change this in input.size() vector of length number(morph targets)
-				auto numTargets = output.size() / input.size();
-				assert(output.size() % input.size() == 0);
-				for (size_t i = 0; i < input.size(); i++) {
-					std::vector<float> vec;
-					for (size_t target = 0; target < numTargets; target++) {
-						vec.emplace_back(output[i * numTargets + target][0]);
-					}
-					transformedData.emplace_back(vec);
-				}
-			} else {
-				for (const auto& vecfKeyframe : output) {
-					if constexpr (std::is_same_v<DataType, std::array<float, 3>>) {
-						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2]});
-					} else if constexpr (std::is_same_v<DataType, std::array<float, 4>>) {
-						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2], vecfKeyframe[3]});
-					}
-				}
-			}
-		} else {
-			if constexpr (std::is_same_v<DataType, std::vector<float>>) {
-				// Morph targets with cubic interpolation
-				// buffer structure: is a_1 ... a_k v_1 ... v_k b_1 ... b_k
-				// where 1...k are the morph targets,
-				// a/b are the in/out tangents, and v are the values
-
-				auto numTargets = output.size() / (3 * input.size());
-				assert(output.size() % (3 * input.size()) == 0);
-
-				for (size_t i = 0; i < input.size(); i++) {
-					std::vector<float> tangentIn;
-					std::vector<float> value;
-					std::vector<float> tangentOut;
-
-					for (size_t target = 0; target < numTargets; target++) {
-						tangentIn.emplace_back(output[(3*i + 0) * numTargets + target][0]);
-						value.emplace_back(output[(3*i + 1) * numTargets + target][0]);
-						tangentOut.emplace_back(output[(3*i + 2) * numTargets + target][0]);
-					}
-				
-					tangentInData.push_back(tangentIn);
-					transformedData.emplace_back(value);
-					tangentOutData.push_back(tangentOut);
-				}
-
-			} else {
-				for (auto i = 0; i < output.size(); i += 3) {
-					auto& tangentIn = output[i];
-					auto& vecfKeyframe = output[i + 1];
-					auto& tangentOut = output[i + 2];
-
-					if constexpr (std::is_same_v<DataType, std::array<float, 3>>) {
-						tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2]});
-						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2]});
-						tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2]});
-					} else if constexpr (std::is_same_v<DataType, std::array<float, 4>>) {
-						tangentInData.push_back({tangentIn[0], tangentIn[1], tangentIn[2], tangentIn[3]});
-						transformedData.push_back({vecfKeyframe[0], vecfKeyframe[1], vecfKeyframe[2], vecfKeyframe[3]});
-						tangentOutData.push_back({tangentOut[0], tangentOut[1], tangentOut[2], tangentOut[3]});
-					}
-				}
-			}
-		}
-
-		return outputData;
+		return keyFrames.front().size();
 	}
 };
 
-using SharedAnimationSamplerData = std::shared_ptr<raco::core::AnimationSamplerData>;
+using SharedAnimationSamplerData = std::shared_ptr<core::AnimationSamplerData>;
 
 // Low-level one-to-one mapping of animation channel data delivered by tinyglTF.
 struct MeshAnimationChannel {
@@ -327,7 +252,7 @@ class MeshCache : public FileChangeMonitor {
 public:
 	virtual ~MeshCache() = default;
 
-	virtual SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) = 0;
+	virtual SharedMeshData loadMesh(const core::MeshDescriptor& descriptor) = 0;
 	
 	virtual const MeshScenegraph* getMeshScenegraph(const std::string& absPath) = 0;
 	virtual std::string getMeshError(const std::string& absPath) = 0;

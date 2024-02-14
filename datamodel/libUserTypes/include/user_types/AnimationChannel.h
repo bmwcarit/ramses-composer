@@ -52,10 +52,10 @@ public:
 	Property<int, DisplayNameAnnotation> animationIndex_{{}, DisplayNameAnnotation("Animation Index")};
 	Property<int, DisplayNameAnnotation> samplerIndex_{{}, DisplayNameAnnotation("Sampler Index")};
 
-	raco::core::SharedAnimationSamplerData currentSamplerData_;
+	core::SharedAnimationSamplerData currentSamplerData_;
 
 private:
-	void createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount, bool unsupportedArray);
+	void createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount);
 };
 
 using SAnimationChannel = std::shared_ptr<AnimationChannel>;

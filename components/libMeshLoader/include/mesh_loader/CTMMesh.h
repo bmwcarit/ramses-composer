@@ -18,7 +18,7 @@ class CTMimporter;
 
 namespace raco::mesh_loader {
 
-class CTMMesh : public raco::core::MeshData {
+class CTMMesh : public core::MeshData {
 public:
 	CTMMesh(CTMimporter& importer);
 
@@ -41,6 +41,8 @@ public:
 	VertexAttribDataType attribDataType(int attribIndex) const override;
 	const char* attribBuffer(int attribIndex) const override;
 
+	const std::vector<glm::vec3>& triangleBuffer() const override;
+
 private:
 	struct Attribute {
 		std::string name;
@@ -54,6 +56,8 @@ private:
 	std::vector<uint32_t> indexBuffer_;
 	std::vector<Attribute> attributes_;
 	std::vector<IndexBufferRangeInfo> submeshIndexBufferRanges_;
+
+	std::vector<glm::vec3> triangleBuffer_;
 };
 
 }  // namespace raco::mesh_loader

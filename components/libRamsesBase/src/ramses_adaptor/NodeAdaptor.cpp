@@ -12,16 +12,16 @@
 namespace raco::ramses_adaptor {
 
 NodeAdaptor::NodeAdaptor(SceneAdaptor* sceneAdaptor, user_types::SNode node)
-	: SpatialAdaptor{sceneAdaptor, node, raco::ramses_base::ramsesNode(sceneAdaptor->scene())} {}
+	: SpatialAdaptor{sceneAdaptor, node, ramses_base::ramsesNode(sceneAdaptor->scene(), node->objectIDAsRamsesLogicID())} {}
 
 std::vector<ExportInformation> NodeAdaptor::getExportInformation() const {
 	auto result = std::vector<ExportInformation>();
 	if (getRamsesObjectPointer() != nullptr) {
-		result.emplace_back(ramses::ERamsesObjectType_Node, ramsesObject().getName());
+		result.emplace_back(ramses::ERamsesObjectType::Node, ramsesObject().getName());
 	}
 
-	if (nodeBinding() != nullptr){
-		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+	if (nodeBinding() != nullptr) {
+		result.emplace_back("NodeBinding", nodeBinding()->getName());
 	}
 
 	return result;

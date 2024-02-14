@@ -10,6 +10,35 @@
             ]
         },
         "meshIndex": 0,
+        "metaData": {
+            "order": [
+                "meshInfo"
+            ],
+            "properties": {
+                "meshInfo": {
+                    "annotations": [
+                        {
+                            "typeName": "ReadOnlyAnnotation"
+                        }
+                    ],
+                    "order": [
+                        "triangles",
+                        "vertices"
+                    ],
+                    "properties": {
+                        "triangles": {
+                            "typeName": "Int",
+                            "value": 4212
+                        },
+                        "vertices": {
+                            "typeName": "Int",
+                            "value": 2399
+                        }
+                    },
+                    "typeName": "Table::ReadOnlyAnnotation"
+                }
+            }
+        },
         "objectID": "mesh_id",
         "objectName": "mesh",
         "uri": "SerializationTest/serializeMesh/testData/duck.glb"

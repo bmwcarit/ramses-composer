@@ -68,12 +68,14 @@ public:
 	*/
 	static std::unique_ptr<RaCoProject> createNew(RaCoApplication* app, bool createDefaultScene, int featureLevel);
 
+	static int preloadFeatureLevel(const QString& filename, int featureLevel);
+
 	/**
 	 * @brief Loads and checks project file
 	 * @param filename path to the project file
 	 * @return file JSON content
 	 */
-	static QJsonDocument loadFileDocument(const QFileInfo& fileInfo);
+	static QJsonDocument loadJsonDocument(const QString& filename);
 
 	/**
 	 * @brief Load scene
@@ -92,30 +94,30 @@ public:
 	// @exception ExtrefError
 	void updateExternalReferences(core::LoadContext& loadContext);
 
-	raco::core::Project* project();
-	raco::core::Errors const* errors() const;
-	raco::core::Errors* errors();
-	raco::core::DataChangeRecorder* recorder();
-	raco::core::CommandInterface* commandInterface();
-	raco::core::UndoStack* undoStack();
-	raco::core::MeshCache* meshCache();
-	raco::components::TracePlayer& tracePlayer();
+	core::Project* project();
+	core::Errors const* errors() const;
+	core::Errors* errors();
+	core::DataChangeRecorder* recorder();
+	core::CommandInterface* commandInterface();
+	core::UndoStack* undoStack();
+	core::MeshCache* meshCache();
+	components::TracePlayer& tracePlayer();
 
 	QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
 	void applyPreferences() const;
 	void applyDefaultCachedPaths();
-	void setupCachedPathSubscriptions(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
+	void setupCachedPathSubscriptions(const components::SDataChangeDispatcher& dataChangeDispatcher);
 		
 Q_SIGNALS:
 	void activeProjectFileChanged();
 	void projectSuccessfullySaved();
 
 private:
-	void subscribeDefaultCachedPathChanges(const raco::components::SDataChangeDispatcher& dataChangeDispatcher);
+	void subscribeDefaultCachedPathChanges(const components::SDataChangeDispatcher& dataChangeDispatcher);
 
 	// @exception ExtrefError
-	RaCoProject(const QString& file, raco::core::Project& p, raco::core::EngineInterface* engineInterface, const raco::core::UndoStack::Callback& callback, raco::core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, core::LoadContext& loadContext);
+	RaCoProject(const QString& file, core::Project& p, core::EngineInterface* engineInterface, const core::UndoStack::Callback& callback, core::ExternalProjectsStoreInterface* externalProjectsStore, RaCoApplication* app, core::LoadContext& loadContext, int fileVersion);
 
 	QJsonDocument serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions);
 
@@ -125,27 +127,29 @@ private:
 	void generateAllProjectSubfolders();
 	void updateActiveFileListener();
 
-	raco::core::DataChangeRecorder recorder_;
-	raco::core::Errors errors_;
-	raco::core::Project project_;
+	core::DataChangeRecorder recorder_;
+	core::Errors errors_;
+	core::Project project_;
 
-	raco::components::Subscription lifecycleSubscription_;
-	raco::components::Subscription imageSubdirectoryUpdateSubscription_;
-	raco::components::Subscription meshSubdirectoryUpdateSubscription_;
-	raco::components::Subscription scriptSubdirectoryUpdateSubscription_;
-	raco::components::Subscription interfaceSubdirectoryUpdateSubscription_;
-	raco::components::Subscription shaderSubdirectoryUpdateSubscription_;
+	components::Subscription lifecycleSubscription_;
+	components::Subscription imageSubdirectoryUpdateSubscription_;
+	components::Subscription meshSubdirectoryUpdateSubscription_;
+	components::Subscription scriptSubdirectoryUpdateSubscription_;
+	components::Subscription interfaceSubdirectoryUpdateSubscription_;
+	components::Subscription shaderSubdirectoryUpdateSubscription_;
 
-	std::shared_ptr<raco::core::BaseContext> context_;
+	std::shared_ptr<core::BaseContext> context_;
 	bool dirty_{false};
 
 	components::ProjectFileChangeMonitor activeProjectFileChangeMonitor_;
-	raco::components::ProjectFileChangeMonitor::UniqueListener activeProjectFileChangeListener_;
+	components::ProjectFileChangeMonitor::UniqueListener activeProjectFileChangeListener_;
 
-	raco::core::MeshCache* meshCache_;
-	raco::core::UndoStack undoStack_;
-	raco::core::CommandInterface commandInterface_;
-	std::unique_ptr<raco::components::TracePlayer> tracePlayer_;
+	core::MeshCache* meshCache_;
+	core::UndoStack undoStack_;
+	core::CommandInterface commandInterface_;
+	std::unique_ptr<components::TracePlayer> tracePlayer_;
+
+	std::filesystem::file_time_type lastModifiedTime_;
 };
 
 }  // namespace raco::application

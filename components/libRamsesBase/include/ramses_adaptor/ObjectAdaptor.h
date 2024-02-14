@@ -14,28 +14,34 @@
 #include "ramses_adaptor/utilities.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
-#include <ramses-client-api/RamsesObject.h>
-#include <ramses-framework-api/RamsesVersion.h>
-#include <ramses-logic/Property.h>
+#include <ramses/framework/RamsesObject.h>
+#include <ramses/framework/RamsesVersion.h>
+#include <ramses/client/logic/Property.h>
 
 #include <utility>
 #include "ramses_base/RamsesFormatter.h"
 
 namespace raco::ramses_adaptor {
 
-using raco::ramses_base::RamsesHandle;
+using ramses_base::RamsesHandle;
 
 class ILogicPropertyProvider {
 public:
-	virtual void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const = 0;
-	virtual const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) = 0;
+	virtual void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const = 0;
+	virtual ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) = 0;
 	virtual void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) = 0;
 
-	static const rlogic::Property* getPropertyRecursive(const rlogic::Property* property, const std::vector<std::string>& propertyNames, size_t startIndex = 0) {
+	static ramses::Property* getPropertyRecursive(ramses::Property* property, const std::vector<std::string_view>& propertyNames, size_t startIndex = 0) {
 		for (size_t index = startIndex; index < propertyNames.size(); index++) {
-			if (property->getType() == rlogic::EPropertyType::Array) {
+			if (property->getType() == ramses::EPropertyType::Array) {
 				// convert 1-bases Editor index back to 0-based index
-				property = property->getChild(std::stoi(propertyNames[index]) - 1);
+				int childIndex;
+				auto [ptr, error] = std::from_chars(propertyNames[index].data(), propertyNames[index].data() + propertyNames[index].size(), childIndex);
+				if (error == std::errc() && index > 0) {
+					property = property->getChild(childIndex - 1);
+				} else {
+					throw std::runtime_error("Invalid property name.");
+				}
 			} else {
 				property = property->getChild(propertyNames[index]);
 			}
@@ -54,8 +60,8 @@ struct ExportInformation {
 	std::string type;
 	const std::string name;
 
-	explicit ExportInformation(std::string type, std::string name) : type(std::move(type)), name(std::move(name)) {}
-	explicit ExportInformation(const ramses::ERamsesObjectType type, std::string name) : name(std::move(name)) {
+	explicit ExportInformation(std::string type, std::string_view name) : type(std::move(type)), name(std::move(name)) {}
+	explicit ExportInformation(const ramses::ERamsesObjectType type, std::string_view name) : name(std::move(name)) {
 		this->type = fmt::format("{}", type);
 	}
 };
@@ -65,7 +71,7 @@ struct ExportInformation {
  */
 class ObjectAdaptor {
 public:
-	using SEditorObject = raco::core::SEditorObject;
+	using SEditorObject = core::SEditorObject;
 
 	explicit ObjectAdaptor(SceneAdaptor* sceneAdaptor) : sceneAdaptor_{sceneAdaptor}, dirtyStatus_{true} {}
 	virtual ~ObjectAdaptor();

@@ -19,31 +19,31 @@ class CubeMapTest : public TestEnvironmentCore {};
 TEST_F(CubeMapTest, invalidLevels) {
 	auto cubeMap{commandInterface.createObject(CubeMap::typeDescription.typeName)};
 
-	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}, -1);
-	ASSERT_TRUE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	commandInterface.set({cubeMap, &user_types::CubeMap::mipmapLevel_}, -1);
+	ASSERT_TRUE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}, 1);
-	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	commandInterface.set({cubeMap, &user_types::CubeMap::mipmapLevel_}, 1);
+	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}, 5);
-	ASSERT_TRUE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	commandInterface.set({cubeMap, &user_types::CubeMap::mipmapLevel_}, 5);
+	ASSERT_TRUE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}, 4);
-	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	commandInterface.set({cubeMap, &user_types::CubeMap::mipmapLevel_}, 4);
+	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 }
 
 TEST_F(CubeMapTest, levelOtherThanOneWhenGenerationFlagIsActivated) {
 	auto cubeMap{commandInterface.createObject(CubeMap::typeDescription.typeName)};
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}, 2);
-	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	commandInterface.set({cubeMap, &user_types::CubeMap::mipmapLevel_}, 2);
+	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::generateMipmaps_}, true);
-	ASSERT_TRUE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
-	ASSERT_EQ(commandInterface.errors().getError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}).level(), raco::core::ErrorLevel::WARNING);
+	commandInterface.set({cubeMap, &user_types::CubeMap::generateMipmaps_}, true);
+	ASSERT_TRUE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
+	ASSERT_EQ(commandInterface.errors().getError({cubeMap, &user_types::CubeMap::mipmapLevel_}).level(), core::ErrorLevel::WARNING);
 
-	commandInterface.set({cubeMap, &raco::user_types::CubeMap::generateMipmaps_}, false);
-	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &raco::user_types::CubeMap::mipmapLevel_}));
+	commandInterface.set({cubeMap, &user_types::CubeMap::generateMipmaps_}, false);
+	ASSERT_FALSE(commandInterface.errors().hasError({cubeMap, &user_types::CubeMap::mipmapLevel_}));
 }

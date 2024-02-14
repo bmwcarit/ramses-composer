@@ -20,10 +20,10 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	ramses::RamsesClient& client,
 	ramses::sceneId_t sceneId)
 	: scene_{ramsesScene(sceneId, &client)},
-	  camera_{ramsesOrthographicCamera(scene_.get())},
-	  renderGroup_{std::shared_ptr<ramses::RenderGroup>(scene_.get()->createRenderGroup(), raco::ramses_base::createRamsesObjectDeleter<ramses::RenderGroup>(scene_.get()))},
-	  renderPass_{scene_->createRenderPass(), raco::ramses_base::createRamsesObjectDeleter<ramses::RenderPass>(scene_.get())} {
-	(*camera_)->setTranslation(0, 0, 10.0f);
+	  camera_{ramsesOrthographicCamera(scene_.get(), {0, 0})},
+	  renderGroup_{std::shared_ptr<ramses::RenderGroup>(scene_.get()->createRenderGroup(), ramses_base::createRamsesObjectDeleter<ramses::RenderGroup>(scene_.get()))},
+	  renderPass_{scene_->createRenderPass(), ramses_base::createRamsesObjectDeleter<ramses::RenderPass>(scene_.get())} {
+	(*camera_)->setTranslation({0, 0, 10.0f});
 	(*camera_)->setFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 	// we need to have an inital viewport
 	(*camera_)->setViewport(0, 0, 1, 1);
@@ -33,7 +33,7 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	// Ramses ignores the clear flags/clear color because we are rendering to the default framebuffer.
 	// Still: apply some sensible default here. We expect every pixel to be covered by the blit operation
 	// so disable clearing the buffers.
-	renderPass_->setClearFlags(ramses::EClearFlags_None);
+	renderPass_->setClearFlags(ramses::EClearFlag::None);
 
 	static const std::string vertexShader =
 		"#version 310 es\n\
@@ -87,74 +87,65 @@ PreviewFramebufferScene::PreviewFramebufferScene(
 	effectDescription.setVertexShader(vertexShader.c_str());
 	effectDescription.setFragmentShader(fragmentShader.c_str());
 	effectDescription.setUniformSemantic("mvpMatrix", ramses::EEffectUniformSemantic::ModelViewProjectionMatrix);
-	effect_ = ramsesEffect(scene_.get(), effectDescription);
-	appearance_ = ramsesAppearance(scene_.get(), effect_);
+	effect_ = ramsesEffect(scene_.get(), effectDescription, {}, {0, 0});
+	appearance_ = ramsesAppearance(scene_.get(), effect_, {0, 0});
 
 	ramses::EffectDescription effectDescriptionMS{};
 	effectDescriptionMS.setVertexShader(vertexShader.c_str());
 	effectDescriptionMS.setFragmentShader(fragmentShaderMS.c_str());
 	effectDescriptionMS.setUniformSemantic("mvpMatrix", ramses::EEffectUniformSemantic::ModelViewProjectionMatrix);
-	effectMS_ = ramsesEffect(scene_.get(), effectDescriptionMS);
-	appearanceMS_ = ramsesAppearance(scene_.get(), effectMS_);
+	effectMS_ = ramsesEffect(scene_.get(), effectDescriptionMS, {}, {0, 0});
+	appearanceMS_ = ramsesAppearance(scene_.get(), effectMS_, {0, 0});
 
 	// buffers
-	static std::vector<float> vertex_data = {
-		0.0f, 0.0f, 0.f,
-		0.0f, 1.0f, 0.f,
-		1.0f, 0.0f, 0.f,
-		1.0f, 1.0f, 0.f};
-	static std::vector<float> uv_data = {
-		0.0f, 0.0f,
-		0.0f, 1.0f,
-		1.0f, 0.0f,
-		1.0f, 1.0f};
+	static std::vector<glm::vec3> vertex_data = {
+		{0.0f, 0.0f, 0.f},
+		{0.0f, 1.0f, 0.f},
+		{1.0f, 0.0f, 0.f},
+		{1.0f, 1.0f, 0.f}};
+	static std::vector<glm::vec2> uv_data = {
+		{0.0f, 0.0f},
+		{0.0f, 1.0f},
+		{1.0f, 0.0f},
+		{1.0f, 1.0f}};
 	static std::vector<uint32_t> index_data = {
 		0, 2, 1,
 		1, 2, 3};
 
-	const uint32_t indexSize = static_cast<uint32_t>(sizeof(uint32_t) * index_data.size());
-	indexDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::UInt32, indexSize, index_data.data());
-
-	const uint32_t vertexSize = static_cast<uint32_t>(sizeof(float) * vertex_data.size());
-	vertexDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector3F, vertexSize, vertex_data.data());
-
-	const uint32_t uvSize = static_cast<uint32_t>(sizeof(float) * uv_data.size());
-	uvDataBuffer_ = ramsesArrayResource(scene_.get(), ramses::EDataType::Vector2F, uvSize, uv_data.data());
+	indexDataBuffer_ = ramsesArrayResource(scene_.get(), index_data);
+	vertexDataBuffer_ = ramsesArrayResource(scene_.get(), vertex_data);
+	uvDataBuffer_ = ramsesArrayResource(scene_.get(), uv_data);
 
 	{
-		geometryBinding_ = ramsesGeometryBinding(scene_.get(), effect_);
-		(*geometryBinding_)->setIndices(*indexDataBuffer_.get());
+		geometry_ = ramsesGeometry(scene_.get(), effect_, {0, 0});
+		(*geometry_)->setIndices(*indexDataBuffer_.get());
 
-		ramses::AttributeInput vertexInput;
-		effect_->findAttributeInput("a_Position", vertexInput);
-		(*geometryBinding_)->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
+		ramses::AttributeInput vertexInput = effect_->findAttributeInput("a_Position").value();
+		(*geometry_)->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
 
-		ramses::AttributeInput uvInput;
-		effect_->findAttributeInput("a_TextureCoordinate", uvInput);
-		(*geometryBinding_)->setInputBuffer(uvInput, *uvDataBuffer_.get());
+		ramses::AttributeInput uvInput = effect_->findAttributeInput("a_TextureCoordinate").value();
+		(*geometry_)->setInputBuffer(uvInput, *uvDataBuffer_.get());
 	}
 
 	{
-		geometryBindingMS_ = ramsesGeometryBinding(scene_.get(), effectMS_);
-		(*geometryBindingMS_)->setIndices(*indexDataBuffer_.get());
+		geometryMS_ = ramsesGeometry(scene_.get(), effectMS_, {0, 0});
+		(*geometryMS_)->setIndices(*indexDataBuffer_.get());
 
-		ramses::AttributeInput vertexInput;
-		effectMS_->findAttributeInput("a_Position", vertexInput);
-		(*geometryBindingMS_)->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
+		ramses::AttributeInput vertexInput = effectMS_->findAttributeInput("a_Position").value();
+		(*geometryMS_)->setInputBuffer(vertexInput, *vertexDataBuffer_.get());
 
-		ramses::AttributeInput uvInput;
-		effectMS_->findAttributeInput("a_TextureCoordinate", uvInput);
-		(*geometryBindingMS_)->setInputBuffer(uvInput, *uvDataBuffer_.get());
+		ramses::AttributeInput uvInput = effectMS_->findAttributeInput("a_TextureCoordinate").value();
+		(*geometryMS_)->setInputBuffer(uvInput, *uvDataBuffer_.get());
 	}
 
-	meshNode_ = ramsesMeshNode(scene_.get());
-	meshNode_->setGeometryBinding(geometryBinding_);
+	meshNode_ = ramsesMeshNode(scene_.get(), {0, 0});
+	meshNode_->setGeometry(geometry_);
 	meshNode_->setAppearance(appearance_);
 
 	renderGroup_->addMeshNode(**meshNode_);
 
 	scene_->flush();
-	scene_->publish();
+	scene_->publish(ramses::EScenePublicationMode::LocalAndRemote);
 }
 
 void PreviewFramebufferScene::setViewport(const QPoint& viewportPosition, const QSize& viewportSize, const QSize& virtualSize) {
@@ -176,9 +167,9 @@ ramses::sceneId_t PreviewFramebufferScene::getSceneId() const {
 }
 
 ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(RendererBackend& backend, const QSize& size, PreviewFilteringMode filteringMode, PreviewMultiSampleRate sampleRate) {
-	ramses::ETextureSamplingMethod samplingMethod = ramses::ETextureSamplingMethod_Nearest;
+	ramses::ETextureSamplingMethod samplingMethod = ramses::ETextureSamplingMethod::Nearest;
 	if (filteringMode == PreviewFilteringMode::Linear) {
-		samplingMethod = ramses::ETextureSamplingMethod_Linear;
+		samplingMethod = ramses::ETextureSamplingMethod::Linear;
 	}
 
 	if (currentSampleCount_ == sampleRate) {
@@ -198,20 +189,18 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 		framebufferTexture_.reset();
 		sampler_.reset();
 
-		renderbufferMS_ = ramsesRenderBuffer(scene_.get(), size.width(), size.height(), ramses::ERenderBufferType_Color, ramses::ERenderBufferFormat_RGBA8, ramses::ERenderBufferAccessMode_ReadWrite, sampleRate);
+		renderbufferMS_ = ramsesRenderBuffer(scene_.get(), size.width(), size.height(), ramses::ERenderBufferFormat::RGBA8, ramses::ERenderBufferAccessMode::ReadWrite, sampleRate, {}, {0, 0});
 
-		samplerMS_ = ramsesTextureSamplerMS(scene_.get(), renderbufferMS_);
+		samplerMS_ = ramsesTextureSamplerMS(scene_.get(), renderbufferMS_, {}, {0, 0});
 
-		ramses::UniformInput texUniformInput;
-		(*appearanceMS_)->getEffect().findUniformInput("uTex0", texUniformInput);
+		ramses::UniformInput texUniformInput = (*appearanceMS_)->getEffect().findUniformInput("uTex0").value();
 		(*appearanceMS_)->setInputTexture(texUniformInput, *samplerMS_.get());
 
-		ramses::UniformInput sampleRateUniformInput;
-		(*appearanceMS_)->getEffect().findUniformInput("sampleCount", sampleRateUniformInput);
-		(*appearanceMS_)->setInputValueInt32(sampleRateUniformInput, sampleRate);
+		ramses::UniformInput sampleRateUniformInput = (*appearanceMS_)->getEffect().findUniformInput("sampleCount").value();
+		(*appearanceMS_)->setInputValue<int32_t>(sampleRateUniformInput, static_cast<int32_t>(sampleRate));
 
 		meshNode_->removeAppearanceAndGeometry();
-		meshNode_->setGeometryBinding(geometryBindingMS_);
+		meshNode_->setGeometry(geometryMS_);
 		meshNode_->setAppearance(appearanceMS_);
 	} else {
 		renderbufferMS_.reset();
@@ -219,19 +208,19 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 
 		std::vector<uint8_t> data(4 * size.width() * size.height(), 0);
 
-		ramses::MipLevelData mipData(static_cast<uint32_t>(data.size()), data.data());
+		std::vector<ramses::MipLevelData> mipDatas;
+		mipDatas.emplace_back(reinterpret_cast<std::byte*>(data.data()), reinterpret_cast<std::byte*>(data.data()) + data.size());
 		const ramses::TextureSwizzle textureSwizzle{};
 
-		framebufferTexture_ = ramsesTexture2D(scene_.get(), ramses::ETextureFormat::RGBA8, size.width(), size.height(), 1, &mipData, false, textureSwizzle, ramses::ResourceCacheFlag_DoNotCache, "framebuffer texture");
+		framebufferTexture_ = ramsesTexture2D(scene_.get(), ramses::ETextureFormat::RGBA8, size.width(), size.height(), mipDatas, false, textureSwizzle, "framebuffer texture", {0, 0});
 
-		sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode_Clamp, ramses::ETextureAddressMode_Clamp, samplingMethod, samplingMethod, framebufferTexture_.get(), 1, "framebuffer sampler");
+		sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode::Clamp, ramses::ETextureAddressMode::Clamp, samplingMethod, samplingMethod, framebufferTexture_.get(), 1, "framebuffer sampler", {0, 0});
 
-		ramses::UniformInput texUniformInput;
-		(*appearance_)->getEffect().findUniformInput("uTex0", texUniformInput);
+		ramses::UniformInput texUniformInput = (*appearance_)->getEffect().findUniformInput("uTex0").value();
 		(*appearance_)->setInputTexture(texUniformInput, *sampler_.get());
 
 		meshNode_->removeAppearanceAndGeometry();
-		meshNode_->setGeometryBinding(geometryBinding_);
+		meshNode_->setGeometry(geometry_);
 		meshNode_->setAppearance(appearance_);
 	}
 	currentSampleCount_ = sampleRate;

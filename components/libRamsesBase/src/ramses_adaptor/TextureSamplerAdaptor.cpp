@@ -17,7 +17,7 @@
 #include "utils/FileUtils.h"
 #include <QDataStream>
 #include <QFile>
-#include <ramses-client-api/MipLevelData.h>
+#include <ramses/client/MipLevelData.h>
 
 namespace raco::ramses_adaptor {
 
@@ -60,14 +60,14 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	errors->removeError({editorObject()->shared_from_this()});
 	errors->removeError({editorObject()->shared_from_this(), &user_types::Texture::textureFormat_});
 
-	raco::ramses_base::PngDecodingInfo decodingInfo;
+	ramses_base::PngDecodingInfo decodingInfo;
 	textureData_ = nullptr;
 	std::string uri = editorObject()->uri_.asString();
 	if (!uri.empty()) {
 		// do not clear errors here, this is done earlier in Texture
 		textureData_ = createTexture(errors, decodingInfo);
 		if (!textureData_) {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': Couldn't load png file from '{}'", editorObject()->objectName(), uri);
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, "Texture '{}': Couldn't load png file from '{}'", editorObject()->objectName(), uri);
 			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {editorObject()->shared_from_this(), &user_types::Texture::uri_}, "Image file could not be loaded.");
 		}
 	}
@@ -109,7 +109,9 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 			ramsesMinSamplMethod,
 			ramsesMagSamplMethod,
 			textureData_,
-			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1));
+			(*editorObject()->anisotropy_ >= 1 ? *editorObject()->anisotropy_ : 1),
+			{},
+			editorObject()->objectIDAsRamsesLogicID());
 		reset(std::move(textureSampler));
 	} else {
 		reset(nullptr);
@@ -157,16 +159,17 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, PngDe
 		if (*editorObject()->flipTexture_) {
 			flipDecodedPicture(rawMipData, ramsesTextureFormatToChannelAmount(swizzleTextureFormat), decodingInfo.width * std::pow(0.5, i), decodingInfo.height * std::pow(0.5, i), decodingInfo.bitdepth);
 		}
-		mipDatas.emplace_back(static_cast<uint32_t>(rawMipData.size()), rawMipData.data());
+		mipDatas.emplace_back(reinterpret_cast<std::byte*>(rawMipData.data()), reinterpret_cast<std::byte*>(rawMipData.data()) + rawMipData.size());
 	}
 
-	return ramsesTexture2D(sceneAdaptor_->scene(), swizzleTextureFormat, decodingInfo.width, decodingInfo.height, *editorObject()->mipmapLevel_, mipDatas.data(), *editorObject()->generateMipmaps_, swizzle, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	return ramsesTexture2D(sceneAdaptor_->scene(), swizzleTextureFormat, decodingInfo.width, decodingInfo.height, mipDatas, *editorObject()->generateMipmaps_, swizzle, {}, editorObject()->objectIDAsRamsesLogicID());
 }
 
 RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {
 	auto& data = getFallbackTextureData(*editorObject()->flipTexture_);
-	ramses::MipLevelData mipLevelData(static_cast<uint32_t>(data.size()), data.data());
-	ramses::Texture2D* textureData = sceneAdaptor_->scene()->createTexture2D(ramses::ETextureFormat::RGBA8, FALLBACK_TEXTURE_SIZE_PX, FALLBACK_TEXTURE_SIZE_PX, 1, &mipLevelData, false, {}, ramses::ResourceCacheFlag_DoNotCache, nullptr);
+	std::vector<ramses::MipLevelData> mipDatas;
+	mipDatas.emplace_back(reinterpret_cast<std::byte*>(data.data()), reinterpret_cast<std::byte*>(data.data()) + data.size());
+	ramses::Texture2D* textureData = sceneAdaptor_->scene()->createTexture2D(ramses::ETextureFormat::RGBA8, FALLBACK_TEXTURE_SIZE_PX, FALLBACK_TEXTURE_SIZE_PX, mipDatas, false, {}, {});
 
 	return {textureData, createRamsesObjectDeleter<ramses::Texture2D>(sceneAdaptor_->scene())};
 }

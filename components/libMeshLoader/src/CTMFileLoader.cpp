@@ -59,7 +59,7 @@ void CTMFileLoader::reset() {
 	valid_ = false;
 }
 
-const raco::core::MeshScenegraph* CTMFileLoader::getScenegraph(const std::string& absPath) {
+const core::MeshScenegraph* CTMFileLoader::getScenegraph(const std::string& absPath) {
 	// Scenegraph import for CTM is unsupported as CTM does not contain any scenegraph.
 	return nullptr;
 }
@@ -68,12 +68,12 @@ int CTMFileLoader::getTotalMeshCount() {
 	return 1;
 }
 
-raco::core::SharedAnimationSamplerData CTMFileLoader::getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) {
+core::SharedAnimationSamplerData CTMFileLoader::getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) {
 	// CTM has no animations yet
 	return {};
 }
 
-raco::core::SharedSkinData CTMFileLoader::loadSkin(const std::string& absPath, int skinIndex, std::string& outError) {
+core::SharedSkinData CTMFileLoader::loadSkin(const std::string& absPath, int skinIndex, std::string& outError) {
 	return {};
 }
 
@@ -83,7 +83,7 @@ raco::core::SharedSkinData CTMFileLoader::loadSkin(const std::string& absPath, i
 
 		try {
 			// Since we want to work with UTF-8 paths, we need to supply our own stream reading function here.
-			std::ifstream in{raco::utils::u8path(path_).internalPath(), std::ifstream::in | std::ifstream::binary};
+			std::ifstream in{utils::u8path(path_).internalPath(), std::ifstream::in | std::ifstream::binary};
 
 			auto readFunction = [](void* aBuf, CTMuint aCount, void* aUserData) -> CTMuint {
 				auto in = static_cast<std::ifstream*>(aUserData);
@@ -95,7 +95,7 @@ raco::core::SharedSkinData CTMFileLoader::loadSkin(const std::string& absPath, i
 			valid_ = true;
 		} catch (ctm_error const& e) {
 			valid_ = false;
-			if (e.error_code() == CTM_BAD_FORMAT && raco::utils::file::isGitLfsPlaceholderFile(path_)) {
+			if (e.error_code() == CTM_BAD_FORMAT && utils::file::isGitLfsPlaceholderFile(path_)) {
 				error_ = "Git LFS placeholder file detected.";
 			} else {
 				error_ = errorCodeToString(e.error_code());
@@ -107,11 +107,11 @@ raco::core::SharedSkinData CTMFileLoader::loadSkin(const std::string& absPath, i
 
 
 
-raco::core::SharedMeshData CTMFileLoader::loadMesh(const raco::core::MeshDescriptor& descriptor) {
+core::SharedMeshData CTMFileLoader::loadMesh(const core::MeshDescriptor& descriptor) {
 	if (loadFile()) {
 		return std::make_shared<CTMMesh>(*importer_.get());
 	}
-	return raco::core::SharedMeshData();
+	return core::SharedMeshData();
 }
 
 std::string CTMFileLoader::getError() {

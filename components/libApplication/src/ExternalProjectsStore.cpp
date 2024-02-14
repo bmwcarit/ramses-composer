@@ -43,7 +43,7 @@ void ExternalProjectsStore::buildProjectGraph(const std::string& absPath, std::v
 	auto racoProject = externalProjects_.at(absPath).get();
 	if (racoProject) {
 		ProjectGraphNode node{absPath};
-		raco::core::Project& project = *racoProject->project();
+		core::Project& project = *racoProject->project();
 		for (auto item : project.externalProjectsMap()) {
 			auto path = project.lookupExternalProjectPath(item.first);
 			buildProjectGraph(path, outProjects);
@@ -71,8 +71,8 @@ void ExternalProjectsStore::updateExternalProjectsDependingOn(const std::string&
 				core::LoadContext loadContext;
 				loadContext.featureLevel = featureLevel;
 				externalProjects_[it->path]->updateExternalReferences(loadContext);
-			} catch (const raco::core::ExtrefError& e) {
-				LOG_ERROR(raco::log_system::COMMON, "Exterrnal reference update failed {}", e.what());
+			} catch (const core::ExtrefError& e) {
+				LOG_ERROR(log_system::COMMON, "Exterrnal reference update failed {}", e.what());
 			}
 			dirty.insert(it->path);
 		}
@@ -87,13 +87,13 @@ void ExternalProjectsStore::updateExternalProjectsDependingOn(const std::string&
 			core::LoadContext loadContext;
 			loadContext.featureLevel = activeProject_->project()->featureLevel();
 			activeProject_->updateExternalReferences(loadContext);
-		} catch (const raco::core::ExtrefError& e) {
-			LOG_ERROR(raco::log_system::COMMON, "Exterrnal reference update failed {}", e.what());
+		} catch (const core::ExtrefError& e) {
+			LOG_ERROR(log_system::COMMON, "Exterrnal reference update failed {}", e.what());
 		}
 	}
 }
 
-bool raco::application::ExternalProjectsStore::isCurrent(const std::string& projectPath) const {
+bool application::ExternalProjectsStore::isCurrent(const std::string& projectPath) const {
 	auto it = externalProjects_.find(projectPath);
 	if (it != externalProjects_.end()) {
 		auto racoProject = it->second.get();
@@ -104,7 +104,11 @@ bool raco::application::ExternalProjectsStore::isCurrent(const std::string& proj
 	return false;
 }
 
-raco::core::Project* ExternalProjectsStore::addExternalProject(const std::string& origProjectPath,  core::LoadContext& loadContext) {
+core::Project* ExternalProjectsStore::addExternalProject(const std::string& origProjectPath,  core::LoadContext& loadContext) {
+	if (utils::u8path(origProjectPath).existsDirectory()) {
+		return nullptr;
+	}
+
 	std::string projectPath = origProjectPath;
 	if (relinkPathMapCache_.find(projectPath) != relinkPathMapCache_.end()) {
 		projectPath = relinkPathMapCache_.at(projectPath);
@@ -120,13 +124,13 @@ raco::core::Project* ExternalProjectsStore::addExternalProject(const std::string
 	}
 
 	if (std::find(loadContext.pathStack.begin(), loadContext.pathStack.end(), projectPath) != loadContext.pathStack.end()) {
-		LOG_ERROR(raco::log_system::COMMON, "Can not add Project '{}' to Project Browser: project loop detected '{}' -> '{}'", projectPath, fmt::join(loadContext.pathStack, "' -> '"), projectPath);
+		LOG_ERROR(log_system::COMMON, "Can not add Project '{}' to Project Browser: project loop detected '{}' -> '{}'", projectPath, fmt::join(loadContext.pathStack, "' -> '"), projectPath);
 		return nullptr;
 	}
 
 	QFileInfo fileInfo(QString::fromStdString(projectPath));
 	QString absPath = fileInfo.absoluteFilePath();
-	if (!raco::utils::u8path(absPath.toStdString()).existsFile() && relinkCallback_) {
+	if (!utils::u8path(absPath.toStdString()).existsFile() && relinkCallback_) {
 		// Query for replacement path
 		auto relinkPath = relinkCallback_(projectPath);
 		if (!relinkPath.empty()) {
@@ -171,20 +175,20 @@ bool ExternalProjectsStore::loadExternalProject(const std::string& projectPath, 
 		try {
 			project = RaCoProject::loadFromFile(QString::fromStdString(projectPath), application_, loadContext, true, loadContext.featureLevel);
 			success = true;
-		} catch (raco::application::FutureFileVersion& fileVerError) {
-			LOG_ERROR(raco::log_system::OBJECT_TREE_VIEW, "Can not add Project {} to Project Browser - incompatible file version {} of project file", projectPath, fileVerError.fileVersion_);
-		} catch (raco::core::ExtrefError& error) {
-			LOG_ERROR(raco::log_system::COMMON, "Can not add Project {} to Project Browser: loading failed {}", projectPath, error.what());
-		} catch (const raco::application::FeatureLevelLoadError& error) {
-			LOG_ERROR(raco::log_system::COMMON, "Feature level load error during external reference update");
-			flError_.reset(new raco::application::FeatureLevelLoadError(error));
+		} catch (application::FutureFileVersion& fileVerError) {
+			LOG_ERROR(log_system::OBJECT_TREE_VIEW, "Can not add Project {} to Project Browser - incompatible file version {} of project file", projectPath, fileVerError.fileVersion_);
+		} catch (core::ExtrefError& error) {
+			LOG_ERROR(log_system::COMMON, "Can not add Project {} to Project Browser: loading failed {}", projectPath, error.what());
+		} catch (const application::FeatureLevelLoadError& error) {
+			LOG_ERROR(log_system::COMMON, "Feature level load error during external reference update");
+			flError_.reset(new application::FeatureLevelLoadError(error));
 		} catch (std::runtime_error& error) {
-			LOG_ERROR(raco::log_system::COMMON, "Loading external project '{}' failed with error: {}", projectPath, error.what());
+			LOG_ERROR(log_system::COMMON, "Loading external project '{}' failed with error: {}", projectPath, error.what());
 		}
 	}
 	if (projectPath == activeProjectPath() ||
 		(project && activeProject_ && project->project()->projectID() == activeProject_->project()->projectID())) {
-		LOG_ERROR(raco::log_system::COMMON, "Can not add Project {} to Project Browser: would create project loop", projectPath);
+		LOG_ERROR(log_system::COMMON, "Can not add Project {} to Project Browser: would create project loop", projectPath);
 		project = nullptr;
 		success = false;
 	}
@@ -209,7 +213,7 @@ void ExternalProjectsStore::removeExternalProject(const std::string& projectPath
 	}
 }
 
-raco::core::CommandInterface* ExternalProjectsStore::getExternalProjectCommandInterface(const std::string& projectPath) const {
+core::CommandInterface* ExternalProjectsStore::getExternalProjectCommandInterface(const std::string& projectPath) const {
 	auto it = externalProjects_.find(projectPath);
 	if (it == externalProjects_.end() || it->second == nullptr) {
 		return nullptr;
@@ -221,8 +225,8 @@ bool ExternalProjectsStore::isExternalProject(const std::string& projectPath) co
 	return externalProjects_.find(projectPath) != externalProjects_.end();
 }
 
-std::vector<std::pair<std::string, raco::core::CommandInterface*>> ExternalProjectsStore::allExternalProjects() const {
-	std::vector<std::pair<std::string, raco::core::CommandInterface*>> projects;
+std::vector<std::pair<std::string, core::CommandInterface*>> ExternalProjectsStore::allExternalProjects() const {
+	std::vector<std::pair<std::string, core::CommandInterface*>> projects;
 	projects.reserve(externalProjects_.size());
 	for (auto const& p : externalProjects_) {
 		if (p.second) {
@@ -234,9 +238,9 @@ std::vector<std::pair<std::string, raco::core::CommandInterface*>> ExternalProje
 	return projects;
 }
 
-raco::core::Project* ExternalProjectsStore::getExternalProject(const std::string& projectPath) const {
+core::Project* ExternalProjectsStore::getExternalProject(const std::string& projectPath) const {
 	auto it = externalProjects_.find(projectPath);
-	if (it != externalProjects_.end()) {
+	if (it != externalProjects_.end() && it->second) {
 		return it->second->project();
 	}
 	return nullptr;

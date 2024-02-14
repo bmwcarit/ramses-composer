@@ -27,12 +27,12 @@ class MeshCacheImpl : public GenericFileChangeMonitorImpl<core::MeshCache> {
 public:
 	MeshCacheImpl() {}
 
-	core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
+	core::SharedMeshData loadMesh(const core::MeshDescriptor& descriptor) override;
 	const core::MeshScenegraph* getMeshScenegraph(const std::string& absPath) override;
 	std::string getMeshError(const std::string& absPath) override;
 	int getTotalMeshCount(const std::string& absPath) override;
 
-	raco::core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
+	core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 
 	core::SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) override;
 

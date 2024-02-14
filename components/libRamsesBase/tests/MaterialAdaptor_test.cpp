@@ -25,26 +25,26 @@ using namespace raco::user_types;
 class MaterialAdaptorTest : public MaterialAdaptorTestBase {};
 
 TEST_F(MaterialAdaptorTest, context_scene_effect_name_change) {
-	auto node = context.createObject(raco::user_types::Material::typeDescription.typeName, "Material Name");
+	auto node = context.createObject(user_types::Material::typeDescription.typeName, "Material Name");
 
 	dispatch();
 
-	auto effects{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
+	auto effects{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect)};
 	EXPECT_EQ(effects.size(), 1);
 	ASSERT_TRUE(isRamsesNameInArray("Material Name", effects));
 
-	auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance)};
+	auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::Appearance)};
 	EXPECT_EQ(appearances.size(), 1);
 	ASSERT_TRUE(isRamsesNameInArray("Material Name_Appearance", appearances));
 
 	context.set({node, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	effects = select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect);
-	EXPECT_STREQ("Changed", effects[0]->getName());
+	effects = select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect);
+	EXPECT_TRUE("Changed" == effects[0]->getName());
 	ASSERT_TRUE(isRamsesNameInArray("Changed", effects));
 
-	appearances = select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance);
+	appearances = select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::Appearance);
 	EXPECT_EQ(appearances.size(), 1);
 	ASSERT_TRUE(isRamsesNameInArray("Changed_Appearance", appearances));
 }
@@ -78,6 +78,7 @@ TEST_F(MaterialAdaptorTest, link_get_scalar_uniforms) {
 TEST_F(MaterialAdaptorTest, set_get_array_uniforms) {
 	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
 
+	commandInterface.set({material, {"uniforms", "bvec", "2"}}, true);
 	commandInterface.set({material, {"uniforms", "ivec", "2"}}, 2);
 	commandInterface.set({material, {"uniforms", "fvec", "3"}}, 3.0);
 
@@ -93,6 +94,7 @@ TEST_F(MaterialAdaptorTest, set_get_array_uniforms) {
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
+	checkUniformVector<bool, 3>(appearance, "bvec", 1, true);
 	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
 	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
 
@@ -109,8 +111,21 @@ TEST_F(MaterialAdaptorTest, link_get_array_uniforms_components) {
 	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
 
-	link(lua, {"outputs", "ointeger"}, material, {"uniforms", "ivec", "2"});
-	link(lua, {"outputs", "ofloat"}, material, {"uniforms", "fvec", "3"});
+	commandInterface.set({material, {"uniforms", "bvec", "2"}}, true);
+	commandInterface.set({material, {"uniforms", "ivec", "2"}}, 2);
+	commandInterface.set({material, {"uniforms", "fvec", "3"}}, 3.0);
+
+	commandInterface.set({material, {"uniforms", "avec2", "4", "y"}}, 4.0);
+	commandInterface.set({material, {"uniforms", "avec3", "5", "z"}}, 5.0);
+	commandInterface.set({material, {"uniforms", "avec4", "6", "w"}}, 6.0);
+
+	commandInterface.set({material, {"uniforms", "aivec2", "4", "i2"}}, 7);
+	commandInterface.set({material, {"uniforms", "aivec3", "5", "i3"}}, 8);
+	commandInterface.set({material, {"uniforms", "aivec4", "6", "i4"}}, 9);
+
+	link(lua, {"outputs", "flag"}, material, {"uniforms", "bvec", "1"});
+	link(lua, {"outputs", "ointeger"}, material, {"uniforms", "ivec", "1"});
+	link(lua, {"outputs", "ofloat"}, material, {"uniforms", "fvec", "2"});
 
 	link(lua, {"outputs", "ovector2f"}, material, {"uniforms", "avec2", "3"});
 	link(lua, {"outputs", "ovector3f"}, material, {"uniforms", "avec3", "3"});
@@ -129,8 +144,23 @@ TEST_F(MaterialAdaptorTest, link_get_array_uniforms_components) {
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
+	// non-linked array components
+	checkUniformVector<bool, 3>(appearance, "bvec", 1, true);
 	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
-	checkUniformVector<float, 5>(appearance, "fvec", 2, 1.0);
+	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 3, {0.0, 4.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 4, {0.0, 0.0, 5.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 5, {0.0, 0.0, 0.0, 6.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 3, {0, 7});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 4, {0, 0, 8});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 5, {0, 0, 0, 9});
+
+	// linked array components
+	checkUniformVector<bool, 3>(appearance, "bvec", 0, true);
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 0, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 1, 1.0);
 
 	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 2, {1.0, 2.0});
 	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 2, {1.0, 2.0, 3.0});
@@ -140,11 +170,13 @@ TEST_F(MaterialAdaptorTest, link_get_array_uniforms_components) {
 	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 2, {1, 2, 3});
 	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 2, {1, 2, 3, 4});
 }
+	
 
 TEST_F(MaterialAdaptorTest, link_get_array_uniforms_array) {
 	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
 	auto interface = create_lua_interface("interface", "scripts/uniform-array.lua");
 
+	link(interface, {"inputs", "bvec"}, material, {"uniforms", "bvec"});
 	link(interface, {"inputs", "ivec"}, material, {"uniforms", "ivec"});
 	link(interface, {"inputs", "fvec"}, material, {"uniforms", "fvec"});
 
@@ -156,6 +188,7 @@ TEST_F(MaterialAdaptorTest, link_get_array_uniforms_array) {
 	link(interface, {"inputs", "aivec3"}, material, {"uniforms", "aivec3"});
 	link(interface, {"inputs", "aivec4"}, material, {"uniforms", "aivec4"});
 
+	commandInterface.set({interface, {"inputs", "bvec", "2"}}, true);
 	commandInterface.set({interface, {"inputs", "ivec", "2"}}, 2);
 	commandInterface.set({interface, {"inputs", "fvec", "3"}}, 3.0);
 
@@ -171,6 +204,7 @@ TEST_F(MaterialAdaptorTest, link_get_array_uniforms_array) {
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
+	checkUniformVector<bool, 3>(appearance, "bvec", 1, true);
 	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
 	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
 
@@ -220,11 +254,11 @@ TEST_F(MaterialAdaptorTest, set_get_sampler_external_uniforms) {
 	auto appearance = select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance");
 	auto engineTexture = select<ramses::TextureSamplerExternal>(*sceneContext.scene(), "texture");
 
-	ramses::UniformInput input;
 
 	const ramses::TextureSamplerExternal* u_sampler_texture;
-	EXPECT_EQ(ramses::StatusOK, appearance->getEffect().findUniformInput("utex", input));
-	EXPECT_EQ(ramses::StatusOK, appearance->getInputTextureExternal(input, u_sampler_texture));
+	auto input = appearance->getEffect().findUniformInput("utex");
+	ASSERT_TRUE(input.has_value());
+	EXPECT_TRUE(appearance->getInputTextureExternal(input.value(), u_sampler_texture));
 	EXPECT_EQ(u_sampler_texture, engineTexture);
 }
 
@@ -260,6 +294,21 @@ TEST_F(MaterialAdaptorTest, link_get_struct_prim_uniforms_link_members) {
 	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
 
 	linkStructComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms", "s_prims"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+
+	checkStructComponents({material, {"uniforms", "s_prims"}}, appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MaterialAdaptorTest, link_set_mixed_get_struct_prim_uniforms_link_members) {
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	linkStructIntComponents({interface, {"inputs", "s_prims"}}, {material, {"uniforms", "s_prims"}});
+	setStructFloatComponents({material, {"uniforms", "s_prims"}}, default_struct_prim_values);
 	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
 
 	dispatch();
@@ -392,12 +441,14 @@ TEST_F(MaterialAdaptorTest, link_get_array_struct_prim_uniforms_link_struct) {
 	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
 
 	link(interface, {"inputs", "s_prims"}, material, {"uniforms", "a_s_prims", "2"});
+	setStructComponents({material, {"uniforms", "a_s_prims", "1"}}, default_struct_prim_values);
 	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
 
 	dispatch();
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
+	checkStructComponents({material, {"uniforms", "a_s_prims", "1"}}, appearance, "a_s_prims[0].", default_struct_prim_values);
 	checkStructComponents({material, {"uniforms", "a_s_prims", "2"}}, appearance, "a_s_prims[1].", default_struct_prim_values);
 }
 
@@ -444,6 +495,7 @@ TEST_F(MaterialAdaptorTest, set_get_array_struct_sampler_uniforms) {
 TEST_F(MaterialAdaptorTest, set_get_struct_of_array_of_prim_uniforms) {
 	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
 
+	commandInterface.set({material, {"uniforms", "s_a_prims", "bvec", "2"}}, true);
 	commandInterface.set({material, {"uniforms", "s_a_prims", "ivec", "2"}}, 2);
 	commandInterface.set({material, {"uniforms", "s_a_prims", "fvec", "3"}}, 3.0);
 
@@ -459,6 +511,7 @@ TEST_F(MaterialAdaptorTest, set_get_struct_of_array_of_prim_uniforms) {
 
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
 
+	checkUniformVector<bool, 3>(appearance, "s_a_prims.bvec", 1, true);
 	checkUniformVector<int32_t, 2>(appearance, "s_a_prims.ivec", 1, 2);
 	checkUniformVector<float, 5>(appearance, "s_a_prims.fvec", 2, 3.0);
 

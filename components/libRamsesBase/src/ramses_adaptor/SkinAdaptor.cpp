@@ -18,7 +18,7 @@
 
 namespace raco::ramses_adaptor {
 
-SkinAdaptor::SkinAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SSkin skin)
+SkinAdaptor::SkinAdaptor(SceneAdaptor* sceneAdaptor, user_types::SSkin skin)
 	: UserTypeObjectAdaptor(sceneAdaptor, skin),
 	  subscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject(), &user_types::Skin::objectName_}, [this]() { tagDirty(); }),
@@ -33,12 +33,12 @@ bool SkinAdaptor::sync(core::Errors* errors) {
 
 	skinBindings_.clear();
 
-	std::vector<raco::ramses_base::RamsesNodeBinding> jointBindings;
-	const auto& jointsTable = editorObject()->joints_.asTable();
+	std::vector<ramses_base::RamsesNodeBinding> jointBindings;
+	const auto& jointsArray = editorObject()->joints_;
 	bool emptySlots = false;
-	for (auto index = 0; index < jointsTable.size(); index++) {
-		auto node = jointsTable.get(index)->asRef();
-		raco::ramses_base::RamsesNodeBinding nodeBinding = lookupNodeBinding(sceneAdaptor_, node);
+	for (auto index = 0; index < jointsArray->size(); index++) {
+		auto node = **jointsArray->get(index);
+		ramses_base::RamsesNodeBinding nodeBinding = lookupNodeBinding(sceneAdaptor_, node);
 		if (nodeBinding) {
 			if (index != jointBindings.size()) {
 				emptySlots = true;
@@ -54,13 +54,13 @@ bool SkinAdaptor::sync(core::Errors* errors) {
 	if (data) {
 		if (emptySlots) {
 			std::string errorMsg = fmt::format("Cannot create Skin '{}': all joints nodes must be consecutive and valid nodes", editorObject()->objectName());
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 			errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()}, errorMsg);
 		} else {
 			std::vector<MeshNodeAdaptor*> targetAdaptors;
-			const auto& targetsTable = editorObject()->targets_.asTable();
-			for (auto index = 0; index < targetsTable.size(); index++) {
-				auto meshnode = targetsTable.get(index)->asRef();
+			const auto& targetsArray = editorObject()->targets_;
+			for (auto index = 0; index < targetsArray->size(); index++) {
+				auto meshnode = **targetsArray->get(index);
 				auto meshNodeAdaptor = sceneAdaptor_->lookup<MeshNodeAdaptor>(meshnode);
 				if (meshNodeAdaptor) {
 					targetAdaptors.emplace_back(meshNodeAdaptor);
@@ -73,24 +73,23 @@ bool SkinAdaptor::sync(core::Errors* errors) {
 					const auto meshNodeAdaptor = targetAdaptors[index];
 					if (auto appearance = meshNodeAdaptor->privateAppearance()) {
 						if (auto appearanceBinding = meshNodeAdaptor->appearanceBinding()) {
-							ramses::UniformInput uniform;
-							(*appearance)->getEffect().findUniformInput(raco::core::SkinData::INV_BIND_MATRICES_UNIFORM_NAME, uniform);
+							ramses::UniformInput uniform = (*appearance)->getEffect().findUniformInput(core::SkinData::INV_BIND_MATRICES_UNIFORM_NAME).value();
 
 							std::string name = targetAdaptors.size() == 1 ? editorObject()->objectName() : fmt::format("{}_SkinBinding_{}", editorObject()->objectName(), index);
 							auto skinBinding = ramses_base::ramsesSkinBinding(&sceneAdaptor_->logicEngine(), jointBindings, data->inverseBindMatrices, appearanceBinding, uniform, name, editorObject()->objectIDAsRamsesLogicID());
 							if (skinBinding) {
 								skinBindings_.emplace_back(skinBinding);
 							} else {
-								errorMessages.emplace_back(sceneAdaptor_->logicEngine().getErrors().at(0).message);
+								errorMessages.emplace_back(sceneAdaptor_->scene()->getRamsesClient().getRamsesFramework().getLastError().value().message);
 							}
 						} else {
 							std::string errorMsg = fmt::format("Cannot create Skin '{}': private material of the meshnode '{}' doesn't have a valid AppearanceBinding", editorObject()->objectName(), meshNodeAdaptor->editorObject()->objectName());
-							LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+							LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 							errorMessages.emplace_back(errorMsg);
 						}
 					} else {
 						std::string errorMsg = fmt::format("Cannot create Skin '{}': meshnode '{}' must have a valid private material", editorObject()->objectName(), meshNodeAdaptor->editorObject()->objectName());
-						LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+						LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 						errorMessages.emplace_back(errorMsg);
 					}
 				}
@@ -104,7 +103,7 @@ bool SkinAdaptor::sync(core::Errors* errors) {
 
 			} else {
 				std::string errorMsg = fmt::format("Cannot create Skin '{}': no meshnodes selected", editorObject()->objectName());
-				LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, errorMsg);
+				LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, {editorObject()}, errorMsg);
 			}
 		}
@@ -117,7 +116,7 @@ bool SkinAdaptor::sync(core::Errors* errors) {
 std::vector<ExportInformation> SkinAdaptor::getExportInformation() const {
 	std::vector<ExportInformation> info;
 	for (auto binding : skinBindings_) {
-		info.emplace_back(ExportInformation{"SkinBinding", binding->getName().data()});
+		info.emplace_back(ExportInformation{"SkinBinding", binding->getName()});
 	}
 	return info;
 }

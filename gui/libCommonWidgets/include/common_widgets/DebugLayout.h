@@ -32,14 +32,14 @@ inline std::string tabs(size_t amount) {
 
 inline void dumpLayoutInfo(const QWidget* widget, size_t depth = 0) {
 	if (widget->inherits("QLabel")) {
-		LOG_DEBUG(raco::log_system::DUMP, "{}{}: \"{}\" geometry: {} sizeHint: {}", tabs(depth).c_str(), "QLabel", (qobject_cast<const QLabel*>(widget))->text().toStdString(), widget->geometry(), widget->sizeHint());
+		LOG_DEBUG(log_system::DUMP, "{}{}: \"{}\" geometry: {} sizeHint: {}", tabs(depth).c_str(), "QLabel", (qobject_cast<const QLabel*>(widget))->text().toStdString(), widget->geometry(), widget->sizeHint());
 	} else if (widget->inherits("QPushButton")) {
-		LOG_DEBUG(raco::log_system::DUMP, "{}{}: \"{}\" geometry: {} sizeHint: {}", tabs(depth).c_str(), "QPushButton", (qobject_cast<const QPushButton*>(widget))->text().toStdString(), widget->geometry(), widget->sizeHint());
+		LOG_DEBUG(log_system::DUMP, "{}{}: \"{}\" geometry: {} sizeHint: {}", tabs(depth).c_str(), "QPushButton", (qobject_cast<const QPushButton*>(widget))->text().toStdString(), widget->geometry(), widget->sizeHint());
 	} else {
-		LOG_DEBUG(raco::log_system::DUMP, "{}{}:{} geometry: {} sizeHint: {}", tabs(depth).c_str(), widget->metaObject()->className(), widget->objectName(), widget->geometry(), widget->sizeHint());
+		LOG_DEBUG(log_system::DUMP, "{}{}:{} geometry: {} sizeHint: {}", tabs(depth).c_str(), widget->metaObject()->className(), widget->objectName(), widget->geometry(), widget->sizeHint());
 	}
 	if (widget->layout()) {
-		LOG_DEBUG(raco::log_system::DUMP, "{}layout -> contentsMargins: {}", tabs(depth).c_str(), widget->layout()->contentsMargins());
+		LOG_DEBUG(log_system::DUMP, "{}layout -> contentsMargins: {}", tabs(depth).c_str(), widget->layout()->contentsMargins());
 	}
 	for (const auto& child : widget->findChildren<QWidget*>(QString{}, Qt::FindDirectChildrenOnly)) {
 		dumpLayoutInfo(child, depth + 1);

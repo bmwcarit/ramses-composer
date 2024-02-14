@@ -17,7 +17,7 @@
 
 namespace raco::ramses_adaptor {
 
-raco::ramses_adaptor::AnchorPointAdaptor::AnchorPointAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnchorPoint anchorPoint)
+ramses_adaptor::AnchorPointAdaptor::AnchorPointAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnchorPoint anchorPoint)
 	: UserTypeObjectAdaptor{sceneAdaptor, anchorPoint},
 	  subscriptions_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject_, &user_types::AnchorPoint::objectName_}, [this]() { tagDirty(); }),
@@ -26,11 +26,11 @@ raco::ramses_adaptor::AnchorPointAdaptor::AnchorPointAdaptor(SceneAdaptor* scene
 	  dirtySubscription_{sceneAdaptor->dispatcher()->registerOnPreviewDirty(editorObject_, [this]() { tagDirty(); })} {
 }
 
-void AnchorPointAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void AnchorPointAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	logicNodes.emplace_back(anchorPoint_.get());
 }
 
-const rlogic::Property* AnchorPointAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
+ramses::Property* AnchorPointAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
 	if (anchorPoint_ && propertyNamesVector.size() >= 2) {
 		return anchorPoint_->getOutputs()->getChild(propertyNamesVector[1]);
 	}
@@ -49,9 +49,9 @@ bool AnchorPointAdaptor::sync(core::Errors* errors) {
 	ObjectAdaptor::sync(errors);
 	anchorPoint_.reset();
 	
-	raco::ramses_base::RamsesNodeBinding nodeBinding = lookupNodeBinding(sceneAdaptor_, *editorObject_->node_);
+	ramses_base::RamsesNodeBinding nodeBinding = lookupNodeBinding(sceneAdaptor_, *editorObject_->node_);
 
-	raco::ramses_base::RamsesCameraBinding cameraBinding = nullptr;
+	ramses_base::RamsesCameraBinding cameraBinding = nullptr;
 	auto camera = *editorObject_->camera_;
 	if (auto cameraAdaptor = sceneAdaptor_->lookup<PerspectiveCameraAdaptor>(camera)) {
 		cameraBinding = cameraAdaptor->cameraBinding();
@@ -60,7 +60,7 @@ bool AnchorPointAdaptor::sync(core::Errors* errors) {
 	}
 
 	if (nodeBinding && cameraBinding) {
-		anchorPoint_ = raco::ramses_base::ramsesAnchorPoint(&sceneAdaptor_->logicEngine(), nodeBinding, cameraBinding, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
+		anchorPoint_ = ramses_base::ramsesAnchorPoint(&sceneAdaptor_->logicEngine(), nodeBinding, cameraBinding, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 	}
 		
 	tagDirty(false);
@@ -79,7 +79,7 @@ std::vector<ExportInformation> AnchorPointAdaptor::getExportInformation() const 
 		return {};
 	}
 
-	return {ExportInformation{"AnchorPoint", anchorPoint_->getName().data()}};
+	return {ExportInformation{"AnchorPoint", anchorPoint_->getName()}};
 }
 
 }  // namespace raco::ramses_adaptor

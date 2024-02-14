@@ -9,6 +9,8 @@
  */
 #pragma once
 
+#include "FilterResult.h"
+
 #include "core/EditorObject.h"
 
 #include <QTreeView>
@@ -30,7 +32,7 @@ class ObjectTreeView : public QTreeView {
 	using SEditorObject = core::SEditorObject;
 
 public:
-	ObjectTreeView(const QString &viewTitle, raco::object_tree::model::ObjectTreeViewDefaultModel *viewModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel = nullptr, QWidget *parent = nullptr);
+	ObjectTreeView(const QString &viewTitle, object_tree::model::ObjectTreeViewDefaultModel *viewModel, object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *sortFilterProxyModel = nullptr, QWidget *parent = nullptr);
 
 	core::SEditorObjectSet getSelectedObjects() const;
 	std::vector<SEditorObject> getSortedSelectedEditorObjects() const;
@@ -43,7 +45,7 @@ public:
 	bool canProgrammaticallyGoToObject();
 	bool containsObject(const QString &objectID) const;
 	void setFilterKeyColumn(int column);
-	void filterObjects(const QString &filterString);
+	FilterResult filterObjects(const QString &filterString);
 
 	bool hasProxyModel() const;
 
@@ -54,7 +56,7 @@ public:
 Q_SIGNALS:
 	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
-	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects);
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects, const QString &property);
 	void externalObjectSelected();
 
 public Q_SLOTS:
@@ -65,8 +67,14 @@ public Q_SLOTS:
 	void cutObjects();
 	void deleteObjects();
 	void duplicateObjects();
+	void pasteAsExtRef();
+
+	void isolateNodes();
+	void hideNodes();
+	void showAllNodes();
 
 	void selectObject(const QString &objectID);
+	void setPropertyToSelect(const QString &property);
 	void expandAllParentsOfObject(const QString &objectID);
 	void expanded(const QModelIndex &index);
 	void collapsed(const QModelIndex &index);
@@ -74,11 +82,12 @@ public Q_SLOTS:
 protected:
 	static inline auto SELECTION_MODE = QItemSelectionModel::Select | QItemSelectionModel::Rows;
 
-	raco::object_tree::model::ObjectTreeViewDefaultModel *treeModel_;
-	raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *proxyModel_;
+	object_tree::model::ObjectTreeViewDefaultModel *treeModel_;
+	object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel *proxyModel_;
 	QString viewTitle_;
 	std::unordered_set<std::string> expandedItemIDs_;
 	std::unordered_set<std::string> selectedItemIDs_;
+	QString property_;
 
 	virtual QMenu* createCustomContextMenu(const QPoint &p);
 	

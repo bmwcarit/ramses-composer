@@ -81,7 +81,7 @@ void setup_loggers() {
 }
 
 
-void init(const raco::utils::u8path& logFilePath) {
+void init(const utils::u8path& logFilePath) {
 	if (initialized) {
 		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
 		return;
@@ -116,7 +116,7 @@ void init(const raco::utils::u8path& logFilePath) {
 }
 
 
-void init(const raco::utils::u8path& logFileDirectory, const std::string& logFileBaseName, int64_t pid) {
+void init(const utils::u8path& logFileDirectory, const std::string& logFileBaseName, int64_t pid) {
 	if (initialized) {
 		LOG_WARNING(LOGGING, "log_system already initialized - call has no effect.");
 		return;

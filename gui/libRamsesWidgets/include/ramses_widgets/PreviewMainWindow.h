@@ -16,6 +16,7 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <memory>
+#include <QPushButton>
 
 namespace raco::user_types {
 
@@ -45,14 +46,15 @@ class PreviewContentWidget;
 class PreviewScrollAreaWidget;
 
 class PreviewMainWindow final : public QMainWindow {
+	Q_OBJECT
 	DEBUG_INSTANCE_COUNTER(PreviewMainWindow);
 
 public:
 	PreviewMainWindow(RendererBackend& rendererBackend,
-		raco::ramses_adaptor::SceneBackend* sceneBackend,
+		ramses_adaptor::SceneBackend* sceneBackend,
 		const QSize& sceneSize,
-		raco::core::Project* project,
-		raco::components::SDataChangeDispatcher dispatcher,
+		core::Project* project,
+		components::SDataChangeDispatcher dispatcher,
 		QWidget* parent = nullptr);
 	~PreviewMainWindow();
 	void displayScene(ramses::sceneId_t sceneId, core::Vec4f const& backgroundColor);

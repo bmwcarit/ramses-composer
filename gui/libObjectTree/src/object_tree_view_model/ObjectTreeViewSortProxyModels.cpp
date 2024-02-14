@@ -8,9 +8,9 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-
 #include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
+#include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "style/Colors.h"
 
 #include <QColor>
@@ -27,27 +27,45 @@ bool ObjectTreeViewDefaultSortFilterProxyModel::sortingEnabled() const {
 	return sortingEnabled_;
 }
 
+void ObjectTreeViewDefaultSortFilterProxyModel::setCustomFilter(std::function<bool(const ObjectTreeNode&)> filterFunc) {
+	customFilter = filterFunc;
+	invalidateFilter();
+}
+
+void ObjectTreeViewDefaultSortFilterProxyModel::removeCustomFilter() {
+	customFilter = nullptr;
+	invalidateFilter();
+}
+
+QString ObjectTreeViewDefaultSortFilterProxyModel::getDataAtIndex(const QModelIndex& index) const {
+	return data(index, Qt::DisplayRole).toString();
+}
+
 QVariant ObjectTreeViewDefaultSortFilterProxyModel::data(const QModelIndex& index, int role) const {
 	if (index.isValid()) {
-		auto nodeType = static_cast<ObjectTreeNode*>(mapToSource(index).internalPointer())->getType();
+		ObjectTreeNode* treeNode = static_cast<ObjectTreeNode*>(mapToSource(index).internalPointer());
+		const auto nodeType = treeNode->getType();
 		if (nodeType == ObjectTreeNodeType::ExtRefGroup || nodeType == ObjectTreeNodeType::TypeParent) {
 			return QSortFilterProxyModel::data(index, role);
 		}
 
-		auto filterRegex = filterRegularExpression();
-
 		if (role == Qt::ForegroundRole) {
-			if (!filterRegex.pattern().isEmpty()) {
-				auto filteredIndexData = index.sibling(index.row(), filterKeyColumn()).data().toString();
-
-				if (!filteredIndexData.contains(filterRegex)) {
-					return QVariant(raco::style::Colors::color(raco::style::Colormap::textDisabled).darker(175));
-				}
+			if (customFilter && treeNode && !customFilter(*treeNode)) {
+				return QVariant(style::Colors::color(style::Colormap::textDisabled).darker(175));
 			}
 		}
 	}
 
 	return QSortFilterProxyModel::data(index, role);
+}
+
+bool ObjectTreeViewDefaultSortFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const {
+	const auto treeNodeIndex = sourceModel()->index(sourceRow, 0, sourceParent);
+	const auto treeNode = static_cast<ObjectTreeNode*>(treeNodeIndex.internalPointer());
+	if (customFilter && treeNode) {
+		return customFilter(*treeNode);
+	}
+	return QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
 }
 
 bool ObjectTreeViewResourceSortFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const {

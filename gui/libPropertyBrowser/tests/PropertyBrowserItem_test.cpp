@@ -33,7 +33,7 @@ public:
 	PropertyBrowserItemTestT() : EditorTestFixtureT<T>(&TestObjectFactory::getInstance()) {}
 
 	void addProperty(ValueHandle handle, std::string name, PrimitiveType type) {
-		this->context.addProperty(handle, name, raco::core::ValueBase::create(type));
+		this->context.addProperty(handle, name, core::ValueBase::create(type));
 		this->dispatch();
 	}
 
@@ -81,10 +81,10 @@ public:
 	}
 
 	bool testNestedMatching(ValueBase* property_1, ValueBase* property_2) {
-		raco::data_storage::Table table_1;
+		data_storage::Table table_1;
 		table_1.addProperty("nested", property_1);
 
-		raco::data_storage::Table table_2;
+		data_storage::Table table_2;
 		table_2.addProperty("nested", property_2);
 
 		return testMatching(new Value<Table>(table_1), new Value<Table>(table_2));
@@ -134,14 +134,14 @@ INSTANTIATE_TEST_SUITE_P(
 	::testing::Values(
 		MatchingTestParams{
 			"display_name_annotation_same",
-			[]() { return new Property<double, DisplayNameAnnotation>({}, { "Cat"}); },
-			[]() { return new Property<double, DisplayNameAnnotation>({}, { "Cat"}); },
+			[]() { return new Property<double, DisplayNameAnnotation>({}, {"Cat"}); },
+			[]() { return new Property<double, DisplayNameAnnotation>({}, {"Cat"}); },
 			true},
 
 		MatchingTestParams{
 			"display_name_annotation_different",
-			[]() { return new Property<double, DisplayNameAnnotation>({}, { "Cat"}); },
-			[]() { return new Property<double, DisplayNameAnnotation>({}, { "Dog"}); },
+			[]() { return new Property<double, DisplayNameAnnotation>({}, {"Cat"}); },
+			[]() { return new Property<double, DisplayNameAnnotation>({}, {"Dog"}); },
 			false},
 
 		MatchingTestParams{
@@ -268,9 +268,58 @@ INSTANTIATE_TEST_SUITE_P(
 			"struct_ref_vs_table",
 			[]() { return new Value<StructWithRef>(); },
 			[]() {
-				raco::data_storage::Table table;
+				data_storage::Table table;
 				table.addProperty("ref", new Value<SEditorObject>());
 				return new Value<Table>(table);
+			},
+			false},
+
+		MatchingTestParams{
+			"array_vs_scalar",
+			[]() { return new Value<Array<double>>(); },
+			[]() { return new Value<double>(); },
+			false},
+
+		MatchingTestParams{
+			"array_double_vs_double_same_size",
+			[]() {
+				auto v = new Value<Array<double>>();
+				(*v)->addProperty();
+				return v;
+			},
+			[]() {
+				auto v = new Value<Array<double>>();
+				(*v)->addProperty();
+				return v;
+			},
+			true},
+
+		MatchingTestParams{
+			"array_double_vs_double_diff_size",
+			[]() {
+				auto v = new Value<Array<double>>();
+				(*v)->addProperty();
+				(*v)->addProperty();
+				return v;
+			},
+			[]() {
+				auto v = new Value<Array<double>>();
+				(*v)->addProperty();
+				return v;
+			},
+			false},
+
+		MatchingTestParams{
+			"array_double_vs_int_same_size",
+			[]() {
+				auto v = new Value<Array<double>>();
+				(*v)->addProperty();
+				return v;
+			},
+			[]() {
+				auto v = new Value<Array<int>>();
+				(*v)->addProperty();
+				return v;
 			},
 			false}
 
@@ -409,6 +458,94 @@ TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_add_value
 }
 
 
+
+TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_resize_array_single_to_single) {
+	auto object_1 = this->create<ObjectWithArrays>("test");
+	auto object_2 = this->create<ObjectWithArrays>("test");
+	const ValueHandle arrayHandle_1{object_1, {"array_double"}};
+	const ValueHandle arrayHandle_2{object_2, {"array_double"}};
+
+	PropertyBrowserItem rootItem{{{object_1}, {object_2}}, dataChangeDispatcher, &commandInterface, nullptr};
+	PropertyBrowserItem* childItem{rootItem.findNamedChild("array_double")};
+	QSignalSpy spyRoot{&rootItem, SIGNAL(childrenChanged(const QList<PropertyBrowserItem*>&))};
+	QSignalSpy spyChild{childItem, SIGNAL(childrenChanged(const QList<PropertyBrowserItem*>&))};
+
+	EXPECT_EQ(childItem->size(), 0);
+
+	context.resizeArray(arrayHandle_1, 2);
+	context.resizeArray(arrayHandle_2, 2);
+	dispatch();
+
+	ASSERT_EQ(childItem, rootItem.findNamedChild("array_double"));
+	EXPECT_EQ(spyRoot.count(), 0);
+	EXPECT_EQ(spyChild.count(), 2);
+	EXPECT_EQ(childItem->size(), 2);
+}
+
+TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_resize_array_single_to_multi) {
+	auto object_1 = this->create<ObjectWithArrays>("test");
+	auto object_2 = this->create<ObjectWithArrays>("test");
+	const ValueHandle arrayHandle_1{object_1, {"array_double"}};
+	const ValueHandle arrayHandle_2{object_2, {"array_double"}};
+
+	PropertyBrowserItem rootItem{{{object_1}, {object_2}}, dataChangeDispatcher, &commandInterface, nullptr};
+	QSignalSpy spyRoot{&rootItem, SIGNAL(childrenChanged(const QList<PropertyBrowserItem*>&))};
+
+	context.resizeArray(arrayHandle_1, 2);
+	dispatch();
+
+	EXPECT_EQ(spyRoot.count(), 1);
+	ASSERT_EQ(rootItem.findNamedChild("array_double"), nullptr);
+}
+
+TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_resize_array_multi_to_single) {
+	auto object_1 = this->create<ObjectWithArrays>("test");
+	auto object_2 = this->create<ObjectWithArrays>("test");
+	const ValueHandle arrayHandle_1{object_1, {"array_double"}};
+	const ValueHandle arrayHandle_2{object_2, {"array_double"}};
+
+	context.resizeArray(arrayHandle_1, 2);
+	dispatch();
+
+	PropertyBrowserItem rootItem{{{object_1}, {object_2}}, dataChangeDispatcher, &commandInterface, nullptr};
+	QSignalSpy spyRoot{&rootItem, SIGNAL(childrenChanged(const QList<PropertyBrowserItem*>&))};
+
+	ASSERT_EQ(rootItem.findNamedChild("array_double"), nullptr);
+
+	context.resizeArray(arrayHandle_2, 2);
+	dispatch();
+
+	PropertyBrowserItem* childItem{rootItem.findNamedChild("array_double")};
+
+	ASSERT_NE(nullptr, rootItem.findNamedChild("array_double"));
+	EXPECT_EQ(spyRoot.count(), 1);
+	EXPECT_EQ(childItem->size(), 2);
+}
+
+TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_resize_array_multi_to_multi) {
+	auto object_1 = this->create<ObjectWithArrays>("test");
+	auto object_2 = this->create<ObjectWithArrays>("test");
+	const ValueHandle arrayHandle_1{object_1, {"array_double"}};
+	const ValueHandle arrayHandle_2{object_2, {"array_double"}};
+
+	context.resizeArray(arrayHandle_1, 2);
+	dispatch();
+
+	PropertyBrowserItem rootItem{{{object_1}, {object_2}}, dataChangeDispatcher, &commandInterface, nullptr};
+	QSignalSpy spyRoot{&rootItem, SIGNAL(childrenChanged(const QList<PropertyBrowserItem*>&))};
+
+	ASSERT_EQ(rootItem.findNamedChild("tarray_doubleable"), nullptr);
+
+	context.resizeArray(arrayHandle_2, 3);
+	dispatch();
+
+	PropertyBrowserItem* childItem{rootItem.findNamedChild("array_double")};
+
+	ASSERT_EQ(nullptr, rootItem.findNamedChild("array_double"));
+	EXPECT_EQ(spyRoot.count(), 1);
+}
+
+
 TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_renderBuffer_hide_value_single_to_single) {
 	auto object_1 = this->create<RenderBuffer>("test");
 	auto object_2 = this->create<RenderBuffer>("test");
@@ -489,6 +626,33 @@ TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_renderBuf
 	EXPECT_EQ(spyRoot.count(), 2);
 }
 
+TEST_F(PropertyBrowserItemTest, signal_childrenChanged_multi_selection_meshnode_options_private_changed) {
+	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
+	auto meshnode_1 = create_meshnode("MeshNode 1", mesh, nullptr);
+	auto meshnode_2 = create_meshnode("MeshNode 2", mesh, nullptr);
+
+	commandInterface.set(meshnode_1->getMaterialPrivateHandle(0), true);
+	commandInterface.set(meshnode_2->getMaterialPrivateHandle(0), true);
+	dispatch();
+
+	PropertyBrowserItem rootItem{{{meshnode_1}, {meshnode_2}}, dataChangeDispatcher, &commandInterface, nullptr};
+	PropertyBrowserItem* materialItem{rootItem.findNamedChild("materials")};
+	PropertyBrowserItem* matSlotItem{materialItem->findNamedChild("material")};
+	PropertyBrowserItem* optionsItem{matSlotItem->findNamedChild("options")};
+
+	QSignalSpy spy{optionsItem, SIGNAL(childrenChanged(const QList<PropertyBrowserItem*>&))};
+
+	commandInterface.set(meshnode_1->getMaterialPrivateHandle(0), false);
+	dispatch();
+
+	ASSERT_EQ(spy.count(), 1);
+
+	undoStack.undo();
+	dispatch();
+
+	ASSERT_EQ(spy.count(), 2);
+}
+
 
 TEST_F(PropertyBrowserItemTest, signal_childrenChanged_single_selection_add) {
 	auto object = create<MockTableObject>("test");
@@ -508,7 +672,7 @@ TEST_F(PropertyBrowserItemTest, signal_childrenChanged_single_selection_add) {
 TEST_F(PropertyBrowserItemTest, signal_childrenChanged_single_selection_remove) {
 	auto object = create<MockTableObject>("test");
 	const ValueHandle tableHandle{object, {"table"}};
-	
+
 	addProperty(tableHandle, "double_prop", PrimitiveType::Double);
 
 	PropertyBrowserItem itemUnderTest{{tableHandle}, dataChangeDispatcher, &commandInterface, nullptr};
@@ -681,6 +845,21 @@ TEST_F(PropertyBrowserItemTest, cacheExpandedState) {
 	EXPECT_EQ(tableItem_1.expanded(), true);
 	EXPECT_EQ(tableItem_2.expanded(), true);
 	EXPECT_EQ(tableItem_3.expanded(), true);
+}
+
+TEST_F(PropertyBrowserItemTest, highlight_property) {
+	const SLuaInterface interface = create_lua_interface("interface", "scripts/interface-scalar-types.lua");
+	const ValueHandle interfaceHandle{interface};
+
+	PropertyBrowserItem root_item{{interfaceHandle}, dataChangeDispatcher, &commandInterface, nullptr};
+	const auto propertyItem = root_item.findNamedChildByPropertyPath("interface.inputs.bool");
+	const QSignalSpy spy{propertyItem, SIGNAL(highlighted())};
+
+	root_item.highlightProperty("non_existing_property");
+	EXPECT_EQ(spy.count(), 0);
+
+	root_item.highlightProperty("interface.inputs.bool");
+	EXPECT_EQ(spy.count(), 1);
 }
 
 }  // namespace raco::property_browser

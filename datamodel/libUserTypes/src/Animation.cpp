@@ -17,16 +17,6 @@
 namespace raco::user_types {
 
 void Animation::onAfterContextActivated(BaseContext& context) {
-	// Only set default animation channel amount when animationChannels is empty (ie. created by user)
-	// TODO: the initial creation of the channel should be in the constructor.
-	// BUT: that doesn't work since the deserialization will not handle this case correctly.
-	// The deserialization will only create but not remove properties in Tables.
-	// Animation objects with less than ANIMATION_CHANNEL_AMOUNT channels created by BaseContext::insertAssetScenegraph
-	// will then be loaded incorrectly.
-	// We would need to fix the serialization if we want to move the setChannelAmount to the constructor.
-	if (animationChannels_.asTable().size() == 0) {
-		setChannelAmount(ANIMATION_CHANNEL_AMOUNT);
-	}
 	syncOutputInterface(context);
 }
 
@@ -35,12 +25,8 @@ void Animation::onAfterReferencedObjectChanged(BaseContext& context, ValueHandle
 }
 
 void Animation::onAfterValueChanged(BaseContext& context, ValueHandle const& value) {
-	const auto &channelTable = animationChannels_.asTable();
-	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
-		if (value == ValueHandle{shared_from_this(), {"animationChannels", fmt::format("Channel {}", channelIndex)}}) {
-			syncOutputInterface(context);
-			return;
-		}
+	if (ValueHandle(shared_from_this(), &Animation::animationChannels_).contains(value)) {
+		syncOutputInterface(context);
 	}
 
 	if (value == ValueHandle(shared_from_this(), &Animation::objectName_)) {
@@ -53,19 +39,20 @@ void Animation::syncOutputInterface(BaseContext& context) {
 
 	OutdatedPropertiesStore dummyCache{};
 
-	auto &channelTable = animationChannels_.asTable();
-	for (auto channelIndex = 0; channelIndex < channelTable.size(); ++channelIndex) {
-		context.errors().removeError({shared_from_this(), {"animationChannels", fmt::format("Channel {}", channelIndex)}});
-		auto channelRef = channelTable[channelIndex]->asRef();
-		if (channelRef) {
-			auto samp = channelRef->as<raco::user_types::AnimationChannel>();
-			if (samp->currentSamplerData_) {
-				auto prop = samp->getOutputProperty();
+	for (auto channelIndex = 0; channelIndex < animationChannels_->size(); ++channelIndex) {
+		ValueHandle channelHandle = ValueHandle(shared_from_this(), &Animation::animationChannels_)[channelIndex];
+		auto channel = **animationChannels_->get(channelIndex);
+		if (channel) {
+			if (channel->currentSamplerData_) {
+				auto prop = channel->getOutputProperty();
 				prop.name = createAnimChannelOutputName(channelIndex, prop.name);
 				outputs.emplace_back(prop);
+				context.errors().removeError(channelHandle);
 			} else {
-				context.errors().addError(raco::core::ErrorCategory::GENERAL, raco::core::ErrorLevel::ERROR, {shared_from_this(), {"animationChannels", fmt::format("Channel {}", channelIndex)}}, fmt::format("Invalid animation channel."));
+				context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, channelHandle, "Invalid animation channel.");
 			}
+		} else {
+			context.errors().removeError(channelHandle);
 		}
 	}
 
@@ -79,10 +66,7 @@ std::string Animation::createAnimChannelOutputName(int channelIndex, const std::
 }
 
 void Animation::setChannelAmount(int amount) {
-	animationChannels_->clear();
-	for (auto i = 0; i < amount; ++i) {
-		animationChannels_->addProperty(fmt::format("Channel {}", i), new Value<SAnimationChannel>());
-	}
+	animationChannels_->resize(amount);
 }
 
 }  // namespace raco::user_types

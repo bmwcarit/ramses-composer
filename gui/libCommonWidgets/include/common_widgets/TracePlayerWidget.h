@@ -49,7 +49,7 @@ public:
 	TracePlayerWidget& operator=(const TracePlayerWidget&) = delete;
 	TracePlayerWidget(const TracePlayerWidget&&) = delete;
 	TracePlayerWidget& operator=(const TracePlayerWidget&&) = delete;
-	TracePlayerWidget(const QString& widgetName, raco::components::TracePlayer* tracePlayer);
+	TracePlayerWidget(const QString& widgetName, components::TracePlayer* tracePlayer);
 
 protected:
 	bool eventFilter(QObject* object, QEvent* event) override;
@@ -75,10 +75,10 @@ private:
 	void clearLog();
 	void reportLog(const std::vector<std::string>& tracePlayerReport, core::ErrorLevel highestCriticality, bool widgetMsg = false);
 	void logCleared();
-	void stateChanged(raco::components::TracePlayer::PlayerState state);
+	void stateChanged(components::TracePlayer::PlayerState state);
 	void loopClicked();
 
-	raco::components::TracePlayer* tracePlayer_{nullptr};
+	components::TracePlayer* tracePlayer_{nullptr};
 	QString defaultDir_{};
 	/// UI Controls
 	QGridLayout* layout_{nullptr};

@@ -54,7 +54,7 @@ public:
 class ExtrefOperations {
 public:
 	// @exception ExtrefError
-	static void updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext);
+	static void updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext, int fileVersion = -1);
 
 	// Check if an external reference update would fail if the rootObjects would all be in the current project.
 	// 

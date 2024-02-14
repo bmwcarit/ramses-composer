@@ -36,7 +36,7 @@ bool RenderBufferMSAdaptor::sync(core::Errors* errors) {
 	buffer_.reset();
 
 	auto sampleCount = *editorObject()->sampleCount_;
-	if (sampleCount < raco::user_types::RenderBufferMS::SAMPLE_COUNT_MIN || sampleCount > raco::user_types::RenderBufferMS::SAMPLE_COUNT_MAX) {
+	if (sampleCount < user_types::RenderBufferMS::SAMPLE_COUNT_MIN || sampleCount > user_types::RenderBufferMS::SAMPLE_COUNT_MAX) {
 		reset(nullptr);
 		tagDirty(false);
 		return true;
@@ -44,24 +44,23 @@ bool RenderBufferMSAdaptor::sync(core::Errors* errors) {
 
 	auto format = static_cast<user_types::ERenderBufferFormat>(*editorObject()->format_);
 	ramses::ERenderBufferFormat ramsesFormat = ramses_base::enumerationTranslationRenderBufferFormat.at(format);
-	ramses::ERenderBufferType type = raco::ramses_base::ramsesRenderBufferTypeFromFormat(ramsesFormat);
 
 	bool allValid = true;
-	uint32_t clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBufferMS::width_}, errors, &allValid);
-	uint32_t clippedHeight = raco::ramses_base::clipAndCheckIntProperty({editorObject_, &raco::user_types::RenderBufferMS::height_}, errors, &allValid);
+	uint32_t clippedWidth = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::RenderBufferMS::width_}, errors, &allValid);
+	uint32_t clippedHeight = ramses_base::clipAndCheckIntProperty({editorObject_, &user_types::RenderBufferMS::height_}, errors, &allValid);
 
 	if (allValid) {
-		buffer_ = raco::ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
+		buffer_ = ramses_base::ramsesRenderBuffer(sceneAdaptor_->scene(),
 			clippedWidth, clippedHeight,
-			type,
 			ramsesFormat,
-			ramses::ERenderBufferAccessMode_ReadWrite,
+			ramses::ERenderBufferAccessMode::ReadWrite,
 			sampleCount,
-			(editorObject()->objectName() + "_BufferMS").c_str());
+			(editorObject()->objectName() + "_BufferMS").c_str(),
+			editorObject_->objectIDAsRamsesLogicID());
 	}
 
 	if (buffer_) {
-		auto textureSampler = ramses_base::ramsesTextureSamplerMS(sceneAdaptor_->scene(), buffer_, (editorObject()->objectName() + "_TextureSamplerMS").c_str());
+		auto textureSampler = ramses_base::ramsesTextureSamplerMS(sceneAdaptor_->scene(), buffer_, (editorObject()->objectName() + "_TextureSamplerMS").c_str(), editorObject()->objectIDAsRamsesLogicID());
 		reset(std::move(textureSampler));
 	} else {
 		reset(nullptr);

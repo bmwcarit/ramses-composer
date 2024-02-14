@@ -9,12 +9,6 @@
  */
 #pragma once
 
-#include <QFrame>
-#include <QPushButton>
-#include <QStyle>
-#include <QWidget>
-#include <QLabel>
-
 #include "core/SceneBackendInterface.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
@@ -25,48 +19,55 @@ namespace raco::property_browser {
 class PropertyControl;
 class PropertyEditor;
 
-class EmbeddedPropertyBrowserView final : public QFrame {
-public:
-	explicit EmbeddedPropertyBrowserView(PropertyBrowserItem* item, QWidget* parent);
-};
-
+// TODO use AbstractPropertyBrowserItem instead of the PropertyBrowserItem everywhere in the PropertySubtreeView
 class PropertySubtreeView final : public QWidget {
 	Q_OBJECT
 	Q_PROPERTY(float highlight MEMBER highlight_ NOTIFY update)
 public:
-	explicit PropertySubtreeView(raco::core::SceneBackendInterface* sceneBackend, PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent);
-	PropertyBrowserItem const* item() { return item_; }
+	explicit PropertySubtreeView(core::SceneBackendInterface* sceneBackend, PropertyBrowserModel* model, PropertyBrowserItem* item, QWidget* parent, PropertySubtreeView* parentSubtree);
+	PropertyBrowserItem const* item() const { return item_; }
 public Q_SLOTS:
-	void playStructureChangeAnimation();
-	void setLabelAreaWidth(int offset);
+	void playHighlightAnimation(int duration, float start, float end);
 	void updateChildrenContainer();
+	void ensurePropertyVisible();
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
-	int getLabelAreaWidthHint() const;
-	Q_SLOT void updateError();
+	Q_SLOT void updateErrors();
+
 private:
-	void updateObjectNameDisplay();
-	void recalculateLabelWidth();
+	enum LayoutRows{		
+		ErrorRow = 0,
+		LabelRow = 1,
+		ChildrenContainerRow = 2		
+	};
+
+	void setLabelAreaWidth(int labelAreaWidth);
+	int getLabelAreaWidth() const;
+	bool updateLabelAreaWidth(bool initialize = true);
 	void collectTabWidgets(QObject* item, QWidgetList& tabWidgets);
 	void recalculateTabOrder();
-	void registerCopyPasteContextMenu(QWidget* widget);
-	QStringList objectNames() const;
+	void registerLabelContextMenu(QWidget* labelWidget, PropertyBrowserItem* item);
+	void drawHighlight(float intensity);
 
-	raco::core::SceneBackendInterface* sceneBackend_;
+	core::SceneBackendInterface* sceneBackend_;
 
 	PropertyBrowserItem* item_{nullptr};
-	PropertyBrowserModel* model_ {nullptr};
-	PropertyBrowserGridLayout layout_{nullptr};
+	PropertyBrowserModel* model_{nullptr};
+	PropertyBrowserVBoxLayout layout_{nullptr};
+	PropertyBrowserVBoxLayout* errorLayout_{nullptr};
 	QWidget* decorationWidget_{nullptr};
-	QLabel* label_{nullptr};
-	PropertyEditor* propertyControl_{nullptr};
-	PropertySubtreeChildrenContainer* childrenContainer_{nullptr};
-	int labelWidth_{0};
-	float highlight_{0};
-	void generateItemTooltip(PropertyBrowserItem* item, bool connectWithChangeEvents);
+	QWidget* label_{nullptr};
+	QWidget* controlWidget_{nullptr};
+	QWidget* errorContainer_{nullptr};
 
-	std::vector<components::Subscription> objectNameChangeSubscriptions_;
+	PropertySubtreeView* parentSubtree_{nullptr};
+	PropertySubtreeChildrenContainer* childrenContainer_{nullptr};
+	int labelAreaWidth_{0};
+	int labelMinWidth_{0};
+	int subtreeMaxWidth_{0};
+
+	float highlight_{0};
 };
 
 }  // namespace raco::property_browser

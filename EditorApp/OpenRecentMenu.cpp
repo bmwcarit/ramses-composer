@@ -15,6 +15,8 @@
 #include <fstream>
 #include <QSettings>
 
+using namespace raco;
+
 OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open &Recent", parent} {
 	QObject::connect(this, &QMenu::aboutToShow, this, [this]() {
 		refreshRecentFileMenu();
@@ -23,7 +25,7 @@ OpenRecentMenu::OpenRecentMenu(QWidget* parent) : QMenu{"Open &Recent", parent} 
 
 void OpenRecentMenu::addRecentFile(const QString& file) {
 	if (file.size()) {
-		auto recentFilesStore = raco::core::PathManager::recentFilesStoreSettings();
+		auto recentFilesStore = core::PathManager::recentFilesStoreSettings();
 		QStringList recentFiles{recentFilesStore.value("recent_files").toStringList()};
 		auto it = std::find(recentFiles.begin(), recentFiles.end(), file);
 		if (it != recentFiles.end()) {
@@ -39,7 +41,7 @@ void OpenRecentMenu::addRecentFile(const QString& file) {
 
 		recentFilesStore.sync();
 		if (recentFilesStore.status() != QSettings::NoError) {
-			LOG_ERROR(raco::log_system::COMMON, "Saving recent files list failed: {}", raco::core::PathManager::recentFilesStorePath().string());
+			LOG_ERROR(log_system::COMMON, "Saving recent files list failed: {}", core::PathManager::recentFilesStorePath().string());
 		}
 	}
 }
@@ -61,7 +63,7 @@ bool isOneDriveIniFile(std::filesystem::path path) {
 }
 
 // Check whether specified path is on OneDrive.
-bool isOneDrivePath(raco::utils::u8path path) {
+bool isOneDrivePath(utils::u8path path) {
 	auto onedriveIniFilename = "desktop.ini";
 
 	auto fsPath = std::filesystem::path(path.internalPath());
@@ -90,7 +92,7 @@ bool isOneDrivePath(raco::utils::u8path path) {
 				std::filesystem::path foundPath(*itFound);
 
 				if (isOneDriveIniFile(foundPath)) {
-					LOG_INFO(raco::log_system::COMMON, "OneDrive root found at: {}", foundPath.string());
+					LOG_INFO(log_system::COMMON, "OneDrive root found at: {}", foundPath.string());
 					return true;
 				}
 			}
@@ -103,7 +105,7 @@ bool isOneDrivePath(raco::utils::u8path path) {
 }
 
 void OpenRecentMenu::refreshRecentFileMenu() {
-	auto recentFilesStore = raco::core::PathManager::recentFilesStoreSettings();
+	auto recentFilesStore = core::PathManager::recentFilesStoreSettings();
 	QStringList recentFiles{recentFilesStore.value("recent_files").toStringList()};
 	setDisabled(recentFiles.size() == 0);
 	while (actions().size() > 0) {
@@ -116,13 +118,13 @@ void OpenRecentMenu::refreshRecentFileMenu() {
 		auto* action = addAction(actionText);
 
 		auto fileString = file.toStdString();
-		if (!raco::utils::u8path(fileString).exists()) {
+		if (!utils::u8path(fileString).exists()) {
 			action->setEnabled(false);
 			action->setText(actionText + " (unavailable)");
-		} else if (isOneDrivePath(raco::utils::u8path(fileString))) {
+		} else if (isOneDrivePath(utils::u8path(fileString))) {
 			// Not touching cloud file to prevent its download.
 			action->setText(actionText + " (OneDrive)");
-		} else if (!raco::utils::u8path(fileString).userHasReadAccess()) {
+		} else if (!utils::u8path(fileString).userHasReadAccess()) {
 			action->setEnabled(false);
 			action->setText(actionText + " (no read access)");
 		}

@@ -45,10 +45,10 @@ inline std::shared_ptr<T> select(const std::vector<I>& vec, std::string_view nam
 	return {};
 }
 
-inline auto createLinkedScene(raco::core::CommandInterface& context, const raco::utils::u8path& path) {
-	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script")};
-	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node")};
-	raco::utils::file::write((path / "lua_script.lua").string(), R"(
+inline auto createLinkedScene(core::CommandInterface& context, const utils::u8path& path) {
+	const auto luaScript{context.createObject(user_types::LuaScript::typeDescription.typeName, "lua_script")};
+	const auto node{context.createObject(user_types::Node::typeDescription.typeName, "node")};
+	utils::file::write((path / "lua_script.lua").string(), R"(
 function interface(IN,OUT)
 	OUT.translation = Type:Vec3f()
 	OUT.rotation3 = Type:Vec3f()
@@ -64,10 +64,10 @@ end
 }
 
 
-inline auto createLinkedScene(raco::core::BaseContext& context, const raco::utils::u8path& path) {
-	const auto luaScript{context.createObject(raco::user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
-	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node", "node_id")};
-	raco::utils::file::write((path / "lua_script.lua").string(), R"(
+inline auto createLinkedScene(core::BaseContext& context, const utils::u8path& path) {
+	const auto luaScript{context.createObject(user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
+	const auto node{context.createObject(user_types::Node::typeDescription.typeName, "node", "node_id")};
+	utils::file::write((path / "lua_script.lua").string(), R"(
 function interface(IN,OUT)
 	OUT.translation = Type:Vec3f()
 	OUT.rotation3 = Type:Vec3f()
@@ -83,10 +83,10 @@ end
 }
 
 template <typename ContextOrCommandInterface>
-inline auto createAnimatedScene(ContextOrCommandInterface& context, const raco::utils::u8path& path) {
-	const auto anim{context.createObject(raco::user_types::Animation::typeDescription.typeName, "anim")};
-	const auto animChannel{context.createObject(raco::user_types::AnimationChannel::typeDescription.typeName, "anim_ch")};
-	const auto node{context.createObject(raco::user_types::Node::typeDescription.typeName, "node")};
+inline auto createAnimatedScene(ContextOrCommandInterface& context, const utils::u8path& path) {
+	const auto anim{context.createObject(user_types::Animation::typeDescription.typeName, "anim")};
+	const auto animChannel{context.createObject(user_types::AnimationChannel::typeDescription.typeName, "anim_ch")};
+	const auto node{context.createObject(user_types::Node::typeDescription.typeName, "node")};
 
 	context.set({anim, {"animationChannels", "Channel 0"}}, animChannel);
 	context.set({animChannel, {"uri"}}, (path / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string());
@@ -99,7 +99,7 @@ inline auto createAnimatedScene(ContextOrCommandInterface& context, const raco::
 		link);
 }
 
-inline bool awaitPreviewDirty(const raco::core::DataChangeRecorder& recorder, const raco::core::SEditorObject& obj, long long timeout = 5) {
+inline bool awaitPreviewDirty(const core::DataChangeRecorder& recorder, const core::SEditorObject& obj, long long timeout = 5) {
 	const std::chrono::steady_clock::time_point timeoutTS = std::chrono::steady_clock::now() + std::chrono::seconds{timeout};
 	auto dirtyObjects{recorder.getPreviewDirtyObjects()};
 	int argc = 0;
@@ -125,43 +125,43 @@ inline void createGitLfsPlaceholderFile(const std::string& path) {
 	file.close();
 }
 
-inline std::pair<raco::core::MeshScenegraph, raco::core::FileChangeMonitor::UniqueListener> getMeshSceneGraphWithHandler(raco::core::MeshCache* meshCache, const raco::core::MeshDescriptor& descriptor) {
+inline std::pair<core::MeshScenegraph, core::FileChangeMonitor::UniqueListener> getMeshSceneGraphWithHandler(core::MeshCache* meshCache, const core::MeshDescriptor& descriptor) {
 	auto dummyCacheEntry = meshCache->registerFileChangedHandler(descriptor.absPath, {nullptr, nullptr});
-	raco::core::MeshScenegraph scenegraph{*meshCache->getMeshScenegraph(descriptor.absPath)};
+	core::MeshScenegraph scenegraph{*meshCache->getMeshScenegraph(descriptor.absPath)};
 	return {scenegraph, std::move(dummyCacheEntry)};
 }
 
 
-inline void checkVec2fValue(raco::core::ValueHandle handle, const std::array<float, 2>& value) {
+inline void checkVec2fValue(core::ValueHandle handle, const std::array<float, 2>& value) {
 	EXPECT_EQ(handle[0].asDouble(), value[0]);
 	EXPECT_EQ(handle[1].asDouble(), value[1]);
 }
 
-inline void checkVec3fValue(raco::core::ValueHandle handle, const std::array<float, 3>& value) {
+inline void checkVec3fValue(core::ValueHandle handle, const std::array<float, 3>& value) {
 	EXPECT_EQ(handle[0].asDouble(), value[0]);
 	EXPECT_EQ(handle[1].asDouble(), value[1]);
 	EXPECT_EQ(handle[2].asDouble(), value[2]);
 }
 
-inline void checkVec4fValue(raco::core::ValueHandle handle, const std::array<float, 4>& value) {
+inline void checkVec4fValue(core::ValueHandle handle, const std::array<float, 4>& value) {
 	EXPECT_EQ(handle[0].asDouble(), value[0]);
 	EXPECT_EQ(handle[1].asDouble(), value[1]);
 	EXPECT_EQ(handle[2].asDouble(), value[2]);
 	EXPECT_EQ(handle[3].asDouble(), value[3]);
 }
 
-inline void checkVec2iValue(raco::core::ValueHandle handle, const std::array<int32_t, 2>& value) {
+inline void checkVec2iValue(core::ValueHandle handle, const std::array<int32_t, 2>& value) {
 	EXPECT_EQ(handle[0].asInt(), value[0]);
 	EXPECT_EQ(handle[1].asInt(), value[1]);
 }
 
-inline void checkVec3iValue(raco::core::ValueHandle handle, const std::array<int32_t, 3>& value) {
+inline void checkVec3iValue(core::ValueHandle handle, const std::array<int32_t, 3>& value) {
 	EXPECT_EQ(handle[0].asInt(), value[0]);
 	EXPECT_EQ(handle[1].asInt(), value[1]);
 	EXPECT_EQ(handle[2].asInt(), value[2]);
 }
 
-inline void checkVec4iValue(raco::core::ValueHandle handle, const std::array<int32_t, 4>& value) {
+inline void checkVec4iValue(core::ValueHandle handle, const std::array<int32_t, 4>& value) {
 	EXPECT_EQ(handle[0].asInt(), value[0]);
 	EXPECT_EQ(handle[1].asInt(), value[1]);
 	EXPECT_EQ(handle[2].asInt(), value[2]);

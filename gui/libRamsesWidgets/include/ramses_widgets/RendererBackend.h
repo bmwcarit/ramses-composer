@@ -21,12 +21,11 @@ namespace raco::ramses_widgets {
 
 class SceneStateEventHandler;
 
-class RendererBackend final : public raco::ramses_base::BaseEngineBackend {
+class RendererBackend final : public ramses_base::BaseEngineBackend {
 	Q_DISABLE_COPY(RendererBackend)
 public:
 	typedef std::unique_ptr<ramses::RamsesRenderer, std::function<void(ramses::RamsesRenderer*)>> UniqueRenderer;
-	static ramses::RamsesFrameworkConfig& ramsesFrameworkConfig(const std::string& frameworkArgs) noexcept;
-	explicit RendererBackend(rlogic::EFeatureLevel featureLevel, const std::string& frameworkArgs = {});
+	explicit RendererBackend(const ramses::RamsesFrameworkConfig& frameworkConfig = defaultRamsesFrameworkConfig());
 	~RendererBackend();
 
 	ramses::RamsesRenderer& renderer() const;
@@ -38,6 +37,13 @@ public:
 	ramses::sceneId_t internalSceneId();
 	ramses::dataConsumerId_t internalDataConsumerId();
 	void doOneLoop() const;
+
+protected:
+	void reset() override;
+	void setup(ramses::EFeatureLevel featureLevel) override;
+
+Q_SIGNALS:
+	void screenshotSaved(bool success);
 
 private:
 	UniqueRenderer renderer_;

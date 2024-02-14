@@ -124,21 +124,21 @@ public:
 
 	// Parse shaders using Ramses and return set of uniforms with name and type.
 	// Returns true if shader can be successfully parsed.
-	virtual bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, PropertyInterfaceList& outUniforms, raco::core::PropertyInterfaceList& outAttributes, std::string& error) = 0;
+	virtual bool parseShader(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, const std::string& shaderDefines, PropertyInterfaceList& outUniforms, core::PropertyInterfaceList& outAttributes, std::string& error) = 0;
 
 	// Parse luascripts using ramses logic and return set of in and out parameters with name and type.
 	// Returns true if script can be successfully parsed.
-	virtual bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
+	virtual bool parseLuaScript(const std::string& luaScript, const std::string& scriptName, const std::vector<std::string>& stdModules, const data_storage::Table& modules, PropertyInterfaceList& outInputs, PropertyInterfaceList& outOutputs, std::string& error) = 0;
 
 	// Parse lua interface definition using ramses logic and return set of inout parameters with name and type.
 	// Returns true if script can be successfully parsed.
-	virtual bool parseLuaInterface(const std::string& luaScript, const std::vector<std::string>& stdModules, const raco::data_storage::Table& modules, bool useModules, PropertyInterfaceList& outInputs, std::string& error) = 0;
+	virtual bool parseLuaInterface(const std::string& luaScript, const std::vector<std::string>& stdModules, const data_storage::Table& modules, PropertyInterfaceList& outInputs, std::string& error) = 0;
 
 	// Parse luascript module using ramses logic.
 	// Returns true if module can be successfully parsed.
-	virtual bool parseLuaScriptModule(raco::core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) = 0;
+	virtual bool parseLuaScriptModule(core::SEditorObject object, const std::string& luaScriptModule, const std::string& moduleName, const std::vector<std::string>& stdModules, std::string& outError) = 0;
 
-	virtual void removeModuleFromCache(raco::core::SCEditorObject object) = 0;
+	virtual void removeModuleFromCache(core::SCEditorObject object) = 0;
 	virtual void clearModuleCache() = 0;
 
 

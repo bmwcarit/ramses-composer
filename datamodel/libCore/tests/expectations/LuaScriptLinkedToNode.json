@@ -6,29 +6,16 @@
         {
             "properties": {
                 "endObject": "node_id",
-                "endProp": {
-                    "properties": [
-                        {
-                            "typeName": "String",
-                            "value": "translation"
-                        }
-                    ]
-                },
+                "endProp": [
+                    "translation"
+                ],
                 "isValid": true,
                 "isWeak": false,
                 "startObject": "lua_script_id",
-                "startProp": {
-                    "properties": [
-                        {
-                            "typeName": "String",
-                            "value": "outputs"
-                        },
-                        {
-                            "typeName": "String",
-                            "value": "translation"
-                        }
-                    ]
-                }
+                "startProp": [
+                    "outputs",
+                    "translation"
+                ]
             },
             "typeName": "Link"
         }

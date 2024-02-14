@@ -14,16 +14,16 @@
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/Animation.h"
 
-#include <ramses-logic/AnimationTypes.h>
+#include <ramses/client/logic/AnimationTypes.h>
 
 namespace raco::ramses_adaptor {
 
 class AnimationAdaptor final : public UserTypeObjectAdaptor<user_types::Animation>, public ILogicPropertyProvider {
 public:
-	explicit AnimationAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SAnimation animation);
+	explicit AnimationAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnimation animation);
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 
 	bool sync(core::Errors* errors) override;
@@ -31,10 +31,10 @@ public:
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	raco::ramses_base::RamsesAnimationNode animNode_;
-	raco::components::Subscription progressSubscription_;
-	raco::components::Subscription dirtySubscription_;
-	raco::components::Subscription nameSubscription_;
+	ramses_base::RamsesAnimationNode animNode_;
+	components::Subscription progressSubscription_;
+	components::Subscription dirtySubscription_;
+	components::Subscription nameSubscription_;
 
 	void updateGlobalAnimationSettings();
 	void updateGlobalAnimationStats(core::Errors* errors);

@@ -14,20 +14,21 @@
 #include "AdaptorTestUtils.h"
 #include "MaterialAdaptorTestBase.h"
 
+#include "ramses_adaptor/DefaultRamsesObjects.h"
 #include "ramses_adaptor/MeshNodeAdaptor.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
 #include "user_types/RenderBufferMS.h"
 
 using namespace raco;
-using raco::ramses_adaptor::MeshNodeAdaptor;
-using raco::ramses_adaptor::SceneAdaptor;
-using raco::user_types::Material;
-using raco::user_types::Mesh;
-using raco::user_types::MeshNode;
-using raco::user_types::RenderBufferMS;
-using raco::user_types::SMeshNode;
-using raco::user_types::ValueHandle;
+using ramses_adaptor::MeshNodeAdaptor;
+using ramses_adaptor::SceneAdaptor;
+using user_types::Material;
+using user_types::Mesh;
+using user_types::MeshNode;
+using user_types::RenderBufferMS;
+using user_types::SMeshNode;
+using user_types::ValueHandle;
 
 class MeshNodeAdaptorFixture : public MaterialAdaptorTestBase {
 protected:
@@ -43,33 +44,33 @@ protected:
 		}
 		dispatch();
 
-		auto selectedMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-		auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
-		auto effects{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
-		auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance)};
+		auto selectedMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+		auto geometrys{select<ramses::Geometry>(*sceneContext.scene(), ramses::ERamsesObjectType::Geometry)};
+		auto effects{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect)};
+		auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::Appearance)};
 		EXPECT_EQ(selectedMeshNodes.size(), MESH_NODE_AMOUNT);
-		EXPECT_EQ(geometryBindings.size(), MESH_NODE_AMOUNT);
+		EXPECT_EQ(geometrys.size(), MESH_NODE_AMOUNT);
 		EXPECT_EQ(effects.size(), 1);
 		EXPECT_EQ(appearances.size(), private_material ? MESH_NODE_AMOUNT + 1 : 1);
 
 		for (int i = 0; i < MESH_NODE_AMOUNT; ++i) {
 			auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), std::to_string(i).c_str());
-			EXPECT_STREQ(std::to_string(i).c_str(), ramsesMeshNode->getName());
+			EXPECT_TRUE(std::to_string(i).c_str() == ramsesMeshNode->getName());
 
 			EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
 			if (private_material) {
-				EXPECT_STREQ((std::to_string(i) + "_Appearance").c_str(), ramsesMeshNode->getAppearance()->getName());
+				EXPECT_TRUE((std::to_string(i) + "_Appearance").c_str() == ramsesMeshNode->getAppearance()->getName());
 
-				auto appearanceBinding = select<rlogic::RamsesAppearanceBinding>(sceneContext.logicEngine(), std::to_string(i).append("_AppearanceBinding").c_str());
+				auto appearanceBinding = select<ramses::AppearanceBinding>(sceneContext.logicEngine(), std::to_string(i).append("_AppearanceBinding").c_str());
 				EXPECT_EQ(appearanceBinding->getUserId(), meshNodes[i]->objectIDAsRamsesLogicID());
 			} else {
-				EXPECT_STREQ("Material_Appearance", ramsesMeshNode->getAppearance()->getName());
+				EXPECT_TRUE("Material_Appearance" == ramsesMeshNode->getAppearance()->getName());
 
-				auto appearanceBinding = select<rlogic::RamsesAppearanceBinding>(sceneContext.logicEngine(), "Material_AppearanceBinding");
+				auto appearanceBinding = select<ramses::AppearanceBinding>(sceneContext.logicEngine(), "Material_AppearanceBinding");
 				EXPECT_EQ(appearanceBinding->getUserId(), material->objectIDAsRamsesLogicID());
 			}
-			EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
-			EXPECT_TRUE(ramsesMeshNode->getGeometryBinding() != nullptr);
+			EXPECT_TRUE("Material" == ramsesMeshNode->getAppearance()->getEffect().getName());
+			EXPECT_TRUE(ramsesMeshNode->getGeometry() != nullptr);
 		}
 	}
 };
@@ -78,12 +79,12 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_constructs_ramsesMesh
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "MeshNode Name");
 
 	dispatch();
-	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
+	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
 
 	EXPECT_EQ(meshNodes.size(), 1);
 	EXPECT_TRUE(meshNodes[0]->getAppearance() != nullptr);
-	EXPECT_TRUE(meshNodes[0]->getGeometryBinding() != nullptr);
-	EXPECT_STREQ("MeshNode Name", meshNodes[0]->getName());
+	EXPECT_TRUE(meshNodes[0]->getGeometry() != nullptr);
+	EXPECT_TRUE("MeshNode Name" == meshNodes[0]->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_name_change) {
@@ -91,20 +92,20 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_name_change) {
 
 	dispatch();
 
-	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
+	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
 
 	EXPECT_EQ(meshNodes.size(), 1);
 	EXPECT_TRUE(meshNodes[0]->getAppearance() != nullptr);
-	EXPECT_TRUE(meshNodes[0]->getGeometryBinding() != nullptr);
-	EXPECT_STREQ("MeshNode Name", meshNodes[0]->getName());
-	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceName, meshNodes[0]->getAppearance()->getName());
+	EXPECT_TRUE(meshNodes[0]->getGeometry() != nullptr);
+	EXPECT_TRUE("MeshNode Name" == meshNodes[0]->getName());
+	EXPECT_TRUE(ramses_adaptor::defaultAppearanceWithNormalsName == meshNodes[0]->getAppearance()->getName());
 
 	context.set({meshNode, {"objectName"}}, std::string("Changed"));
 	dispatch();
 
-	EXPECT_STREQ("Changed", meshNodes[0]->getName());
-	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceName, meshNodes[0]->getAppearance()->getName());
-	EXPECT_STREQ("Changed_GeometryBinding", meshNodes[0]->getGeometryBinding()->getName());
+	EXPECT_TRUE("Changed" == meshNodes[0]->getName());
+	EXPECT_TRUE(ramses_adaptor::defaultAppearanceWithNormalsName == meshNodes[0]->getAppearance()->getName());
+	EXPECT_TRUE("Changed_Geometry" == meshNodes[0]->getGeometry()->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMesh_constructs_ramsesMeshNode) {
@@ -113,13 +114,13 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMesh_constru
 	context.set(ValueHandle{meshNode}.get("mesh"), mesh);
 
 	dispatch();
-	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-	auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
+	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+	auto geometrys{select<ramses::Geometry>(*sceneContext.scene(), ramses::ERamsesObjectType::Geometry)};
 
 	EXPECT_EQ(meshNodes.size(), 1);
 	EXPECT_TRUE(meshNodes[0]->getAppearance() != nullptr);
-	EXPECT_TRUE(meshNodes[0]->getGeometryBinding() != nullptr);
-	EXPECT_STREQ("MeshNode Name", meshNodes[0]->getName());
+	EXPECT_TRUE(meshNodes[0]->getGeometry() != nullptr);
+	EXPECT_TRUE("MeshNode Name" == meshNodes[0]->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMesh_createdAfterMeshNode_constructs_ramsesMeshNode) {
@@ -128,13 +129,13 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMesh_created
 	context.set(ValueHandle{meshNode}.get("mesh"), mesh);
 
 	dispatch();
-	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-	auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
+	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+	auto geometrys{select<ramses::Geometry>(*sceneContext.scene(), ramses::ERamsesObjectType::Geometry)};
 
 	EXPECT_EQ(meshNodes.size(), 1);
 	EXPECT_TRUE(meshNodes[0]->getAppearance() != nullptr);
-	EXPECT_TRUE(meshNodes[0]->getGeometryBinding() != nullptr);
-	EXPECT_STREQ("MeshNode Name", meshNodes[0]->getName());
+	EXPECT_TRUE(meshNodes[0]->getGeometry() != nullptr);
+	EXPECT_TRUE("MeshNode Name" == meshNodes[0]->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMaterial_constructs_ramsesMeshNode) {
@@ -143,17 +144,17 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withEmptyMaterial_con
 	auto meshnode = create_meshnode("MeshNode", mesh, material);
 	dispatch();
 
-	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-	auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
+	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+	auto geometrys{select<ramses::Geometry>(*sceneContext.scene(), ramses::ERamsesObjectType::Geometry)};
 	EXPECT_EQ(meshNodes.size(), 1);
-	EXPECT_EQ(geometryBindings.size(), 1);
+	EXPECT_EQ(geometrys.size(), 1);
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_STREQ(raco::ramses_adaptor::defaultAppearanceWithNormalsName, ramsesMeshNode->getAppearance()->getName());
-	EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
-	EXPECT_TRUE(ramsesMeshNode->getGeometryBinding() != nullptr);
-	EXPECT_STREQ("MeshNode", ramsesMeshNode->getName());
+	EXPECT_TRUE(ramses_adaptor::defaultAppearanceWithNormalsName == ramsesMeshNode->getAppearance()->getName());
+	EXPECT_TRUE(ramses_adaptor::defaultEffectWithNormalsName == ramsesMeshNode->getAppearance()->getEffect().getName());
+	EXPECT_TRUE(ramsesMeshNode->getGeometry() != nullptr);
+	EXPECT_TRUE("MeshNode" == ramsesMeshNode->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_withMaterial_constructs_ramsesMeshNode) {
@@ -174,7 +175,7 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial_andSameMesh_propertyUnsetting) {
 	constexpr auto MESH_NODE_AMOUNT = 10;
-	std::array<raco::core::SEditorObject, MESH_NODE_AMOUNT> meshNodes;
+	std::array<core::SEditorObject, MESH_NODE_AMOUNT> meshNodes;
 	auto material = create<Material>("Material");
 	auto mesh = create_mesh("Mesh", "meshes/Duck.glb");
 
@@ -189,14 +190,14 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_ten_MeshNodes_withSameMaterial
 	context.deleteObjects({mesh, material});
 	dispatch();
 
-	auto selectedMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-	auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
+	auto selectedMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+	auto geometrys{select<ramses::Geometry>(*sceneContext.scene(), ramses::ERamsesObjectType::Geometry)};
 	EXPECT_EQ(selectedMeshNodes.size(), MESH_NODE_AMOUNT);
-	EXPECT_EQ(geometryBindings.size(), MESH_NODE_AMOUNT);
+	EXPECT_EQ(geometrys.size(), MESH_NODE_AMOUNT);
 
 	for (int i = 0; i < MESH_NODE_AMOUNT; ++i) {
 		auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), std::to_string(i).c_str());
-		EXPECT_STREQ(raco::ramses_adaptor::defaultEffectName, ramsesMeshNode->getAppearance()->getEffect().getName());
+		EXPECT_TRUE(ramses_adaptor::defaultEffectWithNormalsName == ramsesMeshNode->getAppearance()->getEffect().getName());
 		// TODO: Compare Ramses mesh with default sceneAdaptor mesh here
 	}
 }
@@ -211,23 +212,23 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_dynamicMaterial_const
 	// precondition
 	{
 		auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
-		EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
+		EXPECT_TRUE(ramses_adaptor::defaultEffectWithNormalsName == ramsesMeshNode->getAppearance()->getEffect().getName());
 	}
 
 	context.set({material, {"uriVertex"}}, test_path().append("shaders/basic.vert").string());
 	context.set({material, {"uriFragment"}}, test_path().append("shaders/basic.frag").string());
 	dispatch();
 
-	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-	auto geometryBindings{select<ramses::GeometryBinding>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_GeometryBinding)};
+	auto meshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+	auto geometrys{select<ramses::Geometry>(*sceneContext.scene(), ramses::ERamsesObjectType::Geometry)};
 	EXPECT_EQ(meshNodes.size(), 1);
-	EXPECT_EQ(geometryBindings.size(), 1);
+	EXPECT_EQ(geometrys.size(), 1);
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
-	EXPECT_TRUE(ramsesMeshNode->getGeometryBinding() != nullptr);
-	EXPECT_STREQ("MeshNode", ramsesMeshNode->getName());
+	EXPECT_TRUE("Material" == ramsesMeshNode->getAppearance()->getEffect().getName());
+	EXPECT_TRUE(ramsesMeshNode->getGeometry() != nullptr);
+	EXPECT_TRUE("MeshNode" == ramsesMeshNode->getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, meshnode_switch_mat_shared_to_private) {
@@ -239,15 +240,15 @@ TEST_F(MeshNodeAdaptorFixture, meshnode_switch_mat_shared_to_private) {
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_STREQ("Material_Appearance", ramsesMeshNode->getAppearance()->getName());
-	EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
+	EXPECT_TRUE("Material_Appearance" == ramsesMeshNode->getAppearance()->getName());
+	EXPECT_TRUE("Material" == ramsesMeshNode->getAppearance()->getEffect().getName());
 
 	context.set(meshnode->getMaterialPrivateHandle(0), true);
 	dispatch();
 
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_STREQ("MeshNode_Appearance", ramsesMeshNode->getAppearance()->getName());
-	EXPECT_STREQ("Material", ramsesMeshNode->getAppearance()->getEffect().getName());
+	EXPECT_TRUE("MeshNode_Appearance" ==  ramsesMeshNode->getAppearance()->getName());
+	EXPECT_TRUE("Material" == ramsesMeshNode->getAppearance()->getEffect().getName());
 }
 
 TEST_F(MeshNodeAdaptorFixture, meshnode_shared_material_is_unique) {
@@ -278,14 +279,14 @@ TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_private) {
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_EQ(ramses::EDepthWrite::Enabled, ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 
 	context.set(meshNode->getMaterialOptionsHandle(0).get("depthwrite"), false);
 	dispatch();
 
 	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_EQ(ramses::EDepthWrite::Disabled, ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 }
 
 TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_shared) {
@@ -298,14 +299,14 @@ TEST_F(MeshNodeAdaptorFixture, meshnode_set_depthwrite_mat_shared) {
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_EQ(ramses::EDepthWrite::Enabled, ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 
 	context.set({material, {"options", "depthwrite"}}, false);
 	dispatch();
 
 	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_EQ(ramses::EDepthWrite::Disabled, ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_materialReset_and_depthWriteDisable) {
@@ -318,15 +319,15 @@ TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_materialReset_and_dep
 
 	auto ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_EQ(ramses::EDepthWrite_Disabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_EQ(ramses::EDepthWrite::Disabled, ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 
 	context.set(ValueHandle{meshNode}.get("materials")[0].get("material"), core::SEditorObject{});
 	dispatch();
 
 	ramsesMeshNode = select<ramses::MeshNode>(*sceneContext.scene(), "MeshNode");
 	EXPECT_TRUE(ramsesMeshNode->getAppearance() != nullptr);
-	EXPECT_STREQ(raco::ramses_adaptor::defaultEffectWithNormalsName, ramsesMeshNode->getAppearance()->getEffect().getName());
-	EXPECT_EQ(ramses::EDepthWrite_Enabled, raco::ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
+	EXPECT_TRUE(ramses_adaptor::defaultEffectWithNormalsName == ramsesMeshNode->getAppearance()->getEffect().getName());
+	EXPECT_EQ(ramses::EDepthWrite::Enabled, ramses_adaptor::getDepthWriteMode(ramsesMeshNode->getAppearance()));
 }
 
 TEST_F(MeshNodeAdaptorFixture, inContext_userType_MeshNode_multiSampledMaterial_invalidNoCrash) {
@@ -452,6 +453,7 @@ TEST_F(MeshNodeAdaptorFixture, set_get_array_uniforms) {
 
 	context.set(meshnode->getMaterialPrivateHandle(0), true);
 
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "bvec", "2"}}, true);
 	commandInterface.set({meshnode, {"materials", "material", "uniforms", "ivec", "2"}}, 2);
 	commandInterface.set({meshnode, {"materials", "material", "uniforms", "fvec", "3"}}, 3.0);
 
@@ -469,6 +471,7 @@ TEST_F(MeshNodeAdaptorFixture, set_get_array_uniforms) {
 	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
 	EXPECT_NE(mat_appearance, appearance);
 
+	checkUniformVector<bool, 3>(appearance, "bvec", 1, true);
 	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
 	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
 
@@ -480,6 +483,78 @@ TEST_F(MeshNodeAdaptorFixture, set_get_array_uniforms) {
 	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 4, {0, 0, 8});
 	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 5, {0, 0, 0, 9});
 }
+
+
+TEST_F(MeshNodeAdaptorFixture, link_get_array_uniforms) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-array.vert", "shaders/uniform-array.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	auto lua = create_lua("lua", "scripts/types-scalar.lua");
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "bvec", "2"}}, true);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "ivec", "2"}}, 2);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "fvec", "3"}}, 3.0);
+
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "avec2", "4", "y"}}, 4.0);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "avec3", "5", "z"}}, 5.0);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "avec4", "6", "w"}}, 6.0);
+	
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "aivec2", "4", "i2"}}, 7);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "aivec3", "5", "i3"}}, 8);
+	commandInterface.set({meshnode, {"materials", "material", "uniforms", "aivec4", "6", "i4"}}, 9);
+
+	link(lua, {"outputs", "flag"}, meshnode, {"materials", "material", "uniforms", "bvec", "1"});
+	link(lua, {"outputs", "ointeger"}, meshnode, {"materials", "material", "uniforms", "ivec", "1"});
+	link(lua, {"outputs", "ofloat"}, meshnode, {"materials", "material", "uniforms", "fvec", "2"});
+
+	link(lua, {"outputs", "ovector2f"}, meshnode, {"materials", "material", "uniforms", "avec2", "3"});
+	link(lua, {"outputs", "ovector3f"}, meshnode, {"materials", "material", "uniforms", "avec3", "3"});
+	link(lua, {"outputs", "ovector4f"}, meshnode, {"materials", "material", "uniforms", "avec4", "3"});
+
+	link(lua, {"outputs", "ovector2i"}, meshnode, {"materials", "material", "uniforms", "aivec2", "3"});
+	link(lua, {"outputs", "ovector3i"}, meshnode, {"materials", "material", "uniforms", "aivec3", "3"});
+	link(lua, {"outputs", "ovector4i"}, meshnode, {"materials", "material", "uniforms", "aivec4", "3"});
+
+	dispatch();
+
+	commandInterface.set({lua, {"inputs", "integer"}}, 1);
+	commandInterface.set({lua, {"inputs", "float"}}, 1.0);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	// non-linked array components
+	checkUniformVector<bool, 3>(appearance, "bvec", 1, true);
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 1, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 2, 3.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 3, {0.0, 4.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 4, {0.0, 0.0, 5.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 5, {0.0, 0.0, 0.0, 6.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 3, {0, 7});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 4, {0, 0, 8});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 5, {0, 0, 0, 9});
+
+	// linked array components
+	checkUniformVector<bool, 3>(appearance, "bvec", 0, true);
+	checkUniformVector<int32_t, 2>(appearance, "ivec", 0, 2);
+	checkUniformVector<float, 5>(appearance, "fvec", 1, 1.0);
+
+	checkUniformVector<std::array<float, 2>, 4>(appearance, "avec2", 2, {1.0, 2.0});
+	checkUniformVector<std::array<float, 3>, 5>(appearance, "avec3", 2, {1.0, 2.0, 3.0});
+	checkUniformVector<std::array<float, 4>, 6>(appearance, "avec4", 2, {1.0, 2.0, 3.0, 4.0});
+
+	checkUniformVector<std::array<int32_t, 2>, 4>(appearance, "aivec2", 2, {1, 2});
+	checkUniformVector<std::array<int32_t, 3>, 5>(appearance, "aivec3", 2, {1, 2, 3});
+	checkUniformVector<std::array<int32_t, 4>, 6>(appearance, "aivec4", 2, {1, 2, 3, 4});
+}
+
 
 TEST_F(MeshNodeAdaptorFixture, set_get_struct_prim_uniforms) {
 	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
@@ -528,6 +603,27 @@ TEST_F(MeshNodeAdaptorFixture, link_get_struct_prim_uniforms_members) {
 	context.set(meshnode->getMaterialPrivateHandle(0), true);
 
 	linkStructComponents({interface, {"inputs", "s_prims"}}, {meshnode, {"materials", "material", "uniforms", "s_prims"}});
+	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
+
+	dispatch();
+
+	auto mat_appearance{select<ramses::Appearance>(*sceneContext.scene(), "mat_Appearance")};
+	auto appearance{select<ramses::Appearance>(*sceneContext.scene(), "meshnode_Appearance")};
+	EXPECT_NE(mat_appearance, appearance);
+
+	checkStructComponents({meshnode, {"materials", "material", "uniforms", "s_prims"}}, appearance, "s_prims.", default_struct_prim_values);
+}
+
+TEST_F(MeshNodeAdaptorFixture, link_set_mixed_get_struct_prim_uniforms_members) {
+	auto mesh = create_mesh("mesh", "meshes/Duck.glb");
+	auto material = create_material("mat", "shaders/uniform-struct.vert", "shaders/uniform-struct.frag");
+	auto meshnode = create_meshnode("meshnode", mesh, material);
+	auto interface = create_lua_interface("interface", "scripts/uniform-structs.lua");
+
+	context.set(meshnode->getMaterialPrivateHandle(0), true);
+
+	linkStructIntComponents({interface, {"inputs", "s_prims"}}, {meshnode, {"materials", "material", "uniforms", "s_prims"}});
+	setStructFloatComponents({meshnode, {"materials", "material", "uniforms", "s_prims"}}, default_struct_prim_values);
 	setStructComponents({interface, {"inputs", "s_prims"}}, default_struct_prim_values);
 
 	dispatch();

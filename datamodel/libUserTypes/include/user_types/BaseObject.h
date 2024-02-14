@@ -21,9 +21,15 @@
 
 #include <memory>
 
-
 namespace raco::user_types {
 using namespace raco::core;
+
+// These are the available metadata categories.
+// They are used as property names of the containers in the BaseObject::metaData_ property.
+struct MetaDataCategories {
+	static inline const char* GLTF_EXTRAS{"gltfExtras"};
+	static inline const char* MESH_INFO{"meshInfo"};
+};
 
 // scene object hierarchy as C++ classes:
 // - Value<T> (without annotations) or Property<T, Annos...> (with annotations) data members allowed
@@ -32,19 +38,26 @@ using namespace raco::core;
 
 class BaseObject : public EditorObject {
 public:
-	BaseObject(BaseObject const& other) : EditorObject() {
+	BaseObject(BaseObject const& other)
+		: EditorObject(),
+		  userTags_(other.userTags_),
+		  metaData_(other.metaData_) {
 		fillPropertyDescription();
 	}
 
 	BaseObject(std::string name = std::string(), std::string id = std::string())
-		: EditorObject(name, id)
-	{
+		: EditorObject(name, id) {
 		fillPropertyDescription();
 	}
 
 	void fillPropertyDescription() {
+		properties_.emplace_back("userTags", &userTags_);
+		properties_.emplace_back("metaData", &metaData_);
 	}
 
+	Property<Table, ArraySemanticAnnotation, HiddenProperty, UserTagContainerAnnotation, DisplayNameAnnotation> userTags_{{}, {}, {}, {}, {"User Tags"}};
+
+	Property<Table, DisplayNameAnnotation> metaData_{{}, {"Meta Data"}};
 };
 
-}
+}  // namespace raco::user_types

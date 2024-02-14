@@ -41,10 +41,6 @@ public:
 	bool sliderHasMultipleValues() const {
 		return slider_->hasMultipleValues();
 	}
-
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value) {
-		IntEditor::pasteProperty(item, value);
-	}
 };
 
 
@@ -111,14 +107,14 @@ TEST_F(IntEditorTest, check_multiple_values_text_displayed) {
 TEST_F(IntEditorTest, paste_property_from_int) {
 	Value<int> value{13};
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 13);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 13);
 
 	commandInterface.set(intHandleMeshNode_2, 5);
 	dispatch();
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 13);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 13);
 }
@@ -126,14 +122,14 @@ TEST_F(IntEditorTest, paste_property_from_int) {
 TEST_F(IntEditorTest, paste_property_from_double) {
 	Value<double> value{13.2};
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 13);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 13);
 
 	commandInterface.set(intHandleMeshNode_2, 5);
 	dispatch();
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 13);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 13);
 }
@@ -141,7 +137,7 @@ TEST_F(IntEditorTest, paste_property_from_double) {
 TEST_F(IntEditorTest, paste_property_from_bool) {
 	Value<bool> value{true};
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 1);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 1);
 }
@@ -149,14 +145,14 @@ TEST_F(IntEditorTest, paste_property_from_bool) {
 TEST_F(IntEditorTest, paste_property_from_string) {
 	Value<std::string> value{"13"};
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 13);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 13);
 
 	commandInterface.set(intHandleMeshNode_2, 5);
 	dispatch();
 
-	intEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_EQ(*meshNode_1->instanceCount_, 13);
 	EXPECT_EQ(*meshNode_2->instanceCount_, 13);
 }

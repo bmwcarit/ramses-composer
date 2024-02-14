@@ -14,6 +14,7 @@
 #include "data_storage/ReflectionInterface.h"
 #include "data_storage/Table.h"
 #include "data_storage/Value.h"
+#include "data_storage/Array.h"
 
 #include "core/Handles.h"
 #include "core/PropertyDescriptor.h"
@@ -94,13 +95,13 @@ public:
 
 	static SLink cloneLinkWithTranslation(const SLink& link, std::function<SEditorObject(SEditorObject)> translateRef);
 
-	// startProp_ and endProp_ contain Table of unnamed string property denoting the property path
+	// startProp_ and endProp_ contain Array of string property denoting the property path
 
 	Value<SEditorObject> startObject_;
-	Property<Table, ArraySemanticAnnotation> startProp_{{}, {}};
+	Value<Array<std::string>> startProp_{{}, {}};
 
 	Value<SEditorObject> endObject_;
-	Property<Table, ArraySemanticAnnotation> endProp_{{}, {}};
+	Value<Array<std::string>> endProp_{{}, {}};
 
 	Value<bool> isValid_{true};
 	Value<bool> isWeak_{false};

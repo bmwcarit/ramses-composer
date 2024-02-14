@@ -9,8 +9,9 @@
  */
 
 #include "property_browser/editors/VecNTEditor.h"
-
+#include "property_browser/PropertyCopyPaste.h"
 #include <algorithm>
+#include <QMenu>
 
 namespace raco::property_browser {
 
@@ -107,10 +108,15 @@ VecNTEditor<T, N>::VecNTEditor(
 	QWidget* parent)
 	: PropertyEditor(item, parent) {
 	static_assert(std::is_floating_point<T>::value || std::is_integral<T>::value, "VecNTEditor requires floating point or integral type");
+
+	// removing actions added in the parent constructor.
+	for (const auto& action : propertyMenu_->actions()) {
+		propertyMenu_->removeAction(action);
+	}
 	auto* layout = new PropertyBrowserGridLayout{this};
 	for (int i = 0; i < N; i++) {
 		spinboxes_[i].reset(new SpinBoxType{this});
-		if (auto rangeAnnotation = item->children().at(i)->query<raco::core::RangeAnnotation<T>>()) {
+		if (auto rangeAnnotation = item->children().at(i)->query<core::RangeAnnotation<T>>()) {
 			spinboxes_[i]->setSoftRange(*rangeAnnotation->min_, *rangeAnnotation->max_);
 		}
 		QObject::connect(spinboxes_[i].get(), &SpinBoxType::valueEdited, this, [this, item, i](T value) {
@@ -127,6 +133,12 @@ VecNTEditor<T, N>::VecNTEditor(
 		}
 
 		layout->addWidget(spinboxes_[i].get(), 0, i);
+
+		// eventFilter to capture right click for showing copy dialog.
+		spinboxes_[i].get()->installEventFilter(this);
+		propertyMenu_->addAction("Copy", this, [this, i] {
+			PropertyCopyPaste::copyChildValuePlainText(item_, i);
+		});
 	}
 	QObject::connect(item, &PropertyBrowserItem::childrenChanged, this, &VecNTEditor<T, N>::updateSpinBoxesAndColorPicker);
 	QObject::connect(item, &PropertyBrowserItem::childrenChanged, this, [this](const QList<PropertyBrowserItem*>& children) {
@@ -141,6 +153,37 @@ VecNTEditor<T, N>::VecNTEditor(
 
 	QObject::connect(item, &PropertyBrowserItem::expandedChanged, this, &VecNTEditor<T, N>::setExpandedMode);
 	setExpandedMode(item->expanded());
+
+	canDisplayCopyDialog = true;
+	setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
+}
+
+template <typename T, int N>
+bool VecNTEditor<T, N>::eventFilter(QObject* watched, QEvent* event) {
+	if (canDisplayCopyDialog && event->type() == QEvent::MouseButtonRelease) {
+		const auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
+		if (mouseEvent != nullptr && mouseEvent->button() == Qt::RightButton) {
+			const auto* widget = dynamic_cast<SpinBoxType*>(watched);
+			if (widget != nullptr && !widget->isEnabled()) {
+				for (auto i = 0; i < spinboxes_.size(); ++i) {
+					if (widget == spinboxes_[i].get()) {
+						displayCopyContextMenu(i);
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return PropertyEditor::eventFilter(watched, event);
+}
+
+template <typename T, int N>
+void VecNTEditor<T, N>::displayCopyContextMenu(size_t spinboxIndex) {
+	auto actions = propertyMenu_->actions();
+	for (auto i = 0; i < actions.size(); ++i) {
+		actions[i]->setVisible(i == spinboxIndex);
+	}
+	propertyMenu_->exec(QCursor::pos());
 }
 
 template <typename T, int N>

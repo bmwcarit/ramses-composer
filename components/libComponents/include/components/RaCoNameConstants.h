@@ -13,6 +13,5 @@ namespace raco::names {
 
 constexpr const char* PROJECT_FILE_EXTENSION{"rca"};
 constexpr const char* FILE_EXTENSION_RAMSES_EXPORT{"ramses"};
-constexpr const char* FILE_EXTENSION_LOGIC_EXPORT{"rlogic"};
 
 }  // namespace raco::names

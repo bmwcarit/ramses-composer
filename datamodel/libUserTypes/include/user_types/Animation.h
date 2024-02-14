@@ -17,8 +17,6 @@ namespace raco::user_types {
 
 class Animation : public BaseObject {
 public:
-	static inline const auto ANIMATION_CHANNEL_AMOUNT = 8;
-
 	static inline const TypeDescriptor typeDescription = { "Animation", false };
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
@@ -36,6 +34,7 @@ public:
 	Animation(std::string name = std::string(), std::string id = std::string())
 		: BaseObject(name, id) {
 		fillPropertyDescription();
+		setChannelAmount(1);
 	}
 
 	void fillPropertyDescription() {
@@ -54,7 +53,7 @@ public:
 
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> progress_{0.0, {"Progress"}, {0.0, 1.0}, {}};
 
-	Property<Table, DisplayNameAnnotation> animationChannels_{{}, {"Animation Channels"}};
+	Property<Array<SAnimationChannel>, DisplayNameAnnotation, ResizableArray> animationChannels_{{}, {"Animation Channels"}, {}};
 	Property<Table, DisplayNameAnnotation> outputs_{{}, {"Outputs"}};
 };
 

@@ -29,6 +29,7 @@ public:
 	void setSceneId(ramses::sceneId_t id);
 	void setBackgroundColor(core::Vec4f backgroundColor);
 	void setMsaaSampleRate(PreviewMultiSampleRate sampleRate);
+	PreviewMultiSampleRate getMsaaSampleRate();
 	void commit(bool forceUpdate);
 	bool saveScreenshot(const std::string& fullPath);
 

@@ -81,6 +81,11 @@ DoubleEditor::DoubleEditor(
 
 	stack_->setCurrentWidget(slider_);
 	layout->addWidget(stack_);
+
+	// eventFilter to capture right click for showing copy dialog.
+	installEventFilter(this);
+	canDisplayCopyDialog = true;
+	setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
 }
 
 void DoubleEditor::setValueToControls(DoubleSlider* slider, DoubleSpinBox* spinBox) const {

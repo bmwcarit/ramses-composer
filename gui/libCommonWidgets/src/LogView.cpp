@@ -73,22 +73,22 @@ LogView::LogView(LogViewModel* model, QWidget* parent) : model_(model) {
 
 	auto filterCategoryBox = new QComboBox(this);
 	filterCategoryBox->addItem("All Categories", "");
-	filterCategoryBox->addItem(raco::log_system::DEFAULT, raco::log_system::DEFAULT);
-	filterCategoryBox->addItem(raco::log_system::COMMON, raco::log_system::COMMON);
-	filterCategoryBox->addItem(raco::log_system::CONTEXT, raco::log_system::CONTEXT);
-	filterCategoryBox->addItem(raco::log_system::USER_TYPES, raco::log_system::USER_TYPES);
-	filterCategoryBox->addItem(raco::log_system::PROPERTY_BROWSER, raco::log_system::PROPERTY_BROWSER);
-	filterCategoryBox->addItem(raco::log_system::OBJECT_TREE_VIEW, raco::log_system::OBJECT_TREE_VIEW);
-	filterCategoryBox->addItem(raco::log_system::LOGGING, raco::log_system::LOGGING);
-	filterCategoryBox->addItem(raco::log_system::PREVIEW_WIDGET, raco::log_system::PREVIEW_WIDGET);
-	filterCategoryBox->addItem(raco::log_system::RAMSES_BACKEND, raco::log_system::RAMSES_BACKEND);
-	filterCategoryBox->addItem(raco::log_system::RAMSES_ADAPTOR, raco::log_system::RAMSES_ADAPTOR);
-	filterCategoryBox->addItem(raco::log_system::DESERIALIZATION, raco::log_system::DESERIALIZATION);
-	filterCategoryBox->addItem(raco::log_system::PROJECT, raco::log_system::PROJECT);
-	filterCategoryBox->addItem(raco::log_system::PYTHON, raco::log_system::PYTHON);
-	filterCategoryBox->addItem(raco::log_system::MESH_LOADER, raco::log_system::MESH_LOADER);
-	filterCategoryBox->addItem(raco::log_system::RAMSES, raco::log_system::RAMSES);
-	filterCategoryBox->addItem(raco::log_system::RAMSES_LOGIC, raco::log_system::RAMSES_LOGIC);
+	filterCategoryBox->addItem(log_system::DEFAULT, log_system::DEFAULT);
+	filterCategoryBox->addItem(log_system::COMMON, log_system::COMMON);
+	filterCategoryBox->addItem(log_system::CONTEXT, log_system::CONTEXT);
+	filterCategoryBox->addItem(log_system::USER_TYPES, log_system::USER_TYPES);
+	filterCategoryBox->addItem(log_system::PROPERTY_BROWSER, log_system::PROPERTY_BROWSER);
+	filterCategoryBox->addItem(log_system::OBJECT_TREE_VIEW, log_system::OBJECT_TREE_VIEW);
+	filterCategoryBox->addItem(log_system::LOGGING, log_system::LOGGING);
+	filterCategoryBox->addItem(log_system::PREVIEW_WIDGET, log_system::PREVIEW_WIDGET);
+	filterCategoryBox->addItem(log_system::RAMSES_BACKEND, log_system::RAMSES_BACKEND);
+	filterCategoryBox->addItem(log_system::RAMSES_ADAPTOR, log_system::RAMSES_ADAPTOR);
+	filterCategoryBox->addItem(log_system::DESERIALIZATION, log_system::DESERIALIZATION);
+	filterCategoryBox->addItem(log_system::PROJECT, log_system::PROJECT);
+	filterCategoryBox->addItem(log_system::PYTHON, log_system::PYTHON);
+	filterCategoryBox->addItem(log_system::MESH_LOADER, log_system::MESH_LOADER);
+	filterCategoryBox->addItem(log_system::RAMSES, log_system::RAMSES);
+	filterCategoryBox->addItem(log_system::RAMSES_LOGIC, log_system::RAMSES_LOGIC);
 	QObject::connect(filterCategoryBox, qOverload<int>(&QComboBox::activated), this, [this, filterCategoryBox](int index) {
 		auto filter = filterCategoryBox->itemData(index, Qt::UserRole).toString();
 		proxyModel_->setFilterCategory(filter);

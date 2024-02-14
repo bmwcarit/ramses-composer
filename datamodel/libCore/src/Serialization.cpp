@@ -9,6 +9,8 @@
  */
 #include "core/Serialization.h"
 
+#include "data_storage/Array.h"
+
 #include "core/DynamicEditorObject.h"
 #include "core/EditorObject.h"
 #include "core/Link.h"
@@ -17,8 +19,6 @@
 #include "core/ProjectMigrationToV23.h"
 #include "core/ProxyObjectFactory.h"
 #include "core/SerializationKeys.h"
-#include "core/UserObjectFactoryInterface.h"
-#include "user_types/UserObjectFactory.h"
 
 #include "core/CommandInterface.h"
 #include "data_storage/Table.h"
@@ -41,7 +41,7 @@ bool operator==(const ExternalProjectInfo& lhs, const ExternalProjectInfo& rhs) 
 	return lhs.path == rhs.path && lhs.name == rhs.name;
 }
 
-std::optional<std::string> resolveReferenceId(const raco::data_storage::ValueBase& value) {
+std::optional<std::string> resolveReferenceId(const data_storage::ValueBase& value) {
 	if (auto ref = value.asRef()) {
 		return ref->objectID();
 	} else {
@@ -53,9 +53,11 @@ std::optional<std::string> resolveReferenceId(const raco::data_storage::ValueBas
 
 namespace {
 
+using namespace raco;
+
 QJsonObject serializeTypedObject(const ReflectionInterface& object);
 
-SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, const raco::core::UserObjectFactoryInterface& factory, References& references);
+SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, const core::UserObjectFactoryInterface& factory, References& references);
 
 /**
  * Serialize a value base to it's primitive json counterpart. This function also maps references to the associated id via `resolveReferenceId`.
@@ -95,7 +97,7 @@ void deserializePrimitiveValue(const QJsonValue& jsonValue, ValueBase& value, Re
 			break;
 		case PrimitiveType::Double:
 			value = jsonValue.toDouble();
-			break;
+				break;
 		case PrimitiveType::Int:
 			value = jsonValue.toInt();
 			break;
@@ -117,7 +119,7 @@ void deserializePrimitiveValue(const QJsonValue& jsonValue, ValueBase& value, Re
 }
 
 /** Serializations of annotations need to be handled separately. This is the only case where we require to serialize a typed object within a typed property. */
-std::optional<QJsonArray> serializeAnnotations(const std::vector<raco::data_storage::AnnotationBase*>& annotations, bool dynamicallyTyped) {
+std::optional<QJsonArray> serializeAnnotations(const std::vector<data_storage::AnnotationBase*>& annotations, bool dynamicallyTyped) {
 	QJsonArray jsonArray{};
 	for (auto anno : annotations) {
 		if (anno->serializationRequired() || dynamicallyTyped) {
@@ -131,13 +133,13 @@ std::optional<QJsonArray> serializeAnnotations(const std::vector<raco::data_stor
 	}
 }
 
-void deserializeObjectProperties(const QJsonObject& properties, ReflectionInterface& objectInterface, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped);
-void deserializeArrayProperties(const QJsonArray& properties, ReflectionInterface& arrayInterface, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyType);
+void deserializeObjectProperties(const QJsonObject& properties, ReflectionInterface& objectInterface, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped);
+void deserializeArrayProperties(const QJsonArray& properties, ReflectionInterface& arrayInterface, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyType);
 
 /** Deserializes result of `serializeAnnotations` from `annotations` into the annotations of the given `value`. */
-void deserializeAnnotations(const QJsonArray& annotations, const ValueBase& value, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap) {
+void deserializeAnnotations(const QJsonArray& annotations, const ValueBase& value, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap) {
 	for (const auto& annotation : annotations) {
-		auto it = std::find_if(value.baseAnnotationPtrs().begin(), value.baseAnnotationPtrs().end(), [&annotation](const raco::data_storage::AnnotationBase* annoBase) {
+		auto it = std::find_if(value.baseAnnotationPtrs().begin(), value.baseAnnotationPtrs().end(), [&annotation](const data_storage::AnnotationBase* annoBase) {
 			return annoBase->getTypeDescription().typeName == annotation[keys::TYPENAME].toString().toStdString();
 		});
 		deserializeObjectProperties(annotation[keys::PROPERTIES].toObject(), **it, references, factory, structPropTypesMap, false);
@@ -156,13 +158,13 @@ std::optional<QJsonArray> serializeObjectAnnotations(const ClassWithReflectedMem
 	}
 }
 
-std::shared_ptr<raco::data_storage::AnnotationBase> deserializeSingleObjectAnnotation(const QJsonObject& jsonObject, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, References& references) {
+std::shared_ptr<data_storage::AnnotationBase> deserializeSingleObjectAnnotation(const QJsonObject& jsonObject, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, References& references) {
 	auto object{factory.createAnnotation(jsonObject[keys::TYPENAME].toString().toStdString())};
 	deserializeObjectProperties(jsonObject[keys::PROPERTIES].toObject(), *object.get(), references, factory, structPropTypesMap, false);
 	return object;
 }
 
-void deserializeObjectAnnotations(const QJsonArray& annotations, ClassWithReflectedMembers* object, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap) {
+void deserializeObjectAnnotations(const QJsonArray& annotations, ClassWithReflectedMembers* object, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap) {
 	for (const auto& annotation : annotations) {
 		auto deserializedAnno = deserializeSingleObjectAnnotation(annotation.toObject(), factory, structPropTypesMap, references);
 		object->addAnnotation(deserializedAnno);
@@ -178,6 +180,10 @@ std::optional<QJsonArray> serializeArrayProperties(const ReflectionInterface& ar
  * @return a QJsonValue which seralize the given `value`, based on the type of the `value` the returned QJsonValue can either be an Object, Array or an actual Value.
  */
 std::optional<QJsonValue> serializeValueBase(const ValueBase& value, bool dynamicallyTyped = false) {
+	if (value.query<core::VolatileProperty>()) {
+		return {};
+	}
+
 	bool childrenDynamicallyTyped{value.type() == PrimitiveType::Table};
 	bool valueIsClassType{hasTypeSubstructure(value.type())};
 	auto annotations{serializeAnnotations(value.baseAnnotationPtrs(), dynamicallyTyped)};
@@ -188,7 +194,7 @@ std::optional<QJsonValue> serializeValueBase(const ValueBase& value, bool dynami
 			jsonObject.insert(keys::TYPENAME, value.typeName().c_str());
 
 		if (valueIsClassType) {
-			if (value.query<raco::core::ArraySemanticAnnotation>()) {
+			if (value.type() == PrimitiveType::Array || value.query<core::ArraySemanticAnnotation>()) {
 				if (auto properties{serializeArrayProperties(value.getSubstructure(), childrenDynamicallyTyped)}) {
 					jsonObject.insert(keys::PROPERTIES, properties.value());
 				}
@@ -215,7 +221,7 @@ std::optional<QJsonValue> serializeValueBase(const ValueBase& value, bool dynami
 		return {};
 	} else if (valueIsClassType) {
 		// We have a statically known class type which can be immediately seralized
-		if (value.query<raco::core::ArraySemanticAnnotation>()) {
+		if (value.type() == PrimitiveType::Array) {
 			return serializeArrayProperties(value.getSubstructure(), false);
 		} else {
 			return serializeObjectProperties(value.getSubstructure(), false);
@@ -228,13 +234,13 @@ std::optional<QJsonValue> serializeValueBase(const ValueBase& value, bool dynami
 
 
 
-void createMissingProperties(const std::map<std::string, std::string>& propTypeMap, ReflectionInterface& object, const raco::core::UserObjectFactoryInterface& factory) {
+void createMissingProperties(const std::map<std::string, std::string>& propTypeMap, ReflectionInterface& object, const core::UserObjectFactoryInterface& factory) {
 	auto intf = dynamic_cast<proxy::DynamicPropertyInterface*>(&object);
 
 	for (const auto& [propertyName, typeName] : propTypeMap) {
 		if (!object.hasProperty(propertyName)) {
-			if (raco::data_storage::isPrimitiveTypeName(typeName)) {
-				intf->addProperty(propertyName, raco::data_storage::toPrimitiveType(typeName));
+			if (data_storage::isPrimitiveTypeName(typeName)) {
+				intf->addProperty(propertyName, data_storage::toPrimitiveType(typeName));
 			} else {
 				// typeName: REF::Material
 				intf->addProperty(propertyName, factory.createValue(typeName));
@@ -243,13 +249,13 @@ void createMissingProperties(const std::map<std::string, std::string>& propTypeM
 	}
 }
 
-void createMissingProperties(const QJsonArray& order, const QJsonObject& jsonObject, raco::data_storage::Table& table, const raco::core::UserObjectFactoryInterface& factory) {
+void createMissingProperties(const QJsonArray& order, const QJsonObject& jsonObject, data_storage::Table& table, const core::UserObjectFactoryInterface& factory) {
 	for (const auto& qPropertyName : order) {
 		const std::string propertyName{qPropertyName.toString().toStdString()};
 		if (!table.hasProperty(propertyName)) {
 			const std::string typeName{jsonObject[qPropertyName.toString()].toObject()[keys::TYPENAME].toString().toStdString()};
-			if (raco::data_storage::isPrimitiveTypeName(typeName)) {
-				table.addProperty(propertyName, raco::data_storage::toPrimitiveType(typeName));
+			if (data_storage::isPrimitiveTypeName(typeName)) {
+				table.addProperty(propertyName, data_storage::toPrimitiveType(typeName));
 			} else {
 				// typeName: REF::Material
 				table.addProperty(propertyName, factory.createValue(typeName));
@@ -258,12 +264,12 @@ void createMissingProperties(const QJsonArray& order, const QJsonObject& jsonObj
 	}
 }
 
-void createMissingProperties(const QJsonArray& jsonArray, raco::data_storage::Table& table, const raco::core::UserObjectFactoryInterface& factory) {
+void createMissingProperties(const QJsonArray& jsonArray, data_storage::Table& table, const core::UserObjectFactoryInterface& factory) {
 	for (size_t i{0}; i < jsonArray.size(); i++) {
-		if (!table[i]) {
+		if (i >= table.size()) {
 			const std::string typeName{jsonArray[static_cast<int>(i)].toObject()[keys::TYPENAME].toString().toStdString()};
-			if (raco::data_storage::isPrimitiveTypeName(typeName)) {
-				table.addProperty(raco::data_storage::toPrimitiveType(typeName));
+			if (data_storage::isPrimitiveTypeName(typeName)) {
+				table.addProperty(data_storage::toPrimitiveType(typeName));
 			} else {
 				table.addProperty(factory.createValue(typeName));
 			}
@@ -271,8 +277,13 @@ void createMissingProperties(const QJsonArray& jsonArray, raco::data_storage::Ta
 	}
 }
 
+void createMissingProperties(const QJsonArray& jsonArray, ArrayBase& array) {
+	array.resize(jsonArray.size());
+}
+
+
 /**  Deserializes result of `serializeValueBase` from `property` into the given `value`. */
-void deserializeValueBase(const QJsonValue& property, ValueBase& value, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped = false) {
+void deserializeValueBase(const QJsonValue& property, ValueBase& value, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped = false) {
 	bool childrenDynamicallyTyped{value.type() == PrimitiveType::Table};
 	auto valueIsClassType{hasTypeSubstructure(value.type())};
 	auto hasAnnotations{property.isObject() && property.toObject().keys().contains(keys::ANNOTATIONS)};
@@ -283,6 +294,8 @@ void deserializeValueBase(const QJsonValue& property, ValueBase& value, Referenc
 			if (propertyAsObject[keys::PROPERTIES].isArray()) {
 				if (value.type() == PrimitiveType::Table) {
 					createMissingProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.asTable(), factory);
+				} else if (value.type() == PrimitiveType::Array) {
+					createMissingProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.asArray());
 				}
 				deserializeArrayProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.getSubstructure(), references, factory, structPropTypesMap, childrenDynamicallyTyped);
 			} else {
@@ -301,7 +314,22 @@ void deserializeValueBase(const QJsonValue& property, ValueBase& value, Referenc
 			deserializeAnnotations(propertyAsObject[keys::ANNOTATIONS].toArray(), value, references, factory, structPropTypesMap);
 		}
 	} else if (valueIsClassType) {
-		if (property.isArray()) {
+		if (value.type() == PrimitiveType::Array && value.asArray().elementType() == PrimitiveType::String && !property.isArray()) {
+			// Special case: migration of Link::startProp and endProp properties from Table (<= V59) to Array<String> (>= V60)
+			auto propertyAsObject{property.toObject()};
+			createMissingProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.asArray());
+			deserializeArrayProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.getSubstructure(), references, factory, structPropTypesMap, true);
+		} else if (value.type() == PrimitiveType::Array && value.asArray().elementType() == PrimitiveType::Ref && !property.isArray()) {
+			// special case: migration of EditorObject::children_ property from Table up to file version 54 
+			// to Array<SEditorObject> starting from file version 55:
+			// Since we can't use normal migration code for the EditorObject properties we need to correctly recognize the Table 
+			// structure in V54 and deserialize it to the Array<SEditorObject> property present in the current EditorObject:
+			auto propertyAsObject{property.toObject()};
+			createMissingProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.asArray());
+			deserializeArrayProperties(propertyAsObject[keys::PROPERTIES].toArray(), value.getSubstructure(), references, factory, structPropTypesMap, true);
+		} else if (property.isArray()) {
+			assert(value.type() == PrimitiveType::Array);
+			createMissingProperties(property.toArray(), value.asArray());
 			deserializeArrayProperties(property.toArray(), value.getSubstructure(), references, factory, structPropTypesMap, false);
 		} else {
 			if (value.type() == PrimitiveType::Struct) {
@@ -337,9 +365,9 @@ std::optional<QJsonArray> serializeArrayProperties(const ReflectionInterface& ar
 }
 
 /** Deserializes result of `serializeArrayProperties` from `properties` into the given `interface`. */
-void deserializeArrayProperties(const QJsonArray& properties, ReflectionInterface& arrayInterface, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped = false) {
+void deserializeArrayProperties(const QJsonArray& properties, ReflectionInterface& arrayInterface, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped = false) {
 	for (size_t i{0}; i < properties.size(); i++) {
-		deserializeValueBase(properties[static_cast<int>(i)].toObject(), *arrayInterface.get(i), references, factory, structPropTypesMap, dynamicallyTyped);
+		deserializeValueBase(properties[static_cast<int>(i)], *arrayInterface.get(i), references, factory, structPropTypesMap, dynamicallyTyped);
 	}
 }
 
@@ -364,17 +392,17 @@ std::optional<QJsonObject> serializeObjectProperties(const ReflectionInterface& 
 }
 
 /** Deserializes result of `serializeObjectProperties` from `properties` into the given `interface`. */
-void deserializeObjectProperties(const QJsonObject& properties, ReflectionInterface& objectInterface, References& references, const raco::core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped = false) {
+void deserializeObjectProperties(const QJsonObject& properties, ReflectionInterface& objectInterface, References& references, const core::UserObjectFactoryInterface& factory, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap, bool dynamicallyTyped = false) {
 	for (const auto& qPropertyName : properties.keys()) {
 		std::string name = qPropertyName.toStdString();
-		ValueBase& value = *objectInterface.get(objectInterface.index(name));
-		if (&value != nullptr) {
-			deserializeValueBase(properties[qPropertyName], value, references, factory, structPropTypesMap, dynamicallyTyped);
+		if (objectInterface.hasProperty(name)) {
+			deserializeValueBase(properties[qPropertyName], *objectInterface.get(name), references, factory, structPropTypesMap, dynamicallyTyped);
 		} else {
-			LOG_WARNING(raco::log_system::DESERIALIZATION, "Dropping unsupported or deprecated property {}", name);
+			LOG_WARNING(log_system::DESERIALIZATION, "Dropping unsupported or deprecated property {}", name);
 		}
 	}
 }
+
 
 /**
  * We have some form of C++ Object. Either an EditorObject or an Annotation.
@@ -404,23 +432,23 @@ QJsonObject serializeTypedObject(const ReflectionInterface& object) {
  * @return an Object created by the `factory` for the given `jsonObject`.
  */
 
-SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, raco::core::UserObjectFactoryInterface& factory, References& references, const std::map<std::string, std::map<std::string, std::string>>& typesPropTypesMap, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap) {
+SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, core::UserObjectFactoryInterface& factory, References& references, const std::map<std::string, std::map<std::string, std::string>>& typesPropTypesMap, const std::map<std::string, std::map<std::string, std::string>>& structPropTypesMap) {
 	auto typeName = jsonObject[keys::TYPENAME].toString().toStdString();
 
-	SReflectionInterface object;
-	if (typeName == raco::core::Link::typeDescription.typeName) {
-		object = std::make_shared<raco::core::Link>();
+    SReflectionInterface object;
+	if (typeName == core::Link::typeDescription.typeName) {
+		object = std::make_shared<core::Link>();
 	} else {
 		object = factory.createObject(typeName);
 	}
 
 	if (jsonObject.keys().contains(keys::ANNOTATIONS)) {
 		deserializeObjectAnnotations(jsonObject[keys::ANNOTATIONS].toArray(),
-			std::dynamic_pointer_cast<raco::data_storage::ClassWithReflectedMembers>(object).get(),
+			std::dynamic_pointer_cast<data_storage::ClassWithReflectedMembers>(object).get(),
 			references, factory, structPropTypesMap);
 	}
-
-	if (typeName != raco::core::Link::typeDescription.typeName) {
+	
+	if (typeName != core::Link::typeDescription.typeName) {
 		createMissingProperties(typesPropTypesMap.at(typeName), *object, factory);
 	}
 	deserializeObjectProperties(jsonObject[keys::PROPERTIES].toObject(), *object, references, factory, structPropTypesMap);
@@ -437,13 +465,13 @@ DeserializedVersion deserializeVersionNumber(const QJsonDocument& document, cons
 	DeserializedVersion version = {ProjectDeserializationInfo::NO_VERSION, ProjectDeserializationInfo::NO_VERSION, ProjectDeserializationInfo::NO_VERSION};
 
 	if (document[jsonVersionKey].isUndefined()) {
-		LOG_WARNING(raco::log_system::DESERIALIZATION, "{} version is not saved in project file", whichVersion);
+		LOG_WARNING(log_system::DESERIALIZATION, "{} version is not saved in project file", whichVersion);
 	} else {
 		auto deserializedVersionNums = document[jsonVersionKey].toArray();
 		if (deserializedVersionNums.size() < 3) {
-			LOG_WARNING(raco::log_system::DESERIALIZATION, "{} version has not been saved correctly in project file - not enough version values", whichVersion);
+			LOG_WARNING(log_system::DESERIALIZATION, "{} version has not been saved correctly in project file - not enough version values", whichVersion);
 		} else if (deserializedVersionNums.size() > 3) {
-			LOG_WARNING(raco::log_system::DESERIALIZATION, "{} version has not been saved correctly in project file - too many version values", whichVersion);
+			LOG_WARNING(log_system::DESERIALIZATION, "{} version has not been saved correctly in project file - too many version values", whichVersion);
 		}
 		
 		std::array<int*, 3> versionNums {&version.major, &version.minor, &version.patch};
@@ -452,7 +480,7 @@ DeserializedVersion deserializeVersionNumber(const QJsonDocument& document, cons
 		}
 	}
 
-	LOG_INFO(raco::log_system::DESERIALIZATION, "{} version from project file is {}.{}.{}", whichVersion, version.major, version.minor, version.patch);
+	LOG_INFO(log_system::DESERIALIZATION, "{} version from project file is {}.{}.{}", whichVersion, version.major, version.minor, version.patch);
 	return version;
 };
 
@@ -501,18 +529,20 @@ QMap<QString, QVariant> serializeUserTypePropertyMap(const std::map<std::string,
 	return typesMap;
 }
 
-SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, raco::core::UserObjectFactoryInterface& factory, References& references) {
-	return deserializeTypedObject(jsonObject, factory, references, makeUserTypePropertyMap(), makeStructPropertyMap());
+SReflectionInterface deserializeTypedObject(const QJsonObject& jsonObject, core::UserObjectFactoryInterface& factory, References& references) {
+	return deserializeTypedObject(jsonObject, factory, references, makeUserTypePropertyMap(factory), makeStructPropertyMap());
 }
 
-using translateRefFunc = std::function<raco::core::SEditorObject(raco::core::SEditorObject)>;
+using translateRefFunc = std::function<core::SEditorObject(core::SEditorObject)>;
 
-void convertObjectPropertiesIRToUser(const ReflectionInterface& dynObj, ReflectionInterface& userObj, translateRefFunc translateRef,  raco::core::UserObjectFactoryInterface& factory);
-void convertTablePropertiesIRToUser(const Table& src, Table& dest, translateRefFunc translateRef, raco::core::UserObjectFactoryInterface& factory);
+void convertObjectPropertiesIRToUser(const ReflectionInterface& dynObj, ReflectionInterface& userObj, translateRefFunc translateRef,  core::UserObjectFactoryInterface& factory);
+void convertTablePropertiesIRToUser(const Table& src, Table& dest, translateRefFunc translateRef, core::UserObjectFactoryInterface& factory);
+void convertArrayPropertiesIRToUser(const ArrayBase& src, ArrayBase& dest, translateRefFunc translateRef, core::UserObjectFactoryInterface& factory);
 
-void convertPropertyAnnotationsIRToUser(const ValueBase& dynProp, ValueBase& userProp, translateRefFunc translateRef, raco::core::UserObjectFactoryInterface& factory, bool dynamicallyTyped) {
+
+void convertPropertyAnnotationsIRToUser(const ValueBase& dynProp, ValueBase& userProp, translateRefFunc translateRef, core::UserObjectFactoryInterface& factory, bool dynamicallyTyped) {
 	for (auto srcAnno : dynProp.baseAnnotationPtrs()) {
-		auto it = std::find_if(userProp.baseAnnotationPtrs().begin(), userProp.baseAnnotationPtrs().end(), [srcAnno](const raco::data_storage::AnnotationBase* destAnno) {
+		auto it = std::find_if(userProp.baseAnnotationPtrs().begin(), userProp.baseAnnotationPtrs().end(), [srcAnno](const data_storage::AnnotationBase* destAnno) {
 			return destAnno->getTypeDescription().typeName == srcAnno->getTypeDescription().typeName;
 		});
 		if (it != userProp.baseAnnotationPtrs().end() &&
@@ -522,9 +552,11 @@ void convertPropertyAnnotationsIRToUser(const ValueBase& dynProp, ValueBase& use
 	}
 }
 
-void convertValueBaseIRToUser(const ValueBase& dynProp, ValueBase& userProp, translateRefFunc translateRef, raco::core::UserObjectFactoryInterface& factory, bool dynamicallyTyped = false) {
+void convertValueBaseIRToUser(const ValueBase& dynProp, ValueBase& userProp, translateRefFunc translateRef, core::UserObjectFactoryInterface& factory, bool dynamicallyTyped = false) {
 	if (userProp.type() == PrimitiveType::Table) {
 		convertTablePropertiesIRToUser(dynProp.asTable(), userProp.asTable(), translateRef, factory);
+	} else if (userProp.type() == PrimitiveType::Array) {
+		convertArrayPropertiesIRToUser(dynProp.asArray(), userProp.asArray(), translateRef, factory);
 	} else if (hasTypeSubstructure(userProp.type())) {
 		convertObjectPropertiesIRToUser(dynProp.getSubstructure(), userProp.getSubstructure(), translateRef, factory);
 	} else if (userProp.type() == PrimitiveType::Ref) {
@@ -536,12 +568,12 @@ void convertValueBaseIRToUser(const ValueBase& dynProp, ValueBase& userProp, tra
 	convertPropertyAnnotationsIRToUser(dynProp, userProp, translateRef, factory, dynamicallyTyped);
 }
 
-void convertTablePropertiesIRToUser(const Table& src, Table& dest, translateRefFunc translateRef, raco::core::UserObjectFactoryInterface& factory) {
+void convertTablePropertiesIRToUser(const Table& src, Table& dest, translateRefFunc translateRef, core::UserObjectFactoryInterface& factory) {
 	for (size_t i = 0; i < src.size(); i++) {
 		auto propName = src.name(i);
 		auto typeName = src.get(i)->typeName();
-		if (raco::data_storage::isPrimitiveTypeName(typeName)) {
-			dest.addProperty(propName, raco::data_storage::toPrimitiveType(typeName));
+		if (data_storage::isPrimitiveTypeName(typeName)) {
+			dest.addProperty(propName, data_storage::toPrimitiveType(typeName));
 		} else {
 			dest.addProperty(propName, factory.createValue(typeName));
 		}
@@ -549,7 +581,14 @@ void convertTablePropertiesIRToUser(const Table& src, Table& dest, translateRefF
 	}
 }
 
-void convertObjectPropertiesIRToUser(const ReflectionInterface& dynObj, ReflectionInterface& userObj, translateRefFunc translateRef,  raco::core::UserObjectFactoryInterface& factory) {
+void convertArrayPropertiesIRToUser(const ArrayBase& src, ArrayBase& dest, translateRefFunc translateRef, core::UserObjectFactoryInterface& factory) {
+	dest.resize(src.size());
+	for (size_t i = 0; i < src.size(); i++) {
+		convertValueBaseIRToUser(*src.get(i), *dest.get(i), translateRef, factory, true);
+	}
+}
+
+void convertObjectPropertiesIRToUser(const ReflectionInterface& dynObj, ReflectionInterface& userObj, translateRefFunc translateRef,  core::UserObjectFactoryInterface& factory) {
 	for (size_t i = 0; i < dynObj.size(); i++) {
 		auto propName = dynObj.name(i);
 		convertValueBaseIRToUser(*dynObj.get(i), *userObj.get(propName), translateRef, factory);
@@ -557,7 +596,7 @@ void convertObjectPropertiesIRToUser(const ReflectionInterface& dynObj, Reflecti
 }
 
 void convertObjectAnnotationsIRToUser(const ClassWithReflectedMembers& dynObj, ClassWithReflectedMembers& userObj, translateRefFunc translateRef, 
-	raco::core::UserObjectFactoryInterface& factory) {
+	core::UserObjectFactoryInterface& factory) {
 	for (auto anno : dynObj.annotations()) {
 		auto userAnno = factory.createAnnotation(anno->getTypeDescription().typeName);
 		userObj.addAnnotation(userAnno);
@@ -567,17 +606,17 @@ void convertObjectAnnotationsIRToUser(const ClassWithReflectedMembers& dynObj, C
 }
 
 ProjectDeserializationInfo ConvertFromIRToUserTypes(const ProjectDeserializationInfoIR& deserializedIR) {
-	auto& userFactory{raco::user_types::UserObjectFactory::getInstance()};
+	auto& userFactory{user_types::UserObjectFactory::getInstance()};
 
 	// dynamic -> static object translationB
 	ProjectDeserializationInfo result;
 	result.versionInfo = deserializedIR.versionInfo;
-
+	result.migrationObjWarnings = deserializedIR.migrationObjWarnings;
 	result.externalProjectsMap = deserializedIR.externalProjectsMap;
 
-	std::map<std::string, raco::core::SEditorObject> instanceMap;
+	std::map<std::string, core::SEditorObject> instanceMap;
 	for (const auto& obj : deserializedIR.objects) {
-		auto dynObj = std::dynamic_pointer_cast<raco::serialization::proxy::DynamicEditorObject>(obj);
+		auto dynObj = std::dynamic_pointer_cast<serialization::proxy::DynamicEditorObject>(obj);
 
 		auto objectID = *dynObj->objectID_;
 		auto typeName = dynObj->getTypeDescription().typeName;
@@ -596,11 +635,11 @@ ProjectDeserializationInfo ConvertFromIRToUserTypes(const ProjectDeserialization
 	};
 
 	for (const auto& irLink : deserializedIR.links) {
-		result.links.emplace_back(raco::core::Link::cloneLinkWithTranslation(std::dynamic_pointer_cast<raco::core::Link>(irLink), translateRef));
+		result.links.emplace_back(core::Link::cloneLinkWithTranslation(std::dynamic_pointer_cast<core::Link>(irLink), translateRef));
 	}
 
 	for (const auto& obj : deserializedIR.objects) {
-		auto dynObj = std::dynamic_pointer_cast<raco::serialization::proxy::DynamicEditorObject>(obj);
+		auto dynObj = std::dynamic_pointer_cast<serialization::proxy::DynamicEditorObject>(obj);
 		auto userObj = instanceMap[dynObj->objectID()];
 
 		convertObjectPropertiesIRToUser(*dynObj, *userObj, translateRef, userFactory);
@@ -623,24 +662,25 @@ std::string ObjectsDeserialization::originPath() const {
 	return (std::filesystem::path(originFolder) / originFileName).generic_string();
 }
 
-ObjectDeserialization test_helpers::deserializeObject(const std::string& json) {
-	auto& factory{user_types::UserObjectFactory::getInstance()};
+ObjectDeserialization test_helpers::deserializeObject(const std::string& json, core::UserObjectFactoryInterface& factory) {
 	References references{};
 	return {
 		std::dynamic_pointer_cast<EditorObject>(deserializeTypedObject(QJsonDocument::fromJson(json.c_str()).object(), factory, references)),
 		references};
 }
 
-std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMap() {
-	auto& userFactory{user_types::UserObjectFactory::getInstance()};
+std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMap(core::UserObjectFactoryInterface& objectFactory) {
 
 	std::map<std::string, std::map<std::string, std::string>> typesPropTypesMap;
 
-	for (const auto& [name, desc] : userFactory.getTypes()) {
-		auto obj = userFactory.createObject(name);
+	for (const auto& [name, desc] : objectFactory.getTypes()) {
+		auto obj = objectFactory.createObject(name);
 
 		std::map<std::string, std::string> propTypeMap;
 		for (size_t i = 0; i < obj->size(); i++) {
+			if (obj->get(i)->query<core::VolatileProperty>()) {
+				continue;
+			}
 			auto propName = obj->name(i);
 			auto propType = obj->get(i)->typeName();
 			propTypeMap[propName] = propType;
@@ -652,7 +692,7 @@ std::map<std::string, std::map<std::string, std::string>> makeUserTypePropertyMa
 }
 
 std::map<std::string, std::map<std::string, std::string>> makeStructPropertyMap() {
-	auto& userFactory{raco::user_types::UserObjectFactory::getInstance()};
+	auto& userFactory{user_types::UserObjectFactory::getInstance()};
 
 	std::map<std::string, std::map<std::string, std::string>> structPropTypesMap;
 
@@ -685,7 +725,7 @@ std::map<std::string, std::map<std::string, std::string>> deserializeUserTypePro
 	return typesPropTypeMap;
 }
 
-std::string serializeProperty(const core::Project& project, const raco::data_storage::ValueBase& value) {
+std::string serializeProperty(const core::Project& project, const data_storage::ValueBase& value) {
 	auto base = serializeValueBase(value, true);
 	if (base.has_value()) {
 		QJsonObject result;
@@ -725,18 +765,18 @@ std::unique_ptr<ValueBase> deserializeProperty(const core::Project& project, con
 		return nullptr;
 	}
 
-	auto factory = raco::user_types::UserObjectFactory::getInstance();
+	auto factory = user_types::UserObjectFactory::getInstance();
 
 	auto typeName = object[keys::TYPENAME].toString().toStdString();
 	auto value = std::unique_ptr<ValueBase>(factory.createValue(typeName));
 
 	References references;
-	deserializeValueBase(object, *value, references, raco::user_types::UserObjectFactory::getInstance(), makeStructPropertyMap(), true);
+	deserializeValueBase(object, *value, references, user_types::UserObjectFactory::getInstance(), makeStructPropertyMap(), true);
 
 	for (const auto& pair : references) {
 		auto obj = project.getInstanceByID(pair.second);
 		if (obj.get() == nullptr) {
-			LOG_WARNING(raco::log_system::DESERIALIZATION, "Load: referenced object not found: {}", pair.second);
+			LOG_WARNING(log_system::DESERIALIZATION, "Load: referenced object not found: {}", pair.second);
 		} else {
 			*pair.first = obj;
 		}
@@ -745,7 +785,7 @@ std::unique_ptr<ValueBase> deserializeProperty(const core::Project& project, con
 	return value;
 }
 
-std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<raco::core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo) {
+std::string serializeObjects(const std::vector<core::SEditorObject>& objects, const std::vector<std::string>& rootObjectIDs, const std::vector<core::SLink>& links, const std::string& originFolder, const std::string& originFilename, const std::string& originProjectID, const std::string& originProjectName, const std::map<std::string, ExternalProjectInfo>& externalProjectsMap, const std::map<std::string, std::string>& originFolders, int featureLevel, bool includeVersionInfo) {
 	QJsonObject result{};
 
 	if (includeVersionInfo) {
@@ -792,8 +832,7 @@ std::string serializeObjects(const std::vector<raco::core::SEditorObject>& objec
 	return QJsonDocument{result}.toJson().toStdString();
 }
 
-std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo) {
-	auto& factory{user_types::UserObjectFactory::getInstance()};
+std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json, bool checkVersionInfo, core::UserObjectFactoryInterface& factory) {
 	ObjectsDeserialization result{};
 	auto document{QJsonDocument::fromJson(json.c_str())};
 	if (document.isNull()) {
@@ -843,7 +882,7 @@ std::optional<ObjectsDeserialization> deserializeObjects(const std::string& json
 		result.objects.push_back(deserializedObject);
 	}
 	for (const auto& linkJson : container.value(keys::LINKS).toArray()) {
-		auto deserializedLink = std::dynamic_pointer_cast<raco::core::Link>(deserializeTypedObject(linkJson.toObject(), factory, result.references));
+		auto deserializedLink = std::dynamic_pointer_cast<core::Link>(deserializeTypedObject(linkJson.toObject(), factory, result.references));
 		result.links.push_back(deserializedLink);
 	}
 	return result;
@@ -854,11 +893,9 @@ QJsonDocument serializeProject(const std::unordered_map<std::string, std::vector
 	QJsonObject container{};
 
 	auto ramsesVer = fileVersions.at(keys::RAMSES_VERSION);
-	auto logicEngineVer = fileVersions.at(keys::RAMSES_LOGIC_ENGINE_VERSION);
 	auto raCoVersion = fileVersions.at(keys::RAMSES_COMPOSER_VERSION);
 	container.insert(keys::FILE_VERSION, fileVersions.at(keys::FILE_VERSION)[0]);
 	container.insert(keys::RAMSES_VERSION, QJsonArray{ramsesVer[0], ramsesVer[1], ramsesVer[2]});
-	container.insert(keys::RAMSES_LOGIC_ENGINE_VERSION, QJsonArray{logicEngineVer[0], logicEngineVer[1], logicEngineVer[2]});
 	container.insert(keys::RAMSES_COMPOSER_VERSION, QJsonArray{raCoVersion[0], raCoVersion[1], raCoVersion[2]});
 	
 	// Include the feature level here in addition to the property in the ProjectSettings object to allow easy access 
@@ -888,18 +925,22 @@ int deserializeFileVersion(const QJsonDocument& document) {
 }
 
 int deserializeFeatureLevel(const QJsonDocument& document) {
-	if (document.object().contains(keys::FEATURE_LEVEL)) {
-		return document.object()[keys::FEATURE_LEVEL].toInt();
-	} 
-	// Earlier Composer versions are implicitly feature level 1:
-	return 1;
+	auto container{document.object()};
+
+	auto fileVersion = container[keys::FILE_VERSION].toInt();
+	if (fileVersion <= 60) {
+		// normally the migration code would reset the file version number but since we are not running the migration code
+		// here we need to adjust file version number here by hand in the same way the migration code does.
+		return 1;
+	} else {
+		return container[keys::FEATURE_LEVEL].toInt();
+	}
 }
 
 ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document) {
 	ProjectVersionInfo deserializedProjectInfo;
 
 	deserializedProjectInfo.ramsesVersion = deserializeVersionNumber(document, keys::RAMSES_VERSION, "Ramses");
-	deserializedProjectInfo.ramsesLogicEngineVersion = deserializeVersionNumber(document, keys::RAMSES_LOGIC_ENGINE_VERSION, "Ramses Logic Engine");
 	deserializedProjectInfo.raCoVersion = deserializeVersionNumber(document, keys::RAMSES_COMPOSER_VERSION, "Ramses Composer");
 
 	return deserializedProjectInfo;
@@ -908,7 +949,7 @@ ProjectVersionInfo deserializeProjectVersionInfo(const QJsonDocument& document) 
 ProjectDeserializationInfoIR deserializeProjectToIR(const QJsonDocument& document, const std::string& filename) {
 	auto migratedJson{raco::serializationToV23::migrateProjectToV23(document)};
 
-	auto& factory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
+	auto& factory{serialization::proxy::ProxyObjectFactory::getInstance()};
 
 	ProjectDeserializationInfoIR deserializedProjectInfo;
 
@@ -925,32 +966,32 @@ ProjectDeserializationInfoIR deserializeProjectToIR(const QJsonDocument& documen
 	const auto instances = migratedJson[keys::INSTANCES].toArray();
 	deserializedProjectInfo.objects.reserve(instances.size());
 	for (const auto& instance : instances) {
-		auto obj = std::dynamic_pointer_cast<raco::serialization::proxy::DynamicEditorObject>(deserializeTypedObject(instance.toObject(), factory, references, userPropTypeMap, structTypeMap));
+		auto obj = std::dynamic_pointer_cast<serialization::proxy::DynamicEditorObject>(deserializeTypedObject(instance.toObject(), factory, references, userPropTypeMap, structTypeMap));
 		deserializedProjectInfo.objects.push_back(obj);
 	}
 	const auto links = migratedJson[keys::LINKS].toArray();
 	deserializedProjectInfo.links.reserve(links.size());
 	for (const auto& linkJson: links) {
-		auto link = std::dynamic_pointer_cast<raco::core::Link>(deserializeTypedObject(linkJson.toObject(), factory, references, userPropTypeMap, structTypeMap));
+		auto link = std::dynamic_pointer_cast<core::Link>(deserializeTypedObject(linkJson.toObject(), factory, references, userPropTypeMap, structTypeMap));
 		deserializedProjectInfo.links.push_back(link);
 	}
 
 	// Restore references
-	std::map<std::string, raco::core::SEditorObject> instanceMap;
+	std::map<std::string, core::SEditorObject> instanceMap;
 	for (auto& d : deserializedProjectInfo.objects) {
-		auto obj = std::dynamic_pointer_cast<raco::core::EditorObject>(d);
+		auto obj = std::dynamic_pointer_cast<core::EditorObject>(d);
 		instanceMap[obj->objectID()] = obj;
 	}
 	for (const auto& pair : references) {
 		if (instanceMap.find(pair.second) != instanceMap.end()) {
 			*pair.first = instanceMap.at(pair.second);
 		} else {
-			LOG_WARNING(raco::log_system::DESERIALIZATION, "Load: referenced object not found: {}", pair.second);
+			LOG_WARNING(log_system::DESERIALIZATION, "Load: referenced object not found: {}", pair.second);
 		}
 	}
 
 	for (const auto& obj : deserializedProjectInfo.objects) {
-		auto dynObj = std::dynamic_pointer_cast<raco::serialization::proxy::DynamicEditorObject>(obj);
+		auto dynObj = std::dynamic_pointer_cast<serialization::proxy::DynamicEditorObject>(obj);
 		dynObj->onAfterDeserialization();
 	}
 
@@ -960,13 +1001,18 @@ ProjectDeserializationInfoIR deserializeProjectToIR(const QJsonDocument& documen
 }
 
 ProjectDeserializationInfo deserializeProject(const QJsonDocument& document, const std::string& filename) {
-	auto deserializedIR{deserializeProjectToIR(document, filename)};
+	try {
+		auto deserializedIR{deserializeProjectToIR(document, filename)};
+		
+		// run new migration code
+		auto& factory{serialization::proxy::ProxyObjectFactory::getInstance()};
+		migrateProject(deserializedIR, factory);
 
-	// run new migration code
-	auto& factory{raco::serialization::proxy::ProxyObjectFactory::getInstance()};
-	migrateProject(deserializedIR, factory);
-
-	return ConvertFromIRToUserTypes(deserializedIR);
+		return ConvertFromIRToUserTypes(deserializedIR);
+	} catch (std::exception&) {
+		throw std::runtime_error(fmt::format("Project file format invalid."));
+	}
+	return {};
 }
 
 }  // namespace raco::serialization

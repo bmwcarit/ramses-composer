@@ -15,7 +15,7 @@
 namespace raco::core {
 
 template <typename T>
-class RangeAnnotation : public raco::data_storage::AnnotationBase {
+class RangeAnnotation : public data_storage::AnnotationBase {
 public:
 	static const TypeDescriptor typeDescription;
 	TypeDescriptor const& getTypeDescription() const override {
@@ -46,10 +46,10 @@ public:
 		return *max_;
 	}
 
-	raco::data_storage::Value<T> min_, max_;
+	data_storage::Value<T> min_, max_;
 };
 
-class DisplayNameAnnotation : public raco::data_storage::AnnotationBase {
+class DisplayNameAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "DisplayNameAnnotation", false };
 	TypeDescriptor const& getTypeDescription() const override {
@@ -70,13 +70,13 @@ public:
 		return *this;
 	}
 
-	raco::data_storage::Value<std::string> name_;
+	data_storage::Value<std::string> name_;
 };
 
-template<> inline const raco::data_storage::ReflectionInterface::TypeDescriptor raco::core::RangeAnnotation<double>::typeDescription {
+template<> inline const data_storage::ReflectionInterface::TypeDescriptor core::RangeAnnotation<double>::typeDescription {
 	"RangeAnnotationDouble", false
 };
-template<> inline const raco::data_storage::ReflectionInterface::TypeDescriptor raco::core::RangeAnnotation<int>::typeDescription {
+template<> inline const data_storage::ReflectionInterface::TypeDescriptor core::RangeAnnotation<int>::typeDescription {
 	"RangeAnnotationInt", false
 };
 

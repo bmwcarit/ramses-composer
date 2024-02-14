@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 
 using namespace raco::ramses_base;
-using raco::core::EnginePrimitive;
+using core::EnginePrimitive;
 
 class EngineInterfaceTest : public RamsesBaseFixture<> {};
 
@@ -29,9 +29,9 @@ function run(IN,OUT)
 end
 )";
 	std::string error;
-	raco::core::PropertyInterfaceList in;
-	raco::core::PropertyInterfaceList out;
-	raco::data_storage::Table modules;
+	core::PropertyInterfaceList in;
+	core::PropertyInterfaceList out;
+	data_storage::Table modules;
 	backend.coreInterface()->parseLuaScript(script, "myScript", {}, modules, in, out, error);
 
 	EXPECT_EQ(1, in.size());
@@ -61,9 +61,9 @@ function run(IN,OUT)
 end
 )";
 	std::string error;
-	raco::core::PropertyInterfaceList in;
-	raco::core::PropertyInterfaceList out;
-	raco::data_storage::Table modules;
+	core::PropertyInterfaceList in;
+	core::PropertyInterfaceList out;
+	data_storage::Table modules;
 	backend.coreInterface()->parseLuaScript(script, "myScript", {}, modules, in, out, error);
 
 	EXPECT_EQ(1, in.size());

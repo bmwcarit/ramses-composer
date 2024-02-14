@@ -11,8 +11,10 @@
 
 #include "core/Context.h"
 #include "ramses_adaptor/LinkAdaptor.h"
-#include "ramses_base/LogicEngine.h"
+//#include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
+#include "ramses_base/BaseEngineBackend.h"
+#include "ramses_adaptor/utilities.h"
 #include "components/DataChangeDispatcher.h"
 #include <map>
 #include "core/Link.h"
@@ -23,14 +25,14 @@ class ObjectAdaptor;
 
 using SRamsesAdaptorDispatcher = std::shared_ptr<components::DataChangeDispatcher>;
 class SceneAdaptor {
-	using Project = raco::core::Project;
-	using SEditorObject = raco::core::SEditorObject;
-	using SLink = raco::core::SLink;
-	using ValueHandle = raco::core::ValueHandle;
-	using SEditorObjectSet = raco::core::SEditorObjectSet;
+	using Project = core::Project;
+	using SEditorObject = core::SEditorObject;
+	using SLink = core::SLink;
+	using ValueHandle = core::ValueHandle;
+	using SEditorObjectSet = core::SEditorObjectSet;
 
 public:
-	explicit SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors *errors, bool optimizeForExport = false);
+	explicit SceneAdaptor(ramses::RamsesClient* client, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors, bool optimizeForExport = false);
 
 	~SceneAdaptor();
 
@@ -39,12 +41,13 @@ public:
 
 	/* START: Adaptor API */
 	ramses::RamsesClient* client();
-	ramses_base::LogicEngine& logicEngine();
+	ramses::LogicEngine& logicEngine();
 	const ramses::RamsesClient* client() const;
 	const SRamsesAdaptorDispatcher dispatcher() const;
 	const ramses_base::RamsesAppearance defaultAppearance(bool withMeshNormals);
-	const ramses_base::RamsesArrayResource defaultVertices();
-	const ramses_base::RamsesArrayResource defaultIndices();
+	const ramses_base::RamsesArrayResource defaultVertices(int index);
+	const ramses_base::RamsesArrayResource defaultNormals(int index); 
+	const ramses_base::RamsesArrayResource defaultIndices(int index);
 	ObjectAdaptor* lookupAdaptor(const core::SEditorObject& editorObject) const;
 	Project& project() const;
 
@@ -60,7 +63,10 @@ public:
 
 	bool optimizeForExport() const;
 
-	rlogic::EFeatureLevel featureLevel() const;
+	ramses::EFeatureLevel featureLevel() const;
+
+	void updateRuntimeError(const ramses::Issue& issue);
+	void clearRuntimeError();
 
 private:
 	bool needAdaptor(SEditorObject object);
@@ -72,36 +78,27 @@ private:
 
 	void performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects);
 
-	struct DependencyNode {
-		SEditorObject object;
-		SEditorObjectSet referencedObjects;
-	};
-
-	void depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted);
-
-	void depthFirstSearch(SEditorObject object, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted);
 	void rebuildSortedDependencyGraph(SEditorObjectSet const& objects);
 
-	void updateRuntimeErrorList();
 
 	void deleteUnusedDefaultResources();
 
 	ramses::RamsesClient* client_;
-	ramses_base::LogicEngine* logicEngine_;
 	Project* project_;
 	core::Errors* errors_;
 	ramses_base::RamsesScene scene_{};
+
+	ramses_base::BaseEngineBackend::UniqueLogicEngine logicEngine_;
+
 	bool optimizeForExport_ = false;
 
 	// Fallback resources: used when MeshNode doesn't have valid shader program or mesh data
-	ramses_base::RamsesEffect defaultEffect_{};
-	ramses_base::RamsesEffect defaultEffectWithNormals_{};
-
 	ramses_base::RamsesAppearance defaultAppearance_;
 	ramses_base::RamsesAppearance defaultAppearanceWithNormals_;
 
-	ramses_base::RamsesArrayResource defaultIndices_{};
-	ramses_base::RamsesArrayResource defaultVertices_{};
+	std::array<ramses_base::RamsesArrayResource, 2> defaultIndices_;
+	std::array<ramses_base::RamsesArrayResource, 2> defaultVertices_;
+	std::array<ramses_base::RamsesArrayResource, 2> defaultNormals_;
 
 	std::map<SEditorObject, std::unique_ptr<ObjectAdaptor>> adaptors_{};
 	
@@ -122,6 +119,8 @@ private:
 	bool adaptorStatusDirty_ = false;
 
 	std::vector<DependencyNode> dependencyGraph_;
+
+	SEditorObject lastErrorObject_ = nullptr;
 };
 
 }  // namespace raco::ramses_adaptor

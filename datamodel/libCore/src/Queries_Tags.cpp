@@ -68,7 +68,7 @@ bool Queries::isMeshNodeInMaterialFilter(user_types::SMeshNode const& obj, std::
 	bool matFilterDiscarded = false;
 
 	if (!materialFilterTags.empty()) {
-		auto meshnode = obj->as<raco::user_types::MeshNode>();
+		auto meshnode = obj->as<user_types::MeshNode>();
 		auto material = meshnode->getMaterial(0);
 
 		if (!material && !materialFilterExclusive) {

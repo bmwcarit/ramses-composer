@@ -13,6 +13,7 @@
 #include "core/Context.h"
 #include "core/CommandInterface.h"
 #include "core/CoreFormatter.h"
+#include "core/SceneBackendInterface.h"
 #include "components/EditorObjectFormatter.h"
 #include "core/ErrorItem.h"
 #include "core/Handles.h"
@@ -31,6 +32,8 @@ class PropertyBrowserModel;
 
 class PropertyBrowserRef;
 
+// TODO create AbstractPropertyBrowserItem interface
+
 /**
  * Indirection wrapper around ValueHandle.
  */
@@ -40,7 +43,7 @@ class PropertyBrowserItem final : public QObject {
 public:
 	inline static const QString MultipleValueText = "Multiple values";
 
-	PropertyBrowserItem(const std::set<core::ValueHandle>& valueHandles, components::SDataChangeDispatcher dispatcher, core::CommandInterface* commandInterface, PropertyBrowserModel* model, PropertyBrowserItem* parent = nullptr);
+	PropertyBrowserItem(const std::set<core::ValueHandle>& valueHandles, components::SDataChangeDispatcher dispatcher, core::CommandInterface* commandInterface, PropertyBrowserModel* model, core::SceneBackendInterface* sceneBackend = nullptr, PropertyBrowserItem* parent = nullptr);
 	core::PrimitiveType type() const noexcept;
 	std::string luaTypeName() const noexcept;
 	std::string displayName() const noexcept;
@@ -56,6 +59,19 @@ public:
 	template <typename T>
 	core::AnnotationHandle<T> query() const {
 		return valueHandles_.begin()->query<T>();
+	}
+
+	// Query this item and all parent items excluding the root item which is not a real property:
+	template <typename T>
+	core::AnnotationHandle<T> searchAnnotationInParents() const {
+		auto current = this;
+		while (current->parentItem()) {
+			if (auto anno = current->query<T>()) {
+				return anno;
+			}
+			current = current->parentItem();
+		}
+		return core::AnnotationHandle<T>(*valueHandles_.begin(), static_cast<T*>(nullptr));
 	}
 
 	template <typename T>
@@ -84,6 +100,8 @@ public:
 	void setTags(std::vector<std::string> const& tags);
 	void setTags(std::vector<std::pair<std::string, int>> const& prioritizedTags);
 
+	void resizeArray(size_t newSize);
+
 	core::Project* project() const;
 	const core::CommandInterface* commandInterface() const;
 	core::CommandInterface* commandInterface();
@@ -104,7 +122,8 @@ public:
 
 	const std::set<core::ValueHandle>& valueHandles() noexcept;
 	const QList<PropertyBrowserItem*>& children();
-	PropertyBrowserItem* findNamedChild(const std::string& propertyName);
+	PropertyBrowserItem* findNamedChild(std::string_view propertyName);
+	PropertyBrowserItem* findNamedChildByPropertyPath(std::string_view propertyPath);
 	PropertyBrowserItem* parentItem() const noexcept;
 	PropertyBrowserItem* rootItem() noexcept;
 	PropertyBrowserItem* siblingItem(std::string_view propertyName) const noexcept;
@@ -136,6 +155,10 @@ public:
 	bool hasSingleValue() const;
 	bool isObject() const;
 	bool isProperty() const;
+	/**
+	 * @brief Root of the item hierarchy for which special layout rules apply.
+	*/
+	bool isRootItem() const;
 	void getTagsInfo(std::set<std::shared_ptr<user_types::RenderPass>>& renderedBy, bool& isMultipleRenderedBy, std::set<std::shared_ptr<user_types::RenderLayer>>& addedTo, bool& isMultipleAddedTo) const;
 	bool isTagContainerProperty() const;
 
@@ -143,6 +166,31 @@ public:
 	std::string getPropertyName() const;
 	std::string getPropertyPath() const;
 	std::string getPropertyPathWithoutObject() const;
+
+	void highlightProperty(const QString& propertyName);
+	std::string labelToolTipText() const;
+	QString propertyControlToolTipText() const;
+	
+	QStringList objectNames() const;
+	QString displayObjectNames() const;
+
+	struct ContextMenuAction {
+		std::string description;
+		bool enabled;
+		std::function<void()> action;
+	};
+
+	/**
+	 * @brief Return current context menu actions for the property browser label
+	*/
+	virtual std::vector<ContextMenuAction> contextMenuActions(); // override
+
+	struct DisplayErrorItem {
+		core::ErrorLevel level;
+		QString message;
+	};
+
+	virtual std::vector<DisplayErrorItem> getDisplayErrorItems() const;
 
 Q_SIGNALS:
 	void linkStateChanged();
@@ -154,6 +202,10 @@ Q_SIGNALS:
 	void childrenChanged(const QList<PropertyBrowserItem*>& children);
 	void editableChanged(bool editable);
 	void widgetRequestFocus();
+	void highlighted();
+	void propertyControlToolTipTextChanged(const QString& text);
+
+	void displayErrorChanged();
 
 protected:
 	Q_SLOT void updateLinkState() noexcept;
@@ -183,8 +235,7 @@ private:
 	}
 
 	bool allHandlesHaveSamePropName() const;
-	bool isHidden(core::ValueHandle handle) const;
-
+	bool isHidden(core::ValueHandle handle, bool isMultiSelect) const;
 
 	PropertyBrowserItem* parentItem_{nullptr};
 	PropertyBrowserRef* refItem_{nullptr};
@@ -200,9 +251,13 @@ private:
 	std::vector<components::Subscription> linkLifecycleStartSubs_;
 	std::vector<components::Subscription> linkLifecycleEndSubs_;
 	std::vector<components::Subscription> childrenChangeSubs_;
+	// TOOD maybe find a better way!? currently needed for the object name display "error" item
+	std::vector<components::Subscription> objectNameChangeSubscriptions_;
+
 	core::CommandInterface* commandInterface_;
 	components::SDataChangeDispatcher dispatcher_;
 	PropertyBrowserModel* model_;
+	core::SceneBackendInterface* sceneBackend_;
 	QList<PropertyBrowserItem*> children_;
 	bool expanded_;
 	bool editable_ = true;

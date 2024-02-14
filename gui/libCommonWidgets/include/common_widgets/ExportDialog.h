@@ -34,7 +34,6 @@ private:
 	QGridLayout* optionLayout_;
 	QCheckBox* compressEdit_;
 	QLineEdit* ramsesEdit_;
-	QLineEdit* logicEdit_;
 	QDialogButtonBox* buttonBox_;
 	QComboBox* luaSavingModeCombo_;
 

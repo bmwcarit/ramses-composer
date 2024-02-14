@@ -17,9 +17,9 @@
 
 namespace raco::core {
 
-using raco::data_storage::StructBase;
-using raco::data_storage::ValueBase;
-using raco::data_storage::Property;
+using data_storage::StructBase;
+using data_storage::ValueBase;
+using data_storage::Property;
 
 class Vec2f : public StructBase {
 public:

@@ -160,14 +160,15 @@ void LinkEditor::setLinkState() {
 	if (endingLink) {
 		auto linkStartObj = *endingLink->startObject_;
 		auto linkStartPropName = endingLink->descriptor().start.getFullPropertyPath();
+		auto linkStartPropertyPath = QString::fromStdString(endingLink->descriptor().start.getPropertyPath(false));
 
 		if (startingLinks.empty()) {
 			goToLinkButton_->setDisabled(false);
 			goToLinkButtonIcon_ = *endingLink->isWeak_ ? LinkIcon::singleArrowLeft : LinkIcon::doubleArrowLeft;
 			goToLinkButton_->setToolTip(QString("Go to link start (%1)").arg(QString::fromStdString(linkStartPropName)));
 
-			QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj]() {
-				item_->model()->Q_EMIT objectSelectionRequested(QString::fromStdString(linkStartObj->objectID()));
+			QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj, linkStartPropertyPath]() {
+				item_->model()->Q_EMIT selectionRequested(QString::fromStdString(linkStartObj->objectID()), linkStartPropertyPath);
 			});
 
 		} else {
@@ -175,21 +176,23 @@ void LinkEditor::setLinkState() {
 			goToLinkButtonIcon_ = LinkIcon::goToLeftRight;
 			goToLinkButton_->setToolTip("Go to...");
 
-			goToLinkButtonConnection_ = QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj, linkStartPropName, startingLinks]() {
+			goToLinkButtonConnection_ = QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, linkStartObj, linkStartPropName, linkStartPropertyPath, startingLinks]() {
 				auto* linkMenu = new QMenu(this);
 				QString requestedLinkEndObj;
+				QString requestedLinkEndObjProperty;
 
-				auto startAction = linkMenu->addAction(QString("Link start (%1)").arg(QString::fromStdString(linkStartPropName)), [this, linkStartObj, &requestedLinkEndObj]() {
+				linkMenu->addAction(QString("Link start (%1)").arg(QString::fromStdString(linkStartPropName)), [this, linkStartObj, linkStartPropertyPath, &requestedLinkEndObj, &requestedLinkEndObjProperty]() {
 					requestedLinkEndObj = QString::fromStdString(linkStartObj->objectID());
+					requestedLinkEndObjProperty = linkStartPropertyPath;
 				});
 
 				auto endsMenu = linkMenu->addMenu("Link ends...");
 
-				addLinkEndpointMenuItems(startingLinks, endsMenu, requestedLinkEndObj);
+				addLinkEndpointMenuItems(startingLinks, endsMenu, requestedLinkEndObj, requestedLinkEndObjProperty);
 
 				linkMenu->exec(mapToGlobal(goToLinkButton_->pos() + QPoint(goToLinkButton_->width(), 0)));
 				if (!requestedLinkEndObj.isEmpty()) {
-					item_->model()->Q_EMIT objectSelectionRequested(requestedLinkEndObj);
+					item_->model()->Q_EMIT selectionRequested(requestedLinkEndObj, requestedLinkEndObjProperty);
 				}
 			});
 		}
@@ -201,12 +204,13 @@ void LinkEditor::setLinkState() {
 		goToLinkButtonConnection_ = QObject::connect(goToLinkButton_, &QPushButton::clicked, [this, startingLinks]() {
 			auto* linkEndMenu = new QMenu(this);
 			QString requestedLinkEndObj;
+			QString requestedLinkEndObjProperty;
 
-			addLinkEndpointMenuItems(startingLinks, linkEndMenu, requestedLinkEndObj);
+			addLinkEndpointMenuItems(startingLinks, linkEndMenu, requestedLinkEndObj, requestedLinkEndObjProperty);
 
 			linkEndMenu->exec(mapToGlobal(goToLinkButton_->pos() + QPoint(goToLinkButton_->width(), 0)));
 			if (!requestedLinkEndObj.isEmpty()) {
-				item_->model()->Q_EMIT objectSelectionRequested(requestedLinkEndObj);
+				item_->model()->Q_EMIT selectionRequested(requestedLinkEndObj, requestedLinkEndObjProperty);
 			}
 		});
 	}
@@ -215,25 +219,27 @@ void LinkEditor::setLinkState() {
 	goToLinkButton_->setIcon(LinkStateIcons_[goToLinkButtonIcon_]);
 }
 
-void LinkEditor::addLinkEndpointMenuItems(const std::vector<core::SLink>& startingLinks, QMenu* endsMenu, QString& requestedLinkEndObj) {
+void LinkEditor::addLinkEndpointMenuItems(const std::vector<core::SLink>& startingLinks, QMenu* endsMenu, QString& requestedLinkEndObj, QString& requestedLinkEndObjProperty) {
 	auto sortedLinkEnds = generateSortedLinkPoints(startingLinks);
 
 	for (const auto& linkEnd : sortedLinkEnds) {
 		auto linkEndPath = linkEnd.first;
-		auto linkEndObjID = linkEnd.second;
+		auto linkEndObjID = linkEnd.second.first;
+		auto linkEndObjProperty = linkEnd.second.second;
 		endsMenu->addAction(QString::fromStdString(linkEndPath),
-			[this, linkEndObjID, &requestedLinkEndObj]() {
+			[this, linkEndObjID, linkEndObjProperty, &requestedLinkEndObj, &requestedLinkEndObjProperty]() {
 				requestedLinkEndObj = QString::fromStdString(linkEndObjID);
+				requestedLinkEndObjProperty = QString::fromStdString(linkEndObjProperty);
 			});
 	}
 }
 
-std::map<std::string, std::string> LinkEditor::generateSortedLinkPoints(const std::vector<core::SLink> links) {
-	std::map<std::string, std::string> sortedLinkEnds;
+std::map<std::string, std::pair<std::string, std::string>> LinkEditor::generateSortedLinkPoints(const std::vector<core::SLink> links) {
+	std::map<std::string, std::pair<std::string, std::string>> sortedLinkEnds;
 	for (const auto& link : links) {
 		auto linkDesc = link->descriptor();
 		auto actionText = fmt::format("{} -> {}", (*link->startObject_)->objectName(), linkDesc.end.getFullPropertyPath());
-		sortedLinkEnds[actionText] = linkDesc.end.object()->objectID();
+		sortedLinkEnds[actionText] = {linkDesc.end.object()->objectID(), linkDesc.end.getPropertyPath(false)};
 	}
 
 	return sortedLinkEnds;

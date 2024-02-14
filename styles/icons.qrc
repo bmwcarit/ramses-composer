@@ -66,5 +66,7 @@
         <file alias="visibilityOnIcon">_Default/icons/visibility_white_24dp.svg</file>
         <file alias="visibilityOffIcon">_Default/icons/visibility_off_white_24dp.svg</file>
         <file alias="visibilityDisabledIcon">_Default/icons/visibility_disabled_white_24dp.svg</file>
+        <file alias="abstractSceneViewIcon">_Default/icons/abstract_scene_view.svg</file>
+        <file alias="prefabLookupIcon">_Default/icons/prefabLookup.svg</file>
     </qresource>
 </RCC>

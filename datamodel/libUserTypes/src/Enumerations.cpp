@@ -169,7 +169,9 @@ std::map<int, std::string> enumDescriptionRenderBufferFormat{
 	{static_cast<int>(ERenderBufferFormat::RGBA16F), "RGBA16F"},
 	{static_cast<int>(ERenderBufferFormat::RGBA32F), "RGBA32F"},
 
+	{static_cast<int>(ERenderBufferFormat::Depth16), "Depth16"},
 	{static_cast<int>(ERenderBufferFormat::Depth24), "Depth24"},
+	{static_cast<int>(ERenderBufferFormat::Depth32), "Depth32"},
 	{static_cast<int>(ERenderBufferFormat::Depth24_Stencil8), "Depth24_Stencil8"}};
 
 std::map<int, std::string> enumDescriptionRenderLayerOrder{

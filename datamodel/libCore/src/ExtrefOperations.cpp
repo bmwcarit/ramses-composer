@@ -163,7 +163,7 @@ void ExtrefOperations::precheckExternalReferenceUpdate(Project* project, Externa
 	project->replaceExternalProjectsMappings(extProjectMapCopy);
 }
 
-void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext) {
+void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* project, ExternalProjectsStoreInterface& externalProjectsStore, LoadContext& loadContext, int fileVersion) {
 	// remove project-global errors
 	context.errors().removeError(ValueHandle());
 
@@ -266,6 +266,59 @@ void ExtrefOperations::updateExternalObjects(BaseContext& context, Project* proj
 			localObjects[localObj->objectID()] = localObj;
 		}
 	}
+
+	// !!! TODO: remove code below as soon as possible!!!
+	// 
+	// This code is needed as long as the migration to V56 code is still present.
+	// We can only remove this once we removed backwards compatibility with files <V56.
+	// 
+	// Fixup code for a loophole in the migration code to V56 (split RenderTarget -> RenderTarget & RenderTargetMS)
+	//
+	// Due to the save file optimization an external RenderBuffer may be removed from the saved file although it is
+	// used in an external RenderTarget. The render buffer references in the RenderTarget will then be absent from the file.
+	// In principle the external reference update will be able to restore this.
+	//
+	// However: the migration code to V56 will create either a RenderTarget or a RenderTargetMS based on the 
+	// render buffers set in the object. If RenderBuffers have been removed from the save file by the optimiation
+	// the type chosen by the migration may be different than the type the migration will chose if the external project
+	// is loaded directly. The external reference update will then run into a type mismatch when attempting to restore
+	// the buffer properties of the RenderTarget which are of the wrong type (normal vs MS).
+	// The migration code can't make the right decision since the information needed is not present in the file.
+	//
+	// Therefore we need the fixup code below which will replace the mismatching RenderTarget/RenderTargetMS with the 
+	// correct type and adjust all the existing references to point to the new object.
+	//
+	if (fileVersion != -1 && fileVersion < 56) {
+		for (auto item : externalObjects) {
+			auto extObj = item.second.obj;
+			auto localObj = translateToLocal(extObj);
+
+			auto extType = extObj->serializationTypeName();
+			auto localType = localObj->serializationTypeName();
+			if ((extType == "RenderTarget" || extType == "RenderTargetMS") && 
+				(localType == "RenderTarget" || localType == "RenderTargetMS") && 
+				localType != extType) {
+				// Create new object with correct type and make it an external reference:
+				auto newLocalObj = context.objectFactory()->createObject(extType, extObj->objectName(), extObj->objectID());
+				newLocalObj->addAnnotation(std::make_shared<ExternalReferenceAnnotation>(item.second.project->projectID()));
+
+				// Replace all references to the old object by the new object:
+				auto references = Queries::findAllReferencesTo(*context.project(), {localObj});
+				for (const auto& refHandle : references) {
+					context.set(refHandle, newLocalObj);
+				}
+
+				context.deleteObjects({localObj}, false, false);
+
+				context.project()->addInstance(newLocalObj);
+				localChanges.recordCreateObject(newLocalObj);
+				// this will replace the existing entry in the map:
+				localObjects[newLocalObj->objectID()] = newLocalObj;
+			}
+		}
+	}  
+	// !!! TODO: remove code until here !!!
+
 
 	// Update properties
 	for (auto item : externalObjects) {

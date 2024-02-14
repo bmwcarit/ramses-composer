@@ -14,9 +14,9 @@
 #include "user_types/OrthographicCamera.h"
 
 using namespace raco;
-using raco::core::ValueHandle;
-using raco::user_types::LuaScript;
-using raco::user_types::OrthographicCamera;
+using core::ValueHandle;
+using user_types::LuaScript;
+using user_types::OrthographicCamera;
 
 class OrthographicCameraAdaptorTest : public RamsesBaseFixture<> {};
 
@@ -24,7 +24,7 @@ class OrthographicCameraAdaptorTest : public RamsesBaseFixture<> {};
 	auto luaScript = context.createObject(LuaScript::typeDescription.typeName, "LuaScript Name");
 
 	std::string uriPath{(test_path() / "script.lua").string()};
-	raco::utils::file::write(uriPath, R"(
+	utils::file::write(uriPath, R"(
 function interface(IN,OUT)
 	IN.in_value = Type:Vec4f()
 	OUT.out_value = Type:Vec4f()
@@ -48,7 +48,7 @@ end
 	commandInterface.set({camera, {"frustum", "leftPlane"}}, 7.0);
 	dispatch();
 
-	auto cameras{select<ramses::OrthographicCamera>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_OrthographicCamera)};
+	auto cameras{select<ramses::OrthographicCamera>(*sceneContext.scene(), ramses::ERamsesObjectType::OrthographicCamera)};
 	ASSERT_EQ(cameras.size(), 1);
 	ASSERT_FLOAT_EQ(cameras.front()->getLeftPlane(), 7.0F);
  }
@@ -57,7 +57,7 @@ end
 	 auto camera = commandInterface.createObject(OrthographicCamera::typeDescription.typeName, "Camera");
 	 dispatch();
 
-	 auto cameras{select<rlogic::RamsesCameraBinding>(sceneContext.logicEngine(), "Camera_CameraBinding")};
+	 auto cameras{select<ramses::CameraBinding>(sceneContext.logicEngine(), "Camera_CameraBinding")};
 	 ASSERT_EQ(cameras->getUserId(), camera->objectIDAsRamsesLogicID());
  }
 
@@ -68,6 +68,6 @@ end
 	 commandInterface.set({camera, &OrthographicCamera::objectName_}, std::string("Changed"));
 	 dispatch();
 
-	 auto cameras{select<rlogic::RamsesCameraBinding>(sceneContext.logicEngine(), "Changed_CameraBinding")};
+	 auto cameras{select<ramses::CameraBinding>(sceneContext.logicEngine(), "Changed_CameraBinding")};
 	 ASSERT_EQ(cameras->getUserId(), camera->objectIDAsRamsesLogicID());
  }

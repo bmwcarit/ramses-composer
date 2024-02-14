@@ -79,6 +79,7 @@ TEST_F(MaterialTest, uniform_array) {
 		}
 	};
 
+	checkArray(*mat->uniforms_, "bvec", 3, PrimitiveType::Bool);
 	checkArray(*mat->uniforms_, "ivec", 2, PrimitiveType::Int);
 	checkArray(*mat->uniforms_, "fvec", 5, PrimitiveType::Double);
 

@@ -14,16 +14,16 @@
 
 #include "user_types/BaseCamera.h"
 
-#include <ramses-logic/RamsesCameraBinding.h>
+#include <ramses/client/logic/CameraBinding.h>
 
 #include "ramses_base/RamsesHandles.h"
 
 namespace raco::ramses_adaptor {
 
-void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, rlogic::RamsesCameraBinding* cameraBinding, core::Errors* errors) {
+void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, ramses::CameraBinding* cameraBinding, core::Errors* errors) {
 	bool allValid = true;
-	int clippedWidth = raco::ramses_base::clipAndCheckIntProperty({editorObject, {"viewport", "width"}}, errors, &allValid);
-	int clippedHeight = raco::ramses_base::clipAndCheckIntProperty({editorObject, {"viewport", "height"}}, errors, &allValid);
+	int clippedWidth = ramses_base::clipAndCheckIntProperty({editorObject, {"viewport", "width"}}, errors, &allValid);
+	int clippedHeight = ramses_base::clipAndCheckIntProperty({editorObject, {"viewport", "height"}}, errors, &allValid);
 
 	if (allValid) {
 		ramsesCamera->setViewport(*editorObject->viewport_->offsetX_, *editorObject->viewport_->offsetY_, clippedWidth, clippedHeight);
@@ -38,7 +38,7 @@ void BaseCameraAdaptorHelpers::sync(std::shared_ptr<user_types::BaseCamera> edit
 	}
 }
 
-const rlogic::Property* BaseCameraAdaptorHelpers::getProperty(rlogic::RamsesCameraBinding* cameraBinding, const std::vector<std::string>& propertyNamesVector) {
+ramses::Property* BaseCameraAdaptorHelpers::getProperty(ramses::CameraBinding* cameraBinding, const std::vector<std::string_view>& propertyNamesVector) {
 	if (cameraBinding && propertyNamesVector.size() >= 1 && propertyNamesVector[0] == "viewport") {
 		return ILogicPropertyProvider::getPropertyRecursive(cameraBinding->getInputs(), propertyNamesVector);
 	}

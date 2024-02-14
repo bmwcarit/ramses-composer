@@ -39,8 +39,6 @@ void LuaScriptModule::updateFromExternalFile(BaseContext& context) {
 }
 
 void LuaScriptModule::sync(BaseContext& context) {
-	context.errors().removeError({shared_from_this()});
-
 	if (validateURI(context, {shared_from_this(), &LuaScriptModule::uri_})) {
 		std::string luaScript = utils::file::read(PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), &LuaScriptModule::uri_}));
 
@@ -49,9 +47,12 @@ void LuaScriptModule::sync(BaseContext& context) {
 
 		if (!isValid_) {
 			context.errors().addError(ErrorCategory::PARSING, ErrorLevel::ERROR, shared_from_this(), error);
+		} else {
+			context.errors().removeError({shared_from_this()});
 		}
 		currentScriptContents_ = luaScript;
 	} else {
+		context.errors().removeError({shared_from_this()});
 		currentScriptContents_.clear();
 		context.engineInterface().removeModuleFromCache(shared_from_this());
 		isValid_ = false;

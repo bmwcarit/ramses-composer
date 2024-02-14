@@ -41,7 +41,8 @@ public:
 
 	bool areSamplingParametersSupported(EngineInterface const& engineInterface) const {
 		auto format = static_cast<ERenderBufferFormat>(*format_);
-		return format != ERenderBufferFormat::Depth24 && format != ERenderBufferFormat::Depth24_Stencil8;
+		return format != ERenderBufferFormat::Depth24 && format != ERenderBufferFormat::Depth24_Stencil8 &&
+			   format != ERenderBufferFormat::Depth16 && format != ERenderBufferFormat::Depth32;
 	}
 
 	bool isSamplingProperty(ValueHandle const& valueHandle) const {

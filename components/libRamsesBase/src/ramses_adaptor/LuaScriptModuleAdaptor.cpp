@@ -11,13 +11,12 @@
 
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/utilities.h"
-#include "ramses_base/LogicEngineFormatter.h"
 #include "user_types/PrefabInstance.h"
 #include "utils/FileUtils.h"
 
 namespace raco::ramses_adaptor {
 
-LuaScriptModuleAdaptor::LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::SLuaScriptModule editorObject)
+LuaScriptModuleAdaptor::LuaScriptModuleAdaptor(SceneAdaptor* sceneAdaptor, user_types::SLuaScriptModule editorObject)
 	: UserTypeObjectAdaptor{sceneAdaptor, editorObject},
 	  nameSubscription_{sceneAdaptor_->dispatcher()->registerOn({editorObject_, &user_types::LuaScriptModule::objectName_}, [this]() {
 		  tagDirty();
@@ -35,11 +34,11 @@ bool LuaScriptModuleAdaptor::sync(core::Errors* errors) {
 
 	if (editorObject_->isValid()) {
 		const auto& scriptContents = editorObject_->currentScriptContents();
-		auto luaConfig = raco::ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
+		auto luaConfig = ramses_base::createLuaConfig(editorObject_->stdModules_->activeModules());
 		if (!sceneAdaptor_->optimizeForExport()) {
 			luaConfig.enableDebugLogFunctions();
 		}
-		module_ = raco::ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), luaConfig, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
+		module_ = ramses_base::ramsesLuaModule(scriptContents, &sceneAdaptor_->logicEngine(), luaConfig, editorObject_->objectName(), editorObject_->objectIDAsRamsesLogicID());
 		assert(module_ != nullptr);
 	} else {
 		module_.reset();
@@ -58,7 +57,7 @@ std::vector<ExportInformation> LuaScriptModuleAdaptor::getExportInformation() co
 		return {};
 	}
 
-	return {ExportInformation{"LuaScriptModule", module_->getName().data()}};
+	return {ExportInformation{"LuaScriptModule", module_->getName()}};
 }
 
 }  // namespace raco::ramses_adaptor

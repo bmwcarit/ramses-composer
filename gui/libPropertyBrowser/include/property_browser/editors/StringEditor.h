@@ -24,18 +24,22 @@ class PropertyBrowserItem;
 
 class StringEditorLineEdit : public QLineEdit {
 	Q_OBJECT
+	Q_PROPERTY(int errorLevel READ errorLevel WRITE setErrorLevel)
 
 public:
 	StringEditorLineEdit(QWidget* parent = nullptr) : QLineEdit(parent) {  }
+
+	int errorLevel() const noexcept;
 	void setDragAndDropFilter(const QString& filter) {
 		dragAndDropFilter_ = filter;
 	}
-
 	bool hasMultipleValues() const;
-
 	void set(std::optional<std::string> value);
 
 protected:
+	core::ErrorLevel errorLevel_{core::ErrorLevel::NONE};
+
+	void setErrorLevel(int level);
 	void focusInEvent(QFocusEvent* event);
 	void keyPressEvent(QKeyEvent* event);
 	void dragEnterEvent(QDragEnterEvent* event) override;
@@ -56,12 +60,10 @@ private:
 class StringEditor : public PropertyEditor {
 	Q_OBJECT
 	Q_PROPERTY(bool updatedInBackground READ updatedInBackground);
-	Q_PROPERTY(int errorLevel READ errorLevel);
 
 public:
 	explicit StringEditor(PropertyBrowserItem* item, QWidget* parent = nullptr);
 	bool updatedInBackground() const;
-	int errorLevel() const noexcept;
 
 public Q_SLOTS:
 	void setText(const QString&);
@@ -72,7 +74,6 @@ protected:
 	void updateErrorState();
 
 	bool updatedInBackground_ = false;
-	core::ErrorLevel errorLevel_{core::ErrorLevel::NONE};
 	StringEditorLineEdit* lineEdit_;
 
 	std::map<core::ValueHandle, std::string> focusInValues_;

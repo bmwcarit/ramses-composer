@@ -13,65 +13,60 @@
 
 template <typename T>
 void checkUniformScalar(const ramses::Appearance* appearance, const std::string& name, const T value) {
-	ramses::UniformInput input;
-	if constexpr (std::is_same<T, int32_t>::value) {
+	ramses::UniformInput input = appearance->getEffect().findUniformInput(name.c_str()).value();
+	if constexpr (std::is_same<T, bool>::value) {
+		bool bvalue;
+		appearance->getInputValue(input, bvalue);
+		EXPECT_EQ(bvalue, value);
+	}
+	else if constexpr (std::is_same<T, int32_t>::value) {
 		int32_t ivalue;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueInt32(input, ivalue);
+		appearance->getInputValue(input, ivalue);
 		EXPECT_EQ(ivalue, value);
 	}
 	else if constexpr (std::is_same<T, float>::value) {
 		float fvalue;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueFloat(input, fvalue);
+		appearance->getInputValue(input, fvalue);
 		EXPECT_EQ(fvalue, value);
 	}
 	else if constexpr (std::is_same<T, std::array<float, 2>>::value) {
-		std::array<float, 2> value2f;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector2f(input, value2f[0], value2f[1]);
-		EXPECT_EQ(value2f, value);
+		ramses::vec2f value2f;
+		appearance->getInputValue(input, value2f);
+		EXPECT_EQ(value2f, glm::vec2(value[0], value[1]));
 	}
 	else if constexpr (std::is_same<T, std::array<float, 3>>::value) {
-		std::array<float, 3> value3f;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector3f(input, value3f[0], value3f[1], value3f[2]);
-		EXPECT_EQ(value3f, value);
+		ramses::vec3f value3f;
+		appearance->getInputValue(input, value3f);
+		EXPECT_EQ(value3f, glm::vec3(value[0], value[1], value[2]));
 	}
 	else if constexpr (std::is_same<T, std::array<float, 4>>::value) {
-		std::array<float, 4> value4f;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector4f(input, value4f[0], value4f[1], value4f[2], value4f[3]);
-		EXPECT_EQ(value4f, value);
+		ramses::vec4f value4f;
+		appearance->getInputValue(input, value4f);
+		EXPECT_EQ(value4f, glm::vec4(value[0], value[1], value[2], value[3]));
 	}
 	else if constexpr (std::is_same<T, std::array<int32_t, 2>>::value) {
-		std::array<int32_t, 2> value2i;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector2i(input, value2i[0], value2i[1]);
-		EXPECT_EQ(value2i, value);
+		ramses::vec2i value2i;
+		appearance->getInputValue(input, value2i);
+		EXPECT_EQ(value2i, glm::ivec2(value[0], value[1]));
 	}
 	else if constexpr (std::is_same<T, std::array<int32_t, 3>>::value) {
-		std::array<int32_t, 3> value3i;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector3i(input, value3i[0], value3i[1], value3i[2]);
-		EXPECT_EQ(value3i, value);
+		ramses::vec3i value3i;
+		appearance->getInputValue(input, value3i);
+		EXPECT_EQ(value3i, glm::ivec3(value[0], value[1], value[2]));
 	}
 	else if constexpr (std::is_same<T, std::array<int32_t, 4>>::value) {
-		std::array<int32_t, 4> value4i;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector4i(input, value4i[0], value4i[1], value4i[2], value4i[3]);
-		EXPECT_EQ(value4i, value);
+		ramses::vec4i value4i;
+		appearance->getInputValue(input, value4i);
+		EXPECT_EQ(value4i, glm::ivec4(value[0], value[1], value[2], value[3]));
 	}
 	else if constexpr (std::is_same<T, const ramses::TextureSampler*>::value) {
 		const ramses::TextureSampler* u_sampler_texture;
-		EXPECT_EQ(ramses::StatusOK, appearance->getEffect().findUniformInput(name.c_str(), input));
-		EXPECT_EQ(ramses::StatusOK, appearance->getInputTexture(input, u_sampler_texture));
+		EXPECT_TRUE(appearance->getInputTexture(input, u_sampler_texture));
 		EXPECT_EQ(u_sampler_texture, value);
 	}
 	else if constexpr (std::is_same<T, const ramses::TextureSamplerMS*>::value) {
 		const ramses::TextureSamplerMS* u_sampler_texture;
-		EXPECT_EQ(ramses::StatusOK, appearance->getEffect().findUniformInput(name.c_str(), input));
-		EXPECT_EQ(ramses::StatusOK, appearance->getInputTextureMS(input, u_sampler_texture));
+		EXPECT_TRUE(appearance->getInputTextureMS(input, u_sampler_texture));
 		EXPECT_EQ(u_sampler_texture, value);
 	}
 	else {
@@ -80,11 +75,13 @@ void checkUniformScalar(const ramses::Appearance* appearance, const std::string&
 }
 
 template <typename T>
-void checkUniformScalar(const raco::core::ValueHandle& handle, const ramses::Appearance* appearance, const std::string& name, const T value) {
+void checkUniformScalar(const core::ValueHandle& handle, const ramses::Appearance* appearance, const std::string& name, const T value) {
 	using namespace raco;
 
 	checkUniformScalar(appearance, name, value);
-	if constexpr (std::is_same<T, int32_t>::value) {
+	if constexpr (std::is_same<T, bool>::value) {
+		EXPECT_EQ(handle.asBool(), value);
+	} else if constexpr (std::is_same<T, int32_t>::value) {
 		EXPECT_EQ(handle.asInt(), value);
 	} else if constexpr (std::is_same<T, float>::value) {
 		EXPECT_EQ(handle.asDouble(), value);
@@ -108,54 +105,51 @@ void checkUniformScalar(const raco::core::ValueHandle& handle, const ramses::App
 
 template <typename T, int length>
 void checkUniformVector(const ramses::Appearance* appearance, const std::string& name, int index, const T& value) {
-	ramses::UniformInput input;
-	if constexpr (std::is_same<T, int32_t>::value) {
+	ramses::UniformInput input = appearance->getEffect().findUniformInput(name.c_str()).value();
+	if constexpr (std::is_same<T, bool>::value) {
+		std::array<bool, length> ivalue;
+		appearance->getInputValue(input, length, ivalue.data());
+		EXPECT_EQ(ivalue[index], value) << fmt::format(" Property name '{}' index = {}", name, index);
+	} 
+	else if constexpr (std::is_same<T, int32_t>::value) {
 		std::array<int32_t, length> ivalue;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueInt32(input, length, ivalue.data());
-		EXPECT_EQ(ivalue[index], value);
+		appearance->getInputValue(input, length, ivalue.data());
+		EXPECT_EQ(ivalue[index], value) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, float>::value) {
 		std::array<float, length> fvalue;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueFloat(input, length, fvalue.data());
-		EXPECT_EQ(fvalue[index], value);
+		appearance->getInputValue(input, length, fvalue.data());
+		EXPECT_EQ(fvalue[index], value) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, std::array<float, 2>>::value) {
-		std::array<std::array<float, 2>, length> value2f;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector2f(input, length, value2f.data()->data());
-		EXPECT_EQ(value2f[index], value);
+		std::array<ramses::vec2f, length> values;
+		appearance->getInputValue(input, length, values.data());
+		EXPECT_EQ(values[index], glm::vec2(value[0], value[1])) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, std::array<float, 3>>::value) {
-		std::array<std::array<float, 3>, length> value3f;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector3f(input, length, value3f.data()->data());
-		EXPECT_EQ(value3f[index], value);
+		std::array<ramses::vec3f, length> values;
+		appearance->getInputValue(input, length, values.data());
+		EXPECT_EQ(values[index], glm::vec3(value[0], value[1], value[2])) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, std::array<float, 4>>::value) {
-		std::array<std::array<float, 4>, length> value4f;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector4f(input, length, value4f.data()->data());
-		EXPECT_EQ(value4f[index], value);
+		std::array<ramses::vec4f, length> values;
+		appearance->getInputValue(input, length, values.data());
+		EXPECT_EQ(values[index], glm::vec4(value[0], value[1], value[2], value[3])) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, std::array<int32_t, 2>>::value) {
-		std::array<std::array<int32_t, 2>, length> value2i;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector2i(input, length, value2i.data()->data());
-		EXPECT_EQ(value2i[index], value);
+		std::array<ramses::vec2i, length> values;
+		appearance->getInputValue(input, length, values.data());
+		EXPECT_EQ(values[index], glm::ivec2(value[0], value[1])) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, std::array<int32_t, 3>>::value) {
-		std::array<std::array<int32_t, 3>, length> value3i;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector3i(input, length, value3i.data()->data());
-		EXPECT_EQ(value3i[index], value);
+		std::array<ramses::vec3i, length> values;
+		appearance->getInputValue(input, length, values.data());
+		EXPECT_EQ(values[index], glm::ivec3(value[0], value[1], value[2])) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else if constexpr (std::is_same<T, std::array<int32_t, 4>>::value) {
-		std::array<std::array<int32_t, 4>, length> value4i;
-		appearance->getEffect().findUniformInput(name.c_str(), input);
-		appearance->getInputValueVector4i(input, length, value4i.data()->data());
-		EXPECT_EQ(value4i[index], value);
+		std::array<ramses::vec4i, length> values;
+		appearance->getInputValue(input, length, values.data());
+		EXPECT_EQ(values[index], glm::ivec4(value[0], value[1], value[2], value[3])) << fmt::format(" Property name '{}' index = {}", name, index);
 	}
 	else {
 		EXPECT_TRUE(false);

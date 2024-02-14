@@ -67,6 +67,7 @@ PUBLIC
 	raco::LogSystem
 	raco::Utils
 	Qt5::Core
+	glm::glm
 PRIVATE
 	# Linking the user types to the Core causes a circular dependency.
 	# We need to either move the classes needed from UserTypes into the core 
@@ -82,11 +83,6 @@ endif()
 
 add_library(raco::Core ALIAS libCore)
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-	# Needed for Ubuntu 18 (GCC 7) - for the experimental file system, "stdc++fs" is required after all other object files.
-	# See also https://gitlab.kitware.com/cmake/cmake/-/issues/17834
-	target_link_libraries(libCore PUBLIC "stdc++fs")
-endif()
 if(PACKAGE_TESTS)
 	add_subdirectory(tests)
 endif()

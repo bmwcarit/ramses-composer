@@ -62,10 +62,6 @@ public:
 
 		return refItems;
 	}
-
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value) {
-		RefEditor::pasteProperty(item, value);
-	}
 };
 
 class RefEditorTest : public EditorTestFixture {
@@ -106,13 +102,13 @@ TEST_F(RefEditorTest, single_selection_setup_empty_expected) {
 
 	dispatch();
 
-	PropertyBrowserItem item0 {{ValueHandle(renderpass, &RenderPass::layer0_)}, dataChangeDispatcher, &commandInterface, nullptr};
+	PropertyBrowserItem item0 {{ValueHandle(renderpass, &RenderPass::camera_)}, dataChangeDispatcher, &commandInterface, nullptr};
 	const auto refEditor0 = ExposedRefEditor(&item0);
-	PropertyBrowserItem item1{{ValueHandle(renderpass, &RenderPass::layer1_)}, dataChangeDispatcher, &commandInterface, nullptr};
+	PropertyBrowserItem item1{{ValueHandle(renderpass, &RenderPass::target_)}, dataChangeDispatcher, &commandInterface, nullptr};
 	const auto refEditor1 = ExposedRefEditor(&item1);
 
 	EXPECT_EQ(refEditor0.getCurrentRefText(), "<empty>");
-	EXPECT_EQ(refEditor1.getCurrentRefText(), "<empty>");
+	EXPECT_EQ(refEditor1.getCurrentRefText(), "Default Framebuffer");
 	EXPECT_TRUE(refEditor0.isRefEmpty());
 	EXPECT_FALSE(refEditor1.isRefEmpty());
 }
@@ -214,7 +210,7 @@ TEST_F(RefEditorTest, paste_property_target_valid) {
 	EXPECT_FALSE(refEditor.isRefEmpty());
 
 	Value<SPrefab> value{prefab_4};
-	refEditor.pasteProperty(&item, &value);
+	pasteProperty(&item, &value);
 	dispatch();
 
 	EXPECT_EQ(*inst_1->template_, prefab_4);
@@ -249,7 +245,7 @@ TEST_F(RefEditorTest, paste_property_target_invalid) {
 	EXPECT_FALSE(refEditor.isRefEmpty());
 
 	Value<SPrefab> value{prefab_1};
-	refEditor.pasteProperty(&item, &value);
+	pasteProperty(&item, &value);
 	dispatch();
 
 	EXPECT_EQ(*inst_1->template_, prefab_3);

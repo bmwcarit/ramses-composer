@@ -40,7 +40,7 @@ public:
 		COLUMN_COUNT
 	};
 
-	ErrorView(raco::core::CommandInterface *commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel *logViewModel, QWidget *parent = nullptr);
+	ErrorView(core::CommandInterface *commandInterface, components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel *logViewModel, QWidget *parent = nullptr);
 
 Q_SIGNALS:
 	void objectSelectionRequested(const QString &objectID);
@@ -52,7 +52,7 @@ protected:
 	void filterRows();
 	void regenerateTable();
 
-	raco::core::CommandInterface *commandInterface_;
+	core::CommandInterface *commandInterface_;
 	components::Subscription errorChangeSubscription_;
 	components::Subscription objNameChangeSubscription_;
 	components::Subscription objChildrenChangeSubscription_;

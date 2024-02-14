@@ -14,30 +14,29 @@
 #include "ramses_base/HeadlessEngineBackend.h"
 #include "user_types/Node.h"
 
-using raco::ramses_adaptor::Rotation;
-using raco::ramses_adaptor::Scaling;
-using raco::ramses_adaptor::Translation;
+using namespace raco::ramses_adaptor;
 using raco::user_types::Node;
+using namespace raco::core;
 
 TEST(Rotation, initialSpatialProperties_areEqual) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	raco::ramses_base::HeadlessEngineBackend backend;
+	backend.setFeatureLevel(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
 	auto testScene = backend.client().createScene(ramses::sceneId_t{1u});
 
 	auto ramsesNode = testScene->createNode();
-	auto nodeBinding = backend.logicEngine().createRamsesNodeBinding(*ramsesNode);
 	auto dataNode = std::make_shared<Node>();
 
-	EXPECT_EQ(Rotation::from(*ramsesNode), Rotation::from(dataNode));
-	EXPECT_EQ(Translation::from(*ramsesNode), Translation::from(dataNode));
-	EXPECT_EQ(Scaling::from(*ramsesNode), Scaling::from(dataNode));
+	EXPECT_EQ(getRamsesRotation(ramsesNode), getRacoRotation(dataNode));
+	EXPECT_EQ(getRamsesTranslation(ramsesNode), getRacoTranslation(dataNode));
+	EXPECT_EQ(getRamsesScaling(ramsesNode), getRacoScaling(dataNode));
 }
 
 TEST(Rotation, spatialProperties_areEqual_afterSync) {
-	raco::ramses_base::HeadlessEngineBackend backend{raco::ramses_base::BaseEngineBackend::maxFeatureLevel};
+	raco::ramses_base::HeadlessEngineBackend backend;
+	backend.setFeatureLevel(raco::ramses_base::BaseEngineBackend::maxFeatureLevel);
 	auto testScene = backend.client().createScene(ramses::sceneId_t{1u});
 
 	auto ramsesNode = testScene->createNode();
-	auto nodeBinding = backend.logicEngine().createRamsesNodeBinding(*ramsesNode);
 
 	auto dataNode = std::make_shared<Node>();
 	dataNode->scaling_->x = 10.0;
@@ -50,11 +49,11 @@ TEST(Rotation, spatialProperties_areEqual_afterSync) {
 	dataNode->rotation_->y = -3.0;
 	dataNode->rotation_->z = 77.0;
 
-	Rotation::sync(dataNode, *ramsesNode);
-	Translation::sync(dataNode, *ramsesNode);
-	Scaling::sync(dataNode, *ramsesNode);
+	ramsesNode->setTranslation(getRacoTranslation(dataNode));
+	ramsesNode->setScaling(getRacoScaling(dataNode));
+	ramsesNode->setRotation(getRacoRotation(dataNode), ramses::ERotationType::Euler_XYZ);
 
-	EXPECT_EQ(Rotation::from(*ramsesNode), Rotation::from(dataNode));
-	EXPECT_EQ(Translation::from(*ramsesNode), Translation::from(dataNode));
-	EXPECT_EQ(Scaling::from(*ramsesNode), Scaling::from(dataNode));
+	EXPECT_EQ(getRamsesRotation(ramsesNode), getRacoRotation(dataNode));
+	EXPECT_EQ(getRamsesTranslation(ramsesNode), getRacoTranslation(dataNode));
+	EXPECT_EQ(getRamsesScaling(ramsesNode), getRacoScaling(dataNode));
 }

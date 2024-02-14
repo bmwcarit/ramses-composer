@@ -52,7 +52,8 @@ public:
 	SMaterial getMaterial(size_t materialSlot);
 	bool materialPrivate(size_t materialSlot);
 	Table* getUniformContainer(size_t materialSlot);
-	
+	BlendOptions* getOptions(size_t materialSlot);
+
 	ValueHandle getMaterialHandle(size_t materialSlot);
 	ValueHandle getMaterialPrivateHandle(size_t materialSlot);
 	ValueHandle getUniformContainerHandle(size_t materialSlot);
@@ -61,7 +62,7 @@ public:
     Property<SMesh, DisplayNameAnnotation> mesh_{nullptr, DisplayNameAnnotation("Mesh")};
     
     Property<Table, DisplayNameAnnotation> materials_{{}, DisplayNameAnnotation("Materials")};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> instanceCount_{1, RangeAnnotation<int>(1, 20), DisplayNameAnnotation("Instance Count"), {5}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> instanceCount_{1, RangeAnnotation<int>(1, 20), DisplayNameAnnotation("Instance Count"), {}};
 
 private:
 	std::vector<std::string> getMaterialNames();

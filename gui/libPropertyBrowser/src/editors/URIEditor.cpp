@@ -98,6 +98,9 @@ URIEditor::URIEditor(PropertyBrowserItem* item, QWidget* parent) : StringEditor(
 		loadFileButton->setEnabled(item_->editable());
 		lineEdit_->setEnabled(item_->editable());
 	});
+
+	removeEventFilter(this);
+	lineEdit_->installEventFilter(this);
 }
 
 void URIEditor::showCustomLineEditContextMenu(const QPoint& p, PropertyBrowserItem* item) {

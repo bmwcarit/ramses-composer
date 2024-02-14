@@ -11,22 +11,28 @@
 
 #include "ramses_adaptor/ObjectAdaptor.h"
 #include "user_types/RenderTarget.h"
-#include <ramses-client-api/RenderTarget.h>
+#include <ramses/client/RenderTarget.h>
 
 namespace raco::ramses_adaptor {
 
-class RenderTargetAdaptor : public TypedObjectAdaptor<user_types::RenderTarget, ramses::RenderTarget> {
+class RenderBufferAdaptor;
+class RenderBufferMSAdaptor;
+
+template <typename RenderTargetClass, typename RenderBufferClass, typename RenderBufferAdaptorClass>
+class RenderTargetAdaptorT : public TypedObjectAdaptor<RenderTargetClass, ramses::RenderTarget> {
 public:
-	explicit RenderTargetAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderTarget> editorObject);
+	explicit RenderTargetAdaptorT(SceneAdaptor* sceneAdaptor, std::shared_ptr<RenderTargetClass> editorObject);
 
 	bool sync(core::Errors* errors) override;
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	template <typename RenderBufferAdaptorClass>
-	bool collectBuffers(std::vector<ramses_base::RamsesRenderBuffer>& buffers, const std::initializer_list<raco::core::SEditorObject>& userTypeBuffers, ramses::RenderTargetDescription& rtDesc, core::Errors* errors);
+	bool collectBuffers(std::vector<ramses_base::RamsesRenderBuffer>& buffers, const std::vector < std::shared_ptr<RenderBufferClass>> & userTypeBuffers, ramses::RenderTargetDescription& rtDesc, core::Errors* errors);
 
-	std::array<components::Subscription, 16> subscriptions_;
+	components::Subscription subscription_;
 };
+
+using RenderTargetAdaptor = RenderTargetAdaptorT<user_types::RenderTarget, user_types::RenderBuffer, RenderBufferAdaptor>;
+using RenderTargetMSAdaptor = RenderTargetAdaptorT<user_types::RenderTargetMS, user_types::RenderBufferMS, RenderBufferMSAdaptor>;
 
 };	// namespace raco::ramses_adaptor

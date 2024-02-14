@@ -1,13 +1,8 @@
 {
     "properties": {
-        "children": {
-            "properties": [
-                {
-                    "typeName": "Ref",
-                    "value": "mesh_node_id"
-                }
-            ]
-        },
+        "children": [
+            "mesh_node_id"
+        ],
         "enabled": true,
         "objectID": "node_id",
         "objectName": "node",

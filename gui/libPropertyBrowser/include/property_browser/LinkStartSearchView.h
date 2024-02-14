@@ -41,7 +41,7 @@ protected:
 	std::set<core::ValueHandle> objects_;
 
 	components::Subscription projectChanges_;
-	std::map<core::SEditorObject, raco::components::Subscription> outputsChanges_;
+	std::map<core::SEditorObject, components::Subscription> outputsChanges_;
 };
 
 }  // namespace raco::property_browser

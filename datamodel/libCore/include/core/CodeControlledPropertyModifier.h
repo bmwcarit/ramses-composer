@@ -27,7 +27,7 @@ public:
 	}
 
 	static void setVec2f(const core::ValueHandle& handle, double x, double y, core::DataChangeRecorder& recorder) {
-		raco::core::Vec2f& v = dynamic_cast<raco::core::Vec2f&>(handle.valueRef()->asStruct());
+		core::Vec2f& v = dynamic_cast<core::Vec2f&>(handle.valueRef()->asStruct());
 
 		if (*v.x != x) {
 			v.x = x;
@@ -40,7 +40,7 @@ public:
 	}
 
 	static void setVec3f(const core::ValueHandle& handle, double x, double y, double z, core::DataChangeRecorder& recorder) {
-		raco::core::Vec3f& v = dynamic_cast<raco::core::Vec3f&>(handle.valueRef()->asStruct());
+		core::Vec3f& v = dynamic_cast<core::Vec3f&>(handle.valueRef()->asStruct());
 
 		if (*v.x != x) {
 			v.x = x;
@@ -57,7 +57,7 @@ public:
 	}
 
 	static void setVec4f(const core::ValueHandle& handle, double x, double y, double z, double w, core::DataChangeRecorder& recorder) {
-		raco::core::Vec4f& v = dynamic_cast<raco::core::Vec4f&>(handle.valueRef()->asStruct());
+		core::Vec4f& v = dynamic_cast<core::Vec4f&>(handle.valueRef()->asStruct());
 
 		if (*v.x != x) {
 			v.x = x;
@@ -78,7 +78,7 @@ public:
 	}
 
 	static void setVec2i(const core::ValueHandle& handle, int x, int y, core::DataChangeRecorder& recorder) {
-		raco::core::Vec2i& v = dynamic_cast<raco::core::Vec2i&>(handle.valueRef()->asStruct());
+		core::Vec2i& v = dynamic_cast<core::Vec2i&>(handle.valueRef()->asStruct());
 
 		if (*v.i1_ != x) {
 			v.i1_ = x;
@@ -91,7 +91,7 @@ public:
 	}
 
 	static void setVec3i(const core::ValueHandle& handle, int x, int y, int z, core::DataChangeRecorder& recorder) {
-		raco::core::Vec3i& v = dynamic_cast<raco::core::Vec3i&>(handle.valueRef()->asStruct());
+		core::Vec3i& v = dynamic_cast<core::Vec3i&>(handle.valueRef()->asStruct());
 
 		if (*v.i1_ != x) {
 			v.i1_ = x;
@@ -108,7 +108,7 @@ public:
 	}
 
 	static void setVec4i(const core::ValueHandle& handle, int x, int y, int z, int w, core::DataChangeRecorder& recorder) {
-		raco::core::Vec4i& v = dynamic_cast<raco::core::Vec4i&>(handle.valueRef()->asStruct());
+		core::Vec4i& v = dynamic_cast<core::Vec4i&>(handle.valueRef()->asStruct());
 
 		if (*v.i1_ != x) {
 			v.i1_ = x;

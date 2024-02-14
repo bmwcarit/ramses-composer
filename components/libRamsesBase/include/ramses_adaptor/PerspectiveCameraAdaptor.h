@@ -25,16 +25,16 @@ public:
 
 	bool sync(core::Errors* errors) override;
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 
-	raco::ramses_base::RamsesCameraBinding cameraBinding();
+	ramses_base::RamsesCameraBinding cameraBinding();
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
 	components::Subscription viewportSubscription_;
 	components::Subscription frustrumSubscription_;
-	raco::ramses_base::RamsesCameraBinding cameraBinding_;
+	ramses_base::RamsesCameraBinding cameraBinding_;
 };
 
 };  // namespace raco::ramses_adaptor

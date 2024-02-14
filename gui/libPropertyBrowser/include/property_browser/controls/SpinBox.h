@@ -19,7 +19,7 @@
 namespace raco::property_browser {
 
 template <typename T>
-std::optional<T> evaluateLuaExpression(QString expression, T min = raco::data_storage::numericalLimitMin<T>(), T max = raco::data_storage::numericalLimitMax<T>());
+std::optional<T> evaluateLuaExpression(QString expression, T min = data_storage::numericalLimitMin<T>(), T max = data_storage::numericalLimitMax<T>());
 
 template <typename T>
 class InternalSpinBox : public QAbstractSpinBox {

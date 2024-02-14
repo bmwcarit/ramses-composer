@@ -11,118 +11,31 @@
 
 #include "common_widgets/QtGuiFormatter.h"
 #include "core/CoreFormatter.h"
+#include "core/Errors.h"
+#include "core/PrefabOperations.h"
 #include "core/Project.h"
-#include "core/ProjectSettings.h"
 #include "core/SceneBackendInterface.h"
-#include "log_system/log.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
 #include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserLayouts.h"
 #include "property_browser/PropertyBrowserModel.h"
-#include "property_browser/PropertySubtreeView.h"
+#include "property_browser/Utilities.h"
+#include "user_types/PrefabInstance.h"
+#include "user_types/Texture.h"
+
 #include "style/Icons.h"
+
 #include <QApplication>
-#include <QDebug>
 #include <QLabel>
-#include <QPropertyAnimation>
+#include <QPushButton>
 #include <QScrollArea>
-#include <QScrollBar>
-#include <QSequentialAnimationGroup>
-#include <QTime>
+#include <QTimer>
 
 namespace raco::property_browser {
 
 using namespace style;
 
 using SDataChangeDispatcher = components::SDataChangeDispatcher;
-
-template <int Edge>
-constexpr bool playEdgeAnimationForPosition(const QPoint& modificationPosition) {
-	static_assert(Edge == Qt::BottomEdge || Edge == Qt::TopEdge, "Edge as to be Qt::TopEdget or Qt::BottomEdget");
-	// play edge animation regardless of modification position
-	return true;
-}
-
-template <int Edge>
-constexpr QLabel* createNotificationWidget(PropertyBrowserModel* model, QWidget* parent) {
-	auto* widget = new QLabel{parent};
-	widget->setMinimumHeight(0);
-	widget->setMaximumHeight(0);
-	auto notificationWidgetPalette = widget->palette();
-	notificationWidgetPalette.setColor(QPalette::ColorRole::Window, QColor{25, 25, 200, 60});
-	widget->setPalette(notificationWidgetPalette);
-
-	QObject::connect(model, &PropertyBrowserModel::addNotVisible, widget, [widget, parent](QWidget* source) {
-		if (playEdgeAnimationForPosition<Edge>(parent->mapFromGlobal(source->mapToGlobal({0, 0})))) {
-			auto* group = new QSequentialAnimationGroup{widget};
-			auto* outAnimation = new QPropertyAnimation(widget, "maximumHeight");
-			outAnimation->setDuration(50);
-			outAnimation->setStartValue(0);
-			outAnimation->setEndValue(5);
-			auto* inAnimation = new QPropertyAnimation(widget, "maximumHeight");
-			inAnimation->setDuration(200);
-			inAnimation->setStartValue(5);
-			inAnimation->setEndValue(0);
-			group->addAnimation(outAnimation);
-			group->addAnimation(inAnimation);
-			group->start(QSequentialAnimationGroup::DeleteWhenStopped);
-		}
-	});
-	return widget;
-}
-
-PropertyBrowserView::PropertyBrowserView(core::SceneBackendInterface* sceneBackend, PropertyBrowserItem* item, PropertyBrowserModel* model, QWidget* parent)
-	: sceneBackend_{sceneBackend}, QWidget{parent} {
-	item->setParent(this);
-	auto* layout = new PropertyBrowserGridLayout{this};
-	auto* content = new QWidget{this};
-	auto* contentLayout = new PropertyBrowserVBoxLayout{content};
-	contentLayout->setContentsMargins(0, 0, 5, 0);
-	content->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
-
-	layout->addWidget(content, 0, 0);
-
-	auto* topNotificationWidget = createNotificationWidget<Qt::TopEdge>(model, this);
-	layout->addWidget(topNotificationWidget, 0, 0);
-	auto* bottomNotificationWidget = createNotificationWidget<Qt::BottomEdge>(model, this);
-	layout->addWidget(bottomNotificationWidget, 2, 0);
-
-	QObject::connect(model, &PropertyBrowserModel::beforeStructuralChange, this, [this, content](QWidget* toChange) {
-		auto focusWidget = QApplication::focusWidget();
-
-		if (!focusWidget || !content->isAncestorOf(focusWidget) || focusWidget->visibleRegion().isEmpty()) {
-			focusWidget = nullptr;
-			// Search for the first label visible in our content
-			for (auto label : content->findChildren<QLabel*>()) {
-				if (!label->visibleRegion().isEmpty()) {
-					if (!focusWidget || focusWidget->mapToGlobal({0, 0}).y() > label->mapToGlobal({0, 0}).y()) {
-						focusWidget = label;
-					}
-				}
-			}
-		}
-
-		// if the focsed widget is inside the widget which will structurally change
-		// then we can only keep that widget focused
-		if (toChange->isAncestorOf(focusWidget)) {
-			focusWidget = toChange;
-		}
-		// if we have more than one changed valueHandle in the property browser we need to find the common widget.
-		// If we get more complex cases we may also need an afterStructuralChange to clean up the verticalPivotWidget.
-		if (verticalPivotWidget_ && verticalPivotWidget_->isAncestorOf(focusWidget)) {
-			// Currently we only need to check for hierarchy case
-			// e.g. if we have an error the EditorObject and associated engine property table will change (parent -> child)
-			focusWidget = verticalPivotWidget_;
-		}
-
-		if (focusWidget) {
-			verticalPivot_ = mapFromGlobal(focusWidget->mapToGlobal({0, 0}));
-			verticalPivotWidget_ = focusWidget;
-		}
-	});
-
-	contentLayout->addWidget(new PropertySubtreeView{sceneBackend_, model, item, this});
-}
 
 PropertyBrowserWidget::PropertyBrowserWidget(
 	SDataChangeDispatcher dispatcher,
@@ -143,16 +56,40 @@ PropertyBrowserWidget::PropertyBrowserWidget(
 	lockButton_->setContentsMargins(0, 0, 0, 0);
 	lockButton_->setFlat(true);
 	lockButton_->setIcon(Icons::instance().unlocked);
+	lockButton_->setToolTip("Lock current property browser");
 	lockButton_->connect(lockButton_, &QPushButton::clicked, this, [this]() {
 		setLocked(!locked_);
 	});
 
-	layout_.addWidget(lockButton_, 0, 0, Qt::AlignLeft);
+	refButton_ = new QPushButton{this};
+	refButton_->setContentsMargins(0, 0, 0, 0);
+	refButton_->setFlat(true);
+	refButton_->setIcon(Icons::instance().goToLeft);
+	refButton_->setToolTip("Show objects referencing current object");
+	connect(refButton_, &QPushButton::clicked, this, &PropertyBrowserWidget::showRefToThis);
+
+	prefabLookupButton_ = new QPushButton{this};
+	prefabLookupButton_->setContentsMargins(0, 0, 0, 0);
+	prefabLookupButton_->setFlat(true);
+	prefabLookupButton_->setIcon(Icons::instance().prefabLookup);
+	prefabLookupButton_->setToolTip("Show object in prefab");
+	prefabLookupButton_->setEnabled(false);
+	connect(prefabLookupButton_, &QPushButton::clicked, this, [this]() {
+		rootItem_->model()->Q_EMIT selectionRequested(QString::fromStdString(getObjectIdInPrefab()));
+	});
+
+	const auto buttonsLayout = new PropertyBrowserHBoxLayout(this);
+	buttonsLayout->addWidget(lockButton_, 0, Qt::AlignLeft);
+	buttonsLayout->addWidget(refButton_, 0, Qt::AlignLeft);
+	buttonsLayout->addWidget(prefabLookupButton_, 0, Qt::AlignLeft);
+
+	layout_.addLayout(buttonsLayout, 0, 0, Qt::AlignLeft);
 	layout_.addWidget(emptyLabel_, 1, 0, Qt::AlignCenter);
 	layout_.setColumnStretch(0, 1);
 	layout_.setRowStretch(1, 1);
+	layout_.setContentsMargins(0, 0, 5, 0);
 
-	subscription_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this](core::SEditorObject obj) {
+	lifecycleSubs_ = dispatcher_->registerOnObjectsLifeCycle([](auto) {}, [this](core::SEditorObject obj) {
 		if (propertyBrowser_) {
 			if (currentObjects_.find(obj) != currentObjects_.end()) {
 				if (locked_) {
@@ -160,12 +97,56 @@ PropertyBrowserWidget::PropertyBrowserWidget(
 				}
 				clear();
 			}
-		} 
+		}
 	});
 }
 
-void PropertyBrowserWidget::setLockable(bool lockable) {
-	layout_.itemAtPosition(0, 0)->widget()->setVisible(lockable);
+void PropertyBrowserWidget::showRefToThis() {
+	QMenu refMenu;
+	if (!currentObjects_.empty() && *currentObjects_.begin() && rootItem_ && currentObjects_.size() == 1) {
+		// get list of ref objects sorted by name
+		std::vector<std::pair<QString, QString>> refObjects;
+
+		for (const auto& refObject : (*currentObjects_.begin())->referencesToThis()) {
+			const auto refObjectName = QString::fromStdString(core::Queries::getFullObjectHierarchyPath(refObject.lock()));
+			const auto refObjectID = QString::fromStdString(refObject.lock()->objectID());
+			refObjects.emplace_back(refObjectName, refObjectID);
+		}
+		std::sort(refObjects.begin(), refObjects.end(), [](const auto& lhs, const auto& rhs) {
+			return lhs.first < rhs.first;
+		});
+
+		// add ref menu items
+		for (const auto& [refObjectName, refObjectID] : refObjects) {
+			const auto id = refObjectID;
+			refMenu.addAction(refObjectName, [this, id]() {
+				rootItem_->model()->Q_EMIT selectionRequested(id);
+			});
+		}
+	}
+
+	if (refMenu.isEmpty()) {
+		refMenu.addAction("No references", []() {});
+	}
+
+	refMenu.exec(mapToGlobal(refButton_->pos() + QPoint(refButton_->width(), 0)));
+}
+
+std::string PropertyBrowserWidget::getObjectIdInPrefab() const {
+	if (rootItem_ && currentObjects_.size() == 1) {
+		const auto selectedObject = *currentObjects_.begin();
+		if (const auto prefabInstance = core::PrefabOperations::findContainingPrefabInstance(selectedObject)) {
+			if(const auto prefab = *prefabInstance->template_) {
+				return user_types::PrefabInstance::mapObjectIDFromInstance(selectedObject, prefab, prefabInstance);
+			}
+		}
+	}
+	return std::string{};
+}
+
+void PropertyBrowserWidget::setLockable(bool lockable) const {
+	lockButton_->setVisible(lockable);
+	refButton_->setVisible(lockable);
 }
 
 void PropertyBrowserWidget::clear() {
@@ -173,13 +154,15 @@ void PropertyBrowserWidget::clear() {
 		propertyBrowser_.reset();
 		currentObjects_.clear();
 		emptyLabel_->setVisible(true);
+		showScrollBar(false);
 	}
 }
 
 void PropertyBrowserWidget::setLocked(bool locked) {
-	bool isLockChanged = locked_ != locked;
+	const bool isLockChanged = locked_ != locked;
 	locked_ = locked;
 	lockButton_->setIcon(locked_ ? Icons::instance().locked : Icons::instance().unlocked);
+	lockButton_->setToolTip(locked_ ? "Unlock current property browser" : "Lock current property browser");
 	if (!locked_ && treeDockManager_) {
 		auto selection = treeDockManager_->getSelection();
 		if (!selection.empty()) {
@@ -195,13 +178,23 @@ void PropertyBrowserWidget::setLocked(bool locked) {
 	}
 }
 
-void PropertyBrowserWidget::setObjectFromObjectId(const QString& objectID) {
+void PropertyBrowserWidget::setObjectFromObjectId(const QString& objectID, const QString& objectProperty) {
 	const auto handle = core::ValueHandle{commandInterface_->project()->getInstanceByID(objectID.toStdString())};
-	setObjects({handle.rootObject()});
+	if (handle) {
+		setObjects({handle.rootObject()}, objectProperty);
+	}
 }
 
 PropertyBrowserModel* PropertyBrowserWidget::model() const {
 	return model_;
+}
+
+
+void PropertyBrowserWidget::showScrollBar(bool isAlwaysOn) {
+	auto scrollArea = findAncestor<QAbstractScrollArea>(parentWidget());
+	if (scrollArea) {
+		scrollArea->setVerticalScrollBarPolicy(isAlwaysOn ? Qt::ScrollBarAlwaysOn : Qt::ScrollBarAsNeeded);
+	}
 }
 
 void PropertyBrowserWidget::setObjectsImpl(const core::SEditorObjectSet& objects, bool forceExpandStateUpdate) {
@@ -220,17 +213,36 @@ void PropertyBrowserWidget::setObjectsImpl(const core::SEditorObjectSet& objects
 		emptyLabel_->setVisible(false);
 
 		std::set<core::ValueHandle> valueHandles(objects.begin(), objects.end());
-		rootItem_ = new PropertyBrowserItem{valueHandles, dispatcher_, commandInterface_, model_};
-		propertyBrowser_.reset(new PropertyBrowserView{sceneBackend_, rootItem_, model_, this});
+		rootItem_ = new PropertyBrowserItem{valueHandles, dispatcher_, commandInterface_, model_, sceneBackend_};
+
+		showScrollBar(objects.size() == 1 && (*objects.begin())->isType<user_types::Texture>());
+
+		propertyBrowser_.reset(new PropertySubtreeView{sceneBackend_, model_, rootItem_, this, nullptr});
+		rootItem_->setParent(propertyBrowser_.get());
+		propertyBrowser_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
+
 		currentObjects_ = objects;
 		layout_.addWidget(propertyBrowser_.get(), 1, 0);
+		prefabLookupButton_->setEnabled(!getObjectIdInPrefab().empty());
 	}
 }
 
-void PropertyBrowserWidget::setObjects(const core::SEditorObjectSet& objects) {
+void PropertyBrowserWidget::setObjects(const core::SEditorObjectSet& objects, const QString& property) {
 	setObjectsImpl(objects, false);
+
+	if ((locked_ && currentObjects_ == objects) || !locked_) {
+		highlightProperty(property);
+	}
 }
 
+void PropertyBrowserWidget::highlightProperty(const QString& property) {
+	if (!property.isEmpty()) {
+		// We need to call updateGeometry otherwise the scrolling does not work correctly
+		updateGeometry();
+
+		rootItem_->highlightProperty(property);
+	}
+}
 
 
 }  // namespace raco::property_browser

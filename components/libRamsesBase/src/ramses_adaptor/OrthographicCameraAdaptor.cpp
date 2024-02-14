@@ -18,8 +18,8 @@
 
 namespace raco::ramses_adaptor {
 OrthographicCameraAdaptor::OrthographicCameraAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::OrthographicCamera> editorObject)
-	: SpatialAdaptor(sceneAdaptor, editorObject, raco::ramses_base::ramsesOrthographicCamera(sceneAdaptor->scene())),
-	  cameraBinding_{raco::ramses_base::ramsesCameraBinding(this->getRamsesObjectPointer(), &sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), false)},
+	: SpatialAdaptor(sceneAdaptor, editorObject, ramses_base::ramsesOrthographicCamera(sceneAdaptor->scene(), editorObject->objectIDAsRamsesLogicID())),
+	  cameraBinding_{ramses_base::ramsesCameraBinding(this->getRamsesObjectPointer(), &sceneAdaptor->logicEngine(), editorObject_->objectIDAsRamsesLogicID(), false)},
 	  viewportSubscription_{sceneAdaptor->dispatcher()->registerOnChildren({editorObject, &user_types::OrthographicCamera::viewport_}, [this](auto) {
 		  tagDirty();
 	  })},
@@ -47,12 +47,12 @@ bool OrthographicCameraAdaptor::sync(core::Errors* errors) {
 	return true;
 }
 
-void OrthographicCameraAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void OrthographicCameraAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	SpatialAdaptor::getLogicNodes(logicNodes);
 	logicNodes.push_back(cameraBinding_.get());
 }
 
-const rlogic::Property* OrthographicCameraAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector)
+ramses::Property* OrthographicCameraAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector)
 {
 	if (auto p = BaseCameraAdaptorHelpers::getProperty(cameraBinding_.get(), propertyNamesVector)) {
 		return p;
@@ -63,22 +63,22 @@ const rlogic::Property* OrthographicCameraAdaptor::getProperty(const std::vector
 	return SpatialAdaptor::getProperty(propertyNamesVector);
 }
 
-raco::ramses_base::RamsesCameraBinding OrthographicCameraAdaptor::cameraBinding() {
+ramses_base::RamsesCameraBinding OrthographicCameraAdaptor::cameraBinding() {
 	return cameraBinding_;
 }
 
 std::vector<ExportInformation> OrthographicCameraAdaptor::getExportInformation() const {
 	auto result = std::vector<ExportInformation>();
 	if (getRamsesObjectPointer() != nullptr) {
-		result.emplace_back(ramses::ERamsesObjectType_OrthographicCamera, ramsesObject().getName());
+		result.emplace_back(ramses::ERamsesObjectType::OrthographicCamera, ramsesObject().getName());
 	}
 
 	if (nodeBinding() != nullptr) {
-		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+		result.emplace_back("NodeBinding", nodeBinding()->getName());
 	}
 
 	if (cameraBinding_) {
-		result.emplace_back("CameraBinding", cameraBinding_->getName().data());
+		result.emplace_back("CameraBinding", cameraBinding_->getName());
 	}
 
 	return result;

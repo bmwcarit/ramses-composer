@@ -19,26 +19,26 @@ class Node;
 
 namespace raco::mesh_loader {
 
-class glTFFileLoader final : public raco::core::MeshCacheEntry {
+class glTFFileLoader final : public core::MeshCacheEntry {
 public:
 	glTFFileLoader(std::string absPath);
 	~glTFFileLoader() override;
 
-	raco::core::SharedMeshData loadMesh(const raco::core::MeshDescriptor& descriptor) override;
-	const raco::core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
+	core::SharedMeshData loadMesh(const core::MeshDescriptor& descriptor) override;
+	const core::MeshScenegraph* getScenegraph(const std::string& absPath) override;
 	int getTotalMeshCount() override;
-	raco::core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
+	core::SharedAnimationSamplerData getAnimationSamplerData(const std::string& absPath, int animIndex, int samplerIndex) override;
 	std::string getError() override;
 	void reset() override;
 	
-	raco::core::SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) override;
+	core::SharedSkinData loadSkin(const std::string& absPath, int skinIndex, std::string& outError) override;
 
 private:
 	std::string path_;
 
 	std::unique_ptr<tinygltf::Model> scene_;
 	std::unique_ptr<tinygltf::TinyGLTF> importer_;
-	std::unique_ptr<raco::core::MeshScenegraph> sceneGraph_;
+	std::unique_ptr<core::MeshScenegraph> sceneGraph_;
 	std::string error_;
 	std::string warning_;
 

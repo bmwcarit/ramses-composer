@@ -64,7 +64,7 @@ TEST_F(LuaInterfaceAdaptorFixture, defaultConstruction) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaInterface>().size(), 0);
 }
 
 
@@ -77,7 +77,7 @@ invalid interface definition
 	auto interface = create_lua_interface("interface", interfaceFile);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaInterface>().size(), 0);
 }
 
 TEST_F(LuaInterfaceAdaptorFixture, invalid_in_interface) {
@@ -91,7 +91,7 @@ end
 	auto interface = create_lua_interface("interface", interfaceFile);
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 0);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaInterface>().size(), 0);
 }
 
 TEST_F(LuaInterfaceAdaptorFixture, valid_text) {
@@ -99,9 +99,9 @@ TEST_F(LuaInterfaceAdaptorFixture, valid_text) {
 	auto interface = create_lua_interface("interface", interfaceFile);
 
 	dispatch();
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 1);
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaInterface>().size(), 1);
 
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
+	auto engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 	ASSERT_EQ(engineObject->getUserId(), interface->objectIDAsRamsesLogicID());
 }
@@ -116,15 +116,15 @@ TEST_F(LuaInterfaceAdaptorFixture, name_prefab_inst) {
 	
 	dispatch();
 
-	auto engineObj = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
+	auto engineObj = select<ramses::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
 	ASSERT_TRUE(engineObj != nullptr);
 
 	commandInterface.set({inst, &PrefabInstance::objectName_}, std::string("asdf"));
 	dispatch();
 
-	engineObj = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
+	engineObj = select<ramses::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
 	ASSERT_TRUE(engineObj == nullptr);
-	engineObj = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "asdf.interface");
+	engineObj = select<ramses::LuaInterface>(sceneContext.logicEngine(), "asdf.interface");
 	ASSERT_TRUE(engineObj != nullptr);
 }
 
@@ -143,15 +143,15 @@ TEST_F(LuaInterfaceAdaptorFixture, name_prefab_inst_nested) {
 
 	dispatch();
 
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + intf_nested->objectID()).c_str());
+	auto engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + intf_nested->objectID()).c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 
 	//commandInterface.set({inst, &PrefabInstance::template_}, prefab);
 	//dispatch();
 
-	//engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + intf_nested->objectID()).c_str());
+	//engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("interface-" + intf_nested->objectID()).c_str());
 	//ASSERT_TRUE(engineObject == nullptr);
-	//engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
+	//engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), "inst.interface");
 	//ASSERT_TRUE(engineObject != nullptr);
 }
 
@@ -161,17 +161,17 @@ TEST_F(LuaInterfaceAdaptorFixture, change_name) {
 
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 1);
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaInterface>().size(), 1);
+	auto engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 	ASSERT_EQ(engineObject->getUserId(), interface->objectIDAsRamsesLogicID());
 
 	commandInterface.set({interface, &LuaInterface::objectName_}, std::string("newName"));
 	dispatch();
 
-	ASSERT_EQ(sceneContext.logicEngine().getCollection<rlogic::LuaInterface>().size(), 1);
-	ASSERT_EQ(select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str()), nullptr);
-	engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("newName").c_str());
+	ASSERT_EQ(sceneContext.logicEngine().getCollection<ramses::LuaInterface>().size(), 1);
+	ASSERT_EQ(select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str()), nullptr);
+	engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("newName").c_str());
 	ASSERT_TRUE(engineObject != nullptr);
 	ASSERT_EQ(engineObject->getUserId(), interface->objectIDAsRamsesLogicID());
 }
@@ -181,18 +181,18 @@ TEST_F(LuaInterfaceAdaptorFixture, change_property_value) {
 	auto interface = create_lua_interface("interface", interfaceFile);
 	dispatch();
 
-	auto engineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
+	auto engineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("interface").c_str());
 
 	ASSERT_EQ(engineObject->getInputs()->getChild("float")->get<float>(), 0.0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 0.0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 0.0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 0.0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 0.0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 0.0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 0.0);
 
 	ASSERT_EQ(engineObject->getInputs()->getChild("integer")->get<int>(), 0);
 	ASSERT_EQ(engineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{0});
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 0);
 
 	ASSERT_EQ(engineObject->getInputs()->getChild("bool")->get<bool>(), false);
 	ASSERT_EQ(engineObject->getInputs()->getChild("string")->get<std::string>(), std::string());
@@ -212,30 +212,30 @@ TEST_F(LuaInterfaceAdaptorFixture, change_property_value) {
 	dispatch();
 	// check inputs
 	ASSERT_EQ(engineObject->getInputs()->getChild("float")->get<float>(), 1.0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 2.0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 3.0);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 4.0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 2.0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 3.0);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 4.0);
 
 	ASSERT_EQ(engineObject->getInputs()->getChild("integer")->get<int>(), 5);
 	ASSERT_EQ(engineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{6});
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 7);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 8);
-	ASSERT_EQ(engineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 9);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 7);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 8);
+	ASSERT_EQ(engineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 9);
 
 	ASSERT_EQ(engineObject->getInputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(engineObject->getInputs()->getChild("string")->get<std::string>(), std::string("asdf"));
 
 	// check outputs
 	ASSERT_EQ(engineObject->getOutputs()->getChild("float")->get<float>(), 1.0);
-	ASSERT_EQ(engineObject->getOutputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 2.0);
-	ASSERT_EQ(engineObject->getOutputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 3.0);
-	ASSERT_EQ(engineObject->getOutputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 4.0);
+	ASSERT_EQ(engineObject->getOutputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 2.0);
+	ASSERT_EQ(engineObject->getOutputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 3.0);
+	ASSERT_EQ(engineObject->getOutputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 4.0);
 
 	ASSERT_EQ(engineObject->getOutputs()->getChild("integer")->get<int>(), 5);
 	ASSERT_EQ(engineObject->getOutputs()->getChild("integer64")->get<int64_t>(), int64_t{6});
-	ASSERT_EQ(engineObject->getOutputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 7);
-	ASSERT_EQ(engineObject->getOutputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 8);
-	ASSERT_EQ(engineObject->getOutputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 9);
+	ASSERT_EQ(engineObject->getOutputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 7);
+	ASSERT_EQ(engineObject->getOutputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 8);
+	ASSERT_EQ(engineObject->getOutputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 9);
 
 	ASSERT_EQ(engineObject->getOutputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(engineObject->getOutputs()->getChild("string")->get<std::string>(), std::string("asdf"));
@@ -251,8 +251,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_invalid_interface_to_invalid_script) {
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto ramsesEnd = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
+	auto ramsesStart = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto ramsesEnd = select<ramses::LuaScript>(sceneContext.logicEngine(), "end");
 	EXPECT_EQ(ramsesStart, nullptr);
 	EXPECT_EQ(ramsesEnd, nullptr);
 
@@ -270,8 +270,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_invalid_interface_to_invalid_interface) 
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto ramsesStart = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto ramsesEnd = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	EXPECT_EQ(ramsesStart, nullptr);
 	EXPECT_EQ(ramsesEnd, nullptr);
 
@@ -291,8 +291,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_empty_interface_to_empty_script) {
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto ramsesEnd = select<rlogic::LuaScript>(sceneContext.logicEngine(), "end");
+	auto ramsesStart = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto ramsesEnd = select<ramses::LuaScript>(sceneContext.logicEngine(), "end");
 	EXPECT_NE(ramsesStart, nullptr);
 	EXPECT_NE(ramsesEnd, nullptr);
 
@@ -311,8 +311,8 @@ TEST_F(LuaInterfaceAdaptorFixture, link_empty_interface_to_empty_interface) {
 	// test shouldn't crash here
 	dispatch();
 
-	auto ramsesStart = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto ramsesEnd = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto ramsesStart = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto ramsesEnd = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	EXPECT_NE(ramsesStart, nullptr);
 	EXPECT_NE(ramsesEnd, nullptr);
 
@@ -338,21 +338,21 @@ TEST_F(LuaInterfaceAdaptorFixture, link_individual_propagate_values) {
 	commandInterface.set({start, {"inputs", "string"}}, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto endEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto startEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto endEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 0.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 0);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{0});
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), false);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string());
@@ -372,15 +372,15 @@ TEST_F(LuaInterfaceAdaptorFixture, link_individual_propagate_values) {
 	dispatch();
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 1.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 2.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 3.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 4.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 2.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 3.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 4.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 5);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{6});
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 7);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 8);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 9);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 7);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 8);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 9);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string("asdf"));
@@ -412,21 +412,21 @@ TEST_F(LuaInterfaceAdaptorFixture, link_container_propagate_values) {
 	commandInterface.set({start, {"inputs", "string"}}, std::string("asdf"));
 
 	dispatch();
-	auto startEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
-	auto endEngineObject = select<rlogic::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
+	auto startEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("start").c_str());
+	auto endEngineObject = select<ramses::LuaInterface>(sceneContext.logicEngine(), std::string("end").c_str());
 	ASSERT_TRUE(startEngineObject != nullptr);
 	ASSERT_TRUE(endEngineObject != nullptr);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 0.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 0.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 0.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 0);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{0});
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), false);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string());
@@ -435,15 +435,15 @@ TEST_F(LuaInterfaceAdaptorFixture, link_container_propagate_values) {
 	dispatch();
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("float")->get<float>(), 1.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<rlogic::vec2f>().value()[1], 2.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<rlogic::vec3f>().value()[2], 3.0);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<rlogic::vec4f>().value()[3], 4.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2f")->get<ramses::vec2f>().value()[1], 2.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3f")->get<ramses::vec3f>().value()[2], 3.0);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4f")->get<ramses::vec4f>().value()[3], 4.0);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer")->get<int>(), 5);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("integer64")->get<int64_t>(), int64_t{6});
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<rlogic::vec2i>().value()[1], 7);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<rlogic::vec3i>().value()[2], 8);
-	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<rlogic::vec4i>().value()[3], 9);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector2i")->get<ramses::vec2i>().value()[1], 7);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector3i")->get<ramses::vec3i>().value()[2], 8);
+	ASSERT_EQ(endEngineObject->getInputs()->getChild("vector4i")->get<ramses::vec4i>().value()[3], 9);
 
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("bool")->get<bool>(), true);
 	ASSERT_EQ(endEngineObject->getInputs()->getChild("string")->get<std::string>(), std::string("asdf"));

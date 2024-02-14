@@ -23,7 +23,7 @@ TEST_F(SkinTest, uri_empty) {
 	ValueHandle uriHandle{skin, &Skin::uri_};
 
 	EXPECT_TRUE(commandInterface.errors().hasError(uriHandle));
-	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::WARNING);
+	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::WARNING);
 }
 
 TEST_F(SkinTest, uri_invalid) {
@@ -32,7 +32,7 @@ TEST_F(SkinTest, uri_invalid) {
 	commandInterface.set(uriHandle, std::string("invalid"));
 
 	EXPECT_TRUE(commandInterface.errors().hasError(uriHandle));
-	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), raco::core::ErrorLevel::ERROR);
+	EXPECT_EQ(commandInterface.errors().getError(uriHandle).level(), core::ErrorLevel::ERROR);
 }
 
 TEST_F(SkinTest, uri_valid) {
@@ -60,14 +60,14 @@ TEST_F(SkinTest, skin_index_range_errors) {
 
 	EXPECT_EQ(skin->joints_->size(), 0);
 	EXPECT_TRUE(commandInterface.errors().hasError({skin}));
-	EXPECT_EQ(commandInterface.errors().getError({skin}).level(), raco::core::ErrorLevel::ERROR);
+	EXPECT_EQ(commandInterface.errors().getError({skin}).level(), core::ErrorLevel::ERROR);
 	EXPECT_EQ(skin->skinData(), nullptr);
 
 	commandInterface.set(indexHandle, 0);
 
 	EXPECT_EQ(skin->joints_->size(), 2);
 	EXPECT_TRUE(commandInterface.errors().hasError({skin}));
-	EXPECT_EQ(commandInterface.errors().getError({skin}).level(), raco::core::ErrorLevel::INFORMATION);
+	EXPECT_EQ(commandInterface.errors().getError({skin}).level(), core::ErrorLevel::INFORMATION);
 	EXPECT_NE(skin->skinData(), nullptr);
 	EXPECT_EQ(skin->skinData()->numSkins, 1);
 	EXPECT_EQ(skin->skinData()->inverseBindMatrices.size(), 2);

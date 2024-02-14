@@ -9,6 +9,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ]]
 set(TEST_SOURCES 
     ObjectTreeDockManager_test.h ObjectTreeDockManager_test.cpp
+    ObjectTreeFilter_test.h ObjectTreeFilter_test.cpp
     ObjectTreeNode_test.cpp
     ObjectTreeViewExternalProjectModel_test.cpp
     ObjectTreeViewDefaultModel_test.h ObjectTreeViewDefaultModel_test.cpp
@@ -30,3 +31,9 @@ raco_package_add_gui_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+get_target_property(object_tree_private_includes raco::ObjectTree INCLUDE_DIRECTORIES)
+get_target_property(object_tree_private_libraries raco::ObjectTree LINK_LIBRARIES)
+
+target_include_directories(libObjectTree_test PRIVATE ${object_tree_private_includes})
+target_link_libraries(libObjectTree_test ${object_tree_private_libraries})

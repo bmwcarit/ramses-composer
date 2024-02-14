@@ -120,7 +120,7 @@ std::string Project::currentFolder() const {
 }
 
 std::string Project::currentPath() const {
-	return (raco::utils::u8path(currentFolder()) / currentFileName()).string();
+	return (utils::u8path(currentFolder()) / currentFileName()).string();
 }
 
 std::string Project::currentFileName() const {
@@ -256,7 +256,7 @@ void Project::addExternalProjectMapping(const std::string& projectID, const std:
 		throw ExtrefError("External reference project loop detected (based on same project path).");
 	}
 
-	auto relPath = raco::utils::u8path(absPath).normalizedRelativePath(currentFolder()).string();
+	auto relPath = utils::u8path(absPath).normalizedRelativePath(currentFolder()).string();
 
 	auto it = externalProjectsMap_.find(projectID);
 	if (it != externalProjectsMap_.end()) {
@@ -303,7 +303,7 @@ bool Project::hasExternalProjectMapping(const std::string& projectID) const {
 std::string Project::lookupExternalProjectPath(const std::string& projectID) const {
 	auto it = externalProjectsMap_.find(projectID);
 	if (it != externalProjectsMap_.end()) {
-		return raco::utils::u8path(it->second.path).normalizedAbsolutePath(currentFolder()).string();
+		return utils::u8path(it->second.path).normalizedAbsolutePath(currentFolder()).string();
 	}
 	return std::string();
 }
@@ -318,13 +318,13 @@ std::string Project::lookupExternalProjectName(const std::string& projectID) con
 
 void Project::rerootExternalProjectPaths(const std::string oldFolder, const std::string newFolder) {
 	for (auto& item : externalProjectsMap_) {
-		item.second.path = raco::utils::u8path(item.second.path).rerootRelativePath(oldFolder, newFolder).string();
+		item.second.path = utils::u8path(item.second.path).rerootRelativePath(oldFolder, newFolder).string();
 	}
 }
 
 bool Project::usesExternalProjectByPath(const std::string& absPath) const {
 	for (auto item : externalProjectsMap_) {
-		if (raco::utils::u8path(item.second.path).normalizedAbsolutePath(currentFolder()) == absPath) {
+		if (utils::u8path(item.second.path).normalizedAbsolutePath(currentFolder()) == absPath) {
 			return true;
 		}
 	}

@@ -3,6 +3,7 @@
 precision mediump float;
 
 struct struct_prim {
+	bool b;
 	int i;
 	float f;
 	
@@ -23,6 +24,7 @@ struct struct_sampler {
 };
 
 struct struct_array_prim {
+	bool bvec[3];
 	int ivec[2];
 	float fvec[5];
 

@@ -25,43 +25,45 @@ void AnimationChannel::onAfterValueChanged(BaseContext& context, ValueHandle con
 	}
 }
 
-raco::core::PropertyInterface AnimationChannel::getOutputProperty() const {
-	if (currentSamplerData_->getOutputComponentType() == EnginePrimitive::Array) {
+core::PropertyInterface AnimationChannel::getOutputProperty() const {
+	if (currentSamplerData_->componentType == EnginePrimitive::Array) {
 		return PropertyInterface::makeArrayOf(objectName(), EnginePrimitive::Double, currentSamplerData_->getOutputComponentSize());
 	}
-	return {objectName(), currentSamplerData_->getOutputComponentType()};
+	return {objectName(), currentSamplerData_->componentType};
 }
 
 void AnimationChannel::updateFromExternalFile(BaseContext& context) {
+	// TODO(error) try to avoid unnecessary error item updates
 	context.errors().removeError({shared_from_this()});
-	context.errors().removeError({shared_from_this(), &AnimationChannel::uri_});
+
+	ValueHandle uriHandle{shared_from_this(), &AnimationChannel::uri_};
 	context.errors().removeError({shared_from_this(), &AnimationChannel::animationIndex_});
 	context.errors().removeError({shared_from_this(), &AnimationChannel::samplerIndex_});
 
 	currentSamplerData_.reset();
 	context.changeMultiplexer().recordPreviewDirty(shared_from_this());
 
-	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), {shared_from_this(), {"uri"}});
-	if (!(validateURI(context, {shared_from_this(), &AnimationChannel::uri_})) || uriAbsPath.empty()) {
+	if (!validateURI(context, uriHandle)) {
 		return;
 	}
 
+	auto uriAbsPath = PathQueries::resolveUriPropertyToAbsolutePath(*context.project(), uriHandle);
 	auto scenegraph = context.meshCache()->getMeshScenegraph(uriAbsPath);
 	if (!scenegraph) {
 		auto fileErrorText = context.meshCache()->getMeshError(uriAbsPath);
 		auto errorText = fileErrorText.empty() ? "Selected Animation Source file is not valid."
 											   : fmt::format("Error while loading Animation Source:\n\n{}", fileErrorText);
-		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), {"uri"}}, errorText);
+		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, uriHandle, errorText);
 		return;
 	}
 
 	auto animationAmount = scenegraph->animations.size();
 	if (animationAmount == 0) {
-		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::WARNING, ValueHandle{shared_from_this(), {"uri"}}, "Selected Animation Source does not contain animations.");		
+		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::WARNING, uriHandle, "Selected Animation Source does not contain animations.");		
 		return;
 	}
 
-	auto animIndex = ValueHandle{shared_from_this(), &AnimationChannel::animationIndex_}.asInt();
+	auto animIndex = *animationIndex_;
 	if (animIndex < 0 || animIndex >= animationAmount) {
 		auto errorText = fmt::format("Selected animation index is outside of valid range [{}, {}]", 0, animationAmount - 1);
 		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this(), &AnimationChannel::animationIndex_}, errorText);
@@ -69,7 +71,7 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 	}
 
 	auto samplerAmount = scenegraph->animationSamplers[animIndex].size();
-	auto animSamplerIndex = ValueHandle{shared_from_this(), &AnimationChannel::samplerIndex_}.asInt();
+	auto animSamplerIndex = *samplerIndex_;
 	if (animSamplerIndex < 0 || animSamplerIndex >= samplerAmount) {
 		auto errorText = fmt::format("Selected animation sampler index is outside of valid range [{}, {}]", 0, samplerAmount - 1);
 		context.errors().addError(ErrorCategory::GENERAL, ErrorLevel::ERROR, ValueHandle{shared_from_this(), &AnimationChannel::samplerIndex_}, errorText);
@@ -82,49 +84,43 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 		auto errorText = fileErrorText.empty() ? "Selected Animation Source does not contain valid animation samplers."
 											   : fmt::format("Error while loading Animation Source:\n\n{}", fileErrorText);
 
-		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), {"uri"}}, errorText);
+		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, uriHandle, errorText);
 		currentSamplerData_.reset();
 		return;
 	}
 
-	if (currentSamplerData_->input.empty()) {
+	if (currentSamplerData_->timeStamps.empty()) {
 		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid input data.");
 		currentSamplerData_.reset();
 		return;
 	}
 
-	if (currentSamplerData_->output.empty()) {
+	if (currentSamplerData_->keyFrames.empty()) {
 		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid output data.");
 		currentSamplerData_.reset();
 		return;
 	}
 
-	bool unsupportedArray = currentSamplerData_->getOutputComponentType() == EnginePrimitive::Array && context.project()->featureLevel() < 4;
-
-	createSamplerInfoBox(context, animationAmount, samplerAmount, unsupportedArray);
+	createSamplerInfoBox(context, animationAmount, samplerAmount);
 }
 
-void AnimationChannel::createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount, bool unsupportedArray) {
+void AnimationChannel::createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount) {
 	std::string samplerInfoText;
-	if (unsupportedArray) {
-		samplerInfoText.append(fmt::format("Can't create RamsesLogic DataArrays for AnimationChannel '{}': array samplers are only supported at feature level >= 4.\n\n", objectName()));
-	}
 	samplerInfoText.append(fmt::format("Current Animation: {} of {}\n", *animationIndex_ + 1, animationAmount));
 	samplerInfoText.append(fmt::format("Current Sampler: {} of {}\n\n", *samplerIndex_ + 1, samplerAmount));
 
-	samplerInfoText.append(fmt::format("Keyframes (non-interpolated): {}\n", currentSamplerData_->input.size()));
-	auto type = currentSamplerData_->getOutputComponentType();
+	samplerInfoText.append(fmt::format("Keyframes (non-interpolated): {}\n", currentSamplerData_->timeStamps.size()));
+	auto type = currentSamplerData_->componentType;
 	samplerInfoText.append(fmt::format("Component Type: {}\n", type));
 	if (type == EnginePrimitive::Array) {
 		samplerInfoText.append(fmt::format("Component Size: {}\n", currentSamplerData_->getOutputComponentSize()));
 	}
 	samplerInfoText.append(fmt::format("Interpolation: {}\n", currentSamplerData_->interpolation));
-	samplerInfoText.append(fmt::format("Start: {:.2f} s\n", currentSamplerData_->input.front()));
-	samplerInfoText.append(fmt::format("End: {:.2f} s\n", currentSamplerData_->input.back()));
-	samplerInfoText.append(fmt::format("Duration: {:.2f} s", currentSamplerData_->input.back() - currentSamplerData_->input.front()));
+	samplerInfoText.append(fmt::format("Start: {:.2f} s\n", currentSamplerData_->timeStamps.front()));
+	samplerInfoText.append(fmt::format("End: {:.2f} s\n", currentSamplerData_->timeStamps.back()));
+	samplerInfoText.append(fmt::format("Duration: {:.2f} s", currentSamplerData_->timeStamps.back() - currentSamplerData_->timeStamps.front()));
 
-	context.errors().addError(raco::core::ErrorCategory::GENERAL, unsupportedArray ? raco::core::ErrorLevel::ERROR : raco::core::ErrorLevel::INFORMATION, 
-		{shared_from_this()}, samplerInfoText);
+	context.errors().addError(core::ErrorCategory::GENERAL, core::ErrorLevel::INFORMATION, {shared_from_this()}, samplerInfoText);
 }
 
 }  // namespace raco::user_types

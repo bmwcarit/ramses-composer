@@ -17,6 +17,7 @@
 #include "core/Queries.h"
 #include "ramses_adaptor/AnchorPointAdaptor.h"
 #include "ramses_adaptor/AnimationAdaptor.h"
+#include "ramses_adaptor/DefaultRamsesObjects.h"
 #include "ramses_adaptor/Factories.h"
 #include "ramses_adaptor/LuaScriptAdaptor.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
@@ -42,75 +43,29 @@ namespace raco::ramses_adaptor {
 
 using namespace raco::ramses_base;
 
-inline RamsesEffect createDefaultEffect(ramses::Scene* scene, bool withNormals) {
-	ramses::EffectDescription effectDescription{};
-	effectDescription.setVertexShader(withNormals ? defaultVertexShaderWithNormals : defaultVertexShader);
-	effectDescription.setFragmentShader(withNormals ? defaultFragmentShaderWithNormals : defaultFragmentShader);
-	effectDescription.setUniformSemantic("mvpMatrix", ramses::EEffectUniformSemantic::ModelViewProjectionMatrix);
-	return ramsesEffect(scene, effectDescription, (withNormals) ? defaultEffectWithNormalsName : defaultEffectName);
-}
-
-inline RamsesArrayResource createDefaultIndexDataBuffer(ramses::Scene* scene) {
-	static std::vector<unsigned int> indices{
-		// front
-		0, 1, 2,
-		2, 3, 0,
-		// right
-		1, 5, 6,
-		6, 2, 1,
-		// back
-		7, 6, 5,
-		5, 4, 7,
-		// left
-		4, 0, 3,
-		3, 7, 4,
-		// bottom
-		4, 5, 1,
-		1, 0, 4,
-		// top
-		3, 2, 6,
-		6, 7, 3};
-	return ramsesArrayResource(scene, ramses::EDataType::UInt32, static_cast<uint32_t>(indices.size()), indices.data(), defaultIndexDataBufferName);
-}
-
-inline RamsesArrayResource createDefaultVertexDataBuffer(ramses::Scene* scene) {
-	static std::vector<float> vertices{
-		// front
-		-1.0f, -1.0f, 1.0f,
-		1.0f, -1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f,
-		// back
-		-1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, 1.0f, -1.0f,
-		-1.0f, 1.0f, -1.0f};
-	return ramsesArrayResource(scene, ramses::EDataType::Vector3F, static_cast<uint32_t>(vertices.size()), vertices.data(), defaultVertexDataBufferName);
-}
-
-SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngine* logicEngine, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors, bool optimizeForExport)
+SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses::sceneId_t id, Project* project, components::SDataChangeDispatcher dispatcher, core::Errors* errors, bool optimizeForExport)
 	: client_{client},
-	  logicEngine_{logicEngine},
 	  project_(project),
 	  scene_{ramsesScene(id, client_)},
+	  logicEngine_{ramses_base::BaseEngineBackend::UniqueLogicEngine(scene_->createLogicEngine(), [this](ramses::LogicEngine* logicEngine) { scene_->destroy(*logicEngine); })},
 	  subscription_{dispatcher->registerOnObjectsLifeCycle([this](SEditorObject obj) { createAdaptor(obj); }, [this](SEditorObject obj) { removeAdaptor(obj); })},
 	  childrenSubscription_(dispatcher->registerOnPropertyChange("children", [this](core::ValueHandle handle) {
-	adaptorStatusDirty_ = true; 
-		  })),
+		  adaptorStatusDirty_ = true;
+	  })),
 	  linksLifecycle_{dispatcher->registerOnLinksLifeCycle(
-		  [this](const core::LinkDescriptor& link) { createLink(link); },
+		  [this](const core::LinkDescriptor& link) { createLink(link); }, 
 		  [this](const core::LinkDescriptor& link) { removeLink(link); })},
 	  linkValidityChangeSub_{dispatcher->registerOnLinkValidityChange(
 		  [this](const core::LinkDescriptor& link) { changeLinkValidity(link, link.isValid); })},
 	  dispatcher_{dispatcher},
 	  errors_{errors},
-      optimizeForExport_(optimizeForExport) {
+	  optimizeForExport_(optimizeForExport) {
 
 	for (const SEditorObject& obj : project_->instances()) {
 		createAdaptor(obj);
 	}
 
-	dispatcher_->registerBulkChangeCallback([this](const core::SEditorObjectSet& changedObjects) {
+	dispatcher_->addBulkChangeCallback(id.getValue(), [this](const core::SEditorObjectSet& changedObjects) {
 		performBulkEngineUpdate(changedObjects);
 	});
 
@@ -123,11 +78,11 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses_base::LogicEngin
 	performBulkEngineUpdate(initialBulkUpdate);
 
 	scene_->flush();
-	scene_->publish();
+	scene_->publish(ramses::EScenePublicationMode::LocalAndRemote);
 }
 
 SceneAdaptor::~SceneAdaptor() {
-	dispatcher_->resetBulkChangeCallback();
+	dispatcher_->removeBulkChangeCallback(sceneId().getValue());
 }
 
 ramses::Scene* SceneAdaptor::scene() {
@@ -157,8 +112,8 @@ void SceneAdaptor::removeAdaptor(SEditorObject obj) {
 	auto adaptorWasLogicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(obj)) != nullptr;
 	adaptors_.erase(obj);
 	deleteUnusedDefaultResources();
-	if (adaptorWasLogicProvider) {
-		updateRuntimeErrorList();
+	if (adaptorWasLogicProvider && lastErrorObject_ == obj) {
+		clearRuntimeError();
 	}
 	dependencyGraph_.clear();
 }
@@ -173,51 +128,32 @@ bool SceneAdaptor::optimizeForExport() const {
 	return optimizeForExport_;
 }
 
-rlogic::EFeatureLevel SceneAdaptor::featureLevel() const {
-	return logicEngine_->getFeatureLevel();
+ramses::EFeatureLevel SceneAdaptor::featureLevel() const {
+	return client_->getRamsesFramework().getFeatureLevel();
 }
 
-void SceneAdaptor::updateRuntimeErrorList() {
-	auto logicEngineErrors = logicEngine().getErrors();
-	if (logicEngineErrors.empty()) {
-		errors_->removeIf([](const core::ErrorItem& errorItem) {
-			return errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME;
-		});
-
-		return;
-	}
-
-	// Avoid having to search the entire list of errors for each instance and O(N*M) complexity
-	std::sort(logicEngineErrors.begin(), logicEngineErrors.end(), [](rlogic::ErrorData const& e1, rlogic::ErrorData const& e2) {
-		return e1.object < e2.object;
-	});
+void SceneAdaptor::updateRuntimeError(const ramses::Issue& issue) {
 	std::unordered_set<ILogicPropertyProvider*> logicProvidersWithoutRuntimeError;
-	std::string runtimeErrorObjectNames;
+	std::string runtimeErrorObjectName;
+	lastErrorObject_ = nullptr;
+
 	for (const auto& instance : project().instances()) {
 		if (auto logicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(instance))) {
-			std::vector<rlogic::LogicNode*> logicNodes;
+			std::vector<ramses::LogicNode*> logicNodes;
 			logicProvider->getLogicNodes(logicNodes);
-			rlogic::ErrorData const* runtimeError = nullptr;
-			for (auto logicNode : logicNodes) {
-				auto const itRuntimeErrorForScript = std::lower_bound(logicEngineErrors.begin(), logicEngineErrors.end(), logicNode, [](rlogic::ErrorData const& e, rlogic::LogicNode* s) {
-					return e.object < s;
-				});
-				if (itRuntimeErrorForScript != logicEngineErrors.end() && itRuntimeErrorForScript->object == logicNode) {
-					runtimeError = &*itRuntimeErrorForScript;
-					break;
-				}
-			}
-			if (runtimeError != nullptr) {
-				runtimeErrorObjectNames.append("\n'" + instance->objectName() + "'");
+
+			if (std::find(logicNodes.begin(), logicNodes.end(), issue.object) != logicNodes.end()) {
+				runtimeErrorObjectName = instance->objectName();
 
 				// keep the old runtime error message if it is identical to the new message to prevent unnecessary error regeneration in the UI
 				if (errors_->hasError(instance)) {
 					auto instError = errors_->getError(instance);
-					if (instError.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME && instError.message() != runtimeError->message) {
+					if (instError.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME && instError.message() != issue.message) {
 						errors_->removeError(instance);
 					}
 				}
-				logicProvider->onRuntimeError(*errors_, runtimeError->message, core::ErrorLevel::ERROR);
+				lastErrorObject_ = instance;
+				logicProvider->onRuntimeError(*errors_, issue.message, core::ErrorLevel::ERROR);
 			} else {
 				logicProvidersWithoutRuntimeError.emplace(logicProvider);
 			}
@@ -225,7 +161,7 @@ void SceneAdaptor::updateRuntimeErrorList() {
 	}
 
 	// keep the old runtime error info message if it is identical to the new message to prevent unnecessary error regeneration in the UI
-	auto ramsesLogicErrorFoundMsg = fmt::format("Ramses logic engine detected a runtime error in{}\nBe aware that some Lua script outputs and/or linked properties might not have been updated.", runtimeErrorObjectNames);
+	auto ramsesLogicErrorFoundMsg = fmt::format("Ramses logic engine detected a runtime error in '{}'.\nBe aware that some Lua script outputs and/or linked properties might not have been updated.", runtimeErrorObjectName);
 	errors_->removeIf([this, &ramsesLogicErrorFoundMsg, &logicProvidersWithoutRuntimeError](const core::ErrorItem& errorItem) {
 		if (auto logicProvider = dynamic_cast<ILogicPropertyProvider*>(lookupAdaptor(errorItem.valueHandle().rootObject()))) {
 			return logicProvidersWithoutRuntimeError.count(logicProvider) == 1 && errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME && errorItem.message() != ramsesLogicErrorFoundMsg;
@@ -238,6 +174,13 @@ void SceneAdaptor::updateRuntimeErrorList() {
 	}
 }
 
+void SceneAdaptor::clearRuntimeError() {
+	lastErrorObject_ = nullptr;
+	errors_->removeIf([](const core::ErrorItem& errorItem) {
+		return errorItem.category() == core::ErrorCategory::RAMSES_LOGIC_RUNTIME;
+	});
+}
+
 void SceneAdaptor::deleteUnusedDefaultResources() {
 	// Resource use count is 1 => it is stored in the scene but not used by any MeshNodeAdaptor
 	// - delete the resource as to not get unnecessarily exported.
@@ -247,23 +190,27 @@ void SceneAdaptor::deleteUnusedDefaultResources() {
 	if (defaultAppearanceWithNormals_.use_count() == 1) {
 		defaultAppearanceWithNormals_.reset();
 	}
-	if (defaultEffect_.use_count() == 1) {
-		defaultEffect_.reset();
+	if (defaultIndices_[0].use_count() == 1) {
+		defaultIndices_[0].reset();
 	}
-	if (defaultEffectWithNormals_.use_count() == 1) {
-		defaultEffectWithNormals_.reset();
+	if (defaultIndices_[1].use_count() == 1) {
+		defaultIndices_[1].reset();
 	}
-	if (defaultIndices_.use_count() == 1) {
-		defaultIndices_.reset();
+	if (defaultVertices_[0].use_count() == 1) {
+		defaultVertices_[0].reset();
 	}
-	if (defaultVertices_.use_count() == 1) {
-		defaultVertices_.reset();
+	if (defaultVertices_[1].use_count() == 1) {
+		defaultVertices_[1].reset();
+	}
+	if (defaultNormals_[0].use_count() == 1) {
+		defaultNormals_[0].reset();
+	}
+	if (defaultNormals_[1].use_count() == 1) {
+		defaultNormals_[1].reset();
 	}
 }
 
 void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
-	updateRuntimeErrorList();
-
 	for (const auto& [endObjecttID, linkMap] : links_.linksByEnd_) {
 		for (const auto& [link, adaptor] : linkMap) {
 			adaptor->readDataFromEngine(recorder);
@@ -309,7 +256,7 @@ ramses::RamsesClient* SceneAdaptor::client() {
 	return client_;
 }
 
-ramses_base::LogicEngine& SceneAdaptor::logicEngine() {
+ramses::LogicEngine& SceneAdaptor::logicEngine() {
 	return *logicEngine_;
 }
 
@@ -322,35 +269,32 @@ const SRamsesAdaptorDispatcher SceneAdaptor::dispatcher() const {
 }
 
 const RamsesAppearance SceneAdaptor::defaultAppearance(bool withMeshNormals) {
-	if (withMeshNormals) {
-		if (!defaultEffectWithNormals_) {
-			defaultEffectWithNormals_ = createDefaultEffect(scene_.get(), true);
-			defaultAppearanceWithNormals_ = raco::ramses_base::ramsesAppearance(scene(), defaultEffectWithNormals_);
-			(*defaultAppearanceWithNormals_)->setName(defaultAppearanceWithNormalsName);
-		}
-		return defaultAppearanceWithNormals_;
+	ramses_base::RamsesAppearance& appearance = withMeshNormals ? defaultAppearanceWithNormals_ : defaultAppearance_;
+	if (!appearance) {
+		appearance = createDefaultAppearance(scene_.get(), withMeshNormals, false, false);
 	}
-
-	if (!defaultEffect_) {
-		defaultEffect_ = createDefaultEffect(scene_.get(), false);
-		defaultAppearance_ = raco::ramses_base::ramsesAppearance(scene(), defaultEffect_);
-		(*defaultAppearance_)->setName(defaultAppearanceName);
-	}
-	return defaultAppearance_;
+	return appearance;
 }
 
-const RamsesArrayResource SceneAdaptor::defaultVertices() {
-	if (!defaultVertices_) {
-		defaultVertices_ = createDefaultVertexDataBuffer(scene_.get());
+const RamsesArrayResource SceneAdaptor::defaultVertices(int index) {
+	if (!defaultVertices_[index]) {
+		defaultVertices_[index] = index == 1 ? createCatVertexDataBuffer(scene_.get()) : createCubeVertexDataBuffer(scene_.get());
 	}
-	return defaultVertices_;
+	return defaultVertices_[index];
 }
 
-const RamsesArrayResource SceneAdaptor::defaultIndices() {
-	if (!defaultIndices_) {
-		defaultIndices_ = createDefaultIndexDataBuffer(scene_.get());
+const RamsesArrayResource SceneAdaptor::defaultNormals(int index) {
+	if (!defaultNormals_[index]) {
+		defaultNormals_[index] = index == 1 ? createCatNormalDataBuffer(scene_.get()) : createCubeNormalDataBuffer(scene_.get());
 	}
-	return defaultIndices_;
+	return defaultNormals_[index];
+}
+
+const RamsesArrayResource SceneAdaptor::defaultIndices(int index) {
+	if (!defaultIndices_[index]) {
+		defaultIndices_[index] = index == 1 ? createCatIndexDataBuffer(scene_.get()) : createCubeIndexDataBuffer(scene_.get());
+	}
+	return defaultIndices_[index];
 }
 
 ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObject) const {
@@ -364,51 +308,12 @@ ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObje
 	return nullptr;
 }
 
-raco::core::Project& SceneAdaptor::project() const {
+core::Project& SceneAdaptor::project() const {
 	return *project_;
 }
 
-void SceneAdaptor::depthFirstSearch(data_storage::ReflectionInterface* object, DependencyNode& item, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted) {
-	for (size_t index = 0; index < object->size(); index++) {
-		auto v = (*object)[index];
-		switch (v->type()) {
-			case data_storage::PrimitiveType::Ref: {
-				auto refValue = v->asRef();
-				if (refValue && instances.find(refValue) != instances.end()) {
-					depthFirstSearch(refValue, instances, sortedObjs, outSorted);
-					item.referencedObjects.insert(refValue);
-				}
-				break;
-			}
-			case data_storage::PrimitiveType::Table:
-				depthFirstSearch(&v->asTable(), item, instances, sortedObjs, outSorted);
-				break;
-		}
-	}
-}
-
-void SceneAdaptor::depthFirstSearch(SEditorObject object, SEditorObjectSet const& instances, SEditorObjectSet& sortedObjs, std::vector<DependencyNode>& outSorted) {
-	using namespace raco::core;
-
-	if (sortedObjs.find(object) != sortedObjs.end()) {
-		return;
-	}
-
-	DependencyNode item;
-	item.object = object;
-	depthFirstSearch(object.get(), item, instances, sortedObjs, outSorted);
-
-	outSorted.emplace_back(item);
-	sortedObjs.insert(item.object);
-}
-
 void SceneAdaptor::rebuildSortedDependencyGraph(SEditorObjectSet const& objects) {
-	dependencyGraph_.clear();
-	dependencyGraph_.reserve(objects.size());
-	SEditorObjectSet sortedObjs;
-	for (auto obj : objects) {
-		depthFirstSearch(obj, objects, sortedObjs, dependencyGraph_);
-	}
+	dependencyGraph_ = buildSortedDependencyGraph(objects);
 }
 
 void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects) {
@@ -442,9 +347,9 @@ void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changed
 			return error.valueHandle().isRefToProp(&user_types::RenderPass::renderOrder_) || error.valueHandle().isRefToProp(&user_types::BlitPass::renderOrder_);
 		});
 
-		std::map<int, std::vector<raco::core::SEditorObject>> orderIndices;
+		std::map<int, std::vector<core::SEditorObject>> orderIndices;
 		for (auto const& obj : project_->instances()) {
-			if (obj->isType<raco::user_types::RenderPass>() || obj->isType<raco::user_types::BlitPass>()) {
+			if (obj->isType<user_types::RenderPass>() || obj->isType<user_types::BlitPass>()) {
 				int order = obj->get("renderOrder")->asInt();
 				orderIndices[order].emplace_back(obj);
 			}

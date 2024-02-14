@@ -9,7 +9,6 @@
  */
 #include "property_browser/editors/TagContainerEditor.h"
 #include "TagContainerEditor/TagContainerEditor_Popup.h"
-#include "core/TagDataCache.h"
 #include "core/Queries_Tags.h"
 
 #include "property_browser/PropertyBrowserItem.h"

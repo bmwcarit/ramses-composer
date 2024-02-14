@@ -34,7 +34,8 @@ public:
 		  enabled_(other.enabled_),
 		  translation_(other.translation_),
 		  rotation_(other.rotation_),
-		  scaling_(other.scaling_) {
+		  scaling_(other.scaling_),
+		  editorVisibility_ (other.editorVisibility_) {
 		fillPropertyDescription();
 	}
 
@@ -50,6 +51,7 @@ public:
 		properties_.emplace_back("translation", &translation_);
 		properties_.emplace_back("rotation", &rotation_);
 		properties_.emplace_back("scaling", &scaling_);
+		properties_.emplace_back("editorVisibility", &editorVisibility_);
 	}
 
 	void onAfterContextActivated(BaseContext& context) override {
@@ -66,11 +68,16 @@ public:
 
 	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> visibility_{true, DisplayNameAnnotation("Visibility"), {}};
 	
-	Property<bool, DisplayNameAnnotation, LinkEndAnnotation, FeatureLevel> enabled_{true, DisplayNameAnnotation("Enabled"), {2}, FeatureLevel(2)};
+	Property<bool, DisplayNameAnnotation, LinkEndAnnotation> enabled_{true, DisplayNameAnnotation("Enabled"), {}};
 
 	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> translation_{Vec3f(0.0, 1.0, -100, 100), DisplayNameAnnotation("Translation"), {}};
 	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> scaling_{Vec3f(1.0, 0.1, 0.1, 100), DisplayNameAnnotation("Scaling"), {}};
 	Property<Vec3f, DisplayNameAnnotation, LinkEndAnnotation> rotation_{Vec3f(0.0, 5.0, -360.0, 360.0), DisplayNameAnnotation("Rotation"), {}};
+
+	/**
+	 * @brief The editor visibility controls the visibility of objects in the abstract scene view.
+	*/
+	Property<bool, VolatileProperty, HiddenProperty> editorVisibility_{true, {}, {}};
 };
 
 }  // namespace raco::user_types

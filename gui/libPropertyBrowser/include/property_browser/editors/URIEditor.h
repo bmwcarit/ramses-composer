@@ -15,20 +15,19 @@
 #include <QPushButton>
 
 namespace raco::property_browser {
-	
+
 class PropertyBrowserItem;
 
 class URIEditor : public StringEditor {
 	Q_OBJECT
-	Q_PROPERTY(bool updatedInBackground READ updatedInBackground);
-	Q_PROPERTY(int errorLevel READ errorLevel);
+	Q_PROPERTY(bool updatedInBackground READ updatedInBackground)
 
 public:
 	explicit URIEditor(PropertyBrowserItem* item, QWidget* parent = nullptr);
 
 protected:
-	// Returns 
-	// - the unique absolute path of all the handles if the absolute paths of the individual handles are 
+	// Returns
+	// - the unique absolute path of all the handles if the absolute paths of the individual handles are
 	//   all non-empty and equal.
 	// - nullopt otherwise.
 	std::optional<std::string> uniqueAbsolutePath();

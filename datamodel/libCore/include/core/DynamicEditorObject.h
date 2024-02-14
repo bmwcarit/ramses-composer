@@ -18,11 +18,11 @@
 
 namespace raco::serialization::proxy {
 
-using raco::data_storage::ValueBase;
+using data_storage::ValueBase;
 
 class DynamicPropertyInterface {
 public:
-	virtual ValueBase* addProperty(std::string const& name, raco::data_storage::PrimitiveType type) = 0;
+	virtual ValueBase* addProperty(std::string const& name, data_storage::PrimitiveType type) = 0;
 	virtual ValueBase* addProperty(std::string const& name, ValueBase* property, int index_before = -1) = 0;
 	virtual ValueBase* addProperty(std::string const& name, std::unique_ptr<ValueBase>&& property, int index_before) = 0;
 
@@ -34,9 +34,11 @@ public:
 template <class T>
 class DynamicPropertyMixin : public DynamicPropertyInterface {
 public:
-	raco::data_storage::ValueBase* addProperty(std::string const& name, raco::data_storage::PrimitiveType type) override {
+	data_storage::ValueBase* addProperty(std::string const& name, data_storage::PrimitiveType type) override {
 		T& asT = static_cast<T&>(*this);
-		assert(asT.get(name) == nullptr);
+		if (asT.hasProperty(name)) {
+			throw std::runtime_error(fmt::format("Property already exists."));
+		}
 		auto prop = dynamicProperties_.addProperty(name, type);
 		asT.properties_.emplace_back(name, prop);
 		return prop;
@@ -44,7 +46,9 @@ public:
 
 	ValueBase* addProperty(std::string const& name, ValueBase* property, int index_before) override {
 		T& asT = static_cast<T&>(*this);
-		assert(asT.get(name) == nullptr);
+		if (asT.hasProperty(name)) {
+			throw std::runtime_error(fmt::format("Property already exists."));
+		}
 		auto prop = dynamicProperties_.addProperty(name, property, index_before);
 		asT.properties_.emplace_back(name, prop);
 		return prop;
@@ -52,7 +56,9 @@ public:
 
 	ValueBase* addProperty(std::string const& name, std::unique_ptr<ValueBase>&& property, int index_before) override {
 		T& asT = static_cast<T&>(*this);
-		assert(asT.get(name) == nullptr);
+		if (asT.hasProperty(name)) {
+			throw std::runtime_error(fmt::format("Property already exists."));
+		}
 		auto prop = dynamicProperties_.addProperty(name, std::move(property), index_before);
 		asT.properties_.emplace_back(name, prop);
 		return prop;
@@ -60,7 +66,9 @@ public:
 
 	void removeProperty(std::string const& propertyName) override {
 		T& asT = static_cast<T&>(*this);
-		assert(asT.get(propertyName) != nullptr);
+		if (!asT.hasProperty(propertyName)) {
+			throw std::runtime_error(fmt::format("Invalid property."));
+		}
 		dynamicProperties_.removeProperty(propertyName);
 		auto it = std::find_if(asT.properties_.begin(), asT.properties_.end(),
 			[&propertyName](auto const& item) {
@@ -79,27 +87,35 @@ public:
 
 	std::unique_ptr<ValueBase> extractProperty(std::string const& propertyName) override {
 		T& asT = static_cast<T&>(*this);
+		if (!asT.hasProperty(propertyName)) {
+			throw std::runtime_error(fmt::format("Invalid property."));
+		}
 		auto clonedProp = asT.get(propertyName)->clone({});
 		removeProperty(propertyName);
 		return clonedProp;
 	}
 
 protected:
-	raco::data_storage::Table dynamicProperties_;
+	data_storage::Table dynamicProperties_;
 };
 
-class DynamicEditorObject : public raco::core::EditorObject, public DynamicPropertyMixin<DynamicEditorObject> {
+class DynamicEditorObject : public core::EditorObject, public DynamicPropertyMixin<DynamicEditorObject> {
 public:
 	DynamicEditorObject(std::string name = std::string(), std::string id = std::string())
 		: EditorObject(name, id) {
 	}
 
 	friend class DynamicPropertyMixin<DynamicEditorObject>;
+
+	void resetBackPointers() {
+		parent_.reset();
+		referencesToThis_.clear();
+	}
 };
 
 using SDynamicEditorObject = std::shared_ptr<DynamicEditorObject>;
 
-class DynamicGenericStruct : public raco::data_storage::StructBase, public DynamicPropertyMixin<DynamicGenericStruct> {
+class DynamicGenericStruct : public data_storage::StructBase, public DynamicPropertyMixin<DynamicGenericStruct> {
 public:
 	DynamicGenericStruct() : StructBase() {}
 

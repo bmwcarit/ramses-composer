@@ -41,7 +41,7 @@ TEST_F(DataModelTest, check_user_type_property_annotations) {
 			}
 
 			if (value->query<ArraySemanticAnnotation>()) {
-				EXPECT_TRUE(value->type() == PrimitiveType::Table) << fmt::format("{}:{} has ArraySemanticAnnotation but is not of type Table", name, object->name(index));
+				EXPECT_TRUE(value->type() == PrimitiveType::Table || value->type() == PrimitiveType::Array) << fmt::format("{}:{} has ArraySemanticAnnotation but is not of type Table or Array", name, object->name(index));
 			}
 
 			if (value->query<TagContainerAnnotation>()) {
@@ -57,7 +57,7 @@ TEST_F(DataModelTest, check_user_type_property_annotations) {
 			}
 
 			if (value->query<ExpectEmptyReference>()) {
-				EXPECT_TRUE(value->type() == PrimitiveType::Ref) << fmt::format("{}:{} has ExpectEmptyReference but is not of type Ref", name, object->name(index));
+				EXPECT_TRUE(value->type() == PrimitiveType::Ref || value->type() == PrimitiveType::Array && value->asArray().elementType() == PrimitiveType::Ref) << fmt::format("{}:{} has ExpectEmptyReference but is not of type Ref or Array<Ref>", name, object->name(index));
 			}
 
 			// These rules ensure that checking the feature level in the LinkEndAnnotation is sufficient to ensure linkability.

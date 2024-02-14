@@ -12,6 +12,8 @@
 #include "core/EditorObject.h"
 #include "core/BasicTypes.h"
 #include "core/Link.h"
+#include "data_storage/Array.h"
+
 
 #include <vector>
 
@@ -37,7 +39,7 @@ public:
 	}
 };
 
-class MockTableObject : public raco::core::EditorObject {
+class MockTableObject : public core::EditorObject {
 public:
 	static inline const TypeDescriptor typeDescription = {"MockTableObject", true};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -264,6 +266,48 @@ public:
 	}
 
 	Value<StructWithRef> s_{};
+};
+
+class ObjectWithArrays : public EditorObject {
+public:
+	static inline const TypeDescriptor typeDescription = {"ObjectWithArrays", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	ObjectWithArrays(ObjectWithArrays const& other)
+		: EditorObject(other),
+		  table_(other.table_),
+		  array_double_(other.array_double_),
+		  array_array_double_(other.array_array_double_),
+		  array_ref_(other.array_ref_),
+		  array_ref_resizable_(other.array_ref_resizable_),
+		  array_ref_array_semantic_(other.array_ref_array_semantic_) {
+		fillPropertyDescription();
+	}
+
+	ObjectWithArrays(std::string name = {}, std::string id = {}) : EditorObject(name, id) {
+		fillPropertyDescription();
+	}
+
+	void fillPropertyDescription() {
+		properties_.emplace_back("table", &table_);
+		properties_.emplace_back("array_double", &array_double_);
+		properties_.emplace_back("array_array_double", &array_array_double_);
+		properties_.emplace_back("array_ref", &array_ref_);
+		properties_.emplace_back("array_ref_resizable", &array_ref_resizable_);
+		properties_.emplace_back("array_ref_empty", &array_ref_array_semantic_);
+	}
+
+	Value<Table> table_{};
+
+	// These forms are used by the animation channel data
+	Value<Array<double>> array_double_{};
+	Value<Array<Array<double>>> array_array_double_{};
+
+	Value<Array<SEditorObject>> array_ref_;
+	Property<Array<SEditorObject>, ResizableArray> array_ref_resizable_;
+	Property<Array<SEditorObject>, ArraySemanticAnnotation> array_ref_array_semantic_;
 };
 
 class FutureType : public EditorObject {

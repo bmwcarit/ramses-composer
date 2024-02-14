@@ -13,11 +13,10 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include <cassert>
 
 namespace raco::data_storage {
 
-ValueBase* ReflectionInterface::operator[](std::string const& propertyName)
+ValueBase* ReflectionInterface::operator[](std::string_view propertyName)
 {
 	return get(propertyName);
 }
@@ -27,7 +26,7 @@ ValueBase* ReflectionInterface::operator[](size_t index)
 	return get(index);
 }
 
-const ValueBase* ReflectionInterface::operator[](std::string const& propertyName) const {
+const ValueBase* ReflectionInterface::operator[](std::string_view propertyName) const {
 	return get(propertyName);
 }
 
@@ -35,7 +34,7 @@ const ValueBase* ReflectionInterface::operator[](size_t index) const {
 	return get(index);
 }
 
-ValueBase* ClassWithReflectedMembers::get(std::string const& propertyName) {
+ValueBase* ClassWithReflectedMembers::get(std::string_view propertyName) {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&propertyName](auto const& item) {
 			return item.first == propertyName;
@@ -43,17 +42,17 @@ ValueBase* ClassWithReflectedMembers::get(std::string const& propertyName) {
 	if (it != properties_.end()) {
 		return it->second;
 	}
-	return nullptr;
+	throw std::out_of_range("ClassWithReflectedMembers::get: property doesn't exist.");
 }
 
 ValueBase* ClassWithReflectedMembers::get(size_t index) {
 	if (index < properties_.size()) {
 		return properties_[index].second;
 	}
-	return nullptr;
+	throw std::out_of_range("ClassWithReflectedMembers::get: index out of range.");
 }
 
-const ValueBase* ClassWithReflectedMembers::get(std::string const& propertyName) const {
+const ValueBase* ClassWithReflectedMembers::get(std::string_view propertyName) const {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&propertyName](auto const& item) {
 			return item.first == propertyName;
@@ -61,21 +60,21 @@ const ValueBase* ClassWithReflectedMembers::get(std::string const& propertyName)
 	if (it != properties_.end()) {
 		return it->second;
 	}
-	return nullptr;
+	throw std::out_of_range("ClassWithReflectedMembers::get: property doesn't exist.");
 }
 
 const ValueBase* ClassWithReflectedMembers::get(size_t index) const {
 	if (index < properties_.size()) {
 		return properties_[index].second;
 	}
-	return nullptr;
+	throw std::out_of_range("ClassWithReflectedMembers::get: index out of range.");
 }
 
 size_t ClassWithReflectedMembers::size() const {
 	return properties_.size();
 }
 
-int ClassWithReflectedMembers::index(std::string const& propertyName) const {
+int ClassWithReflectedMembers::index(std::string_view propertyName) const {
 	auto it = std::find_if(properties_.begin(), properties_.end(),
 		[&propertyName](auto const& item) {
 			return item.first == propertyName;
@@ -87,11 +86,13 @@ int ClassWithReflectedMembers::index(std::string const& propertyName) const {
 }
 
 const std::string& ClassWithReflectedMembers::name(size_t index) const {
-	assert(index < properties_.size());
+	if (index >= properties_.size()) {
+		throw std::out_of_range("ClassWithReflectedMembers::name: index out of range");
+	}
 	return properties_[index].first;
 }
 
-bool ReflectionInterface::hasProperty(std::string const& propertyName) const {
+bool ReflectionInterface::hasProperty(std::string_view propertyName) const {
 	return index(propertyName) != -1;
 }
 
@@ -127,7 +128,7 @@ bool ReflectionInterface::compare(const ReflectionInterface& left, const Reflect
 }
 
 
-std::shared_ptr<AnnotationBase> ClassWithReflectedMembers::query(const std::string& typeName) {
+std::shared_ptr<AnnotationBase> ClassWithReflectedMembers::query(std::string_view typeName) {
 	for (auto anno : annotations_ ) {
 		if (anno->serializationTypeName() == typeName) {
 			return anno;
@@ -136,7 +137,7 @@ std::shared_ptr<AnnotationBase> ClassWithReflectedMembers::query(const std::stri
 	return nullptr;
 }
 
-std::shared_ptr<const AnnotationBase> ClassWithReflectedMembers::query(const std::string& typeName) const {
+std::shared_ptr<const AnnotationBase> ClassWithReflectedMembers::query(std::string_view typeName) const {
 	for (auto anno : annotations_) {
 		if (anno->serializationTypeName() == typeName) {
 			return anno;

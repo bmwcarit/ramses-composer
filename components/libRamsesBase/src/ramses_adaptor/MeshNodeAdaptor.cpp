@@ -18,7 +18,7 @@
 namespace raco::ramses_adaptor {
 
 MeshNodeAdaptor::MeshNodeAdaptor(SceneAdaptor* sceneAdaptor, user_types::SMeshNode node)
-	: SpatialAdaptor{sceneAdaptor, node, raco::ramses_base::ramsesMeshNode(sceneAdaptor->scene())},
+	: SpatialAdaptor{sceneAdaptor, node, ramses_base::ramsesMeshNode(sceneAdaptor->scene(), node->objectIDAsRamsesLogicID())},
 	  meshSubscription_{
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{node, &user_types::MeshNode::mesh_}, [this]() {
 			  tagDirty();
@@ -105,11 +105,11 @@ MaterialAdaptor* MeshNodeAdaptor::materialAdaptor(size_t index) {
 	return nullptr;
 }
 
-const raco::ramses_base::RamsesAppearance& MeshNodeAdaptor::privateAppearance() const {
+const ramses_base::RamsesAppearance& MeshNodeAdaptor::privateAppearance() const {
 	return privateAppearance_;
 }
 
-const raco::ramses_base::RamsesAppearanceBinding& MeshNodeAdaptor::appearanceBinding() const {
+const ramses_base::RamsesAppearanceBinding& MeshNodeAdaptor::appearanceBinding() const {
 	return appearanceBinding_;
 }
 
@@ -117,7 +117,7 @@ const raco::ramses_base::RamsesAppearanceBinding& MeshNodeAdaptor::appearanceBin
 bool MeshNodeAdaptor::sync(core::Errors* errors) {
 	errors->removeIf([this](core::ErrorItem const& error) {
 		auto handle = error.valueHandle();
-		auto materialsHandle = raco::core::ValueHandle(editorObject(), &raco::user_types::MeshNode::materials_);
+		auto materialsHandle = core::ValueHandle(editorObject(), &user_types::MeshNode::materials_);
 		return materialsHandle.contains(handle);
 	});
 
@@ -129,9 +129,7 @@ bool MeshNodeAdaptor::sync(core::Errors* errors) {
 	syncMaterials(errors);
 	syncMeshObject();
 
-	if (sceneAdaptor_->featureLevel() >= rlogic::EFeatureLevel::EFeatureLevel_05) {
-		meshNodeBinding_ = ramses_base::ramsesMeshNodeBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_MeshNodeBinding" , editorObject()->objectIDAsRamsesLogicID());
-	}
+	meshNodeBinding_ = ramses_base::ramsesMeshNodeBinding(getRamsesObjectPointer(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_MeshNodeBinding" , editorObject()->objectIDAsRamsesLogicID());
 
 	tagDirty(false);
 	return true;
@@ -152,30 +150,31 @@ void MeshNodeAdaptor::syncMaterial(core::Errors* errors, size_t index) {
 		if (vertexData.find("a_Normal") != vertexData.end()) {
 			haveMeshNormals = true;
 		}
+	} else {
+		haveMeshNormals = true;
 	}
 
 	appearanceBinding_.reset();
 	privateAppearance_.reset();
 
 	if (auto materialAdapt = materialAdaptor(index)) {
-		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using materialAdaptor (valid)");
+		LOG_TRACE(log_system::RAMSES_ADAPTOR, "using materialAdaptor (valid)");
 		if (editorObject()->materialPrivate(index)) {
-			privateAppearance_ = raco::ramses_base::ramsesAppearance(sceneAdaptor_->scene(), materialAdapt->getRamsesObjectPointer());
+			privateAppearance_ = ramses_base::ramsesAppearance(sceneAdaptor_->scene(), materialAdapt->getRamsesObjectPointer(), editorObject_->objectIDAsRamsesLogicID());
 			currentAppearance_ = privateAppearance_;
+
+			appearanceBinding_ = ramses_base::ramsesAppearanceBinding(*privateAppearance_->get(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding", editorObject_->objectIDAsRamsesLogicID());
 
 			core::ValueHandle optionsHandle = editorObject()->getMaterialOptionsHandle(index);
 			core::ValueHandle uniformsHandle = editorObject()->getUniformContainerHandle(index);
-			updateAppearance(errors, sceneAdaptor_, privateAppearance_, optionsHandle, uniformsHandle);
+			updateAppearance(errors, sceneAdaptor_, privateAppearance_, *editorObject()->getOptions(index), optionsHandle, uniformsHandle);
 
 			(*privateAppearance_)->setName(std::string(this->editorObject()->objectName() + "_Appearance").c_str());
-
-			appearanceBinding_ = raco::ramses_base::ramsesAppearanceBinding(*privateAppearance_->get(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_AppearanceBinding", editorObject_->objectIDAsRamsesLogicID());
-
 		} else {
 			currentAppearance_ = materialAdapt->appearance();
 		}
 	} else {
-		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using materialAdaptor (invalid)");
+		LOG_TRACE(log_system::RAMSES_ADAPTOR, "using materialAdaptor (invalid)");
 		currentAppearance_ = sceneAdaptor_->defaultAppearance(haveMeshNormals);
 	}
 
@@ -183,40 +182,43 @@ void MeshNodeAdaptor::syncMaterial(core::Errors* errors, size_t index) {
 }
 
 void MeshNodeAdaptor::syncMeshObject() {
-	auto geometryBinding = raco::ramses_base::ramsesGeometryBinding(sceneAdaptor_->scene(), currentAppearance_->effect());
-	(*geometryBinding)->setName(std::string(this->editorObject()->objectName() + "_GeometryBinding").c_str());
+	auto geometry = ramses_base::ramsesGeometry(sceneAdaptor_->scene(), currentAppearance_->effect(), editorObject()->objectIDAsRamsesLogicID());
+	(*geometry)->setName(std::string(this->editorObject()->objectName() + "_Geometry").c_str());
 
 	if (MeshAdaptor* meshAdapt = meshAdaptor()) {
-		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using meshAdaptor");
+		LOG_TRACE(log_system::RAMSES_ADAPTOR, "using meshAdaptor");
 
 		auto vertexData = meshAdapt->vertexData();
 		for (uint32_t i = 0; i < currentAppearance_->effect()->getAttributeInputCount(); i++) {
-			ramses::AttributeInput attribInput;
-			currentAppearance_->effect()->getAttributeInput(i, attribInput);
+			ramses::AttributeInput attribInput = currentAppearance_->effect()->getAttributeInput(i).value();
 			std::string attribName = attribInput.getName();
 
 			auto it = vertexData.find(attribName);
 			if (it != vertexData.end()) {
-				geometryBinding->addAttributeBuffer(attribInput, it->second);
+				geometry->addAttributeBuffer(attribInput, it->second);
 			} else {
-				LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Attrribute mismatch in MeshNode '{}': attribute '{}' required by Material '{}' not found in Mesh '{}'.", editorObject()->objectName(), attribName, material(0)->objectName(), mesh()->objectName());
+				LOG_ERROR(log_system::RAMSES_ADAPTOR, "Attrribute mismatch in MeshNode '{}': attribute '{}' required by Material '{}' not found in Mesh '{}'.", editorObject()->objectName(), attribName, material(0)->objectName(), mesh()->objectName());
 			}
 		}
 
-		geometryBinding->setIndices(meshAdapt->indicesPtr());
+		geometry->setIndices(meshAdapt->indicesPtr());
 
 	} else {
-		LOG_TRACE(raco::log_system::RAMSES_ADAPTOR, "using defaultMesh");
-		ramses::AttributeInput input;
-		(*currentAppearance_)->getEffect().findAttributeInput("a_Position", input);
-		geometryBinding->addAttributeBuffer(input, sceneAdaptor_->defaultVertices());
-		geometryBinding->setIndices(sceneAdaptor_->defaultIndices());
+		LOG_TRACE(log_system::RAMSES_ADAPTOR, "using defaultMesh");
+		int index = *editorObject()->instanceCount_ == -1 ? 1 : 0;
+		ramses::AttributeInput inputVertices = (*currentAppearance_)->getEffect().findAttributeInput(core::MeshData::ATTRIBUTE_POSITION).value();
+		geometry->addAttributeBuffer(inputVertices, sceneAdaptor_->defaultVertices(index));
+
+		ramses::AttributeInput inputNormals = (*currentAppearance_)->getEffect().findAttributeInput(core::MeshData::ATTRIBUTE_NORMAL).value();
+		geometry->addAttributeBuffer(inputNormals, sceneAdaptor_->defaultNormals(index));
+
+		geometry->setIndices(sceneAdaptor_->defaultIndices(index));
 	}
 
-	ramsesObject().setGeometryBinding(geometryBinding);
+	ramsesObject().setGeometry(geometry);
 }
 
-void MeshNodeAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void MeshNodeAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	SpatialAdaptor::getLogicNodes(logicNodes);
 	if (appearanceBinding_) {
 		logicNodes.push_back(appearanceBinding_.get());
@@ -227,13 +229,13 @@ void MeshNodeAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes)
 	}
 }
 
-const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::string>& names) {
+ramses::Property* MeshNodeAdaptor::getProperty(const std::vector<std::string_view>& names) {
 	if (names.size() > 1) {
 		if (appearanceBinding_) {
 			// Remove the first 3 nesting levels of the handle: materials/slot #/uniforms container:
 			core::ValueHandle uniformContainerHandle = editorObject()->getUniformContainerHandle(0);
 			auto ramsesPropNames = ramses_base::getRamsesUniformPropertyNames(uniformContainerHandle, names, 3);
-			return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), ramsesPropNames, 0);
+			return ILogicPropertyProvider::getPropertyRecursive(appearanceBinding_->getInputs(), {ramsesPropNames.begin(), ramsesPropNames.end()}, 0);
 		}
 		return nullptr;
 	} else if (names.size() == 1 && names[0] == "instanceCount") {
@@ -247,24 +249,24 @@ const rlogic::Property* MeshNodeAdaptor::getProperty(const std::vector<std::stri
 std::vector<ExportInformation> MeshNodeAdaptor::getExportInformation() const {
 	auto result = std::vector<ExportInformation>();
 	if (getRamsesObjectPointer() != nullptr) {
-		result.emplace_back(ramses::ERamsesObjectType_MeshNode, ramsesObject().getName());
-		result.emplace_back(ramses::ERamsesObjectType_GeometryBinding, fmt::format("{}_GeometryBinding", ramsesObject().getName()));
+		result.emplace_back(ramses::ERamsesObjectType::MeshNode, ramsesObject().getName());
+		result.emplace_back(ramses::ERamsesObjectType::Geometry, fmt::format("{}_Geometry", ramsesObject().getName()));
 	}
 
 	if (nodeBinding() != nullptr) {
-		result.emplace_back("NodeBinding", nodeBinding()->getName().data());
+		result.emplace_back("NodeBinding", nodeBinding()->getName());
 	}
 
 	if (privateAppearance_ != nullptr) {
-		result.emplace_back(ramses::ERamsesObjectType_Appearance, privateAppearance_->get()->getName());
+		result.emplace_back(ramses::ERamsesObjectType::Appearance, privateAppearance_->get()->getName());
 	}
 
 	if (appearanceBinding_ != nullptr) {
-		result.emplace_back("AppearanceBinding", appearanceBinding_->getName().data());
+		result.emplace_back("AppearanceBinding", appearanceBinding_->getName());
 	}
 
 	if (meshNodeBinding_ != nullptr) {
-		result.emplace_back("MeshNodeBinding", meshNodeBinding_->getName().data());
+		result.emplace_back("MeshNodeBinding", meshNodeBinding_->getName());
 	}
 
 	return result;

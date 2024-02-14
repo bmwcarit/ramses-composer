@@ -35,7 +35,6 @@ add_executable(RaCoEditor WIN32 ${SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
 target_compile_definitions( RaCoEditor PUBLIC -DRACO_OSS_COMMIT="sha1 ${RAMSES_OSS_COMMIT_HASH}" )
 target_compile_definitions( RaCoEditor PUBLIC -DRACO_OSS_VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 target_compile_definitions( RaCoEditor PUBLIC -DRAMSES_VERSION="${RAMSES_VERSION_MAJOR}.${RAMSES_VERSION_MINOR}.${RAMSES_VERSION_PATCH}" )
-target_compile_definitions( RaCoEditor PUBLIC -DRLOGIC_VERSION="${RLOGIC_VERSION_MAJOR}.${RLOGIC_VERSION_MINOR}.${RLOGIC_VERSION_PATCH}" )
 enable_warnings_as_errors(RaCoEditor)
 
 set_target_properties(RaCoEditor PROPERTIES OUTPUT_NAME "RamsesComposer" RUNTIME_OUTPUT_DIRECTORY "${RACO_RELEASE_DIRECTORY}/bin/$<CONFIG>")
@@ -70,6 +69,7 @@ PUBLIC
 	Qt5::Widgets
 	qtadvanceddocking
 	raco::PythonAPI
+    raco::ApplicationLib
 	raco::RamsesWidgets
 PRIVATE
     raco::pybind11

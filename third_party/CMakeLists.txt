@@ -8,6 +8,9 @@ This Source Code Form is subject to the terms of the Mozilla Public License, v. 
 If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ]]
 
+set(BOOST_INCLUDE_LIBRARIES spirit)
+add_subdirectory(boost/ EXCLUDE_FROM_ALL)
+
 set(SPDLOG_WCHAR_FILENAMES ON CACHE BOOL "" FORCE)
 add_subdirectory(spdlog/)
 set_target_properties(spdlog PROPERTIES FOLDER third_party)
@@ -35,11 +38,8 @@ set_target_properties(tinygltf PROPERTIES
 )
 
 ## GLM
-add_library(glm INTERFACE)
-target_include_directories(glm INTERFACE glm/)
-set_target_properties(glm PROPERTIES
-    FOLDER third_party/glm
-)
+# Note GLM is now included in Ramses 28 so we don't need this as a submodule anymore
+
 
 ## pybind11
 add_subdirectory(pybind11)
@@ -64,84 +64,43 @@ set_target_properties(zip uninstall test_append.out test_entry.out test_extract.
 )
 
 # Configure ramses-sdk build options
-set(ramses-sdk_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_IVI_TEST_APPS OFF CACHE BOOL "" FORCE)
+set(ramses-sdk_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
+set(ramses-sdk_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+set(ramses-sdk_BUILD_WITH_LTO  OFF CACHE BOOL "" FORCE)
+
+set(ramses-sdk_BUILD_FULL_SHARED_LIB ON CACHE BOOL "" FORCE)
+set(ramses-sdk_BUILD_HEADLESS_SHARED_LIB ON CACHE BOOL "" FORCE)
+
+set(ramses-sdk_ENABLE_LOGIC ON CACHE BOOL "" FORCE)
+set(ramses-sdk_ENABLE_TCP_SUPPORT OFF CACHE BOOL "" FORCE)
+set(ramses-sdk_ENABLE_DLT OFF CACHE BOOL "" FORCE)
+
 set(ramses-sdk_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(ramses-sdk_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_DEMO_ECM OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_SMOKE_TESTS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_ENABLE_WAYLAND_SHELL  OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_ENABLE_DLT OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_WITH_LTO  OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_FORCE_OFF_SOMEIP_IC ON CACHE BOOL "" FORCE)
-set(ramses-sdk_FORCE_USE_SOMEIP_IC OFF CACHE BOOL "" FORCE)
-
-# These need to be set
-set(ramses-sdk_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_FULL_SHARED_LIB ON CACHE BOOL "" FORCE)
-set(ramses-sdk_BUILD_CLIENT_ONLY_SHARED_LIB ON CACHE BOOL "" FORCE)
-set(ramses-sdk_CONSOLE_LOGLEVEL "info" CACHE STRING "" FORCE)
-# TODO: why are we building ramses-daemon?
 set(ramses-sdk_BUILD_TOOLS ON CACHE BOOL "" FORCE)
+set(ramses-sdk_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-# TODO: check if we need to enable this
-set(ramses-sdk_ENABLE_TCP_SUPPORT OFF CACHE BOOL "" FORCE)
+set(ramses-sdk_ALLOW_PLATFORM_GLM OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(ramses-logic/external/ramses/ EXCLUDE_FROM_ALL)
+add_subdirectory(ramses/ EXCLUDE_FROM_ALL)
 
-if (CMAKE_SYSTEM_NAME STREQUAL Windows)
-    # es-3-0 / 4-5 / 4-2-core
-    add_library(raco::ramses-lib ALIAS ramses-shared-lib-windows-wgl-4-5)
-endif()
-if (CMAKE_SYSTEM_NAME STREQUAL Linux)
-    add_library(raco::ramses-lib ALIAS ramses-shared-lib-x11-egl-es-3-0)
-endif()
+add_library(raco::ramses-lib ALIAS ramses-shared-lib)
+add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-headless)
 
-add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-client-only)
-
-
-set(ramses-logic_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(ramses-logic_BUILD_TOOLS ON CACHE BOOL "" FORCE)
-set(ramses-logic_ALLOW_RAMSES_BUILD OFF CACHE BOOL "" FORCE)
-set(ramses-logic_RAMSES_TARGET "raco::ramses-lib" CACHE STRING "" FORCE)
-set(ramses-logic_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
-add_subdirectory(ramses-logic/ EXCLUDE_FROM_ALL)
-
-add_library(ramses-logic-api INTERFACE)
-target_include_directories(ramses-logic-api INTERFACE
-    ramses-logic/include
-)
-
-function(add_ramses_logic_target TARGET RAMSES_TARGET)
-    add_library(${TARGET} SHARED)
-    target_link_libraries(${TARGET} PRIVATE ramses-logic-obj)
-    target_link_libraries(${TARGET} PUBLIC ${RAMSES_TARGET})
-    target_include_directories(${TARGET} PUBLIC ramses-logic/include)
-    set_target_properties(${TARGET} PROPERTIES
-        PUBLIC_HEADER "${public_headers}"
-        SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    )
-    folderize_target(${TARGET} "third_party/ramses-logic")
-endfunction()
-
-add_library(raco::ramses-logic-lib ALIAS ramses-logic)
-
-add_ramses_logic_target(ramses-logic-shared-lib-client-only ramses-shared-lib-client-only)
-add_library(raco::ramses-logic-lib-client-only ALIAS ramses-logic-shared-lib-client-only)
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     find_program(LINUXDEPLOYQT linuxdeployqt)
 		if(EXISTS "${LINUXDEPLOYQT}")
-            add_custom_command(OUTPUT  ${CMAKE_BINARY_DIR}/ramses-logic-viewer
-            COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer.sh"
-            COMMAND ${CMAKE_COMMAND} -D TARGET_FILE=$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer -D ROOT_DIR=${CMAKE_SOURCE_DIR} -P "${CMAKE_SOURCE_DIR}/ubuntustartscript.cmake"
-            COMMAND chmod +x "$<TARGET_FILE_DIR:RaCoEditor>/ramses-logic-viewer.sh" 
-            DEPENDS ramses-logic-viewer RaCoEditor
+            add_custom_command(OUTPUT  ${CMAKE_BINARY_DIR}/ramses-viewer
+            COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer.sh"
+            COMMAND ${CMAKE_COMMAND} -D TARGET_FILE=$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer -D ROOT_DIR=${CMAKE_SOURCE_DIR} -P "${CMAKE_SOURCE_DIR}/ubuntustartscript.cmake"
+            COMMAND chmod +x "$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer.sh" 
+            DEPENDS ramses-viewer RaCoEditor
             )
         
-            add_custom_target(generate_ramses_logic_viewer_launch_script ALL
-            DEPENDS ${CMAKE_BINARY_DIR}/ramses-logic-viewer
+            add_custom_target(generate_ramses_viewer_launch_script ALL
+            DEPENDS ${CMAKE_BINARY_DIR}/ramses-viewer
+
             )
         endif()
 endif()

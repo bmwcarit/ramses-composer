@@ -22,7 +22,7 @@ using SCEditorObject = std::shared_ptr<const EditorObject>;
 
 namespace raco::data_storage {
 
-//using raco::core::EditorObject;
+//using core::EditorObject;
 using core::SEditorObject;
 
 class ValueBase;
@@ -62,31 +62,31 @@ public:
 		return getTypeDescription().typeName;
 	}
 
-	// Find property by name; returns nullptr if not found
-	virtual ValueBase* get(std::string const& propertyName) = 0;
+	// Find property by name; throws std::out_of_range if not found
+	virtual ValueBase* get(std::string_view propertyName) = 0;
 
-	// Find property by index; return nullptr if index out of bounds
+	// Find property by index; throws std::out_of_range if index out of bounds
 	virtual ValueBase* get(size_t index) = 0;
 
-	virtual const ValueBase* get(std::string const& propertyName) const = 0;
+	virtual const ValueBase* get(std::string_view propertyName) const = 0;
 	virtual const ValueBase* get(size_t index) const = 0;
 
 	
-	ValueBase* operator[](std::string const& propertyName);
+	ValueBase* operator[](std::string_view propertyName);
 	ValueBase* operator[](size_t index);
 
-	const ValueBase* operator[](std::string const& propertyName) const;
+	const ValueBase* operator[](std::string_view propertyName) const;
 	const ValueBase* operator[](size_t index) const;
 
 	virtual size_t size() const = 0;
 
 	// Find index from property name; return -1 if not found
-	virtual int index(std::string const& propertyName) const = 0;
+	virtual int index(std::string_view propertyName) const = 0;
 
-	// Find name from index; asserts when index out of bounds
+	// Find name from index; throws std::out_of_range when index out of bounds
 	virtual const std::string& name(size_t index) const = 0;
 
-	bool hasProperty(std::string const& propertyName) const;
+	bool hasProperty(std::string_view propertyName) const;
 	
 	// Compare the value but not the annotation data
 	bool operator==(const ReflectionInterface& other) const;
@@ -104,15 +104,15 @@ public:
 	
 	ClassWithReflectedMembers(std::vector<std::pair<std::string, ValueBase*>>&& properties = {}) : properties_(std::move(properties)) {}
 
-	virtual ValueBase* get(std::string const& propertyName) override;
+	virtual ValueBase* get(std::string_view propertyName) override;
 	virtual ValueBase* get(size_t index) override;
 
-	virtual const ValueBase* get(std::string const& propertyName) const override;
+	virtual const ValueBase* get(std::string_view propertyName) const override;
 	virtual const ValueBase* get(size_t index) const override;
 		
 	virtual size_t size() const override;
 
-	virtual int index(std::string const& propertyName) const override;
+	virtual int index(std::string_view propertyName) const override;
 	virtual const std::string& name(size_t index) const override;
 
 	template <typename BaseClassWithProperty, typename TPropertyType>
@@ -139,8 +139,8 @@ public:
 		return nullptr;
 	}
 
-	std::shared_ptr<AnnotationBase> query(const std::string& typeName);
-	std::shared_ptr<const AnnotationBase> query(const std::string& typeName) const;
+	std::shared_ptr<AnnotationBase> query(std::string_view typeName);
+	std::shared_ptr<const AnnotationBase> query(std::string_view typeName) const;
 
 	void addAnnotation(std::shared_ptr<AnnotationBase> annotation);
 

@@ -14,8 +14,11 @@ namespace raco::core {
 Errors::Errors(DataChangeRecorder* recorder) noexcept :	recorder_{ recorder } {}
 
 void Errors::addError(ErrorCategory category, ErrorLevel level, const ValueHandle& handle, const std::string& message) {
-	errors_[handle.rootObject()][handle] = ErrorItem{category, level, handle, message};
-	recorder_->recordErrorChanged(handle);
+	ErrorItem newError{category, level, handle, message};
+	if (!hasError(handle) || !(newError == getError(handle))) {
+		errors_[handle.rootObject()][handle] = newError;
+		recorder_->recordErrorChanged(handle);
+	}
 }
 
 std::string Errors::formatError(const ErrorItem& error) {

@@ -19,13 +19,13 @@ using namespace raco;
 
 class MeshLoaderTest : public TestEnvironmentCore {
 public:
-	raco::core::SharedMeshData loadMesh(const std::string &relPath, bool bake = true, int submeshIndex = 0) {
+	core::SharedMeshData loadMesh(const std::string &relPath, bool bake = true, int submeshIndex = 0) {
 		core::MeshDescriptor desc{test_path().append(relPath).string(), submeshIndex, bake};
 		mesh_loader::glTFFileLoader fileloader(desc.absPath);
 		return fileloader.loadMesh(desc);
 	}
 
-	static void check_attribute(raco::core::SharedMeshData mesh, const std::string &name, raco::core::MeshData::VertexAttribDataType type, int elemCount) {
+	static void check_attribute(core::SharedMeshData mesh, const std::string &name, core::MeshData::VertexAttribDataType type, int elemCount) {
 		int index = mesh->attribIndex(name);
 		ASSERT_TRUE(index >= 0);
 
@@ -34,7 +34,7 @@ public:
 	}
 
 protected:
-	std::vector<float> getPositionData(const raco::core::SharedMeshData mesh) {
+	std::vector<float> getPositionData(const core::SharedMeshData mesh) {
 		auto posIndex = mesh->attribIndex(mesh->ATTRIBUTE_POSITION);
 		auto firstPos = mesh->attribBuffer(posIndex);
 
@@ -157,57 +157,57 @@ TEST_F(MeshLoaderTest, glTFWithTangentsAndBitangents) {
 	auto mesh = loadMesh("meshes/AnimatedMorphCube/AnimatedMorphCube.gltf", false, 0);
 
 	ASSERT_EQ(mesh->numAttributes(), 8);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_POSITION, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, fmt::format("{}_Morph_{}", raco::core::MeshData::ATTRIBUTE_POSITION, 0), raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, fmt::format("{}_Morph_{}", raco::core::MeshData::ATTRIBUTE_POSITION, 1), raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_NORMAL, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, fmt::format("{}_Morph_{}", raco::core::MeshData::ATTRIBUTE_NORMAL, 0), raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, fmt::format("{}_Morph_{}", raco::core::MeshData::ATTRIBUTE_NORMAL, 1), raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_TANGENT, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_BITANGENT, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_POSITION, core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, fmt::format("{}_Morph_{}", core::MeshData::ATTRIBUTE_POSITION, 0), core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, fmt::format("{}_Morph_{}", core::MeshData::ATTRIBUTE_POSITION, 1), core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_NORMAL, core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, fmt::format("{}_Morph_{}", core::MeshData::ATTRIBUTE_NORMAL, 0), core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, fmt::format("{}_Morph_{}", core::MeshData::ATTRIBUTE_NORMAL, 1), core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_TANGENT, core::MeshData::VertexAttribDataType::VAT_Float3, 24);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_BITANGENT, core::MeshData::VertexAttribDataType::VAT_Float3, 24);
 }
 
 TEST_F(MeshLoaderTest, glTFWithMultipleTexCoords) {
 	auto mesh = loadMesh("meshes/MosquitoInAmber/MosquitoInAmber.gltf", false, 1);
 
 	ASSERT_EQ(mesh->numAttributes(), 5);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_POSITION, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 3057);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_NORMAL, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 3057);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_UVMAP, raco::core::MeshData::VertexAttribDataType::VAT_Float2, 3057);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_UVMAP + std::to_string(1), raco::core::MeshData::VertexAttribDataType::VAT_Float2, 3057);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_UVMAP + std::to_string(2), raco::core::MeshData::VertexAttribDataType::VAT_Float2, 3057);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_POSITION, core::MeshData::VertexAttribDataType::VAT_Float3, 3057);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_NORMAL, core::MeshData::VertexAttribDataType::VAT_Float3, 3057);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_UVMAP, core::MeshData::VertexAttribDataType::VAT_Float2, 3057);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_UVMAP + std::to_string(1), core::MeshData::VertexAttribDataType::VAT_Float2, 3057);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_UVMAP + std::to_string(2), core::MeshData::VertexAttribDataType::VAT_Float2, 3057);
 }
 
 TEST_F(MeshLoaderTest, glTFWithMultipleColors) {
 	auto mesh = loadMesh("meshes/MultipleVCols/multiple_VCols.gltf");
 
 	ASSERT_EQ(mesh->numAttributes(), 6);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_POSITION, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 625);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_NORMAL, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 625);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_UVMAP, raco::core::MeshData::VertexAttribDataType::VAT_Float2, 625);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_COLOR, raco::core::MeshData::VertexAttribDataType::VAT_Float4, 625);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_COLOR + std::to_string(1), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 625);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_COLOR + std::to_string(2), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 625);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_POSITION, core::MeshData::VertexAttribDataType::VAT_Float3, 625);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_NORMAL, core::MeshData::VertexAttribDataType::VAT_Float3, 625);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_UVMAP, core::MeshData::VertexAttribDataType::VAT_Float2, 625);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_COLOR, core::MeshData::VertexAttribDataType::VAT_Float4, 625);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_COLOR + std::to_string(1), core::MeshData::VertexAttribDataType::VAT_Float4, 625);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_COLOR + std::to_string(2), core::MeshData::VertexAttribDataType::VAT_Float4, 625);
 }
 
 TEST_F(MeshLoaderTest, glTFWithSingleJointWeightSet) {
 	auto mesh = loadMesh("meshes/SimpleSkin/SimpleSkin.gltf");
 
 	ASSERT_EQ(mesh->numAttributes(), 3);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_POSITION, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 10);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_JOINTS + std::to_string(0), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 10);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_WEIGHTS + std::to_string(0), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_POSITION, core::MeshData::VertexAttribDataType::VAT_Float3, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_JOINTS + std::to_string(0), core::MeshData::VertexAttribDataType::VAT_Float4, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_WEIGHTS + std::to_string(0), core::MeshData::VertexAttribDataType::VAT_Float4, 10);
 }
 
 TEST_F(MeshLoaderTest, glTFWithMultipleJointWeightSets) {
 	auto mesh = loadMesh("meshes/SimpleSkin/SimpleSkin-multi-joint-set.gltf");
 
 	ASSERT_EQ(mesh->numAttributes(), 5);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_POSITION, raco::core::MeshData::VertexAttribDataType::VAT_Float3, 10);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_JOINTS + std::to_string(0), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 10);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_JOINTS + std::to_string(1), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 10);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_WEIGHTS + std::to_string(0), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 10);
-	check_attribute(mesh, raco::core::MeshData::ATTRIBUTE_WEIGHTS + std::to_string(1), raco::core::MeshData::VertexAttribDataType::VAT_Float4, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_POSITION, core::MeshData::VertexAttribDataType::VAT_Float3, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_JOINTS + std::to_string(0), core::MeshData::VertexAttribDataType::VAT_Float4, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_JOINTS + std::to_string(1), core::MeshData::VertexAttribDataType::VAT_Float4, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_WEIGHTS + std::to_string(0), core::MeshData::VertexAttribDataType::VAT_Float4, 10);
+	check_attribute(mesh, core::MeshData::ATTRIBUTE_WEIGHTS + std::to_string(1), core::MeshData::VertexAttribDataType::VAT_Float4, 10);
 }
 
 TEST_F(MeshLoaderTest, gltFCheckSkinData) {
@@ -226,7 +226,7 @@ TEST_F(MeshLoaderTest, ctmWithGitLfsPlaceholderFile) {
 
 	core::MeshDescriptor desc;
 	desc.absPath = path;
-	auto fileLoader = std::unique_ptr<raco::core::MeshCacheEntry>(new mesh_loader::CTMFileLoader(path));
+	auto fileLoader = std::unique_ptr<core::MeshCacheEntry>(new mesh_loader::CTMFileLoader(path));
 	auto mesh = fileLoader.get()->loadMesh(desc);
 
 	ASSERT_EQ(fileLoader->getError(), "Git LFS placeholder file detected.");

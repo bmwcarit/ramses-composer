@@ -12,7 +12,6 @@
 #include "data_storage/Table.h"
 #include "lodepng.h"
 #include "ramses_adaptor/SceneBackend.h"
-#include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
 #include "ramses_base/EnumerationTranslations.h"
 #include "user_types/CubeMap.h"
@@ -21,12 +20,13 @@
 #include "utils/FileUtils.h"
 #include "utils/MathUtils.h"
 #include "core/CoreFormatter.h"
-#include <ramses-client-api/TextureEnums.h>
-#include <ramses-logic/Logger.h>
-#include <ramses-logic/LogicEngine.h>
-#include <ramses-logic/LuaModule.h>
-#include <ramses-logic/LuaScript.h>
-#include <ramses-logic/Property.h>
+
+#include <ramses/framework/TextureEnums.h>
+#include <ramses/framework/EDataType.h>
+#include <ramses/client/logic/LogicEngine.h>
+#include <ramses/client/logic/LuaModule.h>
+#include <ramses/client/logic/LuaScript.h>
+#include <ramses/client/logic/Property.h>
 
 #include <sstream>
 #include <string>
@@ -161,29 +161,30 @@ std::map<std::string, ramses::EEffectUniformSemantic> defaultUniformSemantics = 
 	{"uCameraPosition", ramses::EEffectUniformSemantic::CameraWorldPosition},
 	{"uResolution", ramses::EEffectUniformSemantic::DisplayBufferResolution}};
 
-static std::map<ramses::EEffectInputDataType, raco::core::EnginePrimitive> shaderTypeMap = {
-	{ramses::EEffectInputDataType_Int32, raco::core::EnginePrimitive::Int32},
-	{ramses::EEffectInputDataType_UInt16, raco::core::EnginePrimitive::UInt16},
-	{ramses::EEffectInputDataType_UInt32, raco::core::EnginePrimitive::UInt32},
-	{ramses::EEffectInputDataType_Float, raco::core::EnginePrimitive::Double},
+static std::map<ramses::EDataType, core::EnginePrimitive> shaderTypeMap = {
+	{ramses::EDataType::Bool, core::EnginePrimitive::Bool},
+	{ramses::EDataType::Int32, core::EnginePrimitive::Int32},
+	{ramses::EDataType::UInt16, core::EnginePrimitive::UInt16},
+	{ramses::EDataType::UInt32, core::EnginePrimitive::UInt32},
+	{ramses::EDataType::Float, core::EnginePrimitive::Double},
 
-	{ramses::EEffectInputDataType_Vector2F, raco::core::EnginePrimitive::Vec2f},
-	{ramses::EEffectInputDataType_Vector3F, raco::core::EnginePrimitive::Vec3f},
-	{ramses::EEffectInputDataType_Vector4F, raco::core::EnginePrimitive::Vec4f},
+	{ramses::EDataType::Vector2F, core::EnginePrimitive::Vec2f},
+	{ramses::EDataType::Vector3F, core::EnginePrimitive::Vec3f},
+	{ramses::EDataType::Vector4F, core::EnginePrimitive::Vec4f},
 
-	{ramses::EEffectInputDataType_Vector2I, raco::core::EnginePrimitive::Vec2i},
-	{ramses::EEffectInputDataType_Vector3I, raco::core::EnginePrimitive::Vec3i},
-	{ramses::EEffectInputDataType_Vector4I, raco::core::EnginePrimitive::Vec4i},
+	{ramses::EDataType::Vector2I, core::EnginePrimitive::Vec2i},
+	{ramses::EDataType::Vector3I, core::EnginePrimitive::Vec3i},
+	{ramses::EDataType::Vector4I, core::EnginePrimitive::Vec4i},
 
-	//{ramses::EEffectInputDataType_Matrix22F, },
-	//{ramses::EEffectInputDataType_Matrix33F, },
-	//{ramses::EEffectInputDataType_Matrix44F, },
+	//{ramses::EDataType::Matrix22F, },
+	//{ramses::EDataType::Matrix33F, },
+	//{ramses::EDataType::Matrix44F, },
 
-	{ramses::EEffectInputDataType_TextureSampler2D, raco::core::EnginePrimitive::TextureSampler2D},
-	{ramses::EEffectInputDataType_TextureSampler2DMS, raco::core::EnginePrimitive::TextureSampler2DMS},
-	{ramses::EEffectInputDataType_TextureSampler3D, raco::core::EnginePrimitive::TextureSampler3D},
-	{ramses::EEffectInputDataType_TextureSamplerCube, raco::core::EnginePrimitive::TextureSamplerCube},
-	{ramses::EEffectInputDataType_TextureSamplerExternal, raco::core::EnginePrimitive::TextureSamplerExternal}
+	{ramses::EDataType::TextureSampler2D, core::EnginePrimitive::TextureSampler2D},
+	{ramses::EDataType::TextureSampler2DMS, core::EnginePrimitive::TextureSampler2DMS},
+	{ramses::EDataType::TextureSampler3D, core::EnginePrimitive::TextureSampler3D},
+	{ramses::EDataType::TextureSamplerCube, core::EnginePrimitive::TextureSamplerCube},
+	{ramses::EDataType::TextureSamplerExternal, core::EnginePrimitive::TextureSamplerExternal}
 };
 
 std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, const std::string &shaderDefines) {
@@ -214,7 +215,7 @@ std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::st
 }
 
 
-std::vector<std::string> getRamsesUniformPropertyNames(core::ValueHandle uniformContainerHandle, const std::vector<std::string> &propertyNames, size_t startIndex) {
+std::vector<std::string> getRamsesUniformPropertyNames(core::ValueHandle uniformContainerHandle, const std::vector<std::string_view> &propertyNames, size_t startIndex) {
 	std::string propName;
 	core::ValueHandle handle = uniformContainerHandle;
 	for (size_t index = startIndex; index < propertyNames.size(); index++) {
@@ -234,9 +235,16 @@ std::vector<std::string> getRamsesUniformPropertyNames(core::ValueHandle uniform
 					// ramses uniform name: array[index].member
 					++index;
 					assert(index < propertyNames.size());
-					auto arrayIndex = std::stoi(propertyNames[index]) - 1;
-					handle = handle[arrayIndex];
-					propName += fmt::format("{}[{}].", currentName, arrayIndex);
+
+					int arrayIndex;
+					auto [ptr, error] = std::from_chars(propertyNames[index].data(), propertyNames[index].data() + propertyNames[index].size(), arrayIndex);
+					if (error == std::errc() && arrayIndex > 0) {
+						arrayIndex--;
+						handle = handle[arrayIndex];
+						propName += fmt::format("{}[{}].", currentName, arrayIndex);
+					} else {
+						throw std::runtime_error("Invalid property name.");
+					}
 				} else {
 					// note: array of array is not possible so this must be a primitive type
 					// propertyNames may or may not include the index into the array as final element,
@@ -246,7 +254,7 @@ std::vector<std::string> getRamsesUniformPropertyNames(core::ValueHandle uniform
 						return {propName};
 					} else {
 						assert(index == propertyNames.size() - 2);
-						return {propName, propertyNames[index + 1]};
+						return {propName, std::string(propertyNames[index + 1])};
 					}
 				}
 			} break;
@@ -261,7 +269,7 @@ std::string getRamsesUniformPropertyName(core::ValueHandle uniformContainerHandl
 	return getRamsesUniformPropertyNames(uniformContainerHandle, uniformHandle.getPropertyNamesVector(), uniformContainerHandle.depth())[0];
 }
 
-void buildUniformRecursive(std::string uniformName, raco::core::PropertyInterfaceList &uniforms, raco::core::EnginePrimitive type, uint32_t elementCount, std::string& outError) {
+void buildUniformRecursive(std::string uniformName, core::PropertyInterfaceList &uniforms, core::EnginePrimitive type, uint32_t elementCount, std::string& outError) {
 	auto dotPos = uniformName.find('.');
 	auto bracketPos = uniformName.find('[');
 
@@ -274,7 +282,7 @@ void buildUniformRecursive(std::string uniformName, raco::core::PropertyInterfac
 		auto it = std::find_if(uniforms.begin(), uniforms.end(), [structName](auto item) {
 			return structName == item.name;
 		});
-		raco::core::PropertyInterface &interface = it == uniforms.end() ? uniforms.emplace_back(structName, raco::core::EnginePrimitive::Struct) : *it;
+		core::PropertyInterface &interface = it == uniforms.end() ? uniforms.emplace_back(structName, core::EnginePrimitive::Struct) : *it;
 
 		buildUniformRecursive(memberName, interface.children, type, elementCount, outError);
 
@@ -290,22 +298,22 @@ void buildUniformRecursive(std::string uniformName, raco::core::PropertyInterfac
 			auto it = std::find_if(uniforms.begin(), uniforms.end(), [arrayName](auto item) {
 				return arrayName == item.name;
 			});
-			raco::core::PropertyInterface &interface = it == uniforms.end() ? uniforms.emplace_back(arrayName, raco::core::EnginePrimitive::Array) : *it;
+			core::PropertyInterface &interface = it == uniforms.end() ? uniforms.emplace_back(arrayName, core::EnginePrimitive::Array) : *it;
 
 			// The index in the uniform name starts at 0
 			int index = stoi(indexStr);
 			assert(index <= interface.children.size());
 			if (index == interface.children.size()) {
-				interface.children.emplace_back(std::string(), raco::core::EnginePrimitive::Struct);
+				interface.children.emplace_back(std::string(), core::EnginePrimitive::Struct);
 			}
-			raco::core::PropertyInterface &element = interface.children[index];
+			core::PropertyInterface &element = interface.children[index];
 			buildUniformRecursive(rest, element.children, type, elementCount, outError);
 		}
 	} else {
 		// scalar
 		if (elementCount > 1) {
-			if (type >= core::EnginePrimitive::Int32 && type <= core::EnginePrimitive::Vec4i) {
-				uniforms.emplace_back(raco::core::PropertyInterface::makeArrayOf(uniformName, type, elementCount));
+			if (type >= core::EnginePrimitive::Bool && type <= core::EnginePrimitive::Vec4i) {
+				uniforms.emplace_back(core::PropertyInterface::makeArrayOf(uniformName, type, elementCount));
 			} else {
 				outError += fmt::format("Uniform '{}' has unsupported array element type '{}'", uniformName, type);
 			}
@@ -315,17 +323,16 @@ void buildUniformRecursive(std::string uniformName, raco::core::PropertyInterfac
 	}
 }
 
-bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, const std::string &shaderDefines, raco::core::PropertyInterfaceList &outUniforms, raco::core::PropertyInterfaceList &outAttributes, std::string &outError) {
+bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, const std::string &shaderDefines, core::PropertyInterfaceList &outUniforms, core::PropertyInterfaceList &outAttributes, std::string &outError) {
 	outUniforms.clear();
 	outAttributes.clear();
 	auto description = createEffectDescription(vertexShader, geometryShader, fragmentShader, shaderDefines);
-	ramses::Effect *effect = scene.createEffect(*description, ramses::ResourceCacheFlag_DoNotCache, "glsl shader");
+	ramses::Effect *effect = scene.createEffect(*description, "glsl shader");
 	bool success = false;
 	if (effect) {
 		uint32_t numUniforms = effect->getUniformInputCount();
 		for (uint32_t i{0}; i < numUniforms; i++) {
-			ramses::UniformInput uniform;
-			effect->getUniformInput(i, uniform);
+			ramses::UniformInput uniform = effect->getUniformInput(i).value();
 			if (uniform.getSemantics() == ramses::EEffectUniformSemantic::Invalid) {
 				if (shaderTypeMap.find(uniform.getDataType()) != shaderTypeMap.end()) {
 					auto engineType = shaderTypeMap[uniform.getDataType()];
@@ -333,7 +340,7 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 				} else {
 					// mat4 uniforms are needed for skinning: they will be set directly by the LogicEngine 
 					// so we don't need to expose but they shouldn't generate errors either:
-					if (uniform.getDataType() != ramses::EEffectInputDataType_Matrix44F) {
+					if (uniform.getDataType() != ramses::EDataType::Matrix44F) {
 						outError += std::string(uniform.getName()) + " has unsupported type";
 					}
 				}
@@ -342,8 +349,7 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 
 		uint32_t numAttributes = effect->getAttributeInputCount();
 		for (uint32_t i{0}; i < numAttributes; i++) {
-			ramses::AttributeInput attrib;
-			effect->getAttributeInput(i, attrib);
+			ramses::AttributeInput attrib = effect->getAttributeInput(i).value();
 			if (shaderTypeMap.find(attrib.getDataType()) != shaderTypeMap.end()) {
 				outAttributes.emplace_back(std::string(attrib.getName()), shaderTypeMap[attrib.getDataType()]);
 			} else {
@@ -359,21 +365,21 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 	return success;
 }
 
-rlogic::LuaConfig defaultLuaConfig() {
-	rlogic::LuaConfig config;
-	config.addStandardModuleDependency(rlogic::EStandardModule::All);
+ramses::LuaConfig defaultLuaConfig() {
+	ramses::LuaConfig config;
+	config.addStandardModuleDependency(ramses::EStandardModule::All);
 	return config;
 }
 
-rlogic::LuaConfig createLuaConfig(const std::vector<std::string> &stdModules) {
-	rlogic::LuaConfig config;
+ramses::LuaConfig createLuaConfig(const std::vector<std::string> &stdModules) {
+	ramses::LuaConfig config;
 
-	std::map<std::string, rlogic::EStandardModule> stdModuleMap = {
-		{"base", rlogic::EStandardModule::Base},
-		{"string", rlogic::EStandardModule::String},
-		{"table", rlogic::EStandardModule::Table},
-		{"math", rlogic::EStandardModule::Math},
-		{"debug", rlogic::EStandardModule::Debug}};
+	std::map<std::string, ramses::EStandardModule> stdModuleMap = {
+		{"base", ramses::EStandardModule::Base},
+		{"string", ramses::EStandardModule::String},
+		{"table", ramses::EStandardModule::Table},
+		{"math", ramses::EStandardModule::Math},
+		{"debug", ramses::EStandardModule::Debug}};
 
 	for (const auto &moduleName : stdModules) {
 		auto it = stdModuleMap.find(moduleName);
@@ -388,38 +394,8 @@ ramses::RamsesVersion getRamsesVersion() {
 	return ramses::GetRamsesVersion();
 }
 
-rlogic::RamsesLogicVersion getLogicEngineVersion() {
-	return rlogic::GetRamsesLogicVersion();
-}
-
 std::string getRamsesVersionString() {
 	return getRamsesVersion().string;
-}
-
-std::string getLogicEngineVersionString() {
-	return std::string(getLogicEngineVersion().string);
-}
-
-rlogic::ELogMessageType toLogicLogLevel(spdlog::level::level_enum level) {
-	using namespace spdlog::level;
-	using namespace rlogic;
-
-	switch (level) {
-		case level_enum::trace:
-			return ELogMessageType::Trace;
-		case level_enum::debug:
-			return ELogMessageType::Debug;
-		case level_enum::info:
-			return ELogMessageType::Info;
-		case level_enum::warn:
-			return ELogMessageType::Warn;
-		case level_enum::err:
-			return ELogMessageType::Error;
-		case level_enum::critical:
-			return ELogMessageType::Fatal;
-		default:
-			return ELogMessageType::Off;
-	}
 }
 
 ramses::ELogLevel toRamsesLogLevel(spdlog::level::level_enum level) {
@@ -466,55 +442,74 @@ spdlog::level::level_enum toSpdLogLevel(ramses::ELogLevel level) {
 	}
 }
 
-spdlog::level::level_enum toSpdLogLevel(rlogic::ELogMessageType level) {
-	using namespace spdlog::level;
-	using namespace rlogic;
-
-	switch (level) {
-		case ELogMessageType::Trace:
-			return level_enum::trace;
-		case ELogMessageType::Debug:
-			return level_enum::debug;
-		case ELogMessageType::Info:
-			return level_enum::info;
-		case ELogMessageType::Warn:
-			return level_enum::warn;
-		case ELogMessageType::Error:
-			return level_enum::err;
-		case ELogMessageType::Fatal:
-			return level_enum::critical;
+spdlog::level::level_enum getLevelFromArg(const QString &arg) {
+	bool logLevelValid;
+	int logLevel = arg.toInt(&logLevelValid);
+	spdlog::level::level_enum spdLogLevel;
+	switch (logLevelValid ? logLevel : -1) {
+		case 0:
+			return spdlog::level::level_enum::off;
+		case 1:
+			return spdlog::level::level_enum::critical;
+		case 2:
+			return spdlog::level::level_enum::err;
+		case 3:
+			return spdlog::level::level_enum::warn;
+		case 4:
+			return spdlog::level::level_enum::info;
+		case 5:
+			return spdlog::level::level_enum::debug;
+		case 6:
+			return spdlog::level::level_enum::trace;
 		default:
-			return level_enum::off;
+			LOG_WARNING(log_system::COMMON, "Invalid Log Level: \"{}\". Continuing with verbose log output.", arg.toStdString().c_str());
+			return spdlog::level::level_enum::trace;
 	}
 }
 
+ramses::ELogLevel getRamsesLogLevelFromArg(const QString& arg) {
+	return toRamsesLogLevel(getLevelFromArg(arg));
+}
+
+void addRamseFrameworkOptions(QCommandLineParser &parser) {
+	QCommandLineOption RFRALogLevelOption(QStringList() << "RFRA", "Ramses Framework Log Level.", "rcli-log-level", "0");
+	QCommandLineOption RCLILogLevelOption(QStringList() << "RCLI", "Ramses Client Log Level.", "rfra-log-level", "0");
+	QCommandLineOption RRNDLogLevelOption(QStringList() << "RRND", "Ramses Renderer Log Level.", "rrnd-log-level", "5");
+	QCommandLineOption RPERLogLevelOption(QStringList() << "RPER", "Ramses Periodic Log Level.", "rper-log-level", "0");
+	QCommandLineOption RTXTLogLevelOption(QStringList() << "RTXT", "Ramses Text Log Level.", "rtxt-log-level", "0");
+
+	QCommandLineOption RCOMLogLevelOption(QStringList() << "RCOM", "Ramses Communictation Log Level.", "rcom-log-level", "4");
+	QCommandLineOption RPROLogLevelOption(QStringList() << "RPRO", "Ramses Profiling Log Level.", "rpro-log-level", "0");
+
+	QCommandLineOption RAPILogLevelOption(QStringList() << "RAPI", "Ramses HLAPI Client Log Level.", "rapi-log-level", "6");
+	QCommandLineOption RAPRLogLevelOption(QStringList() << "RAPR", "Ramses HLAPI Renderer Log Level.", "rapr-log-level", "0");
+
+	parser.addOption(RFRALogLevelOption);
+	parser.addOption(RCLILogLevelOption);
+	parser.addOption(RRNDLogLevelOption);
+	parser.addOption(RPERLogLevelOption);
+	parser.addOption(RTXTLogLevelOption);
+	parser.addOption(RCOMLogLevelOption);
+	parser.addOption(RPROLogLevelOption);
+	parser.addOption(RAPILogLevelOption);
+	parser.addOption(RAPRLogLevelOption);
+}
+
+std::vector<QString> ramsesLogCategories() {
+	return {"RFRA", "RCLI", "RRND", "RPER", "RTXT", "RCOM", "RPRO", "RAPI", "RAPR"};
+}
+
 void installRamsesLogHandler(bool enableTrace) {
-	ramses::RamsesFramework::SetConsoleLogLevel(ramses::ELogLevel::Off);
-	ramses::RamsesFramework::SetLogHandler([enableTrace](ramses::ELogLevel level, const std::string &context, const std::string &message) {
+	ramses::RamsesFramework::SetLogHandler([enableTrace](ramses::ELogLevel level, std::string_view context, std::string_view message) {
 		if (!enableTrace && level == ramses::ELogLevel::Trace) {
 			return;
 		}
-
-		SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES), toSpdLogLevel(level), message);
+		if (!ramses_adaptor::SceneBackend::discardRamsesMessage(message)) {
+			// TODO(ramses28) this is bad since it makes a copy of the context string_view
+			// we do this since the string_view is not null terminated but we need a null-terminated string here.
+			(log_system::get(log_system::RAMSES))->log(spdlog::source_loc{__FILE__, __LINE__, std::string{context}.c_str()}, toSpdLogLevel(level), message);
+		}
 	});
-}
-
-void installLogicLogHandler() {
-	rlogic::Logger::SetDefaultLogging(false);
-	rlogic::Logger::SetLogHandler(
-		[](rlogic::ELogMessageType level, std::string_view message) {
-			if (!ramses_adaptor::SceneBackend::discardLogicEngineMessage(message)) {
-				SPDLOG_LOGGER_CALL(raco::log_system::get(raco::log_system::RAMSES_LOGIC), toSpdLogLevel(level), message);
-			}
-		});
-}
-
-void setRamsesLogLevel(spdlog::level::level_enum level) {
-	ramses::RamsesFramework::SetConsoleLogLevel(toRamsesLogLevel(level));
-}
-
-void setLogicLogLevel(spdlog::level::level_enum level) {
-	rlogic::Logger::SetLogVerbosityLimit(toLogicLogLevel(level));
 }
 
 std::string pngColorTypeToString(int colorType) {
@@ -536,11 +531,11 @@ std::string pngColorTypeToString(int colorType) {
 
 PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat selectedTextureFormat, int colorType, int bitdepth) {
 	if (colorType != LCT_PALETTE && bitdepth != 8 && bitdepth != 16) {
-		return {"Invalid bit depth (only 8 or 16 bits allowed).", raco::core::ErrorLevel::ERROR, false};
+		return {"Invalid bit depth (only 8 or 16 bits allowed).", core::ErrorLevel::ERROR, false};
 	} else if (bitdepth == 8 && (selectedTextureFormat == ramses::ETextureFormat::R16F || selectedTextureFormat == ramses::ETextureFormat::RG16F || selectedTextureFormat == ramses::ETextureFormat::RGB16F || selectedTextureFormat == ramses::ETextureFormat::RGBA16F)) {
-		return {"Invalid texture format for bit depth (only 8-bit-based formats allowed).", raco::core::ErrorLevel::ERROR, false};
+		return {"Invalid texture format for bit depth (only 8-bit-based formats allowed).", core::ErrorLevel::ERROR, false};
 	} else if (bitdepth == 16 && (selectedTextureFormat != ramses::ETextureFormat::R16F && selectedTextureFormat != ramses::ETextureFormat::RG16F && selectedTextureFormat != ramses::ETextureFormat::RGB16F && selectedTextureFormat != ramses::ETextureFormat::RGBA16F)) {
-		return {"Invalid texture format for bit depth (only 16-bit-based formats allowed).", raco::core::ErrorLevel::ERROR, false};
+		return {"Invalid texture format for bit depth (only 16-bit-based formats allowed).", core::ErrorLevel::ERROR, false};
 	}
 
 	static std::map<std::pair<LodePNGColorType, int>, std::set<ramses::ETextureFormat>> validTextureFormats = {
@@ -557,10 +552,10 @@ PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat 
 	std::pair<LodePNGColorType, int> pngFormat = {static_cast <LodePNGColorType>(colorType), bitdepth};
 	auto validTextureFormatIt = validTextureFormats.find(pngFormat);
 	if (validTextureFormatIt == validTextureFormats.end()) {
-		return {"Invalid PNG color type.", raco::core::ErrorLevel::ERROR, false};
+		return {"Invalid PNG color type.", core::ErrorLevel::ERROR, false};
 	}
 	if (validTextureFormatIt->second.find(selectedTextureFormat) != validTextureFormatIt->second.end()) {
-		return {"", raco::core::ErrorLevel::NONE, false};
+		return {"", core::ErrorLevel::NONE, false};
 	}
 
 	static std::map<std::pair<LodePNGColorType, int>, std::set<ramses::ETextureFormat>> downConvertableTextureFormats = {
@@ -575,13 +570,13 @@ PngCompatibilityInfo validateTextureColorTypeAndBitDepth(ramses::ETextureFormat 
 
 	auto downConvertableTextureFormat = downConvertableTextureFormats[pngFormat].find(selectedTextureFormat);
 	if (downConvertableTextureFormat != downConvertableTextureFormats[pngFormat].end()) {
-		return {fmt::format("Selected format {} is not equal to PNG color type {} - image will be converted.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::INFORMATION, true};
+		return {fmt::format("Selected format {} is not equal to PNG color type {} - image will be converted.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), core::ErrorLevel::INFORMATION, true};
 	}
-	return {fmt::format("Selected format {} is not equal to PNG color type {} - empty channels will be created.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), raco::core::ErrorLevel::WARNING, true};
+	return {fmt::format("Selected format {} is not equal to PNG color type {} - empty channels will be created.", ramsesTextureFormatToString(selectedTextureFormat), pngColorTypeToString(colorType)), core::ErrorLevel::WARNING, true};
 }
 
 std::string ramsesTextureFormatToString(ramses::ETextureFormat textureFormat) {
-	return std::string(ramses::getTextureFormatString(textureFormat)).substr(strlen("ETextureFormat_"));
+	return std::string(ramses::toString(textureFormat)).substr(strlen("ETextureFormat_"));
 }
 
 int ramsesTextureFormatToChannelAmount(ramses::ETextureFormat textureFormat) {
@@ -609,7 +604,7 @@ void normalize16BitColorData(std::vector<unsigned char> &data) {
 	assert(data.size() % 2 == 0);
 
 	for (auto i = 0; i < data.size(); i += 2) {
-		auto dataHalfFloat = raco::utils::math::twoBytesToHalfFloat(data[i], data[i + 1]);
+		auto dataHalfFloat = utils::math::twoBytesToHalfFloat(data[i], data[i + 1]);
 		data[i] = dataHalfFloat;
 		data[i + 1] = dataHalfFloat >> 8;
 	}
@@ -638,8 +633,8 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 	unsigned int curWidth;
 	unsigned int curHeight;
 
-	std::string pngPath = raco::core::PathQueries::resolveUriPropertyToAbsolutePath(project, {obj, {uriPropName}});
-	auto rawBinaryData = raco::utils::file::readBinary(pngPath);
+	std::string pngPath = core::PathQueries::resolveUriPropertyToAbsolutePath(project, {obj, {uriPropName}});
+	auto rawBinaryData = utils::file::readBinary(pngPath);
 	lodepng::State pngImportState;
 	pngImportState.decoder.color_convert = false;
 	lodepng_inspect(&curWidth, &curHeight, &pngImportState, rawBinaryData.data(), rawBinaryData.size());
@@ -673,17 +668,17 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 				   : lodepng::decode(data, curWidth, curHeight, pngImportState, rawBinaryData);
 
 	if (ret != 0) {
-		if (raco::utils::file::isGitLfsPlaceholderFile(pngPath)) {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'. Git LFS placeholder file detected.", obj->getTypeDescription().typeName, obj->objectName(), uri);
+		if (utils::file::isGitLfsPlaceholderFile(pngPath)) {
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'. Git LFS placeholder file detected.", obj->getTypeDescription().typeName, obj->objectName(), uri);
 			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, "Image file could not be loaded, Git LFS placeholder file detected.");
 		} else {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'", obj->getTypeDescription().typeName, obj->objectName(), uri);
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, "{} '{}': Couldn't load png file from '{}'", obj->getTypeDescription().typeName, obj->objectName(), uri);
 			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}}, "Image file could not be loaded.");
 		}
 		return {};
 	} else {
-		if (&obj->getTypeDescription() == &raco::user_types::CubeMap::typeDescription && curWidth != curHeight) {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "CubeMap '{}': non-square image '{}' for '{}'", obj->objectName(), uri, uriPropName);
+		if (&obj->getTypeDescription() == &user_types::CubeMap::typeDescription && curWidth != curHeight) {
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, "CubeMap '{}': non-square image '{}' for '{}'", obj->objectName(), uri, uriPropName);
 			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {obj->shared_from_this(), {uriPropName}},
 				fmt::format("Non-square image size {}x{}", curWidth, curHeight));
 			return {};
@@ -702,7 +697,7 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 		int expectedHeight = decodingInfo.height * std::pow(0.5, level - 1);
 
 		if (curWidth != expectedWidth || expectedHeight != expectedHeight) {
-			LOG_ERROR(raco::log_system::RAMSES_ADAPTOR, "Texture '{}': incompatible image sizes", obj->objectName());
+			LOG_ERROR(log_system::RAMSES_ADAPTOR, "Texture '{}': incompatible image sizes", obj->objectName());
 			auto errorMsg = (decodingInfo.width == -1)
 								? "Level 1 mipmap not defined"
 								: fmt::format("Incompatible image size {}x{}, expected is {}x{}", curWidth, curHeight, expectedWidth, expectedHeight);
@@ -716,9 +711,9 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 			return {};
 		}
 
-		if (textureFormatCompatInfo.errorLvl != raco::core::ErrorLevel::NONE) {
+		if (textureFormatCompatInfo.errorLvl != core::ErrorLevel::NONE) {
 			errors->addError(core::ErrorCategory::PARSING, textureFormatCompatInfo.errorLvl, {obj->shared_from_this(), {uriPropName}}, textureFormatCompatInfo.errorMsg);
-			if (textureFormatCompatInfo.errorLvl == raco::core::ErrorLevel::ERROR) {
+			if (textureFormatCompatInfo.errorLvl == core::ErrorLevel::ERROR) {
 				return {};
 			}
 		} else {
@@ -726,17 +721,17 @@ std::vector<unsigned char> decodeMipMapData(core::Errors *errors, core::Project 
 		}
 
 		if (decodingInfo.bitdepth == 16) {
-			raco::ramses_base::normalize16BitColorData(data);
+			ramses_base::normalize16BitColorData(data);
 		} else if (pngColorType != LCT_GREY_ALPHA && decodingInfo.convertedPngFormat == ramses::ETextureFormat::RG8) {
-			data = raco::ramses_base::generateColorDataWithoutBlueChannel(data);
+			data = ramses_base::generateColorDataWithoutBlueChannel(data);
 		}
 	}
 
 	return data;
 }
 
-int clipAndCheckIntProperty(const raco::core::ValueHandle value, core::Errors *errors, bool *allValid) {
-	auto range = value.constValueRef()->query<raco::core::RangeAnnotation<int>>();
+int clipAndCheckIntProperty(const core::ValueHandle value, core::Errors *errors, bool *allValid) {
+	auto range = value.constValueRef()->query<core::RangeAnnotation<int>>();
 	int clippedValue = std::min(std::max(*range->min_, value.asInt()), *range->max_);
 
 	if (clippedValue != value.asInt()) {
@@ -747,28 +742,6 @@ int clipAndCheckIntProperty(const raco::core::ValueHandle value, core::Errors *e
 		errors->removeError(value);
 	}
 	return clippedValue;
-}
-
-ramses::ERenderBufferType ramsesRenderBufferTypeFromFormat(ramses::ERenderBufferFormat format) {
-	using namespace ramses;
-	std::map<ramses::ERenderBufferFormat, ramses::ERenderBufferType> bufferTypeFromFormat = {
-		{ERenderBufferFormat_RGBA4, ERenderBufferType_Color},
-		{ERenderBufferFormat_R8, ERenderBufferType_Color},
-		{ERenderBufferFormat_RG8, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGB8, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGBA8, ERenderBufferType_Color},
-		{ERenderBufferFormat_R16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_R32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RG16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RG32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGB16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGB32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGBA16F, ERenderBufferType_Color},
-		{ERenderBufferFormat_RGBA32F, ERenderBufferType_Color},
-		{ERenderBufferFormat_Depth24, ERenderBufferType_Depth},
-		{ERenderBufferFormat_Depth24_Stencil8, ERenderBufferType_DepthStencil}};
-
-	return bufferTypeFromFormat.at(format);
 }
 
 std::tuple<std::string, ramses::ETextureFormat, ramses::TextureSwizzle> ramsesTextureFormatToSwizzleInfo(int colorType, ramses::ETextureFormat textureFormat) {

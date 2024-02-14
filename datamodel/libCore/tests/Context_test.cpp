@@ -100,7 +100,7 @@ void print_recursive(ValueHandle& handle, unsigned level = 0) {
 TEST_F(ContextTest, Complex) {
 	std::shared_ptr<MockLuaScript> script{new MockLuaScript("foo")};
 
-	EXPECT_EQ(script->size(), 6);
+	EXPECT_EQ(script->size(), 5);
 
 	double val = *ValueHandle(script, &MockLuaScript::inputs_).get("in_array_struct")[1].get("bar").asVec3f().y;
 	EXPECT_EQ(val, 0);
@@ -113,9 +113,10 @@ TEST_F(ContextTest, Complex) {
 TEST_F(ContextTest, rendertarget_set_remove_multi_ref) {
 	auto buffer = create<RenderBuffer>("buffer");
 	auto target = create<RenderTarget>("target");
+	context.resizeArray({target, &RenderTarget::buffers_}, 2);
 
-	ValueHandle buffer_0_handle{target, &RenderTarget::buffer0_};
-	ValueHandle buffer_1_handle{target, &RenderTarget::buffer1_};
+	ValueHandle buffer_0_handle{target, {"buffers", "1"}};
+	ValueHandle buffer_1_handle{target, {"buffers", "2"}};
 
 	EXPECT_EQ(buffer->referencesToThis().size(), 0);
 
@@ -723,7 +724,7 @@ TEST_F(ContextTest, pasteInvalidJsonSchema) {
 
 TEST_F(ContextTest, copyAndPasteKeepAbsolutePath) {
 	auto absoluteDuckPath{(test_path() / "testData" / "Duck.glb").string()};
-	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{absoluteDuckPath};
 	context.set({sMesh, {"uri"}}, uri);
 
@@ -743,7 +744,7 @@ TEST_F(ContextTest, copyAndPasteTurnRelativePathFromDifferentDriveToAbsolute) {
 	context.project()->setCurrentPath((test_path() / "proj.file").string());
 	auto absoluteDuckPath{(test_path() / "testData" / "Duck.glb").string()};
 	std::string relativeDuckPath{"testData/Duck.glb"};
-	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	context.set({sMesh, {"uri"}}, relativeDuckPath);
 
 	auto clipboardContent = context.copyObjects({sMesh});
@@ -757,14 +758,14 @@ TEST_F(ContextTest, copyAndPasteTurnRelativePathFromDifferentDriveToAbsolute) {
 TEST_F(ContextTest, copyAndPasteRerootRelativePathHierarchyDown) {
     context.project()->setCurrentPath((test_path() / "proj.file").string());
 	auto relativeDuckPath{(test_relative_path() / "testData" / "Duck.glb").string()};
-	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{relativeDuckPath};
 	context.set({sMesh, {"uri"}}, uri);
 
 	auto clipboardContent = context.copyObjects({ sMesh });
 	context.project()->setCurrentPath((test_path() / "newProject" / "proj.file").string());
 	auto pasteResult = context.pasteObjects(clipboardContent);
-	auto newRelativeDuckPath{raco::utils::u8path("..") / relativeDuckPath};
+	auto newRelativeDuckPath{utils::u8path("..") / relativeDuckPath};
 
 	ASSERT_EQ(pasteResult.front()->get("uri")->asString(), newRelativeDuckPath);
 }
@@ -772,14 +773,14 @@ TEST_F(ContextTest, copyAndPasteRerootRelativePathHierarchyDown) {
 TEST_F(ContextTest, copyAndPasteRerootRelativePathHierarchyUp) {
     context.project()->setCurrentPath((test_path() / "newProject"  / "proj.file").string());
 	auto relativeDuckPath{(test_relative_path() / "testData" / "Duck.glb").string()};
-	const auto sMesh{context.createObject(raco::user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
+	const auto sMesh{context.createObject(user_types::Mesh::typeDescription.typeName, "mesh", "mesh_id")};
 	auto uri{relativeDuckPath};
 	context.set({sMesh, {"uri"}}, uri);
 
 	auto clipboardContent = context.copyObjects({ sMesh });
 	context.project()->setCurrentPath((test_path() / "proj.file").string());
 	auto pasteResult = context.pasteObjects(clipboardContent);
-	auto newRelativeDuckPath{raco::utils::u8path("newProject") / relativeDuckPath};
+	auto newRelativeDuckPath{utils::u8path("newProject") / relativeDuckPath};
 
 	ASSERT_EQ(pasteResult.front()->get("uri")->asString(), newRelativeDuckPath);
 }
@@ -965,7 +966,7 @@ TEST_F(ContextTest, cutAndPasteNodeUniqueName) {
 TEST_F(ContextTest, queryLinkConnectedToObjectsReturnsNoDuplicateLinks) {
 	auto objs{raco::createLinkedScene(context, test_relative_path())};
 
-	auto totalLinks = raco::core::Queries::getLinksConnectedToObjects(
+	auto totalLinks = core::Queries::getLinksConnectedToObjects(
 		*context.project(), SEditorObjectSet{context.project()->instances().begin(), context.project()->instances().end()}, true, true);
 
 	ASSERT_EQ(totalLinks.size(), 1);
@@ -1047,7 +1048,7 @@ end
 
 	auto mock = context.createObject(ObjectWithTableProperty::typeDescription.typeName, "mock");
 
-	raco::data_storage::Table tags;
+	data_storage::Table tags;
 	tags.addProperty("main", new Property<int, LinkEndAnnotation>(1, {}));
 	context.set({mock, &ObjectWithTableProperty::renderableTags_}, tags);
 
@@ -1073,10 +1074,10 @@ TEST_F(ContextTest, move_scenegraph_removes_incoming_ref) {
 	auto camera = context.createObject(PerspectiveCamera::typeDescription.typeName, "camera");
 	auto renderpass = context.createObject(RenderPass::typeDescription.typeName, "renderpass");
 	context.set({renderpass, &RenderPass::camera_}, camera);
-	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), camera);
+	ASSERT_EQ(core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), camera);
 
 	context.moveScenegraphChildren({camera}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), SEditorObject());
 }
 
 TEST_F(ContextTest, move_scenegraph_removes_incoming_ref_to_child) {
@@ -1086,10 +1087,10 @@ TEST_F(ContextTest, move_scenegraph_removes_incoming_ref_to_child) {
 	context.moveScenegraphChildren({camera}, node);
 	auto renderpass = context.createObject(RenderPass::typeDescription.typeName, "renderpass");
 	context.set({renderpass, &RenderPass::camera_}, camera);
-	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), camera);
+	ASSERT_EQ(core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), camera);
 
 	context.moveScenegraphChildren({node}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(renderpass, &RenderPass::camera_).asRef(), SEditorObject());
 }
 
 TEST_F(ContextTest, move_scenegraph_removes_outgoing_ref) {
@@ -1097,10 +1098,10 @@ TEST_F(ContextTest, move_scenegraph_removes_outgoing_ref) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
 	auto skin = context.createObject(Skin::typeDescription.typeName, "skin");
 	context.set(ValueHandle(skin, &Skin::targets_)[0], meshNode);
-	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
+	ASSERT_EQ(core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
 
 	context.moveScenegraphChildren({skin}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
 }
 
 TEST_F(ContextTest, move_scenegraph_removes_outgoing_ref_from_child) {
@@ -1110,10 +1111,10 @@ TEST_F(ContextTest, move_scenegraph_removes_outgoing_ref_from_child) {
 	auto skin = context.createObject(Skin::typeDescription.typeName, "skin");
 	context.moveScenegraphChildren({skin}, node);
 	context.set(ValueHandle(skin, &Skin::targets_)[0], meshNode);
-	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
+	ASSERT_EQ(core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
 
 	context.moveScenegraphChildren({node}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
 }
 
 TEST_F(ContextTest, move_scenegraph_keeps_outgoing_ref) {
@@ -1121,20 +1122,20 @@ TEST_F(ContextTest, move_scenegraph_keeps_outgoing_ref) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "mesh");
 	context.set({meshNode, &MeshNode::mesh_}, mesh);
-	ASSERT_EQ(raco::core::ValueHandle(meshNode, &MeshNode::mesh_).asRef(), mesh);
+	ASSERT_EQ(core::ValueHandle(meshNode, &MeshNode::mesh_).asRef(), mesh);
 
 	context.moveScenegraphChildren({meshNode}, prefab);
-	ASSERT_EQ(raco::core::ValueHandle(meshNode, &MeshNode::mesh_).asRef(), mesh);
+	ASSERT_EQ(core::ValueHandle(meshNode, &MeshNode::mesh_).asRef(), mesh);
 }
 
 TEST_F(ContextTest, move_scenegraph_breaks_ref_loop) {
 	auto meshNode = context.createObject(MeshNode::typeDescription.typeName, "meshNode");
 	auto skin = context.createObject(Skin::typeDescription.typeName, "skin");
 	context.set(ValueHandle(skin, &Skin::targets_)[0], meshNode);
-	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
+	ASSERT_EQ(core::ValueHandle(skin, &Skin::targets_)[0].asRef(), meshNode);
 
 	context.moveScenegraphChildren({skin}, meshNode);
-	ASSERT_EQ(raco::core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
+	ASSERT_EQ(core::ValueHandle(skin, &Skin::targets_)[0].asRef(), SEditorObject());
 }
 
 TEST_F(ContextTest, valid_refs_skin_to_node_loop) {
@@ -1146,7 +1147,128 @@ TEST_F(ContextTest, valid_refs_skin_to_node_loop) {
 	context.moveScenegraphChildren({skin_child}, meshNode);
 	context.set(ValueHandle(skin_child, &Skin::targets_)[0], meshNode);
 
-	ASSERT_TRUE(raco::core::Queries::findAllValidReferenceTargets(project, ValueHandle(skin_child, &Skin::targets_)[0]).empty());
-	ASSERT_EQ(raco::core::Queries::findAllValidReferenceTargets(project, ValueHandle(skin_toplevel, &Skin::targets_)[0]),
+	ASSERT_TRUE(core::Queries::findAllValidReferenceTargets(project, ValueHandle(skin_child, &Skin::targets_)[0]).empty());
+	ASSERT_EQ(core::Queries::findAllValidReferenceTargets(project, ValueHandle(skin_toplevel, &Skin::targets_)[0]),
 		std::vector<SEditorObject>({meshNode}));
+}
+
+TEST_F(ContextTest, set_array_ref_type_mismatch) {
+	auto node_1 = create<Node>("node1");
+	auto node_2 = create<Node>("node2");
+
+	Array<SNode> aref_nodes;
+	*aref_nodes.addProperty() = node_1;
+	*aref_nodes.addProperty() = node_2;
+
+	auto obj = create<ObjectWithArrays>("obj");
+	ValueHandle arrayHandle{obj, &ObjectWithArrays::array_ref_};
+
+	EXPECT_THROW(context.set(arrayHandle, aref_nodes), std::runtime_error);
+}
+
+TEST_F(ContextTest, delete_objects_removes_tableArray_properties) {
+	auto refTarget = create<Foo>("foo");
+	auto refSource = create<ObjectWithTableProperty>("sourceObject");
+	
+	context.addProperty({refSource, &ObjectWithTableProperty::t_}, "ref", std::make_unique<Value<SEditorObject>>(refTarget));
+	context.addProperty({refSource, &ObjectWithTableProperty::array_} , "ref", std::make_unique<Value<SEditorObject>>(refTarget));
+
+	EXPECT_EQ(refSource->array_->size(), 1);
+	EXPECT_EQ(refSource->array_->get(0)->asRef(), refTarget);
+
+	EXPECT_EQ(refSource->t_->size(), 1);
+	EXPECT_EQ(refSource->t_->get(0)->asRef(), refTarget);
+
+	context.deleteObjects({refTarget});
+	
+	EXPECT_EQ(refSource->array_->size(), 0);
+
+	EXPECT_EQ(refSource->t_->size(), 1);
+	EXPECT_EQ(refSource->t_->get(0)->asRef(), nullptr);
+}
+
+TEST_F(ContextTest, delete_objects_removes_array_properties) {
+	auto node_1 = create<Node>("node1");
+	auto node_2 = create<Node>("node2");
+
+	Array<SEditorObject> aref_nodes;
+	*aref_nodes.addProperty() = node_1;
+	*aref_nodes.addProperty() = node_2;
+
+	auto obj = create<ObjectWithArrays>("obj");
+
+	context.set({obj, &ObjectWithArrays::array_ref_} , aref_nodes);
+	context.set({obj, &ObjectWithArrays::array_ref_array_semantic_} , aref_nodes);
+
+	EXPECT_TRUE(*obj->array_ref_ == aref_nodes);
+	EXPECT_TRUE(*obj->array_ref_array_semantic_ == aref_nodes);
+
+	context.deleteObjects({node_2});
+
+	EXPECT_EQ(obj->array_ref_->size(), 2);
+	EXPECT_EQ(**obj->array_ref_->get(0), node_1);
+	EXPECT_EQ(**obj->array_ref_->get(1), nullptr);
+
+	EXPECT_EQ(obj->array_ref_array_semantic_->size(), 1);
+	EXPECT_EQ(**obj->array_ref_array_semantic_->get(0), node_1);
+}
+
+TEST_F(ContextTest, resize_array_grow) {
+	auto node_1 = create<Node>("node1");
+
+	Array<SEditorObject> aref_nodes;
+	*aref_nodes.addProperty() = node_1;
+
+	auto obj = create<ObjectWithArrays>("obj");
+
+	context.set({obj, &ObjectWithArrays::array_ref_}, aref_nodes);
+	EXPECT_TRUE(*obj->array_ref_ == aref_nodes);
+
+	ASSERT_EQ(node_1->referencesToThis().size(), 1);
+	EXPECT_EQ(node_1->referencesToThis().count(obj), 1);
+
+	EXPECT_EQ(obj->array_ref_->size(), 1);
+	EXPECT_EQ(**obj->array_ref_->get(0), node_1);
+
+	context.resizeArray({ obj, &ObjectWithArrays::array_ref_ }, 2);
+
+	ASSERT_EQ(node_1->referencesToThis().size(), 1);
+	EXPECT_EQ(node_1->referencesToThis().count(obj), 1);
+
+	EXPECT_EQ(obj->array_ref_->size(), 2);
+	EXPECT_EQ(**obj->array_ref_->get(0), node_1);
+	EXPECT_EQ(**obj->array_ref_->get(1), nullptr);
+}
+
+
+TEST_F(ContextTest, resize_array_shrink) {
+	auto node_1 = create<Node>("node1");
+	auto node_2 = create<Node>("node2");
+
+	Array<SEditorObject> aref_nodes;
+	*aref_nodes.addProperty() = node_1;
+	*aref_nodes.addProperty() = node_2;
+
+	auto obj = create<ObjectWithArrays>("obj");
+
+	context.set({obj, &ObjectWithArrays::array_ref_}, aref_nodes);
+	EXPECT_TRUE(*obj->array_ref_ == aref_nodes);
+
+	ASSERT_EQ(node_1->referencesToThis().size(), 1);
+	EXPECT_EQ(node_1->referencesToThis().count(obj), 1);
+	ASSERT_EQ(node_2->referencesToThis().size(), 1);
+	EXPECT_EQ(node_2->referencesToThis().count(obj), 1);
+
+	EXPECT_EQ(obj->array_ref_->size(), 2);
+	EXPECT_EQ(**obj->array_ref_->get(0), node_1);
+	EXPECT_EQ(**obj->array_ref_->get(1), node_2);
+
+	context.resizeArray({obj, &ObjectWithArrays::array_ref_}, 1);
+
+	ASSERT_EQ(node_1->referencesToThis().size(), 1);
+	EXPECT_EQ(node_1->referencesToThis().count(obj), 1);
+	ASSERT_EQ(node_2->referencesToThis().size(), 0);
+
+	EXPECT_EQ(obj->array_ref_->size(), 1);
+	EXPECT_EQ(**obj->array_ref_->get(0), node_1);
 }

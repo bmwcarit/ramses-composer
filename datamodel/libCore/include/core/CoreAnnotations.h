@@ -20,7 +20,7 @@
 
 namespace raco::core {
 
-class URIAnnotation : public raco::data_storage::AnnotationBase {
+class URIAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "URIAnnotation", false };
 
@@ -63,13 +63,13 @@ public:
 		return filter_.asString() == projectSubdirectoryFilter;
 	}
 
-    raco::data_storage::Value<std::string> filter_;
+    data_storage::Value<std::string> filter_;
 
 	// This is really a PathManager::FolerTypeKey
-	raco::data_storage::Value<int> folderTypeKey_;
+	data_storage::Value<int> folderTypeKey_;
 };
 
-class HiddenProperty : public raco::data_storage::AnnotationBase {
+class HiddenProperty : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "HiddenProperty", false };
 	TypeDescriptor const& getTypeDescription() const override {
@@ -86,7 +86,7 @@ public:
 	}
 };
 
-class ReadOnlyAnnotation : public raco::data_storage::AnnotationBase {
+class ReadOnlyAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"ReadOnlyAnnotation", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -106,7 +106,7 @@ public:
 // - the properties in the Table have empty property names
 // - PrimitiveType::Ref properties in the Table must not contain nullptrs.
 //   Instead of setting a reference property to nullptr the property needs to be removed.
-class ArraySemanticAnnotation : public raco::data_storage::AnnotationBase {
+class ArraySemanticAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "ArraySemanticAnnotation", false };
 	TypeDescriptor const& getTypeDescription() const override {
@@ -127,7 +127,7 @@ public:
  * 
  * Not to be mixed up with UserTagContainerAnnotation
 */
-class TagContainerAnnotation : public raco::data_storage::AnnotationBase {
+class TagContainerAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"TagContainerAnnotation", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -146,7 +146,7 @@ public:
 /**
  * @brief Marks a Table containing the tags to be rendered by a RenderLayer
 */
-class RenderableTagContainerAnnotation : public raco::data_storage::AnnotationBase {
+class RenderableTagContainerAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"RenderableTagContainerAnnotation", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -167,7 +167,7 @@ public:
  * 
  * The user-defined Tags have no special semantics within RamsesComposer
 */
-class UserTagContainerAnnotation : public raco::data_storage::AnnotationBase {
+class UserTagContainerAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"UserTagContainerAnnotation", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -183,7 +183,7 @@ public:
 	}
 };
 
-class EnumerationAnnotation : public raco::data_storage::AnnotationBase {
+class EnumerationAnnotation : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = { "EnumerationAnnotation", false };
 	TypeDescriptor const& getTypeDescription() const override {
@@ -204,11 +204,17 @@ public:
 		return *this;
 	}
 
-	// This is really a raco::core::EUserTypeEnumerations
-	raco::data_storage::Value<int> type_;
+	// This is really a core::EUserTypeEnumerations
+	data_storage::Value<int> type_;
 };
 
-class ExpectEmptyReference : public raco::data_storage::AnnotationBase {
+/**
+ * @brief Customize the behaviour of the reference editor in the property browser.
+ * 
+ * References properties without this annotation will show a warning color in the editor field if the reference is empty.
+ * Additionally the text to be shown in the editor field for empty references can be customized.
+*/
+class ExpectEmptyReference : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"EmptyReferenceAllowable", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -230,7 +236,7 @@ public:
 		return *this;
 	}
 
-	raco::data_storage::Value<std::string> emptyRefLabel_;
+	data_storage::Value<std::string> emptyRefLabel_;
 };
 
 /**
@@ -239,7 +245,7 @@ public:
  * Property with a feature level higher than the current project feature level must not be exposed to the user, are not readable or 
  * writable from the Python API, and must not be used in the engine backend / adaptor classes.
 */
-class FeatureLevel : public raco::data_storage::AnnotationBase {
+class FeatureLevel : public data_storage::AnnotationBase {
 public:
 	static inline const TypeDescriptor typeDescription = {"FeatureLevel", false};
 	TypeDescriptor const& getTypeDescription() const override {
@@ -256,7 +262,60 @@ public:
 		return *this;
 	}
 
-	raco::data_storage::Value<int> featureLevel_;
+	data_storage::Value<int> featureLevel_;
 };
+
+/**
+ * @brief Mark a property as an editor-only property that is not part of the persistent data model.
+ * 
+ * Volatile properties
+ * - are ignored by undo/redo, prefab update, and external reference update.
+ * - are not serialized, i.e. they are not written to the project files and ignored by copy/paste.
+ * - can be set using the CommandInterface as usual, although this will not trigger a Prefab update or generate an undo stack entry.
+ * - can be changed using the CommandInterface even when the property is linked or read-only.
+ * - changes will generate DataChangeRecorder entries as for other properties.
+ * - if a Table/Struct/Array property is tagged as volatile all child properties _must_ be tagged as volatile too.
+ *   this is not checked but undo/prefab/extref/serialization will rely on this.
+ * 
+ * Volatile properties are used for internal editor-only state needed only at runtime
+*/
+class VolatileProperty : public data_storage::AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"VolatileProperty", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	VolatileProperty(const VolatileProperty& other) : AnnotationBase({}) {}
+	VolatileProperty() : AnnotationBase({}) {}
+
+	VolatileProperty& operator=(const VolatileProperty& other) {
+		return *this;
+	}
+};
+
+
+/**
+ * @brief Mark a PrimitiveType::Array property as resizable by the user.
+*/
+class ResizableArray : public data_storage::AnnotationBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"ResizableArray", false};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+	bool serializationRequired() const override {
+		return false;
+	}
+	ResizableArray(const ResizableArray& other) : AnnotationBase({}) {}
+	ResizableArray() : AnnotationBase({}) {}
+
+	ResizableArray& operator=(const ResizableArray& other) {
+		return *this;
+	}
+};
+
 
 }  // namespace raco::data_storage

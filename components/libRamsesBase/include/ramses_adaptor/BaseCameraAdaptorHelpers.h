@@ -22,9 +22,9 @@ namespace raco::components {
 class Subscription;
 }
 
-namespace rlogic {
+namespace ramses {
 class Property;
-class RamsesCameraBinding;
+class CameraBinding;
 }
 
 namespace ramses {
@@ -42,8 +42,8 @@ class ObjectAdaptor;
 
 class BaseCameraAdaptorHelpers {
 public:
-	static void sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, rlogic::RamsesCameraBinding* cameraBinding, core::Errors* errors);
-	static const rlogic::Property* getProperty(rlogic::RamsesCameraBinding* cameraBinding, const std::vector<std::string>& propertyNamesVector);
+	static void sync(std::shared_ptr<user_types::BaseCamera> editorObject, ramses::Camera* ramsesCamera, ramses::CameraBinding* cameraBinding, core::Errors* errors);
+	static ramses::Property* getProperty(ramses::CameraBinding* cameraBinding, const std::vector<std::string_view>& propertyNamesVector);
 };
 
 };  // namespace raco::ramses_adaptor

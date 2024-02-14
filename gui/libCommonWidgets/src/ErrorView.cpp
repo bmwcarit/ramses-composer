@@ -32,17 +32,19 @@
 
 namespace {
 
+using namespace raco;
+
 inline const int extRefProjectIdUserRole = Qt::UserRole;
 
-QString errorLevelToString(const raco::core::ErrorLevel &level) {
+QString errorLevelToString(const core::ErrorLevel &level) {
 	switch (level) {
-		case raco::core::ErrorLevel::NONE:
+		case core::ErrorLevel::NONE:
 			return "None";
-		case raco::core::ErrorLevel::INFORMATION:
+		case core::ErrorLevel::INFORMATION:
 			return "Information";
-		case raco::core::ErrorLevel::WARNING:
+		case core::ErrorLevel::WARNING:
 			return "Warning";
-		case raco::core::ErrorLevel::ERROR:
+		case core::ErrorLevel::ERROR:
 			return "Error";
 		default:
 			assert(false && "Unknown error level detected when trying to regenerate Error View");
@@ -59,15 +61,15 @@ protected:
 		auto column = index.column();
 		if (role == Qt::ForegroundRole) {
 			if (QStandardItemModel::data(index, extRefProjectIdUserRole).isValid()) {
-				if (column == raco::common_widgets::ErrorView::ErrorViewColumns::OBJECT) {
-					return raco::style::Colors::color(raco::style::Colormap::externalReference);
+				if (column == common_widgets::ErrorView::ErrorViewColumns::OBJECT) {
+					return style::Colors::color(style::Colormap::externalReference);
 				}
 			}
 		}
 
 		auto originalData = QStandardItemModel::data(index, role);
 
-		if (column == raco::common_widgets::ErrorView::ErrorViewColumns::MESSAGE && role == Qt::DisplayRole) {
+		if (column == common_widgets::ErrorView::ErrorViewColumns::MESSAGE && role == Qt::DisplayRole) {
 			// no multi-line error messages in Error View.
 			return originalData.toString().replace('\n', ' ');
 		}
@@ -81,7 +83,7 @@ protected:
 
 namespace raco::common_widgets {
 
-ErrorView::ErrorView(raco::core::CommandInterface* commandInterface, raco::components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel* logViewModel, QWidget* parent) :
+ErrorView::ErrorView(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, bool embeddedInExportView, LogViewModel* logViewModel, QWidget* parent) :
 	QWidget{parent}, commandInterface_{commandInterface}, logViewModel_(logViewModel), showFilterLayout_(!embeddedInExportView) {
 	auto* errorViewLayout{new NoContentMarginsLayout<QVBoxLayout>{this}};
 
@@ -190,7 +192,7 @@ void ErrorView::filterRows() {
 	auto warningsVisible = !showWarningsCheckBox_ || showWarningsCheckBox_->isChecked();
 	auto errorsVisible = !showErrorsCheckBox_ || showErrorsCheckBox_->isChecked();
 	auto extRefsVisible = !showExternalReferencesCheckBox_ || showExternalReferencesCheckBox_->isChecked();
-	const auto WARNING = errorLevelToString(raco::core::ErrorLevel::WARNING);
+	const auto WARNING = errorLevelToString(core::ErrorLevel::WARNING);
 
 	for (auto row = 0; row < tableModel_->rowCount(); ++row) {
 		auto modelIndex = proxyModel_->mapToSource(proxyModel_->index(row, LEVEL));

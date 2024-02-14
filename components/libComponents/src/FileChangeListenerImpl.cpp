@@ -49,7 +49,7 @@ void FileChangeListenerImpl::addPathToWatch(const QString& path) {
 	}
 }
 
-void FileChangeListenerImpl::installFileWatch(const raco::utils::u8path& path) {
+void FileChangeListenerImpl::installFileWatch(const utils::u8path& path) {
 	if (path.exists()) {
 		auto pathQtString = QString::fromStdString(path.string());
 		auto fileWatcherContainsFilePath = fileWatcher_.files().contains(pathQtString);
@@ -61,7 +61,7 @@ void FileChangeListenerImpl::installFileWatch(const raco::utils::u8path& path) {
 }
 
 void FileChangeListenerImpl::add(const std::string& absPath) {
-	const raco::utils::u8path& path(absPath);
+	const utils::u8path& path(absPath);
 
 	// create directoriy watchers up to root -> return direct parent directory
 	auto directoryNode = createDirectoryWatches(path.parent_path());
@@ -72,7 +72,7 @@ void FileChangeListenerImpl::add(const std::string& absPath) {
 	watchedFiles_[path] = it->second.get();
 }
 
-FileChangeListenerImpl::Node* FileChangeListenerImpl::createDirectoryWatches(const raco::utils::u8path& path) {
+FileChangeListenerImpl::Node* FileChangeListenerImpl::createDirectoryWatches(const utils::u8path& path) {
 	if (path != path.root_path()) {
 		auto node = createDirectoryWatches(path.parent_path());
 
@@ -91,7 +91,7 @@ FileChangeListenerImpl::Node* FileChangeListenerImpl::createDirectoryWatches(con
 	return &rootNode_;
 }
 
-FileChangeListenerImpl::Node* FileChangeListenerImpl::getNode(const raco::utils::u8path& path) {
+FileChangeListenerImpl::Node* FileChangeListenerImpl::getNode(const utils::u8path& path) {
 	if (path != path.root_path()) {
 		auto node = getNode(path.parent_path());
 
@@ -113,7 +113,7 @@ void FileChangeListenerImpl::updateDirectoryWatches(Node* node) {
 }
 
 void FileChangeListenerImpl::remove(const std::string& absPath) {
-	const raco::utils::u8path& path(absPath);
+	const utils::u8path& path(absPath);
 	if (fileWatcher_.removePath(QString::fromStdString(path.string()))) {
 
 		// remove file node and all parent directories which have no child nodes anymore
@@ -181,7 +181,7 @@ void FileChangeListenerImpl::onDirectoryChanged(const QString& dirPathString) {
 	}
 }
 
-bool FileChangeListenerImpl::fileCanBeAccessed(const raco::utils::u8path& path) {
+bool FileChangeListenerImpl::fileCanBeAccessed(const utils::u8path& path) {
 #if (defined(OS_WINDOWS))
 	auto fileHandle = CreateFileW(path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 

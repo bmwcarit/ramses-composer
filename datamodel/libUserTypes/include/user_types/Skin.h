@@ -11,12 +11,13 @@
 
 #include "user_types/BaseObject.h"
 #include "user_types/MeshNode.h"
+#include "core/CoreAnnotations.h"
 
 namespace raco::user_types {
 
 class Skin : public BaseObject {
 public:
-	static inline const TypeDescriptor typeDescription = {"Skin", false, 4};
+	static inline const TypeDescriptor typeDescription = {"Skin", false};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
@@ -33,6 +34,7 @@ public:
 	Skin(std::string name = std::string(), std::string id = std::string())
 		: BaseObject(name, id) {
 		fillPropertyDescription();
+		setupTargetProperties(1);
 	}
 
 	void fillPropertyDescription() {
@@ -42,18 +44,16 @@ public:
 		properties_.emplace_back("skinIndex", &skinIndex_);
 	}
 
-	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 	void updateFromExternalFile(BaseContext& context) override;
 
 
 	// To account for multi-material meshnodes in gltf files (multiple primitives in single mesh in gltf)
 	// the Skin can contain target multiple meshnodes.
-	Property<Table, DisplayNameAnnotation> targets_{{}, {"Target MeshNodes"}};
+	Property<Array<SMeshNode>, DisplayNameAnnotation, ResizableArray> targets_{{}, {"Target MeshNodes"}, {}};
 
-	// TODO want variable number of properties
-	// contains SNode properties
-	Property<Table, DisplayNameAnnotation> joints_{{}, {"Joint Nodes"}};
+	// Joints are not user-resizable since the joint set is read from the gltf-file
+	Property<Array<SNode>, DisplayNameAnnotation> joints_{{}, {"Joint Nodes"}};
 
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"glTF files (*.glTF *.glb);;All Files (*.*)", core::PathManager::FolderTypeKeys::Mesh}, DisplayNameAnnotation("URI")};
 	Property<int, DisplayNameAnnotation> skinIndex_{0, {"Skin Index"}};

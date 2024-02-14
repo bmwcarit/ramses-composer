@@ -416,12 +416,12 @@ Subscription DataChangeDispatcher::registerOnAfterDispatch(Callback callback) {
 	}};
 }
 
-void DataChangeDispatcher::registerBulkChangeCallback(BulkChangeCallback callback) {
-	bulkChangeCallback_ = callback;
+void DataChangeDispatcher::addBulkChangeCallback(uint64_t id, BulkChangeCallback callback) {
+	bulkChangeCallbacks_[id] = callback;
 }
 
-void DataChangeDispatcher::resetBulkChangeCallback() {
-	bulkChangeCallback_ = nullptr;
+void DataChangeDispatcher::removeBulkChangeCallback(uint64_t id) {
+	bulkChangeCallbacks_.erase(id);
 }
 
 void DataChangeDispatcher::emitUpdateFor(const std::map<std::string, std::set<core::ValueHandle>>& valueHandles) const {
@@ -536,6 +536,7 @@ void DataChangeDispatcher::assertEmpty() {
 	assert(externalProjectMapChangedListeners_.empty());
 	assert(rootOrderChangedListeners_.empty());
 	assert(onAfterDispatchListeners_.empty());
+	assert(bulkChangeCallbacks_.empty());
 }
 
 void DataChangeDispatcher::emitDeleted(SEditorObject obj) const {
@@ -561,8 +562,8 @@ void DataChangeDispatcher::emitPreviewDirty(SEditorObject obj) const {
 }
 
 void DataChangeDispatcher::emitBulkChange(const SEditorObjectSet& changedObjects) const {
-	if (bulkChangeCallback_) {
-		bulkChangeCallback_(changedObjects);
+	for (const auto& [id, callback] : bulkChangeCallbacks_) {
+		callback(changedObjects);
 	}
 }
 

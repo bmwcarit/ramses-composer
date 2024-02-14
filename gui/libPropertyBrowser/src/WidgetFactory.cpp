@@ -9,8 +9,12 @@
  */
 #include "property_browser/WidgetFactory.h"
 
+#include "DockWidget.h"
+#include "property_browser/controls/ImageWidget.h"
+#include "property_browser/controls/TexturePreviewWidget.h"
 #include "property_browser/PropertyBrowserItem.h"
 
+#include "property_browser/editors/ArrayEditor.h"
 #include "property_browser/editors/BoolEditor.h"
 #include "property_browser/editors/DoubleEditor.h"
 #include "property_browser/editors/EnumerationEditor.h"
@@ -20,28 +24,39 @@
 #include "property_browser/editors/RefEditor.h"
 #include "property_browser/editors/StringEditor.h"
 #include "property_browser/editors/TagContainerEditor.h"
+#include "property_browser/editors/TexturePreviewEditor.h"
 #include "property_browser/editors/URIEditor.h"
 #include "property_browser/editors/VecNTEditor.h"
 
-#include "user_types/RenderLayer.h"
+#include "user_types/UserTypeAnnotations.h"
 
 #include <QLabel>
+#include <QScreen>
 #include <QWidget>
 
 namespace raco::property_browser {
 
-QLabel* WidgetFactory::createPropertyLabel(PropertyBrowserItem* item, QWidget* parent) {
+QWidget* WidgetFactory::createPropertyLabel(PropertyBrowserItem* item, QWidget* parent) {
+	if (item->query<user_types::TexturePreviewEditorAnnotation>()) {
+		return new TexturePreviewWidget{item, parent};
+	}
 	QLabel* label = new QLabel{item->displayName().c_str(), parent};
 	label->setForegroundRole(QPalette::BrightText);
+	label->setEnabled(item->editable());
+	QObject::connect(item, &PropertyBrowserItem::editableChanged, label, &QWidget::setEnabled);
 	return label;
 }
 
-PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, QWidget* parent) {
+PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, QWidget* label, QWidget* parent) {
 	using PrimitiveType = core::PrimitiveType;
 
 	switch (item->type()) {
 		case PrimitiveType::Bool:
-			return new BoolEditor{item, parent};
+			if (item->query<user_types::TexturePreviewEditorAnnotation>()) {
+				return new TexturePreviewEditor{item, label, parent};
+			} else {
+				return new BoolEditor{item, parent};
+			}
 		case PrimitiveType::Int:
 			if (item->query<core::EnumerationAnnotation>()) {
 				return new EnumerationEditor{item, parent};
@@ -79,14 +94,37 @@ PropertyEditor* WidgetFactory::createPropertyEditor(PropertyBrowserItem* item, Q
 				return new TagContainerEditor{ item, parent };
 			}
 			return new PropertyEditor{ item, parent };
+		case PrimitiveType::Array:
+			if (item->query<core::ResizableArray>()) {
+				return new ArrayEditor{item, parent};
+			} 
+			return new PropertyEditor{item, parent};
 		default:
 			// used for group headlines
 			return new PropertyEditor{item, parent};
 	};
 }
 
-LinkEditor* WidgetFactory::createLinkControl(PropertyBrowserItem* item, QWidget* parent) {
-	return new LinkEditor(item, parent);
+LinkEditor* WidgetFactory::createLinkControl(PropertyBrowserItem* item, QWidget* parent, QWidget* propertyEditor) {
+	const auto linkEditor{new LinkEditor(item, parent)};
+	linkEditor->setControl(propertyEditor);
+	return linkEditor;
+}
+
+PropertyEditor* WidgetFactory::createPropertyControl(PropertyBrowserItem* item, QWidget* label, QWidget* parent) {
+	auto propertyEditor = createPropertyEditor(item, label, parent);
+	propertyEditor->setToolTip(item->propertyControlToolTipText());
+	QObject::connect(item, &PropertyBrowserItem::propertyControlToolTipTextChanged, propertyEditor, [propertyEditor](const QString& text) {
+		propertyEditor->setToolTip(text);
+	});
+	return propertyEditor;
+}
+
+std::tuple<QWidget*, LinkEditor*> WidgetFactory::createPropertyWidgets(PropertyBrowserItem* item, QWidget* parent) {
+	QWidget* label = createPropertyLabel(item, parent);
+	PropertyEditor* editor = createPropertyControl(item, label, parent);
+
+	return {label, createLinkControl(item, parent, editor)};
 }
 
 }  // namespace raco::property_browser

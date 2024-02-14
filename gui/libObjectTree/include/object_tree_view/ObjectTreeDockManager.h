@@ -34,13 +34,14 @@ public:
 
 Q_SIGNALS:
 	void treeDockListChanged();
-	void newObjectTreeItemsSelected(const core::SEditorObjectSet& objects);
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet& objects, const QString& property);
 	void selectionCleared();
 
 public Q_SLOTS:
 	void eraseTreeDock(ObjectTreeDock* dockToErase);
 	void setFocusedDock(ObjectTreeDock* dockToFocus);
 	void selectObjectAcrossAllTreeDocks(const QString& objectID);
+	void selectObjectAndPropertyAcrossAllTreeDocks(const QString& objectID, const QString& objectProperty);
 
 private:
 	std::vector<ObjectTreeDock*> docks_;

@@ -14,7 +14,7 @@
 #include "object_tree_view/ObjectTreeDock.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 
-using namespace raco::object_tree::view;
+using namespace object_tree::view;
 TEST_F(ObjectDefaultTreeDockManagerTest, DockCachingEmpty) {
 	ASSERT_EQ(manager_.getTreeDockAmount(), 0);
 }
@@ -54,9 +54,9 @@ TEST_F(ObjectDefaultTreeDockManagerTest, DockRemovalTwoDocksOneRemovedByDealloca
 
 TEST_F(ObjectDefaultTreeDockManagerTest, DockWithUnselectedItemIsNotConsideredSelectedAnymore) {
 	auto firstDock = generateDockInManager();
-	auto model = new raco::object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dispatcher_, nullptr, {raco::user_types::Node::typeDescription.typeName});
-	firstDock->setTreeView(new raco::object_tree::view::ObjectTreeView("TreeView", model));
-	auto obj = model->createNewObject(raco::user_types::Node::typeDescription.typeName, "name");
+	auto model = new object_tree::model::ObjectTreeViewDefaultModel(&commandInterface, dispatcher_, nullptr, {user_types::Node::typeDescription.typeName});
+	firstDock->setTreeView(new object_tree::view::ObjectTreeView("TreeView", model));
+	auto obj = model->createNewObject(user_types::Node::typeDescription.typeName, "name");
 	dispatcher_->dispatch(recorder);
 	firstDock->getActiveTreeView()->selectObject(QString::fromStdString(obj->objectID()));
 	ASSERT_TRUE(manager_.getActiveDockWithSelection() == firstDock.get());

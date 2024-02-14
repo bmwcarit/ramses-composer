@@ -58,8 +58,6 @@ public:
 		return mesh_;
 	}
 
-	std::map<std::string, std::string> metaData_;
-
 private:
 	
 	SharedMeshData mesh_;

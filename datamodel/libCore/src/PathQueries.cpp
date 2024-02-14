@@ -20,12 +20,12 @@ namespace raco::core::PathQueries {
 std::string effectiveExternalProjectID(const Project &project, SEditorObject object) {
 	if (auto prefabInst = PrefabOperations::findContainingPrefabInstance(object)) {
 		if (auto prefab = *prefabInst->template_) {
-			if (auto anno = prefab->query<raco::core::ExternalReferenceAnnotation>()) {
+			if (auto anno = prefab->query<core::ExternalReferenceAnnotation>()) {
 				return *anno->projectID_;
 			}
 		}
 	} else {
-		if (auto anno = object->query<raco::core::ExternalReferenceAnnotation>()) {
+		if (auto anno = object->query<core::ExternalReferenceAnnotation>()) {
 			return *anno->projectID_;
 		}
 	}
@@ -37,7 +37,7 @@ std::string baseFolderForRelativePath(const Project& project, SEditorObject obje
 	if (!externalProjectID.empty()) {
 		if (project.hasExternalProjectMapping(externalProjectID)) {
 			auto projectPath = project.lookupExternalProjectPath(externalProjectID);
-			return raco::utils::u8path(projectPath).parent_path().string();
+			return utils::u8path(projectPath).parent_path().string();
 		}
 		return std::string();
 	}
@@ -53,22 +53,22 @@ std::string resolveUriPropertyToAbsolutePath(const Project& project, const Value
 	if (!externalProjectID.empty()) {
 		if (project.hasExternalProjectMapping(externalProjectID)) {
 			auto projectPath = project.lookupExternalProjectPath(externalProjectID);
-			auto projectFolder = raco::utils::u8path(projectPath).parent_path().string();
-			return raco::utils::u8path(uriValue).normalizedAbsolutePath(projectFolder).string();
+			auto projectFolder = utils::u8path(projectPath).parent_path().string();
+			return utils::u8path(uriValue).normalizedAbsolutePath(projectFolder).string();
 		}
 		return std::string();
 	}
 
-	return raco::utils::u8path(uriValue).normalizedAbsolutePath(project.currentFolder()).string();
+	return utils::u8path(uriValue).normalizedAbsolutePath(project.currentFolder()).string();
 }
 
 bool isPathRelativeToCurrentProject(const SEditorObject& object) {
 	if (auto prefabInst = PrefabOperations::findContainingPrefabInstance(object)) {
 		if (auto prefab = *prefabInst->template_) {
-			return prefab->query<raco::core::ExternalReferenceAnnotation>() == nullptr;
+			return prefab->query<core::ExternalReferenceAnnotation>() == nullptr;
 		}
 	}
 	return !object->query<ExternalReferenceAnnotation>();
 }
 
-}  // namespace raco::core::PathQueries
+}  // namespace core::PathQueries

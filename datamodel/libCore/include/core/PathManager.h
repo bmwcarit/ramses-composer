@@ -24,7 +24,7 @@ namespace raco::core {
 	
 
 struct PathManager {
-	using u8path = raco::utils::u8path;
+	using u8path = utils::u8path;
 
 	static constexpr const char* DEFAULT_FILENAME = "Unnamed.rca";
 	static constexpr const char* Q_LAYOUT_FILE_NAME = "layout.ini";
@@ -49,6 +49,8 @@ struct PathManager {
 	static u8path legacyConfigDirectory();	
 
 	static void init(const u8path& executableDirectory, const u8path& appDataDirectory);
+
+	static void setDefaultResourceDirectory(const u8path& resourceDirectory);
 
 	static u8path executableDirectory();
 
@@ -81,11 +83,12 @@ struct PathManager {
 	static void setCachedPath(FolderTypeKeys key, const u8path& path);
 
 private:
-	friend class raco::components::RaCoPreferences;
+	friend class components::RaCoPreferences;
 
 	static u8path executableDirectory_;
 	static u8path basePath_;
 	static u8path appDataBasePath_;
+	static u8path defaultResourceDirectory_;
 
 	// The default values for the subdirectories are set in RaCoPreferences::load
 	static inline std::map<FolderTypeKeys, u8path> cachedPaths_ = {

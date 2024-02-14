@@ -26,6 +26,7 @@
 #include "user_types/PrefabInstance.h"
 #include "user_types/RenderPass.h"
 #include "user_types/Skin.h"
+#include "user_types/Texture.h"
 #include "user_types/Timer.h"
 
 #include <algorithm>
@@ -381,7 +382,7 @@ bool Queries::isChildHandle(const ValueHandle& handle) {
 }
 
 TagType Queries::getHandleTagType(const ValueHandle& handle) {
-	if (handle.isRefToProp(&EditorObject::userTags_)) {
+	if (handle.isRefToProp(&user_types::BaseObject::userTags_)) {
 		return TagType::UserTags;
 	}
 	if (handle.rootObject()->isType<user_types::Material>()) {
@@ -483,7 +484,11 @@ bool Queries::isReadOnly(const Project& project, const ValueHandle& handle, bool
 }
 
 
-bool Queries::isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle) {
+bool Queries::isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle, bool isMultiSelect) {
+	if (handle.isRefToProp(&user_types::Texture::preview_) && !isMultiSelect) {
+		return false;
+	}
+
 	if (handle.query<UserTagContainerAnnotation>() || handle.query<TagContainerAnnotation>() || handle.query<RenderableTagContainerAnnotation>()) {
 		return false;
 	}
@@ -683,12 +688,12 @@ std::vector<SLink> Queries::getLinksConnectedToObject(const Project& project, co
 
 namespace {
 void getLinksConnectedToObjectsHelper(
-	const std::map<std::string, std::set<raco::core::SLink>>& linkStartPoints, 
-	const std::map<std::string, std::set<raco::core::SLink>>& linkEndPoints,
+	const std::map<std::string, std::set<core::SLink>>& linkStartPoints, 
+	const std::map<std::string, std::set<core::SLink>>& linkEndPoints,
 	const std::string& propertyObjID, 
 	bool includeStarting, 
 	bool includeEnding, 
-	std::map<std::string, std::set<raco::core::SLink>>& result) {
+	std::map<std::string, std::set<core::SLink>>& result) {
 
 	if (includeStarting) {
 		auto linkIt = linkStartPoints.find(propertyObjID);
@@ -821,11 +826,11 @@ bool isStructureLinkCompatible(const ReflectionInterface* left, const Reflection
 
 	for (int i = 0; i < left->size(); i++) {
 		auto name = left->name(i);
-		const ValueBase* lval = left->get(name);
-		const ValueBase* rval = right->get(name);
-		if (!rval) {
+		if (!right->hasProperty(name)) {
 			return false;
 		}
+		const ValueBase* lval = left->get(name);
+		const ValueBase* rval = right->get(name);
 		
 		if (!isSameEnginePrimitiveType(lval, rval)) {
 			return false;
@@ -929,7 +934,8 @@ bool Queries::linkWouldBeValid(const Project& project, const PropertyDescriptor&
 }
 
 bool Queries::userCanCreateLink(const Project& project, const ValueHandle& start, const ValueHandle& end, bool isWeak) {
-	return Queries::linkWouldBeAllowed(project, start.getDescriptor(), end.getDescriptor(), isWeak) &&
+	return start && end &&
+		   Queries::linkWouldBeAllowed(project, start.getDescriptor(), end.getDescriptor(), isWeak) &&
 		   Queries::linkWouldBeValid(project, start.getDescriptor(), end.getDescriptor()) &&
 		   !Queries::isReadOnly(project, end, true);
 }

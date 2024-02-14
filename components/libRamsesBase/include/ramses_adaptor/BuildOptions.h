@@ -9,8 +9,8 @@
  */
 #pragma once
 
-#include <ramses-client-api/ERotationConvention.h>
+#include <ramses/framework/ERotationType.h>
 
 namespace raco::ramses_adaptor {
-    constexpr auto RAMSES_ROTATION_CONVENTION { ramses::ERotationConvention::XYZ };
+    constexpr auto RAMSES_ROTATION_CONVENTION { ramses::ERotationType::Euler_ZYX };
 }

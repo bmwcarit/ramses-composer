@@ -20,7 +20,7 @@ class ObjectTreeViewResourceModel : public ObjectTreeViewDefaultModel {
 
 
 public:
-	ObjectTreeViewResourceModel(raco::core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
+	ObjectTreeViewResourceModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
 
 	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects = RaCoClipboard::get()) override;
 

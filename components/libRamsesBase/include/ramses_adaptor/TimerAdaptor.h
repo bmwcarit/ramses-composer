@@ -19,10 +19,10 @@ namespace raco::ramses_adaptor {
 
 class TimerAdaptor final : public UserTypeObjectAdaptor<user_types::Timer>, public ILogicPropertyProvider {
 public:
-	TimerAdaptor(SceneAdaptor* sceneAdaptor, raco::user_types::STimer timer);
+	TimerAdaptor(SceneAdaptor* sceneAdaptor, user_types::STimer timer);
 
-	void getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const override;
-	const rlogic::Property* getProperty(const std::vector<std::string>& propertyNamesVector) override;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
 	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 	std::vector<ExportInformation> getExportInformation() const override;
 
@@ -30,10 +30,10 @@ public:
 	void readDataFromEngine(core::DataChangeRecorder& recorder);
 
 private:
-	raco::ramses_base::RamsesTimerNode timerNode_;
-	raco::components::Subscription dirtySubscription_;
-	raco::components::Subscription nameSubscription_;
-	raco::components::Subscription inputSubscription_;
+	ramses_base::RamsesTimerNode timerNode_;
+	components::Subscription dirtySubscription_;
+	components::Subscription nameSubscription_;
+	components::Subscription inputSubscription_;
 };
 
 };	// namespace raco::ramses_adaptor

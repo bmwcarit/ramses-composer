@@ -27,7 +27,7 @@ namespace raco::application {
 
 class RaCoApplication;
 
-class ExternalProjectsStore : public raco::core::ExternalProjectsStoreInterface {
+class ExternalProjectsStore : public core::ExternalProjectsStoreInterface {
 public:
 	ExternalProjectsStore(RaCoApplication* app);
 
@@ -38,14 +38,14 @@ public:
 	bool isCurrent(const std::string& projectPath) const;
 
 	// @return project if loaded successfully
-	raco::core::Project* addExternalProject(const std::string& projectPath, core::LoadContext& loadContext) override;
+	core::Project* addExternalProject(const std::string& projectPath, core::LoadContext& loadContext) override;
 	void removeExternalProject(const std::string& projectPath) override;
 	bool canRemoveExternalProject(const std::string& projectPath) const override;
 
-	raco::core::CommandInterface* getExternalProjectCommandInterface(const std::string& projectPath) const override;
+	core::CommandInterface* getExternalProjectCommandInterface(const std::string& projectPath) const override;
 	bool isExternalProject(const std::string& projectPath) const override;
-	std::vector<std::pair<std::string, raco::core::CommandInterface*>> allExternalProjects() const override;
-	raco::core::Project* getExternalProject(const std::string& projectPath) const override;
+	std::vector<std::pair<std::string, core::CommandInterface*>> allExternalProjects() const override;
+	core::Project* getExternalProject(const std::string& projectPath) const override;
 
 	void setRelinkCallback(std::function<std::string(const std::string&)> relinkCallback) override;
 	void clearRelinkCallback() override;
@@ -77,7 +77,7 @@ private:
 
 	components::ProjectFileChangeMonitor externalProjectFileChangeMonitor_;
 
-	std::unordered_map<std::string, raco::components::ProjectFileChangeMonitor::UniqueListener> externalProjectFileChangeListeners_;
+	std::unordered_map<std::string, components::ProjectFileChangeMonitor::UniqueListener> externalProjectFileChangeListeners_;
 
 	std::unique_ptr<FeatureLevelLoadError> flError_;
 };

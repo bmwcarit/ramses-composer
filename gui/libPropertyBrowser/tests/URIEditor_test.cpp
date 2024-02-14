@@ -60,13 +60,13 @@ public:
 	std::string projectPath{(this->test_path() / "project" / "projectFileName").string()};
 
 	std::string absoluteMeshPath_1{(this->test_path() / "meshes" / "Duck.glb").string()};
-	std::string relativeMeshPath_1{raco::utils::u8path(absoluteMeshPath_1).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
+	std::string relativeMeshPath_1{utils::u8path(absoluteMeshPath_1).normalizedRelativePath(utils::u8path(projectPath).parent_path()).string()};
 
 	std::string absoluteMeshPath_2{(this->test_path() / "meshes" / "defaultQuad.gltf").string()};
-	std::string relativeMeshPath_2{raco::utils::u8path(absoluteMeshPath_2).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
+	std::string relativeMeshPath_2{utils::u8path(absoluteMeshPath_2).normalizedRelativePath(utils::u8path(projectPath).parent_path()).string()};
 
 	std::string absoluteMeshPath_3{(this->test_path() / "meshes" / "ToyCar/ToyCar.gltf").string()};
-	std::string relativeMeshPath_3{raco::utils::u8path(absoluteMeshPath_3).normalizedRelativePath(raco::utils::u8path(projectPath).parent_path()).string()};
+	std::string relativeMeshPath_3{utils::u8path(absoluteMeshPath_3).normalizedRelativePath(utils::u8path(projectPath).parent_path()).string()};
 
 	URIEditorTest() {
 		this->project.setCurrentPath(projectPath);
@@ -327,11 +327,11 @@ TEST_F(URIEditorTest, switch_to_rel_start_mixed) {
 
 TEST_F(URIEditorTest, ModificationRerootRelativePath) {
 	auto newProjectPath = test_path() / "project" / "projectSubFolder" / "projectFileName";
-	auto newRelativeMeshPath = raco::utils::u8path(absoluteMeshPath_1).normalizedRelativePath(newProjectPath.parent_path());
+	auto newRelativeMeshPath = utils::u8path(absoluteMeshPath_1).normalizedRelativePath(newProjectPath.parent_path());
 
 	setLineEditText(relativeMeshPath_1);
 
-	propertyBrowserItem.set(raco::utils::u8path(relativeMeshPath_1).rerootRelativePath(projectPath, newProjectPath).string());
+	propertyBrowserItem.set(utils::u8path(relativeMeshPath_1).rerootRelativePath(projectPath, newProjectPath).string());
 	dispatch();
 
 	ASSERT_EQ(uriEditor.getLineEdit()->text().toStdString(), newRelativeMeshPath);

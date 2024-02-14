@@ -22,7 +22,7 @@ namespace raco::ramses_adaptor {
 
 namespace {
 
-LinkAdaptor::UniqueEngineLink createEngineLink(rlogic::LogicEngine* engine, const rlogic::Property& origin, const rlogic::Property& dest, bool isWeak) {
+LinkAdaptor::UniqueEngineLink createEngineLink(ramses::LogicEngine* engine, ramses::Property& origin, ramses::Property& dest, bool isWeak) {
 	if (isWeak ? engine->linkWeak(origin, dest) : engine->link(origin, dest)) {
 		LOG_TRACE(log_system::RAMSES_ADAPTOR, "Create LogicEngine link: {}:{}->{}:{}", fmt::ptr(&origin), origin.getName(), fmt::ptr(&dest), dest.getName());
 		return {new LinkAdaptor::EngineLink{&origin, &dest}, [engine](LinkAdaptor::EngineLink* link) {
@@ -93,7 +93,8 @@ void LinkAdaptor::connectHelper(const core::ValueHandle& start, const core::Valu
 		if (startPropOpt) {
 			auto startProp = startPropOpt.value();
 			if (auto startAdaptor = sceneAdaptor_->lookupAdaptor(startProp.object())) {
-				if (auto startEngineProp = dynamic_cast<ILogicPropertyProvider*>(startAdaptor)->getProperty(startProp.propertyNames())) {
+				const auto& names = startProp.propertyNames();
+				if (auto startEngineProp = dynamic_cast<ILogicPropertyProvider*>(startAdaptor)->getProperty({names.begin(), names.end()})) {
 					if (auto endAdaptor = sceneAdaptor_->lookupAdaptor(editorLink_.end.object())) {
 						if (auto endEngineProp = dynamic_cast<ILogicPropertyProvider*>(endAdaptor)->getProperty(end.getPropertyNamesVector())) {
 							if (auto engineLink = createEngineLink(&sceneAdaptor_->logicEngine(), *startEngineProp, *endEngineProp, isWeak)) {

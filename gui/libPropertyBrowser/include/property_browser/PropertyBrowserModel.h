@@ -24,11 +24,7 @@ public:
 	explicit PropertyBrowserModel(QObject* parent = nullptr) noexcept
 		: QObject{parent} {}
 Q_SIGNALS:
-	void addNotVisible(QWidget* source);
-	void removeNotVisible(QWidget* source);
-	void beforeStructuralChange(QWidget* toChange = nullptr);
-	void beforeRemoveWidget(QWidget* toRemove);
-	void objectSelectionRequested(const QString objectID);
+	void selectionRequested(const QString objectID, const QString objectProperty = {});
 };
 
 }  // namespace raco::property_browser

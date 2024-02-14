@@ -57,7 +57,7 @@ private:
 
 	Node rootNode_;
 
-	std::map<raco::utils::u8path, Node*> watchedFiles_;
+	std::map<utils::u8path, Node*> watchedFiles_;
 
 	Callback fileChangeCallback_;
 
@@ -71,18 +71,18 @@ private:
 	QMetaObject::Connection delayedLoadTimerConnection_;
 
 	void addPathToWatch(const QString &path);
-	void installFileWatch(const raco::utils::u8path &path);
+	void installFileWatch(const utils::u8path &path);
 	void launchDelayedLoad(const utils::u8path &path);
 	void onFileChanged(const QString &filePath);
 	void onDelayedLoad();
 	void onDirectoryChanged(const QString &dirPath);
-	Node *createDirectoryWatches(const raco::utils::u8path &path);
+	Node *createDirectoryWatches(const utils::u8path &path);
 	void removeDirectoryWatches(Node* node);
-	Node *getNode(const raco::utils::u8path &path);
+	Node *getNode(const utils::u8path &path);
 	void updateDirectoryWatches(Node *node);
 
 
-	static bool fileCanBeAccessed(const raco::utils::u8path &path);
+	static bool fileCanBeAccessed(const utils::u8path &path);
 };
 
 }  // namespace raco::components

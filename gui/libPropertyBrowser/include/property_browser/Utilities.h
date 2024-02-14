@@ -9,12 +9,19 @@
  */
 #pragma once
 
-#include <ramses-logic/LogicEngine.h>
+#include <QWidget>
 
-namespace raco::ramses_base {
-/**
- * Alias for the [rlogic::LogicEngine].
- * If needed extend to a wrapper.
- */
-using LogicEngine = rlogic::LogicEngine;
+namespace raco::property_browser {
+
+template <class T>
+T* findAncestor(QWidget* widget) {
+	while (widget) {
+		if (const auto typedWidget = qobject_cast<T*>(widget)) {
+			return typedWidget;
+		}
+		widget = widget->parentWidget();
+	}
+	return nullptr;
 }
+
+}  // namespace raco::property_browser

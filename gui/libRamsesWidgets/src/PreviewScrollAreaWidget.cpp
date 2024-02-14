@@ -64,9 +64,10 @@ void PreviewScrollAreaWidget::resizeEvent(QResizeEvent* /*event*/) {
 
 std::optional<QPoint> PreviewScrollAreaWidget::globalPositionToPreviewPosition(const QPoint& p) {
 	auto localPosition = viewport()->mapFromGlobal(p);
+	auto devicePixelScaleFactor = window()->screen()->devicePixelRatio();
 	auto result = QPoint{
-		static_cast<int>((horizontalScrollBar()->value() + localPosition.x() - std::max(0, viewportPosition_.x())) / scaleValue_),
-		static_cast<int>(sceneSize_.height() - ((verticalScrollBar()->value() + localPosition.y() - std::max(0, viewportPosition_.y())) / scaleValue_))};
+		static_cast<int>(devicePixelScaleFactor * (horizontalScrollBar()->value() + localPosition.x() - std::max(0, viewportPosition_.x())) / scaleValue_),
+		static_cast<int>(sceneSize_.height() - devicePixelScaleFactor * (verticalScrollBar()->value() + localPosition.y() - std::max(0, viewportPosition_.y())) / scaleValue_)};
 	if (result.x() >= 0 && result.y() >= 0 && result.x() < sceneSize_.width() && result.y() < sceneSize_.height()) {
 		return result;
 	} else {

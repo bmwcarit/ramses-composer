@@ -14,8 +14,8 @@
 #include "components/DataChangeDispatcher.h"
 #include "user_types/Texture.h"
 #include <memory>
-#include <ramses-client-api/Texture2D.h>
-#include <ramses-client-api/TextureSampler.h>
+#include <ramses/client/Texture2D.h>
+#include <ramses/client/TextureSampler.h>
 
 namespace raco::ramses_adaptor {
 
@@ -31,7 +31,7 @@ public:
 	static std::vector<unsigned char>& getFallbackTextureData(bool flipped);
 
 private:
-	ramses_base::RamsesTexture2D createTexture(core::Errors* errors, raco::ramses_base::PngDecodingInfo &decodingInfo);
+	ramses_base::RamsesTexture2D createTexture(core::Errors* errors, ramses_base::PngDecodingInfo &decodingInfo);
 	ramses_base::RamsesTexture2D getFallbackTexture();
 
 	std::array<components::Subscription, 10> subscriptions_;

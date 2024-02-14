@@ -42,10 +42,6 @@ public:
 	bool sliderHasMultipleValues() const {
 		return slider_->hasMultipleValues();
 	}
-
-	static void pasteProperty(PropertyBrowserItem* item, data_storage::ValueBase* value) {
-		DoubleEditor::pasteProperty(item, value);
-	}
 };
 
 class DoubleEditorTest : public EditorTestFixture {
@@ -132,14 +128,14 @@ TEST_F(DoubleEditorTest, check_multiple_values_text_displayed) {
 TEST_F(DoubleEditorTest, paste_property_from_double) {
 	Value<double> value{13.2};
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 13.2);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 13.2);
 
 	commandInterface.set(doubleHandleNode_2, 5.0);
 	dispatch();
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 13.2);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 13.2);
 }
@@ -147,14 +143,14 @@ TEST_F(DoubleEditorTest, paste_property_from_double) {
 TEST_F(DoubleEditorTest, paste_property_from_int) {
 	Value<int> value{13};
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 13.0);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 13.0);
 
 	commandInterface.set(doubleHandleNode_2, 5.0);
 	dispatch();
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 13.0);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 13.0);
 }
@@ -162,14 +158,14 @@ TEST_F(DoubleEditorTest, paste_property_from_int) {
 TEST_F(DoubleEditorTest, paste_property_from_string) {
 	Value<std::string> value{"13.2"};
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 13.2);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 13.2);
 
 	commandInterface.set(doubleHandleNode_2, 5.0);
 	dispatch();
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 13.2);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 13.2);
 }
@@ -177,7 +173,7 @@ TEST_F(DoubleEditorTest, paste_property_from_string) {
 TEST_F(DoubleEditorTest, paste_property_from_bool) {
 	Value<bool> value{true};
 
-	doubleEditor.pasteProperty(&propertyBrowserItem, &value);
+	pasteProperty(&propertyBrowserItem, &value);
 	EXPECT_DOUBLE_EQ(*node_1->translation_->x, 0.0);
 	EXPECT_DOUBLE_EQ(*node_2->translation_->x, 0.0);
 }

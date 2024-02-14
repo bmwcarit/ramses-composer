@@ -17,8 +17,8 @@
 
 namespace raco::property_browser {
 
-using PropertyBrowserGridLayout = raco::common_widgets::NoContentMarginsLayout<QGridLayout>;
-using PropertyBrowserVBoxLayout = raco::common_widgets::NoContentMarginsLayout<QVBoxLayout>;
-using PropertyBrowserHBoxLayout = raco::common_widgets::NoContentMarginsLayout<QHBoxLayout>;
+using PropertyBrowserGridLayout = common_widgets::NoContentMarginsLayout<QGridLayout>;
+using PropertyBrowserVBoxLayout = common_widgets::NoContentMarginsLayout<QVBoxLayout>;
+using PropertyBrowserHBoxLayout = common_widgets::NoContentMarginsLayout<QHBoxLayout>;
 
 }  // namespace raco::property_browser

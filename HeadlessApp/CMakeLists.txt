@@ -27,8 +27,6 @@ PUBLIC
 	raco::RamsesBase
 	raco::UserTypes
 	raco::LogSystem
-	raco::ramses-lib-client-only
-	raco::ramses-logic-lib-client-only
 	Qt5::Core
 	raco::PythonAPI
 PRIVATE

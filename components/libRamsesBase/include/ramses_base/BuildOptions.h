@@ -10,12 +10,17 @@
 #pragma once
 
 #include <limits>
-#include <ramses-framework-api/RamsesFrameworkTypes.h>
+#include <ramses/framework/RamsesFrameworkTypes.h>
 
 #ifndef RACO_BACKEND_INTERNAL_SCENE_ID
 #define RACO_BACKEND_INTERNAL_SCENE_ID std::numeric_limits<uint64_t>::max()
 #endif
 
+#ifndef RACO_BACKEND_ABSTRACT_SCENE_ID
+#define RACO_BACKEND_ABSTRACT_SCENE_ID (std::numeric_limits<uint64_t>::max() - 1)
+#endif
+
 struct BuildOptions {
 	constexpr static ramses::sceneId_t internalSceneId = ramses::sceneId_t { RACO_BACKEND_INTERNAL_SCENE_ID };
+	constexpr static ramses::sceneId_t abstractSceneId = ramses::sceneId_t{RACO_BACKEND_ABSTRACT_SCENE_ID};
 };

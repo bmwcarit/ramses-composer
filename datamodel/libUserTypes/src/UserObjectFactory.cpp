@@ -70,8 +70,8 @@ constexpr std::pair<std::string, std::function<TPropertyType*()>> createTypeMapP
 }
 
 template <class... Args>
-std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction> UserObjectFactory::makePropertyMapTuple(std::tuple<Args...>* dummy) {	
-	return std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction>{ createTypeMapPair<Args>()...};
+std::map<std::string, core::UserObjectFactoryInterface::ValueCreationFunction> UserObjectFactory::makePropertyMapTuple(std::tuple<Args...>* dummy) {	
+	return std::map<std::string, core::UserObjectFactoryInterface::ValueCreationFunction>{ createTypeMapPair<Args>()...};
 }
 
 template <class... Args>
@@ -114,6 +114,7 @@ UserObjectFactory::UserObjectFactory() {
 		RenderBufferMS,
 		RenderLayer,
 		RenderTarget,
+		RenderTargetMS,
 		RenderPass,
 		Skin
 		>();
@@ -123,12 +124,12 @@ UserObjectFactory::UserObjectFactory() {
 	>();
 
 	structTypes_ = makeStructTypeMap<
-		raco::core::Vec2f,
-		raco::core::Vec3f,
-		raco::core::Vec4f,
-		raco::core::Vec2i,
-		raco::core::Vec3i,
-		raco::core::Vec4i,
+		core::Vec2f,
+		core::Vec3f,
+		core::Vec4f,
+		core::Vec2i,
+		core::Vec3i,
+		core::Vec4i,
 		ColorWriteMask,
 		BlendOptions,
 		DefaultResourceDirectories,

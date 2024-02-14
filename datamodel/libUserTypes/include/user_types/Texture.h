@@ -24,10 +24,12 @@ public:
 	Texture(Texture const& other)
 		: TextureSampler2DBase(other), uri_(other.uri_), flipTexture_(other.flipTexture_), generateMipmaps_(other.generateMipmaps_), textureFormat_(other.textureFormat_) {
 		fillPropertyDescription();
+		addTexturePreviewProperty();
 	}
 
 	Texture(const std::string& name, const std::string& id) : TextureSampler2DBase(name, id) {
 		fillPropertyDescription();
+		addTexturePreviewProperty();
 	}
 
 	void fillPropertyDescription() {
@@ -39,6 +41,7 @@ public:
 		properties_.emplace_back("level2uri", &level2uri_);
 		properties_.emplace_back("level3uri", &level3uri_);
 		properties_.emplace_back("level4uri", &level4uri_);
+		properties_.emplace_back("preview", &preview_);
 	}
 
 	void onAfterContextActivated(BaseContext& context) override;
@@ -57,9 +60,12 @@ public:
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> level3uri_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 3 URI"}};
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> level4uri_{std::string{}, {"Image files(*.png);; All files (*.*)", core::PathManager::FolderTypeKeys::Image}, DisplayNameAnnotation{"Level 4 URI"}};
 
+	Property<Table, DisplayNameAnnotation, HiddenProperty, VolatileProperty> preview_{{}, {"Preview"}, {}, {}};
+
 private:
 	void validateURIs(BaseContext& context);
 	void validateMipmapLevel(BaseContext& context);
+	void addTexturePreviewProperty();
 };
 
 using STexture = std::shared_ptr<Texture>;

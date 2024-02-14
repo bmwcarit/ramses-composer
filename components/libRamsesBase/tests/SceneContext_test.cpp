@@ -9,6 +9,7 @@
  */
 
 #include "RamsesBaseFixture.h"
+#include "ramses_adaptor/DefaultRamsesObjects.h"
 #include "user_types/Material.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
@@ -18,11 +19,11 @@
 #include <array>
 #include <gtest/gtest.h>
 
-using raco::ramses_adaptor::SceneAdaptor;
-using raco::user_types::Material;
-using raco::user_types::Mesh;
-using raco::user_types::MeshNode;
-using raco::user_types::Node;
+using ramses_adaptor::SceneAdaptor;
+using user_types::Material;
+using user_types::Mesh;
+using user_types::MeshNode;
+using user_types::Node;
 
 class SceneContextTest : public RamsesBaseFixture<> {};
 
@@ -32,7 +33,7 @@ TEST_F(SceneContextTest, construction_createsSceneWithGivenId) {
 }
 
 TEST_F(SceneContextTest, construction_doesNotCreateDefaultMeshInfo) {
-	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
 	ASSERT_TRUE(meshStuff.empty());
 }
 
@@ -40,7 +41,7 @@ TEST_F(SceneContextTest, construction_createSceneWithOneNode) {
 	context.createObject(Node::typeDescription.typeName);
 	dispatch();
 
-	auto sceneNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Node)};
+	auto sceneNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::Node)};
 
 	EXPECT_EQ(sceneNodes.size(), 1);
 }
@@ -49,16 +50,16 @@ TEST_F(SceneContextTest, construction_createSceneWithOneMeshNode) {
 	context.createObject(MeshNode::typeDescription.typeName, "MeshName");
 	dispatch();
 
-	auto sceneMeshNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
-	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
-	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
+	auto sceneMeshNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
+	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect)};
 
 	EXPECT_EQ(sceneMeshNodes.size(), 1);
-	EXPECT_EQ(meshStuff.size(), 2);
+	EXPECT_EQ(meshStuff.size(), 3);
 	EXPECT_EQ(materialStuff.size(), 1);
-	EXPECT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultIndexDataBufferName, meshStuff));
-	EXPECT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultVertexDataBufferName, meshStuff));
-	EXPECT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultEffectName, materialStuff));
+	EXPECT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultIndexDataBufferName, meshStuff));
+	EXPECT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultVertexDataBufferName, meshStuff));
+	EXPECT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultEffectWithNormalsName, materialStuff));
 }
 
 TEST_F(SceneContextTest, construction_createThenDeleteOneMeshNode) {
@@ -68,7 +69,7 @@ TEST_F(SceneContextTest, construction_createThenDeleteOneMeshNode) {
 	context.deleteObjects({meshNode});
 	dispatch();
 
-	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
 
 	ASSERT_TRUE(meshStuff.empty());
 }
@@ -79,19 +80,19 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMesh) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 	auto material = context.createObject(Material::typeDescription.typeName, "Material");
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
-	context.set(raco::core::ValueHandle{material, {"uriVertex"}}, (test_path() / "shaders/simple_texture.vert").string());
-	context.set(raco::core::ValueHandle{material, {"uriFragment"}}, (test_path() / "shaders/simple_texture.frag").string());
+	context.set(core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
+	context.set(core::ValueHandle{material, {"uriVertex"}}, (test_path() / "shaders/simple_texture.vert").string());
+	context.set(core::ValueHandle{material, {"uriFragment"}}, (test_path() / "shaders/simple_texture.frag").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
-	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
+	context.set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	context.set(core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
 	dispatch();
 
-	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
-	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
-	auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Appearance)};
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
+	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect)};
+	auto appearances{select<ramses::Appearance>(*sceneContext.scene(), ramses::ERamsesObjectType::Appearance)};
 
 	ASSERT_EQ(meshStuff.size(), 4);
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshIndexData", meshStuff));
@@ -111,24 +112,24 @@ TEST_F(SceneContextTest, construction_createOneMeshNodeWithMeshAndOneMeshNodeWit
 	auto meshNode2 = context.createObject(MeshNode::typeDescription.typeName, "Mesh Node2");
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
+	context.set(core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
-	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	context.set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
 
 	dispatch();
-	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
-	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
+	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect)};
 
-	ASSERT_EQ(meshStuff.size(), 6);
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultIndexDataBufferName, meshStuff));
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultVertexDataBufferName, meshStuff));
+	ASSERT_EQ(meshStuff.size(), 7);	 // duck: position, normal, tex_coord, inex; default: position, normal, index
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultIndexDataBufferName, meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultVertexDataBufferName, meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultNormalDataBufferName, meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshIndexData", meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshVertexData_a_Position", meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshVertexData_a_Normal", meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshVertexData_a_TextureCoordinate", meshStuff));
-	ASSERT_EQ(materialStuff.size(), 2);
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultEffectName, materialStuff));
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultEffectWithNormalsName, materialStuff));
+	ASSERT_EQ(materialStuff.size(), 1);
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultEffectWithNormalsName, materialStuff));
 }
 
 TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
@@ -137,29 +138,30 @@ TEST_F(SceneContextTest, construction_createMeshNodeWithMeshThenUnassignMesh) {
 	auto mesh = context.createObject(Mesh::typeDescription.typeName, "Mesh");
 	auto material = context.createObject(Material::typeDescription.typeName, "Material");
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
+	context.set(core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
-	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
+	context.set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	context.set(core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 	dispatch();
 
-	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, raco::core::SEditorObject{nullptr});
+	context.set(core::ValueHandle{meshNode, {"mesh"}}, core::SEditorObject{nullptr});
 	dispatch();
 
-	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_ArrayResource)};
-	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Effect)};
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
+	auto materialStuff{select<ramses::Effect>(*sceneContext.scene(), ramses::ERamsesObjectType::Effect)};
 
-	ASSERT_EQ(meshStuff.size(), 6);
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultIndexDataBufferName, meshStuff));
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultVertexDataBufferName, meshStuff));
+	ASSERT_EQ(meshStuff.size(), 7);
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultIndexDataBufferName, meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultVertexDataBufferName, meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultNormalDataBufferName, meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshIndexData", meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshVertexData_a_Position", meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshVertexData_a_Normal", meshStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Mesh_MeshVertexData_a_TextureCoordinate", meshStuff));
 
 	ASSERT_EQ(materialStuff.size(), 2);
-	ASSERT_TRUE(isRamsesNameInArray(raco::ramses_adaptor::defaultEffectName, materialStuff));
+	ASSERT_TRUE(isRamsesNameInArray(ramses_adaptor::defaultEffectWithNormalsName, materialStuff));
 	ASSERT_TRUE(isRamsesNameInArray("Material", materialStuff));
 }
 
@@ -169,12 +171,12 @@ TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy) {
 	context.moveScenegraphChildren({child}, {parent});
 	dispatch();
 
-	auto sceneNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_Node)};
-	auto sceneMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::ERamsesObjectType_MeshNode)};
+	auto sceneNodes{select(*sceneContext.scene(), ramses::ERamsesObjectType::Node)};
+	auto sceneMeshNodes{select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode)};
 
 	EXPECT_EQ(sceneNodes.size(), 1);
 	EXPECT_EQ(sceneMeshNodes.size(), 1);
-	EXPECT_EQ(sceneMeshNodes.at(0)->getParent(), sceneNodes.at(0));
+	EXPECT_EQ(static_cast<const ramses::MeshNode*>(sceneMeshNodes.at(0))->getParent(), sceneNodes.at(0));
 }
 
 TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy_reverseNodeCreation) {
@@ -183,12 +185,12 @@ TEST_F(SceneContextTest, construction_createSceneWithSimpleHierarchy_reverseNode
 	context.moveScenegraphChildren({child}, {parent});
 	dispatch();
 
-	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
-	auto meshNodeSceneElements(select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType_MeshNode));
+	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
+	auto meshNodeSceneElements(select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode));
 
 	EXPECT_EQ(nodeSceneElements.size(), 1);
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
-	EXPECT_EQ(meshNodeSceneElements.at(0)->getParent(), nodeSceneElements.at(0));
+	EXPECT_EQ(static_cast<const ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), nodeSceneElements.at(0));
 }
 
 TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy) {
@@ -199,8 +201,8 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy) {
 	context.moveScenegraphChildren({child2}, {child1});
 	dispatch();
 
-	auto nodeSceneElements(select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
-	auto meshNodeSceneElements(select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType_MeshNode));
+	auto nodeSceneElements(select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
+	auto meshNodeSceneElements(select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode));
 
 	EXPECT_EQ(nodeSceneElements.size(), 2);
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
@@ -212,9 +214,9 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy) {
 	EXPECT_TRUE(ramsesRoot);
 
 	// Check hierarchy
-	EXPECT_EQ(ramsesRoot->getParent(), nullptr);
-	EXPECT_EQ(ramsesChild1->getParent(), ramsesRoot);
-	EXPECT_EQ(meshNodeSceneElements[0]->getParent(), ramsesChild1);
+	EXPECT_EQ(static_cast<const ramses::Node*>(ramsesRoot)->getParent(), nullptr);
+	EXPECT_EQ(static_cast<const ramses::Node*>(ramsesChild1)->getParent(), ramsesRoot);
+	EXPECT_EQ(static_cast<const ramses::Node*>(meshNodeSceneElements[0])->getParent(), ramsesChild1);
 }
 
 TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNodeCreation) {
@@ -225,8 +227,8 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNode
 	context.moveScenegraphChildren({child2}, {child1});
 	dispatch();
 
-	auto nodeSceneElements(select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
-	auto meshNodeSceneElements(select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType_MeshNode));
+	auto nodeSceneElements(select<ramses::Node>(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
+	auto meshNodeSceneElements(select<ramses::MeshNode>(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode));
 
 	EXPECT_EQ(nodeSceneElements.size(), 2);
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
@@ -238,16 +240,16 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNode
 	EXPECT_TRUE(ramsesRoot);
 
 	// Expectation depends on order of ramses::SceneObjectIterator, if this fails also check if this order has not changed
-	EXPECT_EQ(ramsesRoot->getParent(), nullptr);
-	EXPECT_EQ(ramsesChild1->getParent(), ramsesRoot);
-	EXPECT_EQ(meshNodeSceneElements.at(0)->getParent(), ramsesChild1);
+	EXPECT_EQ(static_cast<const ramses::Node*>(ramsesRoot)->getParent(), nullptr);
+	EXPECT_EQ(static_cast<const ramses::Node*>(ramsesChild1)->getParent(), ramsesRoot);
+	EXPECT_EQ(static_cast<const ramses::Node*>(meshNodeSceneElements[0])->getParent(), ramsesChild1);
 }
 
 TEST_F(SceneContextTest, dataChange_dynamicInsert_rootNode) {
 	auto root = context.createObject(Node::typeDescription.typeName);
 	dispatch();
 
-	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
+	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
 	EXPECT_EQ(nodeSceneElements.size(), 1);
 }
 
@@ -259,12 +261,12 @@ TEST_F(SceneContextTest, dataChange_dynamicInsert_childNode) {
 	context.moveScenegraphChildren({child}, {root});
 	dispatch();
 
-	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
-	auto meshNodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_MeshNode));
+	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
+	auto meshNodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode));
 
 	EXPECT_EQ(nodeSceneElements.size(), 1);
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
-	EXPECT_EQ(static_cast<ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), nodeSceneElements.at(0));
+	EXPECT_EQ(static_cast<const ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), nodeSceneElements.at(0));
 }
 
 TEST_F(SceneContextTest, dataChange_dynamicDelete_rootNode) {
@@ -288,15 +290,15 @@ TEST_F(SceneContextTest, dataChange_dynamicReparenting_move) {
 	context.moveScenegraphChildren({child}, {parent_2});
 	dispatch();
 
-	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
-	auto meshNodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_MeshNode));
+	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
+	auto meshNodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode));
 
 	EXPECT_EQ(nodeSceneElements.size(), 2);
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
 
 	auto ramsesParent2 = select<ramses::Node>(*sceneContext.scene(), "Parent 2");
-	EXPECT_TRUE(0 == std::memcmp(ramsesParent2->getName(), "Parent 2", sizeof("Parent 2")));
-	EXPECT_EQ(static_cast<ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), ramsesParent2);
+	EXPECT_TRUE(ramsesParent2->getName() == "Parent 2");
+	EXPECT_EQ(static_cast<const ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), ramsesParent2);
 }
 
 TEST_F(SceneContextTest, dataChange_dynamicReparenting_noParent) {
@@ -308,13 +310,13 @@ TEST_F(SceneContextTest, dataChange_dynamicReparenting_noParent) {
 	context.moveScenegraphChildren({child}, {});
 	dispatch();
 
-	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_Node));
-	auto meshNodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType_MeshNode));
+	auto nodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::Node));
+	auto meshNodeSceneElements(select(*sceneContext.scene(), ramses::ERamsesObjectType::MeshNode));
 
 	EXPECT_EQ(nodeSceneElements.size(), 1);
 	EXPECT_EQ(meshNodeSceneElements.size(), 1);
 
-	EXPECT_EQ(static_cast<ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), nullptr);
+	EXPECT_EQ(static_cast<const ramses::MeshNode*>(meshNodeSceneElements.at(0))->getParent(), nullptr);
 }
 
 TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNodeCreation2) {
@@ -371,7 +373,7 @@ struct SceneContextParamTestFixture : public RamsesBaseFixture<::testing::TestWi
 };
 
 TEST_P(SceneContextParamTestFixture, contextCreationOrder_init) {
-	std::map<std::string, raco::core::SEditorObject> objects{};
+	std::map<std::string, core::SEditorObject> objects{};
 
 	objects[GetParam().typeName(0)] = context.createObject(GetParam().typeName(0));
 	objects[GetParam().typeName(1)] = context.createObject(GetParam().typeName(1));
@@ -383,18 +385,18 @@ TEST_P(SceneContextParamTestFixture, contextCreationOrder_init) {
 	auto mesh = objects.at(Mesh::typeDescription.typeName);
 	auto material = objects.at(Material::typeDescription.typeName);
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
+	context.set(core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
-	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
+	context.set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	context.set(core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
 	// should not explode
-	SceneAdaptor sceneContext{&backend.client(), &backend.logicEngine(), ramses::sceneId_t{2u}, &project, dataChangeDispatcher, &errors};
+	SceneAdaptor sceneContext{&backend.client(), ramses::sceneId_t{2u}, &project, dataChangeDispatcher, &errors};
 }
 
 TEST_P(SceneContextParamTestFixture, contextCreationOrder_dispatch) {
-	std::map<std::string, raco::core::SEditorObject> objects{};
+	std::map<std::string, core::SEditorObject> objects{};
 
 	objects[GetParam().typeName(0)] = context.createObject(GetParam().typeName(0));
 	objects[GetParam().typeName(1)] = context.createObject(GetParam().typeName(1));
@@ -406,11 +408,11 @@ TEST_P(SceneContextParamTestFixture, contextCreationOrder_dispatch) {
 	auto mesh = objects.at(Mesh::typeDescription.typeName);
 	auto material = objects.at(Material::typeDescription.typeName);
 
-	context.set(raco::core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
+	context.set(core::ValueHandle{mesh, {"uri"}}, (test_path() / "meshes/Duck.glb").string());
 
 	context.moveScenegraphChildren({meshNode}, node);
-	context.set(raco::core::ValueHandle{meshNode, {"mesh"}}, mesh);
-	context.set(raco::core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
+	context.set(core::ValueHandle{meshNode, {"mesh"}}, mesh);
+	context.set(core::ValueHandle{meshNode, {"materials", "material", "material"}}, material);
 
 	// should not explode
 	dispatch();

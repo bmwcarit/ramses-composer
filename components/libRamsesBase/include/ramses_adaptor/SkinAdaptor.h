@@ -18,17 +18,17 @@ namespace raco::ramses_adaptor {
 
 class SkinAdaptor : public UserTypeObjectAdaptor<user_types::Skin> {
 public:
-	SkinAdaptor(SceneAdaptor *sceneAdaptor, raco::user_types::SSkin skin);
+	SkinAdaptor(SceneAdaptor *sceneAdaptor, user_types::SSkin skin);
 
 	bool sync(core::Errors* errors) override;
 
 	std::vector<ExportInformation> getExportInformation() const override;
 
 private:
-	std::vector<raco::ramses_base::RamsesSkinBinding> skinBindings_;
+	std::vector<ramses_base::RamsesSkinBinding> skinBindings_;
 
-	raco::components::Subscription dirtySubscription_;
-	std::array<raco::components::Subscription, 4> subscriptions_;
+	components::Subscription dirtySubscription_;
+	std::array<components::Subscription, 4> subscriptions_;
 };
 
 }  // namespace raco::ramses_adaptor

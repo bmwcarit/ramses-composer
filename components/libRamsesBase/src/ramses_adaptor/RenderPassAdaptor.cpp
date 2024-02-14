@@ -22,20 +22,14 @@ namespace raco::ramses_adaptor {
 
 RenderPassAdaptor::RenderPassAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderPass> editorObject)
 	: TypedObjectAdaptor(sceneAdaptor, editorObject, {}),
-	  subscriptions_{sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::target_}, [this]() {
+	  subscriptions_{
+	sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::target_}, [this]() {
 						 tagDirty();
 					 }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::camera_}, [this]() {
 			  tagDirty();
 		  }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer0_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer1_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer2_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer3_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer4_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer5_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer6_}, [this]() { tagDirty(); }),
-		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::layer7_}, [this]() { tagDirty(); }),
+		  sceneAdaptor->dispatcher()->registerOnChildren(core::ValueHandle{editorObject, &user_types::RenderPass::layers_}, [this](auto) { tagDirty(); }),
 		  sceneAdaptor->dispatcher()->registerOn(core::ValueHandle{editorObject, &user_types::RenderPass::enabled_}, [this]() {
 			  tagDirty();
 		  }),
@@ -69,14 +63,18 @@ bool RenderPassAdaptor::sync(core::Errors* errors) {
 	if (auto target = *editorObject()->target_) {
 		if (auto targetAdaptor = sceneAdaptor_->lookup<RenderTargetAdaptor>(target)) {
 			ramsesTarget = targetAdaptor->getRamsesObjectPointer();
-			if (ramsesTarget == nullptr) {
-				// ramsesTarget == nullptr can only happen if the RamsesTarget is invalid (e. g. because render buffers don't match in size).
-				// Only reset render pass in this case and do not render anything.
-				validTarget = false;
-				const auto errorMsg = fmt::format("Render pass '{}' is not rendered due to invalid render target '{}'", editorObject()->objectName(), target->objectName());
-				LOG_WARNING(raco::log_system::RAMSES_ADAPTOR, errorMsg);
-				errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::WARNING, {editorObject()->shared_from_this()}, 	errorMsg);
-			}
+		}
+		if (auto targetAdaptor = sceneAdaptor_->lookup<RenderTargetMSAdaptor>(target)) {
+			ramsesTarget = targetAdaptor->getRamsesObjectPointer();
+		}
+
+		if (ramsesTarget == nullptr) {
+			// ramsesTarget == nullptr can only happen if the RamsesTarget is invalid (e. g. because render buffers don't match in size).
+			// Only reset render pass in this case and do not render anything.
+			validTarget = false;
+			const auto errorMsg = fmt::format("Render pass '{}' is not rendered due to invalid render target '{}'", editorObject()->objectName(), target->objectName());
+			LOG_WARNING(log_system::RAMSES_ADAPTOR, errorMsg);
+			errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::WARNING, {editorObject()->shared_from_this()}, errorMsg);
 		}
 	}
 
@@ -84,12 +82,12 @@ bool RenderPassAdaptor::sync(core::Errors* errors) {
 	if (validTarget && camera) {
 		if (auto perspCamera = camera->as<user_types::OrthographicCamera>()) {
 			if (auto cameraAdaptor = sceneAdaptor_->lookup<OrthographicCameraAdaptor>(perspCamera)) {
-				auto newRamsesObject = ramses_base::ramsesRenderPass(sceneAdaptor_->scene(), cameraAdaptor->getRamsesObjectPointer(), ramsesTarget, editorObject()->objectName().c_str());
+				auto newRamsesObject = ramses_base::ramsesRenderPass(sceneAdaptor_->scene(), cameraAdaptor->getRamsesObjectPointer(), ramsesTarget, editorObject()->objectName().c_str(), editorObject_->objectIDAsRamsesLogicID());
 				reset(std::move(newRamsesObject));
 			}
 		} else if (auto orthoCamera = camera->as<user_types::PerspectiveCamera>()) {
 			if (auto cameraAdaptor = sceneAdaptor_->lookup<PerspectiveCameraAdaptor>(orthoCamera)) {
-				auto newRamsesObject = ramses_base::ramsesRenderPass(sceneAdaptor_->scene(), cameraAdaptor->getRamsesObjectPointer(), ramsesTarget, editorObject()->objectName().c_str());
+				auto newRamsesObject = ramses_base::ramsesRenderPass(sceneAdaptor_->scene(), cameraAdaptor->getRamsesObjectPointer(), ramsesTarget, editorObject()->objectName().c_str(), editorObject_->objectIDAsRamsesLogicID());
 				reset(std::move(newRamsesObject));
 			}
 		}
@@ -100,63 +98,44 @@ bool RenderPassAdaptor::sync(core::Errors* errors) {
 	if (getRamsesObjectPointer()) {
 		ramsesObject().removeAllRenderGroups();
 
-		auto layers = {
-			*editorObject().get()->layer0_,
-			*editorObject().get()->layer1_,
-			*editorObject().get()->layer2_,
-			*editorObject().get()->layer3_,
-			*editorObject().get()->layer4_,
-			*editorObject().get()->layer5_,
-			*editorObject().get()->layer6_,
-			*editorObject().get()->layer7_
-		};
-
-		for (auto layer : layers) {
+		for (auto layer : editorObject()->layers_->asVector<user_types::SRenderLayer>()) {
 			if (auto layerAdaptor = sceneAdaptor_->lookup<RenderLayerAdaptor>(layer)) {
 				ramsesObject().addRenderGroup(layerAdaptor->getRamsesObjectPointer());
 			}
 		}
 
 		(*ramsesObject()).setEnabled(*editorObject()->enabled_);
-		if (this->sceneAdaptor_->featureLevel() >= rlogic::EFeatureLevel::EFeatureLevel_02) {
-			(*ramsesObject()).setRenderOnce(*editorObject()->renderOnce_);
-		}
+		(*ramsesObject()).setRenderOnce(*editorObject()->renderOnce_);
 		(*ramsesObject()).setRenderOrder(*editorObject()->renderOrder_);
 
-		(*ramsesObject()).setClearColor(
-			*editorObject()->clearColor_->x,
-			*editorObject()->clearColor_->y,
-			*editorObject()->clearColor_->z,
-			*editorObject()->clearColor_->w);
+		(*ramsesObject()).setClearColor({*editorObject()->clearColor_->x, *editorObject()->clearColor_->y, *editorObject()->clearColor_->z, *editorObject()->clearColor_->w});
 
 		if (ramsesTarget != nullptr) {
 			(*ramsesObject()).setClearFlags(
-				(*editorObject()->enableClearColor_ ? ramses::EClearFlags_Color : 0) |
-				(*editorObject()->enableClearDepth_ ? ramses::EClearFlags_Depth : 0) |
-				(*editorObject()->enableClearStencil_ ? ramses::EClearFlags_Stencil : 0));			
+				(*editorObject()->enableClearColor_ ? ramses::EClearFlag::Color : ramses::EClearFlag::None) | 
+				(*editorObject()->enableClearDepth_ ? ramses::EClearFlag::Depth : ramses::EClearFlag::None) | 
+				(*editorObject()->enableClearStencil_ ? ramses::EClearFlag::Stencil : ramses::EClearFlag::None));
 		} else {
 			// Force no clear flags for a render pass rendering to the default framebuffer.
 			// Otherwise the scene validation on export complains that the clear flags
 			// will have no effect.
-			(*ramsesObject()).setClearFlags(ramses::EClearFlags_None);
+			(*ramsesObject()).setClearFlags(ramses::EClearFlag::None);
 		}
 
-		if (this->sceneAdaptor_->featureLevel() >= rlogic::EFeatureLevel::EFeatureLevel_02) {
-			binding_ = raco::ramses_base::ramsesRenderPassBinding(*ramsesObject(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_Binding", editorObject()->objectIDAsRamsesLogicID());
-		}
+		binding_ = ramses_base::ramsesRenderPassBinding(*ramsesObject(), &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_Binding", editorObject()->objectIDAsRamsesLogicID());
 	}
 
 	tagDirty(false);
 	return true;
 }
 
-void RenderPassAdaptor::getLogicNodes(std::vector<rlogic::LogicNode*>& logicNodes) const {
+void RenderPassAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
 	if (binding_) {
 		logicNodes.push_back(binding_.get());
 	}
 }
 
-const rlogic::Property* RenderPassAdaptor::getProperty(const std::vector<std::string>& propertyNamesVector) {
+ramses::Property* RenderPassAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
 	if (binding_ && propertyNamesVector.size() >= 1) {
 		return binding_->getInputs()->getChild(propertyNamesVector[0]);
 	}
@@ -174,11 +153,11 @@ void RenderPassAdaptor::onRuntimeError(core::Errors& errors, std::string const& 
 std::vector<ExportInformation> RenderPassAdaptor::getExportInformation() const {
 	auto result = std::vector<ExportInformation>();
 	if (getRamsesObjectPointer() != nullptr) {
-		result.emplace_back(ramses::ERamsesObjectType_RenderPass, getRamsesObjectPointer()->getName());
+		result.emplace_back(ramses::ERamsesObjectType::RenderPass, getRamsesObjectPointer()->getName());
 	}
 
 	if (binding_ != nullptr) {
-		result.emplace_back("RenderPassBinding", binding_->getName().data());
+		result.emplace_back("RenderPassBinding", binding_->getName());
 	}
 
 	return result;

@@ -18,12 +18,14 @@
 #include "core/Queries_Tags.h"
 #include "property_browser/PropertyBrowserRef.h"
 #include "property_browser/PropertyBrowserCache.h"
+#include "property_browser/PropertyCopyPaste.h"
 
 #include "user_types/EngineTypeAnnotation.h"
 #include "user_types/LuaInterface.h"
 #include "user_types/LuaScript.h"
 #include "user_types/MeshNode.h"
 #include "user_types/RenderPass.h"
+#include "user_types/Texture.h"
 
 #include <cassert>
 #include <spdlog/fmt/bundled/ranges.h>
@@ -40,6 +42,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	SDataChangeDispatcher dispatcher,
 	core::CommandInterface* commandInterface,
 	PropertyBrowserModel* model,
+	core::SceneBackendInterface* sceneBackend,
 	PropertyBrowserItem* parent)
 	: QObject{parent},
 	  parentItem_{parent},
@@ -48,6 +51,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	  commandInterface_{commandInterface},
 	  dispatcher_{dispatcher},
 	  model_{model},
+	  sceneBackend_(sceneBackend),
 	  expanded_{getDefaultExpanded()} {
 
 	assert(std::all_of(valueHandles_.begin(), valueHandles_.end(), [](const core::ValueHandle& handle) {
@@ -64,7 +68,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 
 	const auto commonValueHandles = getCommonValueHandles(valueHandles_);
 	for (auto& commonHandleForSeveralObjects : commonValueHandles) {
-		children_.push_back(new PropertyBrowserItem(commonHandleForSeveralObjects, dispatcher_, commandInterface_, model_, this));
+		children_.push_back(new PropertyBrowserItem(commonHandleForSeveralObjects, dispatcher_, commandInterface_, model_, sceneBackend_, this));
 	}
 
 	if (isProperty() && valueHandles_.begin()->type() == PrimitiveType::Ref) {
@@ -78,7 +82,7 @@ PropertyBrowserItem::PropertyBrowserItem(
 	std::for_each(valueHandles_.begin(), valueHandles_.end(), [this, &dispatcher](const core::ValueHandle& handle) {
 		if (handle.isObject()) {
 			structureChangeSubs_.emplace_back(dispatcher->registerOnChildren(handle, [this, &handle](auto changedHandle) {
-				if (changedHandle.type() == PrimitiveType::Table) {
+				if (changedHandle.type() == PrimitiveType::Table || changedHandle.type() == PrimitiveType::Array) {
 					if (!findNamedChild(changedHandle.getPropertyNamesVector().front())) {
 						syncChildrenWithValueHandle();
 					}
@@ -86,7 +90,14 @@ PropertyBrowserItem::PropertyBrowserItem(
 			}));
 		} else if (hasTypeSubstructure(handle.type())) {
 			structureChangeSubs_.emplace_back(dispatcher->registerOn(handle, [this, &handle]() {
-				syncChildrenWithValueHandle();
+				if (handle.type() == PrimitiveType::Table || handle.type() == PrimitiveType::Array) {
+					syncChildrenWithValueHandle();
+				} else {
+					// TODO this doesn't work for nested structs:
+					for (auto childItem : children_) {
+						Q_EMIT childItem->valueChanged();
+					}
+				}
 			}));
 		}
 
@@ -98,11 +109,22 @@ PropertyBrowserItem::PropertyBrowserItem(
 					Q_EMIT editableChanged(editable());
 					Q_EMIT linkStateChanged();
 				}
+				if (handle.isRefToProp(&core::EditorObject::objectName_)) {
+					Q_EMIT propertyControlToolTipTextChanged(propertyControlToolTipText());
+				}
 			}
 		})));
 		errorSubs_.emplace_back(components::Subscription(dispatcher->registerOnErrorChanged(handle, [this]() {
 			Q_EMIT errorChanged();
+			Q_EMIT displayErrorChanged();
 		})));
+
+		if (isObject() && valueHandles_.size() > 1) {
+			auto nameHandle = handle.get("objectName");
+			objectNameChangeSubscriptions_.push_back(dispatcher->registerOn(nameHandle, [this]() {
+				Q_EMIT displayErrorChanged();
+			}));
+		}
 
 		// links
 		bool linkEnd = core::Queries::isValidLinkEnd(*project(), handle);
@@ -183,11 +205,27 @@ PropertyBrowserItem::PropertyBrowserItem(
 				}
 			}));
 		}
+
+		// The private flag in the meshnode material container is used to determine visibility of the options children,
+		// see Queries::isHiddenInPropertyBrowser
+		if (handle.rootObject()->isType<user_types::MeshNode>()) {
+			auto meshnode = handle.rootObject()->as<user_types::MeshNode>();
+			for (size_t matIndex = 0; matIndex < meshnode->numMaterialSlots(); matIndex++) {
+				if (handle == meshnode->getMaterialOptionsHandle(matIndex)) {
+					childrenChangeSubs_.emplace_back(dispatcher->registerOn(meshnode->getMaterialPrivateHandle(matIndex), [this]() {
+						if (isValid()) {
+							syncChildrenWithValueHandle();
+						}
+					}));
+				}
+			}
+		}
+
 	});
 }
 
-bool PropertyBrowserItem::isHidden(core::ValueHandle handle) const {
-	if (core::Queries::isHiddenInPropertyBrowser(*commandInterface_->project(), handle)) {
+bool PropertyBrowserItem::isHidden(core::ValueHandle handle, bool isMultiSelect) const {
+	if (core::Queries::isHiddenInPropertyBrowser(*commandInterface_->project(), handle, isMultiSelect)) {
 		return true;
 	}
 
@@ -268,6 +306,11 @@ bool PropertyBrowserItem::match(const core::ValueHandle& left, const core::Value
 				return left.constValueRef()->baseTypeName() == right.constValueRef()->baseTypeName();
 				break;
 
+			case PrimitiveType::Array:
+				return left.constValueRef()->asArray().elementType() == right.constValueRef()->asArray().elementType() && 
+					left.constValueRef()->asArray().size() == right.constValueRef()->asArray().size();
+				break;
+
 			default:
 				return true;
 		}
@@ -289,14 +332,15 @@ std::vector<std::set<core::ValueHandle>> PropertyBrowserItem::getCommonValueHand
 	if (refHandle.isProperty() && (refHandle.query<core::UserTagContainerAnnotation>() || refHandle.query<core::TagContainerAnnotation>())) {
 		return {};
 	}
-
+	
+	bool isMultiSelect = handles.size() > 1;
 	for (size_t index = 0; index < refHandle.size(); index++) {
 		auto refChildHandle = refHandle[index];
 		auto propName = refChildHandle.getPropName();
 
-		if (!isHidden(refChildHandle)) {
-			if (std::all_of(++handles.begin(), handles.end(), [this, refChildHandle, propName](auto handle) {
-					return handle.hasProperty(propName) && !isHidden(handle.get(propName)) && match(refChildHandle, handle.get(propName));
+		if (!isHidden(refChildHandle, isMultiSelect)) {
+			if (std::all_of(++handles.begin(), handles.end(), [this, refChildHandle, propName, isMultiSelect](auto handle) {
+					return handle.hasProperty(propName) && !isHidden(handle.get(propName), isMultiSelect) && match(refChildHandle, handle.get(propName));
 				})) {
 				std::set<core::ValueHandle> childHandleSet;
 				for (auto handle : handles) {
@@ -350,11 +394,66 @@ std::string PropertyBrowserItem::getPropertyPathWithoutObject() const {
 	return fmt::format("{}", fmt::join(valueHandles_.begin()->getPropertyNamesVector(), "."));
 }
 
+void PropertyBrowserItem::highlightProperty(const QString& propertyName) {
+	const auto item = findNamedChildByPropertyPath(propertyName.toStdString());
+	if (item) {
+		auto parentItem = item->parentItem();
+		while (parentItem) {
+			if (parentItem->expandable()) {
+				parentItem->setExpanded(true, false);
+			}
+			parentItem = parentItem->parentItem();
+		}
+		item->Q_EMIT highlighted();
+	}
+}
+
+QStringList PropertyBrowserItem::objectNames() const {
+	QStringList items;
+	for (auto handle : valueHandles_) {
+		auto object = handle.rootObject();
+		std::string labelText = fmt::format("{} [{}]", object->objectName(), object->getTypeDescription().typeName);
+		items.push_back(QString::fromStdString(labelText));
+	}
+	items.sort();
+	return items;
+}
+
+QString PropertyBrowserItem::displayObjectNames() const {
+	QStringList items = objectNames();
+	items.push_front("Current objects:");
+	return items.join("\n");
+}
+
+std::string PropertyBrowserItem::labelToolTipText() const {
+	if (searchAnnotationInParents<core::HiddenProperty>()) {
+		return {};
+	}
+
+	if (isLuaProperty()) {
+		return fmt::format("{} [{}]", getPropertyName(), luaTypeName());
+	}
+	return  getPropertyName();
+}
+
+QString PropertyBrowserItem::propertyControlToolTipText() const {
+	if (valueHandles_.begin()->isRefToProp(&core::EditorObject::objectName_)) {
+		if (valueHandles_.size() == 1 && sceneBackend_) {
+			return QString::fromStdString(sceneBackend_->getExportedObjectNames(valueHandles_.begin()->rootObject()));
+		} else {
+			return displayObjectNames();
+		}
+	}
+	return {};
+}
+
 void PropertyBrowserItem::updateLinkState() noexcept {
 	Q_EMIT linkStateChanged();
 	Q_EMIT editableChanged(editable());
 	for (auto* child_ : children_) {
-		child_->updateLinkState();
+		if (child_->isValid()) {
+			child_->updateLinkState();
+		}
 	}
 }
 
@@ -398,7 +497,7 @@ const QList<PropertyBrowserItem*>& PropertyBrowserItem::children() {
 	return children_;
 }
 
-PropertyBrowserItem* PropertyBrowserItem::findNamedChild(const std::string& propertyName) {
+PropertyBrowserItem* PropertyBrowserItem::findNamedChild(std::string_view propertyName) {
 	auto it = std::find_if(children_.begin(), children_.end(), [propertyName](auto child) {
 		return child->getPropertyName() == propertyName;
 	});
@@ -406,6 +505,29 @@ PropertyBrowserItem* PropertyBrowserItem::findNamedChild(const std::string& prop
 		return *it;
 	}
 	return nullptr;
+}
+
+PropertyBrowserItem* PropertyBrowserItem::findNamedChildByPropertyPath(std::string_view propertyPath) {
+	const auto path = QString::fromStdString(std::string(propertyPath.begin(), propertyPath.end()));
+	auto names = path.split("."); // get names of all nested children
+	names.removeAt(0); // remove object name
+
+	if (names.empty()) {
+		return nullptr;
+	}
+
+	auto root = this;
+	while (!names.empty()) {
+		auto name = names[0].toStdString();
+		if (const auto it = root->findNamedChild(name)) {
+			root = it;
+		} else {
+			return nullptr;
+		}
+		names.removeAt(0);
+	}
+
+	return root;
 }
 
 bool PropertyBrowserItem::hasError() const {
@@ -466,6 +588,35 @@ std::string PropertyBrowserItem::errorMessage() const {
 	}
 	return {};
 }
+
+std::vector<PropertyBrowserItem::DisplayErrorItem> PropertyBrowserItem::getDisplayErrorItems() const {
+	std::vector<DisplayErrorItem> errorItems;
+
+	// Object name display: only shown for top-level object in multiselection mode
+	if (isObject() && valueHandles_.size() > 1) {
+		errorItems.emplace_back(DisplayErrorItem{core::ErrorLevel::INFORMATION, displayObjectNames()});
+	}
+
+	// Error item
+	if (hasError()) {
+		std::string errorMsg;
+		auto optCategory = errorCategory();
+		if (!optCategory.has_value()) {
+			errorMsg = "Multiple Erorrs";
+		} else {
+			auto category = optCategory.value();
+			if (category == core::ErrorCategory::RAMSES_LOGIC_RUNTIME || category == core::ErrorCategory::PARSING || category == core::ErrorCategory::GENERAL || category == core::ErrorCategory::MIGRATION) {
+				errorMsg = errorMessage().c_str();
+			}
+		}
+		if (!errorMsg.empty()) {
+			errorItems.emplace_back(DisplayErrorItem{maxErrorLevel(), QString::fromStdString(errorMsg)});
+		}
+	}
+
+	return errorItems;
+}
+
 
 void PropertyBrowserItem::markForDeletion() {
 	// prevent crashes caused by delayed subscription callbacks
@@ -727,6 +878,17 @@ void PropertyBrowserItem::setTags(std::vector<std::pair<std::string, int>> const
 		desc);
 }
 
+void PropertyBrowserItem::resizeArray(size_t newSize) {
+	std::string desc = fmt::format("Resize property '{}' to {}", getPropertyPath(), newSize);
+	commandInterface_->executeCompositeCommand(
+		[this, newSize]() {
+			for (auto& handle : valueHandles_) {
+				commandInterface_->resizeArray(handle, newSize);
+			}
+		},
+		desc);
+}
+
 void PropertyBrowserItem::syncChildrenWithValueHandle() {
 	if (isProperty() && !matchCurrent()) {
 		// matching has failed
@@ -748,11 +910,12 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 		if (!commonValueHandles.empty()) {
 			children_.reserve(static_cast<int>(commonValueHandles.size()));
 			for (const auto& commonHandleForSeveralObjects : commonValueHandles) {
-				children_.push_back(new PropertyBrowserItem(commonHandleForSeveralObjects, dispatcher_, commandInterface_, model_, this));
+				children_.push_back(new PropertyBrowserItem(commonHandleForSeveralObjects, dispatcher_, commandInterface_, model_, sceneBackend_, this));
 			}
 		}
 
 		Q_EMIT childrenChanged(children_);
+		// TODO why multiple signals here??
 
 		// notify first not collapsed item about the structural changed
 		{
@@ -764,7 +927,6 @@ void PropertyBrowserItem::syncChildrenWithValueHandle() {
 		// notify the view state accordingly
 		if (children_.size() <= 1) {
 			Q_EMIT expandedChanged(expanded());
-			Q_EMIT showChildrenChanged(showChildren());
 		}
 	}
 }
@@ -783,15 +945,15 @@ bool PropertyBrowserItem::canBeChosenByColorPicker() const {
 
 		const auto rootTypeRef = &handle.rootObject()->getTypeDescription();
 
-		if (!(rootTypeRef == &raco::user_types::ProjectSettings::typeDescription ||
-				rootTypeRef == &raco::user_types::LuaScript::typeDescription ||
-				rootTypeRef == &raco::user_types::LuaInterface::typeDescription ||
-				rootTypeRef == &raco::user_types::MeshNode::typeDescription ||
-				rootTypeRef == &raco::user_types::Material::typeDescription)) {
+		if (!(rootTypeRef == &user_types::ProjectSettings::typeDescription ||
+				rootTypeRef == &user_types::LuaScript::typeDescription ||
+				rootTypeRef == &user_types::LuaInterface::typeDescription ||
+				rootTypeRef == &user_types::MeshNode::typeDescription ||
+				rootTypeRef == &user_types::Material::typeDescription)) {
 			return false;
 		}
 
-		if (handle.isRefToProp(&raco::user_types::Node::translation_) || handle.isRefToProp(&raco::user_types::Node::rotation_) || handle.isRefToProp(&raco::user_types::Node::scaling_)) {
+		if (handle.isRefToProp(&user_types::Node::translation_) || handle.isRefToProp(&user_types::Node::rotation_) || handle.isRefToProp(&user_types::Node::scaling_)) {
 			return false;
 		}
 
@@ -821,6 +983,10 @@ bool PropertyBrowserItem::isObject() const {
 
 bool PropertyBrowserItem::isProperty() const {
 	return valueHandles_.begin()->isProperty();
+}
+
+bool PropertyBrowserItem::isRootItem() const {
+	return isObject();
 }
 
 bool PropertyBrowserItem::isTagContainerProperty() const {
@@ -880,6 +1046,24 @@ bool PropertyBrowserItem::getDefaultExpanded() const {
 	return std::all_of(valueHandles_.begin(), valueHandles_.end(), [this](const core::ValueHandle& handle) {
 		return getDefaultExpandedFromValueHandleType(handle);
 	});
+}
+
+std::vector<PropertyBrowserItem::ContextMenuAction> PropertyBrowserItem::contextMenuActions() {
+	if (searchAnnotationInParents<core::VolatileProperty>()) {
+		return {};
+	}
+	
+	return {
+		{"Copy",
+			PropertyCopyPaste::canCopyValue(this),
+			[this]() {
+				PropertyCopyPaste::copyValue(this);
+			}},
+		{"Paste",
+			PropertyCopyPaste::canPasteValue(this),
+			[this]() {
+				PropertyCopyPaste::pasteValue(this);
+			}}};
 }
 
 }  // namespace raco::property_browser

@@ -11,27 +11,45 @@
 #include <gtest/gtest.h>
 #include <gtest/gtest-spi.h>
 
+#include "RamsesBaseFixture.h"
+#include "testing/RacoBaseTest.h"
 #include "ramses_base/Utils.h"
-#include <ramses-logic/LogicEngine.h>
-#include <ramses-logic/LuaScript.h>
-#include <ramses-logic/Property.h>
-#include <ramses-logic/RamsesNodeBinding.h>
-#include <ramses-framework-api/RamsesFramework.h>
-#include <ramses-client-api/RamsesClient.h>
-#include <ramses-client-api/Scene.h>
-#include <ramses-client-api/Node.h>
+#include "ramses_adaptor/utilities.h"
+
+#include <ramses/client/logic/LogicEngine.h>
+#include <ramses/client/logic/LuaScript.h>
+#include <ramses/client/logic/Property.h>
+#include <ramses/client/logic/NodeBinding.h>
+#include <ramses/framework/RamsesFramework.h>
+#include <ramses/client/RamsesClient.h>
+#include <ramses/client/Scene.h>
+#include <ramses/client/Node.h>
 
 #include <cmath>
 
 /*
-* Basic test for third_party dependiences: ramses-logic.
-* Should be used to verify stability of dependency.
-*/
+ * Basic test for third_party dependiences: ramses-logic.
+ * Should be used to verify stability of dependency.
+ */
 
+using namespace raco::ramses_adaptor;
 
-TEST(ramses_logic, repeat_create_destroy_simple_script) {
-	rlogic::LogicEngine logicEngine;
+class RamsesLogicTest : public RacoBaseTest<> {
+public:
+	RamsesLogicTest() 
+		: ramsesFramework(ramses::RamsesFrameworkConfig{ramses::EFeatureLevel::EFeatureLevel_01}),
+		  client(ramsesFramework.createClient("example client")),
+		  scene(client->createScene(ramses::sceneId_t(123u), "some scene")),
+		  logicEngine(*scene->createLogicEngine("logic engine"))	{
+	}
 
+	ramses::RamsesFramework ramsesFramework;
+	ramses::RamsesClient* client;
+	ramses::Scene* scene;
+	ramses::LogicEngine& logicEngine;
+};
+
+TEST_F(RamsesLogicTest, repeat_create_destroy_simple_script) {
 	std::string scriptText = R"(
 function interface(IN,OUT)
     OUT.out_float = Type:Float()
@@ -47,8 +65,7 @@ end
 	}
 }
 
-TEST(ramses_logic, relink_scriptToScript) {
-	rlogic::LogicEngine logicEngine;
+TEST_F(RamsesLogicTest, relink_scriptToScript) {
 	auto* outScript = logicEngine.createLuaScript(R"(
 function interface(IN,OUT)
     OUT.out_float = Type:Float()
@@ -83,11 +100,7 @@ end
 	ASSERT_TRUE(logicEngine.update());
 }
 
-TEST(ramses_logic, relink_scriptToNode) {
-	rlogic::LogicEngine logicEngine;
-	ramses::RamsesFramework ramsesFramework;
-	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
-	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
+TEST_F(RamsesLogicTest, relink_scriptToNode) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
@@ -101,24 +114,24 @@ function run(IN,OUT)
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Euler_ZYX, "some node binding");
+	auto* binding = logicEngine.createNodeBinding(*node, ramses::ERotationType::Euler_ZYX, "some node binding");
 
-	const rlogic::Property* nodeTranslation {nullptr};
+	ramses::Property* nodeTranslation {nullptr};
 	for (size_t i{0}; i < binding->getInputs()->getChildCount(); i++) {
 		if (binding->getInputs()->getChild(i)->getName() == "translation") {
 			nodeTranslation = binding->getInputs()->getChild(i);
 		}
 	}
 	ASSERT_TRUE(nodeTranslation != nullptr);
-	const rlogic::Property* scriptOutVec3f {nullptr};
+	ramses::Property* scriptOutVec3f {nullptr};
 	for (size_t i {0}; i < outScript->getOutputs()->getChildCount(); i++) {
 		if (outScript->getOutputs()->getChild(i)->getName() == "out_vec3f") {
 			scriptOutVec3f = outScript->getOutputs()->getChild(i);
 		}
 	}
 	ASSERT_TRUE(scriptOutVec3f != nullptr);
-	rlogic::Property* scriptInFloat { nullptr };
-	for (size_t i {0}; i < outScript->getInputs()->getChildCount(); i++) {
+	ramses::Property* scriptInFloat{nullptr};
+	for (size_t i{0}; i < outScript->getInputs()->getChildCount(); i++) {
 		if (outScript->getInputs()->getChild(i)->getName() == "in_float") {
 			scriptInFloat = outScript->getInputs()->getChild(i);
 		}
@@ -129,54 +142,21 @@ end
 	scriptInFloat->set(5.0f);
 	ASSERT_TRUE(logicEngine.update());
 
-	{
-		float x,y,z;
-		node->getTranslation(x,y,z);
-		ASSERT_EQ(5.0f, x);
-		ASSERT_EQ(0.0f, y);
-		ASSERT_EQ(0.0f, z);
-	}
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(5.0, 0.0, 0.0));
 
 	ASSERT_TRUE(logicEngine.unlink(*scriptOutVec3f, *nodeTranslation));
 	scriptInFloat->set(10.0f);
 	ASSERT_TRUE(logicEngine.update());
 
-	{
-		float x,y,z;
-		node->getTranslation(x,y,z);
-		ASSERT_EQ(5.0f, x);
-		ASSERT_EQ(0.0f, y);
-		ASSERT_EQ(0.0f, z);
-	}
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(5.0, 0.0, 0.0));
 
 	ASSERT_TRUE(logicEngine.link(*scriptOutVec3f, *nodeTranslation));
 	ASSERT_TRUE(logicEngine.update());
 
-	{
-		float x,y,z;
-		node->getTranslation(x,y,z);
-		ASSERT_EQ(10.0f, x);
-		ASSERT_EQ(0.0f, y);
-		ASSERT_EQ(0.0f, z);
-	}
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(10.0, 0.0, 0.0));
 }
 
-std::vector<float> get_node_translation(ramses::Node* node) {
-	float x, y, z;
-	node->getTranslation(x, y, z);
-	return {x, y, z};
-}
-
-std::vector<float> get_node_scale(ramses::Node* node) {
-	float x, y, z;
-	node->getScaling(x, y, z);
-	return {x, y, z};
-}
-TEST(ramses_logic, linkUnlink_nodeBinding_single) {
-	rlogic::LogicEngine logicEngine;
-	ramses::RamsesFramework ramsesFramework;
-	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
-	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
+TEST_F(RamsesLogicTest, linkUnlink_nodeBinding_single) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
@@ -190,33 +170,29 @@ function run(IN,OUT)
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Euler_ZYX, "some node binding");
+	auto* binding = logicEngine.createNodeBinding(*node, ramses::ERotationType::Euler_ZYX, "some node binding");
 
-	const rlogic::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
+	ramses::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
-	const rlogic::Property* scriptOutVec3f{outScript->getOutputs()->getChild("out_vec3f")};
+	ramses::Property* scriptOutVec3f{outScript->getOutputs()->getChild("out_vec3f")};
 	ASSERT_TRUE(scriptOutVec3f != nullptr);
 
 	ASSERT_TRUE(logicEngine.link(*scriptOutVec3f, *nodeTranslation));
 	outScript->getInputs()->getChild("in_float")->set(1.0f);
 
 	ASSERT_TRUE(logicEngine.update());
-	EXPECT_EQ(get_node_translation(node), std::vector<float>({1.0, 0.0, 0.0}));
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(1.0, 0.0, 0.0));
 
 	ASSERT_TRUE(logicEngine.unlink(*scriptOutVec3f, *nodeTranslation));
 
-	node->setTranslation(2.0, 3.0, 4.0);
-	EXPECT_EQ(get_node_translation(node), std::vector<float>({2.0, 3.0, 4.0}));
+	node->setTranslation({2.0, 3.0, 4.0});
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(2.0, 3.0, 4.0));
 
 	ASSERT_TRUE(logicEngine.update());
-	EXPECT_EQ(get_node_translation(node), std::vector<float>({2.0, 3.0, 4.0}));
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(2.0, 3.0, 4.0));
 }
 
-TEST(ramses_logic, linkUnlink_nodeBinding_multi) {
-	rlogic::LogicEngine logicEngine;
-	ramses::RamsesFramework ramsesFramework;
-	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
-	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
+TEST_F(RamsesLogicTest, linkUnlink_nodeBinding_multi) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
@@ -230,13 +206,13 @@ function run(IN,OUT)
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Euler_ZYX, "some node binding");
+	auto* binding = logicEngine.createNodeBinding(*node, ramses::ERotationType::Euler_ZYX, "some node binding");
 
-	const rlogic::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
+	ramses::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
-	const rlogic::Property* nodeScale{binding->getInputs()->getChild("scaling")};
+	ramses::Property* nodeScale{binding->getInputs()->getChild("scaling")};
 	ASSERT_TRUE(nodeScale != nullptr);
-	const rlogic::Property* scriptOutVec3f{outScript->getOutputs()->getChild("out_vec3f")};
+	ramses::Property* scriptOutVec3f{outScript->getOutputs()->getChild("out_vec3f")};
 	ASSERT_TRUE(scriptOutVec3f != nullptr);
 
 	ASSERT_TRUE(logicEngine.link(*scriptOutVec3f, *nodeTranslation));
@@ -244,24 +220,21 @@ end
 	outScript->getInputs()->getChild("in_float")->set(1.0f);
 
 	ASSERT_TRUE(logicEngine.update());
-	EXPECT_EQ(get_node_translation(node), std::vector<float>({1.0, 0.0, 0.0}));
-	EXPECT_EQ(get_node_scale(node), std::vector<float>({1.0, 0.0, 0.0}));
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(1.0, 0.0, 0.0));
+	EXPECT_EQ(getRamsesScaling(node), glm::vec3(1.0, 0.0, 0.0));
 
 	ASSERT_TRUE(logicEngine.unlink(*scriptOutVec3f, *nodeTranslation));
 	outScript->getInputs()->getChild("in_float")->set(0.5f);
-	node->setTranslation(2.0, 3.0, 4.0);
-	EXPECT_EQ(get_node_translation(node), std::vector<float>({2.0, 3.0, 4.0}));
+	node->setTranslation({2.0, 3.0, 4.0});
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(2.0, 3.0, 4.0));
+	EXPECT_EQ(getRamsesScaling(node), glm::vec3(1.0, 0.0, 0.0));
 
 	ASSERT_TRUE(logicEngine.update());
-	EXPECT_EQ(get_node_translation(node), std::vector<float>({2.0, 3.0, 4.0}));
-	EXPECT_EQ(get_node_scale(node), std::vector<float>({0.5, 0.0, 0.0}));
+	EXPECT_EQ(getRamsesTranslation(node), glm::vec3(2.0, 3.0, 4.0));
+	EXPECT_EQ(getRamsesScaling(node), glm::vec3(0.5, 0.0, 0.0));
 }
 
-TEST(ramses_logic, unlinkAndDestroy_nodeBinding) {
-	rlogic::LogicEngine logicEngine;
-	ramses::RamsesFramework ramsesFramework;
-	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
-	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
+TEST_F(RamsesLogicTest, unlinkAndDestroy_nodeBinding) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
@@ -275,11 +248,11 @@ function run(IN,OUT)
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Euler_ZYX, "some node binding");
+	auto* binding = logicEngine.createNodeBinding(*node, ramses::ERotationType::Euler_ZYX, "some node binding");
 
-	const rlogic::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
+	ramses::Property* nodeTranslation{binding->getInputs()->getChild("translation")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
-	const rlogic::Property* scriptOutVec3f{outScript->getOutputs()->getChild("out_vec3f")};
+	ramses::Property* scriptOutVec3f{outScript->getOutputs()->getChild("out_vec3f")};
 	ASSERT_TRUE(scriptOutVec3f != nullptr);
 
 	ASSERT_TRUE(logicEngine.link(*scriptOutVec3f, *nodeTranslation));
@@ -288,11 +261,7 @@ end
 	ASSERT_TRUE(logicEngine.update());
 }
 
-TEST(ramses_logic, unlinkAndDestroyScript_multipleLinks) {
-	rlogic::LogicEngine logicEngine;
-	ramses::RamsesFramework ramsesFramework;
-	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
-	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
+TEST_F(RamsesLogicTest, unlinkAndDestroyScript_multipleLinks) {
 	ramses::Node* node = scene->createNode("some node");
 
 	auto* outScript = logicEngine.createLuaScript(R"(
@@ -305,15 +274,15 @@ function run(IN,OUT)
 end
 )");
 
-	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Euler_ZYX, "some node binding");
+	auto* binding = logicEngine.createNodeBinding(*node, ramses::ERotationType::Euler_ZYX, "some node binding");
 
-	const rlogic::Property* nodeTranslation {binding->getInputs()->getChild("translation")};
-	const rlogic::Property* nodeVisibility {binding->getInputs()->getChild("visibility")};
+	ramses::Property* nodeTranslation {binding->getInputs()->getChild("translation")};
+	ramses::Property* nodeVisibility {binding->getInputs()->getChild("visibility")};
 	ASSERT_TRUE(nodeTranslation != nullptr);
 	ASSERT_TRUE(nodeVisibility != nullptr);
 
-	const rlogic::Property* scriptTranslation {outScript->getOutputs()->getChild("translation")};
-	const rlogic::Property* scriptVisiblity{outScript->getOutputs()->getChild("visibility")};
+	ramses::Property* scriptTranslation {outScript->getOutputs()->getChild("translation")};
+	ramses::Property* scriptVisiblity{outScript->getOutputs()->getChild("visibility")};
 	ASSERT_TRUE(scriptTranslation != nullptr);
 	ASSERT_TRUE(scriptVisiblity != nullptr);
 
@@ -329,8 +298,7 @@ end
 	ASSERT_TRUE(logicEngine.update());
 }
 
-TEST(ramses_logic, arrayOfStruct_linking) {
-	rlogic::LogicEngine logicEngine;
+TEST_F(RamsesLogicTest, arrayOfStruct_linking) {
 	auto scriptContent{
 		R"(
 function interface(IN,OUT)
@@ -347,8 +315,8 @@ end
 	auto* startScript = logicEngine.createLuaScript(scriptContent);
 	auto* endScript = logicEngine.createLuaScript(scriptContent);
 
-	const rlogic::Property* outA{startScript->getOutputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")};
-	const rlogic::Property* inA{endScript->getInputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")};
+	ramses::Property* outA{startScript->getOutputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")};
+	ramses::Property* inA{endScript->getInputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")};
 
 	ASSERT_TRUE(logicEngine.link(*outA, *inA));
 	ASSERT_TRUE(logicEngine.update());
@@ -360,10 +328,9 @@ end
 	ASSERT_EQ(1.0f, endScript->getOutputs()->getChild("arrayOfStruct")->getChild(0)->getChild("a")->get<float>().value());
 }
 
-TEST(ramses_logic, array_linkToComponent) {
-	rlogic::LogicEngine logicEngine;
-	auto scriptContentFloatArray {
-R"(
+TEST_F(RamsesLogicTest, array_linkToComponent) {
+	auto scriptContentFloatArray{
+		R"(
 function interface(IN,OUT)
 	IN.float_array = Type:Array(5, Type:Float())
 	OUT.float_array = Type:Array(5, Type:Float())
@@ -372,10 +339,9 @@ end
 function run(IN,OUT)
 	OUT.float_array = IN.float_array
 end
-)"
-	};
-	auto scriptContentFloat {
-R"(
+)"};
+	auto scriptContentFloat{
+		R"(
 function interface(IN,OUT)
 	IN.float = Type:Float()
 	OUT.float = Type:Float()
@@ -384,14 +350,13 @@ end
 function run(IN,OUT)
 	OUT.float = IN.float
 end
-)"
-	};
+)"};
 
 	auto* startScript = logicEngine.createLuaScript(scriptContentFloat);
 	auto* endScript = logicEngine.createLuaScript(scriptContentFloatArray);
 
-	const rlogic::Property* outA{startScript->getOutputs()->getChild("float")};
-	const rlogic::Property* inA{endScript->getInputs()->getChild("float_array")->getChild(0)};
+	ramses::Property* outA{startScript->getOutputs()->getChild("float")};
+	ramses::Property* inA{endScript->getInputs()->getChild("float_array")->getChild(0)};
 
 	ASSERT_TRUE(logicEngine.link(*outA, *inA));
 	ASSERT_TRUE(logicEngine.update());
@@ -401,8 +366,7 @@ end
 	ASSERT_EQ(1.0f, endScript->getInputs()->getChild("float_array")->getChild(0)->get<float>().value());
 }
 
-TEST(ramses_logic, standardModules) {
-	rlogic::LogicEngine logicEngine;
+TEST_F(RamsesLogicTest, standardModules) {
 	auto scriptContentFloat{
 		R"(
 function interface(IN,OUT)
@@ -415,7 +379,7 @@ function run(IN,OUT)
 end
 )"};
 
-	auto luaConfig = raco::ramses_base::defaultLuaConfig();
+	auto luaConfig = ramses_base::defaultLuaConfig();
 	auto* script = logicEngine.createLuaScript(scriptContentFloat, luaConfig);
 
 	const float pi = static_cast<float>(std::acos(-1.0));
@@ -424,8 +388,7 @@ end
 	ASSERT_EQ(-1.0, script->getOutputs()->getChild("float")->get<float>().value());
 }
 
-TEST(ramses_logic, weird_crash) {
-	rlogic::LogicEngine logicEngine;
+TEST_F(RamsesLogicTest, weird_crash) {
 
 	std::string scriptText = R"(
 function interface(IN,OUT)
@@ -484,81 +447,73 @@ end
 	}
 }
 
-TEST(ramses_logic, node_binding_quaternion_rotation) {
-	rlogic::LogicEngine logicEngine;
-	ramses::RamsesFramework ramsesFramework;
-	ramses::RamsesClient& client = *ramsesFramework.createClient("example client");
-	ramses::Scene* scene = client.createScene(ramses::sceneId_t(123u), ramses::SceneConfig(), "some scene");
-
+TEST_F(RamsesLogicTest, node_binding_quaternion_rotation) {
 	ramses::Node* node = scene->createNode("some node");
-	auto* binding = logicEngine.createRamsesNodeBinding(*node, rlogic::ERotationType::Quaternion, "some node binding");
-		
+	auto* binding = logicEngine.createNodeBinding(*node, ramses::ERotationType::Quaternion, "some node binding");
+
 	float delta = 1e-4;
 
 	float one_over_sqrt_6 = 1.0f / sqrt(6.0f);
 	float one_over_sqrt_2 = 1.0f / sqrt(2.0f);
-	std::array<float, 4> q{one_over_sqrt_6, one_over_sqrt_6, one_over_sqrt_6, one_over_sqrt_2};
+	glm::vec4 q{one_over_sqrt_6, one_over_sqrt_6, one_over_sqrt_6, one_over_sqrt_2};
 	float norm2 = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
 	ASSERT_TRUE(std::abs(norm2 - 1.0f) < delta);
-	
-	rlogic::Property* nodeRotation{binding->getInputs()->getChild("rotation")};
+
+	ramses::Property* nodeRotation{binding->getInputs()->getChild("rotation")};
 	nodeRotation->set(q);
 
 	logicEngine.update();
 
-	float ramsesModelMatrix[16];
+	glm::mat4x4 ramsesModelMatrix;
 	node->getModelMatrix(ramsesModelMatrix);
 
-	float refModelMatrix[16];
+	glm::mat4x4 refModelMatrix;
 
 	// m11
-	refModelMatrix[0] = 1.0f - 2.0f * (q[1] * q[1] + q[2] * q[2]);
+	refModelMatrix[0][0] = 1.0f - 2.0f * (q[1] * q[1] + q[2] * q[2]);
 	// m21
-	refModelMatrix[1] = 2.0f * (q[0] * q[1] + q[2] * q[3]);
+	refModelMatrix[0][1] = 2.0f * (q[0] * q[1] + q[2] * q[3]);
 	// m31
-	refModelMatrix[2] = 2.0f * (q[0] * q[2] - q[1] * q[3]);
+	refModelMatrix[0][2] = 2.0f * (q[0] * q[2] - q[1] * q[3]);
 	// m41
-	refModelMatrix[3] = 0.0;
+	refModelMatrix[0][3] = 0.0;
 
 	// m12
-	refModelMatrix[4] = 2.0f * (q[0] * q[1] - q[2] * q[3]);
+	refModelMatrix[1][0] = 2.0f * (q[0] * q[1] - q[2] * q[3]);
 	// m22
-	refModelMatrix[5] = 1.0f - 2.0f * (q[0] * q[0] + q[2] * q[2]);
+	refModelMatrix[1][1] = 1.0f - 2.0f * (q[0] * q[0] + q[2] * q[2]);
 	// m32
-	refModelMatrix[6] = 2.0f * (q[1] * q[2] + q[0] * q[3]);
+	refModelMatrix[1][2] = 2.0f * (q[1] * q[2] + q[0] * q[3]);
 	// m42
-	refModelMatrix[7] = 0.0;
+	refModelMatrix[1][3] = 0.0;
 
 	// m13
-	refModelMatrix[8] = 2.0f * (q[0] * q[2] + q[1] * q[3]);
+	refModelMatrix[2][0] = 2.0f * (q[0] * q[2] + q[1] * q[3]);
 	// m23
-	refModelMatrix[9] = 2.0f * (q[1] * q[2] - q[0] * q[3]);
+	refModelMatrix[2][1] = 2.0f * (q[1] * q[2] - q[0] * q[3]);
 	// m33
-	refModelMatrix[10] = 1.0f - 2.0f * (q[0] * q[0] + q[1] * q[1]);
+	refModelMatrix[2][2] = 1.0f - 2.0f * (q[0] * q[0] + q[1] * q[1]);
 	// m43
-	refModelMatrix[11] = 0.0;
+	refModelMatrix[2][3] = 0.0;
 
 	// m14 .. m44
-	refModelMatrix[12] = 0.0;
-	refModelMatrix[13] = 0.0;
-	refModelMatrix[14] = 0.0;
-	refModelMatrix[15] = 1.0;
+	refModelMatrix[3][0] = 0.0;
+	refModelMatrix[3][1] = 0.0;
+	refModelMatrix[3][2] = 0.0;
+	refModelMatrix[3][3] = 1.0;
 
-// Remove the EXPECT_NONFATAL_FAILURE once the logic engine has been fixed
-	EXPECT_NONFATAL_FAILURE(
-		bool comp = true;
-		for (int i = 0; i < 16; i++) {
-			if (std::abs(refModelMatrix[i] - ramsesModelMatrix[i]) > delta) {
+	bool comp = true;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			if (std::abs(refModelMatrix[i][j] - ramsesModelMatrix[i][j]) > delta) {
 				comp = false;
 			}
-		} EXPECT_TRUE(comp);
-		,
-		"Value of: comp");
+		}
+	}
+	EXPECT_TRUE(comp);
 }
 
-TEST(ramses_logic, interface_using_modules_invalid_arg_FL4_deprecated_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
-
+TEST_F(RamsesLogicTest, interface_using_modules_invalid_arg_pass_no_config) {
 	auto text{
 		R"(
 modules(42)
@@ -567,12 +522,10 @@ end
 )"};
 
 	auto* interface = logicEngine.createLuaInterface(text, "interface");
-	ASSERT_TRUE(interface != nullptr);
+	ASSERT_TRUE(interface == nullptr);
 }
 
-TEST(ramses_logic, interface_using_valid_arg_modules_FL4_deprecated_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
-
+TEST_F(RamsesLogicTest, interface_using_valid_arg_modules_pass_no_config) {
 	auto text{
 		R"(
 modules("mymodule")
@@ -581,12 +534,10 @@ end
 )"};
 
 	auto* interface = logicEngine.createLuaInterface(text, "interface");
-	ASSERT_TRUE(interface != nullptr);
+	ASSERT_TRUE(interface == nullptr);
 }
 
-TEST(ramses_logic, interface_using_modules_invalid_arg_FL5_deprecated_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
-
+TEST_F(RamsesLogicTest, interface_using_modules_invalid_arg_pass_config) {
 	auto text{
 		R"(
 modules(42)
@@ -594,13 +545,12 @@ function interface(IN,OUT)
 end
 )"};
 
-	auto* interface = logicEngine.createLuaInterface(text, "interface");
-	ASSERT_TRUE(interface != nullptr);
+	ramses::LuaConfig config;
+	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
+	ASSERT_TRUE(interface == nullptr);
 }
 
-TEST(ramses_logic, interface_using_valid_arg_modules_FL5_deprecated_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
-
+TEST_F(RamsesLogicTest, interface_using_valid_arg_modules_pass_config) {
 	auto text{
 		R"(
 modules("mymodule")
@@ -608,66 +558,70 @@ function interface(IN,OUT)
 end
 )"};
 
-	auto* interface = logicEngine.createLuaInterface(text, "interface");
-	ASSERT_TRUE(interface != nullptr);
-}
-
-TEST(ramses_logic, interface_using_modules_invalid_arg_FL4_new_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
-
-	auto text{
-		R"(
-modules(42)
-function interface(IN,OUT)
-end
-)"};
-
-	rlogic::LuaConfig config;
+	ramses::LuaConfig config;
 	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
 	ASSERT_TRUE(interface == nullptr);
 }
 
-TEST(ramses_logic, interface_using_valid_arg_modules_FL4_new_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_04);
+TEST_F(RamsesLogicTest, deserialize_node_binding_enable_visibility) {
+	std::string ramsesFile = (test_path() / "test.ramses").string();
+	client->destroy(*scene);
 
-	auto text{
-		R"(
-modules("mymodule")
-function interface(IN,OUT)
-end
-)"};
+	for (bool enabled : {false, true}) {
+		for (bool visibility : {false, true}) {
+			ramses::EVisibilityMode mode = enabled ? (visibility ? ramses::EVisibilityMode::Visible : ramses::EVisibilityMode::Invisible) : ramses::EVisibilityMode::Off;
 
-	rlogic::LuaConfig config;
-	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
-	ASSERT_TRUE(interface == nullptr);
-}
+			{
+				scene = client->createScene(ramses::sceneId_t(123u), "some scene");
+				auto logicEngine = scene->createLogicEngine("logic engine");
 
-TEST(ramses_logic, interface_using_modules_invalid_arg_FL5_new_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
+				ramses::Node* node = scene->createNode("Node");
+				auto* binding = logicEngine->createNodeBinding(*node, ramses::ERotationType::Euler_ZYX, "NodeBinding");
 
-	auto text{
-		R"(
-modules(42)
-function interface(IN,OUT)
-end
-)"};
+				ramses::Property* prop_enabled{binding->getInputs()->getChild("enabled")};
+				ASSERT_TRUE(prop_enabled != nullptr);
 
-	rlogic::LuaConfig config;
-	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
-	ASSERT_TRUE(interface == nullptr);
-}
+				ramses::Property* prop_visibility{binding->getInputs()->getChild("visibility")};
+				ASSERT_TRUE(prop_visibility != nullptr);
 
-TEST(ramses_logic, interface_using_valid_arg_modules_FL5_new_create_function) {
-	rlogic::LogicEngine logicEngine(rlogic::EFeatureLevel::EFeatureLevel_05);
+				prop_enabled->set(enabled);
+				prop_visibility->set(visibility);
+				logicEngine->update();
 
-	auto text{
-		R"(
-modules("mymodule")
-function interface(IN,OUT)
-end
-)"};
+				EXPECT_EQ(node->getVisibility(), mode);
+				EXPECT_EQ(prop_enabled->get<bool>(), enabled);
+				EXPECT_EQ(prop_visibility->get<bool>(), visibility);
 
-	rlogic::LuaConfig config;
-	auto* interface = logicEngine.createLuaInterface(text, "interface", config);
-	ASSERT_TRUE(interface == nullptr);
+				ramses::SaveFileConfig config;
+
+				ASSERT_TRUE(scene->saveToFile(ramsesFile.c_str()));
+
+				client->destroy(*scene);
+			}
+
+			{
+				scene = client->loadSceneFromFile(ramsesFile);
+				ASSERT_TRUE(scene != nullptr);
+				auto logicEngine = select<ramses::LogicEngine>(*scene, "logic engine");
+				ASSERT_TRUE(logicEngine != nullptr);
+
+				auto node = select<ramses::Node>(*scene, "Node");
+				ASSERT_TRUE(node != nullptr);
+				auto binding = select<ramses::NodeBinding>(*logicEngine, "NodeBinding");
+				ASSERT_TRUE(binding != nullptr);
+
+				const ramses::Property* prop_enabled{binding->getInputs()->getChild("enabled")};
+				ASSERT_TRUE(prop_enabled != nullptr);
+
+				const ramses::Property* prop_visibility{binding->getInputs()->getChild("visibility")};
+				ASSERT_TRUE(prop_visibility != nullptr);
+
+				EXPECT_EQ(node->getVisibility(), mode);
+				EXPECT_EQ(prop_enabled->get<bool>().value(), enabled);
+				ASSERT_EQ(prop_visibility->get<bool>().value(), visibility) << fmt::format(" enabled /  visibility = {} / {}", enabled, visibility);
+
+				client->destroy(*scene);
+			}
+		}
+	}
 }

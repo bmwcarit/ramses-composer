@@ -105,7 +105,7 @@ TEST_F(ShaderPreprocessorTest, missingIncludedFileTest) {
 }
 
 TEST_F(ShaderPreprocessorTest, chinesePathLoaded) {
-	const u8path chinesePath{std::filesystem::path(L"\u96E8\u4E2D_1.txt")}; // 雨中;
+	const u8path chinesePath{u8"\u96E8\u4E2D_1.txt"}; // 雨中;
 	const auto chineseFullPath{(test_path() / "shaders/include" / chinesePath).string()};
 	file::write(chineseFullPath, "contents1");
 
@@ -116,7 +116,7 @@ TEST_F(ShaderPreprocessorTest, chinesePathLoaded) {
 }
 
 TEST_F(ShaderPreprocessorTest, chineseIncludeProcessed) {
-	const u8path chinesePath{std::filesystem::path(L"\u96E8\u4E2D_2.txt")}; // 雨中;
+	const u8path chinesePath{u8"\u96E8\u4E2D_2.txt"}; // 雨中;
 	const auto chineseFullPath{(test_path() / "shaders/include" / chinesePath).string()};
 	file::write(chineseFullPath, "contents2");
 

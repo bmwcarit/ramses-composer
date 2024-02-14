@@ -89,7 +89,7 @@ namespace Queries {
 	// is changeable in the data model.
 	bool isReadOnly(const Project& project, const ValueHandle& handle, bool linkState = false);
 
-	bool isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle);
+	bool isHiddenInPropertyBrowser(const Project& project, const ValueHandle& handle, bool isMultiSelect);
 
 
 	// Determines whether an object is read-only content of a prefab instance

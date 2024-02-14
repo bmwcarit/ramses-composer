@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <cassert>
 #include <memory>
 #include <stdexcept>
 #include <tuple>
@@ -24,12 +25,14 @@ using SEditorObject = std::shared_ptr<EditorObject>;
 
 namespace raco::data_storage {
 
-using raco::core::EditorObject;
-using raco::core::SEditorObject;
+using core::EditorObject;
+using core::SEditorObject;
 
 class AnnotationBase;
 
 class Table;
+
+class ArrayBase;
 
 enum class PrimitiveType {
 	// Simple scalar types:
@@ -42,11 +45,20 @@ enum class PrimitiveType {
 	// References: hold a std::shared_ptr<T> where T is EditorObject or a subclass
 	Ref,
 
-	// Dictionary-like: holds a Table
+	// Dictionary-like container
+	// - holds a Table
+	// - dynamic properties (can add/remove properties) with heterogeneous types
 	Table,
 
-	// Complex C++ class types; must be class derived from StructBase
-	Struct
+	// Complex C++ class types
+	// - holds a class derived from StructBase
+	// - static properties with heterogeneous types
+	Struct,
+
+	// Variable-length containers with elements of uniform and statically known type
+	// - holds an Array<T> class (derived from ArrayBase)
+	// - dynamic properties (can add/remove elements) with homogeneous types
+	Array
 };
 
 // For the datatypes Int, Int64 and Double we define extreme values which are allowed in our data model.
@@ -95,6 +107,8 @@ constexpr PrimitiveType primitiveType() {
 		return PrimitiveType::Table;
 	} else if constexpr (std::is_base_of<StructBase, T>::value) {
 		return PrimitiveType::Struct;
+	} else if constexpr (std::is_base_of<ArrayBase, T>::value) {
+		return PrimitiveType::Array;
 	} else if constexpr (std::is_base_of<EditorObject, typename T::element_type>::value) {
 		return PrimitiveType::Ref;
 	} else {
@@ -209,6 +223,16 @@ public:
 	// Identical types are dynamically enforced as runtime.
 	virtual void setStruct(const StructBase&) = 0;
 
+	// Get reference to generic base class for Array type values
+	virtual ArrayBase& asArray() = 0;
+	virtual const ArrayBase& asArray() const = 0;
+
+	// Set Array type value.
+	// Matching of element types if enforced at runtime.
+	// Clears array and fills it with clones of the source array elements.
+	virtual void setArray(const ArrayBase&) = 0;
+
+
 	// Check for equality of the actual classes of the arguments;
 	// differs from comparing the PrimitiveType by
 	// - Value<T> differs from Property<T>
@@ -291,28 +315,32 @@ public:
 	Value(T const& val) : ValueBase(), value_(val) {}
 	Value(const Value& other, std::function<SEditorObject(SEditorObject)>* translateRef) : ValueBase(), value_(*other, translateRef) {}
 
-	virtual PrimitiveType type() const override;
-	virtual std::string baseTypeName() const override {
+	static PrimitiveType staticType() {
+		return primitiveType<T>();
+	}
+	PrimitiveType type() const override {
+		return staticType();
+	}
+
+	static std::string staticTypeName() {
 		if constexpr (std::is_same<T, SEditorObject>::value) {
 			return getTypeName(primitiveType<T>());
 		} else if constexpr (std::is_convertible<T, std::shared_ptr<ReflectionInterface>>::value) {
 			return T::element_type::typeDescription.typeName;
 		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 			return T::typeDescription.typeName;
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			return T::staticTypeName();
 		} else {
 			return getTypeName(primitiveType<T>());
 		}
 	}
+
+	virtual std::string baseTypeName() const override {
+		return staticTypeName();
+	}
 	virtual std::string typeName() const override {
-		if constexpr (std::is_same<T, SEditorObject>::value) {
-			return getTypeName(primitiveType<T>());
-		} else if constexpr (std::is_convertible<T, std::shared_ptr<ReflectionInterface>>::value) {
-			return T::element_type::typeDescription.typeName;
-		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
-			return T::typeDescription.typeName;
-		} else {
-			return getTypeName(primitiveType<T>());
-		}
+		return Value::staticTypeName();
 	}
 
 	ValueBase& operator=(const ValueBase& other) override {
@@ -320,6 +348,8 @@ public:
 			setRef(other.asRef());
 		} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 			setStruct(other.asStruct());
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			setArray(other.asArray());
 		} else {
 			value_ = other.as<T>();
 		}
@@ -344,6 +374,11 @@ public:
 				setStruct(other.asStruct());
 				return true;
 			}
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			if (!(value_ == other.asArray())) {
+				setArray(other.asArray());
+				return true;
+			}
 		} else {
 			if (!(value_ == other.as<T>())) {
 				value_ = other.as<T>();
@@ -359,10 +394,12 @@ public:
 				return value_ == other.asRef();
 			} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 				const T* vp = dynamic_cast<const T*>(&other.asStruct());
-				if (!vp) {
-					throw std::runtime_error("type mismatch");
-				}
+				assert(vp != nullptr);	// we aleady made the classesEqual check above so this can't happen
 				return value_ == *vp;
+			} else if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+				const T* vp = dynamic_cast<const T*>(&other.asArray());
+				assert(vp != nullptr);	// we aleady made the classesEqual check above so this can't happen
+				return value_ == *vp;				
 			} else {
 				return value_ == other.as<T>();
 			}
@@ -377,12 +414,14 @@ public:
 				return translatedValue == other.asRef();
 			} else if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 				const T* vp = dynamic_cast<const T*>(&other.asStruct());
-				if (!vp) {
-					throw std::runtime_error("type mismatch");
-				}
+				assert(vp != nullptr);	// we aleady made the classesEqual check above so this can't happen
 				return ReflectionInterface::compare(value_, *vp, translateRef);
 			} else if constexpr (primitiveType<T>() == PrimitiveType::Table) {
 				return ReflectionInterface::compare(value_, other.as<T>(), translateRef);
+			} else if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+				const T* vp = dynamic_cast<const T*>(&other.asArray());
+				assert(vp != nullptr); // we aleady made the classesEqual check above so this can't happen
+				return ReflectionInterface::compare(value_, *vp, translateRef);
 			} else {
 				return value_ == other.as<T>();
 			}
@@ -393,6 +432,12 @@ public:
 	virtual void copyAnnotationData(const ValueBase& src) override {
 		if constexpr (primitiveType<T>() == PrimitiveType::Struct) {
 			const T* vp = dynamic_cast<const T*>(&src.asStruct());
+			if (!vp) {
+				throw std::runtime_error("type mismatch");
+			}
+			value_.copyAnnotationData(*vp);
+		} else if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			const T* vp = dynamic_cast<const T*>(&src.asArray());
 			if (!vp) {
 				throw std::runtime_error("type mismatch");
 			}
@@ -491,6 +536,28 @@ public:
 		}
 	}
 
+	virtual ArrayBase& asArray() override {
+		if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			return value_;
+		}
+		throw std::runtime_error("type mismatch");
+	}
+	virtual const ArrayBase& asArray() const override {
+		if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			return value_;
+		}
+		throw std::runtime_error("type mismatch");
+	}
+	virtual void setArray(const ArrayBase& newValue) override {
+		if constexpr (primitiveType<T>() == PrimitiveType::Array) {
+			const T* vp = dynamic_cast<const T*>(&newValue);
+			if (!vp) {
+				throw std::runtime_error("type mismatch");
+			}
+			value_ = *vp;
+		}
+	}
+
 	virtual bool canSetRef(SEditorObject v) const override {
 		if constexpr (std::is_same<T, SEditorObject>::value) {
 			return true;
@@ -533,21 +600,29 @@ public:
 		return asImplConst<Table>();
 	}
 
-	virtual std::unique_ptr<ValueBase> clone(std::function<SEditorObject(SEditorObject)>* translateRef) const {
+	Value* cloneHelper(std::function<SEditorObject(SEditorObject)>* translateRef) const {
 		if constexpr (std::is_same<T, SEditorObject>::value) {
 			if (translateRef) {
-				return std::make_unique<Value>((*translateRef)(**this));
+				return new Value((*translateRef)(**this));
 			}
-			return std::make_unique<Value>(*this);
+			return new Value(*this);
 		} else if constexpr (std::is_convertible<T, SEditorObject>::value) {
 			if (translateRef) {
 				auto p = std::dynamic_pointer_cast<typename T::element_type>((*translateRef)(**this));
-				return std::make_unique<Value>(p);
+				return new Value(p);
 			}
-			return std::make_unique<Value>(*this);
+			return new Value(*this);
 		} else {
-			return std::make_unique<Value>(*this, translateRef);
+			return new Value(*this, translateRef);
 		}
+	}
+
+	virtual std::unique_ptr<ValueBase> clone(std::function<SEditorObject(SEditorObject)>* translateRef) const {
+		return std::unique_ptr<Value>(cloneHelper(translateRef));
+	}
+
+	std::unique_ptr<Value> staticClone(std::function<SEditorObject(SEditorObject)>* translateRef) const {
+		return std::unique_ptr<Value>(cloneHelper(translateRef));
 	}
 
 private:
@@ -560,10 +635,6 @@ private:
 	T value_;
 };
 
-template <typename T>
-PrimitiveType Value<T>::type() const {
-	return primitiveType<T>();
-}
 
 template <typename T>
 template <typename U>

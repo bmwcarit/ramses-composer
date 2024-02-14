@@ -31,7 +31,8 @@ class BaseEngineBackend;
 
 namespace raco::ramses_adaptor {
 class SceneBackend;
-}
+class AbstractSceneAdaptor;
+}  // namespace raco::ramses_adaptor
 
 namespace raco::application {
 
@@ -52,7 +53,7 @@ struct RaCoApplicationLaunchSettings {
 	bool runningInUI;
 };
 
-// Lua script saving mode. Wraps rlogic::ELuaSavingMode.
+// Lua script saving mode. Wraps ramses::ELuaSavingMode.
 enum class ELuaSavingMode {
 	SourceCodeOnly = 0,
 	ByteCodeOnly,
@@ -97,7 +98,6 @@ public:
 
 	bool exportProject(
 		const std::string& ramsesExport,
-		const std::string& logicExport,
 		bool compress,
 		std::string& outError,
 		bool forceExportWithErrors = false,
@@ -109,16 +109,17 @@ public:
 
 	bool canSaveActiveProject() const;
 
-	raco::core::ExternalProjectsStoreInterface* externalProjects();
-	raco::core::MeshCache* meshCache();
+	core::ExternalProjectsStoreInterface* externalProjects();
+	core::MeshCache* meshCache();
 
 	const core::SceneBackendInterface* sceneBackend() const;
 
-	raco::ramses_adaptor::SceneBackend* sceneBackendImpl() const;
+	ramses_adaptor::SceneBackend* sceneBackendImpl() const;
+	ramses_adaptor::AbstractSceneAdaptor* abstractScene() const;
 
-	raco::components::SDataChangeDispatcher dataChangeDispatcher();
+	components::SDataChangeDispatcher dataChangeDispatcher();
 
-	raco::core::EngineInterface* engine();
+	core::EngineInterface* engine();
 
 	QString generateApplicationTitle() const;
 
@@ -133,8 +134,8 @@ public:
 	static int maxFeatureLevel();
 	static const std::string& featureLevelDescriptions();
 
-	void setApplicationFeatureLevel(int featureLevel);
-	int applicationFeatureLevel() const;
+	void setNewFileFeatureLevel(int featureLevel);
+	int newFileFeatureLevel() const;
 
 	bool rendererDirty_ = false;
 
@@ -144,19 +145,21 @@ private:
 	// Needs to access externalProjectsStore_ directly:
 	friend class ::ObjectTreeViewExternalProjectModelTest;
 
-	bool exportProjectImpl(const std::string& ramsesExport, const std::string& logicExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const;
+	bool exportProjectImpl(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const;
 
-	void setupScene(bool optimizedForExport);
+	void setupScene(bool optimizedForExport, bool setupAbstractScene);
 
 	ramses_base::BaseEngineBackend* engine_;
 
-	// The application feature level is used to set the feature level for newly created scenes.
-	int applicationFeatureLevel_;
+	// Used to set the feature level for newly created scenes.
+	int newFileFeatureLevel_;
 
-	raco::components::SDataChangeDispatcher dataChangeDispatcher_;
-	raco::components::SDataChangeDispatcher dataChangeDispatcherEngine_;
+	components::SDataChangeDispatcher dataChangeDispatcher_;
+	components::SDataChangeDispatcher dataChangeDispatcherPreviewScene_;
+	components::SDataChangeDispatcher dataChangeDispatcherAbstractScene_;
 
-	std::unique_ptr<raco::ramses_adaptor::SceneBackend> scenesBackend_;
+	std::unique_ptr<ramses_adaptor::SceneBackend> previewSceneBackend_;
+	std::unique_ptr<ramses_adaptor::AbstractSceneAdaptor> abstractScene_;
 
 	components::MeshCacheImpl meshCache_;
 

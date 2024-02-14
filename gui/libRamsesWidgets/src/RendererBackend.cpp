@@ -15,38 +15,25 @@
 
 namespace raco::ramses_widgets {
 
-ramses::RamsesFrameworkConfig& RendererBackend::ramsesFrameworkConfig(const std::string& frameworkArgs) noexcept {
-	if (frameworkArgs.empty()) {
-		char const* argv[] = {"RamsesComposer.exe",
-			"--log-level-contexts-filter", "trace:RAPI,off:RPER,debug:RRND,off:RFRA,off:RDSM,info:RCOM",
-			"--log-level-console", "warn",
-			"--log-level-dlt", "warn",
-			"--disablePeriodicLogs"};
-		static ramses::RamsesFrameworkConfig config(sizeof(argv) / sizeof(argv[0]), argv);
-		return config;
-	} else {
-		std::istringstream is(frameworkArgs);
-		// Vector to store tokens
-		std::vector<const char*> args{"RamsesComposer.exe"};
-		const std::vector<std::string> tokens = std::vector<std::string>(std::istream_iterator<std::string>(is), std::istream_iterator<std::string>());
-		for (const auto& token : tokens) args.push_back(token.c_str());
-		static ramses::RamsesFrameworkConfig config(static_cast<int32_t>(args.size()), args.data());
-		return config;
-	}
-}
-
-RendererBackend::RendererBackend(rlogic::EFeatureLevel featureLevel, const std::string& frameworkArgs)
-	: BaseEngineBackend{featureLevel, ramsesFrameworkConfig(frameworkArgs)},
-	  renderer_{framework().createRenderer(ramses::RendererConfig{}), [=](ramses::RamsesRenderer* c) { framework().destroyRenderer(*c); }},
-	  eventHandler_{std::make_unique<SceneStateEventHandler>(*renderer_.get())} {
-	// Connect needs to be called after the renderer is created
-	// Additonally there can only be one renderer per framework
-	BaseEngineBackend::connect();
-	renderer_->setSkippingOfUnmodifiedBuffers(false);
+RendererBackend::RendererBackend(const ramses::RamsesFrameworkConfig& frameworkConfig)
+	: BaseEngineBackend{frameworkConfig} {
 }
 
 RendererBackend::~RendererBackend() {
-	framework().disconnect();
+}
+
+void RendererBackend::reset() {
+	renderer_.reset();
+	eventHandler_.reset();
+	BaseEngineBackend::reset();
+}
+
+void RendererBackend::setup(ramses::EFeatureLevel featureLevel) {
+	BaseEngineBackend::setup(featureLevel);
+	renderer_ = UniqueRenderer(framework().createRenderer(ramses::RendererConfig{}), [=](ramses::RamsesRenderer* c) { framework().destroyRenderer(*c); });
+	eventHandler_ = std::make_unique<SceneStateEventHandler>(*renderer_.get());
+
+	renderer_->setSkippingOfUnmodifiedBuffers(false);
 }
 
 ramses::RamsesRenderer& RendererBackend::renderer() const {
@@ -73,6 +60,7 @@ ramses::dataConsumerId_t RendererBackend::internalDataConsumerId() {
 void RendererBackend::doOneLoop() const {
 	renderer().doOneLoop();
 	renderer().dispatchEvents(*eventHandler_);
+	renderer().getSceneControlAPI()->dispatchEvents(*eventHandler_);
 }
 
 }  // namespace raco::ramses_widgets

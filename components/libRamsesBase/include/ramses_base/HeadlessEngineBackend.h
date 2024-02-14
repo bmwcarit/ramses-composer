@@ -17,7 +17,7 @@ namespace raco::ramses_base {
 class HeadlessEngineBackend final : public BaseEngineBackend {
 	Q_DISABLE_COPY(HeadlessEngineBackend)
 public:
-	explicit HeadlessEngineBackend(rlogic::EFeatureLevel featureLevel);
+	explicit HeadlessEngineBackend(const ramses::RamsesFrameworkConfig& frameworkConfig = BaseEngineBackend::defaultRamsesFrameworkConfig());
 };
 
 }  // namespace raco::ramses_base

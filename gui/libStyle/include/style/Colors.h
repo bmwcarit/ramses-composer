@@ -34,6 +34,8 @@ enum class Colormap {
 	dockTitleBackground,
 	externalReference,
 	externalReferenceDisabled,
+
+	abstractSceneViewBackground
 };
 
 class Colors {

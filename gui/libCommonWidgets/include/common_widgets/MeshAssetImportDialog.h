@@ -25,7 +25,7 @@ namespace raco::common_widgets {
 
 class MeshAssetImportDialog final : public QDialog {
 public:
-	explicit MeshAssetImportDialog(raco::core::MeshScenegraph& sceneGraph, int projectFeatureLevel, QString fileName, QWidget* parent = nullptr);
+	explicit MeshAssetImportDialog(core::MeshScenegraph& sceneGraph, QString fileName, QWidget* parent = nullptr);
 
 	QGridLayout* layout_;
 	QTreeWidget* widget_;
@@ -39,7 +39,7 @@ private:
 	void applyChangesToScenegraph();
 	void checkAll(Qt::CheckState state);
 
-	raco::core::MeshScenegraph& sceneGraph_;
+	core::MeshScenegraph& sceneGraph_;
 	std::vector<QTreeWidgetItem*> nodeTreeList_;
 	std::map<QTreeWidgetItem*, std::vector<std::optional<int>>*> widgetItemToSubmeshIndexMap_;
 	std::map<QTreeWidgetItem*, int> primitiveToMeshIndexMap_;
