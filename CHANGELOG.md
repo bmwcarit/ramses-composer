@@ -24,6 +24,12 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.10.1] Skinning Export Bugfix
+
+### Fixes
+* Include workaround fixing the export of Skin objects.
+
+
 ## [1.10.0] Multiedit, Shader Includes, Drag-and-drop Support, Misc Usability Improvements and Bugfixes
 
 ### Added

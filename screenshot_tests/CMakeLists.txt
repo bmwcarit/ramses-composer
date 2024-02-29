@@ -36,6 +36,7 @@ if(WIN32)
 		duck
 		morphing
 		skinning
+		skinning-rigged-figure
 	)
 
 	set(RACO_DOC_PROJECTS

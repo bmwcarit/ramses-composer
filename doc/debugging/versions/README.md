@@ -17,7 +17,7 @@ We also mention changes to the shipped library versions in the CHANGELOG file in
 
 For a comprehensive list of the Ramses Toolchain releases (of which the Ramses Composer is a part of)
 alongside upgrade hints and future plans, please refer to the
-[Ramses SDK docs](https://ramses-sdk.readthedocs.io/en/latest/versions.html).
+[Ramses SDK docs](https://ramses-sdk.readthedocs.io/en/latest/).
 
 ## Switching to a newer version of the Composer (Project files)
 
