@@ -78,16 +78,7 @@ bool SkinAdaptor::sync(core::Errors* errors) {
 
 							std::string name = targetAdaptors.size() == 1 ? editorObject()->objectName() : fmt::format("{}_SkinBinding_{}", editorObject()->objectName(), index);
 
-							// TODO workaround for the LogicEngine SkinBindingImpl::Serialize function reversing the order of the bind matrices.
-							// Remove this again once the LogicEngine has been fixed.
-							std::vector<std::array<float, 16>> matrices;
-							if (sceneAdaptor_->optimizeForExport()) {
-								std::copy(data->inverseBindMatrices.rbegin(), data->inverseBindMatrices.rend(), std::inserter(matrices, matrices.end()));
-							} else {
-								std::copy(data->inverseBindMatrices.begin(), data->inverseBindMatrices.end(), std::inserter(matrices, matrices.end()));
-							}
-
-							auto skinBinding = ramses_base::ramsesSkinBinding(&sceneAdaptor_->logicEngine(), jointBindings, matrices, appearanceBinding, 
+							auto skinBinding = ramses_base::ramsesSkinBinding(&sceneAdaptor_->logicEngine(), jointBindings, data->inverseBindMatrices, appearanceBinding, 
 								uniform, name, editorObject()->objectIDAsRamsesLogicID());
 							if (skinBinding) {
 								skinBindings_.emplace_back(skinBinding);

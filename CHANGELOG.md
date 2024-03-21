@@ -24,6 +24,14 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.10.2] Ramses Logic Update
+
+### Changes
+* Update ramses-logic from 1.4.2 to 1.4.5.
+* Update ramses from 27.0.130 to 27.0.139.
+* Since the LogicEngine now fixed the export of Skin objects the workaround in RamsesComposer has been removed. 
+
+
 ## [1.10.1] Skinning Export Bugfix
 
 ### Fixes
