@@ -1064,7 +1064,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 		auto meshWithSameProperties = propertiesToMeshMap.find({false, static_cast<int>(i), relativeFilePath.string()});
 		if (meshWithSameProperties == propertiesToMeshMap.end()) {
 			LOG_DEBUG(log_system::CONTEXT, "Did not find existing local Mesh with same properties as asset mesh, creating one instead...");
-			auto &currentSubmesh = meshScenegraphMeshes.emplace_back(createObject(raco::user_types::Mesh::typeDescription.typeName, *scenegraph.meshes[i]));
+			auto& currentSubmesh = meshScenegraphMeshes.emplace_back(createObject(raco::user_types::Mesh::typeDescription.typeName, *scenegraph.meshes[i]));
 			auto currentSubmeshHandle = ValueHandle{currentSubmesh};
 
 			set(currentSubmeshHandle.get("bakeMeshes"), false);
@@ -1184,10 +1184,9 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 	}
 	LOG_INFO(log_system::CONTEXT, "Scenegraph structure restored.");
 
-
 	LOG_INFO(log_system::CONTEXT, "Importing animation samplers...");
 	std::map<int, std::vector<SEditorObject>> sceneChannels;
-	for (auto animIndex = 0; animIndex < scenegraph.animationSamplers.size();  ++animIndex) {
+	for (auto animIndex = 0; animIndex < scenegraph.animationSamplers.size(); ++animIndex) {
 		auto& samplers = scenegraph.animationSamplers[animIndex];
 		for (auto samplerIndex = 0; samplerIndex < samplers.size(); ++samplerIndex) {
 			auto& meshAnimSampler = scenegraph.animationSamplers.at(animIndex)[samplerIndex];
@@ -1208,7 +1207,6 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				LOG_DEBUG(log_system::CONTEXT, "Found existing local AnimationChannel '{}' with same properties as asset animation sampler, using this AnimationChannel...", *meshAnimSampler);
 				sceneChannels[animIndex].emplace_back(samplerWithSameProperties->second);
 			}
-
 		}
 	}
 	LOG_INFO(log_system::CONTEXT, "Animation samplers imported.");
@@ -1247,7 +1245,7 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 				continue;
 			}
 
-			auto &linkEndNode = meshScenegraphNodes[channel.nodeIndex];
+			auto& linkEndNode = meshScenegraphNodes[channel.nodeIndex];
 			ValueHandle linkEndProp;
 			auto& animTargetProp = channel.targetPath;
 
@@ -1287,16 +1285,18 @@ void BaseContext::insertAssetScenegraph(const raco::core::MeshScenegraph& sceneg
 			}
 
 			std::vector<SEditorObject> targetMeshNodes;
-			auto targetMeshNode = meshScenegraphNodes[sceneSkin->meshNodeIndex];
-			if (targetMeshNode->isType<user_types::MeshNode>()) {
-				targetMeshNodes.emplace_back(targetMeshNode);
-			} else {
-				auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
-				for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
-					if (child->isType<user_types::MeshNode>()) {
-						targetMeshNodes.emplace_back(child);
-					} else {
-						LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
+			for (const auto& targetIndex : sceneSkin->meshNodeIndices) {
+				auto targetMeshNode = meshScenegraphNodes[targetIndex];
+				if (targetMeshNode->isType<user_types::MeshNode>()) {
+					targetMeshNodes.emplace_back(targetMeshNode);
+				} else {
+					auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
+					for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
+						if (child->isType<user_types::MeshNode>()) {
+							targetMeshNodes.emplace_back(child);
+						} else {
+							LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
+						}
 					}
 				}
 			}

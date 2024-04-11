@@ -220,13 +220,15 @@ void glTFFileLoader::importSkins() {
 		const auto& skin = scene_->skins[index];
 		std::string name = skin.name.empty() ? fmt::format("skin_{}", index) : skin.name;
 
-		// Find node by searching through all nodes in scene
-		auto it = std::find_if(scene_->nodes.begin(), scene_->nodes.end(), [index](const tinygltf::Node& node) {
-			return index == node.skin;
-		});
-		if (it != scene_->nodes.end()) {
-			int nodeIndex = it - scene_->nodes.begin();
-			sceneGraph_->skins.emplace_back(raco::core::SkinDescription{name, nodeIndex, skin.joints});
+		// Find target nodes by searching through all nodes in scene
+		std::vector<int> targets;
+		for (int nodeIndex = 0; nodeIndex < scene_->nodes.size(); nodeIndex++) {
+			if (scene_->nodes[nodeIndex].skin == index) {
+				targets.emplace_back(nodeIndex);
+			}
+		}
+		if (!targets.empty()) {
+			sceneGraph_->skins.emplace_back(core::SkinDescription{name, targets, skin.joints});
 		}
 	}
 }

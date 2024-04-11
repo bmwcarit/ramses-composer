@@ -763,6 +763,27 @@ TEST_F(RaCoApplicationFixture, importglTFScenegraphMeshNodesDontReferenceDeselec
 	}
 }
 
+TEST_F(RaCoApplicationFixture, importglTFScenegraphMultiTargetSkin) {
+	using namespace raco;
+	core::MeshDescriptor desc;
+	desc.absPath = (test_path() / "meshes/SimpleSkin/SimpleSkin-multi-target.gltf").string();
+	desc.bakeAllSubmeshes = false;
+
+	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface().meshCache(), desc);
+	commandInterface().insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
+
+	auto skin = select<user_types::Skin>(project().instances());
+	auto node_0 = select<user_types::Node>(project().instances(), "nodes_0");
+	auto node_1 = select<user_types::Node>(project().instances(), "nodes_1");
+	auto node_2 = select<user_types::Node>(project().instances(), "nodes_2");
+	auto node_3 = select<user_types::Node>(project().instances(), "nodes_3");
+
+	EXPECT_EQ(skin->targets_->size(), 2);
+	EXPECT_EQ(skin->targets_->asVector<core::SEditorObject>(), std::vector<core::SEditorObject>({node_0, node_3}));
+	EXPECT_EQ(skin->joints_->size(), 2);
+	EXPECT_EQ(skin->joints_->asVector<core::SEditorObject>(), std::vector<core::SEditorObject>({node_1, node_2}));
+}
+
 TEST_F(RaCoApplicationFixture, LuaScriptRuntimeErrorCausesInformationForAllScripts) {
 	auto* commandInterface = application.activeRaCoProject().commandInterface();
 

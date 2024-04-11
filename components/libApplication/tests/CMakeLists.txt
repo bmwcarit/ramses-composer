@@ -40,6 +40,7 @@ raco_package_test_resources_process(
     meshes/InterpolationTest/InterpolationTest.gltf
     meshes/InterpolationTest/interpolation.bin
     meshes/InterpolationTest/l.jpg
+    meshes/SimpleSkin/SimpleSkin-multi-target.gltf
     meshes/Duck.glb
     meshes/meshless.gltf
     meshes/negativeScaleQuad.gltf

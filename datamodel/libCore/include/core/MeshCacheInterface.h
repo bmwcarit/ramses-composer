@@ -242,7 +242,7 @@ struct MeshAnimation {
 
 struct SkinDescription {
 	std::string name;
-	int meshNodeIndex;
+	std::vector<int> meshNodeIndices;
 	std::vector<int> jointNodeIndices;
 };
 

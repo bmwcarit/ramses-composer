@@ -24,6 +24,12 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.10.3] Skinning Import Bugfix
+
+### Fixes
+* Set all target `MeshNodes` in the `Skin` object when importing skin objects with multiple target nodes from gltf files.
+
+
 ## [1.10.2] Ramses Logic Update
 
 ### Changes
