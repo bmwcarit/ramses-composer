@@ -76,8 +76,8 @@ void SceneStateEventHandler::sceneFlushed(ramses::sceneId_t sceneId, ramses::sce
 	scenes_[sceneId].version = sceneVersion;
 }
 
-void SceneStateEventHandler::waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state, ECompareFunc compFunc) {
-	waitUntilOrTimeout([this, sceneId, state, compFunc] {
+bool SceneStateEventHandler::waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state, ECompareFunc compFunc) {
+	return waitUntilOrTimeout([this, sceneId, state, compFunc] {
 		switch (compFunc) {
 			case ECompareFunc::LessEqual:
 				return scenes_[sceneId].state <= state;
@@ -88,7 +88,8 @@ void SceneStateEventHandler::waitForSceneState(ramses::sceneId_t sceneId, ramses
 			default:
 				return false;
 		}
-	});
+	},
+		fmt::format("waitForSceneState '{}' of scene '{}' with comparison '{}'", state, sceneId, compFunc));
 }
 
 void SceneStateEventHandler::objectsPicked(ramses::sceneId_t sceneId, const ramses::pickableObjectId_t* pickedObjects, size_t pickedObjectsCount) {
@@ -104,46 +105,56 @@ void SceneStateEventHandler::objectsPicked(ramses::sceneId_t sceneId, const rams
 }
 
 bool SceneStateEventHandler::waitForFlush(ramses::sceneId_t sceneId, ramses::sceneVersionTag_t sceneVersion) {
-	return waitUntilOrTimeout([&] { return scenes_[sceneId].version == sceneVersion; });
+	return waitUntilOrTimeout([&] { return scenes_[sceneId].version == sceneVersion; },
+			fmt::format("waitForFlush: sceneId = {}", sceneId));
 }
 
 bool SceneStateEventHandler::waitForDisplayCreation(ramses::displayId_t displayId) {
-	return waitUntilOrTimeout([&] { return displays_.find(displayId) != displays_.end(); });
+	return waitUntilOrTimeout([&] { return displays_.find(displayId) != displays_.end(); },
+		fmt::format("waitForDisplayCreation: displayId = {}", displayId));
 }
 
 bool SceneStateEventHandler::waitForDisplayDestruction(ramses::displayId_t displayId) {
-	return waitUntilOrTimeout([&] { return displays_.find(displayId) == displays_.end(); });
+	return waitUntilOrTimeout([&] { return displays_.find(displayId) == displays_.end(); },
+		fmt::format("waitForDisplayDestruction: displayId = {}", displayId));
 }
 
 bool SceneStateEventHandler::waitForOffscreenBufferCreation(ramses::displayBufferId_t displayBufferId) {
-	return waitUntilOrTimeout([&] { return offscreenBuffers_.find(displayBufferId) != offscreenBuffers_.end(); });
+	return waitUntilOrTimeout([&] { return offscreenBuffers_.find(displayBufferId) != offscreenBuffers_.end(); },
+		fmt::format("waitForOffscreenBufferCreation: bufferId = {}", displayBufferId));
 }
 
 bool SceneStateEventHandler::waitForOffscreenBufferDestruction(ramses::displayBufferId_t displayBufferId) {
-	return waitUntilOrTimeout([&] { return offscreenBuffers_.find(displayBufferId) == offscreenBuffers_.end(); });
+	return waitUntilOrTimeout([&] { return offscreenBuffers_.find(displayBufferId) == offscreenBuffers_.end(); },
+		fmt::format("waitForOffscreenBufferDestruction: bufferId = {}", displayBufferId));
 }
 
 bool SceneStateEventHandler::waitForOffscreenBufferLinked(ramses::displayBufferId_t displayBufferId) {
-	return waitUntilOrTimeout([&] { return linkedOffscreenBuffers_.find(displayBufferId) == linkedOffscreenBuffers_.end(); });
+	return waitUntilOrTimeout([&] { return linkedOffscreenBuffers_.find(displayBufferId) == linkedOffscreenBuffers_.end(); },
+		fmt::format("waitForOffscreenBufferLinked: bufferId = {}", displayBufferId));
 }
 
-bool SceneStateEventHandler::waitUntilOrTimeout(const std::function<bool()>& conditionFunction) {
-	const std::chrono::steady_clock::time_point timeoutTS = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+bool SceneStateEventHandler::waitUntilOrTimeout(const std::function<bool()>& conditionFunction, const std::string& actionDescription) {
+	const std::chrono::steady_clock::time_point timeoutTS = std::chrono::steady_clock::now() + std::chrono::seconds{30};
 	while (!conditionFunction()) {
 		if (std::chrono::steady_clock::now() > timeoutTS) {
-			throw std::runtime_error{"Something went wrong"};
+			LOG_ERROR(log_system::PREVIEW_WIDGET, "Timeout waiting for: {}", actionDescription);
+			return false;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds{5});
 		renderer_.doOneLoop();
 		renderer_.dispatchEvents(*this);
 		renderer_.getSceneControlAPI()->dispatchEvents(*this);
 	}
+	LOG_TRACE(RAMSES_BACKEND, "Completed wait for {}", actionDescription);
 	return conditionFunction();
 }
 
 bool SceneStateEventHandler::waitForScreenshot() {
-	waitUntilOrTimeout([&] { return screenshot_.empty(); });
-	return screenshotSaved_;
+	if (waitUntilOrTimeout([&] { return screenshot_.empty(); }, "waitForScreenshot")) {
+		return screenshotSaved_;
+	}
+	return false;
 }
 
 ramses::RendererSceneState SceneStateEventHandler::sceneState(ramses::sceneId_t sceneId) {

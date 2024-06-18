@@ -86,6 +86,16 @@ void ObjectTreeViewDefaultModelTest::compareValuesInTree(const SEditorObject &ob
 				ASSERT_EQ(treeValue, objValue);
 			} 
 			break;
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_RENDER_ORDER:
+				ASSERT_FALSE(objTreeNode->getRenderOrder().has_value());
+				break;
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_INPUT_BUFFERS:
+				ASSERT_EQ(objTreeNode->getInputBuffers(), std::string());
+				break;
+			case ObjectTreeViewDefaultModel::COLUMNINDEX_OUTPUT_BUFFERS:
+				ASSERT_EQ(objTreeNode->getInputBuffers(), std::string());
+				break;
+
 			default: {
 				FAIL() << "Need to check value equivalence for new ObjectTreeViewDefaultModel column enum value";
 			}

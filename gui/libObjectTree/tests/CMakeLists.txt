@@ -16,6 +16,7 @@ set(TEST_SOURCES
     ObjectTreeViewMultipleModels_test.h ObjectTreeViewMultipleModels_test.cpp
     ObjectTreeViewPrefabModel_test.cpp
     ObjectTreeViewResourceModel_test.cpp
+    ObjectTreeViewRenderViewModel_test.cpp
 )
 
 set(TEST_LIBRARIES
@@ -30,6 +31,13 @@ raco_package_add_gui_test(
     "${TEST_SOURCES}"
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+raco_package_add_test_resources(
+    libObjectTree_test "${CMAKE_SOURCE_DIR}/resources"
+    shaders/simple_texture.frag
+    shaders/simple_texture.vert
+    meshes/Duck.glb
 )
 
 get_target_property(object_tree_private_includes raco::ObjectTree INCLUDE_DIRECTORIES)

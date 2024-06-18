@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "core/CoreAnnotations.h"
+#include "core/EngineInterface.h"
 
 #include <map>
 #include <string>
@@ -211,6 +211,14 @@ enum class EFrustumType {
 };
 
 extern std::map<int, std::string> enumDescriptionFrustumType;
+
+
+// using core::MeshAnimationInterpolation
+extern std::map<int, std::string> enumDescriptionAnimationInterpolationType;
+
+// using core::EnginePrimitive
+extern std::map<int, std::string> enumDescriptionAnimationComponentType;
+
 
 
 }  // namespace raco::user_types

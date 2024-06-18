@@ -10,9 +10,11 @@
 
 #include "user_types/Enumerations.h"
 
+#include "core/MeshCacheInterface.h"
+
+#include <cassert>
 #include <map>
 #include <string>
-#include <cassert>
 
 namespace raco::user_types {
 
@@ -21,39 +23,43 @@ const std::map<int, std::string>& enumerationDescription(core::EUserTypeEnumerat
 
 	switch (type) {
 		case core::EUserTypeEnumerations::CullMode:
-			return raco::user_types::enumDescriptionCullMode;
+			return enumDescriptionCullMode;
 		case core::EUserTypeEnumerations::BlendOperation:
-			return raco::user_types::enumDescriptionBlendOperation;
+			return enumDescriptionBlendOperation;
 		case core::EUserTypeEnumerations::BlendFactor:
-			return raco::user_types::enumDescriptionBlendFactor;
+			return enumDescriptionBlendFactor;
 		case core::EUserTypeEnumerations::DepthFunction:
-			return raco::user_types::enumDescriptionDepthFunction;
+			return enumDescriptionDepthFunction;
 		case core::EUserTypeEnumerations::TextureAddressMode:
-			return raco::user_types::enumDescriptionTextureAddressMode;
+			return enumDescriptionTextureAddressMode;
 		case core::EUserTypeEnumerations::TextureMinSamplingMethod:
-			return raco::user_types::enumDescriptionTextureMinSamplingMethod;
+			return enumDescriptionTextureMinSamplingMethod;
 		case core::EUserTypeEnumerations::TextureMagSamplingMethod:
-			return raco::user_types::enumDescriptionTextureMagSamplingMethod;
+			return enumDescriptionTextureMagSamplingMethod;
 		case core::EUserTypeEnumerations::TextureFormat:
-			return raco::user_types::enumDescriptionTextureFormat;
+			return enumDescriptionTextureFormat;
 
 		case core::EUserTypeEnumerations::RenderBufferFormat:
-			return raco::user_types::enumDescriptionRenderBufferFormat;
+			return enumDescriptionRenderBufferFormat;
 
 		case core::EUserTypeEnumerations::RenderLayerOrder:
-			return raco::user_types::enumDescriptionRenderLayerOrder;
+			return enumDescriptionRenderLayerOrder;
 
 		case core::EUserTypeEnumerations::RenderLayerMaterialFilterMode:
-			return raco::user_types::enumDescriptionRenderLayerMaterialFilterMode;
+			return enumDescriptionRenderLayerMaterialFilterMode;
 
 		case core::EUserTypeEnumerations::FrustumType:
-			return raco::user_types::enumDescriptionFrustumType;
-
+			return enumDescriptionFrustumType;
 
 		case core::EUserTypeEnumerations::StencilFunction:
-			return raco::user_types::enumDescriptionStencilFunction;
+			return enumDescriptionStencilFunction;
 		case core::EUserTypeEnumerations::StencilOperation:
-			return raco::user_types::enumDescriptionStencilOperation;
+			return enumDescriptionStencilOperation;
+
+		case core::EUserTypeEnumerations::AnimationComponentType:
+			return enumDescriptionAnimationComponentType;
+		case core::EUserTypeEnumerations::AnimationInterpolationType:
+			return enumDescriptionAnimationInterpolationType;
 
 		default:
 			assert(false);
@@ -112,8 +118,7 @@ std::map<int, std::string> enumDescriptionStencilFunction{
 	{static_cast<int>(EStencilFunc::Less), "<"},
 	{static_cast<int>(EStencilFunc::LessEqual), "<="},
 	{static_cast<int>(EStencilFunc::Greater), ">"},
-	{static_cast<int>(EStencilFunc::GreaterEqual), ">="}
-};
+	{static_cast<int>(EStencilFunc::GreaterEqual), ">="}};
 
 std::map<int, std::string> enumDescriptionStencilOperation{
 	{static_cast<int>(EStencilOperation::Keep), "Keep"},
@@ -123,8 +128,7 @@ std::map<int, std::string> enumDescriptionStencilOperation{
 	{static_cast<int>(EStencilOperation::IncrementWrap), "IncrementWrap"},
 	{static_cast<int>(EStencilOperation::Decrement), "Decrement"},
 	{static_cast<int>(EStencilOperation::DecrementWrap), "DecrementWrap"},
-	{static_cast<int>(EStencilOperation::Invert), "Invert"}
-};
+	{static_cast<int>(EStencilOperation::Invert), "Invert"}};
 
 std::map<int, std::string> enumDescriptionTextureAddressMode{
 	{static_cast<int>(ETextureAddressMode::Clamp), "Clamp"},
@@ -185,5 +189,26 @@ std::map<int, std::string> enumDescriptionRenderLayerMaterialFilterMode{
 std::map<int, std::string> enumDescriptionFrustumType{
 	{static_cast<int>(EFrustumType::Aspect_FieldOfView), "Aspect & Field Of View"},
 	{static_cast<int>(EFrustumType::Planes), "Planes"}};
+
+std::map<int, std::string> enumDescriptionAnimationInterpolationType{
+	{static_cast<int>(core::MeshAnimationInterpolation::Step), "Step"},
+	{static_cast<int>(core::MeshAnimationInterpolation::Linear), "Linear"},
+	{static_cast<int>(core::MeshAnimationInterpolation::CubicSpline), "Cubic Spline"},
+	{static_cast<int>(core::MeshAnimationInterpolation::Linear_Quaternion), "Linear Quaternion"},
+	{static_cast<int>(core::MeshAnimationInterpolation::CubicSpline_Quaternion), "Cubic Spline Quaternion"}};
+
+std::map<int, std::string> enumDescriptionAnimationComponentType{
+	{static_cast<int>(core::EnginePrimitive::Double), "Float"},
+	{static_cast<int>(core::EnginePrimitive::Vec2f), "Vec2f"},
+	{static_cast<int>(core::EnginePrimitive::Vec3f), "Vec3f"},
+	{static_cast<int>(core::EnginePrimitive::Vec4f), "Vec4f"},
+
+	{static_cast<int>(core::EnginePrimitive::Int32), "Int"},
+	{static_cast<int>(core::EnginePrimitive::Vec2i), "Vec2i"},
+	{static_cast<int>(core::EnginePrimitive::Vec3i), "Vec3i"},
+	{static_cast<int>(core::EnginePrimitive::Vec4i), "Vec4i"},
+
+	// RamsesLogic can also animate float arrays to be used in the morph target weights.
+	{static_cast<int>(core::EnginePrimitive::Array), "Array(Float)"}};
 
 }  // namespace raco::user_types

@@ -48,3 +48,6 @@ raco_package_add_test_resources(
 	scripts/types-scalar.lua
     scripts/interface-scalar-types.lua
 )
+
+deploy_python_dlls(libPropertyBrowser_test)
+deploy_python_folder(libPropertyBrowser_test)

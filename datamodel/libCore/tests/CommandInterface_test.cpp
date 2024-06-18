@@ -11,8 +11,9 @@
 #include "testing/TestEnvironmentCore.h"
 #include "testing/TestUtil.h"
 
-#include "user_types/Node.h"
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/LuaScript.h"
+#include "user_types/Node.h"
 #include "user_types/Timer.h"
 
 #include "gtest/gtest.h"
@@ -330,7 +331,7 @@ TEST_F(CommandInterfaceTest, set_fail_read_only_prop_lua_output) {
 
 TEST_F(CommandInterfaceTest, set_fail_read_only_prop_timer_output) {
 	auto timer = create<Timer>("timer");
-	
+
 	EXPECT_THROW(commandInterface.set({timer, {"outputs", "ticker_us"}}, int64_t{0}), std::runtime_error);
 }
 
@@ -396,7 +397,7 @@ TEST_F(CommandInterfaceTest, set_multi_int_fail_invalid_enum) {
 
 TEST_F(CommandInterfaceTest, set_int_fail_read_only) {
 	auto obj = create<Foo>("name");
-		
+
 	EXPECT_THROW(commandInterface.set({obj, {"readOnly"}}, 27), std::runtime_error);
 }
 
@@ -425,7 +426,7 @@ TEST_F(CommandInterfaceTest, move_scenegraph_fail_prefab_loop_nested) {
 
 	commandInterface.set({inst_1, &PrefabInstance::template_}, prefab_2);
 	commandInterface.set({inst_2, &PrefabInstance::template_}, prefab_1);
-	
+
 	EXPECT_EQ(commandInterface.moveScenegraphChildren({inst_2}, prefab_2), 0);
 
 	EXPECT_TRUE(inst_2->getParent() == nullptr);
@@ -520,7 +521,7 @@ TEST_F(CommandInterfaceTest, move_fail_insertion_index_too_big) {
 TEST_F(CommandInterfaceTest, move_fail_insertion_index_invalid_to_root) {
 	auto settings = project.settings();
 	auto node1 = create<Node>("node1");
-	
+
 	ASSERT_EQ(project.instances(), std::vector<SEditorObject>({settings, node1}));
 
 	EXPECT_EQ(commandInterface.moveScenegraphChildren({node1}, nullptr, 0), 1);
@@ -543,7 +544,6 @@ TEST_F(CommandInterfaceTest, addLink_fail_no_end_object) {
 	commandInterface.deleteObjects({node});
 	EXPECT_THROW(commandInterface.addLink({lua, {"outputs", "ovector3f"}}, {node, {"translation"}}), std::runtime_error);
 }
-
 
 TEST_F(CommandInterfaceTest, addLink_fail_no_start_property) {
 	auto node = create<Node>("node");
@@ -615,7 +615,6 @@ TEST_F(CommandInterfaceTest, addLink_fail_future_linkable) {
 	EXPECT_THROW(commandInterface.addLink({start, &Foo::x_}, {end, &Foo::futureLinkable_}), std::runtime_error);
 }
 
-
 TEST_F(CommandInterfaceTest, removeLink_fail_no_end) {
 	auto node = create<Node>("node");
 	auto lua = create_lua("lua", "scripts/types-scalar.lua");
@@ -631,13 +630,12 @@ TEST_F(CommandInterfaceTest, removeLink_fail_end_object_readonly) {
 	auto node = create<Node>("node", prefab);
 
 	auto inst = create_prefabInstance("inst", prefab);
-	auto inst_node = raco::select<user_types::Node>(inst->children_->asVector<SEditorObject>(), "node");
-	auto inst_lua = raco::select<user_types::Node>(inst->children_->asVector<SEditorObject>(), "lua");
+	auto inst_node = select<user_types::Node>(inst->children_->asVector<SEditorObject>(), "node");
+	auto inst_lua = select<user_types::Node>(inst->children_->asVector<SEditorObject>(), "lua");
 
 	auto [sprop, eprop] = link(lua, {"outputs", "ovector3f"}, node, {"translation"});
 	EXPECT_THROW(commandInterface.removeLink({inst_node, {"translation"}}), std::runtime_error);
 }
-
 
 TEST_F(CommandInterfaceTest, copy_objects_fail_deleted) {
 	auto node = create<Node>("node");
@@ -724,4 +722,279 @@ TEST_F(CommandInterfaceTest, array_resize_grow) {
 	EXPECT_EQ(obj->array_ref_resizable_->size(), 2);
 	EXPECT_EQ(**obj->array_ref_resizable_->get(0), nullptr);
 	EXPECT_EQ(**obj->array_ref_resizable_->get(1), nullptr);
+}
+
+TEST_F(CommandInterfaceTest, conv_anim_channel_fail) {
+	auto channel = create<AnimationChannel>("channel");
+	auto node = create<Node>("node");
+
+	EXPECT_THROW(commandInterface.convertToAnimationChannelRaco({channel, node}), std::runtime_error);
+
+	commandInterface.deleteObjects({channel});
+	EXPECT_THROW(commandInterface.convertToAnimationChannelRaco({channel}), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_no_instance) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.deleteObjects({channel});
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}), std::vector<float>({1, 2})), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_wrong_user_type) {
+	auto node = create<Node>("node");
+
+	EXPECT_THROW(commandInterface.setAnimationData(node, std::vector<float>({0, 1, 2}), std::vector<float>({1, 2})), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_array_size_mismatch) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}), std::vector<float>({1, 2})), std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::interpolationType_}, static_cast<int>(MeshAnimationInterpolation::CubicSpline));
+
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<float>({1, 2, 3}), std::vector<float>({1, 2}), std::vector<float>({1, 2, 3})),
+		std::runtime_error);
+
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<float>({1, 2, 3}), std::vector<float>({1, 2, 3}), std::vector<float>({1, 2})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_invalid_tangents) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<float>({1, 2, 3}), std::vector<float>(), std::vector<float>()));
+
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<float>({1, 2, 3}), std::vector<float>(3, 0.0), std::vector<float>()),
+		std::runtime_error);
+
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<float>({1, 2, 3}), std::vector<float>(), std::vector<float>(3, 1.0)),
+		std::runtime_error);
+
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<float>({1, 2, 3}), std::vector<float>(3, 0.0), std::vector<float>(3, 1.0)),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_type_mismatch_double) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Int32));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}), std::vector<float>({1, 2, 3})), std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}), std::vector<float>({1, 2, 3})), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_type_mismatch_int) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Double));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}), std::vector<int>({1, 2, 3})), std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}), std::vector<int>({1, 2, 3})), std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_type_mismatch_vector_double) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Double));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Array));
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 2);
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})));
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_type_mismatch_vector_int) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Int32));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Array));
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 2);
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_size_mismatch_vector_double_keyframes) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0, 0.0}, {3.0, 4.0}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec3f));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Array));
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 2);
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 3);
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_size_mismatch_vector_double_tangents_in) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::interpolationType_}, static_cast<int>(MeshAnimationInterpolation::CubicSpline));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+		std::vector<std::vector<float>>({{0, 0}, {0, 0}, {0, 0}}),
+		std::vector<std::vector<float>>({{1, 1}, {1, 1}, {1, 1}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+					 std::vector<std::vector<float>>({{0, 0}, {0, 0, 0}, {0, 0}}),
+					 std::vector<std::vector<float>>({{1, 1}, {1, 1}, {1, 1}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Array));
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 2);
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+		std::vector<std::vector<float>>({{0, 0}, {0, 0}, {0, 0}}),
+		std::vector<std::vector<float>>({{1, 1}, {1, 1}, {1, 1}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 3);
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+					 std::vector<std::vector<float>>({{0, 0}, {0, 0, 0}, {0, 0}}),
+					 std::vector<std::vector<float>>({{1, 1}, {1, 1}, {1, 1}})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_size_mismatch_vector_double_tangents_out) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::interpolationType_}, static_cast<int>(MeshAnimationInterpolation::CubicSpline));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+		std::vector<std::vector<float>>({{0, 0}, {0, 0}, {0, 0}}),
+		std::vector<std::vector<float>>({{1, 1}, {1, 1}, {1, 1}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2f));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+					 std::vector<std::vector<float>>({{0, 0}, {0, 0}, {0, 0}}),
+					 std::vector<std::vector<float>>({{1, 1}, {1, 1, 1}, {1, 1}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Array));
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 2);
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+		std::vector<std::vector<float>>({{0, 0}, {0, 0}, {0, 0}}),
+		std::vector<std::vector<float>>({{1, 1}, {1, 1}, {1, 1}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentArraySize_}, 3);
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<float>>({{1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}}),
+					 std::vector<std::vector<float>>({{0, 0}, {0, 0}, {0, 0}}),
+					 std::vector<std::vector<float>>({{1, 1}, {1, 1, 1}, {1, 1}})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_size_mismatch_vector_int_keyframes) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3, 0}, {3, 4}})),
+		std::runtime_error);
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec3i));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3, 0}, {3, 4}})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_size_mismatch_vector_int_tangents_in) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::interpolationType_}, static_cast<int>(MeshAnimationInterpolation::CubicSpline));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}}),
+		std::vector<std::vector<int>>({{0, 0}, {0, 0}, {0, 0}}),
+		std::vector<std::vector<int>>({{1, 1}, {1, 1}, {1, 1}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}}),
+					 std::vector<std::vector<int>>({{0, 0}, {0, 0, 0}, {0, 0}}),
+					 std::vector<std::vector<int>>({{1, 1}, {1, 1}, {1, 1}})),
+		std::runtime_error);
+}
+
+TEST_F(CommandInterfaceTest, anim_channel_raco_set_data_fail_comp_size_mismatch_vector_int_tangents_out) {
+	auto channel = create<AnimationChannelRaco>("channel");
+
+	commandInterface.set({channel, &AnimationChannelRaco::interpolationType_}, static_cast<int>(MeshAnimationInterpolation::CubicSpline));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_NO_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+		std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}}),
+		std::vector<std::vector<int>>({{0, 0}, {0, 0}, {0, 0}}),
+		std::vector<std::vector<int>>({{1, 1}, {1, 1}, {1, 1}})));
+
+	commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(EnginePrimitive::Vec2i));
+	EXPECT_THROW(commandInterface.setAnimationData(channel, std::vector<float>({0, 1, 2}),
+					 std::vector<std::vector<int>>({{1, 2}, {2, 3}, {3, 4}}),
+					 std::vector<std::vector<int>>({{0, 0}, {0, 0}, {0, 0}}),
+					 std::vector<std::vector<int>>({{1, 1}, {1, 1, 1}, {1, 1}})),
+		std::runtime_error);
 }

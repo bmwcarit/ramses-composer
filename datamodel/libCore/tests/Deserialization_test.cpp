@@ -188,7 +188,7 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode_outputsAreD
 		utils::file::read((test_path() / "expectations" / "LuaScriptLinkedToNode.json").string()), false);
 	ASSERT_TRUE(result.has_value());
 
-	user_types::SLuaScript sScript{ raco::select<user_types::LuaScript>(result->objects)};
+	user_types::SLuaScript sScript{ select<user_types::LuaScript>(result->objects)};
 	ASSERT_EQ(3, sScript->outputs_->size());
 }
 
@@ -213,8 +213,8 @@ TEST_F(DeserializationTest, deserializeObjects_luaScriptLinkedToNode) {
 	ASSERT_EQ(2, result->references.size());
 
 	auto sLink{std::dynamic_pointer_cast<core::Link>(result->links.at(0))};
-	user_types::SLuaScript sLuaScript{raco::select<user_types::LuaScript>(result->objects)};
-	user_types::SNode sNode{raco::select<user_types::Node>(result->objects)};
+	user_types::SLuaScript sLuaScript{select<user_types::LuaScript>(result->objects)};
+	user_types::SNode sNode{select<user_types::Node>(result->objects)};
 
 	core::PropertyDescriptor startProp {sLuaScript, {"outputs", "translation"}};
 	EXPECT_EQ(startProp, sLink->startProp());
@@ -235,9 +235,9 @@ TEST_F(DeserializationTest, deserializeArrays) {
 		});
 	}
 
-	auto obj = raco::select<user_types::ObjectWithArrays>(result->objects);
-	auto node_1 = raco::select<user_types::Node>(result->objects, "node_1");
-	auto node_2 = raco::select<user_types::Node>(result->objects, "node_2");
+	auto obj = select<user_types::ObjectWithArrays>(result->objects);
+	auto node_1 = select<user_types::Node>(result->objects, "node_1");
+	auto node_2 = select<user_types::Node>(result->objects, "node_2");
 	ASSERT_TRUE(obj != nullptr);
 	ASSERT_TRUE(node_1 != nullptr);
 	ASSERT_TRUE(node_2 != nullptr);

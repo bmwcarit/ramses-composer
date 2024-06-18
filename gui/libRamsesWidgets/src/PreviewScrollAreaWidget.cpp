@@ -185,10 +185,9 @@ QSize PreviewScrollAreaWidget::scaledSize() const noexcept {
 	return sceneSize_ * scaleValue_;
 }
 
-void PreviewScrollAreaWidget::setViewport(const QSize& sceneSize) {
-	QSize size = sceneSize.boundedTo({4096, 4096}).expandedTo({1, 1});
-	if (sceneSize_ != size) {
-		sceneSize_ = size;
+void PreviewScrollAreaWidget::setViewport(const QSize& newSize) {
+	if (sceneSize_ != newSize) {
+		sceneSize_ = newSize;
 		updateViewport();
 	}
 }

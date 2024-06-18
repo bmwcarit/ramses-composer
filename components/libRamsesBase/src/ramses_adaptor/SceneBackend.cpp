@@ -73,7 +73,9 @@ std::optional<ramses::Issue> SceneBackend::getLastError() {
 
 void SceneBackend::flush() {
 	if (scene_) {
-		scene_->scene()->flush();
+		if (!scene_->scene()->flush()) {
+			LOG_ERROR(log_system::RAMSES_BACKEND, "Scene flush failed with '{}'", getLastError().value().message);
+		}
 	}
 }
 
@@ -84,6 +86,14 @@ void SceneBackend::readDataFromEngine(core::DataChangeRecorder& recorder) {
 }
 
 bool SceneBackend::discardRamsesMessage(std::string_view message) {
+	// The ramses Renderer will produce this error message if a RenderBuffer changes its size after it has been allocated.
+	// If the size changes via a normal property change of the RenderBuffer the engine backend would recreate the objects and all is fine.
+	// If the change happens due to a link update only this error is generated.  But in this case SceneAdaptor::readDataFromEngine 
+	// will tag the adaptor as dirty and the buffer will be recreated in Ramses in the next frame so we are OK too.
+	// So we can safely ignore this error.
+	if (message.find("RendererResourceManager::updateRenderTargetBufferProperties changing properties of RenderBuffer which is already uploaded is not supported!") != std::string_view::npos) {
+		return true;
+	}
 	if (message.find("has unlinked output") != std::string::npos) {
 		return true;
 	}
@@ -293,6 +303,17 @@ std::string SceneBackend::getExportedObjectNames(SEditorObject editorObject) con
 	}
 
 	return result;
+}
+
+std::map<std::string, std::chrono::microseconds> SceneBackend::getPerformanceReport() {
+	auto report{logicEngine()->getLastUpdateReport()};
+
+	std::map<std::string, std::chrono::microseconds> timings;
+	for (auto& [logicNode, time_us] : report.getNodesExecuted()) {
+		auto objectID{core::EditorObject::ramsesLogicIDAsObjectID(logicNode->getUserId())};
+		timings[objectID] += time_us;
+	}
+	return timings;
 }
 
 }  // namespace raco::ramses_adaptor

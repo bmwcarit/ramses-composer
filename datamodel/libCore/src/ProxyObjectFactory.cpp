@@ -43,8 +43,8 @@ namespace raco::serialization::proxy {
 	}
 
 	template <class... Args>
-	std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction> ProxyObjectFactory::makePropertyMapTuple(std::tuple<Args...>* dummy) {
-		return std::map<std::string, raco::core::UserObjectFactoryInterface::ValueCreationFunction>{ createTypeMapPair<Args>()...};
+	std::map<std::string, core::UserObjectFactoryInterface::ValueCreationFunction> ProxyObjectFactory::makePropertyMapTuple(std::tuple<Args...>* dummy) {
+		return std::map<std::string, core::UserObjectFactoryInterface::ValueCreationFunction>{ createTypeMapPair<Args>()...};
 	}
 
 	template <class... Args>
@@ -57,7 +57,7 @@ namespace raco::serialization::proxy {
 	ProxyObjectFactory::ProxyObjectFactory() {
 		properties_ = makePropertyMapTuple(static_cast<PropertyTypeMapType*>(nullptr));
 
-		// This contains proxy types defined in ProxyTypes.h from namespace raco::serialization::proxy
+		// This contains proxy types defined in ProxyTypes.h from namespace serialization::proxy
 		// Don't add the normal user_types here.
 		// Instead create a new proxy type in ProxyTypes.h and add that in the call below.
 		types_ = makeTypeMap<
@@ -65,6 +65,7 @@ namespace raco::serialization::proxy {
 			AnchorPoint,
 			Animation,
 			AnimationChannel,
+			AnimationChannelRaco,
 			BlitPass,
 			CubeMap,
 			Node,
@@ -91,7 +92,7 @@ namespace raco::serialization::proxy {
 		>();
 
 		annotations_ = makeAnnotationMap<
-			raco::core::ExternalReferenceAnnotation
+			core::ExternalReferenceAnnotation
 		>();
 	}
 

@@ -60,13 +60,17 @@ public:
 
 	const State& currentState();
 	State& nextState();
-	void commit(bool forceUpdate = false);
+	bool commit(bool forceUpdate = false);
 	
 	bool saveScreenshot(const std::string& fullPath);
+
+	bool errorState();
 
 private:
 	void* windowHandle_;
 	RendererBackend& rendererBackend_;
+
+	bool errorState_ = false;
 
 	ramses::displayId_t displayId_;
 	ramses::displayBufferId_t offscreenBufferId_;

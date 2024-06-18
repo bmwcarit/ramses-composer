@@ -79,11 +79,13 @@
     <addaction name="actionNewSceneGraphTree"/>
     <addaction name="actionNewResourcesTree"/>
     <addaction name="actionNewPrefabTree"/>
+    <addaction name="actionNewRenderView"/>
     <addaction name="actionNewProjectBrowser"/>
     <addaction name="actionNewUndoView"/>
     <addaction name="actionNewErrorView"/>
     <addaction name="actionNewLogView"/>
     <addaction name="actionNewPythonRunner"/>
+    <addaction name="actionNewPerformanceTable"/>
     <addaction name="separator"/>
     <addaction name="menuLayouts"/>
     <addaction name="separator"/>
@@ -190,6 +192,16 @@
    <property name="text">
     <string>New Pre&amp;fab View</string>
    </property>
+  </action>
+   <action name="actionNewRenderView">
+     <property name="text">
+       <string>New Render View</string>
+     </property>
+   </action>
+  <action name="actionNewPerformanceTable">
+	  <property name="text">
+		  <string>New Performance Table</string>
+	  </property>
   </action>
   <action name="actionNewProjectBrowser">
    <property name="text">

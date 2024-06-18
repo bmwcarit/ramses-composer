@@ -36,10 +36,8 @@ public Q_SLOTS:
 	void resetSelection();
 
 Q_SIGNALS:
-	void externalObjectSelected(ObjectTreeDock *srcDock);
-	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects, ObjectTreeDock *srcDock, const QString &property);
-	void dockClosed(ObjectTreeDock *closedDock);
-	void dockSelectionFocusRequested(ObjectTreeDock *focusDock);
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects);
+	void dockClosed();
 
 private:
 	void filterTreeViewObjects();

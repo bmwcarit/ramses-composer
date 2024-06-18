@@ -236,29 +236,34 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (app) {
+		std::vector<std::string> pos_argv_s;
+		pos_argv_s.emplace_back(pythonScriptPath.toStdString());
+		for (auto arg : pythonArguments) {
+			pos_argv_s.emplace_back(arg);
+		}
+
 		std::vector<std::wstring> wPythonSearchPaths;
 		for (auto& path : pythonSearchPaths) {
 			wPythonSearchPaths.emplace_back(path.toStdWString());
 		}
 
-		MainWindow w{app.get(), &rendererBackend, wPythonSearchPaths};
+		MainWindow w{app.get(), &rendererBackend};
 		if (!objectToFocusId.isEmpty()) {
 			w.Q_EMIT focusRequestedForTreeDock(objectToFocusId, "");
 		}
 
+		bool isInterpreterInitialized = python_api::initializeInterpreter(app.get(), QCoreApplication::applicationFilePath().toStdWString(), wPythonSearchPaths, pos_argv_s);
 		if (!pythonScriptPath.isEmpty()) {
-			auto pythonScriptPathStr = pythonScriptPath.toStdString();
-			std::vector<const char*> pos_argv_cp;
-			pos_argv_cp.emplace_back(pythonScriptPathStr.c_str());
-			for (auto& s : pythonArguments) {
-				pos_argv_cp.emplace_back(s.c_str());
-			}
+			if (isInterpreterInitialized) {
+				const auto currentRunStatus = python_api::runPythonScriptFromFile(pythonScriptPath.toStdString());
 
-			auto currentRunStatus = python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath.toStdString(), wPythonSearchPaths, pos_argv_cp);
-			LOG_INFO(log_system::PYTHON, currentRunStatus.stdOutBuffer);
+				LOG_INFO(raco::log_system::PYTHON, currentRunStatus.stdOutBuffer);
 
-			if (!currentRunStatus.stdErrBuffer.empty()) {
-				LOG_ERROR(log_system::PYTHON, currentRunStatus.stdErrBuffer);
+				if (!currentRunStatus.stdErrBuffer.empty()) {
+					LOG_ERROR(log_system::PYTHON, currentRunStatus.stdErrBuffer);
+				}
+			} else {
+				LOG_ERROR(log_system::PYTHON, "Python interpreter initialization failed.");
 			}
 		}
 

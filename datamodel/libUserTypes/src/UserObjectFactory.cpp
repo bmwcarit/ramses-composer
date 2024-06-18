@@ -15,6 +15,7 @@
 #include "user_types/AnchorPoint.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/BaseCamera.h"
 #include "user_types/BaseObject.h"
 #include "user_types/BaseTexture.h"
@@ -94,6 +95,7 @@ UserObjectFactory::UserObjectFactory() {
 		AnchorPoint,
 		Animation,
 		AnimationChannel,
+		AnimationChannelRaco,
 		BlitPass,
 		CubeMap,
 		Node,

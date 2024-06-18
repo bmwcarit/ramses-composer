@@ -76,3 +76,25 @@ TEST(NodeTest, ObjectAnnotation) {
 	// Remove non-existing annotation: no effect
 	n.removeAnnotation<HiddenProperty>();
 }
+
+TEST(NodeTest, ramses_id_as_object_id) {
+	{
+		const auto ramsesIdLowerBytes = std::pair<uint64_t, uint64_t>{1, 2};
+		const auto convertedId1{EditorObject::ramsesLogicIDAsObjectID(ramsesIdLowerBytes)};
+		EXPECT_EQ(convertedId1, "00000000-0000-0001-0000-000000000002");
+	}
+
+	{
+		const auto ramsesIdHigherBytes = std::pair<uint64_t, uint64_t>{0x1000'0000'0000'0000ULL, 0x2000'0000'0000'0000ULL};
+		const auto convertedId2{EditorObject::ramsesLogicIDAsObjectID(ramsesIdHigherBytes)};
+		EXPECT_EQ(convertedId2, "10000000-0000-0000-2000-000000000000");
+	}
+}
+
+TEST(NodeTest, ramses_id_to_object_id_conversion) {
+	for (int i = 0; i < 10; i++) {
+		Node node;
+		std::string id = node.objectID();
+		EXPECT_EQ(EditorObject::ramsesLogicIDAsObjectID(node.objectIDAsRamsesLogicID()), node.objectID());
+	}
+}

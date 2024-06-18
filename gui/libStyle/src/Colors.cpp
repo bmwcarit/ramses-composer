@@ -21,6 +21,12 @@ Colors::Colors() noexcept {
 		{Colormap::grayEditDisabled, QColor(30, 30, 30)},
 		{Colormap::textDisabled, QColor(200, 200, 200)},
 
+		//additional colors for text editors
+		{Colormap::textHighlightIndentation, QColor(127, 127, 127)},
+		{Colormap::textHighlightComments, QColor(63, 200, 63)},
+		{Colormap::textHighlightNumbers, QColor(255, 127, 63)},
+		{Colormap::textHighlightArrows, QColor(63, 210, 255)},
+
 		// additional colors for custom widgets and custom roles/states
 		{Colormap::updatedInBackground, QColor(45, 100, 150)},
 		{Colormap::warningColor, QColor(170, 100, 30)},

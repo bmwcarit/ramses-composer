@@ -71,6 +71,32 @@ public:
 		return status;
 	}
 
+	template<typename T>
+	inline const T* selectCheck(core::SEditorObject obj) {
+		auto ramsesObj = select<T>(*sceneContext.scene(), obj->objectName().c_str());
+		EXPECT_TRUE(ramsesObj != nullptr);
+		EXPECT_EQ(ramsesObj->getUserId(), obj->objectIDAsRamsesLogicID());
+		return ramsesObj;
+	}
+
+	template <typename T>
+	inline const T* selectCheckLogic(core::SEditorObject obj) {
+		auto ramsesObj = select<T>(sceneContext.logicEngine(), obj->objectName().c_str());
+		EXPECT_TRUE(ramsesObj != nullptr);
+		EXPECT_EQ(ramsesObj->getUserId(), obj->objectIDAsRamsesLogicID());
+		return ramsesObj;
+	}
+
+	template <typename T>
+	inline void dontFind(const char* name) {
+		EXPECT_TRUE(sceneContext.scene()->findObject<T>(name) == nullptr);
+	}
+
+	template <typename T>
+	inline void dontFindLogic(const char* name) {
+		EXPECT_TRUE(sceneContext.logicEngine().findObject<T>(name) == nullptr);
+	}
+
 protected:
 	template <typename RamsesType>
 	bool isRamsesNameInArray(std::string_view name, const std::vector<RamsesType*>& arrayOfArrays) {

@@ -11,6 +11,8 @@
 
 #include "core/EditorObject.h"
 
+#include <optional>
+
 namespace raco::object_tree::model {
 
 enum class ObjectTreeNodeType {
@@ -18,7 +20,8 @@ enum class ObjectTreeNodeType {
 	ExternalProject,
 	ExtRefGroup,
 	TypeParent,
-	Root
+	Root,
+	Tag
 };
 
 enum class VisibilityState {
@@ -33,7 +36,8 @@ public:
 	explicit ObjectTreeNode(core::SEditorObject obj, ObjectTreeNode *parent);
 	explicit ObjectTreeNode(ObjectTreeNodeType type, ObjectTreeNode *parent);
 	explicit ObjectTreeNode(const std::string& typeName);
-
+	explicit ObjectTreeNode(ObjectTreeNodeType type, const std::string &typeName, ObjectTreeNode *parent);
+	
 	~ObjectTreeNode();
 
     ObjectTreeNode *getParent();
@@ -59,7 +63,14 @@ public:
 	VisibilityState getPreviewVisibility() const;
 	VisibilityState getAbstractViewVisibility() const;
 
-	void setBelongsToExternalProject(const std::string &path, const std::string &name);
+	void setExternalProjectInfo(const std::string &path, const std::string &name);
+
+	std::string getInputBuffers() const;
+	std::string getOutputBuffers() const;
+	std::optional<int> getRenderOrder() const;
+
+	void setBuffers(const std::string &inputBuffers, const std::string &outputBuffers);
+	void setRenderOrder(int order);
 
 protected:
 	ObjectTreeNode *parent_;
@@ -69,5 +80,8 @@ protected:
 	std::string typeName_ = "";
     std::vector<ObjectTreeNode*> children_;
 	core::SEditorObject representedObject_;
+	std::string inputBuffers_;
+	std::string outputBuffers_;
+	std::optional<int> renderOrder_;
 };
 }

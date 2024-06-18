@@ -185,6 +185,8 @@ public:
 	// Returns the object ID without braces or hyphens in a pair of separated hexadecimal numbers {id[0,15], id[16-31]}
 	std::pair<uint64_t, uint64_t> objectIDAsRamsesLogicID() const;
 
+	static std::string ramsesLogicIDAsObjectID(std::pair<uint64_t, uint64_t> idPair);
+
 	static std::string normalizedObjectID(std::string const& id);
 
 	// Object IDs are calculated in the following cases
@@ -207,6 +209,8 @@ public:
 
 	// Used to check back pointers in the unit tests.
 	const std::set<WEditorObject, std::owner_less<WEditorObject>>& referencesToThis() const;
+
+	bool isValidProperty(const data_storage::Array<std::string>& propNames) const;
 
 protected:
 	// Create file watchers for paths and associate them with the specified property.

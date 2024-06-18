@@ -8,12 +8,6 @@
  * If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#if defined(WIN32) && defined(_DEBUG) && defined(PYTHON_DEBUG_LIBRARY_AVAILABLE)
-// Needed to avoid pybind11/embed.h to cause linking to the non-debug DLL if the debug DLL is available.
-// See https://github.com/pybind/pybind11/issues/3403#issuecomment-962878324
-#define Py_DEBUG
-#endif
-
 #include <raco_pybind11_embed.h>
 
 #include <gtest/gtest.h>
@@ -41,8 +35,9 @@ class GUIPythonTest : public RaCoApplicationTest {
 
 			python_api::preparePythonEnvironment(QCoreApplication::applicationFilePath().toStdWString(), {}, true);
 			pyGuard = std::make_unique<py::scoped_interpreter>();
-			python_api::setup(&application);
-			raco::gui_python_api::setupObjectTree(objectTreeDockManager);
+			python_api::setApp(&application);
+			python_api::importRaCoModule();
+			gui_python_api::setupObjectTree(objectTreeDockManager);
 		}
 
 		object_tree::model::ObjectTreeViewDefaultModel* objectTreeViewModel;
@@ -92,7 +87,7 @@ TEST_F(GUIPythonTest, get_selection_single_selection) {
 	createNode("node1");
 	auto node2Id = createNode("node2");
 	createNode("node3");
-	objectTreeDock->getActiveTreeView()->selectObject(QString::fromStdString(node2Id));
+	objectTreeDock->getActiveTreeView()->selectObject(QString::fromStdString(node2Id), false);
 
 	py::exec(R"(
 import unittest

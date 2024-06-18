@@ -10,10 +10,14 @@
 
 #include "ramses_adaptor/DefaultRamsesObjects.h"
 
+#include "lodepng.h"
 #include "ramses_adaptor/utilities.h"
+#include "ramses_base/RamsesHandles.h"
 
 #include "core/MeshCacheInterface.h"
 #include "mesh_loader/glTFFileLoader.h"
+#include "ramses_adaptor/CubeMapAdaptor.h"
+#include "ramses_adaptor/TextureSamplerAdaptor.h"
 
 namespace raco::ramses_adaptor {
 
@@ -869,6 +873,78 @@ ramses_base::RamsesArrayResource createCatNormalDataBuffer(ramses::Scene* scene)
 
 ramses_base::RamsesArrayResource createCatIndexDataBuffer(ramses::Scene* scene) {
 	return ramses_base::ramsesArrayResource(scene, cat_indices_data, defaultIndexDataBufferName);
+}
+
+std::vector<unsigned char> getFallbackTextureData(bool flipped, unsigned int &outWidth, unsigned int &outHeight) {
+	std::vector<unsigned char> textureData;
+	QFile file(":fallbackTextureOpenGL");
+	if (file.exists()) {
+		auto size = file.size();
+		file.open(QIODevice::ReadOnly);
+		QDataStream in(&file);
+		std::vector<unsigned char> sBuffer(size);
+
+		for (auto i = 0; i < size; ++i) {
+			in >> sBuffer[i];
+		}
+
+		file.close();
+		
+		lodepng::decode(textureData, outWidth, outHeight, sBuffer);
+
+		if (flipped) {
+			TextureSamplerAdaptor::flipDecodedPicture(textureData, 4, outWidth, outHeight, 8);
+		}
+	}
+
+	return textureData;
+}
+
+ramses_base::RamsesTextureSampler createDefaultTextureSampler(ramses::Scene* scene) {
+	const auto texture = createDefaultTexture2D(false, scene);
+	const auto sampler = ramses_base::ramsesTextureSampler(scene, ramses::ETextureAddressMode::Repeat, ramses::ETextureAddressMode::Repeat, ramses::ETextureSamplingMethod::Linear, ramses::ETextureSamplingMethod::Linear, texture, 1, defaultTextureSamplerName, {0, 0});
+	return sampler;
+}
+ramses_base::RamsesTextureSampler createDefaultTextureCubeSampler(ramses::Scene* scene) {
+	const auto textureCube = createDefaultTextureCube(scene, true);
+	const auto textureSampler = ramses_base::ramsesTextureSampler(scene, ramses::ETextureAddressMode::Repeat, ramses::ETextureAddressMode::Repeat, ramses::ETextureSamplingMethod::Linear, ramses::ETextureSamplingMethod::Linear, textureCube, 1, defaultTextureCubeSamplerName, {0, 0});
+	return textureSampler;
+}
+
+ramses_base::RamsesTexture2D createDefaultTexture2D(bool flipped, ramses::Scene* scene) {
+	unsigned int width;
+	unsigned int height;
+	auto data = getFallbackTextureData(flipped, width, height);
+	std::vector<ramses::MipLevelData> mipDatas;
+	mipDatas.emplace_back(reinterpret_cast<std::byte*>(data.data()), reinterpret_cast<std::byte*>(data.data()) + data.size());
+	ramses_base::RamsesTexture2D texture = ramses_base::ramsesTexture2D(scene, ramses::ETextureFormat::RGBA8, width, height, mipDatas, false, {}, defaultTexture2DName, {});
+	return texture;
+}
+
+ramses_base::RamsesTextureCube createDefaultTextureCube(ramses::Scene* scene, bool generateMipChain) {
+	std::map<std::string, std::vector<unsigned char>> data;
+
+	unsigned int width;
+	unsigned int height;
+	const auto fallbackImage = getFallbackTextureData(false, width, height);
+
+	data["uriRight"] = fallbackImage;
+	data["uriLeft"] = fallbackImage;
+	data["uriTop"] = fallbackImage;
+	data["uriBottom"] = fallbackImage;
+	data["uriFront"] = fallbackImage;
+	data["uriBack"] = fallbackImage;
+
+	std::vector<ramses::CubeMipLevelData> mipDatas;
+	mipDatas.emplace_back(ramses::CubeMipLevelData{
+		{reinterpret_cast<std::byte*>(data["uriRight"].data()), reinterpret_cast<std::byte*>(data["uriRight"].data()) + data["uriRight"].size()},
+		{reinterpret_cast<std::byte*>(data["uriLeft"].data()), reinterpret_cast<std::byte*>(data["uriLeft"].data()) + data["uriLeft"].size()},
+		{reinterpret_cast<std::byte*>(data["uriTop"].data()), reinterpret_cast<std::byte*>(data["uriTop"].data()) + data["uriTop"].size()},
+		{reinterpret_cast<std::byte*>(data["uriBottom"].data()), reinterpret_cast<std::byte*>(data["uriBottom"].data()) + data["uriBottom"].size()},
+		{reinterpret_cast<std::byte*>(data["uriFront"].data()), reinterpret_cast<std::byte*>(data["uriFront"].data()) + data["uriFront"].size()},
+		{reinterpret_cast<std::byte*>(data["uriBack"].data()), reinterpret_cast<std::byte*>(data["uriBack"].data()) + data["uriBack"].size()}});
+
+	return ramses_base::ramsesTextureCube(scene, ramses::ETextureFormat::RGBA8,width, mipDatas, generateMipChain, {}, defaultTextureCubeName, {});
 }
 
 }  // namespace raco::ramses_adaptor

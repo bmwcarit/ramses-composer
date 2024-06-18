@@ -38,7 +38,7 @@ TEST_F(ObjectDefaultTreeDockManagerTest, DockRemovalTwoDocksOneRemovedBySimulate
 	auto firstDock = generateDockInManager();
 	auto secondDock = generateDockInManager();
 
-	firstDock->Q_EMIT dockClosed(firstDock.get());
+	firstDock->Q_EMIT dockClosed();
 
 	ASSERT_EQ(manager_.getTreeDockAmount(), 1);
 }
@@ -58,7 +58,7 @@ TEST_F(ObjectDefaultTreeDockManagerTest, DockWithUnselectedItemIsNotConsideredSe
 	firstDock->setTreeView(new object_tree::view::ObjectTreeView("TreeView", model));
 	auto obj = model->createNewObject(user_types::Node::typeDescription.typeName, "name");
 	dispatcher_->dispatch(recorder);
-	firstDock->getActiveTreeView()->selectObject(QString::fromStdString(obj->objectID()));
+	firstDock->getActiveTreeView()->selectObject(QString::fromStdString(obj->objectID()), false);
 	ASSERT_TRUE(manager_.getActiveDockWithSelection() == firstDock.get());
 
 	commandInterface.deleteObjects({obj});

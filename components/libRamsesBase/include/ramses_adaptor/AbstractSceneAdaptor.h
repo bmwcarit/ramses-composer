@@ -169,8 +169,6 @@ private:
 
 	bool adaptorStatusDirty_ = false;
 
-	std::vector<DependencyNode> dependencyGraph_;
-
 	ramses_base::RamsesPerspectiveCamera camera_;
 	ramses_base::RamsesRenderGroup renderGroup_;
 	ramses_base::RamsesRenderPass renderPass_;

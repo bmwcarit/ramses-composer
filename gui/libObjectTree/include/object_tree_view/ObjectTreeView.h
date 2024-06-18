@@ -41,6 +41,7 @@ public:
 	void requestNewNode(const std::string &nodeType, const std::string &nodeName, const QModelIndex &parent);
 	void showContextMenu(const QPoint &p);
 	bool canCopyAtIndices(const QModelIndexList &indices);
+	bool canCutIndices(const QModelIndexList &indices);
 	bool canPasteIntoIndex(const QModelIndex &index, bool asExtref);
 	bool canProgrammaticallyGoToObject();
 	bool containsObject(const QString &objectID) const;
@@ -53,11 +54,11 @@ public:
 	QModelIndex getSelectedInsertionTargetIndex() const;
 	void collapseRecusively(const QModelIndex &index);
 
+	object_tree::model::ObjectTreeViewDefaultModel *treeModel() const;
+
 Q_SIGNALS:
-	void dockSelectionFocusRequested(ObjectTreeView *focusTree);
 	void newNodeRequested(EditorObject::TypeDescriptor nodeType, const std::string &nodeName, const QModelIndex &parent);
-	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects, const QString &property);
-	void externalObjectSelected();
+	void newObjectTreeItemsSelected(const core::SEditorObjectSet &objects);
 
 public Q_SLOTS:
 	void resetSelection();
@@ -73,8 +74,7 @@ public Q_SLOTS:
 	void hideNodes();
 	void showAllNodes();
 
-	void selectObject(const QString &objectID);
-	void setPropertyToSelect(const QString &property);
+	void selectObject(const QString &objectID, bool blockSignals = true);
 	void expandAllParentsOfObject(const QString &objectID);
 	void expanded(const QModelIndex &index);
 	void collapsed(const QModelIndex &index);
@@ -87,7 +87,6 @@ protected:
 	QString viewTitle_;
 	std::unordered_set<std::string> expandedItemIDs_;
 	std::unordered_set<std::string> selectedItemIDs_;
-	QString property_;
 
 	virtual QMenu* createCustomContextMenu(const QPoint &p);
 	
@@ -97,9 +96,12 @@ protected:
 	std::vector<SEditorObject> indicesToSEditorObjects(const QModelIndexList &index) const;
 	std::string indexToTreeNodeID(const QModelIndex &index) const;
 	QModelIndex indexFromTreeNodeID(const std::string &id) const;
+	void iterateThroughTree(QAbstractItemModel *model, std::function<void(QModelIndex &)> nodeFunc, QModelIndex currentIndex);
 
 protected Q_SLOTS:
+	void saveItemExpansionStates();
 	void restoreItemExpansionStates();
+	void saveItemSelectionStates();
 	void restoreItemSelectionStates();
 	void expandAllParentsOfObject(const QModelIndex &index);
 };

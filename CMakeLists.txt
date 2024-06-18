@@ -11,11 +11,16 @@ cmake_minimum_required(VERSION 3.19)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo")
 
-project(RaCoOS VERSION 2.0.0)
+project(RaCoOS VERSION 2.1.0)
 
 SET(RACO_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release)
 
 SET(HEADLESS_RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/release_headless)
+
+# Fix compiler error on msvc. Details: https://github.com/microsoft/cpprestsdk/issues/1768
+if(WIN32)
+	add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
+endif()
 
 # The build and deployment process for Python works differently for Linux and Windows.
 # Windows:

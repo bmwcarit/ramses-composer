@@ -57,10 +57,13 @@ public:
 			{"height", &height_}};
 	}
 	
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> offsetX_{0, {-7680, 7680}, {"offsetX"}, {}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> offsetY_{0, {-7680, 7680}, {"offsetY"}, {}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> width_{1440, {1, 7680}, {"width"}, {}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> height_{720, {1, 7680}, {"height"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> offsetX_{0, {-8192, 8192}, {"offsetX"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> offsetY_{0, {-8192, 8192}, {"offsetY"}, {}};
+
+	// ramses::Camera::setViewport enforces a limit of 32768 on the width and height of the viewport.
+	// But we choose the same limit here as the preview and the render buffer size limits.
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> width_{1440, {1, 8192}, {"width"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> height_{720, {1, 8192}, {"height"}, {}};
 };
 
 class BaseCamera : public Node {

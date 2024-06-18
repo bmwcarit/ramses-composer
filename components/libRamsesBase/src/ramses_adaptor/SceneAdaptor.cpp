@@ -208,12 +208,26 @@ void SceneAdaptor::deleteUnusedDefaultResources() {
 	if (defaultNormals_[1].use_count() == 1) {
 		defaultNormals_[1].reset();
 	}
+	if (defaultTextureSampler_.use_count() == 1) {
+		defaultTextureSampler_.reset();
+	}
+	if (defaultTextureCubeSampler_.use_count() == 1) {
+		defaultTextureCubeSampler_.reset();
+	}
 }
 
 void SceneAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	for (const auto& [endObjecttID, linkMap] : links_.linksByEnd_) {
 		for (const auto& [link, adaptor] : linkMap) {
-			adaptor->readDataFromEngine(recorder);
+			bool changed = adaptor->readDataFromEngine(recorder);
+			if (changed && (link.end.object()->isType<user_types::RenderBuffer>() || link.end.object()->isType<user_types::RenderBufferMS>())) {
+				if (auto endObjAdaptor = lookupAdaptor(link.end.object())) {
+					// This is needed because Ramses can't change the size of a RenderBuffer after it is created.
+					// To work around this we detect a buffer size change via a link and set the adaptor to dirty to
+					// force a recreation of the buffer in ramses in the next frame:
+					endObjAdaptor->tagDirty(true);
+				}
+			}
 		}
 	}
 	for (const auto& [editorObject, adaptor] : adaptors_) {
@@ -297,6 +311,24 @@ const RamsesArrayResource SceneAdaptor::defaultIndices(int index) {
 	return defaultIndices_[index];
 }
 
+const ramses_base::RamsesTextureSampler SceneAdaptor::defaultTextureSampler() {
+	if (!defaultTextureSampler_) {
+		defaultTextureSampler_ = createDefaultTextureSampler(scene_.get());
+	}
+	return defaultTextureSampler_;
+}
+
+const ramses_base::RamsesTextureSampler SceneAdaptor::defaultTextureCubeSampler() {
+	if (!defaultTextureCubeSampler_) {
+		defaultTextureCubeSampler_ = createDefaultTextureCubeSampler(scene_.get());
+	}
+	return defaultTextureCubeSampler_;
+}
+
+const std::vector<DependencyNode>& SceneAdaptor::dependencyGraph() {
+	return dependencyGraph_;
+}
+
 ObjectAdaptor* SceneAdaptor::lookupAdaptor(const core::SEditorObject& editorObject) const {
 	if (!editorObject) {
 		return nullptr;
@@ -318,8 +350,7 @@ void SceneAdaptor::rebuildSortedDependencyGraph(SEditorObjectSet const& objects)
 
 void SceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects) {
 	if (adaptorStatusDirty_) {
-		for (const auto& item : dependencyGraph_) {
-			auto object = item.object;
+		for (const auto& object : project().instances()) {
 			auto adaptor = lookupAdaptor(object);
 
 			bool haveAdaptor = adaptor != nullptr;

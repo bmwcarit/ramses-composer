@@ -68,9 +68,6 @@ end
 	EXPECT_EQ(logicEngine().getPropertyLinks().size(), 1);
 }
 
-#if (!defined (__linux__))
-// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
-
 TEST_F(LinkAdaptorFixture, linkWorksIfScriptContentChanges) {
 	const auto luaScript{context.createObject(user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};
 	const auto node{context.createObject(user_types::Node::typeDescription.typeName, "node", "node_id")};
@@ -106,13 +103,12 @@ function run(IN,OUT)
 end
 	)");
 
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, luaScript));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, luaScript));
 
 	ASSERT_TRUE(dispatch());
 	checkRamsesNodeTranslation("node", {5.0, 5.0, 0.0});
 	EXPECT_EQ(logicEngine().getPropertyLinks().size(), 1);
 }
-#endif
 
 TEST_F(LinkAdaptorFixture, linkUnlinkLink) {
 	const auto luaScript{context.createObject(user_types::LuaScript::typeDescription.typeName, "lua_script", "lua_script_id")};

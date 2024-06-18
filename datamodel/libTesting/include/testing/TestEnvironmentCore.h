@@ -28,6 +28,8 @@
 #include "components/MeshCacheImpl.h"
 #include "user_types/UserObjectFactory.h"
 #include "utils/FileUtils.h"
+#include "user_types/Animation.h"
+#include "user_types/AnimationChannel.h"
 #include "user_types/Mesh.h"
 #include "user_types/MeshNode.h"
 #include "user_types/Material.h"
@@ -35,6 +37,9 @@
 #include "user_types/LuaScriptModule.h"
 #include "user_types/LuaInterface.h"
 #include "user_types/RenderLayer.h"
+#include "user_types/RenderBuffer.h"
+#include "user_types/RenderBufferMS.h"
+#include "user_types/RenderTarget.h"
 #include "user_types/Skin.h"
 #include "user_types/Texture.h"
 #include "user_types/UserObjectFactory.h"
@@ -49,13 +54,6 @@
 
 #include <chrono>
 #include <memory>
-
-inline void clearQEventLoop() {
-	int argc = 0;
-	QCoreApplication eventLoop_{argc, nullptr};
-	QCoreApplication::processEvents();
-}
-
 
 class TestUndoStack : public core::UndoStack {
 public:
@@ -92,7 +90,7 @@ public:
 };
 
 
-template <class BaseClass = ::testing::Test>
+template <class BaseClass = ::testing::Test, class ApplicationClass = QCoreApplication>
 struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 	using BaseContext = core::BaseContext;
 	using Project = core::Project;
@@ -124,6 +122,24 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 			cmd.moveScenegraphChildren({obj}, parent);
 		}
 		return obj;
+	}
+
+	user_types::SAnimationChannel create_animation_channel(const std::string& name, const std::string& relpath, int animationIndex, int samplerIndex) {
+		auto channel = create<user_types::AnimationChannel>(name);
+		commandInterface.set({channel, &user_types::AnimationChannel::uri_}, (RacoBaseTest<BaseClass>::test_path() / relpath).string());
+		commandInterface.set({channel, &user_types::AnimationChannel::animationIndex_}, animationIndex);
+		commandInterface.set({channel, &user_types::AnimationChannel::samplerIndex_}, samplerIndex);
+		return channel;
+	}
+
+	user_types::SAnimation create_animation(const std::string& name, const std::vector<user_types::SAnimationChannelBase>& channels) {
+		auto animation = create<user_types::Animation>(name);
+		core::ValueHandle channelsHandle(animation, &user_types::Animation::animationChannels_);
+		commandInterface.resizeArray(channelsHandle, channels.size());
+		for (auto index = 0; index < channels.size(); index++) {
+			commandInterface.set(channelsHandle[index], channels[index]);
+		}
+		return animation;
 	}
 
 	user_types::SMesh create_mesh(const std::string& name, const std::string& relpath) {
@@ -206,6 +222,24 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		return layer;
 	}
 
+	user_types::SRenderTarget create_rendertarget(const std::string& name, const std::vector<user_types::SRenderBuffer>& buffers) {
+		auto rendertarget = create<user_types::RenderTarget>(name);
+		commandInterface.resizeArray({rendertarget, &user_types::RenderTarget::buffers_}, buffers.size());
+		for (int index = 0; index < buffers.size(); index++) {
+			commandInterface.set(core::ValueHandle(rendertarget, &user_types::RenderTarget::buffers_)[index], buffers[index]);
+		}
+		return rendertarget;
+	}
+
+	user_types::SRenderTargetMS create_rendertarget_ms(const std::string& name, const std::vector<user_types::SRenderBufferMS>& buffers) {
+		auto rendertarget = create<user_types::RenderTargetMS>(name);
+		commandInterface.resizeArray({rendertarget, &user_types::RenderTargetMS::buffers_}, buffers.size());
+		for (int index = 0; index < buffers.size(); index++) {
+			commandInterface.set(core::ValueHandle(rendertarget, &user_types::RenderTargetMS::buffers_)[index], buffers[index]);
+		}
+		return rendertarget;
+	}
+
 	user_types::SSkin create_skin(const std::string& name,
 		const std::string& relpath,
 		int skinIndex,
@@ -269,6 +303,25 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		ASSERT_LE(opTimeMs, maxMs) << "Operation took longer than allowed boundary of " << maxMs << " ms\nActual operation duration: " << opTimeMs << " ms";
 	}
 
+	inline void clearQEventLoop() {
+		QCoreApplication::processEvents();
+	}
+
+	inline bool awaitPreviewDirty(const core::DataChangeRecorder& recorder, const core::SEditorObject& obj, long long timeout = 5) {
+		const std::chrono::steady_clock::time_point timeoutTS = std::chrono::steady_clock::now() + std::chrono::seconds{timeout};
+		auto dirtyObjects{recorder.getPreviewDirtyObjects()};
+		while (std::find(dirtyObjects.begin(), dirtyObjects.end(), obj) == dirtyObjects.end()) {
+			if (std::chrono::steady_clock::now() > timeoutTS) {
+				assert(false && "Timeout");
+				return false;
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds{5});
+			QCoreApplication::processEvents();
+			dirtyObjects = recorder.getPreviewDirtyObjects();
+		}
+		return true;
+	}
+
 	TestEnvironmentCoreT(UserObjectFactoryInterface* objectFactory = &UserObjectFactory::getInstance(), ramses::EFeatureLevel featureLevel = ramses_base::BaseEngineBackend::maxFeatureLevel)
 		: backend{},
 		  meshCache{},
@@ -297,6 +350,12 @@ struct TestEnvironmentCoreT : public RacoBaseTest<BaseClass> {
 		clearQEventLoop();
 	}
 
+	// Apparently QCoreApplication needs to be initialized before the ProjectFileChangeMonitor is created, since that
+	// will create signal connections which don't work on Linux otherwise (but they do work on Windows).
+	// The application therefore needs to be defined before the MeshCacheImpl below which sets up 
+	// a GenericFileChangeMonitorImpl.
+	int argc = 0;
+	ApplicationClass application{argc, nullptr};
 
 	ramses_base::HeadlessEngineBackend backend;
 	components::MeshCacheImpl meshCache;

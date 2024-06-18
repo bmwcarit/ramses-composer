@@ -166,80 +166,82 @@ inline bool setLuaInputInEngine(ramses::Property* property, const core::ValueHan
 	return success;
 }
 
-void getOutputFromEngine(const ramses::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
+bool getOutputFromEngine(const ramses::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder);
 
-inline void getComplexLuaOutputFromEngine(const ramses::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
+inline bool getComplexLuaOutputFromEngine(const ramses::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
+	bool changed = false;
 	for (size_t i{0}; i < valueHandle.size(); i++) {
 		if (property.getType() == ramses::EPropertyType::Array) {
-			getOutputFromEngine(*property.getChild(i), valueHandle[i], recorder);
+			changed = getOutputFromEngine(*property.getChild(i), valueHandle[i], recorder) || changed;
 		} else {
-			getOutputFromEngine(*property.getChild(valueHandle[i].getPropName()), valueHandle[i], recorder);
+			changed = getOutputFromEngine(*property.getChild(valueHandle[i].getPropName()), valueHandle[i], recorder) || changed;
 		}
 	}
+	return changed;
 }
 
-inline void getOutputFromEngine(const ramses::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
+inline bool getOutputFromEngine(const ramses::Property& property, const core::ValueHandle& valueHandle, core::DataChangeRecorder& recorder) {
 	using core::PrimitiveType;
 
 	// read quaternion rotation data
 	if (valueHandle.isVec3f() && property.getType() == ramses::EPropertyType::Vec4f) {
 		auto v = property.get<ramses::vec4f>().value();
 		auto [eulerX, eulerY, eulerZ] = utils::math::quaternionToXYZDegrees(v.x, v.y, v.z, v.w);
-		core::CodeControlledPropertyModifier::setVec3f(valueHandle, eulerX, eulerY, eulerZ, recorder);
-		return;
+		return core::CodeControlledPropertyModifier::setVec3f(valueHandle, eulerX, eulerY, eulerZ, recorder);
 	}
 
 	switch (valueHandle.type()) {
 		case PrimitiveType::Double: {
-			core::CodeControlledPropertyModifier::setPrimitive<double>(valueHandle, property.get<float>().value(), recorder);
+			return core::CodeControlledPropertyModifier::setPrimitive<double>(valueHandle, property.get<float>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Int: {
-			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<int>().value(), recorder);
+			return core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<int>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Int64: {
-			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<int64_t>().value(), recorder);
+			return core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<int64_t>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Bool: {
-			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<bool>().value(), recorder);
+			return core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<bool>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::String: {
-			core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<std::string>().value(), recorder);
+			return core::CodeControlledPropertyModifier::setPrimitive(valueHandle, property.get<std::string>().value(), recorder);
 			break;
 		}
 		case PrimitiveType::Struct: {
 			auto typeDesc = &valueHandle.constValueRef()->asStruct().getTypeDescription();
 			if (typeDesc == &core::Vec2f::typeDescription) {
 				auto v = property.get<ramses::vec2f>().value();
-				core::CodeControlledPropertyModifier::setVec2f(valueHandle, v.x, v.y, recorder);
+				return core::CodeControlledPropertyModifier::setVec2f(valueHandle, v.x, v.y, recorder);
 			} else if (typeDesc == &core::Vec3f::typeDescription) {
 				auto v = property.get<ramses::vec3f>().value();
-				core::CodeControlledPropertyModifier::setVec3f(valueHandle, v.x, v.y, v.z, recorder);
+				return core::CodeControlledPropertyModifier::setVec3f(valueHandle, v.x, v.y, v.z, recorder);
 			} else if (typeDesc == &core::Vec4f::typeDescription) {
 				auto v = property.get<ramses::vec4f>().value();
-				core::CodeControlledPropertyModifier::setVec4f(valueHandle, v.x, v.y, v.z, v.w, recorder);
+				return core::CodeControlledPropertyModifier::setVec4f(valueHandle, v.x, v.y, v.z, v.w, recorder);
 			} else if (typeDesc == &core::Vec2i::typeDescription) {
 				auto v = property.get<ramses::vec2i>().value();
-				core::CodeControlledPropertyModifier::setVec2i(valueHandle, v.x, v.y, recorder);
+				return core::CodeControlledPropertyModifier::setVec2i(valueHandle, v.x, v.y, recorder);
 			} else if (typeDesc == &core::Vec3i::typeDescription) {
 				auto v = property.get<ramses::vec3i>().value();
-				core::CodeControlledPropertyModifier::setVec3i(valueHandle, v.x, v.y, v.z, recorder);
+				return core::CodeControlledPropertyModifier::setVec3i(valueHandle, v.x, v.y, v.z, recorder);
 			} else if (typeDesc == &core::Vec4i::typeDescription) {
 				auto v = property.get<ramses::vec4i>().value();
-				core::CodeControlledPropertyModifier::setVec4i(valueHandle, v.x, v.y, v.z, v.w, recorder);
+				return core::CodeControlledPropertyModifier::setVec4i(valueHandle, v.x, v.y, v.z, v.w, recorder);
 			} else {
-				getComplexLuaOutputFromEngine(property, valueHandle, recorder);
+				return getComplexLuaOutputFromEngine(property, valueHandle, recorder);
 			}
 			break;
 		}
 		case PrimitiveType::Table: {
-			getComplexLuaOutputFromEngine(property, valueHandle, recorder);
+			return getComplexLuaOutputFromEngine(property, valueHandle, recorder);
 			break;
 		}
 	}
+	return false;
 }
 
 inline ramses::EDepthWrite getDepthWriteMode(const ramses::Appearance* appearance) {

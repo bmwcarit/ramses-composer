@@ -169,7 +169,6 @@ void AbstractSceneAdaptor::createAdaptor(SEditorObject obj) {
 void AbstractSceneAdaptor::removeAdaptor(SEditorObject obj) {
 	adaptors_.erase(obj);
 	deleteUnusedDefaultResources();
-	dependencyGraph_.clear();
 	if (gizmo_ && gizmo_->object() == obj) {
 		gizmo_.reset();
 	}
@@ -287,14 +286,9 @@ core::Project& AbstractSceneAdaptor::project() const {
 	return *project_;
 }
 
-void AbstractSceneAdaptor::rebuildSortedDependencyGraph(SEditorObjectSet const& objects) {
-	dependencyGraph_ = buildSortedDependencyGraph(objects);
-}
-
 void AbstractSceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects) {
 	if (adaptorStatusDirty_) {
-		for (const auto& item : dependencyGraph_) {
-			auto object = item.object;
+		for (const auto& object : project().instances()) {
 			auto adaptor = lookupAdaptor(object);
 
 			bool haveAdaptor = adaptor != nullptr;
@@ -309,14 +303,10 @@ void AbstractSceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet&
 		adaptorStatusDirty_ = false;
 	}
 
-	if (dependencyGraph_.empty() || !changedObjects.empty()) {
-		rebuildSortedDependencyGraph(SEditorObjectSet(project_->instances().begin(), project_->instances().end()));
-	}
-
 	renderGroup_->removeAllRenderables();
 
 	SEditorObjectSet updated;
-	for (const auto& item : dependencyGraph_) {
+	for (const auto& item : previewAdaptor_->dependencyGraph()) {
 		auto object = item.object;
 		if (auto adaptor = lookupAdaptor(object)) {
 			bool needsUpdate = adaptor->isDirty();
@@ -336,7 +326,7 @@ void AbstractSceneAdaptor::performBulkEngineUpdate(const core::SEditorObjectSet&
 		}
 	}
 
-	for (const auto& item : dependencyGraph_) {
+	for (const auto& item : previewAdaptor_->dependencyGraph()) {
 		auto object = item.object;
 		if (auto adaptor = lookup<ramses_adaptor::AbstractMeshNodeAdaptor>(object)) {
 			bool transparent = highlightUsingTransparency_ && !adaptor->highlighted();

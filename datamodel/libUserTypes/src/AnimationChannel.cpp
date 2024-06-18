@@ -10,8 +10,8 @@
 
 #include "user_types/AnimationChannel.h"
 
-#include "core/Errors.h"
 #include "core/CoreFormatter.h"
+#include "core/Errors.h"
 
 #include "Validation.h"
 
@@ -25,7 +25,7 @@ void AnimationChannel::onAfterValueChanged(BaseContext& context, ValueHandle con
 	}
 }
 
-core::PropertyInterface AnimationChannel::getOutputProperty() const {
+core::PropertyInterface AnimationChannelBase::getOutputProperty() const {
 	if (currentSamplerData_->componentType == EnginePrimitive::Array) {
 		return PropertyInterface::makeArrayOf(objectName(), EnginePrimitive::Double, currentSamplerData_->getOutputComponentSize());
 	}
@@ -95,7 +95,7 @@ void AnimationChannel::updateFromExternalFile(BaseContext& context) {
 		return;
 	}
 
-	if (currentSamplerData_->keyFrames.empty()) {
+	if (std::visit([](const auto& data) -> bool { return data.keyFrames.empty(); }, currentSamplerData_->output)) {
 		context.errors().addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {shared_from_this(), &AnimationChannel::samplerIndex_}, "Selected animation sampler does not contain valid output data.");
 		currentSamplerData_.reset();
 		return;

@@ -98,6 +98,7 @@ std::string RaCoApplication::activeProjectFolder() const {
 void RaCoApplication::resetSceneBackend() {
 	previewSceneBackend_->reset();
 	abstractScene_.reset();
+	recordingStats_  = false;
 }
 
 class WithRelinkCallback {
@@ -118,6 +119,7 @@ void RaCoApplication::setupScene(bool optimizeForExport, bool setupAbstractScene
 	auto featureLevel = static_cast<ramses::EFeatureLevel>(activeRaCoProject().project()->featureLevel());
 
 	previewSceneBackend_->setScene(activeRaCoProject().project(), activeRaCoProject().errors(), optimizeForExport, ramses_adaptor::SceneBackend::toSceneId(*activeRaCoProject().project()->settings()->sceneId_));
+	previewSceneBackend_->logicEngine()->enableUpdateReport(recordingStats_ && !optimizeForExport);
 	if (runningInUI_) {
 		if (setupAbstractScene) {
 			abstractScene_.reset();
@@ -133,8 +135,8 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 	WithRelinkCallback withRelinkCallback(externalProjectsStore_, relinkCallback);
 
 	activeProject_.reset();
-	previewSceneBackend_->reset();
-	abstractScene_.reset();
+	resetSceneBackend();
+	resetStats();
 
 	// The module cache should already by empty after removing the local and external projects but explicitly clear it anyway
 	// to avoid potential problems.
@@ -204,12 +206,12 @@ core::ErrorLevel RaCoApplication::getExportSceneDescriptionAndStatus(std::vector
 	return errorLevel;
 }
 
-bool RaCoApplication::exportProject(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) {
+bool RaCoApplication::exportProject(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode, bool warningsAsErrors) {
 	setupScene(true, false);
 	logicEngineNeedsUpdate_ = true;
 	doOneLoop();
 
-	bool status = exportProjectImpl(ramsesExport, compress, outError, forceExportWithErrors, luaSavingMode);
+	bool status = exportProjectImpl(ramsesExport, compress, outError, forceExportWithErrors, luaSavingMode, warningsAsErrors);
 
 	setupScene(false, false);
 	logicEngineNeedsUpdate_ = true;
@@ -218,7 +220,7 @@ bool RaCoApplication::exportProject(const std::string& ramsesExport, bool compre
 	return status;
 }
 
-bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const {
+bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode, bool warningsAsErrors) const {
 	// Flushing the scene prevents inconsistent states being saved which could lead to unexpected bevahiour after loading the scene:
 	previewSceneBackend_->flush();
 
@@ -234,9 +236,17 @@ bool RaCoApplication::exportProjectImpl(const std::string& ramsesExport, bool co
 			}
 			return false;
 		}
-		if (sceneBackend()->sceneValid() != core::ErrorLevel::NONE) {
+		core::ErrorLevel errorLevel = sceneBackend()->sceneValid();
+		if (errorLevel == core::ErrorLevel::ERROR) {
 			outError = "Export failed: scene contains Ramses errors:\n" + sceneBackend()->getValidationReport(core::ErrorLevel::WARNING);
 			return false;
+		} else if (errorLevel == core::ErrorLevel::WARNING) {
+			if (warningsAsErrors) {
+				outError = "Export failed: scene contains Ramses warnings (treated as errors):\n" + sceneBackend()->getValidationReport(core::ErrorLevel::WARNING);
+				return false;
+			} else {
+				outError = "Export with Ramses warnings:\n" + sceneBackend()->getValidationReport(core::ErrorLevel::WARNING);
+			}
 		}
 	}
 
@@ -297,6 +307,11 @@ void RaCoApplication::doOneLoop() {
 		// read modified engine data
 		previewSceneBackend_->readDataFromEngine(dataChanges);
 		logicEngineNeedsUpdate_ = false;
+
+		if (recordingStats_) {
+			logicStats_.addSnapshot(previewSceneBackend_->getPerformanceReport());
+			Q_EMIT performanceStatisticsUpdated();
+		}
 	}
 
 	dataChangeDispatcherAbstractScene_->dispatch(dataChanges);
@@ -391,6 +406,20 @@ int RaCoApplication::newFileFeatureLevel() const {
 
 const FeatureLevelLoadError* RaCoApplication::getFlError() const {
 	return externalProjectsStore_.getFlError();
+}
+
+void RaCoApplication::setRecordingStats(bool enable) {
+	recordingStats_ = enable;
+	previewSceneBackend_->logicEngine()->enableUpdateReport(enable);
+}
+
+void RaCoApplication::resetStats() {
+	logicStats_ = ReportStatistics{};
+	Q_EMIT performanceStatisticsUpdated();
+}
+
+const ReportStatistics& RaCoApplication::getLogicStats() const {
+	return logicStats_;
 }
 
 core::ExternalProjectsStoreInterface* RaCoApplication::externalProjects() {

@@ -11,7 +11,6 @@
 
 #include "core/Context.h"
 #include "ramses_adaptor/LinkAdaptor.h"
-//#include "ramses_base/LogicEngine.h"
 #include "ramses_base/RamsesHandles.h"
 #include "ramses_base/BaseEngineBackend.h"
 #include "ramses_adaptor/utilities.h"
@@ -46,7 +45,7 @@ public:
 	const SRamsesAdaptorDispatcher dispatcher() const;
 	const ramses_base::RamsesAppearance defaultAppearance(bool withMeshNormals);
 	const ramses_base::RamsesArrayResource defaultVertices(int index);
-	const ramses_base::RamsesArrayResource defaultNormals(int index); 
+	const ramses_base::RamsesArrayResource defaultNormals(int index);
 	const ramses_base::RamsesArrayResource defaultIndices(int index);
 	ObjectAdaptor* lookupAdaptor(const core::SEditorObject& editorObject) const;
 	Project& project() const;
@@ -57,7 +56,7 @@ public:
 	}
 	/* END: Adaptor API */
 
-	void readDataFromEngine(core::DataChangeRecorder &recorder);
+	void readDataFromEngine(core::DataChangeRecorder& recorder);
 
 	void iterateAdaptors(std::function<void(ObjectAdaptor*)> func);
 
@@ -67,6 +66,10 @@ public:
 
 	void updateRuntimeError(const ramses::Issue& issue);
 	void clearRuntimeError();
+	const ramses_base::RamsesTextureSampler defaultTextureSampler();
+	const ramses_base::RamsesTextureSampler defaultTextureCubeSampler();
+
+	const std::vector<DependencyNode>& dependencyGraph();
 
 private:
 	bool needAdaptor(SEditorObject object);
@@ -79,7 +82,6 @@ private:
 	void performBulkEngineUpdate(const core::SEditorObjectSet& changedObjects);
 
 	void rebuildSortedDependencyGraph(SEditorObjectSet const& objects);
-
 
 	void deleteUnusedDefaultResources();
 
@@ -95,13 +97,15 @@ private:
 	// Fallback resources: used when MeshNode doesn't have valid shader program or mesh data
 	ramses_base::RamsesAppearance defaultAppearance_;
 	ramses_base::RamsesAppearance defaultAppearanceWithNormals_;
+	ramses_base::RamsesTextureSampler defaultTextureSampler_;
+	ramses_base::RamsesTextureSampler defaultTextureCubeSampler_;
 
 	std::array<ramses_base::RamsesArrayResource, 2> defaultIndices_;
 	std::array<ramses_base::RamsesArrayResource, 2> defaultVertices_;
 	std::array<ramses_base::RamsesArrayResource, 2> defaultNormals_;
 
 	std::map<SEditorObject, std::unique_ptr<ObjectAdaptor>> adaptors_{};
-	
+
 	struct LinkAdaptorContainer {
 		std::map<std::string, std::map<core::LinkDescriptor, SharedLinkAdaptor>> linksByStart_{};
 		std::map<std::string, std::map<core::LinkDescriptor, SharedLinkAdaptor>> linksByEnd_{};

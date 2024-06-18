@@ -1335,16 +1335,18 @@ void BaseContext::insertAssetScenegraph(const core::MeshScenegraph& scenegraph, 
 		}
 
 		std::vector<SEditorObject> targetMeshNodes;
-		auto targetMeshNode = meshScenegraphNodes[sceneSkin->meshNodeIndex];
-		if (targetMeshNode->isType<user_types::MeshNode>()) {
-			targetMeshNodes.emplace_back(targetMeshNode);
-		} else {
-			auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
-			for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
-				if (child->isType<user_types::MeshNode>()) {
-					targetMeshNodes.emplace_back(child);
-				} else {
-					LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
+		for (const auto& targetIndex : sceneSkin->meshNodeIndices) {
+			auto targetMeshNode = meshScenegraphNodes[targetIndex];
+			if (targetMeshNode->isType<user_types::MeshNode>()) {
+				targetMeshNodes.emplace_back(targetMeshNode);
+			} else {
+				auto submeshRootNode = targetMeshNode->children_->get(0)->asRef()->as<user_types::Node>();
+				for (auto child : submeshRootNode->children_->asVector<SEditorObject>()) {
+					if (child->isType<user_types::MeshNode>()) {
+						targetMeshNodes.emplace_back(child);
+					} else {
+						LOG_ERROR(log_system::CONTEXT, "Target child node is not a MeshNode '{}'", child->objectName());
+					}
 				}
 			}
 		}

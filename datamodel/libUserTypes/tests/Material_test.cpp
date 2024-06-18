@@ -53,7 +53,7 @@ public:
 		out.close();
 
 		// Expect file watcher was executed and shader was reloaded
-		EXPECT_TRUE(raco::awaitPreviewDirty(recorder, material, 5));
+		EXPECT_TRUE(awaitPreviewDirty(recorder, material, 5));
 	}
 };
 
@@ -222,9 +222,6 @@ TEST_F(MaterialTest, preprocessorHandlesShaderIncludes) {
 	ASSERT_FALSE(commandInterface.errors().hasError(material));
 }
 
-#if (!defined (__linux__))
-// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
-
 TEST_F(MaterialTest, shaderFileWatcherTest) {
 	const std::vector<std::string> files{
 		"shaders/include/main_mat_adapter_test.vert",
@@ -245,5 +242,3 @@ TEST_F(MaterialTest, shaderFileWatcherTest) {
 		verifyFileWatcher(file);
 	}
 }
-
-#endif

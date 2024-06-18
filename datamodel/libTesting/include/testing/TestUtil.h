@@ -99,23 +99,6 @@ inline auto createAnimatedScene(ContextOrCommandInterface& context, const utils:
 		link);
 }
 
-inline bool awaitPreviewDirty(const core::DataChangeRecorder& recorder, const core::SEditorObject& obj, long long timeout = 5) {
-	const std::chrono::steady_clock::time_point timeoutTS = std::chrono::steady_clock::now() + std::chrono::seconds{timeout};
-	auto dirtyObjects{recorder.getPreviewDirtyObjects()};
-	int argc = 0;
-	QCoreApplication eventLoop_{argc, nullptr};
-	while (std::find(dirtyObjects.begin(), dirtyObjects.end(), obj) == dirtyObjects.end()) {
-		if (std::chrono::steady_clock::now() > timeoutTS) {
-			assert(false && "Timeout");
-			return false;
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds{5});
-		QCoreApplication::processEvents();
-		dirtyObjects = recorder.getPreviewDirtyObjects();
-	}
-	return true;
-}
-
 inline void createGitLfsPlaceholderFile(const std::string& path) {
 	std::fstream file;
 	file.open(path, std::ios::out);

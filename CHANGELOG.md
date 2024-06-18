@@ -24,6 +24,30 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [2.1.0] Render View, Python Console, Performance Table, Misc Improvements and Bugfixes
+* **File version number has changed. Files saved with RaCo 2.1.0 cannot be opened by previous versions.**
+
+### Added
+* Added render view widget containing a hierarchical view of the render setup of the scene and the rendered parts of the scene graph.
+* Added python script editor and interactive python console.
+* Added possibility to run python scripts on save. A project-specific script to execute before saving can be configured via the `ProjectSettings` object while an additional global script can be configured via the preferences dialog.
+* Added performance table widget allowing to record runtime statistics of `LogicEngine` scripts and objects.
+* Added support for the new attribute naming convention of color attributes in the Blender glTF exporter. The `_COLOR_N` attributes are now imported as color attributes if no attribute using the `COLOR_N` form is present in the glTF file.
+* Added support for import of `Vec3` color attributes in the glTF importer. The alpha channel will be set to `1.0` in this case.
+* Made `width`, `height`, and `sampleCount` properties of `RenderBuffer` and `RenderBufferMS` objects linkable. Note that outside RamsesComposer modifying these properties via link is only allowed before the Ramses renderer is initialized.
+
+### Changes
+ * Increased the size limit of `RenderBuffer` and `RenderBufferMS` objects, and the preview size to `8192x8192` pixels. The viewport properties of cameras and the region properties of `BlitPasses` have also been changed accordingly.
+ * Allow exporting with Ramses warnings by default in the headless application. This behaviour can be changed with the new `-w` command line option which switches to handling Ramses warnings as errors when exporting.
+
+### Fixes
+* Added fallback texture which prevents empty texture slots causing the rendered object to become invisible. 
+* Do not clear the framebuffer when zooming into the preview. The preview will continue to show the current framebuffer state when zooming even if all `RenderPasses` rendering into the framebuffer are disabled.
+* Prevent long lists of `RenderPasses` or `RenderLayers` shown in the "Rendered By:" and "Added To:" sections below the `tag` property in the property browser forcing a very wide property browser. 
+* Set all target `MeshNodes` in the `Skin` object when importing skin objects with multiple target nodes from gltf files.
+* If the preview setup fails the preview will now enter an error state indicated by an `ERROR` status displayed at the bottom. The project can still be modified, saved, or exported in this state.
+
+
 ## [2.0.0] Switch to Ramses 28, Abstract Scene View, Misc UI Iprovements and Bugfixes
 * **This is a major version upgrade for both RamsesComposer and Ramses/LogicEngine containing changes that can break existing scenes.** 
 * **File version number has changed. Files saved with RaCo 2.0.0 cannot be opened by previous versions.**

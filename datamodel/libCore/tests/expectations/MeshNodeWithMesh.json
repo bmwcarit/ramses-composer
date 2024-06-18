@@ -112,7 +112,7 @@
                                             "annotations": [
                                                 {
                                                     "properties": {
-                                                        "max": 7680,
+                                                        "max": 8192,
                                                         "min": 1
                                                     },
                                                     "typeName": "RangeAnnotationInt"
@@ -124,8 +124,8 @@
                                             "annotations": [
                                                 {
                                                     "properties": {
-                                                        "max": 7680,
-                                                        "min": -7680
+                                                        "max": 8192,
+                                                        "min": -8192
                                                     },
                                                     "typeName": "RangeAnnotationInt"
                                                 }
@@ -136,8 +136,8 @@
                                             "annotations": [
                                                 {
                                                     "properties": {
-                                                        "max": 7680,
-                                                        "min": -7680
+                                                        "max": 8192,
+                                                        "min": -8192
                                                     },
                                                     "typeName": "RangeAnnotationInt"
                                                 }
@@ -148,7 +148,7 @@
                                             "annotations": [
                                                 {
                                                     "properties": {
-                                                        "max": 7680,
+                                                        "max": 8192,
                                                         "min": 1
                                                     },
                                                     "typeName": "RangeAnnotationInt"

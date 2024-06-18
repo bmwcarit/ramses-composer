@@ -41,18 +41,18 @@ public:
 		GreaterEqual
 	};
 
-	void waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state, ECompareFunc compFunc = ECompareFunc::Equal);
+	[[nodiscard]] bool waitForSceneState(ramses::sceneId_t sceneId, ramses::RendererSceneState state, ECompareFunc compFunc = ECompareFunc::Equal);
 
 	void objectsPicked(ramses::sceneId_t sceneId, const ramses::pickableObjectId_t* pickedObjects, size_t pickedObjectsCount) override;
 
-	bool waitForFlush(ramses::sceneId_t sceneId, ramses::sceneVersionTag_t sceneVersion);
-	bool waitForDisplayCreation(ramses::displayId_t displayId);
-	bool waitForDisplayDestruction(ramses::displayId_t displayId);
-	bool waitForOffscreenBufferCreation(ramses::displayBufferId_t displayBufferId);
-	bool waitForOffscreenBufferDestruction(ramses::displayBufferId_t displayBufferId);
-	bool waitForOffscreenBufferLinked(ramses::displayBufferId_t displayBufferId);
-	bool waitUntilOrTimeout(const std::function<bool()>& conditionFunction);
-	bool waitForScreenshot();
+	[[nodiscard]] bool waitForFlush(ramses::sceneId_t sceneId, ramses::sceneVersionTag_t sceneVersion);
+	[[nodiscard]] bool waitForDisplayCreation(ramses::displayId_t displayId);
+	[[nodiscard]] bool waitForDisplayDestruction(ramses::displayId_t displayId);
+	[[nodiscard]] bool waitForOffscreenBufferCreation(ramses::displayBufferId_t displayBufferId);
+	[[nodiscard]] bool waitForOffscreenBufferDestruction(ramses::displayBufferId_t displayBufferId);
+	[[nodiscard]] bool waitForOffscreenBufferLinked(ramses::displayBufferId_t displayBufferId);
+	[[nodiscard]] bool waitUntilOrTimeout(const std::function<bool()>& conditionFunction, const std::string& actionDescription);
+	[[nodiscard]] bool waitForScreenshot();
 
 	ramses::RendererSceneState sceneState(ramses::sceneId_t sceneId);
 	

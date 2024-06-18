@@ -36,6 +36,8 @@ public:
 	bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const override;
 	bool canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef = false) const override;
 	
+	std::vector<ColumnIndex> hiddenColumns() const override;
+
 public Q_SLOTS:
 	size_t deleteObjectsAtIndices(const QModelIndexList& index) override;
 	void copyObjectsAtIndices(const QModelIndexList& indices, bool deepCopy) override;

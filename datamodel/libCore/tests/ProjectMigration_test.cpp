@@ -28,6 +28,7 @@
 #include "ramses_base/BaseEngineBackend.h"
 
 #include "user_types/Animation.h"
+#include "user_types/BlitPass.h"
 #include "user_types/CubeMap.h"
 #include "user_types/Enumerations.h"
 #include "user_types/Material.h"
@@ -54,7 +55,7 @@ static_assert(!std::is_same<serialization::proxy::Proxy<testName_old>, serializa
 
 struct MigrationTest : public TestEnvironmentCore {
 	ramses_base::HeadlessEngineBackend backend;
-	raco::application::RaCoApplication application{backend};
+	application::RaCoApplication application{backend};
 
 	// Check if the property types coming out of the migration code agree with the types
 	// in the current version of the user types.
@@ -74,7 +75,7 @@ struct MigrationTest : public TestEnvironmentCore {
 		}
 	}
 
-	std::unique_ptr<raco::application::RaCoProject> loadAndCheckJson(QString filename, int* outFileVersion = nullptr) {
+	std::unique_ptr<application::RaCoProject> loadAndCheckJson(QString filename, int* outFileVersion = nullptr) {
 		QFile file{filename};
 		EXPECT_TRUE(file.open(QIODevice::ReadOnly | QIODevice::Text));
 		auto document{QJsonDocument::fromJson(file.readAll())};
@@ -92,7 +93,7 @@ struct MigrationTest : public TestEnvironmentCore {
 		checkPropertyTypes(deserializedIR);
 
 		LoadContext loadContext;
-		auto racoproject = raco::application::RaCoProject::loadFromFile(filename, &application, loadContext);
+		auto racoproject = application::RaCoProject::loadFromFile(filename, &application, loadContext);
 		EXPECT_TRUE(racoproject != nullptr);
 
 		return racoproject;
@@ -474,17 +475,17 @@ TEST_F(MigrationTest, migrate_from_V35) {
 	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
 	auto global_lua = core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<user_types::LuaScript>();
 
-	auto prefab_lua_types = raco::select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_types = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_array = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "array");
+	auto prefab_lua_types = select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_array = select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "array");
 
 	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
 
-	auto inst_lua_types = raco::select<user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_types = raco::select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_array = raco::select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "array");
+	auto inst_lua_types = select<user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_array = select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "array");
 
 	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst->objectID()));
 
@@ -510,15 +511,15 @@ TEST_F(MigrationTest, migrate_from_V35_extref) {
 	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
 	auto global_lua = core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<user_types::LuaScript>();
 
-	auto prefab_lua_types = raco::select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_types = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_lua_types = select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
 
 	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer64")->asInt64(), 3);
 
-	auto inst_lua_types = raco::select<user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_types = raco::select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_lua_types = select<user_types::LuaScript>(inst->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = select<user_types::LuaInterface>(inst->children_->asVector<SEditorObject>(), "types-scalar");
 
 	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst->objectID()));
 
@@ -539,8 +540,8 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 	auto inst = core::Queries::findByName(racoproject->project()->instances(), "PrefabInstance")->as<user_types::PrefabInstance>();
 	auto global_lua = core::Queries::findByName(racoproject->project()->instances(), "global_control")->as<user_types::LuaScript>();
 
-	auto prefab_lua_types = raco::select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
-	auto prefab_int_types = raco::select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_lua_types = select<user_types::LuaScript>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
+	auto prefab_int_types = select<user_types::LuaInterface>(prefab->children_->asVector<SEditorObject>(), "types-scalar");
 
 	EXPECT_EQ(prefab_int_types->inputs_->get("float")->asDouble(), 1.0);
 	EXPECT_EQ(prefab_int_types->inputs_->get("integer")->asInt(), 2);
@@ -548,9 +549,9 @@ TEST_F(MigrationTest, migrate_from_V35_extref_nested) {
 
 	auto inst_nested = Queries::findByName(inst->children_->asVector<SEditorObject>(), "inst_nested");
 
-	auto inst_lua_types = raco::select<user_types::LuaScript>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_types = raco::select<user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
-	auto inst_int_array = raco::select<user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "array");
+	auto inst_lua_types = select<user_types::LuaScript>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_types = select<user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "types-scalar");
+	auto inst_int_array = select<user_types::LuaInterface>(inst_nested->children_->asVector<SEditorObject>(), "array");
 
 	EXPECT_EQ(inst_int_types->objectID(), EditorObject::XorObjectIDs(prefab_int_types->objectID(), inst_nested->objectID()));
 
@@ -960,8 +961,8 @@ TEST_F(MigrationTest, migrate_from_V54) {
 	auto renderTarget = core::Queries::findByName(racoproject->project()->instances(), "RenderTarget")->as<user_types::RenderTarget>();
 	auto renderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
 
-	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannel>(), 
-		std::vector<user_types::SAnimationChannel>({animationChannel, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannelBase>(), 
+	std::vector<user_types::SAnimationChannelBase>({animationChannel, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
 	EXPECT_EQ(skin->targets_->asVector<user_types::SMeshNode>(), std::vector<user_types::SMeshNode>({meshnode}));
 
 	EXPECT_EQ(renderTarget->buffers_->asVector<user_types::SRenderBuffer>(), 
@@ -1131,8 +1132,8 @@ TEST_F(MigrationTest, migrate_from_V58) {
 	auto renderTargetMS = core::Queries::findByName(racoproject->project()->instances(), "RenderTargetMS")->as<user_types::RenderTargetMS>();
 	auto renderPass = core::Queries::findByName(racoproject->project()->instances(), "MainRenderPass")->as<user_types::RenderPass>();
 
-	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannel>(),
-		std::vector<user_types::SAnimationChannel>({animationChannel, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
+	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannelBase>(),
+		std::vector<user_types::SAnimationChannelBase>({animationChannel, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}));
 	EXPECT_EQ(skin->targets_->asVector<user_types::SMeshNode>(), std::vector<user_types::SMeshNode>({meshnode}));
 
 	EXPECT_EQ(renderTarget->buffers_->asVector<user_types::SRenderBuffer>(),
@@ -1312,6 +1313,82 @@ TEST_F(MigrationTest, migrate_from_V60) {
 	EXPECT_EQ(*instanceCount_anno->featureLevel_, 1);
 	auto meshnode_enabled_anno = meshnode->enabled_.query<LinkEndAnnotation>();
 	EXPECT_EQ(*meshnode_enabled_anno->featureLevel_, 1);
+}
+
+TEST_F(MigrationTest, migrate_from_V2001) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V2001.rca").string()));
+
+
+	auto animation = core::Queries::findByName(racoproject->project()->instances(), "Animation")->as<user_types::Animation>();
+	auto channel_1 = core::Queries::findByName(racoproject->project()->instances(), "channel-1")->as<user_types::AnimationChannel>();
+	auto channel_2 = core::Queries::findByName(racoproject->project()->instances(), "channel-2")->as<user_types::AnimationChannel>();
+
+	EXPECT_EQ(animation->animationChannels_->asVector<user_types::SAnimationChannelBase>(),
+		std::vector<user_types::SAnimationChannelBase>({channel_1, channel_2}));
+}
+
+TEST_F(MigrationTest, migrate_from_V2003) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V2003.rca").string()));
+
+	auto buffer= core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	EXPECT_EQ(*buffer->width_, 12);
+	EXPECT_EQ(*buffer->height_, 13);
+
+	auto buffer_ms = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+	EXPECT_EQ(*buffer_ms->width_, 14);
+	EXPECT_EQ(*buffer_ms->height_, 15);
+	EXPECT_EQ(*buffer_ms->sampleCount_, 3);
+}
+
+TEST_F(MigrationTest, migrate_from_V2004) {
+	using namespace raco;
+	auto racoproject = loadAndCheckJson(QString::fromStdString((test_path() / "migrationTestData" / "V2004.rca").string()));
+
+	auto settings = core::Queries::findByName(racoproject->project()->instances(), "V2004")->as<core::ProjectSettings>();
+	EXPECT_EQ(*settings->viewport_->i1_, 123);
+	EXPECT_EQ(*settings->viewport_->i2_, 234);
+	EXPECT_EQ(*settings->viewport_->i1_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*settings->viewport_->i2_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	
+	auto perspCamera = core::Queries::findByName(racoproject->project()->instances(), "PerspectiveCamera")->as<user_types::PerspectiveCamera>();
+	EXPECT_EQ(*perspCamera->viewport_->width_, 888);
+	EXPECT_EQ(*perspCamera->viewport_->height_, 777);
+	EXPECT_EQ(*perspCamera->viewport_->width_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*perspCamera->viewport_->height_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	
+	auto orthoCamera = core::Queries::findByName(racoproject->project()->instances(), "OrthographicCamera")->as<user_types::OrthographicCamera>();
+	EXPECT_EQ(*orthoCamera->viewport_->width_, 888);
+	EXPECT_EQ(*orthoCamera->viewport_->height_, 777);
+	EXPECT_EQ(*orthoCamera->viewport_->width_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*orthoCamera->viewport_->height_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	
+	auto buffer = core::Queries::findByName(racoproject->project()->instances(), "RenderBuffer")->as<user_types::RenderBuffer>();
+	EXPECT_EQ(*buffer->width_, 123);
+	EXPECT_EQ(*buffer->height_, 234);
+	EXPECT_EQ(*buffer->width_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*buffer->height_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+
+	auto buffer_ms = core::Queries::findByName(racoproject->project()->instances(), "RenderBufferMS")->as<user_types::RenderBufferMS>();
+	EXPECT_EQ(*buffer_ms->width_, 123);
+	EXPECT_EQ(*buffer_ms->height_, 234);
+	EXPECT_EQ(*buffer_ms->width_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*buffer_ms->height_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+
+	auto blitpass = core::Queries::findByName(racoproject->project()->instances(), "BlitPass")->as<user_types::BlitPass>();
+	EXPECT_EQ(*blitpass->sourceX_, 12);
+	EXPECT_EQ(*blitpass->sourceY_, 13);
+	EXPECT_EQ(*blitpass->destinationX_, 14);
+	EXPECT_EQ(*blitpass->destinationY_, 15);
+	EXPECT_EQ(*blitpass->width_, 123);
+	EXPECT_EQ(*blitpass->height_, 234);
+	EXPECT_EQ(*blitpass->sourceX_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*blitpass->sourceY_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*blitpass->destinationX_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*blitpass->destinationY_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*blitpass->width_.staticQuery<RangeAnnotation<int>>().max_, 8192);
+	EXPECT_EQ(*blitpass->height_.staticQuery<RangeAnnotation<int>>().max_, 8192);
 }
 
 TEST_F(MigrationTest, migrate_from_current) {

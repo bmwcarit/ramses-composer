@@ -15,11 +15,9 @@
 
 #include <QApplication>
 
-class ErrorViewTest : public TestEnvironmentCore {
+class ErrorViewTest : public TestEnvironmentCoreT<::testing::Test, QApplication> {
 	
 protected:
-	int argc{0};
-	QApplication fakeApp_{argc, nullptr};
 	components::SDataChangeDispatcher dataChangeDispatcher_{std::make_shared<components::DataChangeDispatcher>()};
 	common_widgets::ErrorView errorView_{&commandInterface, dataChangeDispatcher_, true, nullptr};
 };

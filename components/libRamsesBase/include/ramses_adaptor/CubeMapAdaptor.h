@@ -9,9 +9,9 @@
  */
 #pragma once
 
+#include "components/DataChangeDispatcher.h"
 #include "core/Handles.h"
 #include "ramses_adaptor/ObjectAdaptor.h"
-#include "components/DataChangeDispatcher.h"
 #include "user_types/CubeMap.h"
 #include <memory>
 #include <ramses/client/TextureCube.h>
@@ -28,7 +28,6 @@ public:
 
 private:
 	ramses_base::RamsesTextureCube createTexture(core::Errors* errors);
-	ramses_base::RamsesTextureCube fallbackCube();
 	std::string createDefaultTextureDataName();
 
 	std::array<components::Subscription, 9> subscriptions_;
@@ -37,4 +36,4 @@ private:
 	std::map<std::string, std::vector<unsigned char>> generateMipmapData(core::Errors* errors, int level, ramses_base::PngDecodingInfo& decodingInfo);
 };
 
-};  // namespace raco::ramses_adaptor
+};	// namespace raco::ramses_adaptor

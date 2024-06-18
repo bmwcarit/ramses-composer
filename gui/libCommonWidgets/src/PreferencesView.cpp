@@ -14,24 +14,21 @@
 #include "common_widgets/PropertyBrowserButton.h"
 #include "core/PathManager.h"
 #include "log_system/log.h"
-#include "application/RaCoApplication.h"
 
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
-#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QVBoxLayout>
 
 namespace raco::common_widgets {
 
 using RaCoPreferences = components::RaCoPreferences;
 
-PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
+PreferencesView::PreferencesView(application::RaCoApplication* racoApp, QWidget* parent) : QDialog{parent}, racoApp_{racoApp} {
 	auto layout = new QVBoxLayout{this};
 	auto form = new QWidget{this};
 	layout->addWidget(form, Qt::AlignTop);
@@ -90,6 +87,7 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 		Q_EMIT dirtyChanged(dirty());
 	});
 
+	// Screenshot
 	{
 		auto* selectScreenshotDirectoryButton = new PropertyBrowserButton("  ...  ", this);
 
@@ -116,6 +114,43 @@ PreferencesView::PreferencesView(QWidget* parent) : QDialog{parent} {
 			}
 		});
 	}
+
+	// Global onSave Python script (stored as an absolute path)
+	{
+		auto* selectGlobalPythonButton = new PropertyBrowserButton("  ...  ", this);
+
+		auto container = new QWidget{this};
+		auto containerLayout = new QGridLayout{container};
+		globalPythonScriptEdit_ = new QLineEdit{this};
+
+		containerLayout->addWidget(globalPythonScriptEdit_, 0, 0);
+		containerLayout->addWidget(selectGlobalPythonButton, 0, 1);
+		containerLayout->setColumnStretch(0, 1);
+		containerLayout->setMargin(0);
+
+		formLayout->addRow("Python Script on Save (Global)", container);
+		const auto globalPythonOnSaveScript = RaCoPreferences::instance().globalPythonOnSaveScript;
+		globalPythonScriptEdit_->setText(convertPathToAbsolute(globalPythonOnSaveScript));
+		QObject::connect(globalPythonScriptEdit_, &QLineEdit::textChanged, this, [this](auto) {
+			Q_EMIT dirtyChanged(dirty());
+		});
+
+		QObject::connect(selectGlobalPythonButton, &QPushButton::clicked, [this]() {
+			auto globalPythonOnSaveScript = globalPythonScriptEdit_->text();
+			globalPythonOnSaveScript = QFileDialog::getOpenFileName(this, "Select Python Script (Global)", globalPythonOnSaveScript, "*.py");
+			globalPythonScriptEdit_->setText(convertPathToAbsolute(globalPythonOnSaveScript));
+		});
+	}
+
+	// Project onSave Python script (stored as a relative path)
+	projectPythonScriptCheckbox_ = new QCheckBox(this);
+	projectPythonScriptCheckbox_->setCheckState(RaCoPreferences::instance().enableProjectPythonScript ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	projectPythonScriptCheckbox_->setToolTip("Enable running Python Script on Save (Project)");
+	formLayout->addRow("Enable Python Script on Save (Project)", projectPythonScriptCheckbox_);
+
+	QObject::connect(projectPythonScriptCheckbox_, &QCheckBox::stateChanged, this, [this]() {
+		Q_EMIT dirtyChanged(dirty());
+	});
 
 	auto buttonBox = new QDialogButtonBox{this};
 	auto cancelButton{new QPushButton{"Close", buttonBox}};
@@ -156,6 +191,9 @@ void PreferencesView::save() {
 	prefs.isUriValidationCaseSensitive = uriValidationCaseSensitiveCheckbox_->checkState() == Qt::CheckState::Checked;
 	prefs.preventAccidentalUpgrade = preventAccidentalUpgradeCheckbox_->checkState() == Qt::CheckState::Checked;
 	prefs.screenshotDirectory = screenshotDirectoryEdit_->text();
+	prefs.screenshotDirectory = screenshotDirectoryEdit_->text();
+	prefs.globalPythonOnSaveScript = convertPathToAbsolute(globalPythonScriptEdit_->text());
+	prefs.enableProjectPythonScript = projectPythonScriptCheckbox_->checkState() == Qt::CheckState::Checked;
 
 	if (!prefs.save()) {
 		LOG_ERROR(log_system::COMMON, "Saving settings failed: {}", core::PathManager::preferenceFilePath().string());
@@ -171,7 +209,18 @@ bool PreferencesView::dirty() {
 		prefs.featureLevel != featureLevelEdit_->value() ||
 		prefs.isUriValidationCaseSensitive != (uriValidationCaseSensitiveCheckbox_->checkState() == Qt::CheckState::Checked) ||
 		prefs.preventAccidentalUpgrade != (preventAccidentalUpgradeCheckbox_->checkState() == Qt::CheckState::Checked) ||
-		prefs.screenshotDirectory != screenshotDirectoryEdit_->text();
+		prefs.screenshotDirectory != screenshotDirectoryEdit_->text() ||
+		prefs.globalPythonOnSaveScript != globalPythonScriptEdit_->text() ||
+		prefs.enableProjectPythonScript != (projectPythonScriptCheckbox_->checkState() == Qt::CheckState::Checked);
+}
+
+QString PreferencesView::convertPathToAbsolute(const QString& path) const {
+	if (!path.isEmpty()) {
+		auto scriptPath = utils::u8path(path.toStdString());
+		scriptPath = scriptPath.normalizedAbsolutePath(racoApp_->activeProjectFolder());
+		return QString::fromStdString(scriptPath.string());
+	}
+	return {};
 }
 
 }  // namespace raco::common_widgets

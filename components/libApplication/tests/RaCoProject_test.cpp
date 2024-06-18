@@ -33,7 +33,7 @@ using namespace raco::core;
 using namespace raco::user_types;
 
 TEST_F(RaCoProjectFixture, saveLoadWithLink) {
-	raco::createLinkedScene(commandInterface(), test_path());
+	createLinkedScene(commandInterface(), test_path());
 	std::string msg;
 	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 
@@ -42,7 +42,7 @@ TEST_F(RaCoProjectFixture, saveLoadWithLink) {
 }
 
 TEST_F(RaCoProjectFixture, saveLoadWithBrokenLink) {
-	auto linkedScene = raco::createLinkedScene(commandInterface(), test_path());
+	auto linkedScene = createLinkedScene(commandInterface(), test_path());
 	utils::file::write((test_path() / "lua_script.lua").string(), R"(
 function interface(IN,OUT)
 	OUT.newTranslation = Type:Vec3f()
@@ -130,7 +130,7 @@ end
 
 TEST_F(RaCoProjectFixture, saveWithValidLinkLoadWithBrokenLink) {
 	{
-		auto linkedScene = raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		auto linkedScene = createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		std::string msg;
 		ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 	}
@@ -153,7 +153,7 @@ end
 
 TEST_F(RaCoProjectFixture, saveWithBrokenLinkLoadWithValidLink) {
 	{
-		auto linkedScene = raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		auto linkedScene = createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		utils::file::write((test_path() / "lua_script.lua").string(), R"(
 function interface(IN,OUT)
 	OUT.newTranslation = Type:Vec3f()
@@ -182,7 +182,7 @@ end
 
 TEST_F(RaCoProjectFixture, saveLoadWithLinkRemoveOutputPropertyBeforeLoading) {
 	{
-		raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		std::string msg;
 		ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg));
 	}
@@ -271,7 +271,7 @@ TEST_F(RaCoProjectFixture, saveAsThenLoadAnimationKeepsChannelAmount) {
 	desc.absPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
+	auto [scenegraph, dummyCacheEntry] = getMeshSceneGraphWithHandler(commandInterface->meshCache(), desc);
 
 	commandInterface->insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 	commandInterface->createObject(user_types::Animation::typeDescription.typeName, "userAnim");
@@ -437,14 +437,14 @@ TEST_F(RaCoProjectFixture, save_as_with_new_id_preserves_prefab_id_structure_nes
 	auto& instances = application.activeRaCoProject().project()->instances();
 
 	{
-		auto prefab = raco::select<Prefab>(instances, "prefab");
+		auto prefab = select<Prefab>(instances, "prefab");
 		auto lua = prefab->children_->asVector<SEditorObject>()[0];
 
-		auto prefab_2 = raco::select<Prefab>(instances, "prefab2");
+		auto prefab_2 = select<Prefab>(instances, "prefab2");
 		auto inst_1 = prefab_2->children_->asVector<SEditorObject>()[0];
 		auto lua_1 = inst_1->children_->asVector<SEditorObject>()[0];
 
-		auto inst_2 = raco::select<PrefabInstance>(instances, "inst2");
+		auto inst_2 = select<PrefabInstance>(instances, "inst2");
 		auto inst_3 = inst_2->children_->asVector<SEditorObject>()[0];
 		auto lua_2 = inst_3->children_->asVector<SEditorObject>()[0];
 
@@ -591,7 +591,7 @@ TEST_F(RaCoProjectFixture, saveAs_set_path_updates_cached_path) {
 	std::string interfaceSubdirectory = u8"shared";
 	std::string shaderSubdirectory = u8"shared";
 
-	using namespace raco::user_types;
+	using namespace user_types;
 
 	std::string msg;
 	ASSERT_TRUE(application.activeRaCoProject().saveAs((test_path() / "project.rca").string().c_str(), msg, false));
@@ -622,7 +622,7 @@ TEST_F(RaCoProjectFixture, saveAs_with_new_id_set_path_updates_cached_path) {
 	std::string interfaceSubdirectory = u8"shared";
 	std::string shaderSubdirectory = u8"shared";
 
-	using namespace raco::user_types;
+	using namespace user_types;
 
 	std::string msg;
 	ASSERT_TRUE(application.saveAsWithNewIDs((test_path() / "project.rca").string().c_str(), msg, false));
@@ -661,7 +661,7 @@ TEST_F(RaCoProjectFixture, saveAsNewProjectGeneratesResourceSubFolders) {
 	std::string interfaceSubdirectory = u8"shared";
 	std::string shaderSubdirectory = u8"shared";
 
-	using namespace raco::user_types;
+	using namespace user_types;
 
 	const auto& settings = application.activeRaCoProject().project()->settings();
 	const auto& commandInterface = application.activeRaCoProject().commandInterface();
@@ -760,7 +760,7 @@ TEST_F(RaCoProjectFixture, loadingBrokenJSONFileThrowsException) {
 
 TEST_F(RaCoProjectFixture, saveLoadAsZip) {
 	{
-		auto linkedScene = raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		auto linkedScene = createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		auto lua = std::get<user_types::SLuaScript>(linkedScene);
 		const auto nodeRotEuler{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_quat")};
@@ -783,7 +783,7 @@ TEST_F(RaCoProjectFixture, saveLoadAsZip) {
 
 TEST_F(RaCoProjectFixture, saveLoadRotationLinksGetReinstated) {
 	{
-		auto linkedScene = raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		auto linkedScene = createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		auto lua = std::get<user_types::SLuaScript>(linkedScene);
 		const auto nodeRotEuler{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_quat")};
@@ -804,7 +804,7 @@ TEST_F(RaCoProjectFixture, saveLoadRotationLinksGetReinstated) {
 
 TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstated) {
 	{
-		auto linkedScene = raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		auto linkedScene = createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		auto lua = std::get<user_types::SLuaScript>(linkedScene);
 		const auto nodeRotEuler{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_quat")};
@@ -833,7 +833,7 @@ TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstated) {
 
 TEST_F(RaCoProjectFixture, saveLoadRotationInvalidLinksGetReinstatedWithDifferentTypes) {
 	{
-		auto linkedScene = raco::createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
+		auto linkedScene = createLinkedScene(*application.activeRaCoProject().commandInterface(), test_path());
 		auto lua = std::get<user_types::SLuaScript>(linkedScene);
 		const auto nodeRotEuler{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_eul")};
 		const auto nodeRotQuat{application.activeRaCoProject().commandInterface()->createObject(user_types::Node::typeDescription.typeName, "node_quat")};
@@ -875,7 +875,7 @@ TEST_F(RaCoProjectFixture, copyPasteShallowAnimationReferencingAnimationChannel)
 		application.activeRaCoProject().project()->setCurrentPath((test_path() / "project.rca").string());
 		auto path = (test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string();
 
-		auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(application.activeRaCoProject().meshCache(), {path, 0, false});
+		auto [scenegraph, dummyCacheEntry] = getMeshSceneGraphWithHandler(application.activeRaCoProject().meshCache(), {path, 0, false});
 
 		application.activeRaCoProject().commandInterface()->insertAssetScenegraph(scenegraph, path, nullptr);
 		application.doOneLoop();
@@ -895,7 +895,7 @@ TEST_F(RaCoProjectFixture, copyPasteDeepAnimationReferencingAnimationChannel) {
 	{
 		application.activeRaCoProject().project()->setCurrentPath((test_path() / "project.rca").string());
 		auto path = (test_path() / "meshes" / "InterpolationTest" / "InterpolationTest.gltf").string();
-		auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(application.activeRaCoProject().meshCache(), {path, 0, false});
+		auto [scenegraph, dummyCacheEntry] = getMeshSceneGraphWithHandler(application.activeRaCoProject().meshCache(), {path, 0, false});
 		application.activeRaCoProject().commandInterface()->insertAssetScenegraph(scenegraph, path, nullptr);
 		application.doOneLoop();
 

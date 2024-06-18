@@ -110,13 +110,13 @@ TEST_F(PrefabTest, check_id_copy_paste) {
 	commandInterface.set({lua, {"uri"}}, (test_path() / "scripts/interface-scalar-types.lua").string());
 
 	auto inst = create_prefabInstance("inst", prefab);
-	auto inst_lua = raco::select<LuaInterface>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaInterface>(inst->children_->asVector<SEditorObject>());
 
 	commandInterface.set({lua, {"inputs", "float"}}, 2.0);
 	commandInterface.set({inst_lua, {"inputs", "float"}}, 3.0);
 
 	auto pasted = commandInterface.pasteObjects(commandInterface.copyObjects({inst}));
-	auto inst_2 = raco::select<PrefabInstance>(pasted);
+	auto inst_2 = select<PrefabInstance>(pasted);
 	auto inst_2_lua = inst_2->children_->get(0)->asRef();
 	ASSERT_TRUE(inst_2 != nullptr);
 	ASSERT_TRUE(inst_2_lua != nullptr);
@@ -155,7 +155,7 @@ TEST_F(PrefabTest, check_id_copy_paste_nesting) {
 	EXPECT_EQ(lua_2->objectID(), EditorObject::XorObjectIDs(lua->objectID(), inst_3->objectID()));
 
 	auto pasted = commandInterface.pasteObjects(commandInterface.copyObjects({inst_2}));
-	auto inst_2_copy = raco::select<PrefabInstance>(pasted);
+	auto inst_2_copy = select<PrefabInstance>(pasted);
 	EXPECT_EQ(inst_2_copy->children_->size(), 1);
 	auto inst_3_copy = inst_2_copy->children_->asVector<SEditorObject>()[0];
 	EXPECT_EQ(inst_3_copy->children_->size(), 1);
@@ -259,8 +259,8 @@ end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);
 	EXPECT_EQ(inst->children_->size(), 2);
-	auto inst_node = raco::select<Node>(inst->children_->asVector<SEditorObject>());
-	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_node = select<Node>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	EXPECT_TRUE(inst_node);
 	EXPECT_TRUE(inst_lua);
 
@@ -303,9 +303,9 @@ TEST_F(PrefabTest, link_broken_inside_prefab_status_gets_propagated_to_instances
 
 	commandInterface.addLink({luaPrefabGlobal, {"outputs", "ovector3f"}} , {node, {"translation"}});
 	commandInterface.addLink({luaPrefabNodeChild, {"outputs", "out_float"}}, {luaPrefabGlobal, {"inputs", "float"}});
-	auto inst_node = raco::select<Node>(inst->children_->asVector<SEditorObject>());
-	auto inst_lua_prefab = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
-	auto inst_lua_child = raco::select<LuaScript>(inst_node->children_->asVector<SEditorObject>());
+	auto inst_node = select<Node>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua_prefab = select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua_child = select<LuaScript>(inst_node->children_->asVector<SEditorObject>());
 	std::vector<Link> refLinks{{
 		{{luaPrefabGlobal, {"outputs", "ovector3f"}}, {node, {"translation"}}},
 		{{luaPrefabNodeChild, {"outputs", "out_float"}}, {luaPrefabGlobal, {"inputs", "float"}}},
@@ -333,8 +333,8 @@ TEST_F(PrefabTest, link_lua_node_delete_lua_in_prefab) {
 	commandInterface.set({inst, {"template"}}, prefab);
 
 	EXPECT_EQ(inst->children_->size(), 2);
-	auto inst_node = raco::select<Node>(inst->children_->asVector<SEditorObject>());
-	auto inst_lua = raco::select<LuaInterface>(inst->children_->asVector<SEditorObject>());
+	auto inst_node = select<Node>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaInterface>(inst->children_->asVector<SEditorObject>());
 	EXPECT_TRUE(inst_node);
 	EXPECT_TRUE(inst_lua);
 
@@ -538,7 +538,7 @@ TEST_F(PrefabTest, delete_prefab_with_node_with_meshnode_while_instance_exists) 
 
 TEST_F(PrefabTest, update_inst_from_prefab_after_remove_link) {
 	ramses_base::HeadlessEngineBackend backend;
-	raco::application::RaCoApplication app{backend};
+	application::RaCoApplication app{backend};
 	auto& cmd = *app.activeRaCoProject().commandInterface();
 
 	auto prefab = create<Prefab>(cmd, "prefab");
@@ -558,8 +558,8 @@ end
 	cmd.addLink({lua, {"inputs", "v"}}, {node, {"translation"}});
 	app.doOneLoop();
 
-	auto inst_node = raco::select<Node>(inst->children_->asVector<SEditorObject>());
-	auto inst_lua = raco::select<LuaInterface>(inst->children_->asVector<SEditorObject>());
+	auto inst_node = select<Node>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaInterface>(inst->children_->asVector<SEditorObject>());
 
 	cmd.set({lua, {"inputs", "v", "x"}}, 2.0);
 	cmd.set({inst_lua, {"inputs", "v", "x"}}, 3.0);
@@ -581,7 +581,7 @@ TEST_F(PrefabTest, restore_cached_lua_script_prop_when_breaking_uri) {
 	auto inst = create<PrefabInstance>("inst");
 	commandInterface.set({inst, {"template"}}, prefab);
 
-	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 
 	commandInterface.set({lua, {"inputs", "float"}}, 2.0);
 
@@ -609,7 +609,7 @@ TEST_F(PrefabTest, restore_cached_lua_interface_prop_when_breaking_uri) {
 	auto inst = create<PrefabInstance>("inst");
 	commandInterface.set({inst, {"template"}}, prefab);
 
-	auto inst_lua = raco::select<LuaInterface>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaInterface>(inst->children_->asVector<SEditorObject>());
 
 	commandInterface.set({lua, {"inputs", "float"}}, 2.0);
 	commandInterface.set({inst_lua, {"inputs", "float"}}, 3.0);
@@ -647,9 +647,9 @@ end
 )");
 	commandInterface.set({lua, {"uri"}}, scriptFile);
 	EXPECT_EQ(inst->children_->size(), 2);
-	auto inst_node = raco::select<Node>(inst->children_->asVector<SEditorObject>());
-	auto inst_meshnode = raco::select<MeshNode>(inst->children_->asVector<SEditorObject>());
-	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_node = select<Node>(inst->children_->asVector<SEditorObject>());
+	auto inst_meshnode = select<MeshNode>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	EXPECT_TRUE(inst_node);
 	EXPECT_FALSE(inst_meshnode);
 	EXPECT_TRUE(inst_lua);
@@ -664,8 +664,8 @@ end
 	core::PrefabOperations::globalPrefabUpdate(context);
 
 	EXPECT_EQ(inst->children_->size(), 2);
-	inst_meshnode = raco::select<MeshNode>(inst->children_->asVector<SEditorObject>());
-	inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	inst_meshnode = select<MeshNode>(inst->children_->asVector<SEditorObject>());
+	inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	EXPECT_TRUE(inst_meshnode);
 	EXPECT_TRUE(inst_lua);
 	// These are the crucial checks:
@@ -686,7 +686,7 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_no_module) {
 
 	auto lua = create_lua("lua", "scripts/moduleDependency.lua", prefab);
 
-	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	ASSERT_NE(inst_lua, nullptr);
 	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{lua, {"luaModules", "coalas"}}));
 	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{inst_lua, {"luaModules", "coalas"}}));
@@ -704,7 +704,7 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_add_module) {
 
 	commandInterface.set({lua, {"luaModules", "coalas"}}, luaModule);
 
-	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	ASSERT_NE(inst_lua, nullptr);
 	ASSERT_FALSE(commandInterface.errors().hasError({lua}));
 	ASSERT_FALSE(commandInterface.errors().hasError({inst_lua}));
@@ -723,7 +723,7 @@ TEST_F(PrefabTest, update_luascript_module_dependant_in_prefab_remove_module) {
 	commandInterface.set({lua, {"luaModules", "coalas"}}, luaModule);
 	commandInterface.set({lua, {"luaModules", "coalas"}}, SEditorObject{});
 
-	auto inst_lua = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>());
+	auto inst_lua = select<LuaScript>(inst->children_->asVector<SEditorObject>());
 	ASSERT_NE(inst_lua, nullptr);
 	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{lua, {"luaModules", "coalas"}}));
 	ASSERT_TRUE(commandInterface.errors().hasError(ValueHandle{inst_lua, {"luaModules", "coalas"}}));
@@ -999,8 +999,8 @@ TEST_F(PrefabTest, link_strong_to_weak_transition) {
 	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
 
 	auto inst = create_prefabInstance("inst", prefab);
-	auto inst_start = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "start");
-	auto inst_end = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "end");
+	auto inst_start = select<LuaScript>(inst->children_->asVector<SEditorObject>(), "start");
+	auto inst_end = select<LuaScript>(inst->children_->asVector<SEditorObject>(), "end");
 
 	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
 		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, true, false}});
@@ -1028,8 +1028,8 @@ TEST_F(PrefabTest, link_strong_valid_to_weak_invalid_transition) {
 	commandInterface.addLink(ValueHandle{start, {"outputs", "ofloat"}}, ValueHandle{end, {"inputs", "float"}});
 
 	auto inst = create_prefabInstance("inst", prefab);
-	auto inst_start = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "start");
-	auto inst_end = raco::select<LuaScript>(inst->children_->asVector<SEditorObject>(), "end");
+	auto inst_start = select<LuaScript>(inst->children_->asVector<SEditorObject>(), "start");
+	auto inst_end = select<LuaScript>(inst->children_->asVector<SEditorObject>(), "end");
 
 	checkLinks({{{start, {"outputs", "ofloat"}}, {end, {"inputs", "float"}}, true, false},
 		{{inst_start, {"outputs", "ofloat"}}, {inst_end, {"inputs", "float"}}, true, false}});
@@ -1060,7 +1060,7 @@ TEST_F(PrefabTest, prefab_update_from_optimized_saved_file) {
 	std::string lua_id;
 
 	{
-		raco::application::RaCoApplication app{backend};
+		application::RaCoApplication app{backend};
 		auto& cmd = *app.activeRaCoProject().commandInterface();
 
 		auto prefab = create<Prefab>(cmd, "prefab");
@@ -1088,9 +1088,9 @@ TEST_F(PrefabTest, prefab_update_from_optimized_saved_file) {
 	}
 
 	{
-		raco::application::RaCoApplicationLaunchSettings settings;
+		application::RaCoApplicationLaunchSettings settings;
 		settings.initialProject = (test_path() / "test.rca").string().c_str();
-		raco::application::RaCoApplication app{backend, settings};
+		application::RaCoApplication app{backend, settings};
 
 		auto& project = *app.activeRaCoProject().project();
 

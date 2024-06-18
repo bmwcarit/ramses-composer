@@ -330,6 +330,112 @@ TEST_F(SceneContextTest, construction_createSceneWithDeeperHierarchy_reverseNode
 	dispatch();
 }
 
+
+TEST_F(SceneContextTest, prefab_move_out) {
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto node_1 = create<user_types::Node>("node_1", prefab);
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+
+	commandInterface.moveScenegraphChildren({node_1}, {});
+	dispatch();
+
+	selectCheck<ramses::Node>(node_1);
+}
+
+TEST_F(SceneContextTest, prefab_delete_then_move_out) {
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto node_1 = create<user_types::Node>("node_1");
+	auto node_2 = create<user_types::Node>("node_2", prefab);
+	dispatch();
+
+	selectCheck<ramses::Node>(node_1);
+	dontFind<ramses::Node>("node_2");
+
+	commandInterface.deleteObjects({node_1});
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+	dontFind<ramses::Node>("node_2");
+
+	commandInterface.moveScenegraphChildren({node_2}, {});
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+	selectCheck<ramses::Node>(node_2);
+}
+
+TEST_F(SceneContextTest, prefab_delete_and_move_out) {
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto node_1 = create<user_types::Node>("node_1");
+	auto node_2 = create<user_types::Node>("node_2", prefab);
+	dispatch();
+
+	selectCheck<ramses::Node>(node_1);
+	dontFind<ramses::Node>("node_2");
+
+	commandInterface.deleteObjects({node_1});
+	commandInterface.moveScenegraphChildren({node_2}, {});
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+	selectCheck<ramses::Node>(node_2);
+}
+
+
+TEST_F(SceneContextTest, prefab_move_in) {
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto node_1 = create<user_types::Node>("node_1");
+	dispatch();
+
+	selectCheck<ramses::Node>(node_1);
+
+	commandInterface.moveScenegraphChildren({node_1}, prefab);
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+}
+
+TEST_F(SceneContextTest, prefab_delete_then_move_in) {
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto node_1 = create<user_types::Node>("node_1");
+	auto node_2 = create<user_types::Node>("node_2");
+	dispatch();
+
+	selectCheck<ramses::Node>(node_1);
+	selectCheck<ramses::Node>(node_2);
+
+	commandInterface.deleteObjects({node_1});
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+	selectCheck<ramses::Node>(node_2);
+
+	commandInterface.moveScenegraphChildren({node_2}, prefab);
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+	dontFind<ramses::Node>("node_2");
+}
+
+TEST_F(SceneContextTest, prefab_delete_and_move_in) {
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto node_1 = create<user_types::Node>("node_1");
+	auto node_2 = create<user_types::Node>("node_2");
+	dispatch();
+
+	selectCheck<ramses::Node>(node_1);
+	selectCheck<ramses::Node>(node_2);
+
+	commandInterface.deleteObjects({node_1});
+	commandInterface.moveScenegraphChildren({node_2}, prefab);
+	dispatch();
+
+	dontFind<ramses::Node>("node_1");
+	dontFind<ramses::Node>("node_2");
+}
+
 // TODO: this seems a little bit of an overkill to get all permutations of an array of size 4, find an easier way to tell INSTANTIATE_TEST_SUITE_P to do it for all permutations of the array
 struct CreationOrder {
 	CreationOrder(const std::array<std::string, 4>& a) : order{a} {};

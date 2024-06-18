@@ -491,6 +491,153 @@ end
 	ASSERT_EQ(4.0f, engineObj->getOutputs()->getChild("value")->get<float>());
 }
 
+TEST_F(LuaScriptAdaptorFixture, prefab_move_out) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto script = create_lua("script", scriptFile, prefab);
+	dispatch();
+
+	dontFindLogic<ramses::LuaScript>("script");
+
+	commandInterface.moveScenegraphChildren({script}, {});
+	dispatch();
+
+	selectCheckLogic<ramses::LuaScript>(script);
+}
+
+TEST_F(LuaScriptAdaptorFixture, prefab_delete_then_move_out) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto script = create_lua("script", scriptFile, prefab);
+	auto node = create<user_types::Node>("node");
+	dispatch();
+
+	selectCheck<ramses::Node>(node);
+	dontFindLogic<ramses::LuaScript>("script");
+
+	commandInterface.deleteObjects({node});
+	dispatch();
+
+	dontFind<ramses::Node>("node");
+	dontFindLogic<ramses::LuaScript>("script");
+
+	commandInterface.moveScenegraphChildren({script}, {});
+	dispatch();
+
+	dontFind<ramses::Node>("node");
+	selectCheckLogic<ramses::LuaScript>(script);
+}
+
+TEST_F(LuaScriptAdaptorFixture, prefab_delete_and_move_out) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto script = create_lua("script", scriptFile, prefab);
+	auto node = create<user_types::Node>("node");
+	dispatch();
+
+	selectCheck<ramses::Node>(node);
+	dontFindLogic<ramses::LuaScript>("script");
+
+	commandInterface.deleteObjects({node});
+	commandInterface.moveScenegraphChildren({script}, {});
+	dispatch();
+
+	dontFind<ramses::Node>("node");
+	selectCheckLogic<ramses::LuaScript>(script);
+}
+
+TEST_F(LuaScriptAdaptorFixture, prefab_move_in) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto script = create_lua("script", scriptFile);
+	dispatch();
+
+	selectCheckLogic<ramses::LuaScript>(script);
+
+	commandInterface.moveScenegraphChildren({script}, prefab);
+	dispatch();
+
+	dontFindLogic<ramses::LuaScript>("script");
+}
+
+TEST_F(LuaScriptAdaptorFixture, prefab_delete_then_move_in) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto script = create_lua("script", scriptFile);
+	auto node = create<user_types::Node>("node");
+	dispatch();
+
+	selectCheck<ramses::Node>(node);
+	selectCheckLogic<ramses::LuaScript>(script);
+
+	commandInterface.deleteObjects({node});
+	dispatch();
+
+	dontFind<ramses::Node>("node");
+	selectCheckLogic<ramses::LuaScript>(script);
+
+	commandInterface.moveScenegraphChildren({script}, prefab);
+	dispatch();
+
+	dontFind<ramses::Node>("node");
+	dontFindLogic<ramses::LuaScript>("script");
+}
+
+TEST_F(LuaScriptAdaptorFixture, prefab_delete_and_move_in) {
+	TextFile scriptFile = makeFile("script.lua", R"(
+function interface(IN, OUT)
+end
+function run(IN,OUT)
+	error()
+end
+)");
+	auto prefab = create<user_types::Prefab>("prefab");
+	auto script = create_lua("script", scriptFile);
+	auto node = create<user_types::Node>("node");
+	dispatch();
+
+	selectCheck<ramses::Node>(node);
+	selectCheckLogic<ramses::LuaScript>(script);
+
+	commandInterface.deleteObjects({node});
+	commandInterface.moveScenegraphChildren({script}, prefab);
+	dispatch();
+
+	dontFind<ramses::Node>("node");
+	dontFindLogic<ramses::LuaScript>("script");
+}
+
+
 TEST_F(LuaScriptAdaptorFixture, prefab_instance_top_level_script_engine_name_gets_changed_after_moving) {
 	auto luaScriptTopLevel = create<LuaScript>("LuaScript Name");
 	auto luaScriptChild = create<LuaScript>("Child LuaScript Name");

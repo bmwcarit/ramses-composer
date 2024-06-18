@@ -145,22 +145,17 @@ TEST_F(AnimationChannelTest, invalidAnim_weights_supported) {
 	ASSERT_FALSE(commandInterface.errors().hasError(samplerIndexHandle));
 }
 
-#if (!defined(__linux__))
-// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
-
 TEST_F(AnimationChannelTest, validAnim_madeInvalid) {
 	auto animChannel = create<AnimationChannel>("anim_channel");
 	ValueHandle uriHandle{animChannel, &user_types::AnimationChannel::uri_};
-	
+
 	auto animChannelPath = test_path().append("meshes/CesiumMilkTruck/CesiumMilkTruck.gltf").string();
 	commandInterface.set(uriHandle, animChannelPath);
 	ASSERT_FALSE(commandInterface.errors().hasError(uriHandle));
 
 	recorder.reset();
 	utils::file::write(animChannelPath, "");
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, animChannel));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, animChannel));
 
 	ASSERT_TRUE(commandInterface.errors().hasError(uriHandle));
 }
-
-#endif

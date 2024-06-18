@@ -163,7 +163,9 @@ ExportDialog::ExportDialog(application::RaCoApplication* application, LogViewMod
 		textBox->setAcceptRichText(false);
 
 		textBox->setText(QString::fromStdString(message));
-		showExportWithErrors = true;
+		if (sceneStatus == core::ErrorLevel::ERROR) {
+			showExportWithErrors = true;
+		}
 
 		tabWidget->setCurrentIndex(tabWidget->addTab(textBox, sceneStatus == core::ErrorLevel::ERROR ? "Ramses Errors" : "Ramses Warnings"));
 	}

@@ -55,6 +55,7 @@
 #include <ramses/client/logic/CameraBinding.h>
 #include <ramses/client/logic/MeshNodeBinding.h>
 #include <ramses/client/logic/NodeBinding.h>
+#include <ramses/client/logic/RenderBufferBinding.h>
 #include <ramses/client/logic/RenderPassBinding.h>
 #include <ramses/client/logic/RenderGroupBinding.h>
 #include <ramses/client/logic/RenderGroupBindingElements.h>
@@ -490,6 +491,8 @@ inline RamsesRenderBuffer ramsesRenderBuffer(ramses::Scene* scene,
 	auto buffer{scene->createRenderBuffer(width, height, format, accessMode, sampleCount, name)};
 	if (buffer) {
 		buffer->setUserId(objectID.first, objectID.second);
+	} else {
+		LOG_ERROR(log_system::RAMSES_ADAPTOR, "Ramses RenderBuffer creation for width = {}, height = {}, format = {}, accessMode = {}, sampleCount = {}, name = '{}' failed.", width, height, accessMode, sampleCount, name);
 	}
 
 	return {buffer, createRamsesObjectDeleter<ramses::RenderBuffer>(scene)};
@@ -620,7 +623,10 @@ inline RamsesTextureSampler ramsesTextureSampler(ramses::Scene* scene, ramses::E
 	auto sampler = scene->createTextureSampler(wrapUMode, wrapVMode, minSamplingMethod, magSamplingMethod, *texture, anisotropyLevel, name);
 	if (sampler) {
 		sampler->setUserId(objectID.first, objectID.second);
+	} else {
+		LOG_ERROR(log_system::RAMSES_ADAPTOR, "Ramses TextureSampler creation for name = '{}' failed.", name);
 	}
+
 	return {sampler,
 		[scene, forceCopy = texture](ramses::RamsesObject* obj) {
 			if (!scene->destroy(*static_cast<ramses::TextureSampler*>(obj))) {
@@ -634,7 +640,10 @@ inline RamsesTextureSamplerMS ramsesTextureSamplerMS(ramses::Scene* scene, Ramse
 	auto sampler = scene->createTextureSamplerMS(*buffer, name);
 	if (sampler) {
 		sampler->setUserId(objectID.first, objectID.second);
+	} else {
+		LOG_ERROR(log_system::RAMSES_ADAPTOR, "Ramses TextureSamplerMS creation for name = '{}' failed.", name);
 	}
+
 	return {
 		sampler,
 		[scene, forceCopy = buffer](ramses::RamsesObject* buffer) {
@@ -677,6 +686,8 @@ inline RamsesTexture2D ramsesTexture2D(ramses::Scene* scene,
 	auto texture{scene->createTexture2D(format, width, height, mipLevelData, generateMipChain, swizzle, name)};
 	if (texture) {
 		texture->setUserId(objectID.first, objectID.second);
+	} else {
+		LOG_ERROR(log_system::RAMSES_ADAPTOR, "Ramses TextureSampler2D creation for width = {}, height = {}, format = {}, name = '{}' failed.", width, height, format, name);
 	}
 
 	return {texture, createRamsesObjectDeleter<ramses::Texture2D>(scene)};
@@ -732,7 +743,7 @@ using RamsesNodeBinding = std::shared_ptr<ramses::NodeBinding>;
 using RamsesCameraBinding = std::shared_ptr<ramses::CameraBinding>;
 using UniqueRamsesRenderPassBinding = std::unique_ptr<ramses::RenderPassBinding, std::function<void(ramses::RenderPassBinding*)>>;
 using RamsesRenderGroupBinding = std::shared_ptr<ramses::RenderGroupBinding>;
-
+using RamsesRenderBufferBinding = std::shared_ptr<ramses::RenderBufferBinding>;
 
 inline RamsesAppearanceBinding ramsesAppearanceBinding(ramses::Appearance& appearance, ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t> &objectID) {
 	RamsesAppearanceBinding binding{logicEngine->createAppearanceBinding(appearance, name),
@@ -979,6 +990,19 @@ inline RamsesSkinBinding ramsesSkinBinding(ramses::LogicEngine* logicEngine,
 inline RamsesRenderGroupBinding ramsesRenderGroupBinding(ramses::LogicEngine* logicEngine, RamsesRenderGroup renderGroup, const ramses::RenderGroupBindingElements& elements, std::vector<RamsesRenderGroup> nestedGroups, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
 	RamsesRenderGroupBinding binding{logicEngine->createRenderGroupBinding(**renderGroup, elements, name), 
 		[logicEngine, forceRenderGroupCopy = renderGroup, forceNestedGroupCopy = nestedGroups](ramses::RenderGroupBinding* binding) {
+			destroyLogicObject(logicEngine, binding);
+		}};
+
+	if (binding) {
+		binding->setUserId(objectID.first, objectID.second);
+	}
+
+	return binding;
+}
+
+inline RamsesRenderBufferBinding ramsesRenderBufferBinding(RamsesRenderBuffer buffer, ramses::LogicEngine* logicEngine, const std::string& name, const std::pair<uint64_t, uint64_t>& objectID) {
+	RamsesRenderBufferBinding binding{logicEngine->createRenderBufferBinding(*buffer, name),
+		[logicEngine, forceNodeCopy = buffer](ramses::RenderBufferBinding* binding) {
 			destroyLogicObject(logicEngine, binding);
 		}};
 

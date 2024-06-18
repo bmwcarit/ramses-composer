@@ -77,3 +77,53 @@ TEST_F(MeshAdaptorTest, gltf_with_meshes_but_no_mesh_refs_unbaked) {
 	ASSERT_TRUE(isRamsesNameInArray("Mesh Name_MeshVertexData_a_TextureCoordinate", meshStuff));
 	ASSERT_EQ(context.errors().getError(mesh).level(), core::ErrorLevel::INFORMATION);
 }
+
+TEST_F(MeshAdaptorTest, gltf_color_attribute_vec3_no_underscore) {
+	auto mesh = create<user_types::Mesh>("mesh");
+	context.set({mesh, &user_types::Mesh::bakeMeshes_}, false);
+	context.set({mesh, &user_types::Mesh::uri_}, test_path().append("meshes/cube_color_attr_no_underscore_vec3.gltf").string());
+
+	dispatch();
+
+	auto data = mesh->meshData();
+
+	auto color_idx = data->attribIndex("a_Color");
+	ASSERT_TRUE(color_idx >= 0);
+	EXPECT_EQ(data->attribDataType(color_idx), core::MeshData::VertexAttribDataType::VAT_Float4);
+
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
+	EXPECT_EQ(meshStuff.size(), 7);
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshIndexData", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Position", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Normal", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_TextureCoordinate", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Tangent", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Bitangent", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Color", meshStuff));
+	ASSERT_EQ(context.errors().getError({mesh}).level(), core::ErrorLevel::INFORMATION);
+}
+
+TEST_F(MeshAdaptorTest, gltf_color_attribute_vec4_with_underscore) {
+	auto mesh = create<user_types::Mesh>("mesh");
+	context.set({mesh, &user_types::Mesh::bakeMeshes_}, false);
+	context.set({mesh, &user_types::Mesh::uri_}, test_path().append("meshes/cube_color_attr_with_underscore_vec4.gltf").string());
+
+	dispatch();
+
+	auto data = mesh->meshData();
+
+	auto color_idx = data->attribIndex("a_Color");
+	ASSERT_TRUE(color_idx >= 0);
+	EXPECT_EQ(data->attribDataType(color_idx), core::MeshData::VertexAttribDataType::VAT_Float4);
+
+	auto meshStuff{select<ramses::ArrayResource>(*sceneContext.scene(), ramses::ERamsesObjectType::ArrayResource)};
+	EXPECT_EQ(meshStuff.size(), 7);
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshIndexData", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Position", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Normal", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_TextureCoordinate", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Tangent", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Bitangent", meshStuff));
+	ASSERT_TRUE(isRamsesNameInArray("mesh_MeshVertexData_a_Color", meshStuff));
+	ASSERT_EQ(context.errors().getError({mesh}).level(), core::ErrorLevel::INFORMATION);
+}

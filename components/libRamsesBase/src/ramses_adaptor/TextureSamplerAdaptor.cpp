@@ -10,6 +10,7 @@
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "core/ErrorItem.h"
 #include "lodepng.h"
+#include "ramses_adaptor/DefaultRamsesObjects.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
 #include "user_types/Enumerations.h"
@@ -73,7 +74,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 	}
 
 	if (!textureData_) {
-		textureData_ = getFallbackTexture();
+		textureData_ = createDefaultTexture2D(*editorObject()->flipTexture_, sceneAdaptor_->scene());
 	} else {
 		auto selectedTextureFormat = static_cast<user_types::ETextureFormat>((*editorObject()->textureFormat_));
 
@@ -123,7 +124,7 @@ bool TextureSamplerAdaptor::sync(core::Errors* errors) {
 
 RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, PngDecodingInfo& decodingInfo) {
 	if (*editorObject()->mipmapLevel_ < 1 || *editorObject()->mipmapLevel_ > 4) {
-		return getFallbackTexture();
+		return createDefaultTexture2D(*editorObject()->flipTexture_, sceneAdaptor_->scene());
 	}
 
 	std::vector<std::vector<unsigned char>> rawMipDatas;
@@ -143,7 +144,7 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, PngDe
 	}
 
 	if (!mipMapsOk) {
-		return getFallbackTexture();
+		return createDefaultTexture2D(*editorObject()->flipTexture_, sceneAdaptor_->scene());
 	}
 
 	// Swizzle is defined by original file format and user-selected texture format.
@@ -165,15 +166,6 @@ RamsesTexture2D TextureSamplerAdaptor::createTexture(core::Errors* errors, PngDe
 	return ramsesTexture2D(sceneAdaptor_->scene(), swizzleTextureFormat, decodingInfo.width, decodingInfo.height, mipDatas, *editorObject()->generateMipmaps_, swizzle, {}, editorObject()->objectIDAsRamsesLogicID());
 }
 
-RamsesTexture2D TextureSamplerAdaptor::getFallbackTexture() {
-	auto& data = getFallbackTextureData(*editorObject()->flipTexture_);
-	std::vector<ramses::MipLevelData> mipDatas;
-	mipDatas.emplace_back(reinterpret_cast<std::byte*>(data.data()), reinterpret_cast<std::byte*>(data.data()) + data.size());
-	ramses::Texture2D* textureData = sceneAdaptor_->scene()->createTexture2D(ramses::ETextureFormat::RGBA8, FALLBACK_TEXTURE_SIZE_PX, FALLBACK_TEXTURE_SIZE_PX, mipDatas, false, {}, {});
-
-	return {textureData, createRamsesObjectDeleter<ramses::Texture2D>(sceneAdaptor_->scene())};
-}
-
 std::string TextureSamplerAdaptor::createDefaultTextureDataName() {
 	return this->editorObject()->objectName() + "_Texture2D";
 }
@@ -189,30 +181,6 @@ void TextureSamplerAdaptor::flipDecodedPicture(std::vector<unsigned char>& rawPi
 			rawPictureData[swapIndex + x] = tmp;
 		}
 	}
-}
-
-std::vector<unsigned char>& TextureSamplerAdaptor::getFallbackTextureData(bool flipped) {
-	QFile file(":fallbackTextureOpenGL");
-	if (file.exists() && fallbackTextureData_.front().empty()) {
-		auto size = file.size();
-		file.open(QIODevice::ReadOnly);
-		QDataStream in(&file);
-		std::vector<unsigned char> sBuffer(size);
-
-		for (auto i = 0; i < size; ++i) {
-			in >> sBuffer[i];
-		}
-
-		file.close();
-
-		unsigned int width;
-		unsigned int height;
-		lodepng::decode(fallbackTextureData_[0], width, height, sBuffer);
-		fallbackTextureData_[1] = fallbackTextureData_[0];
-		flipDecodedPicture(fallbackTextureData_[1], 4, width, height, 8);
-	}
-
-	return fallbackTextureData_[flipped];
 }
 
 std::vector<ExportInformation> TextureSamplerAdaptor::getExportInformation() const {

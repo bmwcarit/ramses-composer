@@ -239,7 +239,7 @@ TEST_F(SerializationTest, serializeNodeAndScript_withLink) {
 }
 
 TEST_F(SerializationTest, serializeObjects_luaScriptLinkedToNode) {
-	auto objs{raco::createLinkedScene(context, test_relative_path())};
+	auto objs{createLinkedScene(context, test_relative_path())};
 	std::map<std::string, serialization::ExternalProjectInfo> externalProjectsMap;
 	std::map<std::string, std::string> originFolders;
 

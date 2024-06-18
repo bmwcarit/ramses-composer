@@ -264,4 +264,12 @@ std::vector<std::string> Table::propertyNames() const {
 	return result;
 }
 
+std::set<std::string> Table::propertyNameSet() const {
+	std::set<std::string> result;
+	for (const auto& prop : properties_) {
+		result.insert(prop.first);
+	}
+	return result;
+}
+
 }

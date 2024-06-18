@@ -27,6 +27,10 @@ static constexpr const char* defaultNormalDataBufferName = "ramses_adaptor::Defa
 static constexpr const char* defaultRenderGroupName = "ramses_adaptor::DefaultRenderGroup";
 static constexpr const char* defaultRenderPassName = "ramses_adaptor::DefaultRenderPass";
 static constexpr const char* defaultGizmoArrowName = "ramses_adaptor::DefaultGizmoArrow";
+static constexpr const char* defaultTexture2DName = "ramses_adaptor::DefaultTexture2D";
+static constexpr const char* defaultTextureCubeName = "ramses_adaptor::DefaultTextureCube";
+static constexpr const char* defaultTextureSamplerName = "ramses_adaptor::DefaultTextureSampler";
+static constexpr const char* defaultTextureCubeSamplerName = "ramses_adaptor::DefaultTextureCubeSampler";
 
 ramses_base::RamsesAppearance createDefaultAppearance(ramses::Scene* scene, bool withNormals, bool highlight, bool transparent);
 
@@ -40,6 +44,12 @@ ramses_base::RamsesArrayResource createCatNormalDataBuffer(ramses::Scene* scene)
 
 ramses_base::RamsesArrayResource createQuadVertexDataBuffer(ramses::Scene* scene);
 ramses_base::RamsesArrayResource createQuadIndexDataBuffer(ramses::Scene* scene);
+
+ramses_base::RamsesTextureSampler createDefaultTextureSampler(ramses::Scene* scene);
+ramses_base::RamsesTextureSampler createDefaultTextureCubeSampler(ramses::Scene* scene);
+
+ramses_base::RamsesTexture2D createDefaultTexture2D(bool flipped, ramses::Scene* scene);
+ramses_base::RamsesTextureCube createDefaultTextureCube(ramses::Scene* scene, bool generateMipChain);
 
 struct RamsesGizmoMeshBuffers {
 	ramses_base::RamsesArrayResource indices;

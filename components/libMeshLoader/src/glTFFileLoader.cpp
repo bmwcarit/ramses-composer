@@ -132,6 +132,24 @@ void unpackAnimationData(const std::vector<std::vector<float>>& data,
 	}
 }
 
+std::vector<glm::vec3> convert_vec3(const std::vector<std::vector<float>>& data) {
+	std::vector<glm::vec3> result;
+	for (size_t index = 0; index < data.size(); index++) {
+		const auto& v = data[index];
+		result.emplace_back(glm::vec3(v[0], v[1], v[2]));
+	}
+	return result;
+}
+
+std::vector<glm::vec4> convert_vec4(const std::vector<std::vector<float>>& data) {
+	std::vector<glm::vec4> result;
+	for (size_t index = 0; index < data.size(); index++) {
+		const auto& v = data[index];
+		result.emplace_back(glm::vec4(v[0], v[1], v[2], v[3]));
+	}
+	return result;
+}
+
 }  // namespace
 
 namespace raco::mesh_loader {
@@ -301,13 +319,15 @@ void glTFFileLoader::importSkins() {
 		const auto& skin = scene_->skins[index];
 		std::string name = skin.name.empty() ? fmt::format("skin_{}", index) : skin.name;
 
-		// Find node by searching through all nodes in scene
-		auto it = std::find_if(scene_->nodes.begin(), scene_->nodes.end(), [index](const tinygltf::Node& node) {
-			return index == node.skin;
-		});
-		if (it != scene_->nodes.end()) {
-			int nodeIndex = it - scene_->nodes.begin();
-			sceneGraph_->skins.emplace_back(core::SkinDescription{name, nodeIndex, skin.joints});
+		// Find target nodes by searching through all nodes in scene
+		std::vector<int> targets;
+		for (int nodeIndex = 0; nodeIndex < scene_->nodes.size(); nodeIndex++) {
+			if (scene_->nodes[nodeIndex].skin == index) {
+				targets.emplace_back(nodeIndex);
+			}
+		}
+		if (!targets.empty()) {
+			sceneGraph_->skins.emplace_back(core::SkinDescription{name, targets, skin.joints});
 		}
 	}
 }
@@ -398,7 +418,24 @@ core::SharedAnimationSamplerData glTFFileLoader::getAnimationSamplerData(const s
 
 	unpackAnimationData(output, input.size(), interpolation, componentType, keyFrames, tangentsIn, tangentsOut);
 
-	return std::make_shared<core::AnimationSamplerData>(core::AnimationSamplerData{interpolation, componentType, input, keyFrames, tangentsIn, tangentsOut});
+	core::AnimationSamplerData::OutputDataVariant ramsesOutputData;
+
+	switch (componentType) {
+		case core::EnginePrimitive::Array:
+			ramsesOutputData = core::AnimationSamplerData::OutputDataVariant(core::AnimationOutputData<std::vector<float>>{
+				keyFrames, tangentsIn, tangentsOut});
+			break;
+		case core::EnginePrimitive::Vec3f:
+			ramsesOutputData = core::AnimationSamplerData::OutputDataVariant(core::AnimationOutputData<glm::vec3>{convert_vec3(keyFrames), convert_vec3(tangentsIn), convert_vec3(tangentsOut)});
+			break;
+		case core::EnginePrimitive::Vec4f:
+			ramsesOutputData = core::AnimationSamplerData::OutputDataVariant(core::AnimationOutputData<glm::vec4>{convert_vec4(keyFrames), convert_vec4(tangentsIn), convert_vec4(tangentsOut)});
+			break;
+		default:
+			assert(false);
+	}
+
+	return std::make_shared<core::AnimationSamplerData>(core::AnimationSamplerData{interpolation, componentType, keyFrames.front().size(), input, ramsesOutputData});
 }
 
 core::SharedMeshData glTFFileLoader::loadMesh(const core::MeshDescriptor& descriptor) {

@@ -17,9 +17,9 @@
 namespace raco::ramses_adaptor {
 
 
-class AnimationChannelAdaptor final : public UserTypeObjectAdaptor<user_types::AnimationChannel> {
+class AnimationChannelAdaptor final : public UserTypeObjectAdaptor<user_types::AnimationChannelBase> {
 public:
-	explicit AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnimationChannel channel);
+	explicit AnimationChannelAdaptor(SceneAdaptor* sceneAdaptor, user_types::SAnimationChannelBase channel);
 
 	bool sync(core::Errors* errors) override;
 
@@ -29,7 +29,7 @@ public:
 private:
 	ramses_base::RamsesAnimationChannelHandle handle_;
 
-	std::array<components::Subscription, 4> subscriptions_;
+	std::array<components::Subscription, 1> subscriptions_;
 	components::Subscription previewDirtySubscription_;
 };
 

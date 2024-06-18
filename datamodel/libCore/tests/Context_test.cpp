@@ -820,7 +820,7 @@ TEST_F(ContextTest, deepCut) {
 }
 
 TEST_F(ContextTest, shallowCopyLink) {
-	auto objs { raco::createLinkedScene(context, test_relative_path()) };
+	auto objs { createLinkedScene(context, test_relative_path()) };
 	ASSERT_EQ(1, context.project()->links().size());
 
 	context.pasteObjects(context.copyObjects({ std::get<1>(objs) }));
@@ -829,7 +829,7 @@ TEST_F(ContextTest, shallowCopyLink) {
 }
 
 TEST_F(ContextTest, shallowCutLink) {
-	auto objs{raco::createLinkedScene(context, test_relative_path())};
+	auto objs{createLinkedScene(context, test_relative_path())};
 	ASSERT_EQ(1, context.project()->links().size());
 
 	auto clipboard = context.cutObjects({ std::get<1>(objs) });
@@ -869,7 +869,7 @@ TEST_F(ContextTest, ShallowCopyNodeWithLink_pasteRoot) {
 }
 
 TEST_F(ContextTest, shallowCopyLink_deletedStartObject) {
-	auto objs{raco::createLinkedScene(context, test_relative_path())};
+	auto objs{createLinkedScene(context, test_relative_path())};
 	ASSERT_EQ(1, context.project()->links().size());
 
 	auto clipboard = context.copyObjects({ std::get<1>(objs) });
@@ -964,7 +964,7 @@ TEST_F(ContextTest, cutAndPasteNodeUniqueName) {
 }
 
 TEST_F(ContextTest, queryLinkConnectedToObjectsReturnsNoDuplicateLinks) {
-	auto objs{raco::createLinkedScene(context, test_relative_path())};
+	auto objs{createLinkedScene(context, test_relative_path())};
 
 	auto totalLinks = core::Queries::getLinksConnectedToObjects(
 		*context.project(), SEditorObjectSet{context.project()->instances().begin(), context.project()->instances().end()}, true, true);

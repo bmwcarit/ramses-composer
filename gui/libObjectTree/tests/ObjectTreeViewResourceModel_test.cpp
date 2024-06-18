@@ -15,6 +15,7 @@
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "user_types/AnchorPoint.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/BlitPass.h"
 #include "user_types/LuaScriptModule.h"
 #include "user_types/MeshNode.h"
@@ -31,24 +32,7 @@ using namespace raco::user_types;
 class ObjectTreeViewResourceModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewResourceModelTest() : ObjectTreeViewDefaultModelTest() {
-		viewModel_.reset(new object_tree::model::ObjectTreeViewResourceModel(&commandInterface(), application.dataChangeDispatcher(), nullptr,
-			{
-				AnchorPoint::typeDescription.typeName,
-				AnimationChannel::typeDescription.typeName,
-				BlitPass::typeDescription.typeName,
-				CubeMap::typeDescription.typeName,
-				Material::typeDescription.typeName,
-				Mesh::typeDescription.typeName,
-				LuaScriptModule::typeDescription.typeName,
-				Texture::typeDescription.typeName,
-				TextureExternal::typeDescription.typeName,
-				Timer::typeDescription.typeName,
-				RenderBuffer::typeDescription.typeName,
-				RenderBufferMS::typeDescription.typeName,
-				RenderTarget::typeDescription.typeName,
-				RenderTargetMS::typeDescription.typeName,
-				RenderLayer::typeDescription.typeName,
-				RenderPass::typeDescription.typeName}));
+		viewModel_.reset(new object_tree::model::ObjectTreeViewResourceModel(&commandInterface(), application.dataChangeDispatcher(), nullptr));
 	}
 };
 
@@ -57,6 +41,7 @@ TEST_F(ObjectTreeViewResourceModelTest, TypesAllowedIntoIndexEmptyIndex) {
 	std::vector<std::string> allowedTypesAssert {
 		AnchorPoint::typeDescription.typeName,
 		AnimationChannel::typeDescription.typeName,
+		AnimationChannelRaco::typeDescription.typeName,
 		BlitPass::typeDescription.typeName,
 		CubeMap::typeDescription.typeName,
 		LuaScriptModule::typeDescription.typeName,

@@ -37,6 +37,8 @@ bool RaCoPreferences::save() {
 	settings.setValue("featureLevel", featureLevel);
 	settings.setValue("isUriValidationCaseSensitive", isUriValidationCaseSensitive);
 	settings.setValue("preventAccidentalUpgrade", preventAccidentalUpgrade);
+	settings.setValue("globalPythonOnSaveScript", globalPythonOnSaveScript);
+	settings.setValue("enableProjectPythonScript", enableProjectPythonScript);
 
 	settings.sync();
 
@@ -62,6 +64,9 @@ void RaCoPreferences::load() {
 	featureLevel = settings.value("featureLevel", 1).toInt();
 	isUriValidationCaseSensitive = settings.value("isUriValidationCaseSensitive", false).toBool();
 	preventAccidentalUpgrade = settings.value("preventAccidentalUpgrade", false).toBool();
+
+	globalPythonOnSaveScript = settings.value("globalPythonOnSaveScript", "").toString();
+	enableProjectPythonScript = settings.value("enableProjectPythonScript", "").toBool();
 }
 
 RaCoPreferences& RaCoPreferences::instance() noexcept {

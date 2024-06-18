@@ -21,10 +21,7 @@ using namespace raco::user_types;
 class ObjectTreeViewPrefabModelTest : public ObjectTreeViewDefaultModelTest {
 public:
 	ObjectTreeViewPrefabModelTest() : ObjectTreeViewDefaultModelTest() {
-		viewModel_.reset(new object_tree::model::ObjectTreeViewPrefabModel(&commandInterface(), application.dataChangeDispatcher(), externalProjectStore(),
-			{
-				Prefab::typeDescription.typeName
-			}));
+		viewModel_.reset(new object_tree::model::ObjectTreeViewPrefabModel(&commandInterface(), application.dataChangeDispatcher(), externalProjectStore()));
 	}
 };
 

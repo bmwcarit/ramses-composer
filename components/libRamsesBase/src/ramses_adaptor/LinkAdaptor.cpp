@@ -121,26 +121,29 @@ void LinkAdaptor::connect() {
 	}
 }
 
-void LinkAdaptor::readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property) {
+bool LinkAdaptor::readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property) {
+	bool changed = false;
 	if (property) {
 		if (!core::Queries::isEnginePrimitive(property)) {
 			for (size_t index = 0; index < property.size(); index++) {
-				readFromEngineRecursive(recorder, property[index]);
+				changed = readFromEngineRecursive(recorder, property[index]) || changed;
 			}
 		} else {
 			if (auto adaptor = sceneAdaptor_->lookupAdaptor(property.rootObject())) {
 				if (auto engineProp = dynamic_cast<ILogicPropertyProvider*>(adaptor)->getProperty(property.getPropertyNamesVector())) {
-					getOutputFromEngine(*engineProp, property, recorder);
+					changed = getOutputFromEngine(*engineProp, property, recorder) || changed;
 				}
 			}
 		}
 	}
+	return changed;
 }
 
-void LinkAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
+bool LinkAdaptor::readDataFromEngine(core::DataChangeRecorder& recorder) {
 	if (editorLink_.isValid) {
-		readFromEngineRecursive(recorder, core::ValueHandle(editorLink_.end));
+		return readFromEngineRecursive(recorder, core::ValueHandle(editorLink_.end));
 	}
+	return false;
 }
 
 }  // namespace raco::ramses_adaptor

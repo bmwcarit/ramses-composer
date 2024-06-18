@@ -12,6 +12,7 @@ add_library(libUserTypes
 	include/user_types/AnchorPoint.h
 	include/user_types/Animation.h src/Animation.cpp
 	include/user_types/AnimationChannel.h src/AnimationChannel.cpp
+	include/user_types/AnimationChannelRaco.h src/AnimationChannelRaco.cpp
 	include/user_types/BaseCamera.h
 	include/user_types/BaseObject.h
 	include/user_types/BaseTexture.h

@@ -199,12 +199,12 @@ void DataChangeDispatcher::dispatch(const DataChangeRecorder& dataChanges) {
 
 	emitLinksAdded(dataChanges.getAddedLinks());
 
-	// Bulk update notification will be used by the SceneAdaptor to perform the actual engine update.
-	emitBulkChange(dataChanges.getAllChangedObjects(true));
-
 	for (auto& deletedObject : dataChanges.getDeletedObjects()) {
 		emitDeleted(deletedObject);
 	}
+
+	// Bulk update notification will be used by the SceneAdaptor to perform the actual engine update.
+	emitBulkChange(dataChanges.getAllChangedObjects(true));
 
 	if (undoChanged_) {
 		for (auto& undoListener : undoChangeListeners_) {

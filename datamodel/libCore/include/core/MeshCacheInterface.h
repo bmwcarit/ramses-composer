@@ -21,9 +21,13 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 namespace raco::core {
 
@@ -112,7 +116,7 @@ using SharedMeshData = std::shared_ptr<MeshData>;
 
 /**
  * @brief Holds the data needed to create a LogicEngine SkinBinding. Contains the inverse bind matrices.
-*/
+ */
 struct SkinData {
 	static constexpr const char* INV_BIND_MATRICES_UNIFORM_NAME = "u_jointMat";
 
@@ -124,28 +128,73 @@ struct SkinData {
 using SharedSkinData = std::shared_ptr<SkinData>;
 
 enum class MeshAnimationInterpolation {
+	Step = 0,
 	Linear,
 	CubicSpline,
-	Step,
 	Linear_Quaternion,
 	CubicSpline_Quaternion
 };
+
+template <typename T>
+struct AnimationOutputData {
+	std::vector<T> keyFrames;
+	std::vector<T> tangentsIn;
+	std::vector<T> tangentsOut;
+
+	bool operator==(const AnimationOutputData<T>& rhs) const {
+		return keyFrames == rhs.keyFrames &&
+			   tangentsIn == rhs.tangentsIn &&
+			   tangentsOut == rhs.tangentsOut;
+	}
+};
+
+template<class... Ts>
+struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 // Animation sampler data holder - currently created using MeshCache::getAnimationSamplerData()
 struct AnimationSamplerData {
 	MeshAnimationInterpolation interpolation;
 	EnginePrimitive componentType;
+	size_t componentArraySize;
 
 	std::vector<float> timeStamps;
-	
-	// TODO the supported data types are currently restricted to float types only,
-	// although the logicengine also allows ints.
-	std::vector<std::vector<float>> keyFrames;
-	std::vector<std::vector<float>> tangentsIn;
-	std::vector<std::vector<float>> tangentsOut;
+
+	using OutputDataVariant = std::variant<
+		AnimationOutputData<float>,
+		AnimationOutputData<glm::vec2>,
+		AnimationOutputData<glm::vec3>,
+		AnimationOutputData<glm::vec4>,
+		AnimationOutputData<int32_t>,
+		AnimationOutputData<glm::ivec2>,
+		AnimationOutputData<glm::ivec3>,
+		AnimationOutputData<glm::ivec4>,
+		AnimationOutputData<std::vector<float>>>;
+
+	OutputDataVariant output;
 
 	size_t getOutputComponentSize() {
-		return keyFrames.front().size();
+		size_t componentSize = componentArraySize;
+		return std::visit(
+			overloaded{
+				[](const AnimationOutputData<float>& data) -> size_t { return 1; },
+				[](const AnimationOutputData<glm::vec2>& data) -> size_t { return 2; },
+				[](const AnimationOutputData<glm::vec3>& data) -> size_t { return 3; },
+				[](const AnimationOutputData<glm::vec4>& data) -> size_t { return 4; },
+				[](const AnimationOutputData<int32_t>& data) -> size_t { return 1; },
+				[](const AnimationOutputData<glm::ivec2>& data) -> size_t { return 2; },
+				[](const AnimationOutputData<glm::ivec3>& data) -> size_t { return 3; },
+				[](const AnimationOutputData<glm::ivec4>& data) -> size_t { return 4; },
+				[componentSize](const AnimationOutputData<std::vector<float>>& data) -> size_t { return componentSize; }},
+			output);
+	}
+
+	bool operator==(const AnimationSamplerData& rhs) const {
+		return interpolation == rhs.interpolation &&
+			   componentType == rhs.componentType &&
+			   timeStamps == rhs.timeStamps &&
+			   output == rhs.output;
 	}
 };
 
@@ -167,7 +216,7 @@ struct MeshAnimation {
 
 struct SkinDescription {
 	std::string name;
-	int meshNodeIndex;
+	std::vector<int> meshNodeIndices;
 	std::vector<int> jointNodeIndices;
 };
 
@@ -209,7 +258,6 @@ struct MeshScenegraph {
 		animationSamplers.clear();
 	}
 };
-
 
 // MeshDescriptor contains all information to uniquely identify a mesh within a file.
 // This includes at least the absolute path name of the file. It may include more information
@@ -253,7 +301,7 @@ public:
 	virtual ~MeshCache() = default;
 
 	virtual SharedMeshData loadMesh(const core::MeshDescriptor& descriptor) = 0;
-	
+
 	virtual const MeshScenegraph* getMeshScenegraph(const std::string& absPath) = 0;
 	virtual std::string getMeshError(const std::string& absPath) = 0;
 

@@ -11,6 +11,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 # Adding the unit test with gtest using our macro from dsathe top level CMakeLists.txt file
 
 set(TEST_SOURCES
+    ReportStatistics_test.cpp
     RaCoApplication_test.cpp
     RaCoProject_test.cpp
 )
@@ -41,6 +42,7 @@ raco_package_test_resources_process(
     meshes/InterpolationTest/InterpolationTest.gltf
     meshes/InterpolationTest/interpolation.bin
     meshes/InterpolationTest/l.jpg
+    meshes/SimpleSkin/SimpleSkin-multi-target.gltf
     meshes/Duck.glb
     meshes/meshless.gltf
     meshes/negativeScaleQuad.gltf

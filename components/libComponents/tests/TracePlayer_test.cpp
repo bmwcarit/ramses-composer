@@ -88,7 +88,7 @@ protected:
 	int argc{0};
 	QCoreApplication eventLoop_{argc, nullptr};
 	ramses_base::HeadlessEngineBackend backend{};
-	raco::application::RaCoApplication application{backend, {{}, false, false, -1, -1, false}};
+	application::RaCoApplication application{backend, {{}, false, false, -1, -1, false}};
 };
 
 /* ************************************** helper functions ************************************** */

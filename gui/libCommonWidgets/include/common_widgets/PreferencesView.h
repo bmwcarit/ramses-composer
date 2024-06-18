@@ -10,6 +10,7 @@
 #pragma once
 
 #include "components/RaCoPreferences.h"
+#include "application/RaCoApplication.h"
 
 #include <QDialog>
 #include <QLineEdit>
@@ -25,7 +26,7 @@ namespace raco::common_widgets {
 class PreferencesView final : public QDialog {
 	Q_OBJECT
 public:
-	explicit PreferencesView(QWidget* parent);
+	explicit PreferencesView(application::RaCoApplication* racoApp, QWidget* parent);
 
 	bool dirty();
 
@@ -33,12 +34,18 @@ public:
 	Q_SIGNAL void dirtyChanged(bool dirty);
 
 private:
+	application::RaCoApplication* racoApp_;
+
 	QLineEdit* userProjectEdit_;
 	QSpinBox* featureLevelEdit_;
 	QCheckBox* uriValidationCaseSensitiveCheckbox_;
 	QCheckBox* preventAccidentalUpgradeEdit_;
 	QCheckBox* preventAccidentalUpgradeCheckbox_;
 	QLineEdit* screenshotDirectoryEdit_;
+	QLineEdit* globalPythonScriptEdit_;
+	QCheckBox* projectPythonScriptCheckbox_;
+
+	QString convertPathToAbsolute(const QString& path) const;
 };
 
 }  // namespace raco::common_widgets

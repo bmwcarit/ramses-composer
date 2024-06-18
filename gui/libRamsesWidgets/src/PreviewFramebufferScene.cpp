@@ -190,8 +190,14 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 		sampler_.reset();
 
 		renderbufferMS_ = ramsesRenderBuffer(scene_.get(), size.width(), size.height(), ramses::ERenderBufferFormat::RGBA8, ramses::ERenderBufferAccessMode::ReadWrite, sampleRate, {}, {0, 0});
+		if (!renderbufferMS_) {
+			return ramses::dataConsumerId_t::Invalid();
+		}
 
 		samplerMS_ = ramsesTextureSamplerMS(scene_.get(), renderbufferMS_, {}, {0, 0});
+		if (!samplerMS_) {
+			return ramses::dataConsumerId_t::Invalid();
+		}
 
 		ramses::UniformInput texUniformInput = (*appearanceMS_)->getEffect().findUniformInput("uTex0").value();
 		(*appearanceMS_)->setInputTexture(texUniformInput, *samplerMS_.get());
@@ -213,8 +219,14 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 		const ramses::TextureSwizzle textureSwizzle{};
 
 		framebufferTexture_ = ramsesTexture2D(scene_.get(), ramses::ETextureFormat::RGBA8, size.width(), size.height(), mipDatas, false, textureSwizzle, "framebuffer texture", {0, 0});
+		if (!framebufferTexture_) {
+			return ramses::dataConsumerId_t::Invalid();
+		}
 
 		sampler_ = ramsesTextureSampler(scene_.get(), ramses::ETextureAddressMode::Clamp, ramses::ETextureAddressMode::Clamp, samplingMethod, samplingMethod, framebufferTexture_.get(), 1, "framebuffer sampler", {0, 0});
+		if (!sampler_) {
+			return ramses::dataConsumerId_t::Invalid();
+		}
 
 		ramses::UniformInput texUniformInput = (*appearance_)->getEffect().findUniformInput("uTex0").value();
 		(*appearance_)->setInputTexture(texUniformInput, *sampler_.get());
@@ -227,10 +239,15 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 	scene_->flush();
 
 	framebufferSampleId_ = backend.internalDataConsumerId();
+	bool status;
 	if (sampleRate > 0) {
-		scene_->createTextureConsumer(*samplerMS_.get(), framebufferSampleId_);
+		status = scene_->createTextureConsumer(*samplerMS_.get(), framebufferSampleId_);
 	} else {
-		scene_->createTextureConsumer(*sampler_.get(), framebufferSampleId_);
+		status = scene_->createTextureConsumer(*sampler_.get(), framebufferSampleId_);
+	}
+	if (!status) {
+		LOG_ERROR(log_system::PREVIEW_WIDGET, "Creating texture consumer failed: {}", scene_->getRamsesClient().getRamsesFramework().getLastError().value().message);
+		return ramses::dataConsumerId_t::Invalid();
 	}
 
 	static const ramses::sceneVersionTag_t SCENE_VERSION_TAG_DATA_CONSUMER_CREATED{42};
@@ -239,10 +256,13 @@ ramses::dataConsumerId_t PreviewFramebufferScene::setupFramebufferTexture(Render
 	auto& eventHandler = backend.eventHandler();
 	// Toggle version tag for scene so that we are sure that data consumer is create
 	scene_->flush(SCENE_VERSION_TAG_DATA_CONSUMER_CREATED);
-	eventHandler.waitForFlush(scene_->getSceneId(), SCENE_VERSION_TAG_DATA_CONSUMER_CREATED);
+	if (!eventHandler.waitForFlush(scene_->getSceneId(), SCENE_VERSION_TAG_DATA_CONSUMER_CREATED)) {
+		return ramses::dataConsumerId_t::Invalid();
+	}
 	scene_->flush(SCENE_VERSION_TAG_RESET);
-	eventHandler.waitForFlush(scene_->getSceneId(), SCENE_VERSION_TAG_RESET);
-
+	if (!eventHandler.waitForFlush(scene_->getSceneId(), SCENE_VERSION_TAG_RESET)) {
+		return ramses::dataConsumerId_t::Invalid();
+	}
 	return framebufferSampleId_;
 }
 

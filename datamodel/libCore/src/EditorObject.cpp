@@ -75,6 +75,22 @@ std::pair<uint64_t, uint64_t> EditorObject::objectIDAsRamsesLogicID() const {
 	return {higher, lower};
 }
 
+ std::string EditorObject::ramsesLogicIDAsObjectID(std::pair<uint64_t, uint64_t> idPair) {
+	// Extract individual little-endian values.
+	auto id = QUuid{reinterpret_cast<uint32_t*>(&idPair.first)[1],
+		reinterpret_cast<uint16_t*>(&idPair.first)[1],
+		reinterpret_cast<uint16_t*>(&idPair.first)[0],
+		reinterpret_cast<uint8_t*>(&idPair.second)[7],
+		reinterpret_cast<uint8_t*>(&idPair.second)[6],
+		reinterpret_cast<uint8_t*>(&idPair.second)[5],
+		reinterpret_cast<uint8_t*>(&idPair.second)[4],
+		reinterpret_cast<uint8_t*>(&idPair.second)[3],
+		reinterpret_cast<uint8_t*>(&idPair.second)[2],
+		reinterpret_cast<uint8_t*>(&idPair.second)[1],
+		reinterpret_cast<uint8_t*>(&idPair.second)[0]};
+	return id.toString(QUuid::WithoutBraces).toStdString();
+ }
+
 std::string EditorObject::normalizedObjectID(std::string const& id) {
 	if (id.empty()) {
 		return QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
@@ -201,6 +217,24 @@ int EditorObject::findChildIndex(const EditorObject* node) {
 SEditorObject EditorObject::getParent() {
 	return parent_.lock();
 }
+
+
+bool EditorObject::isValidProperty(const data_storage::Array<std::string>& propNames) const {
+	const ReflectionInterface* o = this;
+	for (size_t index = 0; index < propNames.size(); index++) {
+		auto propIndex = o->index(**propNames.get(index));
+		if (propIndex == -1) {
+			return false;
+		}
+		const ValueBase* val = o->get(propIndex);
+		if (hasTypeSubstructure(val->type())) {
+			o = &val->getSubstructure();
+		}
+	}
+	return true;
+}
+
+
 
 EditorObject::ChildIterator::ChildIterator(SEditorObject const& object, size_t index) : object_(object), index_(index) {
 }

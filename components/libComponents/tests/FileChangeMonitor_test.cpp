@@ -37,17 +37,12 @@ protected:
 			// Wait for the timer to queue its event, and then process the timer event, which eventually
 			// leads to the callbacks registered with FileMonitor::registerFileChangedHandler to be called.
 			std::this_thread::sleep_for(std::chrono::milliseconds(components::FileChangeListenerImpl::DELAYED_FILE_LOAD_TIME_MSEC + 100));
-			QCoreApplication::processEvents();			
-		}
-		while (fileChangeCounter_ < count && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() <= timeOutInMS);
-		
+			QCoreApplication::processEvents();
+		} while (fileChangeCounter_ < count && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() <= timeOutInMS);
+
+		EXPECT_EQ(fileChangeCounter_, count);
 		return fileChangeCounter_ == count;
 	}
-
-	int argc = 0;
-	// Apparently QCoreApplication needs to be initialized before the ProjectFileChangeMonitor is created, since that 
-	// will create signal connections which don't work on Linux otherwise (but they do work on Windows).
-	QCoreApplication eventLoop_{argc, nullptr};
 
 	int fileChangeCounter_{0};
 	std::function<void(void)> testCallback_ = [this]() { ++fileChangeCounter_; };

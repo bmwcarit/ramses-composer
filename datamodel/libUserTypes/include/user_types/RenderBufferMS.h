@@ -46,11 +46,11 @@ public:
 	void onAfterContextActivated(BaseContext& context) override;
 	void onAfterValueChanged(BaseContext& context, ValueHandle const& value) override;
 
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {1, 7680}, {"Width"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {1, 7680}, {"Height"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> width_{256, {1, 8192}, {"Width"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> height_{256, {1, 8192}, {"Height"}, {}};
 	Property<int, DisplayNameAnnotation, EnumerationAnnotation> format_{DEFAULT_VALUE_RENDER_BUFFER_FORMAT, DisplayNameAnnotation("Format"), EnumerationAnnotation{EUserTypeEnumerations::RenderBufferFormat}};
 
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> sampleCount_{SAMPLE_COUNT_MIN, {SAMPLE_COUNT_MIN, SAMPLE_COUNT_MAX}, {"Sample Count"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> sampleCount_{SAMPLE_COUNT_MIN, {SAMPLE_COUNT_MIN, SAMPLE_COUNT_MAX}, {"Sample Count"}, {}};
 
 private:
 	void validateSampleCount(BaseContext& context);

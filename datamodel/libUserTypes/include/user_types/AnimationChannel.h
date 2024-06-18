@@ -12,18 +12,39 @@
 #include "user_types/Mesh.h"
 
 #include "core/EngineInterface.h"
+#include "user_types/Enumerations.h"
 
 namespace raco::user_types {
 
-class AnimationChannel : public BaseObject {
+class AnimationChannelBase : public BaseObject {
 public:
-	static inline const TypeDescriptor typeDescription = { "AnimationChannel", true };
+	static inline const TypeDescriptor typeDescription = {"AnimationChannelBase", true};
+	TypeDescriptor const& getTypeDescription() const override {
+		return typeDescription;
+	}
+
+	AnimationChannelBase(std::string name = std::string(), std::string id = std::string())
+		: BaseObject(name, id) {
+	}
+
+	
+	PropertyInterface getOutputProperty() const;
+
+	raco::core::SharedAnimationSamplerData currentSamplerData_;
+};
+
+using SAnimationChannelBase = std::shared_ptr<AnimationChannelBase>;
+
+
+class AnimationChannel : public AnimationChannelBase {
+public:
+	static inline const TypeDescriptor typeDescription = {"AnimationChannel", true};
 	TypeDescriptor const& getTypeDescription() const override {
 		return typeDescription;
 	}
 
 	AnimationChannel(const AnimationChannel& other)
-		: BaseObject(other),
+		: AnimationChannelBase(other),
 		  uri_(other.uri_),
 		  animationIndex_(other.animationIndex_),
 		  samplerIndex_(other.samplerIndex_) {
@@ -31,7 +52,7 @@ public:
 	}
 
 	AnimationChannel(std::string name = std::string(), std::string id = std::string())
-		: BaseObject(name, id) {
+		: AnimationChannelBase(name, id) {
 		fillPropertyDescription();
 	}
 
@@ -45,14 +66,10 @@ public:
 
 	void updateFromExternalFile(BaseContext& context) override;
 
-	PropertyInterface getOutputProperty() const;
-
 	Property<std::string, URIAnnotation, DisplayNameAnnotation> uri_{std::string(), {"glTF files (*.glTF *.glb);;All Files (*.*)", core::PathManager::FolderTypeKeys::Mesh}, DisplayNameAnnotation("Animation Source")};
 
 	Property<int, DisplayNameAnnotation> animationIndex_{{}, DisplayNameAnnotation("Animation Index")};
 	Property<int, DisplayNameAnnotation> samplerIndex_{{}, DisplayNameAnnotation("Sampler Index")};
-
-	core::SharedAnimationSamplerData currentSamplerData_;
 
 private:
 	void createSamplerInfoBox(BaseContext& context, int animationAmount, int samplerAmount);
@@ -60,4 +77,4 @@ private:
 
 using SAnimationChannel = std::shared_ptr<AnimationChannel>;
 
-}
+}  // namespace raco::user_types

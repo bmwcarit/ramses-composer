@@ -13,12 +13,44 @@
 #include "ramses_adaptor/AnimationAdaptor.h"
 #include "ramses_adaptor/utilities.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/Prefab.h"
 #include "user_types/PrefabInstance.h"
 
 using namespace raco::user_types;
 
-class AnimationAdaptorTest : public RamsesBaseFixture<> {};
+class AnimationAdaptorTest : public RamsesBaseFixture<> {
+public:
+	template <typename T, typename U>
+	void check_interpolation(EnginePrimitive componentType, ramses::EPropertyType ramsesComponentType, MeshAnimationInterpolation interpolation,
+		std::vector<float> timeStamps,
+		std::vector<T> keyFrames, std::vector<T> tangentsIn, std::vector<T> tangentsOut,
+		float refTime, U refValue) {
+		auto channel = create<AnimationChannelRaco>("channel");
+
+		commandInterface.set({channel, &AnimationChannelRaco::componentType_}, static_cast<int>(componentType));
+		commandInterface.set({channel, &AnimationChannelRaco::interpolationType_}, static_cast<int>(interpolation));
+
+		commandInterface.setAnimationData(channel, timeStamps, keyFrames, tangentsIn, tangentsOut);
+
+		auto animation = create<Animation>("animation");
+		commandInterface.set(ValueHandle{animation, &Animation::animationChannels_}[0], channel);
+
+		dispatch();
+
+		auto ramsesAnimation = selectCheckLogic<ramses::AnimationNode>(animation);
+
+		ASSERT_TRUE(ramsesAnimation->getOutputs()->hasChild("Ch0.channel"));
+		auto ramsesProp = ramsesAnimation->getOutputs()->getChild("Ch0.channel");
+		ASSERT_EQ(ramsesProp->getType(), ramsesComponentType);
+		ASSERT_EQ(ramsesProp->get<U>().value(), U());
+
+		commandInterface.set({animation, &Animation::progress_}, refTime);
+		dispatch();
+
+		ASSERT_EQ(ramsesProp->get<U>().value(), refValue);
+	}
+};
 
 TEST_F(AnimationAdaptorTest, animNode_Creation) {
 	auto anim = context.createObject(Animation::typeDescription.typeName, "Animation Name");
@@ -226,3 +258,131 @@ TEST_F(AnimationAdaptorTest, component_type_array_valid) {
 	ASSERT_NE(select<ramses::AnimationNode>(sceneContext.logicEngine(), "Animation Name"), nullptr);
 }
 
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_float_linear) {
+	check_interpolation<float, float>(EnginePrimitive::Double, ramses::EPropertyType::Float, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {0.0, 4.0}, {}, {}, 0.5, 2.0);
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_float_step) {
+	check_interpolation<float, float>(EnginePrimitive::Double, ramses::EPropertyType::Float, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {0.0, 4.0}, {}, {}, 0.5, 0.0);
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_float_cubic) {
+	check_interpolation<float, float>(EnginePrimitive::Double, ramses::EPropertyType::Float, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {0.0, 4.0}, {0.0, 0.0}, {0.0, 0.0}, 0.5, 2.0);
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_float_cubic_2) {
+	check_interpolation<float, float>(EnginePrimitive::Double, ramses::EPropertyType::Float, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {0.0, 4.0}, {1.0, 1.0}, {1.0, 1.0}, 0.5, 2.0);
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec2f_linear) {
+	check_interpolation<std::vector<float>, glm::vec2>(EnginePrimitive::Vec2f, ramses::EPropertyType::Vec2f, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {{0.0, 0.0}, {4.0, 6.0}}, {}, {}, 0.5, {2.0, 3.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec2f_step) {
+	check_interpolation<std::vector<float>, glm::vec2>(EnginePrimitive::Vec2f, ramses::EPropertyType::Vec2f, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {{0.0, 0.0}, {4.0, 6.0}}, {}, {}, 0.5, {0.0, 0.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec2f_cubic) {
+	check_interpolation<std::vector<float>, glm::vec2>(EnginePrimitive::Vec2f, ramses::EPropertyType::Vec2f, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {{0.0, 0.0}, {4.0, 6.0}}, {{0.0, 0.0}, {0.0, 0.0}}, {{0.0, 0.0}, {0.0, 0.0}}, 0.5, {2.0, 3.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec3f_linear) {
+	check_interpolation<std::vector<float>, glm::vec3>(EnginePrimitive::Vec3f, ramses::EPropertyType::Vec3f, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {{0.0, 0.0, 0.0}, {4.0, 6.0, 8.0}}, {}, {}, 0.5, {2.0, 3.0, 4.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec3f_step) {
+	check_interpolation<std::vector<float>, glm::vec3>(EnginePrimitive::Vec3f, ramses::EPropertyType::Vec3f, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {{0.0, 0.0, 0.0}, {4.0, 6.0, 8.0}}, {}, {}, 0.5, {0.0, 0.0, 0.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec3f_cubic) {
+	check_interpolation<std::vector<float>, glm::vec3>(EnginePrimitive::Vec3f, ramses::EPropertyType::Vec3f, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {{0.0, 0.0, 0.0}, {4.0, 6.0, 8.0}}, {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}, 0.5, {2.0, 3.0, 4.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec4f_linear) {
+	check_interpolation<std::vector<float>, glm::vec4>(EnginePrimitive::Vec4f, ramses::EPropertyType::Vec4f, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {{0.0, 0.0, 0.0, 0.0}, {4.0, 6.0, 8.0, 10.0}}, {}, {}, 0.5, {2.0, 3.0, 4.0, 5.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec4f_step) {
+	check_interpolation<std::vector<float>, glm::vec4>(EnginePrimitive::Vec4f, ramses::EPropertyType::Vec4f, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {{0.0, 0.0, 0.0, 0.0}, {4.0, 6.0, 8.0, 10.0}}, {}, {}, 0.5, {0.0, 0.0, 0.0, 0.0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec4f_cubic) {
+	check_interpolation<std::vector<float>, glm::vec4>(EnginePrimitive::Vec4f, ramses::EPropertyType::Vec4f, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {{0.0, 0.0, 0.0, 0.0}, {4.0, 6.0, 8.0, 10.0}}, {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}, 0.5, {2.0, 3.0, 4.0, 5.0});
+}
+
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_int_linear) {
+	check_interpolation<int, int32_t>(EnginePrimitive::Int32, ramses::EPropertyType::Int32, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {0, 5}, {}, {}, 0.5, 3);
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_int_step) {
+	check_interpolation<int, int32_t>(EnginePrimitive::Int32, ramses::EPropertyType::Int32, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {0, 5}, {}, {}, 0.5, 0);
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_int_cubic) {
+	check_interpolation<int, int32_t>(EnginePrimitive::Int32, ramses::EPropertyType::Int32, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {0, 5}, {0, 0}, {0, 0}, 0.5, 3);
+}
+
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec2i_linear) {
+	check_interpolation<std::vector<int>, glm::ivec2>(EnginePrimitive::Vec2i, ramses::EPropertyType::Vec2i, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {{0, 0}, {5, 7}}, {}, {}, 0.5, {3, 4});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec2i_step) {
+	check_interpolation<std::vector<int>, glm::ivec2>(EnginePrimitive::Vec2i, ramses::EPropertyType::Vec2i, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {{0, 0}, {5, 7}}, {}, {}, 0.5, {0, 0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec2i_cubic) {
+	check_interpolation<std::vector<int>, glm::ivec2>(EnginePrimitive::Vec2i, ramses::EPropertyType::Vec2i, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {{0, 0}, {5, 7}}, {std::vector<int>(2, 0), std::vector<int>(2, 0)}, {std::vector<int>(2, 0), std::vector<int>(2, 0)}, 0.5, {3, 4});
+}
+
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec3i_linear) {
+	check_interpolation<std::vector<int>, glm::ivec3>(EnginePrimitive::Vec3i, ramses::EPropertyType::Vec3i, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {{0, 0, 0}, {5, 7, 9}}, {}, {}, 0.5, {3, 4, 5});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec3i_step) {
+	check_interpolation<std::vector<int>, glm::ivec3>(EnginePrimitive::Vec3i, ramses::EPropertyType::Vec3i, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {{0, 0, 0}, {5, 7, 9}}, {}, {}, 0.5, {0, 0, 0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec3i_cubic) {
+	check_interpolation<std::vector<int>, glm::ivec3>(EnginePrimitive::Vec3i, ramses::EPropertyType::Vec3i, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {{0, 0, 0}, {5, 7, 9}}, {std::vector<int>(3, 0), std::vector<int>(3, 0)}, {std::vector<int>(3, 0), std::vector<int>(3, 0)}, 0.5, {3, 4, 5});
+}
+
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec4i_linear) {
+	check_interpolation<std::vector<int>, glm::ivec4>(EnginePrimitive::Vec4i, ramses::EPropertyType::Vec4i, MeshAnimationInterpolation::Linear,
+		{0.0, 1.0}, {{0, 0, 0, 0}, {5, 7, 9, 11}}, {}, {}, 0.5, {3, 4, 5, 6});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec4i_step) {
+	check_interpolation<std::vector<int>, glm::ivec4>(EnginePrimitive::Vec4i, ramses::EPropertyType::Vec4i, MeshAnimationInterpolation::Step,
+		{0.0, 1.0}, {{0, 0, 0, 0}, {5, 7, 9, 11}}, {}, {}, 0.5, {0, 0, 0, 0});
+}
+
+TEST_F(AnimationAdaptorTest, raco_channel_interpolation_vec4i_cubic) {
+	check_interpolation<std::vector<int>, glm::ivec4>(EnginePrimitive::Vec4i, ramses::EPropertyType::Vec4i, MeshAnimationInterpolation::CubicSpline,
+		{0.0, 1.0}, {{0, 0, 0, 0}, {5, 7, 9, 11}}, {std::vector<int>(4, 0), std::vector<int>(4, 0)}, {std::vector<int>(4, 0), std::vector<int>(4, 0)}, 0.5, {3, 4, 5, 6});
+}

@@ -13,6 +13,8 @@
 #include <set>
 #include <tiny_gltf.h>
 
+namespace raco::mesh_loader {
+
 struct glTFBufferData {
 	glTFBufferData(const tinygltf::Model &scene, int accessorIndex, const std::set<int> &allowedComponentTypes, const std::set<int> &allowedTypes)
 		: scene_(scene),
@@ -39,6 +41,10 @@ struct glTFBufferData {
 		return numComponentsForType.at(accessor_.type);
 	}
 
+	int type() const {
+		return accessor_.type;
+	}
+
 	template <typename T, typename U = T>
 	T getDataArray(size_t index, bool useComponentSize = true) const {
 		auto componentSize = (useComponentSize) ? accessor_.ByteStride(view_) / sizeof(typename T::value_type) : 1;
@@ -61,7 +67,7 @@ struct glTFBufferData {
 		assert(componentSize > 0);
 
 		auto firstByte = reinterpret_cast<const U *>(&bufferBytes[(accessor_.byteOffset + view_.byteOffset)]);
-		
+
 		std::vector<T> values(numComponents());
 
 		for (int i = 0; i < values.size(); ++i) {
@@ -104,7 +110,7 @@ struct glTFBufferData {
 		return {};
 	}
 
-	template<typename T>
+	template <typename T>
 	std::vector<T> getConvertedData(size_t index, bool useComponentSize = true) {
 		switch (accessor_.componentType) {
 			case TINYGLTF_PARAMETER_TYPE_FLOAT:
@@ -134,13 +140,12 @@ struct glTFBufferData {
 			case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
 				return getDataAt<T, uint32_t>(index, useComponentSize);
 				break;
-
 		}
 		return {};
 	}
 
-	template<typename T>
-	std::vector<float> normalize(const std::vector<T> &data){
+	template <typename T>
+	std::vector<float> normalize(const std::vector<T> &data) {
 		std::vector<float> result(data.size());
 		for (auto i = 0; i < data.size(); i++) {
 			result[i] = std::max(-1.0F, data[i] / static_cast<float>(std::numeric_limits<T>::max()));
@@ -153,3 +158,5 @@ struct glTFBufferData {
 	const tinygltf::BufferView &view_;
 	const std::vector<unsigned char> &bufferBytes;
 };
+
+}  // namespace raco::mesh_loader

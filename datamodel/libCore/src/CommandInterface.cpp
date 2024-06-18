@@ -20,6 +20,7 @@
 #include "core/UserObjectFactoryInterface.h"
 #include "utils/u8path.h"
 
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/RenderLayer.h"
 
 #include <spdlog/fmt/bundled/ranges.h>
@@ -641,6 +642,185 @@ std::vector<SEditorObject> CommandInterface::duplicateObjects(const std::vector<
 
 	return duplicatedObjs;
 }
+
+
+std::vector<SEditorObject> CommandInterface::convertToAnimationChannelRaco(const std::vector<SEditorObject>& objects) {
+	for (auto obj : objects) {
+		if (!project()->isInstance(obj)) {
+			throw std::runtime_error(fmt::format("Convert AnimationChannel to AnimationChannelRaco: object '{}' not in project", obj->objectName()));
+		}
+		if (!obj->isType<user_types::AnimationChannel>()) {
+			throw std::runtime_error(fmt::format("Convert AnimationChannel to AnimationChannelRaco: object '{}' is not an AnimationChannel", obj->objectName()));
+		}
+	}
+
+	auto deletableObjects = Queries::filterForDeleteableObjects(*project(), objects);
+	if (!deletableObjects.empty()) {
+		std::vector<SEditorObject> racoChannels;
+		for (auto obj : deletableObjects) {
+			// Create new AnimationChannelRaco:
+			auto channel = obj->as<user_types::AnimationChannel>();
+			auto racoChannel = context_->createObject("AnimationChannelRaco", channel->objectName())->as<user_types::AnimationChannelRaco>();
+			racoChannel->createPropertiesFromSamplerData(*context_, channel->currentSamplerData_);
+
+			// Replace the old animation channel with the new raco animation channel:
+			// step 1: redirect references to the channel
+			auto refHandles = Queries::findAllReferencesTo(*project(), {channel});
+			for (const auto& refHandle : refHandles) {
+				if (canSetHandle(refHandle)) {
+					context_->set(refHandle, racoChannel);
+				}
+			}
+
+			// step 2: remove old object
+			context_->deleteObjects({channel});
+
+			racoChannels.emplace_back(racoChannel);
+		}
+
+		PrefabOperations::globalPrefabUpdate(*context_);
+		undoStack_->push(fmt::format("Convert {} AnimationChannel{}", racoChannels.size(), racoChannels.size() > 1 ? "s" : ""));
+
+		return racoChannels;
+	}
+
+	return {};
+}
+
+template<typename T>
+bool CommandInterface::checkAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<T>& keyFrames, const std::vector<T>& tangentsIn, const std::vector<T>& tangentsOut) {
+	if (!project()->isInstance(object)) {
+		throw std::runtime_error(fmt::format("setAnimationData: object '{}' not in project", object->objectName()));
+	}
+	if (!object->isType<user_types::AnimationChannelRaco>()) {
+		throw std::runtime_error(fmt::format("setAnimationData: object '{}' is not an AnimationChannelRaco", object->objectName()));
+	}
+
+	auto animationChannel = object->as<user_types::AnimationChannelRaco>();
+
+	auto numTimeStamps = timeStamps.size();
+	if (keyFrames.size() != numTimeStamps) {
+		throw std::runtime_error(fmt::format("setAnimationdata for object '{}': number of keyFrames {} is different from number of timeStamps {}.", object->objectName(), keyFrames.size(), numTimeStamps));
+	}
+
+	auto interpolationType = static_cast<MeshAnimationInterpolation>(*animationChannel->interpolationType_);
+	bool splineInterpolation = interpolationType == MeshAnimationInterpolation::CubicSpline || interpolationType == MeshAnimationInterpolation::CubicSpline_Quaternion;
+	if (splineInterpolation) {
+		if (tangentsIn.size() != numTimeStamps) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': number of tangentsIn {} is different from number of timeStamps {}.", object->objectName(), tangentsIn.size(), numTimeStamps));
+		}
+		if (tangentsOut.size() != numTimeStamps) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': number of tangentsOut {} is different from number of timeStamps {}.", object->objectName(), tangentsOut.size(), numTimeStamps));
+		}
+	} else {
+		if (tangentsIn.size() != 0) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': tangentsIn must be empty for non-cubic interpolation types.", object->objectName()));
+		}
+		if (tangentsOut.size() != 0) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': tangentsOut must be empty for non-cubic interpolation types.", object->objectName()));
+		}
+	}
+
+	return true;
+}
+
+template<typename T>
+bool CommandInterface::checkAnimationComponentSize(SEditorObject object, const std::vector<std::vector<T>>& keyFrames, const std::vector<std::vector<T>>& tangentsIn, const std::vector<std::vector<T>> & tangentsOut) {
+	auto animationChannel = object->as<user_types::AnimationChannelRaco>();
+
+	int compSize = animationChannel->getOuputComponentSize();
+	if (!std::all_of(keyFrames.begin(), keyFrames.end(), [compSize](const auto& v) {
+			return v.size() == compSize;
+		})) {
+		throw std::runtime_error(fmt::format("setAnimationData for object '{}': component size mismatch in keyFrames.", object->objectName()));
+	}
+
+	auto interpolationType = static_cast<MeshAnimationInterpolation>(*animationChannel->interpolationType_);
+	bool splineInterpolation = interpolationType == MeshAnimationInterpolation::CubicSpline || interpolationType == MeshAnimationInterpolation::CubicSpline_Quaternion;
+	if (splineInterpolation) {
+		if (!std::all_of(tangentsIn.begin(), tangentsIn.end(), [compSize](const auto& v) {
+				return v.size() == compSize;
+			})) {
+			throw std::runtime_error(fmt::format("setAnimationData for object '{}': component size mismatch in tangentsIn.", object->objectName()));
+		}
+		if (!std::all_of(tangentsOut.begin(), tangentsOut.end(), [compSize](const auto& v) {
+				return v.size() == compSize;
+			})) {
+			throw std::runtime_error(fmt::format("setAnimationData for object '{}': component size mismatch in tangentsOut.", object->objectName()));
+		}
+	}
+	return true;
+}
+
+void CommandInterface::setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<float>& keyFrames, const std::vector<float>& tangentsIn, const std::vector<float>& tangentsOut) {
+	if (checkAnimationData(object, timeStamps, keyFrames, tangentsIn, tangentsOut)) {
+		auto animationChannel = object->as<user_types::AnimationChannelRaco>();
+
+		if (static_cast<EnginePrimitive>(*animationChannel->componentType_) != EnginePrimitive::Double) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': wrong componentType.", object->objectName()));
+		}
+
+		animationChannel->setAnimationData(*context_, timeStamps, user_types::AnimationChannelRaco::makeAnimationOutputData(EnginePrimitive::Double, keyFrames, tangentsIn, tangentsOut));
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set animation data for AnimationChannelRaco '{}'", object->objectName()));
+	}
+}
+
+void CommandInterface::setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<int>& keyFrames, const std::vector<int>& tangentsIn, const std::vector<int>& tangentsOut) {
+	if (checkAnimationData(object, timeStamps, keyFrames, tangentsIn, tangentsOut)) {
+		auto animationChannel = object->as<user_types::AnimationChannelRaco>();
+
+		if (static_cast<EnginePrimitive>(*animationChannel->componentType_) != EnginePrimitive::Int32) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': wrong componentType.", object->objectName()));
+		}
+
+		animationChannel->setAnimationData(*context_, timeStamps, user_types::AnimationChannelRaco::makeAnimationOutputData(EnginePrimitive::Int32, keyFrames, tangentsIn, tangentsOut));
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set animation data for AnimationChannelRaco '{}'", object->objectName()));
+	}
+}
+
+void CommandInterface::setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<std::vector<float>>& keyFrames, const std::vector<std::vector<float>>& tangentsIn, const std::vector<std::vector<float>>& tangentsOut) {
+	if (checkAnimationData(object, timeStamps, keyFrames, tangentsIn, tangentsOut)) {
+		auto animationChannel = object->as<user_types::AnimationChannelRaco>();
+
+		auto compType = static_cast<EnginePrimitive>(*animationChannel->componentType_);
+		std::set<EnginePrimitive> validTypes{EnginePrimitive::Vec2f, EnginePrimitive::Vec3f, EnginePrimitive::Vec4f, EnginePrimitive::Array};
+		if (validTypes.find(compType) == validTypes.end()) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': wrong componentType.", object->objectName()));
+		}
+
+		checkAnimationComponentSize(object, keyFrames, tangentsIn, tangentsOut);
+
+		animationChannel->setAnimationData(*context_, timeStamps, user_types::AnimationChannelRaco::makeAnimationOutputData(compType, keyFrames, tangentsIn, tangentsOut));
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set animation data for AnimationChannelRaco '{}'", object->objectName()));
+	}
+}
+
+void CommandInterface::setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<std::vector<int>>& keyFrames, const std::vector<std::vector<int>>& tangentsIn, const std::vector<std::vector<int>>& tangentsOut) {
+	if (checkAnimationData(object, timeStamps, keyFrames, tangentsIn, tangentsOut)) {
+		auto animationChannel = object->as<user_types::AnimationChannelRaco>();
+
+		auto compType = static_cast<EnginePrimitive>(*animationChannel->componentType_);
+		std::set<EnginePrimitive> validTypes{EnginePrimitive::Vec2i, EnginePrimitive::Vec3i, EnginePrimitive::Vec4i};
+		if (validTypes.find(compType) == validTypes.end()) {
+			throw std::runtime_error(fmt::format("setAnimationdata for object '{}': wrong componentType.", object->objectName()));
+		}
+
+		checkAnimationComponentSize(object, keyFrames, tangentsIn, tangentsOut);
+
+		animationChannel->setAnimationData(*context_, timeStamps, user_types::AnimationChannelRaco::makeAnimationOutputData(compType, keyFrames, tangentsIn, tangentsOut));
+		PrefabOperations::globalPrefabUpdate(*context_);
+
+		undoStack_->push(fmt::format("Set animation data for AnimationChannelRaco '{}'", object->objectName()));
+	}
+}
+
+
 
 SLink CommandInterface::addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak) {
 	if (start && !context_->project()->isInstance(start.rootObject())) {

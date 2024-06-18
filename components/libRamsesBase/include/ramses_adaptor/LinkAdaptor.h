@@ -37,11 +37,17 @@ public:
 	void lift();
 	void connect();
 
-	void readDataFromEngine(core::DataChangeRecorder &recorder);
+	/**
+	 * @brief Read back data from the Ramses property for the link endpoint and update the Raco data model.
+	 * @param recorder Change recorder to use for collecting actually changed properties.
+	 * @return Returns true if some value was changed in Raco data model.
+	 */
+	bool readDataFromEngine(core::DataChangeRecorder& recorder);
 
 protected:
 	void connectHelper(const core::ValueHandle& start, const core::ValueHandle& end, bool isWeak);
-	void readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property);
+
+	bool readFromEngineRecursive(core::DataChangeRecorder& recorder, const core::ValueHandle& property);
 
 	SceneAdaptor* sceneAdaptor_;
 	core::LinkDescriptor editorLink_;

@@ -28,8 +28,8 @@ bool RenderTargetAdaptorT<RenderTargetClass, RenderBufferClass, RenderBufferAdap
 		const auto& buffer = userTypeBuffers.begin()[bufferSlotIndex];
 		if (auto adaptor = this->sceneAdaptor_->template lookup<RenderBufferAdaptorClass>(buffer)) {
 			if (auto ramsesBuffer = adaptor->buffer()) {
-				if (!rtDesc.addRenderBuffer(*ramsesBuffer)) {
-					auto errorMsg = this->sceneAdaptor_->scene()->getRamsesClient().getRamsesFramework().getLastError().value().message;
+				std::string errorMsg;
+				if (!rtDesc.addRenderBuffer(*ramsesBuffer, &errorMsg)) {
 					LOG_ERROR(log_system::RAMSES_ADAPTOR, errorMsg);
 					errors->addError(core::ErrorCategory::PARSING, core::ErrorLevel::ERROR, {this->editorObject()->shared_from_this()}, errorMsg);
 				} else {

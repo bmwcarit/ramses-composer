@@ -16,10 +16,12 @@
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "user_types/Node.h"
+#include "user_types/AnimationChannel.h"
 
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
+#include "object_tree_view_model/ObjectTreeViewRenderViewModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
 #include "object_tree_view_model/ObjectTreeViewSortProxyModels.h"
 #include "utils/u8path.h"
@@ -51,8 +53,9 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	if (proxyModel_) {
 		proxyModel_->setSourceModel(treeModel_);
-
+		
 		setSortingEnabled(proxyModel_->sortingEnabled());
+		sortByColumn(treeModel_->defaultSortColumn(), Qt::AscendingOrder);
 		QTreeView::setModel(proxyModel_);
 	} else {
 		QTreeView::setModel(treeModel_);
@@ -60,39 +63,31 @@ ObjectTreeView::ObjectTreeView(const QString &viewTitle, ObjectTreeViewDefaultMo
 
 	setTextElideMode(treeModel_->textElideMode());
 
-	// hidden column for data only used for filtering, enable to reveal object IDs
-	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_ID, true);
-	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_USERTAGS, true);
 
 	connect(this, &QTreeView::customContextMenuRequested, this, &ObjectTreeView::showContextMenu);
 	connect(this, &QTreeView::expanded, this, &ObjectTreeView::expanded);
 	connect(this, &QTreeView::collapsed, this, &ObjectTreeView::collapsed);
 
 	connect(this->selectionModel(), &QItemSelectionModel::selectionChanged, [this](const auto &selectedItemList, const auto &deselectedItemList) {
-		if (auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_))) {
-			Q_EMIT externalObjectSelected();
-			return;
-		}
-
-		auto selectedObjects = indicesToSEditorObjects(selectedItemList.indexes());
-		for (const auto &selObj : selectedObjects) {
-			selectedItemIDs_.emplace(selObj->objectID());
-		}
-
-		auto deselectedObjects = indicesToSEditorObjects(deselectedItemList.indexes());
-		for (const auto &deselObj : deselectedObjects) {
-			selectedItemIDs_.erase(deselObj->objectID());
-		}
-
-		Q_EMIT newObjectTreeItemsSelected(getSelectedObjects(), property_);
-		property_.clear();
+		Q_EMIT newObjectTreeItemsSelected(getSelectedObjects());
 	});
 
+	connect(treeModel_, &ObjectTreeViewDefaultModel::modelAboutToBeReset, this, &ObjectTreeView::saveItemExpansionStates);
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemExpansionStates);
+	connect(treeModel_, &ObjectTreeViewDefaultModel::modelAboutToBeReset, this, &ObjectTreeView::saveItemSelectionStates);
 	connect(treeModel_, &ObjectTreeViewDefaultModel::modelReset, this, &ObjectTreeView::restoreItemSelectionStates);
 
+	resizeColumnToContents(ObjectTreeViewDefaultModel::COLUMNINDEX_PREVIEW_VISIBILITY);
+	resizeColumnToContents(ObjectTreeViewDefaultModel::COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY);
 	setColumnWidth(ObjectTreeViewDefaultModel::COLUMNINDEX_NAME, width() / 3);
 
+	// hidden column for data only used for filtering, enable to reveal object IDs
+	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_ID, true);
+	setColumnHidden(ObjectTreeViewDefaultModel::COLUMNINDEX_USERTAGS, true);
+	for (auto column : treeModel_->hiddenColumns()) {
+		setColumnHidden(column, true);
+	}
+	
 	auto copyShortcut = new QShortcut(QKeySequence::Copy, this, nullptr, nullptr, Qt::WidgetShortcut);
 	QObject::connect(copyShortcut, &QShortcut::activated, this, &ObjectTreeView::copyObjects);
 
@@ -207,14 +202,14 @@ void ObjectTreeView::pasteObjects(const QModelIndex &index, bool asExtRef) {
 
 void ObjectTreeView::cutObjects() {
 	auto selectedIndices = getSelectedIndices(true);
-	if (!selectedIndices.isEmpty()) {
+	if (!selectedIndices.isEmpty() && canCutIndices(selectedIndices)) {
 		treeModel_->cutObjectsAtIndices(selectedIndices, false);
 	}
 }
 
 void ObjectTreeView::deleteObjects() {
 	auto selectedIndices = getSelectedIndices();
-	if (!selectedIndices.empty()) {
+	if (!selectedIndices.empty() && treeModel_->canDeleteAtIndices(selectedIndices)) {
 		auto delObjAmount = treeModel_->deleteObjectsAtIndices(selectedIndices);
 
 		if (delObjAmount > 0) {
@@ -256,22 +251,19 @@ void ObjectTreeView::showAllNodes() {
 	treeModel_->showAllNodes();
 }
 
-void ObjectTreeView::selectObject(const QString &objectID) {
+void ObjectTreeView::selectObject(const QString &objectID, bool blockSignals) {
+	selectionModel()->blockSignals(blockSignals);
 	if (objectID.isEmpty()) {
 		resetSelection();
-		return;
+	} else {
+		auto objectIndex = indexFromTreeNodeID(objectID.toStdString());
+		if (objectIndex.isValid()) {
+			resetSelection();
+			selectionModel()->select(objectIndex, SELECTION_MODE);
+			scrollTo(objectIndex);
+		}
 	}
-
-	auto objectIndex = indexFromTreeNodeID(objectID.toStdString());
-	if (objectIndex.isValid()) {
-		resetSelection();
-		selectionModel()->select(objectIndex, SELECTION_MODE);
-		scrollTo(objectIndex);
-	}
-}
-
-void ObjectTreeView::setPropertyToSelect(const QString &property) {
-	property_ = property;
+	selectionModel()->blockSignals(false);
 }
 
 void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
@@ -282,16 +274,12 @@ void ObjectTreeView::expandAllParentsOfObject(const QString &objectID) {
 }
 
 void ObjectTreeView::expanded(const QModelIndex &index) {
-	expandedItemIDs_.insert(indexToTreeNodeID(index));
-
 	if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
 		expandRecursively(index);
 	}
 }
 
 void ObjectTreeView::collapsed(const QModelIndex &index) {
-	expandedItemIDs_.erase(indexToTreeNodeID(index));
-
 	if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::KeyboardModifier::ShiftModifier)) {
 		collapseRecusively(index);
 	}
@@ -305,25 +293,32 @@ void ObjectTreeView::collapseRecusively(const QModelIndex& index) {
 	}
 }
 
+object_tree::model::ObjectTreeViewDefaultModel *ObjectTreeView::treeModel() const {
+	return treeModel_;
+}
+
 QString ObjectTreeView::getViewTitle() const {
 	return viewTitle_;
 }
 
 void ObjectTreeView::requestNewNode(const std::string& nodeType, const std::string &nodeName, const QModelIndex &parent) {
-	Q_EMIT dockSelectionFocusRequested(this);
-
-	selectedItemIDs_.clear();
 	auto createdObject = treeModel_->createNewObject(nodeType, nodeName, parent);
-	selectedItemIDs_.insert(createdObject->objectID());
+	selectObject(QString::fromStdString(createdObject->objectID()), false);
 }
 
 void ObjectTreeView::showContextMenu(const QPoint &p) {
 	auto *treeViewMenu = createCustomContextMenu(p);
-	treeViewMenu->exec(viewport()->mapToGlobal(p));
+	if (treeViewMenu) {
+		treeViewMenu->exec(viewport()->mapToGlobal(p));
+	}
 }
 
 bool ObjectTreeView::canCopyAtIndices(const QModelIndexList &parentIndices) {
 	return treeModel_->canCopyAtIndices(parentIndices);
+}
+
+bool ObjectTreeView::canCutIndices(const QModelIndexList &indices) {
+	return treeModel_->canCopyAtIndices(indices) && treeModel_->canDeleteAtIndices(indices);
 }
 
 bool ObjectTreeView::canPasteIntoIndex(const QModelIndex &index, bool asExtref) {
@@ -378,11 +373,14 @@ bool ObjectTreeView::hasProxyModel() const {
 
 void ObjectTreeView::resetSelection() {
 	selectionModel()->reset();
-	selectedItemIDs_.clear();
 	viewport()->update();
 }
 
 QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
+	if (dynamic_cast<ObjectTreeViewRenderViewModel *>(treeModel_)) {
+		return nullptr;
+	}
+
 	auto treeViewMenu = new QMenu(this);
 
 	auto selectedItemIndices = getSelectedIndices(true);
@@ -390,6 +388,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	
 	bool canDeleteSelectedIndices = treeModel_->canDeleteAtIndices(selectedItemIndices);
 	bool canCopySelectedIndices = treeModel_->canCopyAtIndices(selectedItemIndices);
+	bool canCutSelectedIndices = canCutIndices(selectedItemIndices);
 
 	auto externalProjectModel = (dynamic_cast<ObjectTreeViewExternalProjectModel *>(treeModel_));
 	auto prefabModel = (dynamic_cast<ObjectTreeViewPrefabModel *>(treeModel_));
@@ -397,6 +396,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	bool isScenegraphView = !(prefabModel || resourceModel || externalProjectModel);
 	bool canInsertMeshAsset = false;
 	bool haveCreatableTypes = false;
+	bool canConvAnimChannel = false;
 
 	for (auto const& typeName : treeModel_->creatableTypes(insertionTargetIndex)) {
 		auto actionCreate = treeViewMenu->addAction(QString::fromStdString("Create " + typeName), [this, typeName, insertionTargetIndex]() {
@@ -405,6 +405,9 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		haveCreatableTypes = true;
 		if (typeName == user_types::Node::typeDescription.typeName) {
 			canInsertMeshAsset = true;
+		}
+		if (typeName == user_types::AnimationChannel::typeDescription.typeName) {
+			canConvAnimChannel = true;
 		}
 	}
 
@@ -419,6 +422,15 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 			}
 		});
 		actionImport->setEnabled(canInsertMeshAsset);
+	}
+
+	if (canConvAnimChannel) {
+		treeViewMenu->addSeparator();
+		auto actionConvert = treeViewMenu->addAction(
+			"Convert AnimationChannel to AnimationChannelRaco", [this, selectedItemIndices] {
+				treeModel_->convertToAnimationChannelRaco(selectedItemIndices);
+			});
+		actionConvert->setEnabled(treeModel_->canConvertAnimationChannels(selectedItemIndices));
 	}
 
 	if (!externalProjectModel || haveCreatableTypes) {
@@ -473,7 +485,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 		"Cut", [this, selectedItemIndices]() {
 		treeModel_->cutObjectsAtIndices(selectedItemIndices, false); 
 	}, QKeySequence::Cut);
-	actionCut->setEnabled(canDeleteSelectedIndices && canCopySelectedIndices);
+	actionCut->setEnabled(canCutSelectedIndices);
 
 	treeViewMenu->addSeparator();
 
@@ -485,7 +497,7 @@ QMenu* ObjectTreeView::createCustomContextMenu(const QPoint &p) {
 	auto actionCutDeep = treeViewMenu->addAction("Cut (Deep)", [this, selectedItemIndices]() { 		
 		treeModel_->cutObjectsAtIndices(selectedItemIndices, true); 
 	});
-	actionCutDeep->setEnabled(canDeleteSelectedIndices && canCopySelectedIndices);
+	actionCutDeep->setEnabled(canCutSelectedIndices);
 
 	if (!externalProjectModel) {
 		auto actionDeleteUnrefResources = treeViewMenu->addAction("Delete Unused Resources", [this] { treeModel_->deleteUnusedResources(); });
@@ -580,7 +592,7 @@ void ObjectTreeView::mousePressEvent(QMouseEvent *event) {
 	QTreeView::mousePressEvent(event);
 	if (!indexAt(event->pos()).isValid()) {
 		resetSelection();
-		Q_EMIT newObjectTreeItemsSelected({}, {});
+		Q_EMIT newObjectTreeItemsSelected({});
 	}
 }
 
@@ -656,6 +668,28 @@ QModelIndex ObjectTreeView::getSelectedInsertionTargetIndex() const {
 	}
 }
 
+
+void ObjectTreeView::iterateThroughTree(QAbstractItemModel *model, std::function<void(QModelIndex &)> nodeFunc, QModelIndex currentIndex) {
+	if (currentIndex.row() != -1) {
+		nodeFunc(currentIndex);
+	}
+	for (int i = 0; i < model->rowCount(currentIndex); ++i) {
+		auto childIndex = model->index(i, 0, currentIndex);
+		iterateThroughTree(model, nodeFunc, childIndex);
+	}
+}
+
+void ObjectTreeView::saveItemExpansionStates() {
+	expandedItemIDs_.clear();
+	iterateThroughTree(
+		model(), [this](QModelIndex &index) {
+			if (isExpanded(index)) {
+				expandedItemIDs_.insert(indexToTreeNodeID(index));
+			}
+		},
+		QModelIndex());
+}
+
 void ObjectTreeView::restoreItemExpansionStates() {
 	for (const auto &expandedObjectID : expandedItemIDs_) {
 		auto expandedObjectIndex = indexFromTreeNodeID(expandedObjectID);
@@ -664,6 +698,13 @@ void ObjectTreeView::restoreItemExpansionStates() {
 			expand(expandedObjectIndex);
 			blockSignals(false);
 		}
+	}
+}
+
+void ObjectTreeView::saveItemSelectionStates() {
+	selectedItemIDs_.clear();
+	for (auto obj : indicesToSEditorObjects(selectionModel()->selectedIndexes())) {
+		selectedItemIDs_.insert(obj->objectID());
 	}
 }
 

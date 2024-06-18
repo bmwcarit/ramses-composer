@@ -15,11 +15,9 @@
 #include <QApplication>
 #include <testing/TestEnvironmentCore.h>
 
-class ObjectDefaultTreeDockManagerTest : public TestEnvironmentCore {
+class ObjectDefaultTreeDockManagerTest : public TestEnvironmentCoreT<::testing::Test, QApplication> {
 protected:
 	object_tree::view::ObjectTreeDockManager manager_;
-	int argc = 0;
-	QApplication fakeApp_{argc, nullptr};	
 	components::SDataChangeDispatcher dispatcher_{std::make_shared<components::DataChangeDispatcher>()};
 
 	std::unique_ptr<object_tree::view::ObjectTreeDock> generateDockInManager() {

@@ -16,6 +16,7 @@ set(TEST_LIBRARIES
     raco::ApplicationLib
     raco::RamsesBase
     raco::Testing
+    raco::PythonAPI
 )
 
 raco_package_add_gui_test(
@@ -24,3 +25,6 @@ raco_package_add_gui_test(
     "${TEST_LIBRARIES}"
     ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+deploy_python_dlls(libCommonWidgets_test)
+deploy_python_folder(libCommonWidgets_test)

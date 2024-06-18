@@ -10,9 +10,9 @@
 #pragma once
 
 #include "application/ExternalProjectsStore.h"
+#include "application/ReportStatistics.h"
 #include "application/RaCoProject.h"
 #include "components/DataChangeDispatcher.h"
-#include "core/ChangeRecorder.h"
 #include "core/Project.h"
 #include "core/SceneBackendInterface.h"
 #include <memory>
@@ -60,7 +60,8 @@ enum class ELuaSavingMode {
 	SourceAndByteCode
 };
 
-class RaCoApplication{
+class RaCoApplication : public QObject {
+	Q_OBJECT
 
 public:
 	explicit RaCoApplication(ramses_base::BaseEngineBackend& engine, const RaCoApplicationLaunchSettings& settings = {});
@@ -101,7 +102,8 @@ public:
 		bool compress,
 		std::string& outError,
 		bool forceExportWithErrors = false,
-		ELuaSavingMode luaSavingMode = ELuaSavingMode::SourceCodeOnly);
+		ELuaSavingMode luaSavingMode = ELuaSavingMode::SourceCodeOnly,
+		bool warningsAsErrors = false);
 
 	void doOneLoop();
 
@@ -141,11 +143,18 @@ public:
 
 	const FeatureLevelLoadError* getFlError() const;
 
+	void setRecordingStats(bool enable);
+	void resetStats();
+	const ReportStatistics& getLogicStats() const;
+
+Q_SIGNALS:
+	void performanceStatisticsUpdated();
+
 private:
 	// Needs to access externalProjectsStore_ directly:
 	friend class ::ObjectTreeViewExternalProjectModelTest;
 
-	bool exportProjectImpl(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode) const;
+	bool exportProjectImpl(const std::string& ramsesExport, bool compress, std::string& outError, bool forceExportWithErrors, ELuaSavingMode luaSavingMode, bool warningsAsErrors) const;
 
 	void setupScene(bool optimizedForExport, bool setupAbstractScene);
 
@@ -173,6 +182,9 @@ private:
 	std::chrono::high_resolution_clock::time_point startTime_;
 	
 	std::function<int64_t()> getTime_;
+
+	bool recordingStats_ = false;
+	ReportStatistics logicStats_;
 };
 
 }  // namespace raco::application

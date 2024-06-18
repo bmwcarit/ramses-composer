@@ -10,132 +10,213 @@
 #include "common_widgets/RunScriptDialog.h"
 
 #include "core/PathManager.h"
-#include "style/Colors.h"
+#include "python_api/PythonAPI.h"
 #include "utils/u8path.h"
 
-#include <QCompleter>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QLabel>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QPushButton>
-#include <QScrollBar>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QShortcut>
+#include <QKeySequence>
+#include <QSplitter>
 
 
 namespace raco::common_widgets {
 
 RunScriptDialog::RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::map<QString, qint64>& commandLineParamEntries, QWidget* parent)
 	: QWidget{parent},
-	  scriptEntries_{scriptEntries},
-	  commandLineParamEntries_{commandLineParamEntries}
-{
-
-	layout_ = new QGridLayout(this);
-
-	scriptSettingsLayout_ = new QGridLayout(this);
-
-	scriptPathEdit_ = new QComboBox(this);
+	  scriptEntries_{scriptEntries}{
+	// Python script path
+	const auto pathLabel = new QLabel("Python Script Path");
+	scriptPathEdit_ = new QComboBox();
 	scriptPathEdit_->setEditable(true);
 
-	scriptPathURIButton_ = new QPushButton("...", this);
+	scriptPathURIButton_ = new QPushButton("...");
 	scriptPathURIButton_->setMaximumWidth(30);
-	scriptSettingsLayout_->addWidget(new QLabel{"Python Script Path", this}, 0, 0);
-	scriptSettingsLayout_->addWidget(scriptPathEdit_, 0, 1);
-	scriptSettingsLayout_->addWidget(scriptPathURIButton_, 0, 2);
-	QObject::connect(scriptPathEdit_, &QComboBox::currentTextChanged, this, &RunScriptDialog::updateButtonStates);
 	QObject::connect(scriptPathURIButton_, &QPushButton::clicked, [this]() {
-		auto pythonPath = scriptPathEdit_->currentText();
-		if (pythonPath.isEmpty()) {
-			auto cachedScriptPath = core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Script, pythonPath.toStdString());
+		 auto pythonPath = scriptPathEdit_->currentText();
+		 if (pythonPath.isEmpty()) {
+			const auto cachedScriptPath = core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Script, pythonPath.toStdString());
 			pythonPath = QString::fromStdString(cachedScriptPath.string());
-		}
+		 }
 
-		auto pythonScriptPath = QFileDialog::getOpenFileName(this, "Open Python Script", pythonPath, "Python Scripts (*.py);; All files (*.*)");
-		if (!pythonScriptPath.isEmpty()) {
+		 const auto pythonScriptPath = QFileDialog::getOpenFileName(this, "Open Python Script", pythonPath, "Python Scripts (*.py);; All files (*.*)");
+		 if (!pythonScriptPath.isEmpty()) {
 			scriptPathEdit_->setCurrentText(pythonScriptPath);
 			core::PathManager::setCachedPath(core::PathManager::FolderTypeKeys::Script, QFileInfo(pythonScriptPath).absoluteDir().absolutePath().toStdString());
-		}
+			
+			scriptTextEdit_->updateText(getPythonFileContent(pythonScriptPath));
+		 }
 	});
 
-	argumentsEdit_ = new QComboBox(this);
-	argumentsEdit_->setEditable(true);
-	scriptSettingsLayout_->addWidget(new QLabel{"Command Line Arguments", this}, 1, 0);
-	scriptSettingsLayout_->addWidget(argumentsEdit_, 1, 1);
+	// Python script editor
+	scriptTextEdit_ = new PythonScriptEditor();
+	QObject::connect(scriptTextEdit_, &QPlainTextEdit::textChanged, this, &RunScriptDialog::updateButtonStates);
+	scriptTextEdit_->setFont(QFont("RobotoRegular", 10));
 
-	buttonBox_ = new QDialogButtonBox{QDialogButtonBox::Cancel | QDialogButtonBox::Ok, this};
-	buttonBox_->button(QDialogButtonBox::Ok)->setText("Run Script");
-	buttonBox_->button(QDialogButtonBox::Cancel)->setText("Clear Output");
-	connect(buttonBox_, &QDialogButtonBox::accepted, this, &RunScriptDialog::runScript);
-	connect(buttonBox_, &QDialogButtonBox::rejected, [this]() { statusTextBlock_->clear(); });
+	scriptButtonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Help};
+	scriptButtonBox_->button(QDialogButtonBox::Ok)->setText("Save");
+	scriptButtonBox_->button(QDialogButtonBox::Cancel)->setText("Save As");
+	scriptButtonBox_->button(QDialogButtonBox::Help)->setText("Run Script");
+	connect(scriptButtonBox_, &QDialogButtonBox::accepted, this, [this]() {
+		saveScript(scriptPathEdit_->currentText());
+	});
+	connect(scriptButtonBox_, &QDialogButtonBox::rejected, this, &RunScriptDialog::saveScriptAs);
+	connect(scriptButtonBox_, &QDialogButtonBox::helpRequested, this, [this]() {
+		runScript(scriptTextEdit_->getExpression(), ScriptSource::Editor);
+	});
 
-	statusTextBlock_ = new QPlainTextEdit(this);
-	statusTextBlock_->setReadOnly(true);
-	statusTextBlock_->setPlaceholderText("Python Script Outputs...");
+	// Python console
+	pythonConsole_ = new PythonConsole();
+	QObject::connect(pythonConsole_, &PythonConsole::runPythonScript, this, [this](const QString& script) {
+		runScript(script, ScriptSource::Console);
+	});
+	pythonConsole_->setFont(QFont("RobotoRegular", 10));
 
-	layout_->addLayout(scriptSettingsLayout_, 0, 0);
-	layout_->addWidget(buttonBox_, 1, 0);
-	layout_->addWidget(statusTextBlock_, 2, 0);
+	clearConsoleButtonBox_ = new QDialogButtonBox{QDialogButtonBox::Ok};
+	clearConsoleButtonBox_->button(QDialogButtonBox::Ok)->setText("Clear Console");
+	connect(clearConsoleButtonBox_, &QDialogButtonBox::accepted, this, &RunScriptDialog::clearConsole);
 
+	// Layouts
+	const auto scriptPathLayout = new QHBoxLayout();
+	scriptPathLayout->addWidget(pathLabel);
+	scriptPathLayout->addWidget(scriptPathEdit_);
+	scriptPathLayout->addWidget(scriptPathURIButton_);
+
+	const auto scriptLayout = new QVBoxLayout();
+	scriptLayout->addLayout(scriptPathLayout);
+	scriptLayout->addWidget(scriptTextEdit_);
+	scriptLayout->addWidget(scriptButtonBox_);
+
+	const auto consoleLayout = new QVBoxLayout();
+	consoleLayout->addWidget(pythonConsole_);
+	consoleLayout->addWidget(clearConsoleButtonBox_);
+	
+	const auto verticalSplitter = new QSplitter(Qt::Vertical);
+	verticalSplitter->addWidget(new QWidget);
+	verticalSplitter->addWidget(new QWidget);
+	
+	verticalSplitter->widget(0)->setLayout(scriptLayout);
+	verticalSplitter->widget(1)->setLayout(consoleLayout);
+
+	// This is only needed when the dialog is docked, probably it's a AdvancedDocking issue
+	QObject::connect(verticalSplitter, &QSplitter::splitterMoved, [this](int pos, int index) {
+		update();
+	});
+
+	const auto mainLayout = new QVBoxLayout(this);
+	mainLayout->addWidget(verticalSplitter);
+
+	// Python API connections
+	connect(this, &RunScriptDialog::runScriptRequested, [this](const QString& pythonScript, const ScriptSource source) {
+		setScriptIsRunning(true);
+		repaint();
+
+		const auto currentRunStatus = python_api::runPythonScript(pythonScript.toStdString());
+		if (source == ScriptSource::Editor) {
+			addOutputFromScriptEditor(currentRunStatus.stdOutBuffer, currentRunStatus.stdErrBuffer);
+		} else {
+			addOutputFromConsole(currentRunStatus.stdOutBuffer, currentRunStatus.stdErrBuffer);
+		}
+
+		setScriptIsRunning(false);
+	});
+
+	// Code highlighting
+	scriptEditorHighlighter_ = new PythonHighlighter(scriptTextEdit_->document());
+	consoleHighlighter_ = new PythonHighlighter(pythonConsole_->document(), true);
+
+	// Shortcuts (Alt+Enter / Alt+Return)
+	const auto enterShortcut = new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Enter), this);
+	connect(enterShortcut, &QShortcut::activated, this, [this]() {
+		runScript(scriptTextEdit_->getExpression(), ScriptSource::Editor);
+	});
+	const auto returnShortcut = new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Return), this);
+	connect(returnShortcut, &QShortcut::activated, this, [this]() {
+		runScript(scriptTextEdit_->getExpression(), ScriptSource::Editor);
+	});
+
+	// Updates
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowTitle("Run Python Script");
 	updateComboBoxItems();
 	updateButtonStates();
 }
 
-void RunScriptDialog::addPythonOutput(const std::string& outBuffer, const std::string& errorBuffer) {
-	auto launchTime = QDateTime::currentDateTime();
-	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 =====</font></b><br>").arg(style::Colors::color(style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
-
-	auto vbar = statusTextBlock_->verticalScrollBar();
-	auto atBottom = vbar->value() == vbar->maximum();
-
-	QTextCursor tc(statusTextBlock_->document());
-	tc.movePosition(QTextCursor::End);
-	tc.insertText(QString::fromStdString(outBuffer));
-
-	if (atBottom) {
-		vbar->setValue(vbar->maximum());
-	}
-
-	if (!errorBuffer.empty()) {
-		statusTextBlock_->appendHtml(QString("<font color=\"%1\">%2</font><br>").arg(style::Colors::color(style::Colormap::errorColorLight).name()).arg(QString::fromStdString(errorBuffer).toHtmlEscaped()));
-	}
-	statusTextBlock_->appendHtml(QString("<b><font color=\"%1\">===== SCRIPT RUN AT %2 FINISHED =====</font></b><br>").arg(style::Colors::color(style::Colormap::externalReference).name()).arg(launchTime.toString("hh:mm:ss.zzz")));
+void RunScriptDialog::addOutputFromScriptEditor(const std::string& outBuffer, const std::string& errorBuffer) const {
+	pythonConsole_->addOutputFromScriptEditor(QString::fromStdString(outBuffer), QString::fromStdString(errorBuffer));
 }
 
-void RunScriptDialog::setScriptIsRunning(bool isRunning) {
+void RunScriptDialog::addOutputFromConsole(const std::string& outBuffer, const std::string& errorBuffer) const {
+	pythonConsole_->addOutput(QString::fromStdString(outBuffer), QString::fromStdString(errorBuffer));
+}
+
+void RunScriptDialog::setScriptIsRunning(bool isRunning) const {
 	scriptPathEdit_->setDisabled(isRunning);
-	argumentsEdit_->setDisabled(isRunning);
 	scriptPathURIButton_->setDisabled(isRunning);
-	buttonBox_->setDisabled(isRunning);
+	scriptButtonBox_->setDisabled(isRunning);
 }
 
-Q_SLOT void RunScriptDialog::updateButtonStates() {
-	auto path = scriptPathEdit_->currentText();
-	auto fileInfo = QFileInfo(path);
-	if (scriptPathEdit_->currentText().isEmpty() || !fileInfo.exists() || !fileInfo.isReadable()) {
-		buttonBox_->button(QDialogButtonBox::Ok)->setEnabled(false);
-		return;
+void RunScriptDialog::updateButtonStates() const {
+	scriptTextEdit_->toPlainText().isEmpty() ? scriptButtonBox_->button(QDialogButtonBox::Ok)->setEnabled(false) : scriptButtonBox_->button(QDialogButtonBox::Ok)->setEnabled(true);
+	scriptTextEdit_->toPlainText().isEmpty() ? scriptButtonBox_->button(QDialogButtonBox::Cancel)->setEnabled(false) : scriptButtonBox_->button(QDialogButtonBox::Cancel)->setEnabled(true);
+}
+
+void RunScriptDialog::saveScript(const QString& filePath) const {
+	if (!filePath.isEmpty()) {
+		QFile file(filePath);
+
+		if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+			QTextStream out(&file);
+			out << scriptTextEdit_->getExpression();
+			file.close();
+
+			scriptPathEdit_->setCurrentText(filePath);
+		} else {
+			QMessageBox::warning(
+				nullptr,
+				"File Save Error",
+				"Failed to open file for writing:\n" + file.errorString(),
+				QMessageBox::Ok);
+		}
+	}
+}
+
+void RunScriptDialog::saveScriptAs() const {
+	auto pythonPath = scriptPathEdit_->currentText();
+	if (pythonPath.isEmpty()) {
+		const auto cachedScriptPath = core::PathManager::getCachedPath(core::PathManager::FolderTypeKeys::Script, pythonPath.toStdString());
+		pythonPath = QString::fromStdString(cachedScriptPath.string());
 	}
 
-	buttonBox_->button(QDialogButtonBox::Ok)->setEnabled(true);
+	const auto filePath = QFileDialog::getSaveFileName(
+		nullptr,
+		"Save As...",
+		pythonPath,
+		"Python Files (*.py);;All Files (*)");
+
+	saveScript(filePath);
 }
 
-void RunScriptDialog::runScript() {
-	auto scriptPath = scriptPathEdit_->currentText();
-	auto commandLineArgumentString = argumentsEdit_->currentText();
-	auto commandLineArguments = commandLineArgumentString.split(' ', Qt::SkipEmptyParts);
+void RunScriptDialog::clearConsole() const {
+	pythonConsole_->clearConsole();
+}
+
+void RunScriptDialog::runScript(const QString& script, const ScriptSource source) {
+	const auto scriptPath = scriptPathEdit_->currentText();
 
 	scriptEntries_[scriptPath] = QDateTime::currentMSecsSinceEpoch();
-	if (!commandLineArguments.isEmpty()) {
-		commandLineParamEntries_[commandLineArgumentString] = QDateTime::currentMSecsSinceEpoch();
-	}
 
 	updateComboBoxItems();
-	Q_EMIT pythonScriptRunRequested(scriptPath, commandLineArguments);
+	Q_EMIT runScriptRequested(script, source);
 }
 
-void RunScriptDialog::updateComboBoxItems() {
+void RunScriptDialog::updateComboBoxItems() const {
 	auto updateItems = [](QComboBox* comboBox, auto& map) {
 		comboBox->clear();
 
@@ -154,15 +235,19 @@ void RunScriptDialog::updateComboBoxItems() {
 			comboBox->addItem(string);
 		}
 	};
+}
 
-	auto resetCommandLineParams = argumentsEdit_->currentText().isEmpty();
+QString RunScriptDialog::getPythonFileContent(const QString& filePath) const {
+	QFile file(filePath);
 
-	updateItems(scriptPathEdit_, scriptEntries_);
-	updateItems(argumentsEdit_, commandLineParamEntries_);
-
-	if (resetCommandLineParams) {
-		argumentsEdit_->setCurrentText("");
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		return {};
 	}
+
+	QTextStream textStream(&file);
+	QString fileContents = textStream.readAll();
+
+	return fileContents;
 }
 
 }  // namespace raco::common_widgets

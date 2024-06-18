@@ -183,6 +183,9 @@ raco_package_add_test_resources(
     migrationTestData/V58.rca
     migrationTestData/V59.rca
     migrationTestData/V60.rca
+    migrationTestData/V2001.rca
+    migrationTestData/V2003.rca
+    migrationTestData/V2004.rca
     migrationTestData/version-current.rca
 )
 add_compile_definitions(libSerialization_test PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

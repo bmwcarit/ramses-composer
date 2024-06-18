@@ -17,8 +17,13 @@
 
 namespace raco::object_tree::model {
 
-ObjectTreeViewPrefabModel::ObjectTreeViewPrefabModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes)
-	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore, allowedCreatableUserTypes, true) {
+using namespace user_types;
+
+ObjectTreeViewPrefabModel::ObjectTreeViewPrefabModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore)
+	: ObjectTreeViewDefaultModel(commandInterface, dispatcher, externalProjectsStore,
+		  std::vector<std::string>{
+			  Prefab::typeDescription.typeName},
+		  true) {
 }
 
 QVariant ObjectTreeViewPrefabModel::data(const QModelIndex& index, int role) const {
@@ -32,6 +37,10 @@ QVariant ObjectTreeViewPrefabModel::data(const QModelIndex& index, int role) con
 	}
 
 	return ObjectTreeViewDefaultModel::data(index, role);
+}
+
+std::vector<ObjectTreeViewDefaultModel::ColumnIndex> ObjectTreeViewPrefabModel::hiddenColumns() const {
+	return {COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY, COLUMNINDEX_RENDER_ORDER, COLUMNINDEX_INPUT_BUFFERS, COLUMNINDEX_OUTPUT_BUFFERS};
 }
 
 }  // namespace raco::object_tree::model

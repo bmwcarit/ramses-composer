@@ -75,7 +75,7 @@ private:
 	QGuiApplication fakeGuiApp_{argc_, nullptr};
 
 	ramses_base::HeadlessEngineBackend backend{};
-	raco::application::RaCoApplication application{backend, {{}, false, false, -1, -1, false}};
+	application::RaCoApplication application{backend, {{}, false, false, -1, -1, false}};
 
 	core::ExternalProjectsStoreInterface* externalProjects() {
 		return application.externalProjects();

@@ -38,12 +38,14 @@ public:
 	QString interfaceSubdirectory;
 	QString shaderSubdirectory;
 	QString screenshotDirectory;
+	QString globalPythonOnSaveScript;
 
 	// The feature level in the settings is not capped to the maximum allowed feature level.
 	// Capping is done on application startup and in the PreferencesView instead.
 	int featureLevel;
 	bool isUriValidationCaseSensitive;
 	bool preventAccidentalUpgrade;
+	bool enableProjectPythonScript;
 };
 
 }  // namespace raco

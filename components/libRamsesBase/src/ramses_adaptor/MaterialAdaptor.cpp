@@ -152,9 +152,9 @@ std::vector<RamsesType> getArrayData(const core::ValueHandle& handle) {
 
 inline void setUniform(core::Errors* errors, SceneAdaptor* sceneAdaptor, ramses::Appearance* appearance, const core::ValueHandle& valueHandle,
 	const std::string& uniformEngineName, 
-	std::vector<ramses_base::RamsesTextureSampler> newSamplers,
-	std::vector<ramses_base::RamsesTextureSamplerMS> newSamplersMS,
-	std::vector<ramses_base::RamsesTextureSamplerExternal> newSamplersExternal) {
+	std::vector<ramses_base::RamsesTextureSampler>& newSamplers,
+	std::vector<ramses_base::RamsesTextureSamplerMS>& newSamplersMS,
+	std::vector<ramses_base::RamsesTextureSamplerExternal>& newSamplersExternal) {
 
 	ramses::UniformInput input = appearance->getEffect().findUniformInput(uniformEngineName.c_str()).value();
 	
@@ -246,6 +246,7 @@ inline void setUniform(core::Errors* errors, SceneAdaptor* sceneAdaptor, ramses:
 				}
 			} else {
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, valueHandle, "Texture or RenderBuffer needed for this uniform.");
+				sampler = sceneAdaptor->defaultTextureSampler();
 			}
 			if (sampler) {
 				appearance->setInputTexture(input, *sampler);
@@ -253,16 +254,20 @@ inline void setUniform(core::Errors* errors, SceneAdaptor* sceneAdaptor, ramses:
 			}
 		} break;
 
-		case core::EnginePrimitive::TextureSamplerCube: {
+	case core::EnginePrimitive::TextureSamplerCube: {
+			ramses_base::RamsesTextureSampler sampler = nullptr;
 			if (auto texture = valueHandle.asTypedRef<user_types::CubeMap>()) {
 				if (auto adaptor = sceneAdaptor->lookup<CubeMapAdaptor>(texture)) {
-					if (auto sampler = adaptor->getRamsesObjectPointer()) {
-						appearance->setInputTexture(input, *sampler);
-						newSamplers.emplace_back(sampler);
-					}
+					sampler = adaptor->getRamsesObjectPointer();
 				}
 			} else {
 				errors->addError(core::ErrorCategory::GENERAL, core::ErrorLevel::ERROR, valueHandle, "CubeMap needed for this uniform.");
+				sampler = sceneAdaptor->defaultTextureCubeSampler();
+			}
+
+			if (sampler) {
+				appearance->setInputTexture(input, *sampler);
+				newSamplers.emplace_back(sampler);
 			}
 		} break;
 
@@ -272,9 +277,9 @@ inline void setUniform(core::Errors* errors, SceneAdaptor* sceneAdaptor, ramses:
 }
 
 inline void setUniformRecursive(core::Errors* errors, SceneAdaptor* sceneAdaptor, ramses::Appearance* appearance, const core::ValueHandle& uniformContainerHandle, const core::ValueHandle& handle,
-	std::vector<ramses_base::RamsesTextureSampler> newSamplers,
-	std::vector<ramses_base::RamsesTextureSamplerMS> newSamplersMS,
-	std::vector<ramses_base::RamsesTextureSamplerExternal> newSamplersExternal) {
+	std::vector<ramses_base::RamsesTextureSampler>& newSamplers,
+	std::vector<ramses_base::RamsesTextureSamplerMS>& newSamplersMS,
+	std::vector<ramses_base::RamsesTextureSamplerExternal>& newSamplersExternal) {
 	auto engineTypeAnno = handle.query<user_types::EngineTypeAnnotation>();
 	switch (engineTypeAnno->type()) {
 		case core::EnginePrimitive::Struct:

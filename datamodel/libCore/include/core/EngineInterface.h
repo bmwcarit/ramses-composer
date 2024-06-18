@@ -35,7 +35,9 @@ enum class EUserTypeEnumerations {
 	RenderLayerMaterialFilterMode = 12,
 	FrustumType = 13,
 	StencilFunction = 14,
-	StencilOperation = 15
+	StencilOperation = 15,
+	AnimationComponentType = 16,
+	AnimationInterpolationType = 17
 };
 
 // Collects types of all possible dynamic properties, i.e. lua in/out properties and material uniforms.

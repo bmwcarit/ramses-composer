@@ -10,6 +10,7 @@
 #include "ramses_adaptor/CubeMapAdaptor.h"
 #include "core/CoreFormatter.h"
 #include "lodepng.h"
+#include "ramses_adaptor/DefaultRamsesObjects.h"
 #include "ramses_adaptor/SceneAdaptor.h"
 #include "ramses_adaptor/TextureSamplerAdaptor.h"
 #include "ramses_base/RamsesHandles.h"
@@ -57,7 +58,7 @@ CubeMapAdaptor::CubeMapAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_
 
 ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors* errors) {
 	if (*editorObject()->mipmapLevel_ < 1 || *editorObject()->mipmapLevel_ > 4) {
-		return fallbackCube();
+		return createDefaultTextureCube(sceneAdaptor_->scene(), *editorObject()->generateMipmaps_);
 	}
 
 	std::vector<std::map<std::string, std::vector<unsigned char>>> rawMipDatas;
@@ -73,7 +74,7 @@ ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors* error
 	}
 
 	if (!mipMapsOk) {
-		return fallbackCube();
+		return createDefaultTextureCube(sceneAdaptor_->scene(), *editorObject()->generateMipmaps_);
 	}
 
 	for (auto& mipData : rawMipDatas) {
@@ -104,28 +105,6 @@ ramses_base::RamsesTextureCube CubeMapAdaptor::createTexture(core::Errors* error
 	return ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramsesFormat, decodingInfo.width, mipDatas, *editorObject()->generateMipmaps_, {}, {}, editorObject()->objectIDAsRamsesLogicID());
 }
 
-ramses_base::RamsesTextureCube CubeMapAdaptor::fallbackCube() {
-	std::map<std::string, std::vector<unsigned char>> data;
-
-	data["uriRight"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-	data["uriLeft"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-	data["uriTop"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-	data["uriBottom"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-	data["uriFront"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-	data["uriBack"] = TextureSamplerAdaptor::getFallbackTextureData(false);
-	
-	std::vector<ramses::CubeMipLevelData> mipDatas;
-	mipDatas.emplace_back(ramses::CubeMipLevelData{
-		{reinterpret_cast<std::byte*>(data["uriRight"].data()), reinterpret_cast<std::byte*>(data["uriRight"].data()) + data["uriRight"].size()},
-		{reinterpret_cast<std::byte*>(data["uriLeft"].data()), reinterpret_cast<std::byte*>(data["uriLeft"].data()) + data["uriLeft"].size()},
-		{reinterpret_cast<std::byte*>(data["uriTop"].data()), reinterpret_cast<std::byte*>(data["uriTop"].data()) + data["uriTop"].size()},
-		{reinterpret_cast<std::byte*>(data["uriBottom"].data()), reinterpret_cast<std::byte*>(data["uriBottom"].data()) + data["uriBottom"].size()},
-		{reinterpret_cast<std::byte*>(data["uriFront"].data()), reinterpret_cast<std::byte*>(data["uriFront"].data()) + data["uriFront"].size()},
-		{reinterpret_cast<std::byte*>(data["uriBack"].data()), reinterpret_cast<std::byte*>(data["uriBack"].data()) + data["uriBack"].size()}});
-	
-	return ramses_base::ramsesTextureCube(sceneAdaptor_->scene(), ramses::ETextureFormat::RGBA8, TextureSamplerAdaptor::FALLBACK_TEXTURE_SIZE_PX, mipDatas, *editorObject()->generateMipmaps_, {}, {}, editorObject()->objectIDAsRamsesLogicID());
-}
-
 std::string CubeMapAdaptor::createDefaultTextureDataName() {
 	return this->editorObject()->objectName() + "_TextureCube";
 }
@@ -134,9 +113,16 @@ std::map<std::string, std::vector<unsigned char>> CubeMapAdaptor::generateMipmap
 	std::map<std::string, std::vector<unsigned char>> data;
 	auto mipmapOk = true;
 
-	for (const std::string &propName : {"uriRight", "uriLeft", "uriTop", "uriBottom", "uriFront", "uriBack", }) {
+	for (const std::string& propName : {
+			 "uriRight",
+			 "uriLeft",
+			 "uriTop",
+			 "uriBottom",
+			 "uriFront",
+			 "uriBack",
+		 }) {
 		auto uriPropName = (level > 1) ? fmt::format("level{}{}", level, propName) : propName;
-		data[propName] = ramses_base::decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo);
+		data[propName] = decodeMipMapData(errors, sceneAdaptor_->project(), editorObject(), uriPropName, level, decodingInfo);
 
 		if (data[propName].empty()) {
 			mipmapOk = false;

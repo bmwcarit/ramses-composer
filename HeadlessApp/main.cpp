@@ -36,8 +36,8 @@ class Worker : public QObject {
 	Q_OBJECT
 
 public:
-	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, QStringList& pythonSearchPaths, bool compressExport, QStringList positionalArguments, int featureLevel, raco::application::ELuaSavingMode luaSavingMode, ramses::RamsesFrameworkConfig ramsesConfig)
-		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), pythonSearchPaths_(pythonSearchPaths), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel), luaSavingMode_(luaSavingMode), ramsesConfig_(ramsesConfig) {
+	Worker(QObject* parent, QString& projectFile, QString& exportPath, QString& pythonScriptPath, QStringList& pythonSearchPaths, bool compressExport, QStringList positionalArguments, int featureLevel, raco::application::ELuaSavingMode luaSavingMode, ramses::RamsesFrameworkConfig ramsesConfig, bool warningsAsErrors)
+		: QObject(parent), projectFile_(projectFile), exportPath_(exportPath), pythonScriptPath_(pythonScriptPath), pythonSearchPaths_(pythonSearchPaths), compressExport_(compressExport), positionalArguments_(positionalArguments), featureLevel_(featureLevel), luaSavingMode_(luaSavingMode), ramsesConfig_(ramsesConfig), warningsAsErrors_(warningsAsErrors) {
 	}
 
 public Q_SLOTS:
@@ -69,30 +69,34 @@ public Q_SLOTS:
 				for (auto arg : positionalArguments_) {
 					pos_argv_s.emplace_back(arg.toStdString());
 				}
-				std::vector<const char*> pos_argv_cp;
-				for (auto& s : pos_argv_s) {
-					pos_argv_cp.emplace_back(s.c_str());
-				}
 
 				std::vector<std::wstring> wPythonSearchPaths;
 				for (auto& path : pythonSearchPaths_) {
 					wPythonSearchPaths.emplace_back(path.toStdWString());
 				}
 
-				auto currentRunStatus = python_api::runPythonScript(app.get(), QCoreApplication::applicationFilePath().toStdWString(), pythonScriptPath_.toStdString(), wPythonSearchPaths, pos_argv_cp);
-				exitCode_ = currentRunStatus.exitCode;
-				LOG_INFO(log_system::PYTHON, currentRunStatus.stdOutBuffer);
+				if (python_api::initializeInterpreter(app.get(), QCoreApplication::applicationFilePath().toStdWString(), wPythonSearchPaths, pos_argv_s)) {
+					const auto currentRunStatus = python_api::runPythonScriptFromFile(pythonScriptPath_.toStdString());
+					exitCode_ = currentRunStatus.exitCode;
 
-				if (!currentRunStatus.stdErrBuffer.empty()) {
-					LOG_ERROR(log_system::PYTHON, currentRunStatus.stdErrBuffer);
+					LOG_INFO(raco::log_system::PYTHON, currentRunStatus.stdOutBuffer);
+
+					if (!currentRunStatus.stdErrBuffer.empty()) {
+						LOG_ERROR(log_system::PYTHON, currentRunStatus.stdErrBuffer);
+					}
+				} else {
+					LOG_ERROR(log_system::PYTHON, "Python interpreter initialization failed.");
+					exitCode_ = 1;
 				}
 			} else if (!exportPath_.isEmpty()) {
 				QString ramsesPath = exportPath_ + "." + raco::names::FILE_EXTENSION_RAMSES_EXPORT;
 
 				std::string error;
-				if (!app->exportProject(ramsesPath.toStdString(), compressExport_, error, false, luaSavingMode_)) {
-					LOG_ERROR(log_system::COMMON, "error exporting to {}\n{}", ramsesPath.toStdString(), error.c_str());
+				if (!app->exportProject(ramsesPath.toStdString(), compressExport_, error, false, luaSavingMode_, warningsAsErrors_)) {
+					LOG_ERROR(log_system::COMMON, "Error exporting to {}\n{}", ramsesPath.toStdString(), error.c_str());
 					exitCode_ = 1;
+				} else if (!error.empty()) {
+					LOG_WARNING(log_system::COMMON, "Warning exporting to {}\n{}", ramsesPath.toStdString(), error.c_str());
 				}
 			}
 		}
@@ -114,6 +118,7 @@ private:
 	raco::application::ELuaSavingMode luaSavingMode_;
 	int exitCode_ = 0;
 	ramses::RamsesFrameworkConfig ramsesConfig_;
+	bool warningsAsErrors_ = false;
 };
 
 #include "main.moc"
@@ -137,6 +142,10 @@ int main(int argc, char* argv[]) {
 					  << "export",
 		"Export Ramses scene and logic to path. File extensions are added automatically (ignored if '-r' is used).",
 		"export-path");
+	QCommandLineOption warningsAsErrorsAction(
+		QStringList() << "w"
+					  << "warnaserror",
+		"Export will handle Ramses warnings as errors and fail export.");
 	QCommandLineOption compressExportAction(
 		QStringList() << "c"
 					  << "compress",
@@ -183,6 +192,7 @@ int main(int argc, char* argv[]) {
 
 	parser.addOption(loadProjectAction);
 	parser.addOption(exportProjectAction);
+	parser.addOption(warningsAsErrorsAction);
 	parser.addOption(compressExportAction);
 	parser.addOption(noDumpFileCheckOption);
 	parser.addOption(logLevelOption);
@@ -308,7 +318,7 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, pythonSearchPaths, compressExport, parser.positionalArguments(), featureLevel, luaSavingMode, ramsesConfig);
+	Worker* task = new Worker(&a, projectFile, exportPath, pythonScriptPath, pythonSearchPaths, compressExport, parser.positionalArguments(), featureLevel, luaSavingMode, ramsesConfig, parser.isSet(warningsAsErrorsAction));
 	QObject::connect(task, &Worker::finished, &QCoreApplication::exit);
 	QTimer::singleShot(0, task, &Worker::run);
 

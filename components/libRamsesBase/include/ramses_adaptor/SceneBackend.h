@@ -57,6 +57,8 @@ public:
 	
 	ramses::LogicEngine* logicEngine() const;
 
+	std::map<std::string, std::chrono::microseconds> getPerformanceReport();
+
 	static bool discardRamsesMessage(std::string_view message);
 
 private:

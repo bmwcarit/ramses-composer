@@ -52,7 +52,7 @@ set the environment variable ```RACO_QT_BASE``` to it.
 \raco> mkdir build
 \raco> cd build
 \raco\build> cmake ..
-\raco\build> cmake --build . --target RaCoEditor --config <CONFIG>       # <CONFIG> either Release or Debug
+\raco\build> cmake --build . --target RaCoEditor --config <CONFIG>       # <CONFIG> either RelWithDebInfo or Debug
 ```
 
 Ramses Composer is built on Windows 10 with Visual Studio 2019 and on Ubuntu 20.04 with gcc 9.4.0.
@@ -94,7 +94,7 @@ sudo apt install python3.8-dev
 
 The executable can be found in:
 ```console
-\raco\build\release\bin\<CONFIG>\RamsesComposer.exe       # <CONFIG> either Release or Debug
+\raco\build\release\bin\<CONFIG>\RamsesComposer.exe       # <CONFIG> either RelWithDebInfo or Debug
 ```
 
 Starting RaCoEditor with an extra console showing stdout (Windows only):

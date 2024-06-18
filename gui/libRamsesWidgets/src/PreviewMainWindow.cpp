@@ -36,9 +36,11 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, ramses_ad
 	ui_->setupUi(this);
 
 	sceneIdLabel_ = new QLabel{"scene id: -", ui_->statusbar};
+	errorLabel_ = new QLabel{"Status", ui_->statusbar};
 	auto* pixelLabel = new QLabel{"x: - y: -", ui_->statusbar};
 	auto* scaleLabel = new QLabel{"scale: 1.0", ui_->statusbar};
 	ui_->statusbar->addWidget(sceneIdLabel_);
+	ui_->statusbar->addWidget(errorLabel_);
 	ui_->statusbar->addPermanentWidget(pixelLabel);
 	ui_->statusbar->addPermanentWidget(scaleLabel);
 
@@ -66,6 +68,10 @@ PreviewMainWindow::PreviewMainWindow(RendererBackend& rendererBackend, ramses_ad
 		} else {
 			pixelLabel->setText("x: - y: -");
 		}
+	});
+
+	connect(previewWidget_, &PreviewContentWidget::newPreviewState, [this](bool status) {
+		errorLabel_->setText(QString("Status: ") + QString(status ? "OK" : "ERROR"));
 	});
 
 	// Size mode tool button

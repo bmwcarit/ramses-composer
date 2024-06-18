@@ -44,8 +44,12 @@ public:
 		return renderableTags_->propertyNames();
 	}
 
+	std::set<std::string> renderableTagSet() const {
+		return renderableTags_->propertyNameSet();
+	}
+
 	std::set<std::string> materialFilterTags() const {
-		std::set<std::string> r; 
+		std::set<std::string> r;
 		for (int i = 0; i < materialFilterTags_->size(); ++i) {
 			r.emplace(materialFilterTags_->get(i)->asString());
 		}

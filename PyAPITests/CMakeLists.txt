@@ -14,6 +14,8 @@ endmacro()
 
 add_python_test(pyt_general)
 
+add_python_test(pyt_animation)
+
 add_python_test(exit_code)
 set_tests_properties(PyAPI_exit_code PROPERTIES WILL_FAIL True)
 

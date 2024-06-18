@@ -57,6 +57,8 @@ public:
 	const QIcon typeAnimationChannel{":typeAnimationChannelIcon"};
 	const QIcon typeAnimation{":typeAnimationIcon"};
 	const QIcon typeTimer{":typeTimerIcon"};
+	const QIcon typeRenderLayer{":typeRenderLayerIcon"};
+	const QIcon typeRenderTarget{":typeRenderTargetIcon"};
 	const QIcon browse{":browseIcon"};
 	const QIcon info{":infoIcon"};
 	const QIcon refresh{":refreshIcon"};
@@ -67,6 +69,9 @@ public:
 	const QIcon playActive{":playActiveIcon"};
 	const QIcon pauseInactive{":pauseInactiveIcon"};
 	const QIcon pauseActive{":pauseActiveIcon"};
+	const QIcon recordInactive{":recordInactiveIcon"};
+	const QIcon recordActive{":recordActiveIcon"};
+	const QIcon stop{":stopIcon"};
 	const QIcon stopInactive{":stopInactiveIcon"};
 	const QIcon stopActive{":stopActiveIcon"};
 	const QIcon skipNext{":skipNextIcon"};
@@ -81,6 +86,7 @@ public:
 	const QIcon visibilityOff{makeDisabled(":visibilityOffIcon")};
 	const QIcon abstractSceneView{":abstractSceneViewIcon"};
 	const QIcon prefabLookup{":prefabLookupIcon"};
+	const QIcon label{":labelIcon"};
 
 	static const Icons &instance();
 	static QIcon makeDisabled(const QString &name);

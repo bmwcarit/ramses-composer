@@ -35,19 +35,19 @@ public:
 Q_SIGNALS:
 	void treeDockListChanged();
 	void newObjectTreeItemsSelected(const core::SEditorObjectSet& objects, const QString& property);
-	void selectionCleared();
 
 public Q_SLOTS:
 	void eraseTreeDock(ObjectTreeDock* dockToErase);
 	void setFocusedDock(ObjectTreeDock* dockToFocus);
-	void selectObjectAcrossAllTreeDocks(const QString& objectID);
-	void selectObjectAndPropertyAcrossAllTreeDocks(const QString& objectID, const QString& objectProperty);
+	void selectObjectAndPropertyAcrossAllTreeDocks(core::SEditorObject object, const QString& propertyPath);
 
 private:
+	bool isExternalProjectDock(ObjectTreeDock* dock) const;
+	void connectTreeDockSignals(ObjectTreeDock* dock);
+
 	std::vector<ObjectTreeDock*> docks_;
 	ObjectTreeDock* focusedDock_{nullptr};
 
-	void connectTreeDockSignals(ObjectTreeDock* dock);
 };
 
 }  // namespace raco::object_tree::view

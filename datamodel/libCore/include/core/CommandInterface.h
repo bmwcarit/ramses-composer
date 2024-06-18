@@ -32,7 +32,7 @@ class EngineInterface;
 
 /**
  * @brief The CommandInterface is the user-level API for modifying the data model in a safe way.
- * 
+ *
  * main characteristics
  * - all side-effects including Prefab update and undo stack push are taken care of.
  * - the consistency of the data model is ensured internally
@@ -44,7 +44,7 @@ class EngineInterface;
  *   - Prefab update
  *   - undo stack push
  *   - checking of operations for validity
-*/
+ */
 class CommandInterface {
 public:
 	CommandInterface(BaseContext* context, UndoStack* undostack);
@@ -87,7 +87,7 @@ public:
 
 	/**
 	 * @brief Set multiple double properties to the same value generating only a single undo stack entry.
-	*/
+	 */
 	void set(const std::set<ValueHandle>& handles, double const& value);
 
 	
@@ -127,8 +127,8 @@ public:
 	// Move scenegraph nodes to new parent at a position before the specified index.
 	// - If ValueHandle is invalid/empty the scenegraph parent is removed.
 	// - If insertionBeforeIndex = -1 the node will be appended at the end of the new parent children.
-	// - Only objects that are allowed to be moved to newParent will be actually moved there. 
-	//   Attempting to move objects not allowed to be moved is not considered an error but just leads to 
+	// - Only objects that are allowed to be moved to newParent will be actually moved there.
+	//   Attempting to move objects not allowed to be moved is not considered an error but just leads to
 	//   the remaining objects being moved.
 	// @return Number of actually moved children.
 	size_t moveScenegraphChildren(std::vector<SEditorObject> const& objects, SEditorObject const& newParent, int insertBeforeIndex = -1);
@@ -167,6 +167,78 @@ public:
 	 */
 	std::vector<SEditorObject> duplicateObjects(const std::vector<SEditorObject>& objects);
 
+	/**
+	 * @brief Converts an existing gltf-backed AnimationChannel object to an AnimationChannelRaco object
+	 * while preserving all references to it and removing the old AnimationChannel object.
+	 * 
+	 * Only deletable objects will be converted.
+	 * 
+	 * @param objects Object to be converted. All objects must be of type AnimationChannel.
+	 * @return Returns the newly created AnimationChannelRaco objects.
+	*/
+	std::vector<SEditorObject> convertToAnimationChannelRaco(const std::vector<SEditorObject>& objects);
+
+	/**
+	 * @brief Set animation data of an AnimationChannelRaco object.
+	 * 
+	 * - The animation data passed in must be consistent with the componentType_, the interpolationType_,
+	 *   and the componentArraySize_ properties of the AnimationChannelRaco object or an exception is thrown.
+	 * - Use this overload for component type double.
+	 * 
+	 * @param object Object of AnimationChannelRaco type.
+	 * @param timeStamps The time stamps for the key frames.
+	 * @param keyFrames The output values for the key frames.
+	 * @param tangentsIn The in tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 * @param tangentsOut The out tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	*/
+	void setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<float>& keyFrames, const std::vector<float>& tangentsIn = {}, const std::vector<float>& tangentsOut = {});
+
+	/**
+	 * @brief Set animation data of an AnimationChannelRaco object.
+	 *
+	 * - The animation data passed in must be consistent with the componentType_, the interpolationType_,
+	 *   and the componentArraySize_ properties of the AnimationChannelRaco object or an exception is thrown.
+	 * - Use this overload for Ve2f, Vec3f, Vec4f, and Array(float) component types.
+	 *
+	 * @param object Object of AnimationChannelRaco type.
+	 * @param timeStamps The time stamps for the key frames.
+	 * @param keyFrames The output values for the key frames.
+	 * @param tangentsIn The in tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 * @param tangentsOut The out tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 */
+	void setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<std::vector<float>>& keyFrames, const std::vector<std::vector<float>>& tangentsIn = {}, const std::vector<std::vector<float>>& tangentsOut = {});
+
+		/**
+	 * @brief Set animation data of an AnimationChannelRaco object.
+	 *
+	 * - The animation data passed in must be consistent with the componentType_, the interpolationType_,
+	 *   and the componentArraySize_ properties of the AnimationChannelRaco object or an exception is thrown.
+	 * - Use this overload for component type int.
+	 *
+	 * @param object Object of AnimationChannelRaco type.
+	 * @param timeStamps The time stamps for the key frames.
+	 * @param keyFrames The output values for the key frames.
+	 * @param tangentsIn The in tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 * @param tangentsOut The out tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 */
+	void setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<int>& keyFrames, const std::vector<int>& tangentsIn = {}, const std::vector<int>& tangentsOut = {});
+
+	/**
+	 * @brief Set animation data of an AnimationChannelRaco object.
+	 *
+	 * - The animation data passed in must be consistent with the componentType_, the interpolationType_,
+	 *   and the componentArraySize_ properties of the AnimationChannelRaco object or an exception is thrown.
+	 * - Use this overload for Vec2i, Vec3i, and Vec4i component types.
+	 *
+	 * @param object Object of AnimationChannelRaco type.
+	 * @param timeStamps The time stamps for the key frames.
+	 * @param keyFrames The output values for the key frames.
+	 * @param tangentsIn The in tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 * @param tangentsOut The out tangents in case of cubic interpolation types. Must be empty for step or linear interpolation.
+	 */
+	void setAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<std::vector<int>>& keyFrames, const std::vector<std::vector<int>>& tangentsIn = {}, const std::vector<std::vector<int>>& tangentsOut = {});
+
+
 	// Link operations
 	SLink addLink(const ValueHandle& start, const ValueHandle& end, bool isWeak = false);
 	void removeLink(const PropertyDescriptor& end);
@@ -177,21 +249,21 @@ public:
 
 	/**
 	 * @brief Execute a lambda function generating only a single undo stack entry.
-	 * 
-	 * The given function may call any number of CommandInterface operations although these will not 
+	 *
+	 * The given function may call any number of CommandInterface operations although these will not
 	 * generate individual undo stack entries. Only a single undo stack entry is generated for the whole
 	 * composite operation with the specified description.
-	 * 
+	 *
 	 * Composite commands can be nested, i.e. the supplied function may itself call executeCompositeCommand.
-	 * 
-	 * Composite commands are atomic, i.e. if an individual operation in the compositeCommand fails and 
+	 *
+	 * Composite commands are atomic, i.e. if an individual operation in the compositeCommand fails and
 	 * throws an exception the composite command as a whole re-throws the exception and will roll back the
 	 * project to the state at the beginning of the composite command. In case of nested composite commands
 	 * the outermost composite command is rolled back.
-	 * 
+	 *
 	 * @param compositeCommand Function to be executed as a composite command.
 	 * @param description Description for the composite undo stack entry.
-	*/
+	 */
 	void executeCompositeCommand(std::function<void()> compositeCommand, const std::string& description);
 
 private:
@@ -199,6 +271,12 @@ private:
 
 	bool checkHandleForSet(ValueHandle const& handle, bool allowVolatile = false);
 	bool checkScalarHandleForSet(ValueHandle const& handle, PrimitiveType type, bool allowVolatile = false);
+
+	template<typename T>
+	bool checkAnimationData(SEditorObject object, const std::vector<float>& timeStamps, const std::vector<T>& keyFrames, const std::vector<T>& tangentsIn, const std::vector<T>& tangentsOut);
+	template <typename T>
+	bool checkAnimationComponentSize(SEditorObject object, const std::vector<std::vector<T>>& keyFrames, const std::vector<std::vector<T>>& tangentsIn, const std::vector<std::vector<T>>& tangentsOut);
+
 
 	static std::string getMergeId(const std::set<ValueHandle>& handles);
 

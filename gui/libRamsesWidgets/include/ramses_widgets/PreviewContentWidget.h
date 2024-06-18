@@ -51,6 +51,8 @@ public Q_SLOTS:
 Q_SIGNALS:
 	void newMousePosition(const QPoint globalPosition);
 
+	void newPreviewState(bool previewStatus);
+
 protected:
 	void paintEvent(QPaintEvent* event) override;
 	bool event(QEvent* event) override;

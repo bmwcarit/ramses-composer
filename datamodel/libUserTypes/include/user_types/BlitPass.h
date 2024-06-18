@@ -65,12 +65,12 @@ public:
 	Property<SRenderBufferMS, DisplayNameAnnotation, ExpectEmptyReference> sourceRenderBufferMS_{{}, {"Source Render Buffer (Multisampled)"}, {}};
 	Property<SRenderBufferMS, DisplayNameAnnotation, ExpectEmptyReference> targetRenderBufferMS_{{}, {"Target Render Buffer (Multisampled)"}, {}};
 
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> sourceX_{0, {0, 7680}, {"Source Buffer Offset X"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> sourceY_{0, {0, 7680}, {"Source Buffer Offset Y"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> destinationX_{0, {0, 7680}, {"Destination Buffer Offset X"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> destinationY_{0, {0, 7680}, {"Destination Buffer Offset Y"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {0, 7680}, {"Blitting Region Width"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {0, 7680}, {"Blitting Region Height"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> sourceX_{0, {0, 8192}, {"Source Buffer Offset X"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> sourceY_{0, {0, 8192}, {"Source Buffer Offset Y"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> destinationX_{0, {0, 8192}, {"Destination Buffer Offset X"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> destinationY_{0, {0, 8192}, {"Destination Buffer Offset Y"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {0, 8192}, {"Blitting Region Width"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {0, 8192}, {"Blitting Region Height"}};
 
 	Property<bool, DisplayNameAnnotation> enabled_{true, {"Enabled"}};
 	Property<int, DisplayNameAnnotation> renderOrder_{0, {"Render Order"}};

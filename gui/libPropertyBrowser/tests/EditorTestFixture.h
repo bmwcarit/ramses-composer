@@ -17,20 +17,18 @@
 #include <QApplication>
 
 template <typename T>
-class EditorTestFixtureT : public TestEnvironmentCoreT<T> {
+class EditorTestFixtureT : public TestEnvironmentCoreT<T, QApplication> {
 public:
 	using DataChangeDispatcher = components::DataChangeDispatcher;
-	int argc{0};
-	QApplication application{argc, nullptr};
 	std::shared_ptr<DataChangeDispatcher> dataChangeDispatcher;
 	property_browser::PropertyBrowserModel model;
 
-	EditorTestFixtureT() : TestEnvironmentCoreT<T>{}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
-	EditorTestFixtureT(core::UserObjectFactoryInterface* objectFactory) : TestEnvironmentCoreT<T>{objectFactory}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
+	EditorTestFixtureT() : TestEnvironmentCoreT<T, QApplication>{}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
+	EditorTestFixtureT(core::UserObjectFactoryInterface* objectFactory) : TestEnvironmentCoreT<T, QApplication>{objectFactory}, dataChangeDispatcher{std::make_shared<DataChangeDispatcher>()} {}
 
 	void dispatch() {
 		dataChangeDispatcher->dispatch(this->recorder.release());
-		application.processEvents();
+		this->application.processEvents();
 	}
 
 	static void pasteProperty(property_browser::PropertyBrowserItem* item, data_storage::ValueBase* value) {

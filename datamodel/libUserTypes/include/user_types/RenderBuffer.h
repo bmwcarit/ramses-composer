@@ -53,8 +53,8 @@ public:
 			   valueHandle.isRefToProp(&TextureSampler2DBase::anisotropy_);
 	}
 
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> width_{256, {1, 7680}, {"Width"}};
-	Property<int, RangeAnnotation<int>, DisplayNameAnnotation> height_{256, {1, 7680}, {"Height"}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> width_{256, {1, 8192}, {"Width"}, {}};
+	Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation> height_{256, {1, 8192}, {"Height"}, {}};
 
 	Property<int, DisplayNameAnnotation, EnumerationAnnotation> format_{DEFAULT_VALUE_RENDER_BUFFER_FORMAT, DisplayNameAnnotation("Format"), EnumerationAnnotation{EUserTypeEnumerations::RenderBufferFormat}};
 

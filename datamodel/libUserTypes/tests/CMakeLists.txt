@@ -13,6 +13,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 set(TEST_SOURCES
     Animation_test.cpp
     AnimationChannel_test.cpp
+    AnimationChannelRaco_test.cpp
     CubeMap_test.cpp
     DefaultValues_test.cpp
     Material_test.cpp

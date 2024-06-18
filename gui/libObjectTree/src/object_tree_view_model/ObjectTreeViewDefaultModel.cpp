@@ -16,11 +16,17 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/Project.h"
 #include "core/Queries.h"
+#include "core/Queries_Tags.h"
 #include "object_tree_view_model/ObjectTreeNode.h"
 #include "components/Naming.h"
 #include "style/Colors.h"
 #include "user_types/UserObjectFactory.h"
 #include "object_creator/ObjectCreator.h"
+#include "user_types/AnimationChannel.h"
+#include "user_types/BlitPass.h"
+#include "user_types/RenderPass.h"
+#include "user_types/MeshNode.h"
+#include "components/EditorObjectFormatter.h"
 
 #include <QApplication>
 #include <QDataStream>
@@ -94,6 +100,8 @@ QVariant ObjectTreeViewDefaultModel::getNodeIcon(ObjectTreeNode* treeNode) const
 	std::string typeName;
 	if (treeNode->getType() == ObjectTreeNodeType::TypeParent) {
 		typeName = treeNode->getTypeName();
+	} else if (treeNode->getType() == ObjectTreeNodeType::Tag) {
+		return QVariant(style::Icons::instance().label);
 	} else {
 		auto editorObj = treeNode->getRepresentedObject();
 		if (editorObj) {
@@ -190,7 +198,19 @@ QVariant ObjectTreeViewDefaultModel::data(const QModelIndex& index, int role) co
 					return QVariant(QString());
 				case COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY:
 					return QVariant(QString());
+				case COLUMNINDEX_INPUT_BUFFERS:
+					return QVariant(QString::fromStdString(treeNode->getInputBuffers()));
+					break;
+				case COLUMNINDEX_OUTPUT_BUFFERS:
+					return QVariant(QString::fromStdString(treeNode->getOutputBuffers()));
+					break;
+				case COLUMNINDEX_RENDER_ORDER:
+					if (treeNode->getRenderOrder().has_value()) {
+						return QVariant(treeNode->getRenderOrder().value());
+					}
+					break;
 			}
+			return QVariant();
 		}
 		case Qt::EditRole: {
 			return QVariant(QString::fromStdString(treeNode->getDisplayName()));
@@ -214,6 +234,12 @@ QVariant ObjectTreeViewDefaultModel::headerData(int section, Qt::Orientation ori
 					return QVariant("User Tags");
 				case COLUMNINDEX_PROJECT:
 					return QVariant("Project Name");
+				case COLUMNINDEX_INPUT_BUFFERS:
+					return QVariant("Input Buffers");
+				case COLUMNINDEX_OUTPUT_BUFFERS:
+					return QVariant("Output Buffers");
+				case COLUMNINDEX_RENDER_ORDER:
+					return QVariant("Render Order");
 			}
 		} break;
 		case Qt::DecorationRole:
@@ -476,7 +502,7 @@ void ObjectTreeViewDefaultModel::buildObjectTree() {
 void ObjectTreeViewDefaultModel::setNodeExternalProjectInfo(ObjectTreeNode* node) const {
 	if (auto obj = node->getRepresentedObject()) {
 		if (auto extrefAnno = obj->query<ExternalReferenceAnnotation>()) {
-			node->setBelongsToExternalProject(
+			node->setExternalProjectInfo(
 				project()->lookupExternalProjectPath(*extrefAnno->projectID_),
 				project()->lookupExternalProjectName(*extrefAnno->projectID_));
 		}
@@ -520,6 +546,7 @@ void ObjectTreeViewDefaultModel::constructTreeUnderNode(ObjectTreeNode* rootNode
 
 		auto* node = new ObjectTreeNode(obj, parentNode);
 		setNodeExternalProjectInfo(node);
+
 		constructTreeUnderNode(node, obj->children_->asVector<SEditorObject>(), false, false);
 	}
 }
@@ -538,8 +565,27 @@ std::vector<std::string> ObjectTreeViewDefaultModel::creatableTypes(const QModel
 	return result;
 }
 
-SEditorObject ObjectTreeViewDefaultModel::createNewObject(const std::string& typeName, const std::string& nodeName, const QModelIndex& parent) {
-	SEditorObject parentObj = indexToSEditorObject(parent);
+std::vector<ObjectTreeViewDefaultModel::ColumnIndex> ObjectTreeViewDefaultModel::hiddenColumns() const {
+	return {COLUMNINDEX_RENDER_ORDER, COLUMNINDEX_INPUT_BUFFERS, COLUMNINDEX_OUTPUT_BUFFERS};
+}
+
+ObjectTreeViewDefaultModel::ColumnIndex ObjectTreeViewDefaultModel::defaultSortColumn() const {
+	return COLUMNINDEX_TYPE;
+}
+
+void ObjectTreeViewDefaultModel::insertObject(const QModelIndex& parentIndex, SEditorObject object) {
+	auto parentNode = indexToTreeNode(parentIndex);
+
+	beginInsertRows(parentIndex, parentNode->childCount(), parentNode->childCount());
+
+	auto* node = new ObjectTreeNode(object, parentNode);
+	updateTreeIndexes();
+
+	endInsertRows();
+}
+
+SEditorObject ObjectTreeViewDefaultModel::createNewObject(const std::string& typeName, const std::string& nodeName, const QModelIndex& parentIndex) {
+	SEditorObject parentObj = indexToSEditorObject(parentIndex);
 
 	std::vector<SEditorObject> nodes;
 	std::copy_if(project()->instances().begin(), project()->instances().end(), std::back_inserter(nodes), [this, parentObj](const SEditorObject& obj) {
@@ -547,7 +593,11 @@ SEditorObject ObjectTreeViewDefaultModel::createNewObject(const std::string& typ
 	});
 
 	auto name = project()->findAvailableUniqueName(nodes.begin(), nodes.end(), nullptr, nodeName.empty() ? components::Naming::format(typeName) : nodeName);
-	auto newObj = commandInterface_->createObject(typeName, name, parent.isValid() ? parentObj : nullptr);
+	auto newObj = commandInterface_->createObject(typeName, name, parentIndex.isValid() ? parentObj : nullptr);
+
+	// Insert new object into model
+	// This is necessary so that we can immediately select it after creation.
+	insertObject(parentIndex, newObj);
 
 	return newObj;
 }
@@ -714,6 +764,20 @@ void ObjectTreeViewDefaultModel::cutObjectsAtIndices(const QModelIndexList& indi
 		RaCoClipboard::set(text);
 	}
 }
+
+bool ObjectTreeViewDefaultModel::canConvertAnimationChannels(const QModelIndexList& indices) const {
+	auto objects = indicesToSEditorObjects(indices);
+	return std::all_of(objects.begin(), objects.end(),
+		[](auto obj) {
+			return obj && obj->template isType<user_types::AnimationChannel>();
+		});
+}
+
+void ObjectTreeViewDefaultModel::convertToAnimationChannelRaco(const QModelIndexList& indices) {
+	auto objects = indicesToSEditorObjects(indices);
+	commandInterface_->convertToAnimationChannelRaco(objects);
+}
+
 
 void ObjectTreeViewDefaultModel::moveScenegraphChildren(const std::vector<SEditorObject>& objects, SEditorObject parent, int row) {
 	int insertBeforeIndex = row;

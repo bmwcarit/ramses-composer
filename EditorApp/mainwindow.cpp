@@ -18,7 +18,9 @@
 #include "common_widgets/ErrorView.h"
 #include "common_widgets/ExportDialog.h"
 #include "common_widgets/LogView.h"
+#include "common_widgets/PythonOutputDialog.h"
 #include "common_widgets/MeshAssetImportDialog.h"
+#include "common_widgets/PerformanceTableView.h"
 #include "common_widgets/PreferencesView.h"
 #include "common_widgets/RunScriptDialog.h"
 #include "common_widgets/TracePlayerWidget.h"
@@ -26,19 +28,20 @@
 #include "components/RaCoPreferences.h"
 #include "core/BasicTypes.h"
 #include "core/EditorObject.h"
-#include "core/Handles.h"
 #include "core/PathManager.h"
 #include "core/Project.h"
 #include "core/ProjectMigration.h"
 #include "data_storage/Value.h"
+#include "python_api/PythonAPI.h"
 #include "gui_python_api/GUIPythonAPI.h"
 #include "log_system/log.h"
 #include "object_tree_view/ObjectTreeDock.h"
 #include "object_tree_view/ObjectTreeView.h"
 #include "object_tree_view_model/ObjectTreeViewPrefabModel.h"
+#include "object_tree_view_model/ObjectTreeViewRenderViewModel.h"
 #include "object_tree_view_model/ObjectTreeViewResourceModel.h"
+#include "object_tree_view_model/ObjectTreeViewSceneGraphModel.h"
 #include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
-#include "property_browser/PropertyBrowserItem.h"
 #include "property_browser/PropertyBrowserModel.h"
 
 #include "ramses_adaptor/AbstractSceneAdaptor.h"
@@ -51,6 +54,7 @@
 #include "user_types/AnchorPoint.h"
 #include "user_types/Animation.h"
 #include "user_types/AnimationChannel.h"
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/BlitPass.h"
 #include "user_types/CubeMap.h"
 #include "user_types/LuaInterface.h"
@@ -77,14 +81,12 @@
 
 #include "DockAreaWidget.h"
 #include "ads_globals.h"
-#include "components/RaCoNameConstants.h"
-#include "python_api/PythonAPI.h"
-#include "utils/ZipUtils.h"
 
 #include <DockWidget.h>
 #include <IconProvider.h>
 #include <QDialog>
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QObject>
@@ -145,14 +147,14 @@ ads::CDockAreaWidget* MainWindow::createAndAddPreview(const char* dockObjName) {
 		previewWidget->saveScreenshot();
 	});
 
-	raco::gui_python_api::setupPreviewWindow(previewWidget);
+	gui_python_api::setupPreviewWindow(previewWidget);
 
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::RAMSES_PREVIEW, this);
 	dock->setObjectName(dockObjName);
 	dock->setWidget(previewWidget);
 	QObject::connect(dock, &ads::CDockWidget::closed, [this]() {
 		ui->actionNewPreview->setEnabled(true);
-		raco::gui_python_api::setupPreviewWindow(nullptr);
+		gui_python_api::setupPreviewWindow(nullptr);
 	});
 	ui->actionNewPreview->setEnabled(false);
 	return dockManager_->addDockWidget(ads::CenterDockWidgetArea, dock);
@@ -165,7 +167,6 @@ ads::CDockAreaWidget* MainWindow::createAndAddAbstractSceneView(const char* dock
 	QObject::connect(widget, &ramses_widgets::AbstractViewMainWindow::selectionRequested, this, &MainWindow::focusToSelection);
 
 	QObject::connect(&treeDockManager_, &object_tree::view::ObjectTreeDockManager::newObjectTreeItemsSelected, widget, &ramses_widgets::AbstractViewMainWindow::onSelectionChanged);
-	QObject::connect(&treeDockManager_, &object_tree::view::ObjectTreeDockManager::selectionCleared, widget, &ramses_widgets::AbstractViewMainWindow::onSelectionCleared);
 
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::ABSTRACT_SCENE_VIEW, this);
 	dock->setObjectName(dockObjName);
@@ -183,8 +184,7 @@ ads::CDockAreaWidget* MainWindow::createAndAddPropertyBrowser(const char* dockOb
 	QObject::connect(propertyBrowser->model(), &property_browser::PropertyBrowserModel::selectionRequested, this, &MainWindow::focusToSelection);
 
 	QObject::connect(&treeDockManager_, &object_tree::view::ObjectTreeDockManager::newObjectTreeItemsSelected, propertyBrowser, &property_browser::PropertyBrowserWidget::setObjects);
-	QObject::connect(&treeDockManager_, &object_tree::view::ObjectTreeDockManager::selectionCleared, propertyBrowser, &property_browser::PropertyBrowserWidget::clear);
-
+	
 	auto* dockWidget = createDockWidget(MainWindow::DockWidgetTypes::PROPERTY_BROWSER, this);
 	dockWidget->setWidget(propertyBrowser);
 	dockWidget->setObjectName(dockObjName);
@@ -206,25 +206,6 @@ ads::CDockAreaWidget* MainWindow::createAndAddObjectTree(const char* title, cons
 	QObject::connect(dockModel, &object_tree::model::ObjectTreeViewDefaultModel::meshImportFailed, this, &MainWindow::showMeshImportErrorMessage);
 	dockModel->buildObjectTree();
 	auto newTreeView = new object_tree::view::ObjectTreeView(title, dockModel, sortFilterModel);
-	if (sortFilterModel && sortFilterModel->sortingEnabled()) {
-		newTreeView->sortByColumn(
-			title == MainWindow::DockWidgetTypes::RESOURCES
-			 	? object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_NAME
-				: object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_TYPE,
-			Qt::SortOrder::AscendingOrder);
-	}
-
-	// Enable Visibility column only for specific tree views.
-	if (title == MainWindow::DockWidgetTypes::SCENE_GRAPH) {
-		newTreeView->resizeColumnToContents(object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_PREVIEW_VISIBILITY);
-		newTreeView->resizeColumnToContents(object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY);
-	} else if (title == MainWindow::DockWidgetTypes::PREFABS) {
-		newTreeView->resizeColumnToContents(object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_PREVIEW_VISIBILITY);
-		newTreeView->setColumnHidden(object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY, true);
-	} else {
-		newTreeView->setColumnHidden(object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_PREVIEW_VISIBILITY, true);
-		newTreeView->setColumnHidden(object_tree::model::ObjectTreeViewDefaultModel::COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY, true);
-	}
 
 	dockObjectView->setTreeView(newTreeView);
 	treeDockManager_.addTreeDock(dockObjectView);
@@ -240,88 +221,69 @@ ads::CDockAreaWidget* MainWindow::createAndAddProjectBrowser(const char* dockObj
 }
 
 ads::CDockAreaWidget* MainWindow::createAndAddResourceTree(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
-	using namespace raco::user_types;
-
-	static const std::vector<std::string> allowedCreateableUserTypes{
-		AnchorPoint::typeDescription.typeName,
-		AnimationChannel::typeDescription.typeName,
-		BlitPass::typeDescription.typeName,
-		CubeMap::typeDescription.typeName,
-		LuaScriptModule::typeDescription.typeName,
-		Material::typeDescription.typeName,
-		Mesh::typeDescription.typeName,
-		Texture::typeDescription.typeName,
-		TextureExternal::typeDescription.typeName,
-		Timer::typeDescription.typeName,
-		RenderBuffer::typeDescription.typeName,
-		RenderBufferMS::typeDescription.typeName,
-		RenderTarget::typeDescription.typeName,
-		RenderTargetMS::typeDescription.typeName,
-		RenderLayer::typeDescription.typeName,
-		RenderPass::typeDescription.typeName};
-
-	auto* model = new object_tree::model::ObjectTreeViewResourceModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects(), allowedCreateableUserTypes);
-	model->setAcceptableFileExtensions(QStringList{"gltf", "glb", "ctm", "png", "vert", "frag", "geom", "def", "glsl", "lua"});
-	model->setAcceptLuaModules(true);
+	auto* model = new object_tree::model::ObjectTreeViewResourceModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects());
 	return createAndAddObjectTree(
 		MainWindow::DockWidgetTypes::RESOURCES, dockObjName, model, new object_tree::model::ObjectTreeViewResourceSortFilterProxyModel(this),
 		ads::BottomDockWidgetArea, dockArea);
 }
 
 ads::CDockAreaWidget* MainWindow::createAndAddPrefabTree(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
-	using namespace raco::user_types;
-
-	static const std::vector<std::string> allowedCreateableUserTypes{
-		Prefab::typeDescription.typeName};
-
-	auto* model = new object_tree::model::ObjectTreeViewPrefabModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects(), allowedCreateableUserTypes);
-
+	auto* model = new object_tree::model::ObjectTreeViewPrefabModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects());
 	return createAndAddObjectTree(
 		MainWindow::DockWidgetTypes::PREFABS, dockObjName, model, new object_tree::model::ObjectTreeViewTopLevelSortFilterProxyModel(this),
 		ads::BottomDockWidgetArea, dockArea);
 }
 
 ads::CDockAreaWidget* MainWindow::createAndAddSceneGraphTree(const char* dockObjName) {
-	using namespace raco::user_types;
-
-	static const std::vector<std::string> allowedCreateableUserTypes{
-		Node::typeDescription.typeName,
-		MeshNode::typeDescription.typeName,
-		PrefabInstance::typeDescription.typeName,
-		OrthographicCamera::typeDescription.typeName,
-		PerspectiveCamera::typeDescription.typeName,
-		Animation::typeDescription.typeName,
-		LuaScript::typeDescription.typeName,
-		LuaInterface::typeDescription.typeName,
-		Skin::typeDescription.typeName};
-
-	auto* model = new object_tree::model::ObjectTreeViewDefaultModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects(), allowedCreateableUserTypes);
-	model->setAcceptableFileExtensions(QStringList{"lua", "gltf", "glb"});
-	model->setAcceptLuaScripts(true);
-	model->setAcceptLuaInterfaces(true);
-	model->setDropGltfOpensAssetImportDialog(true);
+	auto* model = new object_tree::model::ObjectTreeViewSceneGraphModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects());
 	return createAndAddObjectTree(MainWindow::DockWidgetTypes::SCENE_GRAPH, dockObjName, model, new object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel(this, false),
 		ads::LeftDockWidgetArea, nullptr);
 }
 
+ads::CDockAreaWidget* MainWindow::createAndAddRenderView(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
+	auto* model = new object_tree::model::ObjectTreeViewRenderViewModel(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), racoApplication_->externalProjects());
+
+	return createAndAddObjectTree(
+		MainWindow::DockWidgetTypes::RENDER_VIEW, dockObjName, model, new object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel(this, true),
+		ads::BottomDockWidgetArea, dockArea);
+}
+
+
 ads::CDockAreaWidget* MainWindow::createAndAddUndoView(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::UNDO_STACK, this);
-	dock->setWidget(new raco::common_widgets::UndoView(racoApplication_->activeRaCoProject().undoStack(), racoApplication_->dataChangeDispatcher(), this));
+	dock->setWidget(new common_widgets::UndoView(racoApplication_->activeRaCoProject().undoStack(), racoApplication_->dataChangeDispatcher(), this));
 	dock->setObjectName(dockObjName);
 	return dockManager_->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
 }
 
 ads::CDockAreaWidget* MainWindow::createAndAddErrorView(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
 	auto* errorView = new raco::common_widgets::ErrorView(racoApplication_->activeRaCoProject().commandInterface(), racoApplication_->dataChangeDispatcher(), false, logViewModel_);
-	QObject::connect(errorView, &raco::common_widgets::ErrorView::objectSelectionRequested, &treeDockManager_, &object_tree::view::ObjectTreeDockManager::selectObjectAcrossAllTreeDocks);
+	QObject::connect(errorView, &raco::common_widgets::ErrorView::objectSelectionRequested, &treeDockManager_, [this](auto objectID) {
+		if (auto object = racoApplication_->activeRaCoProject().project()->getInstanceByID(objectID.toStdString())) {
+			treeDockManager_.selectObjectAndPropertyAcrossAllTreeDocks(object, {});
+		}
+	});
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::ERROR_VIEW, this);
 	dock->setWidget(errorView);
 	dock->setObjectName(dockObjName);
 	return dockManager_->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
 }
 
+ads::CDockAreaWidget* MainWindow::createAndAddPerformanceTable(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
+	auto performanceView = new common_widgets::PerformanceTableView(racoApplication_, racoApplication_->dataChangeDispatcher(), this);
+	QObject::connect(performanceView, &raco::common_widgets::PerformanceTableView::objectSelectionRequested, &treeDockManager_, [this](auto objectID) {
+		if (auto object = racoApplication_->activeRaCoProject().project()->getInstanceByID(objectID.toStdString())) {
+			treeDockManager_.selectObjectAndPropertyAcrossAllTreeDocks(object, {});
+		}
+	});
+	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::PERFORMANCE_TABLE, this);
+	dock->setWidget(performanceView);
+	dock->setObjectName(dockObjName);
+	return dockManager_->addDockWidget(ads::BottomDockWidgetArea, dock, dockArea);
+}
+
 ads::CDockAreaWidget* MainWindow::createAndAddLogView(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
-	auto* logView = new raco::common_widgets::LogView(logViewModel_);
+	auto* logView = new common_widgets::LogView(logViewModel_);
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::LOG_VIEW, this);
 	dock->setWidget(logView);
 	dock->setObjectName(dockObjName);
@@ -329,28 +291,12 @@ ads::CDockAreaWidget* MainWindow::createAndAddLogView(const char* dockObjName, a
 }
 
 ads::CDockAreaWidget* MainWindow::createAndAddPythonRunner(const char* dockObjName, ads::CDockAreaWidget* dockArea) {
-	auto* pythonRunner = new raco::common_widgets::RunScriptDialog(pythonScriptCache_, pythonScriptArgumentCache_, this);
+	
+
+	auto* pythonRunner = new common_widgets::RunScriptDialog(pythonScriptCache_, pythonScriptArgumentCache_, this);
 	auto* dock = createDockWidget(MainWindow::DockWidgetTypes::PYTHON_RUNNER, this);
 	dock->setWidget(pythonRunner);
 	dock->setObjectName(dockObjName);
-
-	QObject::connect(pythonRunner, &raco::common_widgets::RunScriptDialog::pythonScriptRunRequested, [this, dock, pythonRunner](const QString& scriptPath, const QStringList& arguments) {
-		pythonRunner->setScriptIsRunning(true);
-		pythonRunner->repaint();
-		std::vector<std::string> pos_argv_s;
-		pos_argv_s.emplace_back(scriptPath.toStdString());
-		for (auto arg : arguments) {
-			pos_argv_s.emplace_back(arg.toStdString());
-		}
-		std::vector<const char*> pos_argv_cp;
-		for (auto& s : pos_argv_s) {
-			pos_argv_cp.emplace_back(s.c_str());
-		}
-
-		auto currentRunStatus = python_api::runPythonScript(racoApplication_, QCoreApplication::applicationFilePath().toStdWString(), scriptPath.toStdString(), pythonSearchPaths(), pos_argv_cp);
-		pythonRunner->addPythonOutput(currentRunStatus.stdOutBuffer, currentRunStatus.stdErrBuffer);
-		pythonRunner->setScriptIsRunning(false);
-	});
 
 	return dockManager_->addDockWidget(ads::RightDockWidgetArea, dock, dockArea);
 }
@@ -363,7 +309,7 @@ ads::CDockAreaWidget* MainWindow::createAndAddTracePlayer() {
 	auto* newTraceplayerDock{createDockWidget(MainWindow::DockWidgetTypes::TRACE_PLAYER, this)};
 	newTraceplayerDock->setMinimumSizeHintMode(ads::CDockWidget::eMinimumSizeHintMode::MinimumSizeHintFromContent);
 
-	auto* traceplayerWidget{new raco::common_widgets::TracePlayerWidget(newTraceplayerDock->objectName(), &racoApplication_->activeRaCoProject().tracePlayer())};
+	auto* traceplayerWidget{new common_widgets::TracePlayerWidget(newTraceplayerDock->objectName(), &racoApplication_->activeRaCoProject().tracePlayer())};
 	newTraceplayerDock->setWidget(traceplayerWidget, ads::CDockWidget::ForceNoScrollArea);
 
 	ads::CDockWidget* existingPreviewDock{nullptr};
@@ -409,9 +355,39 @@ void MainWindow::createInitialWidgets() {
 	createAndAddPropertyBrowser("defaultPropertyBrowser");
 }
 
-MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, ramses_widgets::RendererBackend* rendererBackend, const std::vector<std::wstring>& pythonSearchPaths, QWidget* parent)
+void MainWindow::runPythonOnSaveScript(const std::string& scriptPath, const std::string& title) {
+	utils::u8path utilPath = utils::u8path(scriptPath);
+	if (utilPath.is_relative()) {
+		utilPath = utilPath.normalizedAbsolutePath(racoApplication_->activeProjectFolder());
+	}
+
+	if (!scriptPath.empty()) {
+		const auto runStatus = python_api::runPythonScriptFromFile(utilPath.string());
+
+		if (!runStatus.stdOutBuffer.empty() || !runStatus.stdErrBuffer.empty()) {
+			const auto msgBox = new common_widgets::PythonOutputDialog(
+				QString::fromStdString(title),
+				QString::fromStdString(runStatus.stdOutBuffer),
+				QString::fromStdString(runStatus.stdErrBuffer));
+			msgBox->exec();
+		}
+	}
+}
+
+void MainWindow::runPythonOnSaveScripts() {
+	// Global
+	const auto globalPythonOnSaveScript = components::RaCoPreferences::instance().globalPythonOnSaveScript;
+	runPythonOnSaveScript(globalPythonOnSaveScript.toStdString(), "Global OnSave Script");
+
+	// Project
+	if (components::RaCoPreferences::instance().enableProjectPythonScript) {
+		const auto projectPythonOnSaveScript = racoApplication_->activeRaCoProject().pythonOnSaveScriptPath();
+		runPythonOnSaveScript(projectPythonOnSaveScript, "Project OnSave Script");
+	}
+}
+
+MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, ramses_widgets::RendererBackend* rendererBackend, QWidget* parent)
 	: QMainWindow(parent),
-	  pythonSearchPaths_(pythonSearchPaths),
 	  rendererBackend_(rendererBackend),
 	  racoApplication_(racoApplication) {
 	// Setup the UI from the QtCreator file mainwindow.ui
@@ -428,7 +404,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, rams
 	dockManager_ = createDockManager();
 	setWindowIcon(QIcon(":applicationLogo"));
 
-	logViewModel_ = new raco::common_widgets::LogViewModel(this);
+	logViewModel_ = new common_widgets::LogViewModel(this);
 
 	// Shortcuts
 	{
@@ -489,7 +465,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, rams
 		openProject();
 	});
 	QObject::connect(ui->actionExport, &QAction::triggered, this, [this]() {
-		auto dialog = new raco::common_widgets::ExportDialog(racoApplication_, logViewModel_, this);
+		auto dialog = new common_widgets::ExportDialog(racoApplication_, logViewModel_, this);
 		dialog->exec();
 	});
 	QObject::connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
@@ -497,7 +473,7 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, rams
 	new EditMenu(racoApplication_, &treeDockManager_, ui->menuEdit);
 
 	QObject::connect(ui->actionPreferences, &QAction::triggered, [this]() {
-		auto dialog = new raco::common_widgets::PreferencesView(this);
+		auto dialog = new common_widgets::PreferencesView(racoApplication_, this);
 		dialog->resize(500, 500);
 		dialog->exec();
 		racoApplication_->setNewFileFeatureLevel(components::RaCoPreferences::instance().featureLevel);
@@ -512,10 +488,12 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, rams
 	QObject::connect(ui->actionNewSceneGraphTree, &QAction::triggered, [this]() { createAndAddSceneGraphTree(EditorObject::normalizedObjectID("").c_str()); });
 	QObject::connect(ui->actionNewResourcesTree, &QAction::triggered, [this]() { createAndAddResourceTree(EditorObject::normalizedObjectID("").c_str(), nullptr); });
 	QObject::connect(ui->actionNewPrefabTree, &QAction::triggered, [this]() { createAndAddPrefabTree(EditorObject::normalizedObjectID("").c_str(), nullptr); });
+	QObject::connect(ui->actionNewRenderView, &QAction::triggered, [this]() { createAndAddRenderView(EditorObject::normalizedObjectID("").c_str(), nullptr); });
 	QObject::connect(ui->actionNewUndoView, &QAction::triggered, [this]() { createAndAddUndoView(EditorObject::normalizedObjectID("").c_str()); });
 	QObject::connect(ui->actionNewErrorView, &QAction::triggered, [this]() { createAndAddErrorView( EditorObject::normalizedObjectID("").c_str()); });
 	QObject::connect(ui->actionNewLogView, &QAction::triggered, [this]() { createAndAddLogView(EditorObject::normalizedObjectID("").c_str()); });
 	QObject::connect(ui->actionNewPythonRunner, &QAction::triggered, [this]() { createAndAddPythonRunner(EditorObject::normalizedObjectID("").c_str()); });
+	QObject::connect(ui->actionNewPerformanceTable, &QAction::triggered, [this]() { createAndAddPerformanceTable(EditorObject::normalizedObjectID("").c_str(), nullptr); });
 	QObject::connect(ui->actionRestoreDefaultLayout, &QAction::triggered, [this]() {
 		resetDockManager();
 		createInitialWidgets();
@@ -555,7 +533,11 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, rams
 		about.exec();
 	});
 
-	QObject::connect(this, &MainWindow::focusRequestedForTreeDock, &treeDockManager_, &object_tree::view::ObjectTreeDockManager::selectObjectAndPropertyAcrossAllTreeDocks);
+	QObject::connect(this, &MainWindow::focusRequestedForTreeDock, &treeDockManager_, [this](auto objectID, auto propertyPath) {
+		if (auto object = racoApplication_->activeRaCoProject().project()->getInstanceByID(objectID.toStdString())) {
+			treeDockManager_.selectObjectAndPropertyAcrossAllTreeDocks(object, propertyPath);
+		}
+	});
 
 	setAcceptDrops(true);
 
@@ -567,8 +549,8 @@ MainWindow::MainWindow(raco::application::RaCoApplication* racoApplication, rams
 	// Setup
 	updateApplicationTitle();
 	updateSavedLayoutMenu();
-
-	raco::gui_python_api::setupObjectTree(&treeDockManager_);
+	
+	gui_python_api::setupObjectTree(&treeDockManager_);
 
 	// Will we support Mac?
 	setUnifiedTitleAndToolBarOnMac(true);
@@ -591,10 +573,11 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 	auto startLoop = std::chrono::high_resolution_clock::now();
 	racoApplication_->doOneLoop();
 
-	const auto& viewport = racoApplication_->activeRaCoProject().project()->settings()->viewport_;
+	auto& viewport = racoApplication_->activeRaCoProject().project()->settings()->viewport_;
 	const auto& backgroundColor = *racoApplication_->activeRaCoProject().project()->settings()->backgroundColor_;
 
-	Q_EMIT viewportChanged({*viewport->i1_, *viewport->i2_});
+	int range_max = *viewport->i1_.staticQuery<core::RangeAnnotation<int>>().max_;
+	Q_EMIT viewportChanged(QSize(*viewport->i1_, *viewport->i2_).boundedTo({range_max, range_max}).expandedTo({1, 1}));
 
 	for (auto preview : findChildren<ramses_widgets::PreviewMainWindow*>()) {
 		preview->commit(racoApplication_->rendererDirty_);
@@ -602,7 +585,6 @@ void MainWindow::timerEvent(QTimerEvent* event) {
 	}
 	racoApplication_->rendererDirty_ = false;
 	auto logicEngineExecutionEnd = std::chrono::high_resolution_clock::now();
-	timingsModel_.addLogicEngineTotalExecutionDuration(std::chrono::duration_cast<std::chrono::microseconds>(logicEngineExecutionEnd - startLoop).count());
 	racoApplication_->sceneBackendImpl()->flush();
 	if (racoApplication_->abstractScene()) {
 		racoApplication_->abstractScene()->scene()->flush();
@@ -735,7 +717,7 @@ void MainWindow::openProject(const QString& file, int featureLevel, bool generat
 			}
 		}
 
-	} catch (const raco::application::FutureFileVersion& error) {
+	} catch (const application::FutureFileVersion& error) {
 		racoApplication_->switchActiveRaCoProject({}, {});
 		QMessageBox::warning(this, "File Load Error", fmt::format("Project file was created with newer version of {app_name}. Please upgrade.\n\nExpected File Version: {expected_file_version}\nFound File Version: {file_version}", fmt::arg("app_name", "Ramses Composer"), fmt::arg("expected_file_version", serialization::RAMSES_PROJECT_FILE_VERSION), fmt::arg("file_version", error.fileVersion_)).c_str(), QMessageBox::Close);
 	} catch (const ExtrefError& error) {
@@ -837,6 +819,8 @@ bool MainWindow::saveActiveProject() {
 			if (isUpgradePrevented()) {
 				return false;
 			}
+			
+			runPythonOnSaveScripts();
 
 			std::string errorMsg;
 			if (racoApplication_->activeRaCoProject().save(errorMsg)) {
@@ -860,7 +844,7 @@ bool MainWindow::isUpgradePrevented() {
 		constexpr auto currentFileVersion = serialization::RAMSES_PROJECT_FILE_VERSION;
 		
 		try {
-			auto previousFileVersion = serialization::deserializeFileVersion(raco::application::RaCoProject::loadJsonDocument(filename));
+			auto previousFileVersion = serialization::deserializeFileVersion(application::RaCoProject::loadJsonDocument(filename));
 			if (currentFileVersion > previousFileVersion) {
 				const auto answer = QMessageBox::warning(this, "Save File Warning", fmt::format("The project with the file version {} will be overwritten with the file version {}. Are you sure you want to save it with the new file version", previousFileVersion, currentFileVersion).c_str(), QMessageBox::Save, QMessageBox::Cancel);
 				if (answer == QMessageBox::Cancel) {
@@ -884,6 +868,9 @@ bool MainWindow::saveAsActiveProject(bool newID) {
 		}
 		if (!newPath.endsWith(".rca")) newPath += ".rca";
 		std::string errorMsg;
+
+		runPythonOnSaveScripts();
+
 		if (newID) {
 			if (racoApplication_->activeRaCoProject().saveAs(newPath, errorMsg, setProjectName)) {
 				openProject(QString::fromStdString(racoApplication_->activeProjectPath()), -1, true);
@@ -948,10 +935,6 @@ void MainWindow::updateUpgradeMenu() {
 	}
 }
 
-const std::vector<std::wstring>& MainWindow::pythonSearchPaths() const {
-	return pythonSearchPaths_;
-}
-
 bool MainWindow::resolveDirtiness() {
 	bool continueWithAction{true};
 	if (racoApplication_->activeRaCoProject().dirty()) {
@@ -1014,6 +997,8 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 			createAndAddProjectSettings(dockNameCString);
 		} else if (savedDockType == DockWidgetTypes::PROPERTY_BROWSER) {
 			createAndAddPropertyBrowser(dockNameCString);
+		} else if (savedDockType == DockWidgetTypes::PERFORMANCE_TABLE) {
+			createAndAddPerformanceTable(dockNameCString, nullptr);
 		} else if (savedDockType == DockWidgetTypes::RAMSES_PREVIEW) {
 			if (!hasPreview) {
 				createAndAddPreview(dockNameCString);
@@ -1030,6 +1015,8 @@ void MainWindow::regenerateLayoutDocks(const RaCoDockManager::LayoutDocks& docks
 			createAndAddResourceTree(dockNameCString, nullptr);
 		} else if (savedDockType == DockWidgetTypes::SCENE_GRAPH) {
 			createAndAddSceneGraphTree(dockNameCString);
+		}  else if (savedDockType == DockWidgetTypes::RENDER_VIEW) {
+			createAndAddRenderView(dockNameCString, nullptr);
 		} else if (savedDockType == DockWidgetTypes::UNDO_STACK) {
 			createAndAddUndoView(dockNameCString);
 		} else if (savedDockType == DockWidgetTypes::ERROR_VIEW) {
@@ -1061,7 +1048,7 @@ void MainWindow::updateActiveProjectConnection() {
 	if (!racoApplication_->activeProjectPath().empty()) {
 		activeProjectFileConnection_ = QObject::connect(
 			&racoApplication_->activeRaCoProject(),
-			&raco::application::RaCoProject::activeProjectFileChanged,
+			&application::RaCoProject::activeProjectFileChanged,
 			this,
 			&MainWindow::activeProjectFileChanged,
 			Qt::QueuedConnection);
@@ -1070,7 +1057,7 @@ void MainWindow::updateActiveProjectConnection() {
 
 void MainWindow::updateProjectSavedConnection() {
 	QObject::disconnect(projectSavedConnection_);
-	projectSavedConnection_ = QObject::connect(&racoApplication_->activeRaCoProject(), &raco::application::RaCoProject::projectSuccessfullySaved, [this]() {
+	projectSavedConnection_ = QObject::connect(&racoApplication_->activeRaCoProject(), &application::RaCoProject::projectSuccessfullySaved, [this]() {
 		recentFileMenu_->addRecentFile(racoApplication_->activeProjectPath().c_str());
 		updateApplicationTitle();
 	});

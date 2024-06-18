@@ -47,6 +47,16 @@ ObjectTreeNode::ObjectTreeNode(const std::string& typeName)
 	  typeName_{typeName} {
 }
 
+ObjectTreeNode::ObjectTreeNode(ObjectTreeNodeType type, const std::string& typeName, ObjectTreeNode* parent)
+	: parent_(parent),
+	  type_(type),
+	  representedObject_{nullptr},
+	  typeName_(typeName) {
+	if (parent_) {
+		parent_->addChild(this);
+	}
+}
+
 ObjectTreeNode::~ObjectTreeNode() {
 	for (auto child : children_) {
 		delete child;
@@ -119,6 +129,8 @@ std::string ObjectTreeNode::getDisplayName() const {
 			}
 
 			return typeName_ + "s";
+		case ObjectTreeNodeType::Tag:
+			return typeName_;
 		default:
 			return "";
 	}
@@ -170,10 +182,31 @@ VisibilityState ObjectTreeNode::getAbstractViewVisibility() const {
 	return VisibilityState::Missing;
 }
 
-void ObjectTreeNode::setBelongsToExternalProject(const std::string& path, const std::string& name) {
+void ObjectTreeNode::setExternalProjectInfo(const std::string& path, const std::string& name) {
 	assert(type_ == ObjectTreeNodeType::EditorObject || type_ == ObjectTreeNodeType::ExternalProject);
 	externalProjectPath_ = path;
 	externalProjectName_ = name;
+}
+
+std::string ObjectTreeNode::getInputBuffers() const {
+	return inputBuffers_;
+}
+
+std::string ObjectTreeNode::getOutputBuffers() const {
+	return outputBuffers_;
+}
+
+std::optional<int> ObjectTreeNode::getRenderOrder() const {
+	return renderOrder_;
+}
+
+void ObjectTreeNode::setBuffers(const std::string& inputBuffers, const std::string& outputBuffers) {
+	inputBuffers_ = inputBuffers;
+	outputBuffers_ = outputBuffers;
+}
+
+void ObjectTreeNode::setRenderOrder(int order) {
+	renderOrder_ = order;
 }
 
 std::string ObjectTreeNode::getID() const {

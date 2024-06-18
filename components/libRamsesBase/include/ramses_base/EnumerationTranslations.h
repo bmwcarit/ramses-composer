@@ -11,8 +11,11 @@
 
 #include "user_types/Enumerations.h"
 
+#include "core/MeshCacheInterface.h"
+
 #include <ramses/framework/AppearanceEnums.h>
 #include <ramses/framework/TextureEnums.h>
+#include <ramses/client/logic/AnimationTypes.h>
 
 #include <map>
 #include <string>
@@ -32,6 +35,8 @@ extern std::map<user_types::ETextureFormat, ramses::ETextureFormat> enumerationT
 
 extern std::map<user_types::ETextureAddressMode, ramses::ETextureAddressMode> enumerationTranslationTextureAddressMode;
 extern std::map<user_types::ETextureSamplingMethod, ramses::ETextureSamplingMethod> enumerationTranslationTextureSamplingMethod;
+
+extern std::map<core::MeshAnimationInterpolation, ramses::EInterpolationType> enumerationTranslationAnimationInterpolationType;
 
 
 }  // namespace raco::ramses_base

@@ -2,7 +2,7 @@
     "externalProjects": {
     },
     "featureLevel": 1,
-    "fileVersion": 2001,
+    "fileVersion": 2005,
     "instances": [
         {
             "properties": {
@@ -209,7 +209,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": 1
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -221,7 +221,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": -7680
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -233,7 +233,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": -7680
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -245,7 +245,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": 1
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -493,7 +493,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": 1
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -505,7 +505,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": -7680
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -517,7 +517,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": -7680
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -529,7 +529,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 7680,
+                                    "max": 8192,
                                     "min": 1
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -648,6 +648,7 @@
                 "featureLevel": 1,
                 "objectID": "71454add-eb56-4288-9057-825539914bed",
                 "objectName": "test-offscreen-tex-uniform-migration-material",
+                "pythonOnSaveScript": "",
                 "saveAsZip": false,
                 "sceneId": {
                     "annotations": [
@@ -666,7 +667,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 4096,
+                                    "max": 8192,
                                     "min": 0
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -678,7 +679,7 @@
                         "annotations": [
                             {
                                 "properties": {
-                                    "max": 4096,
+                                    "max": 8192,
                                     "min": 0
                                 },
                                 "typeName": "RangeAnnotationInt"
@@ -1421,7 +1422,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 1
                             },
                             "typeName": "RangeAnnotationInt"
@@ -1437,7 +1438,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 1
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2237,7 +2238,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 0
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2249,7 +2250,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 0
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2262,7 +2263,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 0
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2279,7 +2280,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 0
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2291,7 +2292,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 0
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2305,7 +2306,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 0
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2324,7 +2325,7 @@
                 "objectID": "9c2eeeea-cef0-42a5-9815-d32d38ccfd60",
                 "objectName": "Timer",
                 "outputs": {
-                    "ticker_us": "5331962091"
+                    "ticker_us": "2332962042566"
                 }
             },
             "typeName": "Timer"
@@ -2375,6 +2376,16 @@
                 "uri": "../../../../../raco-oss-ref/datamodel/libCore/tests/testData/duck.glb"
             },
             "typeName": "Mesh"
+        },
+        {
+            "properties": {
+                "componentArraySize": 1,
+                "componentType": 5,
+                "interpolationType": 0,
+                "objectID": "a5d43f2e-b91e-4f74-9ca0-33091a4b1d4e",
+                "objectName": "AnimationChannelRaco"
+            },
+            "typeName": "AnimationChannelRaco"
         },
         {
             "properties": {
@@ -2449,7 +2460,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 1
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2475,7 +2486,7 @@
                     "annotations": [
                         {
                             "properties": {
-                                "max": 7680,
+                                "max": 8192,
                                 "min": 1
                             },
                             "typeName": "RangeAnnotationInt"
@@ -2706,7 +2717,7 @@
             "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "Animation": {
-            "animationChannels": "Array[AnimationChannel]::DisplayNameAnnotation::ResizableArray",
+            "animationChannels": "Array[AnimationChannelBase]::DisplayNameAnnotation::ResizableArray",
             "children": "Array[Ref]::ArraySemanticAnnotation::HiddenProperty",
             "metaData": "Table::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",
@@ -2723,6 +2734,17 @@
             "objectName": "String::DisplayNameAnnotation",
             "samplerIndex": "Int::DisplayNameAnnotation",
             "uri": "String::URIAnnotation::DisplayNameAnnotation",
+            "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
+        },
+        "AnimationChannelRaco": {
+            "children": "Array[Ref]::ArraySemanticAnnotation::HiddenProperty",
+            "componentArraySize": "Int::DisplayNameAnnotation",
+            "componentType": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "data": "Table::HiddenProperty",
+            "interpolationType": "Int::DisplayNameAnnotation::EnumerationAnnotation",
+            "metaData": "Table::DisplayNameAnnotation",
+            "objectID": "String::HiddenProperty",
+            "objectName": "String::DisplayNameAnnotation",
             "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation"
         },
         "BlitPass": {
@@ -2928,6 +2950,7 @@
             "featureLevel": "Int::DisplayNameAnnotation::ReadOnlyAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
+            "pythonOnSaveScript": "String::DisplayNameAnnotation::URIAnnotation",
             "saveAsZip": "Bool::DisplayNameAnnotation",
             "sceneId": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "viewport": "Vec2i::DisplayNameAnnotation"
@@ -2936,27 +2959,27 @@
             "anisotropy": "Int::DisplayNameAnnotation::RangeAnnotationInt",
             "children": "Array[Ref]::ArraySemanticAnnotation::HiddenProperty",
             "format": "Int::DisplayNameAnnotation::EnumerationAnnotation",
-            "height": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "height": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "magSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "metaData": "Table::DisplayNameAnnotation",
             "minSamplingMethod": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
             "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
-            "width": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "width": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "wrapUMode": "Int::DisplayNameAnnotation::EnumerationAnnotation",
             "wrapVMode": "Int::DisplayNameAnnotation::EnumerationAnnotation"
         },
         "RenderBufferMS": {
             "children": "Array[Ref]::ArraySemanticAnnotation::HiddenProperty",
             "format": "Int::DisplayNameAnnotation::EnumerationAnnotation",
-            "height": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "height": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "metaData": "Table::DisplayNameAnnotation",
             "objectID": "String::HiddenProperty",
             "objectName": "String::DisplayNameAnnotation",
-            "sampleCount": "Int::RangeAnnotationInt::DisplayNameAnnotation",
+            "sampleCount": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation",
             "userTags": "Table::ArraySemanticAnnotation::HiddenProperty::UserTagContainerAnnotation::DisplayNameAnnotation",
-            "width": "Int::RangeAnnotationInt::DisplayNameAnnotation"
+            "width": "Int::RangeAnnotationInt::DisplayNameAnnotation::LinkEndAnnotation"
         },
         "RenderLayer": {
             "children": "Array[Ref]::ArraySemanticAnnotation::HiddenProperty",

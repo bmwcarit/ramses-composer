@@ -20,7 +20,7 @@ namespace {
 
 using namespace raco::ramses_widgets;
 
-void setAndWaitSceneState(
+[[nodiscard]] bool setAndWaitSceneState(
 	RendererBackend& backend,
 	const ramses::RendererSceneState state,
 	const ramses::sceneId_t sceneId) {
@@ -29,15 +29,16 @@ void setAndWaitSceneState(
 	if (sceneId.isValid()) {
 		auto status = sceneControlAPI.setSceneState(sceneId, state);
 		if (sceneControlAPI.flush()) {
-			backend.eventHandler().waitForSceneState(sceneId, state);
+			return backend.eventHandler().waitForSceneState(sceneId, state);
 		}
 	}
+	return true;
 }
 
 /**
  * Sets and await's current scene state for frambuffer and conditionally for scene. The scene state is only set if the current scene state is greater than the request scene state.
  */
-void reduceAndWaitSceneState(
+[[nodiscard]] bool reduceAndWaitSceneState(
 	RendererBackend& backend,
 	const ramses::RendererSceneState state,
 	const ramses::sceneId_t sceneId) {
@@ -54,9 +55,10 @@ void reduceAndWaitSceneState(
 			// leads to the scene state comparison above being true which triggers a setSceneState which then has no effect since the
 			// real state is already lower than the set state which leads to no callback being invoked which leads to waiting forever
 			// of using an exact scene state comparison.
-			backend.eventHandler().waitForSceneState(sceneId, state, SceneStateEventHandler::ECompareFunc::LessEqual);
+			return backend.eventHandler().waitForSceneState(sceneId, state, SceneStateEventHandler::ECompareFunc::LessEqual);
 		}
 	}
+	return true;
 }
 
 }  // namespace
@@ -72,11 +74,11 @@ RamsesAbstractViewWindow::~RamsesAbstractViewWindow() {
 }
 
 void RamsesAbstractViewWindow::reset() {
-	reduceAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, current_.sceneId);
+	auto status = reduceAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, current_.sceneId);
 	if (displayId_.isValid()) {
 		rendererBackend_.renderer().destroyDisplay(displayId_);
 		rendererBackend_.renderer().flush();
-		rendererBackend_.eventHandler().waitForDisplayDestruction(displayId_);
+		auto status = rendererBackend_.eventHandler().waitForDisplayDestruction(displayId_);
 		displayId_ = ramses::displayId_t::Invalid();
 		current_ = State{};
 	}
@@ -91,6 +93,10 @@ RamsesAbstractViewWindow::State& RamsesAbstractViewWindow::nextState() {
 }
 
 void RamsesAbstractViewWindow::commit(bool forceUpdate) {
+	if (errorState_ && !forceUpdate) {
+		return;
+	}
+
 	if (forceUpdate || !displayId_.isValid() || next_ != current_) {
 		// Unload current scenes
 		reset();
@@ -112,13 +118,19 @@ void RamsesAbstractViewWindow::commit(bool forceUpdate) {
 			}
 			displayId_ = rendererBackend_.renderer().createDisplay(displayConfig);
 			rendererBackend_.renderer().flush();
-			rendererBackend_.eventHandler().waitForDisplayCreation(displayId_);
+			if (!rendererBackend_.eventHandler().waitForDisplayCreation(displayId_)) {
+				errorState_ = true;
+				return;
+			}
 
 			if (next_.sceneId.isValid()) {
 				/// @todo maybe we need to reset old scene mapping?
 				sceneControlAPI.setSceneMapping(next_.sceneId, displayId_);
 				sceneControlAPI.flush();
-				setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Rendered, next_.sceneId);
+				if (!setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Rendered, next_.sceneId)) {
+					errorState_ = true;
+					return;
+				}
 			}
 
 			current_ = next_;

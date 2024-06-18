@@ -12,6 +12,7 @@ raco_find_qt_components(Core)
 
 add_library(libApplication
     include/application/ExternalProjectsStore.h src/ExternalProjectsStore.cpp
+    include/application/ReportStatistics.h src/ReportStatistics.cpp
     include/application/RaCoApplication.h src/RaCoApplication.cpp
     include/application/RaCoProject.h src/RaCoProject.cpp
 )

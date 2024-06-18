@@ -10,6 +10,8 @@
 #include "object_tree_view/ObjectTreeDock.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
 
+#include "object_tree_view_model/ObjectTreeViewExternalProjectModel.h"
+
 namespace raco::object_tree::view {
 
 void ObjectTreeDockManager::addTreeDock(ObjectTreeDock* newDock) {
@@ -29,7 +31,7 @@ void ObjectTreeDockManager::eraseTreeDock(ObjectTreeDock* dockToErase) {
 	docks_.erase(dockPosition);
 	if (focusedDock_ == dockToErase) {
 		focusedDock_ = nullptr;
-		Q_EMIT selectionCleared();
+		Q_EMIT newObjectTreeItemsSelected({}, {});
 	}
 
 	Q_EMIT treeDockListChanged();
@@ -44,26 +46,21 @@ void ObjectTreeDockManager::setFocusedDock(ObjectTreeDock* dock) {
 	focusedDock_ = dock;
 }
 
-void ObjectTreeDockManager::selectObjectAcrossAllTreeDocks(const QString& objectID) {
-	selectObjectAndPropertyAcrossAllTreeDocks(objectID, {});
-}
-
-void ObjectTreeDockManager::selectObjectAndPropertyAcrossAllTreeDocks(const QString& objectID, const QString& objectProperty) {
-	// always favor the first created active tree view of any type (e.g. the first "Scene Graph", the first "Resources")
-	std::set<QString> viewTitles;
-
-	for (const auto* dock : getDocks()) {
+void ObjectTreeDockManager::selectObjectAndPropertyAcrossAllTreeDocks(core::SEditorObject object, const QString& propertyPath) {
+	ObjectTreeDock* focusDock = nullptr;
+	auto objectID = QString::fromStdString(object->objectID());
+	for (auto* dock : getDocks()) {
 		if (auto activeTreeView = dock->getActiveTreeView()) {
-			auto viewTitle = activeTreeView->getViewTitle();
-
-			if (activeTreeView->canProgrammaticallyGoToObject() && viewTitles.count(viewTitle) == 0) {
-				activeTreeView->setPropertyToSelect(objectProperty);
+			if (activeTreeView->canProgrammaticallyGoToObject() && dock->getActiveTreeView()->containsObject(objectID)) {
 				activeTreeView->selectObject(objectID);
 				activeTreeView->expandAllParentsOfObject(objectID);
-				viewTitles.insert(viewTitle);
+				focusDock = dock;
+				break;
 			}
 		}
 	}
+	setFocusedDock(focusDock);
+	Q_EMIT newObjectTreeItemsSelected({object}, propertyPath);
 }
 
 size_t ObjectTreeDockManager::getTreeDockAmount() const {
@@ -92,9 +89,13 @@ bool ObjectTreeDockManager::docksContainObject(const QString& objID) const {
 	return false;
 }
 
+bool ObjectTreeDockManager::isExternalProjectDock(ObjectTreeDock* dock) const {
+	return dynamic_cast<model::ObjectTreeViewExternalProjectModel*>(dock->getActiveTreeView()->treeModel()) != nullptr;
+}
+
 std::vector<core::SEditorObject> ObjectTreeDockManager::getSelection() const {
 	auto activeDockWhichHasSelection = getActiveDockWithSelection();
-	if (activeDockWhichHasSelection == nullptr || activeDockWhichHasSelection->windowTitle().toStdString() == "Project Browser") {
+	if (activeDockWhichHasSelection == nullptr || isExternalProjectDock(activeDockWhichHasSelection)) {
 		return std::vector<core::SEditorObject>();
 	}
 
@@ -102,23 +103,17 @@ std::vector<core::SEditorObject> ObjectTreeDockManager::getSelection() const {
 }
 
 void ObjectTreeDockManager::connectTreeDockSignals(ObjectTreeDock* dock) {
-	QObject::connect(dock, &ObjectTreeDock::externalObjectSelected, [this](auto* selectionSrcDock) {
-		// Keep the external dock focused while clearing selection to not show external objects in the Property Browser
-		setFocusedDock(selectionSrcDock);
-		Q_EMIT selectionCleared();
-	});
-
-	QObject::connect(dock, &ObjectTreeDock::newObjectTreeItemsSelected, [this](auto& objects, auto* selectionSrcDock, auto& property) {
-		setFocusedDock(selectionSrcDock);
-		if (objects.empty()) {
-			Q_EMIT selectionCleared();
+	QObject::connect(dock, &ObjectTreeDock::newObjectTreeItemsSelected, [this, dock](const core::SEditorObjectSet& objects) {
+		setFocusedDock(dock);
+		if (objects.empty() || isExternalProjectDock(dock)) {
+			Q_EMIT newObjectTreeItemsSelected({}, {});
 		} else {
-			Q_EMIT newObjectTreeItemsSelected(objects, property);
+			Q_EMIT newObjectTreeItemsSelected(objects, {});
 		}
 	});
-	QObject::connect(dock, &ObjectTreeDock::dockSelectionFocusRequested, this, &ObjectTreeDockManager::setFocusedDock);
-
-	QObject::connect(dock, &ObjectTreeDock::dockClosed, this, &ObjectTreeDockManager::eraseTreeDock);
+	QObject::connect(dock, &ObjectTreeDock::dockClosed, this, [this, dock]() {
+		eraseTreeDock(dock);
+	});
 }
 
 }  // namespace raco::object_tree::view

@@ -12,7 +12,9 @@
 #include "ramses_widgets/BuildOptions.h"
 #include "ramses_widgets/RamsesPreviewWindow.h"
 #include "components/QtFormatter.h"
+#include "style/Icons.h"
 #include <QPaintEvent>
+#include <QPainter>
 #include <QPlatformSurfaceEvent>
 #include <QScreen>
 
@@ -108,8 +110,20 @@ void PreviewContentWidget::paintEvent(QPaintEvent* e) {
 	// time scene id changes to paint event instead of our mainWindow timer
 	// because the mainWindow timer interval is actually too high for RaCo
 	// to register all scene id changes in the UI (?)
-	if (ramsesPreview_->currentState().sceneId != ramsesPreview_->nextState().sceneId) {
-		ramsesPreview_->commit();
+	if (!ramsesPreview_->errorState()) {
+		setAttribute(Qt::WA_PaintOnScreen, true);
+		setAttribute(Qt::WA_OpaquePaintEvent, true);
+		setAttribute(Qt::WA_NoSystemBackground, true);
+		if (ramsesPreview_->currentState().sceneId != ramsesPreview_->nextState().sceneId) {
+			auto status = ramsesPreview_->commit();
+			Q_EMIT newPreviewState(status);
+		}
+	} else {
+		setAttribute(Qt::WA_PaintOnScreen, false);
+		setAttribute(Qt::WA_OpaquePaintEvent, false);
+		setAttribute(Qt::WA_NoSystemBackground, false);
+		QPainter painter{this};
+		painter.drawTiledPixmap(rect(), style::Icons::instance().warning.pixmap(24));
 	}
 }
 
@@ -117,7 +131,8 @@ void PreviewContentWidget::commit(bool forceUpdate) {
 	const auto& currentState = ramsesPreview_->currentState();
 	auto& nextState = ramsesPreview_->nextState();
 	if (forceUpdate || nextState != currentState && nextState.sceneId == currentState.sceneId) {
-		ramsesPreview_->commit(forceUpdate);
+		auto status = ramsesPreview_->commit(forceUpdate);
+		Q_EMIT newPreviewState(status);
 	}
 }
 

@@ -58,8 +58,10 @@ set_target_properties(raco_pybind11 PROPERTIES
 add_library(raco::pybind11 ALIAS raco_pybind11)
 
 ## zip
+set(CMAKE_DISABLE_TESTING  ON CACHE BOOL "" FORCE)
+
 add_subdirectory(zip/)
-set_target_properties(zip uninstall test_append.out test_entry.out test_extract.out test_permissions.out test_read.out test_write.out PROPERTIES
+set_target_properties(zip uninstall PROPERTIES
     FOLDER third_party/zip
 )
 
@@ -90,19 +92,18 @@ add_library(raco::ramses-lib-client-only ALIAS ramses-shared-lib-headless)
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     find_program(LINUXDEPLOYQT linuxdeployqt)
-		if(EXISTS "${LINUXDEPLOYQT}")
-            add_custom_command(OUTPUT  ${CMAKE_BINARY_DIR}/ramses-viewer
+	if(EXISTS "${LINUXDEPLOYQT}")
+        add_custom_command(OUTPUT  ${CMAKE_BINARY_DIR}/ramses-viewer
             COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer.sh"
             COMMAND ${CMAKE_COMMAND} -D TARGET_FILE=$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer -D ROOT_DIR=${CMAKE_SOURCE_DIR} -P "${CMAKE_SOURCE_DIR}/ubuntustartscript.cmake"
             COMMAND chmod +x "$<TARGET_FILE_DIR:RaCoEditor>/ramses-viewer.sh" 
             DEPENDS ramses-viewer RaCoEditor
-            )
+        )
         
-            add_custom_target(generate_ramses_viewer_launch_script ALL
+        add_custom_target(generate_ramses_viewer_launch_script ALL
             DEPENDS ${CMAKE_BINARY_DIR}/ramses-viewer
-
-            )
-        endif()
+        )
+    endif()
 endif()
 
 if(WIN32)

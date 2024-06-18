@@ -41,13 +41,13 @@ public Q_SLOTS:
 	void setObjectFromObjectId(const QString& objectID, const QString& objectProperty);
 	void setObjects(const core::SEditorObjectSet& objects, const QString& property);
 	void highlightProperty(const QString& property);
-	void clear();
 	void setLockable(bool lockable) const;
 
 private Q_SLOTS:
 	void showRefToThis();
 
 private:
+	void clear();
 	void showScrollBar(bool isAlwaysOn);
 	void setLocked(bool locked);
 	void setObjectsImpl(const core::SEditorObjectSet& objects, bool forceExpandStateUpdate);

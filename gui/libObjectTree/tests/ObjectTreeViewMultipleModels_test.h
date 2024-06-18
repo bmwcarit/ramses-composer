@@ -22,7 +22,7 @@ protected:
         core::SEditorObject prefab_;
 	ObjectTreeViewMultipleModelsTest()
 		: ObjectTreeViewDefaultModelTest(),
-		  prefabModel_(&commandInterface(), application.dataChangeDispatcher(), nullptr, {user_types::Prefab::typeDescription.typeName}) {
+		  prefabModel_(&commandInterface(), application.dataChangeDispatcher(), nullptr) {
 	}
 
 	void SetUp() override {

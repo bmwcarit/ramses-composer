@@ -228,10 +228,14 @@ void PropertyBrowserWidget::setObjectsImpl(const core::SEditorObjectSet& objects
 }
 
 void PropertyBrowserWidget::setObjects(const core::SEditorObjectSet& objects, const QString& property) {
-	setObjectsImpl(objects, false);
+	if (objects.size() == 0) {
+		clear();
+	} else {
+		setObjectsImpl(objects, false);
 
-	if ((locked_ && currentObjects_ == objects) || !locked_) {
-		highlightProperty(property);
+		if ((locked_ && currentObjects_ == objects) || !locked_) {
+			highlightProperty(property);
+		}
 	}
 }
 

@@ -19,7 +19,7 @@
 
 namespace raco::ramses_adaptor {
 
-raco::ramses_base::RamsesNodeBinding lookupNodeBinding(const SceneAdaptor* sceneAdaptor, core::SEditorObject node) {
+ramses_base::RamsesNodeBinding lookupNodeBinding(const SceneAdaptor* sceneAdaptor, core::SEditorObject node) {
 	if (auto nodeAdaptor = sceneAdaptor->lookup<NodeAdaptor>(node)) {
 		return nodeAdaptor->nodeBinding();
 	} else if (auto nodeAdaptor = sceneAdaptor->lookup<MeshNodeAdaptor>(node)) {

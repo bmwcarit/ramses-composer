@@ -45,7 +45,6 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 	void onSelectionChanged(const core::SEditorObjectSet& objects);
-	void onSelectionCleared();
 
 private:
 	enum class HighlightMode {

@@ -21,7 +21,19 @@ struct PythonRunStatus {
 	std::string stdErrBuffer;
 };
 
+std::string getPythonVersion();
 bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring>& pythonSearchPaths, bool searchPythonFolderForTest = false);
-void setup(application::RaCoApplication* app);
-PythonRunStatus runPythonScript(application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<std::wstring>& pythonSearchPaths, const std::vector<const char*>& pos_argv_cp);
+void setApp(application::RaCoApplication* racoApp);
+bool importRaCoModule();
+bool importCompleter();
+
+bool initializeInterpreter(application::RaCoApplication* racoApp, const std::wstring& racoAppPath, const std::vector<std::wstring>& pythonSearchPaths, const std::vector<std::string>& cmdLineArgs);
+void finalizeInterpreter();
+
+PythonRunStatus runPythonScript(const std::string& pythonScript);
+PythonRunStatus runPythonScriptFromFile(const std::string& pythonScriptPath);
+
+std::vector<std::string> getCompletions(const std::string& prefix);
+bool isCompleteCommand(const std::string& command);
+
 }

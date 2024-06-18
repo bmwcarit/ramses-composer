@@ -44,6 +44,7 @@ RenderBufferAdaptor::RenderBufferAdaptor(SceneAdaptor* sceneAdaptor, std::shared
 }
 
 bool RenderBufferAdaptor::sync(core::Errors* errors) {
+	binding_.reset();
 	buffer_.reset();
 
 	auto format = static_cast<user_types::ERenderBufferFormat>(*editorObject()->format_);
@@ -104,6 +105,8 @@ bool RenderBufferAdaptor::sync(core::Errors* errors) {
 		}
 
 		reset(std::move(textureSampler));
+
+		binding_ = ramses_base::ramsesRenderBufferBinding(buffer_, &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_Binding", editorObject()->objectIDAsRamsesLogicID());
 	} else {
 		reset(nullptr);
 	}
@@ -117,14 +120,38 @@ ramses_base::RamsesRenderBuffer RenderBufferAdaptor::buffer() const {
 }
 
 std::vector<ExportInformation> RenderBufferAdaptor::getExportInformation() const {
-	if (buffer_ == nullptr) {
-		return {};
+	std::vector<ExportInformation> result;
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramsesObject().getType(), ramsesObject().getName());
 	}
+	if (buffer_) {
+		result.emplace_back(buffer_->getType(), buffer_->getName());
+	}
+	if (binding_) {
+		result.emplace_back("RenderBufferBinding", binding_->getName());
+	}
+	return result;
+}
 
-	return {
-		ExportInformation{ramsesObject().getType(), ramsesObject().getName()},
-		ExportInformation{buffer_->getType(), buffer_->getName()},
-	};
+void RenderBufferAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
+	if (binding_) {
+		logicNodes.push_back(binding_.get());
+	}
+}
+
+ramses::Property* RenderBufferAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
+	if (binding_ && propertyNamesVector.size() >= 1) {
+		return binding_->getInputs()->getChild(propertyNamesVector[0]);
+	}
+	return nullptr;
+}
+
+void RenderBufferAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {
+	core::ValueHandle const valueHandle{editorObject_};
+	if (errors.hasError(valueHandle)) {
+		return;
+	}
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
 }  // namespace raco::ramses_adaptor

@@ -20,12 +20,15 @@ class ObjectTreeViewResourceModel : public ObjectTreeViewDefaultModel {
 
 
 public:
-	ObjectTreeViewResourceModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
-
+	ObjectTreeViewResourceModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectStore);
+	
 	bool pasteObjectAtIndex(const QModelIndex& index, bool pasteAsExtref, std::string* outError, const std::string& serializedObjects = RaCoClipboard::get()) override;
 
 	std::vector<std::string> typesAllowedIntoIndex(const QModelIndex& index) const override;
 	bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const override;
+
+	std::vector<ColumnIndex> hiddenColumns() const override;
+	virtual ColumnIndex defaultSortColumn() const;
 };
 
 }  // namespace raco::object_tree::model

@@ -32,6 +32,8 @@ Traversal through the entire tree is guaranteed by the iterateThroughTree() meth
 
 #include "core/ExtrefOperations.h"
 
+#include "user_types/RenderLayer.h"
+
 #include <QAbstractItemModel>
 #include <QFileInfo>
 
@@ -52,6 +54,9 @@ public:
 		// invisible column used for tag based filtering
 		COLUMNINDEX_USERTAGS,
 		COLUMNINDEX_PROJECT,
+		COLUMNINDEX_RENDER_ORDER,
+		COLUMNINDEX_INPUT_BUFFERS,
+		COLUMNINDEX_OUTPUT_BUFFERS,
 		COLUMNINDEX_COLUMN_COUNT
 	};
 
@@ -109,11 +114,16 @@ public:
 
 	virtual bool canDeleteUnusedResources() const;
 	virtual bool canProgramaticallyGotoObject() const;
+	bool canConvertAnimationChannels(const QModelIndexList& indices) const;
+
 
 	virtual bool isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const;
 	virtual std::vector<std::string> typesAllowedIntoIndex(const QModelIndex& index) const;
 
 	virtual std::vector<std::string> creatableTypes(const QModelIndex& index) const;
+
+	virtual std::vector<ColumnIndex> hiddenColumns() const;
+	virtual ColumnIndex defaultSortColumn() const;
 
 Q_SIGNALS:
 	void repaintRequested();
@@ -131,12 +141,17 @@ public Q_SLOTS:
 	void moveScenegraphChildren(const std::vector<core::SEditorObject>& objects, core::SEditorObject parent, int row = -1);
 	void importMeshScenegraph(const QString& filePath, const QModelIndex& selectedIndex);
 	void deleteUnusedResources();
+	void convertToAnimationChannelRaco(const QModelIndexList& indices);
+
 
 	void isolateNodes(const QModelIndexList& indices);
 	void hideNodes(const QModelIndexList& indices);
 	void showAllNodes();
 
 protected:
+	void insertObject(const QModelIndex& parentIndex, core::SEditorObject object);
+
+
 	components::SDataChangeDispatcher dispatcher_;
 	std::unique_ptr<ObjectTreeNode> invisibleRootNode_;
 	QModelIndex invisibleRootIndex_;
@@ -154,7 +169,7 @@ protected:
 	components::Subscription lifeCycleSubscription_;
 	components::Subscription afterDispatchSubscription_;
 	components::Subscription extProjectChangedSubscription_;
-	
+
 	bool groupExternalReferences_;
 	bool groupByType_;
 
@@ -189,8 +204,12 @@ protected:
 		{"Prefab", style::Icons::instance().typePrefabInternal},
 		{"ExtrefPrefab", style::Icons::instance().typePrefabExternal},
 		{"PrefabInstance", style::Icons::instance().typePrefabInstance},
+		{"RenderLayer", style::Icons::instance().typeRenderLayer},
+		{"RenderTarget", style::Icons::instance().typeRenderTarget},
+		{"RenderTargetMS", style::Icons::instance().typeRenderTarget},
 		{"LuaScriptModule", style::Icons::instance().typeLuaScriptModule},
 		{"AnimationChannel", style::Icons::instance().typeAnimationChannel},
+		{"AnimationChannelRaco", style::Icons::instance().typeAnimationChannel},
 		{"Animation", style::Icons::instance().typeAnimation},
 		{"Timer", style::Icons::instance().typeTimer},
 		{"AnchorPoint", style::Icons::instance().typeAnchorPoint},

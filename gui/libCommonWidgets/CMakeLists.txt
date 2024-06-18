@@ -20,12 +20,17 @@ add_library(libCommonWidgets
     include/common_widgets/LogView.h src/LogView.cpp
     include/common_widgets/MeshAssetImportDialog.h src/MeshAssetImportDialog.cpp
     include/common_widgets/NoContentMarginsLayout.h
+    include/common_widgets/PerformanceTableView.h src/PerformanceTableView.cpp
+	include/common_widgets/PerformanceModel.h src/PerformanceModel.cpp
     include/common_widgets/PreferencesView.h src/PreferencesView.cpp
     include/common_widgets/PropertyBrowserButton.h src/PropertyBrowserButton.cpp
     include/common_widgets/QtGuiFormatter.h
     include/common_widgets/RaCoClipboard.h src/RaCoClipboard.cpp
+    include/common_widgets/PythonConsole.h src/PythonConsole.cpp
+    include/common_widgets/PythonHighlighter.h src/PythonHighlighter.cpp
+    include/common_widgets/PythonScriptEditor.h src/PythonScriptEditor.cpp
+    include/common_widgets/PythonOutputDialog.h
     include/common_widgets/RunScriptDialog.h src/RunScriptDialog.cpp
-    include/common_widgets/TimingsWidget.h
     include/common_widgets/TracePlayerWidget.h src/TracePlayerWidget.cpp
     include/common_widgets/UndoView.h src/UndoView.cpp
 )
@@ -45,10 +50,10 @@ target_link_libraries(libCommonWidgets
         Qt5::Widgets
         raco::Components
         raco::ApplicationLib
-        raco::Style
     PRIVATE
         raco::LogSystem
         raco::Style
+        raco::PythonAPI
 )
 add_library(raco::CommonWidgets ALIAS libCommonWidgets)
 

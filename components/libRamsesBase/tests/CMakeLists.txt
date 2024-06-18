@@ -9,6 +9,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 ]]
 
 # Adding the unit test with gtest using our macro from dsathe top level CMakeLists.txt file
+ set(CMAKE_AUTORCC ON)
 
 set(TEST_SOURCES
     AdaptorTestUtils.h
@@ -33,6 +34,8 @@ set(TEST_SOURCES
     PerspectiveCameraAdaptor_test.cpp
     Ramses_test.cpp
     RamsesLogic_test.cpp
+    RenderBufferAdaptor_test.cpp
+    RenderBufferMSAdaptor_test.cpp
     RenderLayerAdaptor_test.cpp
     Resources_test.cpp
     SceneContext_test.cpp
@@ -41,6 +44,7 @@ set(TEST_SOURCES
     TextureAdaptor_test.cpp
     TextureExternalAdaptor_test.cpp
     utilities_test.cpp
+	../../../styles/images.qrc
 )
 set(TEST_LIBRARIES
     raco::RamsesBase
@@ -106,4 +110,6 @@ raco_package_add_test_resources(
     meshes/SimpleSkin/SimpleSkin.gltf
     meshes/AnimatedMorphCube/AnimatedMorphCube.bin
     meshes/AnimatedMorphCube/AnimatedMorphCube.gltf
+    meshes/cube_color_attr_no_underscore_vec3.gltf
+    meshes/cube_color_attr_with_underscore_vec4.gltf
 )

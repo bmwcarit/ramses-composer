@@ -68,9 +68,17 @@ extern const char animationTypeName[];
 using Animation = Proxy<animationTypeName>;
 using SAnimation = std::shared_ptr<Animation>;
 
+extern const char animationChannelBaseTypeName[];
+using AnimationChannelBase = Proxy<animationChannelBaseTypeName>;
+using SAnimationChannelBase = std::shared_ptr<AnimationChannelBase>;
+
 extern const char animationChannelTypeName[];
-using AnimationChannel = Proxy<animationChannelTypeName>;
+using AnimationChannel = Proxy<animationChannelTypeName, AnimationChannelBase>;
 using SAnimationChannel = std::shared_ptr<AnimationChannel>;
+
+extern const char animationChannelRacoTypeName[];
+using AnimationChannelRaco = Proxy<animationChannelRacoTypeName, AnimationChannelBase>;
+using SAnimationChannelRaco = std::shared_ptr<AnimationChannelRaco>;
 
 extern const char textureSampler2DBaseTypeName[];
 using TextureSampler2DBase = Proxy<textureSampler2DBaseTypeName>;

@@ -55,7 +55,7 @@ TEST_F(TextureTest, error_present_after_load) {
 	ramses_base::HeadlessEngineBackend backend;
 
 	{
-		raco::application::RaCoApplication app{backend};
+		application::RaCoApplication app{backend};
 		auto& cmd = *app.activeRaCoProject().commandInterface();
 
 		auto texture{cmd.createObject(Texture::typeDescription.typeName, "texture")};
@@ -67,9 +67,9 @@ TEST_F(TextureTest, error_present_after_load) {
 	}
 
 	{
-		raco::application::RaCoApplicationLaunchSettings settings;
+		application::RaCoApplicationLaunchSettings settings;
 		settings.initialProject = (test_path() / "test.rca").string().c_str();
-		raco::application::RaCoApplication app{backend, settings};
+		application::RaCoApplication app{backend, settings};
 
 		auto& project = *app.activeRaCoProject().project();
 

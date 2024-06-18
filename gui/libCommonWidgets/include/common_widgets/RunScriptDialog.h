@@ -9,46 +9,61 @@
  */
 #pragma once
 
-#include "common_widgets/log_model/LogViewSortFilterProxyModel.h"
+#include "PythonHighlighter.h"
+#include "PythonScriptEditor.h"
+#include "PythonConsole.h"
 
-#include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
-#include <QLabel>
 #include <QLineEdit>
-#include <QPlainTextEdit>
 
 namespace raco::common_widgets {
+class RaCoApplication;
+
 class RunScriptDialog final : public QWidget {
 	Q_OBJECT
 public:
+	enum class ScriptSource {
+		Editor,
+		Console
+	};
+
 	static constexpr auto ENTRIES_SIZE = 3;
 
 	RunScriptDialog(std::map<QString, qint64>& scriptEntries, std::map<QString, qint64>& commandLineParamEntries, QWidget* parent = nullptr);
-
-	void addPythonOutput(const std::string& outBuffer, const std::string& errorBuffer);
-	void setScriptIsRunning(bool isRunning);
+	
+	void addOutputFromScriptEditor(const std::string& outBuffer, const std::string& errorBuffer) const;
+	void addOutputFromConsole(const std::string& outBuffer, const std::string& errorBuffer) const;
+	void setScriptIsRunning(bool isRunning) const;
 
 Q_SIGNALS:
-	void pythonScriptRunRequested(const QString& pythonFilePath, const QStringList& arguments);
+	void runScriptRequested(const QString& script, const ScriptSource source);
+
+private slots:
+	void updateButtonStates() const;
+	void runScript(const QString& script, const ScriptSource source);
+	void saveScript(const QString& filePath) const;
+	void saveScriptAs() const;
+	void clearConsole() const;
 
 private:
-	Q_SLOT void updateButtonStates();
-	Q_SLOT void runScript();
-	void updateComboBoxItems();
+	void updateComboBoxItems() const;
+	QString getPythonFileContent(const QString& filePath) const;
 
-	QGridLayout* scriptSettingsLayout_;
-	QGridLayout* layout_;
 	QComboBox* scriptPathEdit_;
-	QComboBox* argumentsEdit_;
 	QPushButton* scriptPathURIButton_;
-	QPlainTextEdit* statusTextBlock_;
-	QDialogButtonBox* buttonBox_;
+
+	PythonScriptEditor* scriptTextEdit_;
+	QDialogButtonBox* scriptButtonBox_;
+	PythonConsole* pythonConsole_;
+	QDialogButtonBox* clearConsoleButtonBox_;
+	
+	PythonHighlighter* scriptEditorHighlighter_;
+	PythonHighlighter* consoleHighlighter_;
+	
 	std::map<QString, qint64>& scriptEntries_;
-	std::map<QString, qint64>& commandLineParamEntries_;
-	LogViewModel* logModel_;
 };
 
 }  // namespace raco::common_widgets

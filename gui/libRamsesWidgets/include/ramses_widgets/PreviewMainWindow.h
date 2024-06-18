@@ -71,6 +71,7 @@ private:
 	PreviewContentWidget* previewWidget_;
 	PreviewScrollAreaWidget* scrollAreaWidget_;
 	QLabel* sceneIdLabel_;
+	QLabel* errorLabel_;
 };
 
 }  // namespace raco::ramses_widgets

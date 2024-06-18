@@ -763,7 +763,7 @@ TEST_F(UndoTest, mesh_asset_with_anims_import_multiple_undo_redo) {
 	desc.absPath = test_path().append("meshes/InterpolationTest/InterpolationTest.gltf").string();
 	desc.bakeAllSubmeshes = false;
 
-	auto [scenegraph, dummyCacheEntry] = raco::getMeshSceneGraphWithHandler(commandInterface.meshCache(), desc);
+	auto [scenegraph, dummyCacheEntry] = getMeshSceneGraphWithHandler(commandInterface.meshCache(), desc);
 
 	commandInterface.insertAssetScenegraph(scenegraph, desc.absPath, nullptr);
 
@@ -935,9 +935,6 @@ void main() {
 	ASSERT_NO_THROW((core::ValueHandle{meshnode, {"materials", "material", "uniforms", "u_color"}}.asDouble()));
 }
 
-#if (!defined(__linux__))
-// awaitPreviewDirty does not work in Linux as expected. See RAOS-692
-
 TEST_F(UndoTest, lua_resync_after_undo) {
 	TextFile luaFile = makeFile("test.lua", R"(
 function interface(IN,OUT)
@@ -966,7 +963,7 @@ end
 
 	recorder.reset();
 	utils::file::write(luaFile.path.string(), altLuaScript);
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
@@ -980,7 +977,6 @@ end
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
 }
-
 
 TEST_F(UndoTest, link_remove_break_on_undo) {
 	TextFile luaFile = makeFile("test.lua", R"(
@@ -1018,7 +1014,7 @@ end
 
 	recorder.reset();
 	utils::file::write(luaFile.path.string(), altLuaScript);
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
@@ -1072,7 +1068,7 @@ end
 
 	recorder.reset();
 	utils::file::write(luaFile.path.string(), altLuaScript);
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
@@ -1126,7 +1122,7 @@ end
 
 	recorder.reset();
 	utils::file::write(luaFile.path.string(), altLuaScript);
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, lua));
 
 	EXPECT_FALSE(luaOutputs.hasProperty("vec"));
 	EXPECT_TRUE(luaOutputs.hasProperty("renamed"));
@@ -1140,7 +1136,7 @@ end
 	checkLinks({{sprop, eprop, true}});
 
 	utils::file::write(luaFile.path.string(), origLuaScript);
-	EXPECT_TRUE(raco::awaitPreviewDirty(recorder, lua));
+	EXPECT_TRUE(awaitPreviewDirty(recorder, lua));
 
 	undoStack.undo();
 	checkLinks({});
@@ -1149,8 +1145,6 @@ end
 	checkLinks({{sprop, eprop, false}});
 	ASSERT_FALSE(static_cast<bool>(ValueHandle(sprop)));
 }
-
-#endif
 
 TEST_F(UndoTest, add_remove_property_ref) {
 	auto refTarget = create<Foo>("foo");

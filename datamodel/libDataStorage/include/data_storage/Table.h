@@ -13,6 +13,7 @@
 #include "Value.h"
 
 #include <vector>
+#include <set>
 #include <string>
 #include <memory>
 
@@ -46,6 +47,7 @@ public:
 
 
 	std::vector<std::string> propertyNames() const;
+	std::set<std::string> propertyNameSet() const;
 
 	// array and dictionary interface
 	// can add and remove array entries / named properties

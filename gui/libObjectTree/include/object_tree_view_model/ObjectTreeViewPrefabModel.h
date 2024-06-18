@@ -18,9 +18,11 @@ class ObjectTreeViewPrefabModel : public ObjectTreeViewDefaultModel {
 	Q_OBJECT
 
 public:
-	ObjectTreeViewPrefabModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore, const std::vector<std::string>& allowedCreatableUserTypes = {});
+	ObjectTreeViewPrefabModel(core::CommandInterface* commandInterface, components::SDataChangeDispatcher dispatcher, core::ExternalProjectsStoreInterface* externalProjectsStore);
 
 	QVariant data(const QModelIndex& index, int role) const override;
+
+	std::vector<ColumnIndex> hiddenColumns() const override;
 };
 
 }  // namespace raco::object_tree::model

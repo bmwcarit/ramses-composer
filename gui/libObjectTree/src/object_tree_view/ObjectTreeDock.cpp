@@ -65,7 +65,7 @@ ObjectTreeDock::ObjectTreeDock(const char *dockTitle, QWidget *parent)
 }
 
 ObjectTreeDock::~ObjectTreeDock() {
-	Q_EMIT dockClosed(this);
+	Q_EMIT dockClosed();
 }
 
 void ObjectTreeDock::setTreeView(ObjectTreeView *treeView) {
@@ -74,15 +74,7 @@ void ObjectTreeDock::setTreeView(ObjectTreeView *treeView) {
 	filterLineEdit_->setVisible(treeView->hasProxyModel());
 	filterByComboBox_->setVisible(treeView->hasProxyModel());
 
-	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, [this](const auto &objects, const auto &property) {
-		Q_EMIT newObjectTreeItemsSelected(objects, this, property);
-	});
-	connect(treeView, &ObjectTreeView::externalObjectSelected, [this]() {
-		Q_EMIT externalObjectSelected(this);
-	});
-	connect(treeView, &ObjectTreeView::dockSelectionFocusRequested, [this]() {
-		Q_EMIT dockSelectionFocusRequested(this);
-	});
+	connect(treeView, &ObjectTreeView::newObjectTreeItemsSelected, this, &ObjectTreeDock::newObjectTreeItemsSelected);
 
 	treeViewStack_->removeWidget(treeViewStack_->currentWidget());
 	treeViewStack_->addWidget(treeView);

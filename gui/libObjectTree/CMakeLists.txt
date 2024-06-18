@@ -21,7 +21,9 @@ add_library(libObjectTree
     include/object_tree_view_model/ObjectTreeViewDefaultModel.h src/object_tree_view_model/ObjectTreeViewDefaultModel.cpp
     include/object_tree_view_model/ObjectTreeViewExternalProjectModel.h src/object_tree_view_model/ObjectTreeViewExternalProjectModel.cpp
     include/object_tree_view_model/ObjectTreeViewPrefabModel.h src/object_tree_view_model/ObjectTreeViewPrefabModel.cpp
+    include/object_tree_view_model/ObjectTreeViewRenderViewModel.h src/object_tree_view_model/ObjectTreeViewRenderViewModel.cpp
     include/object_tree_view_model/ObjectTreeViewResourceModel.h
+    include/object_tree_view_model/ObjectTreeViewSceneGraphModel.h src/object_tree_view_model/ObjectTreeViewSceneGraphModel.cpp
     include/object_tree_view_model/ObjectTreeViewSortProxyModels.h src/object_tree_view_model/ObjectTreeViewSortProxyModels.cpp
     src/object_tree_view_model/ObjectTreeViewResourceModel.cpp
 	include/object_creator/ObjectCreator.h src/object_creator/ObjectCreator.cpp

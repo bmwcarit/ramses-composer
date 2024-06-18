@@ -254,6 +254,15 @@ Member functions:
 > setRenderableTags(renderableTags)
 >> Set the `renderableTags` property of `RenderLayer` object from a list of (tag, priority) tuples.
 
+> getAnimationTimeStamps()
+>> Return the time stamps of the animation curve of an `AnimationChannelRaco` object as a list of numbers.
+
+> getAnimationOutputData()
+>> Return the output data of the animation curve of an `AnimationChannelRaco` object as a list `[keyFrames, tangentsIn, tangentsOut]` where `keyFrames`, `tangentsIn`, and `tangentsOut` are themselves lists containing the individual values. The individual values are numbers if the component type is either `Int` or `Float` and a list if the component type is a vector or an array type. Both `tangentsIn` and `tangentsOut` will be empty lists if the `interpolationType` property is not either `CubicSpline` or `CubicSpline_Quaternion`.
+
+> setAnimationData(timeStamps, keyFrames[, tangentsIn, tangentsOut])
+>> Set the animation data of an `AnimationChannelRaco` object. The data must match the component and interpolation types set in the `componentType` and `interpolationType` properties of the object. The expected format of the data matches the data returned by the `getAnimationTimeStamps` and `getAnimationOuputData` functions, i.e. the `timeStamps` must be a list of floats while the `keyFrames`, `tangentsIn`, and `tangentsOut` parameters must be either lists of numbers for scalar component types or lists of lists of numbers for vector/array component types. The `tangentsIn` and `tangentsOut` parameters are optional and need to be specified only for `CubicSpline` or `CubicSpline_Quaternion` interpolation types.
+
 
 ### Properties
 

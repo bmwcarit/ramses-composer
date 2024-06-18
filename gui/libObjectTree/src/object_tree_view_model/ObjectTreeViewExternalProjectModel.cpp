@@ -146,7 +146,7 @@ void ObjectTreeViewExternalProjectModel::setNodeExternalProjectInfo(ObjectTreeNo
 			}
 		}
 	}
-	node->setBelongsToExternalProject(projectPath, projectName);
+	node->setExternalProjectInfo(projectPath, projectName);
 }
 
 void ObjectTreeViewExternalProjectModel::buildObjectTree() {
@@ -156,7 +156,7 @@ void ObjectTreeViewExternalProjectModel::buildObjectTree() {
 	for (const auto& [projectPath, commandInterface] : externalProjectStore_->allExternalProjects()) {
 		auto projectRootNode = new ObjectTreeNode(ObjectTreeNodeType::ExternalProject, invisibleRootNode_.get());
 		std::string projectName = commandInterface ? commandInterface->project()->projectName() : std::string();
-		projectRootNode->setBelongsToExternalProject(projectPath, projectName);
+		projectRootNode->setExternalProjectInfo(projectPath, projectName);
 		if (commandInterface) {
 			auto filteredExternalProjectObjects = filterForTopLevelObjects(commandInterface->project()->instances());
 			constructTreeUnderNode(projectRootNode, filteredExternalProjectObjects, groupExternalReferences_, false);
@@ -231,6 +231,10 @@ bool ObjectTreeViewExternalProjectModel::canProgramaticallyGotoObject() const {
 
 bool ObjectTreeViewExternalProjectModel::canPasteIntoIndex(const QModelIndex& index, const std::vector<core::SEditorObject>& objects, const std::set<std::string>& sourceProjectTopLevelObjectIds, bool asExtRef) const {
 	return false;
+}
+
+std::vector<ObjectTreeViewDefaultModel::ColumnIndex> ObjectTreeViewExternalProjectModel::hiddenColumns() const {
+	return {COLUMNINDEX_PREVIEW_VISIBILITY, COLUMNINDEX_ABSTRACT_VIEW_VISIBILITY, COLUMNINDEX_RENDER_ORDER, COLUMNINDEX_INPUT_BUFFERS, COLUMNINDEX_OUTPUT_BUFFERS};
 }
 
 bool ObjectTreeViewExternalProjectModel::isObjectAllowedIntoIndex(const QModelIndex& index, const core::SEditorObject& obj) const {

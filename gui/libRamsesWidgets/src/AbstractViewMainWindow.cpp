@@ -150,11 +150,6 @@ void AbstractViewMainWindow::onSelectionChanged(const core::SEditorObjectSet& ob
 	abstractScene_->attachGizmo(treeDockManager_->getSelection());
 }
 
-void AbstractViewMainWindow::onSelectionCleared() {
-	updateHighlighted();
-	abstractScene_->attachGizmo({});
-}
-
 void AbstractViewMainWindow::updateHighlighted() {
 	switch (highlightMode_) {
 		case HighlightMode::None:

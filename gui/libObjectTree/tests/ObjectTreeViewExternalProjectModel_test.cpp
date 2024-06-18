@@ -30,7 +30,7 @@ public:
 		buildObjectTree();
 	}
 
-	ExposedObjectTreeViewExternalProjectModel(raco::application::RaCoApplication &app)
+	ExposedObjectTreeViewExternalProjectModel(application::RaCoApplication &app)
 		: ObjectTreeViewExternalProjectModel(app.activeRaCoProject().commandInterface(), app.dataChangeDispatcher(), app.externalProjects()) {}
 
 	model::ObjectTreeNode *getInvisibleRootNode() {
@@ -47,11 +47,11 @@ class ObjectTreeViewExternalProjectModelTest : public ObjectTreeViewDefaultModel
 protected:
 
 	ramses_base::HeadlessEngineBackend otherBackend;
-	raco::application::RaCoApplication otherApplication{otherBackend};
+	application::RaCoApplication otherApplication{otherBackend};
 	ExposedObjectTreeViewExternalProjectModel externalProjectModel{application};
 
 	void generateExternalProject(const std::vector<core::SEditorObject> &instances, std::string projectPath = "projectPath.rca") {
-		application.externalProjectsStore_.externalProjects_[projectPath] = raco::application::RaCoProject::createNew(&otherApplication, true, static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel));
+		application.externalProjectsStore_.externalProjects_[projectPath] = application::RaCoProject::createNew(&otherApplication, true, static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel));
 
 		auto project = application.externalProjectsStore_.externalProjects_[projectPath]->project();
 		for (const auto &instance : instances) {

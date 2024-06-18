@@ -96,4 +96,12 @@ std::map<user_types::ERenderBufferFormat, ramses::ERenderBufferFormat> enumerati
 	{user_types::ERenderBufferFormat::Depth16, ramses::ERenderBufferFormat::Depth16},
 	{user_types::ERenderBufferFormat::Depth32, ramses::ERenderBufferFormat::Depth32}};
 
+std::map<core::MeshAnimationInterpolation, ramses::EInterpolationType> enumerationTranslationAnimationInterpolationType = {
+	{core::MeshAnimationInterpolation::Linear, ramses::EInterpolationType::Linear},
+	{core::MeshAnimationInterpolation::CubicSpline, ramses::EInterpolationType::Cubic},
+	{core::MeshAnimationInterpolation::Step, ramses::EInterpolationType::Step},
+	{core::MeshAnimationInterpolation::Linear_Quaternion, ramses::EInterpolationType::Linear_Quaternions},
+	{core::MeshAnimationInterpolation::CubicSpline_Quaternion, ramses::EInterpolationType::Cubic_Quaternions}};
+
+
 }  // namespace raco::ramses_base

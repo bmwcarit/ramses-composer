@@ -23,7 +23,7 @@ namespace {
 
 using namespace raco::ramses_widgets;
 
-void setAndWaitSceneState(
+[[nodiscard]] bool setAndWaitSceneState(
 	RendererBackend& backend,
 	const ramses::RendererSceneState state,
 	const std::unique_ptr<PreviewFramebufferScene>& framebufferScene,
@@ -47,19 +47,21 @@ void setAndWaitSceneState(
 	}
 
 	sceneControlAPI.flush();
-
+	
+	auto status = true;
 	if (fb_success) {
-		backend.eventHandler().waitForSceneState(framebufferScene->getSceneId(), state);
+		status = backend.eventHandler().waitForSceneState(framebufferScene->getSceneId(), state) || status;
 	}
 	if (scene_success) {
-		backend.eventHandler().waitForSceneState(sceneId, state);
+		status = backend.eventHandler().waitForSceneState(sceneId, state) || status;
 	}
+	return status;
 }
 
 /**
  * Sets and await's current scene state for frambuffer and conditionally for scene. The scene state is only set if the current scene state is greater than the request scene state.
  */
-void reduceAndWaitSceneState(
+[[nodiscard]] bool reduceAndWaitSceneState(
 	RendererBackend& backend,
 	const ramses::RendererSceneState state,
 	const std::unique_ptr<PreviewFramebufferScene>& framebufferScene,
@@ -89,12 +91,15 @@ void reduceAndWaitSceneState(
 	// leads to the scene state comparison above being true which triggers a setSceneState which then has no effect since the 
 	// real state is already lower than the set state which leads to no callback being invoked which leads to waiting forever
 	// of using an exact scene state comparison.
+	bool status = true;
 	if (fb_success) {
-		backend.eventHandler().waitForSceneState(framebufferScene->getSceneId(), state, SceneStateEventHandler::ECompareFunc::LessEqual);
+		status = backend.eventHandler().waitForSceneState(framebufferScene->getSceneId(), state, SceneStateEventHandler::ECompareFunc::LessEqual) || status;
+
 	}
 	if (scene_success) {
-		backend.eventHandler().waitForSceneState(sceneId, state, SceneStateEventHandler::ECompareFunc::LessEqual);
+		status = backend.eventHandler().waitForSceneState(sceneId, state, SceneStateEventHandler::ECompareFunc::LessEqual) || status;
 	}
+	return status;
 }
 
 }  // namespace
@@ -108,16 +113,16 @@ RamsesPreviewWindow::RamsesPreviewWindow(
 }
 
 RamsesPreviewWindow::~RamsesPreviewWindow() {
-	reduceAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, framebufferScene_, current_.sceneId);
+	auto status = reduceAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, framebufferScene_, current_.sceneId);
 	if (offscreenBufferId_.isValid()) {
 		rendererBackend_.renderer().destroyOffscreenBuffer(displayId_, offscreenBufferId_);
 		rendererBackend_.renderer().flush();
-		rendererBackend_.eventHandler().waitForOffscreenBufferDestruction(offscreenBufferId_);
+		auto status = rendererBackend_.eventHandler().waitForOffscreenBufferDestruction(offscreenBufferId_);
 	}
 	if (displayId_.isValid()) {
 		rendererBackend_.renderer().destroyDisplay(displayId_);
 		rendererBackend_.renderer().flush();
-		rendererBackend_.eventHandler().waitForDisplayDestruction(displayId_);
+		auto status = rendererBackend_.eventHandler().waitForDisplayDestruction(displayId_);
 	}
 }
 
@@ -142,22 +147,27 @@ RamsesPreviewWindow::State& RamsesPreviewWindow::nextState() {
 	return next_;
 }
 
-void RamsesPreviewWindow::commit(bool forceUpdate) {
-	if (forceUpdate || !displayId_.isValid() || next_.viewportSize != current_.viewportSize || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.sampleRate != current_.sampleRate || next_.filteringMode != current_.filteringMode) {
+bool RamsesPreviewWindow::errorState() {
+	return errorState_;
+}
+
+bool RamsesPreviewWindow::commit(bool forceUpdate) {
+	if (errorState_ && !forceUpdate) {
+		return false;
+	}
+
+	if (forceUpdate || !displayId_.isValid() || next_.sceneId != current_.sceneId || next_.targetSize != current_.targetSize || next_.sampleRate != current_.sampleRate || next_.filteringMode != current_.filteringMode) {
 		// Unload current scenes
-		reduceAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, framebufferScene_, current_.sceneId);
+		if (!reduceAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Available, framebufferScene_, current_.sceneId)) {
+			errorState_ = true;
+			return false;
+		}
 
 		if (next_.viewportSize.width() > 0 && next_.viewportSize.height() > 0 || next_.sampleRate != current_.sampleRate || next_.filteringMode != current_.filteringMode) {
 			auto& sceneControlAPI = *rendererBackend_.renderer().getSceneControlAPI();
 
 			if (!displayId_.isValid()) {
 				ramses::DisplayConfig displayConfig = {};
-				/// @todo maybe this setWindowRectangle is not needed?
-				constexpr auto displayX = 100;
-				constexpr auto displayY = 100;
-				displayConfig.setWindowRectangle(displayX, displayY, next_.viewportSize.width(), next_.viewportSize.height());
-				glm::vec4 clearColor{0.25, 0.25, 0.25, 1.0};
-				displayConfig.setClearColor(clearColor);
 				displayConfig.setWindowIviVisible();
 				if constexpr (!BuildOptions::nativeRamsesDisplayWindow) {
 #if (defined(__WIN32) || defined(_WIN32))
@@ -167,9 +177,21 @@ void RamsesPreviewWindow::commit(bool forceUpdate) {
 #endif
 				}
 				displayId_ = rendererBackend_.renderer().createDisplay(displayConfig);
+				if (displayId_ == ramses::displayId_t::Invalid()) {
+					LOG_ERROR(log_system::PREVIEW_WIDGET, "Ramses display creation failed.");
+					errorState_ = true;
+					return false;
+				}
 				rendererBackend_.renderer().flush();
-				rendererBackend_.eventHandler().waitForDisplayCreation(displayId_);
-				sceneControlAPI.setSceneMapping(framebufferScene_->getSceneId(), displayId_);
+				if (!rendererBackend_.eventHandler().waitForDisplayCreation(displayId_)) {
+					errorState_ = true;
+					return false;
+				}
+				if (!sceneControlAPI.setSceneMapping(framebufferScene_->getSceneId(), displayId_)) {
+					LOG_ERROR(log_system::PREVIEW_WIDGET, "Framebuffer scene setSceneMapping failed with '{}'.", rendererBackend_.framework().getLastError().value().message);
+					errorState_ = true;
+					return false;
+				}
 			}
 			current_.viewportSize = next_.viewportSize;
 			current_.sampleRate = next_.sampleRate;
@@ -177,9 +199,16 @@ void RamsesPreviewWindow::commit(bool forceUpdate) {
 
 			if (next_.sceneId.isValid()) {
 				/// @todo maybe we need to reset old scene mapping?
-				sceneControlAPI.setSceneMapping(next_.sceneId, displayId_);
+				if (!sceneControlAPI.setSceneMapping(next_.sceneId, displayId_)) {
+					LOG_ERROR(log_system::PREVIEW_WIDGET, "User scene setSceneMapping failed with '{}'.", rendererBackend_.framework().getLastError().value().message);
+					errorState_ = true;
+					return false;
+				}
 			}
-			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Ready, framebufferScene_, next_.sceneId);
+			if (!setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Ready, framebufferScene_, next_.sceneId)) {
+				errorState_ = true;
+				return false;
+			}
 
 			// Set up the render buffer we use as a default framebuffer.
 			// This is not a normal Ramses render target / render buffer created with Scene::createRenderBuffer / Scene::createRenderTarget
@@ -187,23 +216,51 @@ void RamsesPreviewWindow::commit(bool forceUpdate) {
 			// offscreen render buffer in the scene we eventually export (and in fact for Ramses this offscreen render buffer is
 			// the framebuffer - that we use it later on to blit it into our preview makes for the Ramses scene no difference).
 			const ramses::dataConsumerId_t dataConsumerId = framebufferScene_->setupFramebufferTexture(rendererBackend_, next_.targetSize, next_.filteringMode, next_.sampleRate);
+			if (dataConsumerId == ramses::dataConsumerId_t::Invalid()) {
+				LOG_ERROR(log_system::PREVIEW_WIDGET, "Creating framebuffer texture failed.");
+				errorState_ = true;
+				return false;
+			}
+
 			offscreenBufferId_ = rendererBackend_.renderer().createOffscreenBuffer(displayId_, next_.targetSize.width(), next_.targetSize.height(), next_.sampleRate);
+			if (offscreenBufferId_ == ramses::displayBufferId_t::Invalid()) {
+				LOG_ERROR(log_system::PREVIEW_WIDGET, "Creating offscreen buffer failed.");
+				errorState_ = true;
+				return false;
+			}
 			rendererBackend_.renderer().setDisplayBufferClearColor(displayId_, offscreenBufferId_, {next_.backgroundColor.redF(), next_.backgroundColor.greenF(), next_.backgroundColor.blueF(), next_.backgroundColor.alphaF()});
 			rendererBackend_.renderer().flush();
-			rendererBackend_.eventHandler().waitForOffscreenBufferCreation(offscreenBufferId_);
+			if (!rendererBackend_.eventHandler().waitForOffscreenBufferCreation(offscreenBufferId_)) {
+				errorState_ = true;
+				return false;
+			}
 			current_.targetSize = next_.targetSize;
 			current_.backgroundColor = next_.backgroundColor;
 
 			if (next_.sceneId.isValid()) {
-				sceneControlAPI.setSceneDisplayBufferAssignment(next_.sceneId, offscreenBufferId_);
+				if (!sceneControlAPI.setSceneDisplayBufferAssignment(next_.sceneId, offscreenBufferId_)) {
+					LOG_ERROR(log_system::PREVIEW_WIDGET, "setSceneDisplayBufferAssignment failed with '{}'.", rendererBackend_.framework().getLastError().value().message);
+					errorState_ = true;
+					return false;
+				}
 			}
 			sceneControlAPI.flush();
 
-			sceneControlAPI.linkOffscreenBuffer(offscreenBufferId_, framebufferScene_->getSceneId(), dataConsumerId);
+			if (!sceneControlAPI.linkOffscreenBuffer(offscreenBufferId_, framebufferScene_->getSceneId(), dataConsumerId)) {
+				LOG_ERROR(log_system::PREVIEW_WIDGET, "linkOffscreenBuffer failed with '{}'.", rendererBackend_.framework().getLastError().value().message);
+				errorState_ = true;
+				return false;
+			}
 			sceneControlAPI.flush();
-			rendererBackend_.eventHandler().waitForOffscreenBufferLinked(offscreenBufferId_);
+			if (!rendererBackend_.eventHandler().waitForOffscreenBufferLinked(offscreenBufferId_)) {
+				errorState_ = true;
+				return false;
+			}
 
-			setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Rendered, framebufferScene_, next_.sceneId);
+			if (!setAndWaitSceneState(rendererBackend_, ramses::RendererSceneState::Rendered, framebufferScene_, next_.sceneId)) {
+				errorState_ = true;
+				return false;
+			}
 			current_.sceneId = next_.sceneId;
 			LOG_DEBUG(PREVIEW_WIDGET, "commit() sceneId {}", current_.sceneId);
 		}
@@ -215,12 +272,16 @@ void RamsesPreviewWindow::commit(bool forceUpdate) {
 		current_.backgroundColor = next_.backgroundColor;
 	}
 
+	current_.viewportSize = next_.viewportSize;
 	current_.viewportOffset = next_.viewportOffset;
 	current_.virtualSize = next_.virtualSize;
 
 	if (current_.viewportSize.width() > 0 && current_.viewportSize.height() > 0) {
 		framebufferScene_->setViewport(current_.viewportOffset, current_.viewportSize, current_.virtualSize);
 	}
+
+	errorState_ = false;
+	return true;
 }
 
 }  // namespace raco::ramses_widgets

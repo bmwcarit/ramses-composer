@@ -85,7 +85,8 @@ public:
 													featureLevel_(other.featureLevel_),
 													viewport_(other.viewport_),
 													backgroundColor_(other.backgroundColor_),
-													saveAsZip_(other.saveAsZip_) {
+													saveAsZip_(other.saveAsZip_),
+													pythonOnSaveScript_(other.pythonOnSaveScript_) {
 		fillPropertyDescription();
 	}
 
@@ -103,6 +104,7 @@ public:
 		properties_.emplace_back("backgroundColor", &backgroundColor_);
 		properties_.emplace_back("defaultResourceFolders", &defaultResourceDirectories_);
 		properties_.emplace_back("saveAsZip", &saveAsZip_);
+		properties_.emplace_back("pythonOnSaveScript", &pythonOnSaveScript_);
 	}
 
 	Property<int, DisplayNameAnnotation, RangeAnnotation<int>> sceneId_{123u, DisplayNameAnnotation("Scene Id"), {1, 1024}};
@@ -111,11 +113,13 @@ public:
 	// See ramses_base::BaseEngineBackend for definitions of min/max feature levels
 	Property<int, DisplayNameAnnotation, ReadOnlyAnnotation> featureLevel_{1, {"Feature Level"}, {}};
 
-	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 4096}, {"Display Size"}};
+	// Viewport size constrained by texture size with RGBA format needing to fit into uint32_t
+	Property<Vec2i, DisplayNameAnnotation> viewport_{{{1440, 720}, 0, 8192}, {"Display Size"}};
 	Property<Vec4f, DisplayNameAnnotation> backgroundColor_{{}, {"Display Background Color"}};
 	Property<bool, DisplayNameAnnotation> saveAsZip_{false, {"Save As Zipped File"}};
 
 	Property<DefaultResourceDirectories, DisplayNameAnnotation> defaultResourceDirectories_{{}, {"Default Resource Folders"}};
+	Property<std::string, DisplayNameAnnotation, URIAnnotation> pythonOnSaveScript_{std::string{}, DisplayNameAnnotation("Python on Save Script"), {"Python script(*.py);; All files (*.*)", PathManager::FolderTypeKeys::Script}};
 };
 
 }  // namespace raco::core

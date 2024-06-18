@@ -10,7 +10,6 @@
 #pragma once
 
 #include "RaCoDockManager.h"
-#include "common_widgets/TimingsWidget.h"
 #include "common_widgets/log_model/LogViewModel.h"
 #include "object_tree_view/ObjectTreeDockManager.h"
 #include "object_tree_view_model/ObjectTreeViewDefaultModel.h"
@@ -49,6 +48,8 @@ public:
 		static inline const char* ABSTRACT_SCENE_VIEW{"Abstract Scene View"};
 		static inline const char* RESOURCES{"Resources"};
 		static inline const char* SCENE_GRAPH{"Scene Graph"};
+		static inline const char* RENDER_VIEW{"Render View"};
+		static inline const char* PERFORMANCE_TABLE{"Performance Table"};
 		static inline const char* UNDO_STACK{"Undo Stack"};
 		static inline const char* ERROR_VIEW{"Error View"};
 		static inline const char* LOG_VIEW{"Log View"};
@@ -59,15 +60,12 @@ public:
 	explicit MainWindow(
 		raco::application::RaCoApplication* racoApplication,
 		raco::ramses_widgets::RendererBackend* rendererBackend,
-		const std::vector<std::wstring>& pythonSearchPaths,
 		QWidget* parent = nullptr);
 	~MainWindow();
 
 	void updateApplicationTitle();
 	void updateSavedLayoutMenu();
 	void updateUpgradeMenu();
-
-	const std::vector<std::wstring>& pythonSearchPaths() const;
 
 public Q_SLOTS:
 	void showMeshImportErrorMessage(const std::string& filePath, const std::string& meshError);
@@ -115,10 +113,12 @@ private:
 	ads::CDockAreaWidget* createAndAddAbstractSceneView(const char* dockObjName);
 	ads::CDockAreaWidget* createAndAddPropertyBrowser(const char* dockObjName);
 	ads::CDockAreaWidget* createAndAddSceneGraphTree(const char* dockObjName);
+	ads::CDockAreaWidget* createAndAddPerformanceTable(const char* dockObjName, ads::CDockAreaWidget* dockArea);
 	void createAndAddProjectSettings(const char* dockObjName);
 
 	ads::CDockAreaWidget* createAndAddPrefabTree(const char* dockObjName, ads::CDockAreaWidget* dockArea);
 	ads::CDockAreaWidget* createAndAddResourceTree(const char* dockObjName, ads::CDockAreaWidget* dockArea);
+	ads::CDockAreaWidget* createAndAddRenderView(const char* dockObjName, ads::CDockAreaWidget* dockArea);
 	ads::CDockAreaWidget* createAndAddUndoView(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
 	ads::CDockAreaWidget* createAndAddErrorView(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
 	ads::CDockAreaWidget* createAndAddLogView(const char* dockObjName, ads::CDockAreaWidget* dockArea = nullptr);
@@ -128,17 +128,17 @@ private:
 	ads::CDockAreaWidget* createAndAddObjectTree(const char* title, const char* dockObjName, raco::object_tree::model::ObjectTreeViewDefaultModel* dockModel, raco::object_tree::model::ObjectTreeViewDefaultSortFilterProxyModel* sortFilterModel, ads::DockWidgetArea area, ads::CDockAreaWidget* dockArea);
 
 	void createInitialWidgets();
+	void runPythonOnSaveScript(const std::string& scriptPath, const std::string& title);
+	void runPythonOnSaveScripts();
 
 	Ui::MainWindow* ui;
 	OpenRecentMenu* recentFileMenu_;
 	RaCoDockManager* dockManager_;
 	QListWidget* sceneObjectList_;
-	const std::vector<std::wstring> pythonSearchPaths_;
 
 	raco::ramses_widgets::RendererBackend* rendererBackend_;
 	raco::application::RaCoApplication* racoApplication_;
 	raco::object_tree::view::ObjectTreeDockManager treeDockManager_;
-	raco::common_widgets::TimingsModel timingsModel_{this};
 	QMetaObject::Connection activeProjectFileConnection_;
 	QMetaObject::Connection projectSavedConnection_;
 	raco::common_widgets::LogViewModel* logViewModel_;

@@ -39,6 +39,8 @@ private:
 	void* windowHandle_;
 	RendererBackend& rendererBackend_;
 
+	bool errorState_ = false;
+
 	ramses::displayId_t displayId_;
 
 	State current_{};

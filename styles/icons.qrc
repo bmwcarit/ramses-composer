@@ -44,6 +44,8 @@
         <file alias="typeLuaScriptModuleIcon">_Default/icons/typeLuaScriptModule.svg</file>
         <file alias="typeLuaInterfaceIcon">_Default/icons/typeLuaInterface.svg</file>
         <file alias="typeTimerIcon">_Default/icons/typeTimer.svg</file>
+        <file alias="typeRenderLayerIcon">_Default/icons/typeRenderLayer.svg</file>
+        <file alias="typeRenderTargetIcon">_Default/icons/typeRenderTarget.svg</file>
         <file alias="browseIcon">_Default/icons/browse.svg</file>
         <file alias="refreshIcon">_Default/icons/refresh.svg</file>
         <file alias="refreshNeededIcon">_Default/icons/refreshNeeded.svg</file>
@@ -52,6 +54,7 @@
         <file alias="playActiveIcon">_Default/icons/playerPlayActive.svg</file>
         <file alias="pauseInactiveIcon">_Default/icons/playerPauseInactive.svg</file>
         <file alias="pauseActiveIcon">_Default/icons/playerPauseActive.svg</file>
+	    <file alias="stopIcon">_Default/icons/stop.svg</file>
         <file alias="stopInactiveIcon">_Default/icons/playerStopInctive.svg</file>
         <file alias="stopActiveIcon">_Default/icons/playerStopActive.svg</file>
         <file alias="skipNextIcon">_Default/icons/playerSkipNext.svg</file>
@@ -68,5 +71,9 @@
         <file alias="visibilityDisabledIcon">_Default/icons/visibility_disabled_white_24dp.svg</file>
         <file alias="abstractSceneViewIcon">_Default/icons/abstract_scene_view.svg</file>
         <file alias="prefabLookupIcon">_Default/icons/prefabLookup.svg</file>
+        <file alias="labelIcon">_Default/icons/label_white_24dp.svg</file>
+	    <file alias="recordInactiveIcon">_Default/icons/recordInactive.svg</file>
+	    <file alias="recordActiveIcon">_Default/icons/recordActive.svg</file>
+	    <file alias="stopIcon">_Default/icons/stop.svg</file>
     </qresource>
 </RCC>

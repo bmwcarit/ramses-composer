@@ -18,6 +18,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include <raco_pybind11_embed.h>
+#include <pybind11/pybind11.h>
 
 #include "python_api/PythonAPI.h"
 
@@ -30,6 +31,7 @@
 #include "core/ExternalReferenceAnnotation.h"
 #include "core/PrefabOperations.h"
 
+#include "user_types/AnimationChannelRaco.h"
 #include "user_types/Enumerations.h"
 #include "user_types/Mesh.h"
 #include "user_types/Prefab.h"
@@ -38,19 +40,20 @@
 
 #include <spdlog/fmt/fmt.h>
 
-#include <stdlib.h>
-
 namespace py = pybind11;
 
 namespace {
 
 using namespace raco;
 
-raco::application::RaCoApplication* app;
-raco::python_api::PythonRunStatus currentRunStatus;
+application::RaCoApplication* app{nullptr};
+std::wstring appPath{};
+std::vector<std::wstring> pythonSearchPaths{};
+python_api::PythonRunStatus currentRunStatus{};
+
 
 py::object python_get_scalar_value(core::ValueHandle handle) {
-	using namespace raco::user_types;
+	using namespace user_types;
 
 	switch (handle.type()) {
 		case data_storage::PrimitiveType::Bool:
@@ -98,6 +101,12 @@ py::object python_get_scalar_value(core::ValueHandle handle) {
 
 					case core::EUserTypeEnumerations::StencilOperation:
 						return py::cast(static_cast<EStencilOperation>(handle.asInt()));
+
+					case core::EUserTypeEnumerations::AnimationComponentType:
+						return py::cast(static_cast<EnginePrimitive>(handle.asInt()));
+
+					case core::EUserTypeEnumerations::AnimationInterpolationType:
+						return py::cast(static_cast<MeshAnimationInterpolation>(handle.asInt()));
 
 					default:
 						assert(false);
@@ -239,6 +248,50 @@ void python_set_value(const core::PropertyDescriptor& desc, py::object value) {
 		throw std::runtime_error(fmt::format("Set property '{}': can't set complex properties directly.", handle.getPropertyPath()));
 	}
 }
+
+template <typename ElementType, int N>
+std::vector<std::vector<ElementType>> glmToVector(const std::vector<glm::vec<N, ElementType, glm::defaultp>>& data) {
+	std::vector<std::vector<ElementType>> result;
+	for (size_t index = 0; index < data.size(); index++) {
+		std::vector<ElementType> v;
+		for (size_t component = 0; component < N; component++) {
+			v.push_back(data[index][component]);
+		}
+		result.push_back(v);
+	}
+	return result;
+}
+
+bool isIntegerComponentType(core::EnginePrimitive primitiveType) {
+	std::set<core::EnginePrimitive> intPrimTypes{
+		core::EnginePrimitive::Int32,
+		core::EnginePrimitive::Vec2i,
+		core::EnginePrimitive::Vec3i,
+		core::EnginePrimitive::Vec4i};
+
+	return intPrimTypes.find(primitiveType) != intPrimTypes.end();
+}
+
+std::vector<float> toFloat(std::vector<int> in) {
+	std::vector<float> out;
+	for (auto v : in) {
+		out.emplace_back(v);
+	}
+	return out;
+}
+
+std::vector<std::vector<float>> toFloat(std::vector<std::vector<int>> in) {
+	std::vector<std::vector<float>> out;
+	for (size_t index = 0; index < in.size(); index++) {
+		std::vector<float> v;
+		for (auto value : in[index]) {
+			v.emplace_back(value);
+		}
+		out.emplace_back(v);
+	}
+	return out;
+}
+
 
 void python_load_project(std::string& path, int featureLevel) {
 	if (app->isRunningInUI()) {
@@ -421,9 +474,8 @@ PYBIND11_EMBEDDED_MODULE(raco_py_io, m) {
 	});
 }
 
-
 PYBIND11_EMBEDDED_MODULE(raco, m) {
-	using namespace raco::user_types;
+	using namespace user_types;
 
 	py::enum_<ECullMode>(m, "ECullMode")
 		.value("Disabled", ECullMode::Disabled)
@@ -557,11 +609,28 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		.value("WARNING", ErrorLevel::WARNING)
 		.value("ERROR", ErrorLevel::ERROR);
 
-	py::enum_<raco::application::ELuaSavingMode>(m, "ELuaSavingMode")
-		.value("SourceCodeOnly", raco::application::ELuaSavingMode::SourceCodeOnly)
-		.value("ByteCodeOnly", raco::application::ELuaSavingMode::ByteCodeOnly)
-		.value("SourceAndByteCode", raco::application::ELuaSavingMode::SourceAndByteCode);
+	py::enum_<application::ELuaSavingMode>(m, "ELuaSavingMode")
+		.value("SourceCodeOnly", application::ELuaSavingMode::SourceCodeOnly)
+		.value("ByteCodeOnly", application::ELuaSavingMode::ByteCodeOnly)
+		.value("SourceAndByteCode", application::ELuaSavingMode::SourceAndByteCode);
 
+	py::enum_<MeshAnimationInterpolation>(m, "EAnimationInterpolationType")
+		.value("Step", MeshAnimationInterpolation::Step)
+		.value("Linear", MeshAnimationInterpolation::Linear)
+		.value("CubicSpline", MeshAnimationInterpolation::CubicSpline)
+		.value("Linear_Quaternion", MeshAnimationInterpolation::Linear_Quaternion)
+		.value("CubicSpline_Quaternion", MeshAnimationInterpolation::CubicSpline_Quaternion);
+
+	py::enum_<EnginePrimitive>(m, "EAnimationComponentType")
+		.value("Float", EnginePrimitive::Double)
+		.value("Vec2f", EnginePrimitive::Vec2f)
+		.value("Vec3f", EnginePrimitive::Vec3f)
+		.value("Vec4f", EnginePrimitive::Vec4f)
+		.value("Int", EnginePrimitive::Int32)
+		.value("Vec2i", EnginePrimitive::Vec2i)
+		.value("Vec3i", EnginePrimitive::Vec3i)
+		.value("Vec4i", EnginePrimitive::Vec4i)
+		.value("Array", EnginePrimitive::Array);
 
 	m.def("load", [](std::string path) {
 		if (app->activeRaCoProject().undoStack()->depth() > 0) {
@@ -666,7 +735,7 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 		}
 	});
 
-	m.def("export", [](std::string ramsesExport, bool compress, raco::application::ELuaSavingMode luaSavingMode) {
+	m.def("export", [](std::string ramsesExport, bool compress, application::ELuaSavingMode luaSavingMode) {
 		std::string outError;
 		if (!app->exportProject(ramsesExport, compress, outError, false, luaSavingMode)) {
 			throw std::runtime_error(fmt::format(("Export failed: {}", outError)));
@@ -871,6 +940,114 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 				app->activeRaCoProject().commandInterface()->setRenderableTags(handle, renderables);
 				app->doOneLoop();
 			}
+		})
+		.def("getAnimationTimeStamps", [](core::SEditorObject obj) -> py::object {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			auto channel = obj->as<user_types::AnimationChannelRaco>();
+			if (channel->currentSamplerData_) {
+				return py::cast(channel->currentSamplerData_->timeStamps);
+			}
+			return py::none();
+		})
+		.def("getAnimationOutputData", [](core::SEditorObject obj) -> py::object {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			auto channel = obj->as<user_types::AnimationChannelRaco>();
+			if (channel->currentSamplerData_) {
+				return std::visit(
+					overloaded{[](const AnimationOutputData<float>& data) -> py::object {
+								   return py::cast(std::make_tuple(data.keyFrames, data.tangentsIn, data.tangentsOut));
+							   },
+						[](const AnimationOutputData<glm::vec2>& data) -> py::object {
+							return py::cast(std::make_tuple(glmToVector(data.keyFrames), glmToVector(data.tangentsIn), glmToVector(data.tangentsOut)));
+						},
+						[](const AnimationOutputData<glm::vec3>& data) -> py::object {
+							return py::cast(std::make_tuple(glmToVector(data.keyFrames), glmToVector(data.tangentsIn), glmToVector(data.tangentsOut)));
+						},
+						[](const AnimationOutputData<glm::vec4>& data) -> py::object {
+							return py::cast(std::make_tuple(glmToVector(data.keyFrames), glmToVector(data.tangentsIn), glmToVector(data.tangentsOut)));
+						},
+						[](const AnimationOutputData<int32_t>& data) -> py::object {
+							return py::cast(std::make_tuple(data.keyFrames, data.tangentsIn, data.tangentsOut));
+						},
+						[](const AnimationOutputData<glm::ivec2>& data) -> py::object {
+							return py::cast(std::make_tuple(glmToVector(data.keyFrames), glmToVector(data.tangentsIn), glmToVector(data.tangentsOut)));
+						},
+						[](const AnimationOutputData<glm::ivec3>& data) -> py::object {
+							return py::cast(std::make_tuple(glmToVector(data.keyFrames), glmToVector(data.tangentsIn), glmToVector(data.tangentsOut)));
+						},
+						[](const AnimationOutputData<glm::ivec4>& data) -> py::object {
+							return py::cast(std::make_tuple(glmToVector(data.keyFrames), glmToVector(data.tangentsIn), glmToVector(data.tangentsOut)));
+						},
+						[](const AnimationOutputData<std::vector<float>>& data) -> py::object {
+							return py::cast(std::make_tuple(data.keyFrames, data.tangentsIn, data.tangentsOut));
+						}},
+					channel->currentSamplerData_->output);
+			}
+			return py::none();
+		})
+		// Note: the int overloads before need to appear before the float overloads because pybind seems to pick
+		// the first matching one and for an all-int python list the float overload will match too.
+		// However to allow passing all-int python lists when settings float-type animation data we convert
+		// int -> float when the animation channel component type is a float type.
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<int> keyFrames) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			auto channel = obj->as<user_types::AnimationChannelRaco>();
+			if (isIntegerComponentType(static_cast<core::EnginePrimitive>(*channel->componentType_))) {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames);
+			} else {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, toFloat(keyFrames));
+			}
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<int> keyFrames, std::vector<int> tangentsIn, std::vector<int> tangentsOut) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			auto channel = obj->as<user_types::AnimationChannelRaco>();
+			if (isIntegerComponentType(static_cast<core::EnginePrimitive>(*channel->componentType_))) {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames, tangentsIn, tangentsOut);
+			} else {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, toFloat(keyFrames), toFloat(tangentsIn), toFloat(tangentsOut));
+			}
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<float> keyFrames) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames);
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<float> keyFrames, std::vector<float> tangentsIn, std::vector<float> tangentsOut) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames, tangentsIn, tangentsOut);
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<std::vector<int>> keyFrames) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			auto channel = obj->as<user_types::AnimationChannelRaco>();
+			if (isIntegerComponentType(static_cast<core::EnginePrimitive>(*channel->componentType_))) {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames);
+			} else {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, toFloat(keyFrames));
+			}
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<std::vector<int>> keyFrames, std::vector<std::vector<int>> tangentsIn, std::vector<std::vector<int>> tangentsOut) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			auto channel = obj->as<user_types::AnimationChannelRaco>();
+			if (isIntegerComponentType(static_cast<core::EnginePrimitive>(*channel->componentType_))) {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames, tangentsIn, tangentsOut);
+			} else {
+				app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, toFloat(keyFrames), toFloat(tangentsIn), toFloat(tangentsOut));
+			}
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<std::vector<float>> keyFrames) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames);
+			app->doOneLoop();
+		})
+		.def("setAnimationData", [](core::SEditorObject obj, std::vector<float> timeStamps, std::vector<std::vector<float>> keyFrames, std::vector<std::vector<float>> tangentsIn, std::vector<std::vector<float>> tangentsOut) {
+			checkTypedObject<user_types::AnimationChannelRaco>(obj);
+			app->activeRaCoProject().commandInterface()->setAnimationData(obj, timeStamps, keyFrames, tangentsIn, tangentsOut);
+			app->doOneLoop();
 		});
 
 	py::class_<core::LinkDescriptor>(m, "LinkDescriptor")
@@ -1010,6 +1187,10 @@ PYBIND11_EMBEDDED_MODULE(raco, m) {
 
 namespace raco::python_api {
 
+std::string getPythonVersion() {
+	return Py_GetVersion();
+}
+
 bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring>& pythonSearchPaths, bool searchPythonFolderForTest) {
 	PyPreConfig preconfig;
 	PyPreConfig_InitIsolatedConfig(&preconfig);
@@ -1020,7 +1201,6 @@ bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring
 	}
 
 	const std::string_view pythonFolder = PYTHON_FOLDER;
-	const std::string_view pythonVersion = Py_GetVersion();
 	auto shippedPythonRoot = (core::PathManager::executableDirectory() / ".." / pythonFolder).normalized();
 	if (!shippedPythonRoot.existsDirectory() && searchPythonFolderForTest) {
 		// Special case for the tests - search for /release/bin/pythonFolder. Very ugly hack.
@@ -1089,29 +1269,106 @@ bool preparePythonEnvironment(std::wstring argv0, const std::vector<std::wstring
 	return true;
 }
 
-void setup(application::RaCoApplication* racoApp) {
+void setApp(application::RaCoApplication* racoApp) {
 	::app = racoApp;
+}
 
+bool importRaCoModule() {
 	const std::wstring pythonPaths = Py_GetPath();
 	std::string pythonPathsUTF8(1024, 0);
 	pythonPathsUTF8.resize(std::wcstombs(pythonPathsUTF8.data(), pythonPaths.data(), pythonPathsUTF8.size()));
 	LOG_DEBUG(log_system::PYTHON, "Python module search paths: {}", pythonPathsUTF8);
 
-	py::module::import("raco_py_io").attr("hook_stdout")();
+	try {
+		py::module::import("raco_py_io").attr("hook_stdout")();
+	} catch (const py::error_already_set& e) {
+		return false;
+	}
+
+	return true;
 }
 
-PythonRunStatus runPythonScript(application::RaCoApplication* app, const std::wstring& applicationPath, const std::string& pythonScriptPath, const std::vector<std::wstring>& pythonSearchPaths, const std::vector<const char*>& pos_argv_cp) {
+bool importCompleter() {
+	const auto code = R"(
+import rlcompleter
+completer = rlcompleter.Completer(namespace=globals())
+)";
+
+	try {
+		py::exec(code, py::globals());
+		return true;
+	} catch (const py::error_already_set& e) {
+		return false;
+	}
+}
+
+void setupDllLoadPath() {
+	// To make the import of python libraries using DLLs to work correctly on Windows we need to add the python root folder
+	// to the dll path. The root folder contains the python3.dll which is usually a dependency of python dll libraries.
+	// Note: this usually only works in release builds anyway since the dlls in python libraries are typically linked
+	// against the python3.dll release dll and not against the python3_d.dll debug dll.
+	// Apparently on Linux the dynamic libraries packaged into python modules don't contain the python library as a dynamic
+	// link dependency and will therefore work without setting up any dll path. At least this is true for numpy, PySide2,
+	// and PySide6.
+#if defined(WIN32) 
+	auto shippedPythonRoot = (core::PathManager::executableDirectory() / ".." / PYTHON_FOLDER).normalized().string();
+	py::module::import("os").attr("add_dll_directory")(shippedPythonRoot);
+#endif
+}
+
+bool initializeInterpreter(application::RaCoApplication* racoApp, const std::wstring& racoAppPath, const std::vector<std::wstring>& pythonSearchPaths, const std::vector<std::string>& cmdLineArgs) {
+	// Setup environment
+	if (::appPath.empty() || ::pythonSearchPaths.empty()) {
+		::appPath = racoAppPath;
+		::pythonSearchPaths = pythonSearchPaths;
+		preparePythonEnvironment(racoAppPath, pythonSearchPaths);
+	}
+
+	// Setup app
+	if (::app == nullptr) {
+		::app = racoApp;
+	}
+	
+	// Interpreter
+	try {
+		// Initialize
+		std::vector<const char*> pos_argv_cp;
+		for (auto& s : cmdLineArgs) {
+			pos_argv_cp.emplace_back(s.c_str());
+		}
+		py::initialize_interpreter(true, static_cast<int>(pos_argv_cp.size()), pos_argv_cp.data());
+
+		importRaCoModule();
+		importCompleter();
+
+		setupDllLoadPath();
+	} catch (...) {
+		return false;
+	}
+	return true;
+}
+
+void finalizeInterpreter() {
+	if (Py_IsInitialized()) {
+		py::finalize_interpreter();
+	}
+}
+
+PythonRunStatus runPythonScript(const std::string& pythonScript) {
 	currentRunStatus.stdOutBuffer.clear();
 	currentRunStatus.stdErrBuffer.clear();
 
-	if (python_api::preparePythonEnvironment(applicationPath, pythonSearchPaths)) {
-		py::scoped_interpreter pyGuard{true, static_cast<int>(pos_argv_cp.size()), pos_argv_cp.data()};
-
-		python_api::setup(app);
-		currentRunStatus.stdOutBuffer.append(fmt::format("running python script {}\n\n", pythonScriptPath));
+	try {
+		auto result = py::eval(pythonScript);
+		if (!result.is_none()) {
+			py::print(result);
+		}
+	} catch (py::error_already_set& e) {
 		try {
-			py::eval_file(pythonScriptPath);
+			py::exec(pythonScript);
 		} catch (py::error_already_set& e) {
+			auto what = std::string(e.what());
+
 			if (e.matches(PyExc_SystemExit)) {
 				auto exitCode = py::cast<int>(e.value().attr("code"));
 				currentRunStatus.stdErrBuffer.append(fmt::format("Exit called from Python: exit code '{}'\n", exitCode));
@@ -1130,14 +1387,71 @@ PythonRunStatus runPythonScript(application::RaCoApplication* app, const std::ws
 			// need a test
 			return currentRunStatus;
 		}
-	} else {
-		currentRunStatus.stdErrBuffer.append("Failed to prepare the Python environment.\n");
+		
+		return currentRunStatus;
+	}
+
+	return currentRunStatus;
+}
+
+PythonRunStatus runPythonScriptFromFile(const std::string& pythonScriptPath) {
+	currentRunStatus.stdOutBuffer.clear();
+	currentRunStatus.stdErrBuffer.clear();
+
+	try {
+		py::eval_file(pythonScriptPath);
+	} catch (py::error_already_set& e) {
+		if (e.matches(PyExc_SystemExit)) {
+			auto exitCode = py::cast<int>(e.value().attr("code"));
+			currentRunStatus.stdErrBuffer.append(fmt::format("Exit called from Python: exit code '{}'\n", exitCode));
+			currentRunStatus.exitCode = py::cast<int>(e.value().attr("code"));
+			return currentRunStatus;
+		} else {
+			currentRunStatus.stdErrBuffer.append(fmt::format("Python exception:\n{}", e.what()));
+			currentRunStatus.exitCode = 1;
+			return currentRunStatus;
+		}
+	} catch (std::exception& e) {
+		currentRunStatus.stdErrBuffer.append(fmt::format("Error thrown in Python script:\n{}", e.what()));
 		currentRunStatus.exitCode = 1;
+		// TODO exit code
+		// how do we get here?
+		// need a test
 		return currentRunStatus;
 	}
 	currentRunStatus.exitCode = 0;
 
 	return currentRunStatus;
+}
+
+std::vector<std::string> getCompletions(const std::string& prefix) {
+	const auto code = R"(
+matches = [completer.complete('__prefix__', i) for i in range(100)]
+matches = [m for m in matches if m is not None]
+)";
+
+	const auto formattedCode = std::regex_replace(code, std::regex("__prefix__"), prefix);
+	const auto globalNamespace = py::globals();
+
+	try {
+		py::exec(formattedCode, globalNamespace);
+		const auto matches = globalNamespace["matches"].cast<std::vector<std::string>>();
+		return matches;
+	} catch (const py::error_already_set &e) {
+	}
+
+	return std::vector<std::string>();
+}
+
+bool isCompleteCommand(const std::string& command) {
+	try {
+		const py::module code = py::module::import("code");
+		const py::object result = code.attr("compile_command")(command);
+		return !result.is_none();
+	}
+	catch(...) {
+		return false;
+	}
 }
 
 }  // namespace raco::python_api

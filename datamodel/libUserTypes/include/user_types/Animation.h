@@ -53,7 +53,7 @@ public:
 
 	Property<double, DisplayNameAnnotation, RangeAnnotation<double>, LinkEndAnnotation> progress_{0.0, {"Progress"}, {0.0, 1.0}, {}};
 
-	Property<Array<SAnimationChannel>, DisplayNameAnnotation, ResizableArray> animationChannels_{{}, {"Animation Channels"}, {}};
+	Property<Array<SAnimationChannelBase>, DisplayNameAnnotation, ResizableArray> animationChannels_{{}, {"Animation Channels"}, {}};
 	Property<Table, DisplayNameAnnotation> outputs_{{}, {"Outputs"}};
 };
 

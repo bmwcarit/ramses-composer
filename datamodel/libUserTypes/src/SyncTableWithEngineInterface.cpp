@@ -149,7 +149,7 @@ inline void removeProperties(core::BaseContext& context, const PropertyInterface
 		EnginePrimitive engineType = anno->type();
 
 		auto fullPropPath = propertyPath + propertyPathSeparator + name;
-		if (it == interface.end() || it->type != engineType || std::distance(interface.begin(), it) != propertyIndex) {
+		if (it == interface.end() || it->type != engineType) {
 			toRemove.emplace_back(name);
 			if (value->type() != PrimitiveType::Table) {
 				outdatedPropertiesStore[std::make_pair(fullPropPath, engineType)] = value->clone(nullptr);
@@ -201,7 +201,12 @@ inline void addProperties(core::BaseContext& context, const PropertyInterfaceLis
 				}
 			}
 			ValueBase* newValue = context.addProperty(property, name, std::move(uniqueValue), interfaceIndex);
+		} else if (interfaceIndex != property.constValueRef()->getSubstructure().index(name)) { 
+			auto currentIndex = property.constValueRef()->getSubstructure().index(name);
+			assert(currentIndex > interfaceIndex);
+			context.swapProperties(property, interfaceIndex, currentIndex);
 		}
+
 		if (iEntry.primitiveType() == PrimitiveType::Table) {
 			addProperties(context, iEntry.children, property.get(name), propertyPath + propertyPathSeparator + name, outdatedPropertiesStore, linkStart, linkEnd, cacheLookupFunc);
 		}

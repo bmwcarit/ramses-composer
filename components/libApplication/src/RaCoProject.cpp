@@ -370,9 +370,6 @@ QJsonDocument RaCoProject::loadJsonDocument(const QString& filename) {
 int RaCoProject::preloadFeatureLevel(const QString& filename, int featureLevel) {
 	LOG_INFO(log_system::PROJECT, "Loading project from {}", filename.toLatin1());
 
-	QFileInfo path(filename);
-	QString absPath = path.absoluteFilePath();
-
 	auto document = loadJsonDocument(filename);
 
 	auto fileFeatureLevel = serialization::deserializeFeatureLevel(document);
@@ -469,6 +466,9 @@ QString RaCoProject::name() const {
 	return QString::fromStdString(project_.settings()->objectName());
 }
 
+std::string RaCoProject::pythonOnSaveScriptPath() {
+	return project_.settings()->pythonOnSaveScript_.asString();
+}
 
 QJsonDocument RaCoProject::serializeProjectData(const std::unordered_map<std::string, std::vector<int>>& currentVersions) {
 	// Create instances in serialization order:
@@ -793,6 +793,10 @@ void RaCoProject::updateExternalReferences(core::LoadContext& loadContext) {
 }
 
 Project* RaCoProject::project() {
+	return &project_;
+}
+
+const Project* RaCoProject::project() const {
 	return &project_;
 }
 

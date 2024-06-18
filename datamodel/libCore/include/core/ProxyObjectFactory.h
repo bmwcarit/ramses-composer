@@ -155,6 +155,10 @@ public:
 		// Animation
 		Property<Array<SAnimationChannel>, DisplayNameAnnotation>,
 		Property<Array<SAnimationChannel>, DisplayNameAnnotation, ResizableArray>,
+		Property<Array<SAnimationChannelBase>, DisplayNameAnnotation, ResizableArray>,
+
+		// AnimationChannelRaco
+		Property<Table, HiddenProperty>,
 
 		// EditorObject
 		Property<Array<SEditorObject>, ArraySemanticAnnotation, HiddenProperty>,
@@ -267,7 +271,13 @@ public:
 		Property<ColorWriteMask, DisplayNameAnnotation>,
 		Property<CameraViewport, DisplayNameAnnotation>,
 		Property<ScissorOptions, DisplayNameAnnotation>,
-		Property<StencilOptions, DisplayNameAnnotation>
+		Property<StencilOptions, DisplayNameAnnotation>,
+
+		// AnimationChannelRaco data arrays
+		Value<Array<int>>,
+		Value<Array<Array<int>>>,
+		Value<Array<double>>,
+		Value<Array<Array<double>>>
 	>;
 
 	static ProxyObjectFactory& getInstance();

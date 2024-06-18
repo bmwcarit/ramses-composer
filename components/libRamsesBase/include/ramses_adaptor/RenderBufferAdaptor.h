@@ -16,19 +16,25 @@
 
 namespace raco::ramses_adaptor {
 
-	class RenderBufferAdaptor : public TypedObjectAdaptor<user_types::RenderBuffer, ramses::TextureSampler> {
-	public:
-		explicit RenderBufferAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderBuffer> editorObject);
+class RenderBufferAdaptor : public TypedObjectAdaptor<user_types::RenderBuffer, ramses::TextureSampler>, public ILogicPropertyProvider {
+public:
+	explicit RenderBufferAdaptor(SceneAdaptor* sceneAdaptor, std::shared_ptr<user_types::RenderBuffer> editorObject);
 
-		bool sync(core::Errors* errors) override;
-		std::vector<ExportInformation> getExportInformation() const override;
+	bool sync(core::Errors* errors) override;
+	std::vector<ExportInformation> getExportInformation() const override;
 
-		ramses_base::RamsesRenderBuffer buffer() const;
+	ramses_base::RamsesRenderBuffer buffer() const;
 
-	private:
-		ramses_base::RamsesRenderBuffer buffer_;
+	void getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const override;
+	ramses::Property* getProperty(const std::vector<std::string_view>& propertyNamesVector) override;
+	void onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) override;
 
-		std::array<components::Subscription, 8> subscriptions_;
-	};
+private:
+	ramses_base::RamsesRenderBuffer buffer_;
 
+	ramses_base::RamsesRenderBufferBinding binding_;
+
+	std::array<components::Subscription, 8> subscriptions_;
 };
+
+};	// namespace raco::ramses_adaptor

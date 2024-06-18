@@ -27,7 +27,8 @@ function(register_python_target targetname deploymentfolder)
 		COMMAND ${CMAKE_COMMAND} -E rm -rf "${deploymentfolder}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${deploymentfolder}"
 		COMMAND ${CMAKE_COMMAND} -E copy_directory "/usr/lib/python3.8" "${deploymentfolder}/python3.8"
-		COMMAND ${CMAKE_COMMAND} -E env  PIP_PREFIX="${deploymentfolder}/python3.8" python3.8 "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/get-pip.py" --ignore-installed
+		# TODO: this does not work in CC ci (no Internet access)
+		# COMMAND ${CMAKE_COMMAND} -E env  PIP_PREFIX="${deploymentfolder}/python3.8" python3.8 "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/get-pip.py" --ignore-installed
 		COMMAND ${CMAKE_COMMAND} -E touch "${deploymentfolder}/python_setup_completed.txt")
 	add_library(${targetname} INTERFACE "${deploymentfolder}/python_setup_completed.txt")
 	set_target_properties (${targetname} PROPERTIES FOLDER Packaging)

@@ -478,7 +478,6 @@ void recreateBackPointers(serialization::ProjectDeserializationInfoIR& deseriali
 	}
 }
 
-
 // Limitations
 // - Annotations and links are handled as static classes:
 //   we can't change the class definition in a way that prevents deserialization of the old annotation: this means that
@@ -1576,7 +1575,7 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, serialization:
 				// !!! Wrong !!!
 				// The save file optimization may have removed buffer references if the RenderTarget is an external reference.
 				// In this case the check below may be wrong, i.e. different than without the save file optimization.
-				// Since the information needed to make the correct decision is not present in the file we can't make 
+				// Since the information needed to make the correct decision is not present in the file we can't make
 				// the right choice here in all cases.
 				// Instead the external reference update itself contains fixup code for this case.
 
@@ -1743,6 +1742,98 @@ void migrateProject(ProjectDeserializationInfoIR& deserializedIR, serialization:
 			}
 		}
 	}
-}	
-	
+
+	// Migration to file version 2002:
+	// - Change array element type of Animation::animationChannels_ from AnimationChannel to AnimationChannelBase
+	if (deserializedIR.fileVersion <= 2001) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "Animation") {
+				auto oldProp = dynObj->extractProperty("animationChannels");
+				auto newProp = dynObj->addProperty("animationChannels", new Property<Array<SAnimationChannelBase>, DisplayNameAnnotation, ResizableArray>({}, {"Animation Channels"}, {}), -1);
+
+				ArrayBase& oldArray = oldProp->asArray();
+				for (size_t i = 0; i < oldArray.size(); i++) {
+					*newProp->asArray().addProperty() = oldArray.get(i)->asRef();
+				}
+			}
+		}
+	}
+
+	// Migration to file version 2004:
+	// Make RenderBuffer and RenderBufferMS properties 'width', 'height', and'sampleCount' linkable.
+	if (deserializedIR.fileVersion <= 2004) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			if (dynObj->serializationTypeName() == "RenderBuffer" || dynObj->serializationTypeName() == "RenderBufferMS") {
+				if (dynObj->hasProperty("width")) {
+					auto oldProp = dynObj->extractProperty("width");
+					auto newProp = dynObj->addProperty("width", new Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>(oldProp->asInt(), {1, 7680}, {"Width"}, {}), -1);
+				}
+				if (dynObj->hasProperty("height")) {
+					auto oldProp = dynObj->extractProperty("height");
+					auto newProp = dynObj->addProperty("height", new Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>(oldProp->asInt(), {1, 7680}, {"Height"}, {}), -1);
+				}
+				if (dynObj->hasProperty("sampleCount")) {
+					auto oldProp = dynObj->extractProperty("sampleCount");
+					auto newProp = dynObj->addProperty("sampleCount", new Property<int, RangeAnnotation<int>, DisplayNameAnnotation, LinkEndAnnotation>(oldProp->asInt(), {1, 8}, {"Sample Count"}, {}), -1);
+				}
+			}
+		}
+	}
+
+	// Migration to file version 2005:
+	if (deserializedIR.fileVersion <= 2005) {
+		for (const auto& dynObj : deserializedIR.objects) {
+			auto instanceType = dynObj->serializationTypeName();
+
+			if (instanceType == "ProjectSettings") {
+				if (dynObj->hasProperty("viewport")) {
+					auto& viewport = dynObj->get("viewport")->asStruct();
+					viewport.get("i1")->query<RangeAnnotation<int>>()->max_ = 8192;
+					viewport.get("i2")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+			}
+
+			if (instanceType == "RenderBuffer" || instanceType == "RenderBufferMS") {
+				if (dynObj->hasProperty("width")) {
+					dynObj->get("width")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+				if (dynObj->hasProperty("height")) {
+					dynObj->get("height")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+			}
+
+			if (instanceType == "BlitPass") {
+				if (dynObj->hasProperty("sourceX")) {
+					dynObj->get("sourceX")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+				if (dynObj->hasProperty("sourceY")) {
+					dynObj->get("sourceY")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+				if (dynObj->hasProperty("destinationX")) {
+					dynObj->get("destinationX")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+				if (dynObj->hasProperty("destinationY")) {
+					dynObj->get("destinationY")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+				if (dynObj->hasProperty("width")) {
+					dynObj->get("width")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+				if (dynObj->hasProperty("height")) {
+					dynObj->get("height")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+			}
+
+			if (instanceType == "PerspectiveCamera" || instanceType == "OrthographicCamera") {
+				if (dynObj->hasProperty("viewport")) {
+					auto viewport = (&dynObj->get("viewport")->asStruct());
+					viewport->get("offsetX")->query<RangeAnnotation<int>>()->max_ = 8192;
+					viewport->get("offsetY")->query<RangeAnnotation<int>>()->max_ = 8192;
+					viewport->get("width")->query<RangeAnnotation<int>>()->max_ = 8192;
+					viewport->get("height")->query<RangeAnnotation<int>>()->max_ = 8192;
+				}
+			}
+		}
+	}
+}
+
 }  // namespace raco::serialization

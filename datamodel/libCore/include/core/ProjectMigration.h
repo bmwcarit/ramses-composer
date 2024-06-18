@@ -132,9 +132,18 @@ namespace raco::serialization {
  *           reset LinkEndAnnotation in enabled, renderOrder, clearColor properties
  *           reset LinkEndAnnotation and removed FeatureLevel annotation in renderOnce property
  *		   - RenderLayer::renderableTags child properties: reset LinkEndAnnotation
+ * 2002: Change array element type of Animation::animationChannels_ from AnimationChannel to AnimationChannelBase
+ *       Added AnimationChannelRaco user type
+ * 2003: Add python on-save script to the project settings
+ * 2004: Made RenderBuffer and RenderBufferMS properties 'width', 'height', and 'sampleCount' linkable.
+ * 2005: Increase max ranges to 8192 for the following properties:
+ *       - ProjectSettings viewport i1 & i2
+ *	     - RenderBuffer and RenderBufferMS height and width
+ *       - BlitPass sourceX, sourceY, destinationX, destinationY, width, height
+ *       - BaseCamera::viewport width, height, offsetX, offsetY
  */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 2001;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 2005;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, serialization::proxy::ProxyObjectFactory& factory);
 

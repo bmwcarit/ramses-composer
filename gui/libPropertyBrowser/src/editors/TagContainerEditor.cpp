@@ -82,6 +82,7 @@ TagContainerEditor::TagContainerEditor(PropertyBrowserItem* item, QWidget* paren
 
 		renderedBy_ = new QLabel{this};
 		renderedBy_->setForegroundRole(QPalette::BrightText);
+		renderedBy_->setWordWrap(true);
 		layout->addWidget(renderedBy_, 1, 1, Qt::AlignTop);
 	}
 	

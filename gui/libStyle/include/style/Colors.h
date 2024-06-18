@@ -25,6 +25,12 @@ enum class Colormap {
 	grayEditDisabled,
 	textDisabled,
 
+	// additional colors for text editors
+	textHighlightIndentation,
+	textHighlightComments,
+	textHighlightNumbers,
+	textHighlightArrows,
+
 	// additional colors for custom widgets and custom roles/states
 	updatedInBackground,
 	errorColor,

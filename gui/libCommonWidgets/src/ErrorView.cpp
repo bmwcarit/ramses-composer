@@ -107,11 +107,13 @@ ErrorView::ErrorView(core::CommandInterface* commandInterface, components::SData
 	tableView_->verticalHeader()->setMinimumSectionSize(ROW_HEIGHT);
 	tableView_->verticalHeader()->setMaximumSectionSize(ROW_HEIGHT);
 	tableView_->verticalHeader()->setDefaultSectionSize(ROW_HEIGHT);
-	connect(tableView_, &QTableView::doubleClicked, [this](const auto& selectedIndex) {
-		auto modelIndex = proxyModel_->mapToSource(selectedIndex);
-		Q_EMIT objectSelectionRequested(QString::fromStdString(indexToObjID_[modelIndex.row()]));
-	});
-	connect(tableView_, &QTableView::customContextMenuRequested, this, &ErrorView::createCustomContextMenu);
+	if (!embeddedInExportView) {
+		connect(tableView_, &QTableView::doubleClicked, [this](const auto& selectedIndex) {
+			auto modelIndex = proxyModel_->mapToSource(selectedIndex);
+			Q_EMIT objectSelectionRequested(QString::fromStdString(indexToObjID_[modelIndex.row()]));
+		});
+		connect(tableView_, &QTableView::customContextMenuRequested, this, &ErrorView::createCustomContextMenu);
+	}
 	errorViewLayout->addWidget(tableView_);
 
 	if (showFilterLayout_) {

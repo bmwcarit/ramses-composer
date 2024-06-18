@@ -33,6 +33,7 @@ RenderBufferMSAdaptor::RenderBufferMSAdaptor(SceneAdaptor* sceneAdaptor, std::sh
 }
 
 bool RenderBufferMSAdaptor::sync(core::Errors* errors) {
+	binding_.reset();
 	buffer_.reset();
 
 	auto sampleCount = *editorObject()->sampleCount_;
@@ -62,6 +63,8 @@ bool RenderBufferMSAdaptor::sync(core::Errors* errors) {
 	if (buffer_) {
 		auto textureSampler = ramses_base::ramsesTextureSamplerMS(sceneAdaptor_->scene(), buffer_, (editorObject()->objectName() + "_TextureSamplerMS").c_str(), editorObject()->objectIDAsRamsesLogicID());
 		reset(std::move(textureSampler));
+
+		binding_ = ramses_base::ramsesRenderBufferBinding(buffer_, &sceneAdaptor_->logicEngine(), editorObject()->objectName() + "_Binding", editorObject()->objectIDAsRamsesLogicID());
 	} else {
 		reset(nullptr);
 	}
@@ -75,14 +78,38 @@ ramses_base::RamsesRenderBuffer RenderBufferMSAdaptor::buffer() const {
 }
 
 std::vector<ExportInformation> RenderBufferMSAdaptor::getExportInformation() const {
-	if (buffer_ == nullptr) {
-		return {};
+	std::vector<ExportInformation> result;
+	if (getRamsesObjectPointer() != nullptr) {
+		result.emplace_back(ramsesObject().getType(), ramsesObject().getName());
 	}
+	if (buffer_) {
+		result.emplace_back(buffer_->getType(), buffer_->getName());
+	}
+	if (binding_) {
+		result.emplace_back("RenderBufferBinding", binding_->getName());
+	}
+	return result;
+}
 
-	return {
-		ExportInformation{ramsesObject().getType(), ramsesObject().getName()},
-		ExportInformation{buffer_->getType(), buffer_->getName()},
-	};
+void RenderBufferMSAdaptor::getLogicNodes(std::vector<ramses::LogicNode*>& logicNodes) const {
+	if (binding_) {
+		logicNodes.push_back(binding_.get());
+	}
+}
+
+ramses::Property* RenderBufferMSAdaptor::getProperty(const std::vector<std::string_view>& propertyNamesVector) {
+	if (binding_ && propertyNamesVector.size() >= 1) {
+		return binding_->getInputs()->getChild(propertyNamesVector[0]);
+	}
+	return nullptr;
+}
+
+void RenderBufferMSAdaptor::onRuntimeError(core::Errors& errors, std::string const& message, core::ErrorLevel level) {
+	core::ValueHandle const valueHandle{editorObject_};
+	if (errors.hasError(valueHandle)) {
+		return;
+	}
+	errors.addError(core::ErrorCategory::RAMSES_LOGIC_RUNTIME, level, valueHandle, message);
 }
 
 }  // namespace raco::ramses_adaptor

@@ -753,9 +753,10 @@ template std::map<std::string, std::set<SLink>> Queries::getLinksConnectedToObje
 std::string Queries::getBrokenLinksErrorMessage(const Project& project, SEditorObject obj) {
 	std::vector<std::string> brokenLinks;
 	for (auto link : Queries::getLinksConnectedToObject(project, obj, false, true)) {
-		core::ValueHandle endHandle(link->endProp());
-		if (endHandle && !link->isValid()) {
-			brokenLinks.emplace_back(fmt::format("{} -> {}", link->startProp().getPropertyPath(), link->endProp().getPropertyPath()));
+		if (!link->isValid()) {
+			if ((*link->endObject_)->isValidProperty(*link->endProp_)) {
+				brokenLinks.emplace_back(fmt::format("{} -> {}", link->startProp().getPropertyPath(), link->endProp().getPropertyPath()));
+			}
 		}
 	}
 	if (brokenLinks.size() > 0) {

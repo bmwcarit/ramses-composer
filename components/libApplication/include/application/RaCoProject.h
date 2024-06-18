@@ -86,6 +86,7 @@ public:
 	static std::unique_ptr<RaCoProject> loadFromFile(const QString& filename, RaCoApplication* app, core::LoadContext& loadContext, bool logErrors = true, int featureLevel = -1, bool generateNewObjectIDs = false);
 	
 	QString name() const;
+	std::string pythonOnSaveScriptPath();
 
 	bool dirty() const noexcept;
 	bool save(std::string &outError);
@@ -95,6 +96,7 @@ public:
 	void updateExternalReferences(core::LoadContext& loadContext);
 
 	core::Project* project();
+	const core::Project* project() const;
 	core::Errors const* errors() const;
 	core::Errors* errors();
 	core::DataChangeRecorder* recorder();
@@ -126,7 +128,7 @@ private:
 	void generateProjectSubfolder(const std::string& subFolderPath);
 	void generateAllProjectSubfolders();
 	void updateActiveFileListener();
-
+	
 	core::DataChangeRecorder recorder_;
 	core::Errors errors_;
 	core::Project project_;
