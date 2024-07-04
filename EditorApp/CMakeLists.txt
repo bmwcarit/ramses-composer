@@ -43,7 +43,6 @@ set_target_properties(RaCoEditor PROPERTIES OUTPUT_NAME "RamsesComposer" RUNTIME
 set(RACO_RELEASE_ROOT_FILES
 	${CMAKE_SOURCE_DIR}/README.md
 	${CMAKE_SOURCE_DIR}/CHANGELOG.md
-	${CMAKE_SOURCE_DIR}/third_party/ramses-logic/tools/migrate/migrate_to_v1_0.py
 )
 
 create_folder_structure("${RACO_RELEASE_ROOT_FILES}" ${RACO_RELEASE_DIRECTORY} RaCoPrepareReleaseFolder)

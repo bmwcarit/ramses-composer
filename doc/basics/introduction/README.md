@@ -217,7 +217,7 @@ of Ramses Composer scenes to Logic and RAMSES files.
 
 ## Feature Levels
 
-To allow easier upgrades of RAMSES and RAMSES Logic in the toolchain RAMSES Logic allows to selectively enable only a subset of features using feature levels. To support this in RamsesComposer every project has a feature level which is used when exporting using RAMSES and RAMSES Logic. By keeping the feature level of an existing project  when switching to a newer RamsesComposer version featuring a newer RAMSES Logic the exported files can still be loaded by an older RAMSES Logic supporting the feature level of the project. A RamsesComposer project has to be upgraded explicitly by the user to a new feature level if desired. Upgrading a RamsesComposer project to a newer feature level is needed to access the features provided by that feature level.
+To allow easier upgrades of RAMSES in the toolchain RAMSES allows to selectively enable only a subset of features using feature levels. To support this in RamsesComposer every project has a feature level which is used when exporting using RAMSES. By keeping the feature level of an existing project  when switching to a newer RamsesComposer version featuring a newer RAMSES the exported files can still be loaded by an older RAMSES supporting the feature level of the project. A RamsesComposer project has to be upgraded explicitly by the user to a new feature level if desired. Upgrading a RamsesComposer project to a newer feature level is needed to access the features provided by that feature level.
 
 The feature level for new projects can be set using the `Preferences Dialog` in the GUI application and via the `-f` commandline option in the headless application.
 
@@ -225,16 +225,14 @@ To upgrade a project to a higher feature level the `-f` commandline option can b
 
 A project may reference external projects with the same or lower feature levels but externally referenced projects must not have a higher feature level than the master project.
 
-The following table contains a list of the features enabled in RamsesComposer at various feature levels together with the corresponding RAMSES Logic and RamsesComposer versions making them available.
+The following table contains a list of the features enabled in RamsesComposer at various feature levels together with the corresponding RAMSES and RamsesComposer versions making them available.
 
-Feature Level | RAMSES Logic Version | RamsesComposer Version | Feature 
+Feature Level | RAMSES Version | RamsesComposer Version | Feature 
 -|-|-|-
-1 | <=1.0.3 | <= 1.2.0 | Base Features
-2 | 1.1.0 |  1.3.0 | - added AnchorPoint type <br> - linkable RenderPass properties <br> - added `enabled` Node property <br> - frustum planes for PerspectiveCameras
-3 | 1.2.0 | 1.5.0 | dynamic control of render order via links in RenderLayer `renderableTags` properties
-4 | 1.3.0 | 1.6.0 | added Skin type
-5 | 1.4.0 | 1.6.0 | added support for LuaModules in LuaInterfaces
-5 | 1.4.0 | 1.9.0 | linkable `instanceCount` MeshNode 
+1 | 2.0.0 | 2.0.0 | Base Features
+2 | 2.2.0 |  2.2.0 | - support for scene merging
+
+
 
 
 

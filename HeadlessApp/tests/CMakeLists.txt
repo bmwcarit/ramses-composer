@@ -22,6 +22,9 @@ set_tests_properties(RaCoHeadless_load_no_such_file PROPERTIES WILL_FAIL True)
 add_racocommand_test(RaCoHeadless_load_future_version "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/future-version.rca")
 set_tests_properties(RaCoHeadless_load_future_version PROPERTIES WILL_FAIL True)
 
+add_racocommand_test(RaCoHeadless_load_future_feature_level "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/future-feature-level.rca")
+set_tests_properties(RaCoHeadless_load_future_feature_level PROPERTIES WILL_FAIL True)
+
 add_racocommand_test(RaCoHeadless_load_no_json "${CMAKE_CURRENT_BINARY_DIR}" "-p" "${CMAKE_SOURCE_DIR}/resources/no-json.rca")
 set_tests_properties(RaCoHeadless_load_no_json PROPERTIES WILL_FAIL True)
 

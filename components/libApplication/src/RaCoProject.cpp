@@ -413,6 +413,12 @@ std::unique_ptr<RaCoProject> RaCoProject::loadFromFile(const QString& filename, 
 		auto absPath = utils::u8path(info.path).normalizedAbsolutePath(p.currentFolder());
 		p.addExternalProjectMapping(id, absPath.string(), info.name);
 	}
+
+	// We run into this case when there is a feature level upgrade without a file version upgrade:
+	if (p.featureLevel() < ramses_base::BaseEngineBackend::minFeatureLevel || p.featureLevel() > ramses_base::BaseEngineBackend::maxFeatureLevel) {
+		throw std::runtime_error(fmt::format("Project feature level {} outside valid range ({} ... {})", p.featureLevel(), static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)));
+	}
+
 	if (featureLevel != -1) {
 		if (featureLevel >= p.featureLevel() && featureLevel <= static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)) {
 			p.setFeatureLevel(featureLevel);

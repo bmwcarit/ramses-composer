@@ -47,7 +47,7 @@ SceneAdaptor::SceneAdaptor(ramses::RamsesClient* client, ramses::sceneId_t id, P
 	: client_{client},
 	  project_(project),
 	  scene_{ramsesScene(id, client_)},
-	  logicEngine_{ramses_base::BaseEngineBackend::UniqueLogicEngine(scene_->createLogicEngine(), [this](ramses::LogicEngine* logicEngine) { scene_->destroy(*logicEngine); })},
+	  logicEngine_{ramses_base::BaseEngineBackend::UniqueLogicEngine(scene_->createLogicEngine("LogicEngine_" + project->projectName()), [this](ramses::LogicEngine* logicEngine) { scene_->destroy(*logicEngine); })},
 	  subscription_{dispatcher->registerOnObjectsLifeCycle([this](SEditorObject obj) { createAdaptor(obj); }, [this](SEditorObject obj) { removeAdaptor(obj); })},
 	  childrenSubscription_(dispatcher->registerOnPropertyChange("children", [this](core::ValueHandle handle) {
 		  adaptorStatusDirty_ = true;

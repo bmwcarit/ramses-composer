@@ -25,6 +25,8 @@ macro(add_screenshot_test TESTNAME PROJECTPATH)
 	set_tests_properties("screenshot_${TESTNAME}" PROPERTIES ATTACHED_FILES_ON_FAIL "${CMAKE_CURRENT_SOURCE_DIR}/actual/${TESTNAME}.png")
 endmacro()
 
+
+
 # Run screenshot tests only on windows as long as the linux build server can't run the GUI application
 if(WIN32)
 	# Note: don't include simple_broken here: this project is intentionally different from the expected screenshot to 
@@ -35,6 +37,12 @@ if(WIN32)
 		empty
 		duck
 		skinning
+		skinning-rigged-figure
+		# TODO enable the ubo test once the ramses ubo export is fixed:
+		# currently leading this scene with ramses-viewer will crash:
+		# ubo-phong
+		#merge-left
+		#merge-right
 	)
 
 	set(RACO_DOC_PROJECTS
@@ -93,4 +101,12 @@ if(WIN32)
 
 	add_screenshot_test(simple_broken ${CMAKE_CURRENT_SOURCE_DIR}/projects/simple_broken.rca)
 	set_tests_properties(screenshot_simple_broken PROPERTIES WILL_FAIL True)
+
+	add_test(
+		NAME "screenshot_merge"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		COMMAND ${CMAKE_COMMAND} -D RACO_EXE=${RACO_EXE} -D VIEWER_EXE=${VIEWER_EXE} -D PY_EXE=${PYTHON_DEPLOYMENT_FOLDER}/python.exe -D PY_CMD=compare_screenshots.py  -P "${CMAKE_CURRENT_SOURCE_DIR}/merge_test.cmake"
+	)
+	set_tests_properties("screenshot_merge" PROPERTIES ATTACHED_FILES_ON_FAIL "${CMAKE_CURRENT_SOURCE_DIR}/actual/merge.png")
+
 endif()

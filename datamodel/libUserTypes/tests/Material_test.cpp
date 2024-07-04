@@ -166,10 +166,10 @@ TEST_F(MaterialTest, errorEmptyGeometryShader) {
 
 	commandInterface.set(geometryUriHandle, shaderEmptyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(material));
-	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] geometry shader Shader Parsing Error:\nERROR: #version: geometry shaders require es profile with version 310 or non-es profile with version 150 or above\nERROR: 0:1: '' : array size must be a positive integer\nERROR: 0:1: '' : compilation terminated \nINTERNAL ERROR: Unable to parse built-ins\nERROR: 1 compilation errors.  No code generated.\n\n\n");
+	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] geometry shader Shader Parsing Error:\nERROR: #version: geometry shaders require es profile with version 310 or non-es profile with version 150 or above\nERROR: 1 compilation errors.  No code generated.\n\n\n");
 	commandInterface.set(geometryUriHandle, shaderWhitespaceOnlyFile);
 	ASSERT_TRUE(commandInterface.errors().hasError(material));
-	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] geometry shader Shader Parsing Error:\nERROR: #version: geometry shaders require es profile with version 310 or non-es profile with version 150 or above\nERROR: 0:1: '' : array size must be a positive integer\nERROR: 0:1: '' : compilation terminated \nINTERNAL ERROR: Unable to parse built-ins\nERROR: 1 compilation errors.  No code generated.\n\n\n");
+	ASSERT_EQ(commandInterface.errors().getError(material).message(), "[GLSL Compiler] geometry shader Shader Parsing Error:\nERROR: #version: geometry shaders require es profile with version 310 or non-es profile with version 150 or above\nERROR: 1 compilation errors.  No code generated.\n\n\n");
 }
 
 TEST_F(MaterialTest, shaderDefines) {
@@ -242,3 +242,13 @@ TEST_F(MaterialTest, shaderFileWatcherTest) {
 		verifyFileWatcher(file);
 	}
 }
+
+TEST_F(MaterialTest, ubo_uniform) {
+	auto mat = create_material("material", "shaders/ubo.vert", "shaders/ubo.frag");
+	
+	ASSERT_FALSE(commandInterface.errors().hasError({mat}));
+	ASSERT_FALSE(commandInterface.errors().hasError({mat, &user_types::Material::uriVertex_}));
+	ASSERT_FALSE(commandInterface.errors().hasError({mat, &user_types::Material::uriFragment_}));
+}
+
+

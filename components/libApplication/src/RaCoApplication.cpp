@@ -156,6 +156,12 @@ void RaCoApplication::switchActiveRaCoProject(const QString& file, std::function
 		activeProject_ = RaCoProject::createNew(this, createDefaultScene, newFeatureLevel);
 	} else {
 		auto fileFeatureLevel = RaCoProject::preloadFeatureLevel(file, featureLevel);
+
+		// We run into this case when there is a feature level upgrade without a file version upgrade:
+		if (fileFeatureLevel < ramses_base::BaseEngineBackend::minFeatureLevel || fileFeatureLevel > ramses_base::BaseEngineBackend::maxFeatureLevel) {
+			throw std::runtime_error(fmt::format("Project feature level {} outside valid range ({} ... {})", fileFeatureLevel, static_cast<int>(ramses_base::BaseEngineBackend::minFeatureLevel), static_cast<int>(ramses_base::BaseEngineBackend::maxFeatureLevel)));
+		}
+
 		engine_->setFeatureLevel(static_cast<ramses::EFeatureLevel>(fileFeatureLevel));
 		activeProject_ = RaCoProject::loadFromFile(file, this, loadContext, false, featureLevel, generateNewObjectIDs);
 	}

@@ -103,9 +103,6 @@ bool SceneBackend::discardRamsesMessage(std::string_view message) {
 	if (message.find("has no outgoing links! Node should be deleted or properly linked!") != std::string::npos) {
 		return true;
 	}
-	if (message.find("rendergroup does not contain any meshes") != std::string::npos) {
-		return true;
-	}
 	if (message.find("Unused [uniform]") != std::string::npos ||
 		message.find("Unused [in]") != std::string::npos ||
 		message.find("Unused [out]") != std::string::npos) {

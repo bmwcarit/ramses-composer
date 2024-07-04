@@ -101,8 +101,15 @@ class GeneralTests(unittest.TestCase):
         raco.load(self.cwd() + "/../resources/empty-raco-2x-fl1.rca", raco.maxFeatureLevel())
         self.assertEqual(raco.projectFeatureLevel(), raco.maxFeatureLevel())
 
-        # TODO check that feature level downgrade is not possible:
-        # currently can't be tested since max feature level is 1
+        raco.load(self.cwd() + "/../resources/empty-raco-2x-fl2.rca")
+        self.assertEqual(raco.projectFeatureLevel(), 2)
+
+        # Feature level downgrade fails:
+        with self.assertRaises(RuntimeError):
+            raco.load(self.cwd() + "/../resources/empty-raco-2x-fl2.rca", 1)
+        
+        raco.load(self.cwd() + "/../resources/empty-raco-2x-fl2.rca", raco.maxFeatureLevel())
+        self.assertEqual(raco.projectFeatureLevel(), raco.maxFeatureLevel())
 
     def test_save_check_object_id(self):
         objectInitID = self.findObjectByType("ProjectSettings").objectID()

@@ -1,7 +1,7 @@
 {
     "externalProjects": {
     },
-    "featureLevel": 1,
+    "featureLevel": 2,
     "fileVersion": 2005,
     "instances": [
         {
@@ -63,7 +63,7 @@
                     "scriptSubdirectory": "scripts",
                     "shaderSubdirectory": "shaders"
                 },
-                "featureLevel": 1,
+                "featureLevel": 2,
                 "objectID": "8b3c93d7-63cb-4a0b-9cfd-b115741632a7",
                 "objectName": "empty-raco-2x-fl1",
                 "pythonOnSaveScript": "",

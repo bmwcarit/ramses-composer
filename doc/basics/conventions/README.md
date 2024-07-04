@@ -124,18 +124,43 @@ There are few special semantic uniforms (i.e. uniforms which can't be explicitly
 
 | Ramses Enumeration                 | Type    | Uniform name in custom GLSL shaders |
 | -----------------------------------|---------|:-------------:|
-| ```MODEL_MATRIX```                 | `MAT44` | u_MMatrix / uWorldMatrix |
-| ```MODEL_VIEW_MATRIX```            | `MAT44` | u_MVMatrix / uWorldViewMatrix |
-| ```MODEL_VIEW_PROJECTION_MATRIX``` | `MAT44` | u_MVPMatrix / uWorldViewProjectionMatrix |
-| ```PROJECTION_MATRIX```            | `MAT44` | u_PMatrix / uProjectionMatrix |
-| ```VIEW_MATRIX```                  | `MAT44` | u_VMatrix / uViewMatrix |
-| ```NORMAL_MATRIX```                | `MAT44` | u_NMatrix / uNormalMatrix |
-| ```CAMERA_WORLD_POSITION```        | `VEC3`  | u_CameraWorldPosition / uCameraPosition |
-| ```RESOLUTION```                   | `VEC2`  | u_resolution / uResolution |
+| ```ModelMatrix```                 | `MAT44` | u_MMatrix / uWorldMatrix |
+| ```ModelViewMatrix```            | `MAT44` | u_MVMatrix / uWorldViewMatrix |
+| ```ModelViewProjectionMatrix``` | `MAT44` | u_MVPMatrix / uWorldViewProjectionMatrix |
+| ```ProjectionMatrix```            | `MAT44` | u_PMatrix / uProjectionMatrix |
+| ```ViewMatrix```                  | `MAT44` | u_VMatrix / uViewMatrix |
+| ```NormalMatrix```                | `MAT44` | u_NMatrix / uNormalMatrix |
+| ```CameraWorldPosition```        | `VEC3`  | u_CameraWorldPosition / uCameraPosition |
+| ```DisplayBufferResolution```                   | `VEC2`  | u_resolution / uResolution |
+| ```ModelBlock``` | UBO (see below) | uModelBlock |
+| ```CameraBlock``` | UBO (see below) | uCameraBlock |
+| ```ModelCameraBlock``` | UBO (see below) | uModelCameraBlock |
 
 If any of these uniforms are found in a shader, they will not show up in the Property view of MeshNodes and Materials, but they will receive their value from Ramses.
 
 In addition the `u_jointMat` uniform of private materials of MeshNodes will be set by Skin objects referencing the MeshNode. It has to be an array of type `VEC4` of the same length as the number of joints nodes in the Skin object.
+
+Starting at feature level 2 semantics for uniform buffers objects is supported as specified in the table above. The data layout of the UBO types is given by the shader code below. Note that the order of the declarations in the structs matters.
+
+```
+layout(std140, binding = 0) uniform ModelBlock_t {
+	mat4 modelMat;
+} uModelBlock;
+
+layout(std140, binding = 1) uniform CameraBlock_t
+{
+    mat4 projMat;
+    mat4 viewMat;
+    vec3 camPos;
+} uCameraBlock;
+
+layout(std140, binding = 2) uniform CameraModelBlock_t
+{
+    mat4 mvpMat;
+    mat4 mvMat;
+    mat4 normalMat;
+} uModelCameraBlock;
+```
 
 ## Shader Includes
 Ramses Composer supports `#include` directives in shaders. The path must be relative to current source file. Shaders with `#include` directive are preprocessed by Ramses Composer and then sent to Ramses. Shader errors show locations in preprocessed file. Shader tooltips show preprocessor errors.

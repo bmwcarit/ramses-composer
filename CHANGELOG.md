@@ -24,6 +24,16 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [2.2.0] Ramses 28.2 update
+* **File version number has changed. Files saved with RaCo 2.2.0 cannot be opened by previous versions.**
+* **Export now supports Ramses feature levels up to 2. Scenes exported with feature level 2 can't be opened with Ramses before v2.2.0.**
+
+### Changes
+* Updated Ramses from v28.0.0 to v28.2.0.
+* Scenes exported with feature level 2 can be merged in Ramses. The `ramses-viewer` is now able to load and merge several exported files.
+* Starting at feature level 2 uniform buffers objects with predefined semantics are supported as specified in the documentation.
+
+
 ## [2.1.0] Render View, Python Console, Performance Table, Misc Improvements and Bugfixes
 * **File version number has changed. Files saved with RaCo 2.1.0 cannot be opened by previous versions.**
 

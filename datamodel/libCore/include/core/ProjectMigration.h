@@ -141,9 +141,12 @@ namespace raco::serialization {
  *	     - RenderBuffer and RenderBufferMS height and width
  *       - BlitPass sourceX, sourceY, destinationX, destinationY, width, height
  *       - BaseCamera::viewport width, height, offsetX, offsetY
+ * 2006: New Ramses feature level 2, but no RaCo data model changes.
+ *       - Increase the file version to avoid problems when trying to load feature level 2
+ *         scenes with RaCo <v2.2.
  */
 
-constexpr int RAMSES_PROJECT_FILE_VERSION = 2005;
+constexpr int RAMSES_PROJECT_FILE_VERSION = 2006;
 
 void migrateProject(ProjectDeserializationInfoIR& deserializedIR, serialization::proxy::ProxyObjectFactory& factory);
 

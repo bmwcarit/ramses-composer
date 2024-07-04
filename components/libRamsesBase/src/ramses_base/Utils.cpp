@@ -159,7 +159,11 @@ std::map<std::string, ramses::EEffectUniformSemantic> defaultUniformSemantics = 
 	{"uViewMatrix", ramses::EEffectUniformSemantic::ViewMatrix},
 	{"uNormalMatrix", ramses::EEffectUniformSemantic::NormalMatrix},
 	{"uCameraPosition", ramses::EEffectUniformSemantic::CameraWorldPosition},
-	{"uResolution", ramses::EEffectUniformSemantic::DisplayBufferResolution}};
+	{"uResolution", ramses::EEffectUniformSemantic::DisplayBufferResolution},
+
+	{"uModelBlock", ramses::EEffectUniformSemantic::ModelBlock},
+	{"uCameraBlock", ramses::EEffectUniformSemantic::CameraBlock},
+	{"uModelCameraBlock", ramses::EEffectUniformSemantic::ModelCameraBlock}};
 
 static std::map<ramses::EDataType, core::EnginePrimitive> shaderTypeMap = {
 	{ramses::EDataType::Bool, core::EnginePrimitive::Bool},
@@ -209,7 +213,9 @@ std::unique_ptr<ramses::EffectDescription> createEffectDescription(const std::st
 	description->setGeometryShader(geometryShader.c_str());
 
 	for (auto item : defaultUniformSemantics) {
-		description->setUniformSemantic(item.first.c_str(), item.second);
+		if (!description->setUniformSemantic(item.first.c_str(), item.second)) {
+			LOG_ERROR(log_system::RAMSES_BACKEND, "Error setting uniform semantic for '{}' to '{}'", item.first.c_str(), item.second);
+		}
 	}
 	return description;
 }
@@ -331,19 +337,36 @@ bool parseShaderText(ramses::Scene &scene, const std::string &vertexShader, cons
 	bool success = false;
 	if (effect) {
 		uint32_t numUniforms = effect->getUniformInputCount();
+		std::vector<std::string> exclusions;
 		for (uint32_t i{0}; i < numUniforms; i++) {
 			ramses::UniformInput uniform = effect->getUniformInput(i).value();
 			if (uniform.getSemantics() == ramses::EEffectUniformSemantic::Invalid) {
 				if (shaderTypeMap.find(uniform.getDataType()) != shaderTypeMap.end()) {
 					auto engineType = shaderTypeMap[uniform.getDataType()];
 					buildUniformRecursive(std::string(uniform.getName()), outUniforms, engineType, uniform.getElementCount(), outError);
-				} else {
-					// mat4 uniforms are needed for skinning: they will be set directly by the LogicEngine 
+				} else if (uniform.getDataType() == ramses::EDataType::UniformBuffer) {
+					outError += fmt::format("Uniform '{}' has type uniform buffer which currently can't be exported.", uniform.getName());
+				} else if (uniform.getDataType() != ramses::EDataType::Matrix44F) {
+					// mat4 uniforms are needed for skinning: they will be set directly by the LogicEngine
 					// so we don't need to expose but they shouldn't generate errors either:
-					if (uniform.getDataType() != ramses::EDataType::Matrix44F) {
-						outError += std::string(uniform.getName()) + " has unsupported type";
-					}
+					outError += std::string(uniform.getName()) + " has unsupported type";
 				}
+			} else {
+				// For struct uniforms with UBO semantics the struct itself will have invalid semantics
+				// but the struct members in struct.member notation will have normal semantics.
+				// In order to remove those we need to build an exclusion list and remove them explicitly below.
+				exclusions.emplace_back(uniform.getName());
+			}
+		}
+
+		// This will remove struct members of uniforms with UBO semantics
+		for (auto excludedUniform : exclusions) {
+			auto it = std::find_if(outUniforms.begin(), outUniforms.end(),
+				[excludedUniform](auto interface) {
+					return interface.name == excludedUniform;
+				});
+			if (it != outUniforms.end()) {
+				outUniforms.erase(it);
 			}
 		}
 

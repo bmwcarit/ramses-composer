@@ -64,6 +64,8 @@ raco_package_add_test_resources(
     scripts/types-scalar.lua
     shaders/basic.vert
     shaders/basic.frag
+    shaders/ubo.vert
+    shaders/ubo.frag
     shaders/uniform-array.vert
     shaders/uniform-array.frag
     shaders/include/main_mat_adapter_test.frag

@@ -20,10 +20,12 @@ const ramses::EFeatureLevel BaseEngineBackend::minFeatureLevel = ramses::EFeatur
 // - feature level downgrade tests
 //   - python api: in pyt_general.py -> test_load_raco_2x_feature_levels
 
-const ramses::EFeatureLevel BaseEngineBackend::maxFeatureLevel = ramses::EFeatureLevel::EFeatureLevel_01;
+const ramses::EFeatureLevel BaseEngineBackend::maxFeatureLevel = ramses::EFeatureLevel::EFeatureLevel_02;
 
 const std::string BaseEngineBackend::featureLevelDescriptions =
 R"(1 - Ramses v28.0.0
+2 - Ramses v28.2.0
+    - scene merging
 )";
 
 
