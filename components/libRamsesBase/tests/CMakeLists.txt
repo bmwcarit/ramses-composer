@@ -106,4 +106,6 @@ raco_package_add_test_resources(
     meshes/SimpleSkin/SimpleSkin.gltf
     meshes/AnimatedMorphCube/AnimatedMorphCube.bin
     meshes/AnimatedMorphCube/AnimatedMorphCube.gltf
+    meshes/cube_color_attr_no_underscore_vec3.gltf
+    meshes/cube_color_attr_with_underscore_vec4.gltf
 )

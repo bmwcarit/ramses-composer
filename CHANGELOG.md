@@ -24,6 +24,13 @@ If a copy of the MPL was not distributed with this file, You can obtain one at h
 
 -->
 
+## [1.10.4] Support for new Blender glTF exporter
+
+### Added
+* Added support for the new attribute naming convention of color attributes in the Blender glTF exporter. The `_COLOR_N` attributes are now imported as color attributes if no attribute using the `COLOR_N` form is present in the glTF file.
+* Added support for import of `Vec3` color attributes in the glTF importer. The alpha channel will be set to `1.0` in this case.
+
+
 ## [1.10.3] Skinning Import Bugfix
 
 ### Fixes

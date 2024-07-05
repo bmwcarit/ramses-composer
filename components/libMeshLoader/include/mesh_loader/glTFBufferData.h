@@ -39,6 +39,10 @@ struct glTFBufferData {
 		return numComponentsForType.at(accessor_.type);
 	}
 
+	int type() const {
+		return accessor_.type;
+	}
+
 	template <typename T, typename U = T>
 	T getDataArray(size_t index, bool useComponentSize = true) const {
 		auto componentSize = (useComponentSize) ? accessor_.ByteStride(view_) / sizeof(typename T::value_type) : 1;

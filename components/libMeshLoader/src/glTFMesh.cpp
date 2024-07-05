@@ -274,7 +274,7 @@ void convertPositionData(const glTFBufferData &data, std::vector<float> &buffer,
 	}
 }
 
-void convertAttributeSet(const tinygltf::Primitive &primitive, const tinygltf::Model &scene, std::vector<std::vector<float>> &buffers, const std::string &attributeBaseName, const std::set<int> &allowedComponentTypes, const std::set<int> &allowedTypes, bool normalize, int numVertices) {
+void convertAttributeSet(const tinygltf::Primitive &primitive, const tinygltf::Model &scene, std::vector<std::vector<float>> &buffers, const std::string &attributeBaseName, const std::set<int> &allowedComponentTypes, const std::set<int> &allowedTypes, bool normalize, int numVertices, bool padVec3Types = false) {
 	for (auto channel = 0; channel < std::numeric_limits<int>::max(); ++channel) {
 		auto attribName = fmt::format("{}_{}", attributeBaseName, channel);
 		if (primitive.attributes.find(attribName) != primitive.attributes.end()) {
@@ -286,6 +286,10 @@ void convertAttributeSet(const tinygltf::Primitive &primitive, const tinygltf::M
 				for (size_t vertexIndex = 0; vertexIndex < bufferData.accessor_.count; vertexIndex++) {
 					auto elementData = normalize ? bufferData.getNormalizedData(vertexIndex) : bufferData.getConvertedData<float>(vertexIndex);
 					buffer.insert(buffer.end(), elementData.begin(), elementData.end());
+					// Optionally add padding to convert RGB color to RGBA color using 1.0 for alpha as required by gltf spec:
+					if (padVec3Types && bufferData.type() == TINYGLTF_TYPE_VEC3) {
+						buffer.emplace_back(1.0f);
+					}
 				}
 			} else {
 				LOG_WARNING(log_system::MESH_LOADER, "Attribute '{}' has different size than vertex buffer, ignoring it.", attribName);
@@ -415,7 +419,13 @@ void glTFMesh::loadPrimitiveData(const tinygltf::Primitive &primitive, const tin
 
 	convertAttributeSet(primitive, scene, colorBuffers, "COLOR",
 		std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT},
-		std::set<int>{TINYGLTF_TYPE_VEC3, TINYGLTF_TYPE_VEC4}, true, numVertices);
+		std::set<int>{TINYGLTF_TYPE_VEC3, TINYGLTF_TYPE_VEC4}, true, numVertices, true);
+
+	if (colorBuffers.empty()) {
+		convertAttributeSet(primitive, scene, colorBuffers, "_COLOR",
+			std::set<int>{TINYGLTF_COMPONENT_TYPE_FLOAT, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT},
+			std::set<int>{TINYGLTF_TYPE_VEC3, TINYGLTF_TYPE_VEC4}, true, numVertices, true);
+	}
 
 	convertAttributeSet(primitive, scene, jointBuffers, "JOINTS",
 		std::set<int>{TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT},
